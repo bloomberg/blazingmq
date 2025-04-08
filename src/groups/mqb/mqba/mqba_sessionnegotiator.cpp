@@ -416,6 +416,109 @@ void SessionNegotiator::readCallback(const bmqio::Status& status,
     context->d_initialConnectionCb(rc_SUCCESS, "", session);
 }
 
+int SessionNegotiator::createSessionOnMsgType(
+    const InitialConnectionContextSp& context,
+    bsl::shared_ptr<mqbnet::Session>& session)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                        = 0,
+        rc_CONTINUE_READ                  = 1,
+        rc_NO_SESSION                     = -1,
+        rc_NO_ADMIN_CALLBACK              = -2,
+        rc_SEND_NEGOTIATION_MESSAGE_ERROR = -3,
+        rc_INVALID_NEGOTIATION_TYPE       = -4
+    };
+
+    bmqu::MemOutStream errStream;
+
+    switch (context->d_initialConnectionMessage_p.selectionId()) {
+    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
+        // This is the first message of the negotiation protocol; can either
+        // represent:
+        // - a client connecting to us
+        // - a proxy connecting to us (implying we are a cluster member)
+        // - a cluster peer connecting to us (implying we are a cluster member)
+        // - an admin client connecting to us
+
+        if (context->d_initialConnectionMessage_p.clientIdentity()
+                .clientType() == bmqp_ctrlmsg::ClientType::E_TCPADMIN) {
+            // Remote client is connecting to us as an admin.
+            context->d_connectionType = ConnectionType::e_ADMIN;
+
+            if (!d_adminCb) {
+                errStream << "Admin callback is not specified: admin session "
+                          << "is not supported";
+                bsl::string error(errStream.str().data(),
+                                  errStream.str().length());
+                context->d_initialConnectionCb(rc_NO_ADMIN_CALLBACK,
+                                               error,
+                                               session);
+                return rc_NO_ADMIN_CALLBACK;  // RETURN
+            }
+        }
+        else if (mqbnet::ClusterUtil::isClientOrProxy(
+                     context->d_initialConnectionMessage_p)) {
+            // - clusterName empty implies the remote peer is a regular client
+            // - clusterName non empty but nodeId invalid means remote side is
+            //   connecting to us as a proxy to 'clusterName' (with nodeId
+            //   being invalid because remote peer is NOT part of the cluster,
+            //   hence it's a proxy).
+            context->d_connectionType = ConnectionType::e_CLIENT;
+        }
+        else {
+            // Remote peer provided a valid clusterName and nodeId, those are
+            // its identity inside the cluster.
+            context->d_connectionType = ConnectionType::e_CLUSTER_MEMBER;
+        }
+        session = onClientIdentityMessage(errStream, context);
+    } break;
+    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE: {
+        // This is the second part of the negotiation protocol.  If we haven't
+        // yet made a 'connectionType' decision, this means we are a cluster
+        // member.
+        // TBD: should find a better way to detect that situation
+        if (context->d_connectionType == ConnectionType::e_UNKNOWN) {
+            context->d_connectionType = ConnectionType::e_CLUSTER_MEMBER;
+        }
+
+        session = onBrokerResponseMessage(errStream, context);
+    } break;
+    case bmqp_ctrlmsg::NegotiationMessage ::
+        SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
+        context->d_isReversed  = true;
+        context->d_clusterName = context->d_initialConnectionMessage_p
+                                     .reverseConnectionRequest()
+                                     .clusterName();
+        context->d_connectionType = ConnectionType::e_CLUSTER_PROXY;
+
+        int rc = initiateOutboundNegotiation(context);
+        if (rc == 0) {
+            return rc_CONTINUE_READ;  // RETURN
+        }
+        return rc_SEND_NEGOTIATION_MESSAGE_ERROR;  // RETURN
+    }                                              // break;
+    default: {
+        errStream << "Invalid negotiation message received (unknown type): "
+                  << context->d_initialConnectionMessage_p;
+        bsl::string error(errStream.str().data(), errStream.str().length());
+        context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
+                                       error,
+                                       session);
+        return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
+    }
+    }
+
+    if (!session) {
+        bsl::string error(errStream.str().data(), errStream.str().length());
+        context->d_initialConnectionCb(rc_NO_SESSION, error, session);
+        return rc_NO_SESSION;  // RETURN
+    }
+
+    context->d_initialConnectionCb(rc_SUCCESS, "", session);
+    return rc_SUCCESS;
+}
+
 int SessionNegotiator::decodeNegotiationMessage(
     bsl::ostream&                     errorDescription,
     const InitialConnectionContextSp& context,
@@ -1072,6 +1175,76 @@ int SessionNegotiator::negotiate(
     }
 
     scheduleRead(negotiationContext);
+
+    return 0;
+}
+
+int SessionNegotiator::negotiateOutboundOrReverse(
+    const InitialConnectionContextSp& initialConnectionContext)
+{
+    BSLS_ASSERT_SAFE(!initialConnectionContext
+                          ->d_initialConnectionHandlerContext_p->isIncoming());
+    // If this is a 'connect' negotiation, this could either represent an
+    // outgoing proxy/cluster connection, or a reversed cluster connection;
+    // the context's user data will tell.  We send the identity and then
+    // read.
+    //
+    // In an outgoing connection, the negotiatorContext user data must be
+    // present (set in 'ClusterCatalog::createCluster' or
+    // 'ClusterCatalog::initiateReversedClusterConnections' and is of type
+    // 'mqbblp::ClusterCatalog::NegotiationUserData').
+    const mqbblp::ClusterCatalog::NegotiationUserData* userData =
+        reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
+            initialConnectionContext->d_initialConnectionHandlerContext_p
+                ->userData());
+    BSLS_ASSERT_SAFE(userData);
+
+    if (userData->d_isClusterConnection) {
+        initialConnectionContext->d_clusterName = userData->d_clusterName;
+        if (d_clusterCatalog_p->isMemberOf(
+                initialConnectionContext->d_clusterName)) {
+            initialConnectionContext->d_connectionType =
+                ConnectionType::e_CLUSTER_MEMBER;
+        }
+        else {
+            initialConnectionContext->d_connectionType =
+                ConnectionType::e_CLUSTER_PROXY;
+        }
+
+        int rc = initiateOutboundNegotiation(initialConnectionContext);
+        if (rc != 0) {
+            return rc;  // RETURN
+        }
+    }
+    else {
+        // This is a reverse connection, we simply send the negotiation
+        // request message and enter the 'regular' inbound negotiation
+        // logic.
+
+        bmqp_ctrlmsg::NegotiationMessage        negotiationMessage;
+        bmqp_ctrlmsg::ReverseConnectionRequest& request =
+            negotiationMessage.makeReverseConnectionRequest();
+        request.protocolVersion() = bmqp::Protocol::k_VERSION;
+        request.clusterName()     = userData->d_clusterName;
+        request.clusterNodeId()   = userData->d_myNodeId;
+
+        initialConnectionContext->d_isReversed     = true;
+        initialConnectionContext->d_connectionType = ConnectionType::e_CLIENT;
+
+        bmqu::MemOutStream errStream;
+        int                rc = sendNegotiationMessage(errStream,
+                                        negotiationMessage,
+                                        initialConnectionContext);
+        if (rc != 0) {
+            bsl::string error(errStream.str().data(),
+                              errStream.str().length());
+            initialConnectionContext->d_initialConnectionCb(
+                -1,
+                error,
+                bsl::shared_ptr<mqbnet::Session>());
+            return rc;  // RETURN
+        }
+    }
 
     return 0;
 }
