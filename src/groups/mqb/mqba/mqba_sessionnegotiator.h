@@ -224,11 +224,12 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// reference offering modifiable access to this object.
     SessionNegotiator& setDomainFactory(mqbi::DomainFactory* value);
 
-    int createSessionOnMsgType(const InitialConnectionContextSp& context,
-                               bsl::shared_ptr<mqbnet::Session>& session);
-
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
+
+    int createSessionOnMsgType(const InitialConnectionContextSp& context,
+                               bsl::shared_ptr<mqbnet::Session>* session)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Negotiate the connection on the specified `channel` associated with
     /// the specified negotiation `context` and invoke the specified

@@ -130,7 +130,7 @@ void InitialConnectionHandler::readCallback(
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE:
     case bmqp_ctrlmsg::NegotiationMessage ::
         SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
-        rc = d_negotiator_mp->createSessionOnMsgType(context, session);
+        rc = d_negotiator_mp->createSessionOnMsgType(context, &session);
         if (rc == rc_CONTINUE_READ) {
             scheduleRead(context);
         }
@@ -218,8 +218,8 @@ void InitialConnectionHandler::scheduleRead(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    bslma::ManagedPtr<SessionNegotiator>& negotiator,
-    bslma::Allocator*                     allocator)
+    bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
+    bslma::Allocator*                      allocator)
 : d_negotiator_mp(negotiator)
 , d_threadPool(1, 100, allocator)
 , d_allocator_p(allocator)
