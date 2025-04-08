@@ -4534,8 +4534,7 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
 
     return StorageUtil::isStorageEmpty(&d_storagesLock,
                                        d_storages[partitionId],
-                                       uri,
-                                       partitionId);
+                                       uri);
 }
 
 const mqbs::FileStore& StorageManager::fileStore(int partitionId) const

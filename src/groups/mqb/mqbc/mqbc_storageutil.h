@@ -98,8 +98,7 @@ struct StorageUtil {
 
   private:
     // TYPES
-    typedef mqbi::StorageManager::AppInfos      AppInfos;
-    typedef mqbi::StorageManager::AppInfosCIter AppInfosCIter;
+    typedef mqbi::StorageManager::AppInfos AppInfos;
 
     typedef mqbi::StorageManager::AppIds         AppIds;
     typedef mqbi::StorageManager::AppIdsIter     AppIdsIter;
@@ -180,7 +179,7 @@ struct StorageUtil {
     /// Load into the specified `result` the list of elements present in
     /// `baseSet` which are not present in `subtractionSet`.
     static void
-    loadDifference(bsl::unordered_set<bsl::string>*       result,
+    loadDifference(bsl::vector<bsl::string>*              result,
                    const bsl::unordered_set<bsl::string>& baseSet,
                    const bsl::unordered_set<bsl::string>& subtractionSet);
 
@@ -389,20 +388,18 @@ struct StorageUtil {
     /// into the specified `removedEntries` the list of entries which are
     /// present in `existingEntries` but not in `newEntries`.
     static void loadAddedAndRemovedEntries(
-        bsl::unordered_set<bsl::string>*       addedEntries,
-        bsl::unordered_set<bsl::string>*       removedEntries,
+        bsl::vector<bsl::string>*              addedEntries,
+        bsl::vector<bsl::string>*              removedEntries,
         const bsl::unordered_set<bsl::string>& existingEntries,
         const bsl::unordered_set<bsl::string>& newEntries);
 
-    /// Return true if the queue having specified `uri` and assigned to the
-    /// specified `partitionId` has no messages in the specified
-    /// `storageMap`, false in any other case.  If the optionally specified
-    /// `storagesLock` is specified, lock it.  Behavior is undefined unless
-    /// this routine is invoked from cluster dispatcher thread.
+    /// Return true if the queue having specified `uri` has no messages in the
+    /// specified `storageMap`, false in any other case.  If the optionally
+    /// specified `storagesLock` is specified, lock it.  Behavior is undefined
+    /// unless this routine is invoked from cluster dispatcher thread.
     static bool isStorageEmpty(bslmt::Mutex*       storagesLock,
                                const StorageSpMap& storageMap,
-                               const bmqt::Uri&    uri,
-                               int                 partitionId);
+                               const bmqt::Uri&    uri);
 
     /// Callback scheduled by the Storage Manager to run every minute which
     /// monitors storage (disk space, archive clean up, etc), using the
