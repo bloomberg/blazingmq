@@ -112,8 +112,6 @@ namespace mqba {
 namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.SESSIONNEGOTIATOR");
 
-const int k_NEGOTIATION_READTIMEOUT = 3 * 60;  // 3 minutes
-
 /// Load into the specified `identity` the identity of this broker.
 /// The specified `shouldBroadcastToProxies` controls whether we advertise
 /// that feature.
@@ -265,7 +263,7 @@ void loadSessionDescription(bsl::string*                        out,
 
 int SessionNegotiator::createSessionOnMsgType(
     const InitialConnectionContextSp& context,
-    bsl::shared_ptr<mqbnet::Session>& session)
+    bsl::shared_ptr<mqbnet::Session>* session)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -300,7 +298,7 @@ int SessionNegotiator::createSessionOnMsgType(
                                   errStream.str().length());
                 context->d_initialConnectionCb(rc_NO_ADMIN_CALLBACK,
                                                error,
-                                               session);
+                                               *session);
                 return rc_NO_ADMIN_CALLBACK;  // RETURN
             }
         }
@@ -319,7 +317,7 @@ int SessionNegotiator::createSessionOnMsgType(
             context->d_connectionType =
                 mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
-        session = onClientIdentityMessage(errStream, context);
+        *session = onClientIdentityMessage(errStream, context);
     } break;
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE: {
         // This is the second part of the negotiation protocol.  If we haven't
@@ -331,7 +329,7 @@ int SessionNegotiator::createSessionOnMsgType(
                 mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
 
-        session = onBrokerResponseMessage(errStream, context);
+        *session = onBrokerResponseMessage(errStream, context);
     } break;
     case bmqp_ctrlmsg::NegotiationMessage ::
         SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
@@ -353,18 +351,18 @@ int SessionNegotiator::createSessionOnMsgType(
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
                                        error,
-                                       session);
+                                       *session);
         return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
     }
     }
 
-    if (!session) {
+    if (!(*session)) {
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCb(rc_NO_SESSION, error, session);
+        context->d_initialConnectionCb(rc_NO_SESSION, error, *session);
         return rc_NO_SESSION;  // RETURN
     }
 
-    context->d_initialConnectionCb(rc_SUCCESS, "", session);
+    context->d_initialConnectionCb(rc_SUCCESS, "", *session);
     return rc_SUCCESS;
 }
 

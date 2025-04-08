@@ -55,6 +55,14 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
+    int createSessionOnMsgType(
+        const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context,
+        bsl::shared_ptr<mqbnet::Session>* session) BSLS_KEYWORD_OVERRIDE
+    {
+        markDone();
+        return 0;
+    }
+
     int negotiateOutboundOrReverse(
         const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
             initialConnectionContext) BSLS_KEYWORD_OVERRIDE

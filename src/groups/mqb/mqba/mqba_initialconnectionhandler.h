@@ -21,6 +21,7 @@
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
+#include <mqbnet_negotiator.h>
 
 // BMQ
 #include <bmqio_status.h>
@@ -52,7 +53,7 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     // DATA
 
     /// Negotiator to use for converting a Channel to a Session
-    bslma::ManagedPtr<mqba::SessionNegotiator> d_negotiator_mp;
+    bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
 
     bdlmt::FixedThreadPool d_threadPool;
 
@@ -99,9 +100,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   public:
     // CREATORS
 
-    InitialConnectionHandler(
-        bslma::ManagedPtr<mqba::SessionNegotiator>& negotiator,
-        bslma::Allocator*                           allocator);
+    InitialConnectionHandler(bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
+                             bslma::Allocator*                      allocator);
 
     /// Destructor
     ~InitialConnectionHandler() BSLS_KEYWORD_OVERRIDE;
