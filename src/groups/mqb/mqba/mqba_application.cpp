@@ -335,14 +335,13 @@ int Application::start(bsl::ostream& errorDescription)
                                  bdlf::PlaceHolders::_3,    // onProcessedCb
                                  bdlf::PlaceHolders::_4));  // fromReroute
 
-    bslma::ManagedPtr<mqba::SessionNegotiator> sessionNegotiatorMp(
-        sessionNegotiator,
-        d_allocator_p);
+    bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
+                                                       d_allocator_p);
 
     bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
         initialConnectionHandlerMp(
             new (*d_allocator_p) InitialConnectionHandler(
-                sessionNegotiatorMp,
+                negotiatorMp,
                 d_allocators.get("InitialConnectionHandler")),
             d_allocator_p);
 
