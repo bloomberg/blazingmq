@@ -1,10 +1,11 @@
-name: Publish
+name: Publish release
 
 on:
   push:
     # Publish `v*` tags as releases.
     tags:
-      - v*
+      - v[0-9]+.[0-9]+.[0-9]+           # Releases
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+  # Release Candidates
     # Allow us to make manual images from `main`, tagged as `main`.
     workflow_dispatch:
 
@@ -13,6 +14,42 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  create-github-prerelease:
+    runs-on: ubuntu-latest
+    if: github.event_name == ’push’ && contains(github.ref_name, “rc”)
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create release candidate
+        id: create_release_candidate
+        uses: softprops/action-gh-release@v2.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_name: Release Candidate ${{ github.ref_name }}
+          draft: true           # So we can write release notes
+          prelease: true
+          generate_release_notes: true
+
+  create-github-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == ’push’ && !contains(github.ref_name, “rc”)
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2.2.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: true           # So we can write candidate release notes
+          prelease: false
+          generate_release_notes: true
+
   build-and-publish-image:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
