@@ -342,7 +342,7 @@ void SessionNegotiator::readCallback(const bmqio::Status& status,
         if (context->d_initialConnectionMessage_p.clientIdentity()
                 .clientType() == bmqp_ctrlmsg::ClientType::E_TCPADMIN) {
             // Remote client is connecting to us as an admin.
-            context->d_connectionType = ConnectionType::e_ADMIN;
+            context->d_connectionType = mqbnet::ConnectionType::e_ADMIN;
 
             if (!d_adminCb) {
                 errStream << "Admin callback is not specified: admin session "
@@ -362,12 +362,13 @@ void SessionNegotiator::readCallback(const bmqio::Status& status,
             //   connecting to us as a proxy to 'clusterName' (with nodeId
             //   being invalid because remote peer is NOT part of the cluster,
             //   hence it's a proxy).
-            context->d_connectionType = ConnectionType::e_CLIENT;
+            context->d_connectionType = mqbnet::ConnectionType::e_CLIENT;
         }
         else {
             // Remote peer provided a valid clusterName and nodeId, those are
             // its identity inside the cluster.
-            context->d_connectionType = ConnectionType::e_CLUSTER_MEMBER;
+            context->d_connectionType =
+                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
         session = onClientIdentityMessage(errStream, context);
     } break;
@@ -376,8 +377,9 @@ void SessionNegotiator::readCallback(const bmqio::Status& status,
         // yet made a 'connectionType' decision, this means we are a cluster
         // member.
         // TBD: should find a better way to detect that situation
-        if (context->d_connectionType == ConnectionType::e_UNKNOWN) {
-            context->d_connectionType = ConnectionType::e_CLUSTER_MEMBER;
+        if (context->d_connectionType == mqbnet::ConnectionType::e_UNKNOWN) {
+            context->d_connectionType =
+                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
 
         session = onBrokerResponseMessage(errStream, context);
@@ -388,7 +390,7 @@ void SessionNegotiator::readCallback(const bmqio::Status& status,
         context->d_clusterName = context->d_initialConnectionMessage_p
                                      .reverseConnectionRequest()
                                      .clusterName();
-        context->d_connectionType = ConnectionType::e_CLUSTER_PROXY;
+        context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
 
         rc = initiateOutboundNegotiation(context);
         if (rc == 0) {
@@ -444,7 +446,7 @@ int SessionNegotiator::createSessionOnMsgType(
         if (context->d_initialConnectionMessage_p.clientIdentity()
                 .clientType() == bmqp_ctrlmsg::ClientType::E_TCPADMIN) {
             // Remote client is connecting to us as an admin.
-            context->d_connectionType = ConnectionType::e_ADMIN;
+            context->d_connectionType = mqbnet::ConnectionType::e_ADMIN;
 
             if (!d_adminCb) {
                 errStream << "Admin callback is not specified: admin session "
@@ -464,12 +466,13 @@ int SessionNegotiator::createSessionOnMsgType(
             //   connecting to us as a proxy to 'clusterName' (with nodeId
             //   being invalid because remote peer is NOT part of the cluster,
             //   hence it's a proxy).
-            context->d_connectionType = ConnectionType::e_CLIENT;
+            context->d_connectionType = mqbnet::ConnectionType::e_CLIENT;
         }
         else {
             // Remote peer provided a valid clusterName and nodeId, those are
             // its identity inside the cluster.
-            context->d_connectionType = ConnectionType::e_CLUSTER_MEMBER;
+            context->d_connectionType =
+                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
         session = onClientIdentityMessage(errStream, context);
     } break;
@@ -478,8 +481,9 @@ int SessionNegotiator::createSessionOnMsgType(
         // yet made a 'connectionType' decision, this means we are a cluster
         // member.
         // TBD: should find a better way to detect that situation
-        if (context->d_connectionType == ConnectionType::e_UNKNOWN) {
-            context->d_connectionType = ConnectionType::e_CLUSTER_MEMBER;
+        if (context->d_connectionType == mqbnet::ConnectionType::e_UNKNOWN) {
+            context->d_connectionType =
+                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
 
         session = onBrokerResponseMessage(errStream, context);
@@ -490,7 +494,7 @@ int SessionNegotiator::createSessionOnMsgType(
         context->d_clusterName = context->d_initialConnectionMessage_p
                                      .reverseConnectionRequest()
                                      .clusterName();
-        context->d_connectionType = ConnectionType::e_CLUSTER_PROXY;
+        context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
 
         int rc = initiateOutboundNegotiation(context);
         if (rc == 0) {
@@ -844,7 +848,8 @@ void SessionNegotiator::createSession(
     const bsl::string&                description)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(context->d_connectionType != ConnectionType::e_UNKNOWN);
+    BSLS_ASSERT_SAFE(context->d_connectionType !=
+                     mqbnet::ConnectionType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(
         !context->d_initialConnectionMessage_p.isUndefinedValue());
     BSLS_ASSERT_SAFE(!context->d_initialConnectionMessage_p
@@ -860,7 +865,7 @@ void SessionNegotiator::createSession(
     const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
     int                              maxMissedHeartbeats = 0;
 
-    if (context->d_connectionType == ConnectionType::e_ADMIN) {
+    if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
         mqba::AdminSession* session = new (*d_allocator_p)
             AdminSession(context->d_channelSp,
                          negoMsg,
@@ -873,7 +878,7 @@ void SessionNegotiator::createSession(
 
         out->reset(session, d_allocator_p);
     }
-    else if (context->d_connectionType == ConnectionType::e_CLIENT) {
+    else if (context->d_connectionType == mqbnet::ConnectionType::e_CLIENT) {
         // Create a dedicated stats subcontext for this client
         bmqst::StatContextConfiguration statContextCfg(description);
         statContextCfg.storeExpiredSubcontextValues(true);
@@ -958,7 +963,7 @@ void SessionNegotiator::createSession(
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(
-    const InitialConnectionContext& context)
+    const mqbnet::InitialConnectionContext& context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -987,7 +992,7 @@ bool SessionNegotiator::checkIsDeprecatedSdkVersion(
 }
 
 bool SessionNegotiator::checkIsUnsupportedSdkVersion(
-    const InitialConnectionContext& context)
+    const mqbnet::InitialConnectionContext& context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -1103,7 +1108,7 @@ int SessionNegotiator::negotiate(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const mqbnet::Negotiator::NegotiationCb& negotiationCb)
 {
-    // Create an InitialConnectionContext for that connection
+    // Create an mqbnet::InitialConnectionContext for that connection
     InitialConnectionContextSp negotiationContext;
     negotiationContext.createInplace(d_allocator_p);
 
@@ -1112,7 +1117,7 @@ int SessionNegotiator::negotiate(
     negotiationContext->d_initialConnectionCb               = negotiationCb;
     negotiationContext->d_isReversed                        = false;
     negotiationContext->d_clusterName                       = "";
-    negotiationContext->d_connectionType = ConnectionType::e_UNKNOWN;
+    negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
 
     if (!context->isIncoming()) {
         // If this is a 'connect' negotiation, this could either represent an
@@ -1134,11 +1139,11 @@ int SessionNegotiator::negotiate(
             if (d_clusterCatalog_p->isMemberOf(
                     negotiationContext->d_clusterName)) {
                 negotiationContext->d_connectionType =
-                    ConnectionType::e_CLUSTER_MEMBER;
+                    mqbnet::ConnectionType::e_CLUSTER_MEMBER;
             }
             else {
                 negotiationContext->d_connectionType =
-                    ConnectionType::e_CLUSTER_PROXY;
+                    mqbnet::ConnectionType::e_CLUSTER_PROXY;
             }
 
             int rc = initiateOutboundNegotiation(negotiationContext);
@@ -1158,8 +1163,9 @@ int SessionNegotiator::negotiate(
             request.clusterName()     = userData->d_clusterName;
             request.clusterNodeId()   = userData->d_myNodeId;
 
-            negotiationContext->d_isReversed     = true;
-            negotiationContext->d_connectionType = ConnectionType::e_CLIENT;
+            negotiationContext->d_isReversed = true;
+            negotiationContext->d_connectionType =
+                mqbnet::ConnectionType::e_CLIENT;
 
             bmqu::MemOutStream errStream;
             int                rc = sendNegotiationMessage(errStream,
@@ -1204,11 +1210,11 @@ int SessionNegotiator::negotiateOutboundOrReverse(
         if (d_clusterCatalog_p->isMemberOf(
                 initialConnectionContext->d_clusterName)) {
             initialConnectionContext->d_connectionType =
-                ConnectionType::e_CLUSTER_MEMBER;
+                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
         else {
             initialConnectionContext->d_connectionType =
-                ConnectionType::e_CLUSTER_PROXY;
+                mqbnet::ConnectionType::e_CLUSTER_PROXY;
         }
 
         int rc = initiateOutboundNegotiation(initialConnectionContext);
@@ -1228,8 +1234,9 @@ int SessionNegotiator::negotiateOutboundOrReverse(
         request.clusterName()     = userData->d_clusterName;
         request.clusterNodeId()   = userData->d_myNodeId;
 
-        initialConnectionContext->d_isReversed     = true;
-        initialConnectionContext->d_connectionType = ConnectionType::e_CLIENT;
+        initialConnectionContext->d_isReversed = true;
+        initialConnectionContext->d_connectionType =
+            mqbnet::ConnectionType::e_CLIENT;
 
         bmqu::MemOutStream errStream;
         int                rc = sendNegotiationMessage(errStream,
