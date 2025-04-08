@@ -70,6 +70,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
   private:
     // TYPES
+    typedef bsl::shared_ptr<mqbstat::QueueStatsClient> Stats;
 
     /// VST representing downstream substream with all redelivery data.
     /// (Re)created upon `registerSubStream`
@@ -78,9 +79,11 @@ class QueueHandle : public mqbi::QueueHandle {
         const bsl::string               d_appId;
         unsigned int                    d_upstreamSubQueueId;
         mqbi::QueueHandle::RedeliverySp d_data;
+        const Stats                     d_stats;
 
         Downstream(const bsl::string& appId,
                    unsigned int       upstreamSubQueueId,
+                   const Stats&       stats,
                    bslma::Allocator*  allocator_p);
     };
 
@@ -117,8 +120,9 @@ class QueueHandle : public mqbi::QueueHandle {
 
         const bsl::string& appId() const;
 
-        static unsigned int nextStamp();
+        const Stats& stats() const;
     };
+
     typedef bsl::shared_ptr<Subscription> SubscriptionSp;
     typedef bmqc::Array<bsl::shared_ptr<Downstream>,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
@@ -195,7 +199,8 @@ class QueueHandle : public mqbi::QueueHandle {
 
     bmqp::SchemaLearner::Context d_schemaLearnerPushContext;
 
-    /// Allocator to use.
+    Stats d_producerStats;
+
     bslma::Allocator* d_allocator_p;
 
   private:
@@ -231,10 +236,10 @@ class QueueHandle : public mqbi::QueueHandle {
 
     /// Called by the `Queue` to deliver the specified `message` with the
     /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
-    /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
+    /// `msgGroupId` for the specified `subscriptions` streams of the queue.
     /// The behavior is undefined unless the queueHandle can send a message at
     /// this time for all of the `subQueueInfos` streams (see
-    /// 'canDeliver(unsigned int subQueueId)' for more information).
+    /// 'canDeliver(unsigned int subscription)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
@@ -242,12 +247,13 @@ class QueueHandle : public mqbi::QueueHandle {
                        const bmqt::MessageGUID&                  msgGUID,
                        const mqbi::StorageMessageAttributes&     attributes,
                        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-                       const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                       const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                        bool                                      isOutOfOrder);
 
     void makeSubStream(const bsl::string& appId,
                        unsigned int       downstreamSubQueueId,
-                       unsigned int       upstreamSubQueueId);
+                       unsigned int       upstreamSubQueueId,
+                       const Stats&       stats);
 
     const bsl::shared_ptr<Downstream>&
          downstream(unsigned int subQueueId) const;
@@ -320,7 +326,7 @@ class QueueHandle : public mqbi::QueueHandle {
     /// `upstreamSubQueueId`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void
+    mqbi::QueueHandle::SubStreams::const_iterator
     registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo,
                       unsigned int                        upstreamSubQueueId,
                       const mqbi::QueueCounts& counts) BSLS_KEYWORD_OVERRIDE;
@@ -561,14 +567,15 @@ inline mqbi::DispatcherClient* QueueHandle::client()
 
 inline void QueueHandle::makeSubStream(const bsl::string& appId,
                                        unsigned int       downstreamSubQueueId,
-                                       unsigned int       upstreamSubQueueId)
+                                       unsigned int       upstreamSubQueueId,
+                                       const Stats&       stats)
 {
     if (downstreamSubQueueId >= d_downstreams.size()) {
         d_downstreams.resize(downstreamSubQueueId + 1);
     }
     d_downstreams[downstreamSubQueueId].reset(
         new (*d_allocator_p)
-            Downstream(appId, upstreamSubQueueId, d_allocator_p),
+            Downstream(appId, upstreamSubQueueId, stats, d_allocator_p),
         d_allocator_p);
 }
 
@@ -642,12 +649,14 @@ inline bmqp::SchemaLearner::Context& QueueHandle::schemaLearnerContext() const
 
 inline QueueHandle::Downstream::Downstream(const bsl::string& appId,
                                            unsigned int upstreamSubQueueId,
+                                           const Stats& stats,
                                            bslma::Allocator* allocator_p)
 : d_appId(appId)
 , d_upstreamSubQueueId(upstreamSubQueueId)
 , d_data(new(*allocator_p)
              mqbi::QueueHandle::UnconfirmedMessageInfoMap(allocator_p),
          allocator_p)
+, d_stats(stats)
 {
     // NOTHING
 }

@@ -880,7 +880,9 @@ void ClusterOrchestrator::processStopRequest(
         return;  // RETURN
     }
 
-    ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_STOPPING);
+    bmqp_ctrlmsg::NodeStatus::Value selfStatus =
+        d_clusterData_p->membership().selfNodeStatus();
+    ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_STOPPING, selfStatus);
 
     processNodeStoppingNotification(ns, &request);
 }
@@ -1063,7 +1065,9 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                   << ", current status: " << ns->nodeStatus()
                   << ", new status: " << nsAdvisory.status();
 
-    ns->setNodeStatus(nsAdvisory.status());
+    bmqp_ctrlmsg::NodeStatus::Value selfStatus =
+        d_clusterData_p->membership().selfNodeStatus();
+    ns->setNodeStatus(nsAdvisory.status(), selfStatus);
 
     if (bmqp_ctrlmsg::NodeStatus::E_STARTING == nsAdvisory.status()) {
         return;  // RETURN
@@ -1083,8 +1087,7 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
     }
 
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == nsAdvisory.status()) {
-        if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
-            d_clusterData_p->membership().selfNodeStatus()) {
+        if (bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
             return;  // RETURN
         }
 
@@ -1168,6 +1171,8 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         d_clusterData_p->membership().getClusterNodeSession(node);
     BSLS_ASSERT_SAFE(ns);
 
+    bmqp_ctrlmsg::NodeStatus::Value selfStatus =
+        d_clusterData_p->membership().selfNodeStatus();
     if (isAvailable) {
         if (bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE == ns->nodeStatus()) {
             // Current status of the peer node is unavailable, which means we
@@ -1187,7 +1192,7 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         // Node is connected, but we don't know its status as of yet so we mark
         // it appropriately.
 
-        ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNKNOWN);
+        ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNKNOWN, selfStatus);
 
         // Send self's status to the node.
 
@@ -1197,13 +1202,12 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         bmqp_ctrlmsg::NodeStatusAdvisory& advisory =
             clusterMsg.choice().makeNodeStatusAdvisory();
 
-        advisory.status() = d_clusterData_p->membership().selfNodeStatus();
+        advisory.status() = selfStatus;
         d_clusterData_p->messageTransmitter().sendMessage(controlMsg, node);
 
         updateDatumStats(ns);
 
-        if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
-            d_clusterData_p->membership().selfNodeStatus()) {
+        if (bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
             return;  // RETURN
         }
 
@@ -1242,7 +1246,7 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
 
     // 'node' has gone down.  Mark it as UNAVAILABLE.
 
-    ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE);
+    ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE, selfStatus);
 
     // Cancel all outstanding requests to that node, with the 'CANCELED'
     // category and the 'e_NODE_DOWN' code.
