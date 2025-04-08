@@ -20,5 +20,13 @@
 namespace BloombergLP {
 namespace bmqc {
 
+// -------------------------------------------
+// struct OrderedHashMapWithHistory_ImpDetails
+// -------------------------------------------
+
+const int
+    OrderedHashMapWithHistory_ImpDetails::k_INSERT_GC_MESSAGES_BATCH_SIZE =
+        1000;
+
 }  // close package namespace
 }  // close enterprise namespace
