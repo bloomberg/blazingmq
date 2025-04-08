@@ -55,15 +55,6 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    int negotiate(mqbnet::InitialConnectionHandlerContext* context,
-                  const bsl::shared_ptr<bmqio::Channel>&   channel,
-                  const mqbnet::Negotiator::NegotiationCb& negotiationCb)
-        BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-        return 0;
-    }
-
     int negotiateOutboundOrReverse(
         const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
             initialConnectionContext) BSLS_KEYWORD_OVERRIDE
@@ -147,14 +138,12 @@ static void test1_Negotiator()
     {
         PV("Verify that methods are public and virtual");
 
-        mqbnet::InitialConnectionHandlerContext* dummyNegotiatorContext_p = 0;
-        bsl::shared_ptr<bmqio::Channel>          dummyChannelSp;
-        mqbnet::Negotiator::NegotiationCb        dummyNegotiationCb;
+        bsl::shared_ptr<mqbnet::InitialConnectionContext>
+            dummyInitialConnectionContextSp;
 
-        BSLS_PROTOCOLTEST_ASSERT(testObj,
-                                 negotiate(dummyNegotiatorContext_p,
-                                           dummyChannelSp,
-                                           dummyNegotiationCb));
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            negotiateOutboundOrReverse(dummyInitialConnectionContextSp));
     }
 }
 
