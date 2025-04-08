@@ -6,8 +6,6 @@ on:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+           # Releases
       - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+  # Release Candidates
-    # Allow us to make manual images from `main`, tagged as `main`.
-    workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -52,7 +50,6 @@ jobs:
 
   build-and-publish-image:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     permissions:
       contents: read
       packages: write
