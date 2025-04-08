@@ -72,15 +72,28 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
   private:
     // PRIVATE MANIPULATORS
+
+    /// Read callback method invoked when receiving data in the specified
+    /// `blob`, if the specified `status` indicates success.  The specified
+    /// `numNeeded` can be used to indicate if more bytes are needed in
+    /// order to get a full message.  The specified `context` holds the
+    /// initial connection context associated to this read.
     void readCallback(const bmqio::Status&              status,
                       int*                              numNeeded,
                       bdlbb::Blob*                      blob,
                       const InitialConnectionContextSp& context);
 
+    /// Decode the initial connection messages received in the specified `blob`
+    /// and store it, on success, in the corresponding member of the specified
+    /// `context`, returning 0.  Return a non-zero code on error and
+    /// populate the specified `errorDescription` with a description of the
+    /// error.
     int decodeNegotiationMessage(bsl::ostream& errorDescription,
                                  const InitialConnectionContextSp& context,
                                  bdlbb::Blob&                      blob);
 
+    /// Schedule a read for the initial connection of the session of the
+    /// specified `context`.
     void scheduleRead(const InitialConnectionContextSp& context);
 
   public:
