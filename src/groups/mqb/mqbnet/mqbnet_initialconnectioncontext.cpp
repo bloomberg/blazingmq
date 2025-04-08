@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_initialconnectioncontext.cpp                           -*-C++-*-
-#include <mqba_initialconnectioncontext.h>
+// mqbnet_initialconnectioncontext.cpp                           -*-C++-*-
+#include <mqbnet_initialconnectioncontext.h>
 
 namespace BloombergLP {
 namespace mqba {

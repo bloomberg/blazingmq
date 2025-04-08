@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_initialconnectioncontext.h                                -*-C++-*-
-#ifndef INCLUDED_MQBA_INITIALCONNECTIONCONTEXT
-#define INCLUDED_MQBA_INITIALCONNECTIONCONTEXT
+// mqbnet_initialconnectioncontext.h                                -*-C++-*-
+#ifndef INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
+#define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
-/// @file mqba_initialconnectioncontext.h
+/// @file mqbnet_initialconnectioncontext.h
 ///
 /// @brief Provide the context for initial connection handler for establishing
 /// sessions.
@@ -30,7 +30,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 namespace BloombergLP {
-namespace mqba {
+namespace mqbnet {
 
 struct ConnectionType {
     // Enum representing the type of session being negotiated, from that
