@@ -1745,8 +1745,9 @@ static void test11_persistanceAcrossRolloverLeader()
         qinfoI.uri()         = uriStream.str();
         qinfoI.partitionId() = i % 4U;
 
+        bsl::string      keyName = bsl::to_string(12300 + i);
         mqbu::StorageKey keyI(mqbu::StorageKey::BinaryRepresentation(),
-                              bsl::to_string(12300 + i).c_str());
+                              keyName.c_str());
         keyI.loadBinary(&qinfoI.key());
 
         qadvisory.queues().push_back(qinfoI);

@@ -193,7 +193,7 @@
 //  bsl::string message = "This is a test message.";
 //
 //  // Generate a checksum for 'message'
-//  unsigned int checksum = bmqp::Crc32c::calculate(message.c_str(),
+//  bsl::uint32_t checksum = bmqp::Crc32c::calculate(message.c_str(),
 //                                                  message.size());
 //..
 // Finally, if we learn that our message has grown by another chunk and we want
@@ -215,6 +215,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsl_cstdint.h>
 
 namespace BloombergLP {
 namespace bmqp {
@@ -231,15 +232,15 @@ struct Crc32c {
 
     /// Signature of the function for the calculation of CRC32-C in the
     /// default implementation methods (`calculate`) .
-    typedef unsigned int (*Crc32cFn)(const unsigned char* data,
-                                     unsigned int         length,
-                                     unsigned int         crc);
+    typedef bsl::uint32_t (*Crc32cFn)(const bsl::uint8_t* data,
+                                      bsl::uint32_t       length,
+                                      bsl::uint32_t       crc);
 
     // CONSTANTS
 
     /// CRC32-C value for a 0 length input.  Note that a buffer with this
     /// CRC32-C value need not be a 0 length input.
-    static const unsigned int k_NULL_CRC32C = 0U;
+    static const bsl::uint32_t k_NULL_CRC32C = 0U;
 
     // CLASS METHODS
 
@@ -255,9 +256,9 @@ struct Crc32c {
     /// The behavior is undefined unless `initialize()` has been called
     /// prior to calling this method at least once.  Note that if `data` is
     /// 0, then `length` also must be 0.
-    static unsigned int calculate(const void*  data,
-                                  unsigned int length,
-                                  unsigned int crc = k_NULL_CRC32C);
+    static bsl::uint32_t calculate(const void*   data,
+                                   bsl::uint32_t length,
+                                   bsl::uint32_t crc = k_NULL_CRC32C);
 
     /// Return the CRC32-C value calculated over the buffers in the
     /// specified `blob` (in order of `blob.buffer(idx)` for increasing
@@ -266,8 +267,8 @@ struct Crc32c {
     /// implementation as set by `initialize()`.  The behavior is undefined
     /// unless `initialize()` has been called prior to calling this method
     /// at least once.
-    static unsigned int calculate(const bdlbb::Blob& blob,
-                                  unsigned int       crc = k_NULL_CRC32C);
+    static bsl::uint32_t calculate(const bdlbb::Blob& blob,
+                                   bsl::uint32_t      crc = k_NULL_CRC32C);
 };
 
 // ==================
@@ -286,19 +287,19 @@ struct Crc32c_Impl {
     /// This utilizes a portable software-based implementation to perform
     /// the calculation.  Note that if `data` is 0, then `length` must also
     /// be 0.
-    static unsigned int
-    calculateSoftware(const void*  data,
-                      unsigned int length,
-                      unsigned int crc = Crc32c::k_NULL_CRC32C);
+    static bsl::uint32_t
+    calculateSoftware(const void*   data,
+                      bsl::uint32_t length,
+                      bsl::uint32_t crc = Crc32c::k_NULL_CRC32C);
 
     /// Return the CRC32-C value calculated over all the buffers in the
     /// specified `blob` (in order of `blob.buffer(idx)` for increasing
     /// values of `idx`), using the optionally specified `crc` value as the
     /// starting point for the calculation.  This utilizes a portable
     /// software-based implementation to perform the calculation.
-    static unsigned int
+    static bsl::uint32_t
     calculateSoftware(const bdlbb::Blob& blob,
-                      unsigned int       crc = Crc32c::k_NULL_CRC32C);
+                      bsl::uint32_t      crc = Crc32c::k_NULL_CRC32C);
 
     /// Return the CRC32-C value calculated for the specified `data` over
     /// the specified `length` number of bytes, using the optionally
@@ -309,10 +310,10 @@ struct Crc32c_Impl {
     /// fall back to the software version when running on unsupported
     /// platforms.  Also note that if `data` is 0, then `length` must also
     /// be 0.
-    static unsigned int
-    calculateHardwareSerial(const void*  data,
-                            unsigned int length,
-                            unsigned int crc = Crc32c::k_NULL_CRC32C);
+    static bsl::uint32_t
+    calculateHardwareSerial(const void*   data,
+                            bsl::uint32_t length,
+                            bsl::uint32_t crc = Crc32c::k_NULL_CRC32C);
 };
 
 }  // close package namespace
