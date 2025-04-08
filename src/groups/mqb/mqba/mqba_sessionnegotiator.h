@@ -227,18 +227,15 @@ class SessionNegotiator : public mqbnet::Negotiator {
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
 
+    /// Create a `session` based on the type of initial connection message in
+    /// the specified `context`.
     int createSessionOnMsgType(const InitialConnectionContextSp& context,
                                bsl::shared_ptr<mqbnet::Session>* session)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Negotiate the connection on the specified `channel` associated with
-    /// the specified negotiation `context` and invoke the specified
-    /// `negotiationCb` once the negotiation is complete (either success or
-    /// failure).  Note that if no negotiation are needed, the
-    /// `negotiationCb` may be invoked directly from inside the call to
-    /// `negotiate`.
-    int negotiateOutboundOrReverse(
-        const InitialConnectionContextSp& initialConnectionContext)
+    /// Send out outbound negotiation message or reverse connection request
+    /// with the specified `context`.
+    int negotiateOutboundOrReverse(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
 

@@ -89,10 +89,9 @@ class Negotiator {
         bsl::shared_ptr<mqbnet::Session>*                session) = 0;
 
     /// Send out outbound negotiation message or reverse connection request
-    /// with the specified `InitialConnectionContext`.
-    virtual int
-    negotiateOutboundOrReverse(const bsl::shared_ptr<InitialConnectionContext>&
-                                   initialConnectionContext) = 0;
+    /// with the specified `context`.
+    virtual int negotiateOutboundOrReverse(
+        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
 };
 
 }  // close package namespace
