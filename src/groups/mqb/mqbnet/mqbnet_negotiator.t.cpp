@@ -14,12 +14,14 @@
 // limitations under the License.
 
 // mqbnet_negotiator.t.cpp                                            -*-C++-*-
-#include <mqbnet_initialconnectionhandlercontext.h>
 #include <mqbnet_negotiator.h>
 
 // MQB
+#include <mqbnet_initialconnectioncontext.h>
+#include <mqbnet_initialconnectionhandlercontext.h>
 #include <mqbnet_session.h>
 
+// BMQ
 #include <bmqio_channel.h>
 
 // BDE
@@ -57,6 +59,14 @@ struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
                   const bsl::shared_ptr<bmqio::Channel>&   channel,
                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE
+    {
+        markDone();
+        return 0;
+    }
+
+    int negotiateOutboundOrReverse(
+        const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
+            initialConnectionContext) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
         return 0;

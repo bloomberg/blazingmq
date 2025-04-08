@@ -244,7 +244,8 @@ void InitialConnectionHandler::initialConnect(
     initialConnectionContext->d_initialConnectionCb = initialConnectionCb;
     initialConnectionContext->d_isReversed          = false;
     initialConnectionContext->d_clusterName         = "";
-    initialConnectionContext->d_connectionType = ConnectionType::e_UNKNOWN;
+    initialConnectionContext->d_connectionType =
+        mqbnet::ConnectionType::e_UNKNOWN;
 
     // Reading for inbound request or continue to read
     // after sending a request ourselves
