@@ -34,8 +34,8 @@
 /// concurrently from many IO threads.
 
 // MQB
-#include <mqba_initialconnectioncontext.h>
 #include <mqbconfm_messages.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
 

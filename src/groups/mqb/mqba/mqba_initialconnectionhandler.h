@@ -20,7 +20,7 @@
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
-#include <mqba_initialconnectioncontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqio_status.h>
