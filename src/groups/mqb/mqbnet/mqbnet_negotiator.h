@@ -45,6 +45,7 @@
 // use.
 
 // MQB
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_initialconnectionhandlercontext.h>
 
 // BDE
@@ -110,6 +111,10 @@ class Negotiator {
     virtual int negotiate(InitialConnectionHandlerContext*       context,
                           const bsl::shared_ptr<bmqio::Channel>& channel,
                           const NegotiationCb& negotiationCb) = 0;
+
+    virtual int
+    negotiateOutboundOrReverse(const bsl::shared_ptr<InitialConnectionContext>&
+                                   initialConnectionContext) = 0;
 };
 
 }  // close package namespace
