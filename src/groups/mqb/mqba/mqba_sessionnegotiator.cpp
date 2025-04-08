@@ -877,10 +877,10 @@ int SessionNegotiator::initiateOutboundNegotiation(
 }
 
 int SessionNegotiator::negotiateOutboundOrReverse(
-    const InitialConnectionContextSp& initialConnectionContext)
+    const InitialConnectionContextSp& context)
 {
-    BSLS_ASSERT_SAFE(!initialConnectionContext
-                          ->d_initialConnectionHandlerContext_p->isIncoming());
+    BSLS_ASSERT_SAFE(
+        !context->d_initialConnectionHandlerContext_p->isIncoming());
     // If this is a 'connect' negotiation, this could either represent an
     // outgoing proxy/cluster connection, or a reversed cluster connection;
     // the context's user data will tell.  We send the identity and then
@@ -892,23 +892,21 @@ int SessionNegotiator::negotiateOutboundOrReverse(
     // 'mqbblp::ClusterCatalog::NegotiationUserData').
     const mqbblp::ClusterCatalog::NegotiationUserData* userData =
         reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
-            initialConnectionContext->d_initialConnectionHandlerContext_p
-                ->userData());
+            context->d_initialConnectionHandlerContext_p->userData());
     BSLS_ASSERT_SAFE(userData);
 
     if (userData->d_isClusterConnection) {
-        initialConnectionContext->d_clusterName = userData->d_clusterName;
-        if (d_clusterCatalog_p->isMemberOf(
-                initialConnectionContext->d_clusterName)) {
-            initialConnectionContext->d_connectionType =
+        context->d_clusterName = userData->d_clusterName;
+        if (d_clusterCatalog_p->isMemberOf(context->d_clusterName)) {
+            context->d_connectionType =
                 mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
         else {
-            initialConnectionContext->d_connectionType =
+            context->d_connectionType =
                 mqbnet::ConnectionType::e_CLUSTER_PROXY;
         }
 
-        int rc = initiateOutboundNegotiation(initialConnectionContext);
+        int rc = initiateOutboundNegotiation(context);
         if (rc != 0) {
             return rc;  // RETURN
         }
@@ -925,21 +923,19 @@ int SessionNegotiator::negotiateOutboundOrReverse(
         request.clusterName()     = userData->d_clusterName;
         request.clusterNodeId()   = userData->d_myNodeId;
 
-        initialConnectionContext->d_isReversed = true;
-        initialConnectionContext->d_connectionType =
-            mqbnet::ConnectionType::e_CLIENT;
+        context->d_isReversed     = true;
+        context->d_connectionType = mqbnet::ConnectionType::e_CLIENT;
 
         bmqu::MemOutStream errStream;
         int                rc = sendNegotiationMessage(errStream,
                                         negotiationMessage,
-                                        initialConnectionContext);
+                                        context);
         if (rc != 0) {
             bsl::string error(errStream.str().data(),
                               errStream.str().length());
-            initialConnectionContext->d_initialConnectionCb(
-                -1,
-                error,
-                bsl::shared_ptr<mqbnet::Session>());
+            context->d_initialConnectionCb(-1,
+                                           error,
+                                           bsl::shared_ptr<mqbnet::Session>());
             return rc;  // RETURN
         }
     }
