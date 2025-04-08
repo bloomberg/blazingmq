@@ -45,7 +45,7 @@ class SessionNegotiator;
 class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<InitialConnectionContext>
+    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
   private:

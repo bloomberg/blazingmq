@@ -93,7 +93,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<InitialConnectionContext>
+    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
   private:
@@ -193,11 +193,13 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using a deprecated version of the libbmq SDK.
-    bool checkIsDeprecatedSdkVersion(const InitialConnectionContext& context);
+    bool checkIsDeprecatedSdkVersion(
+        const mqbnet::InitialConnectionContext& context);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using an unsupported version of the libbmq SDK.
-    bool checkIsUnsupportedSdkVersion(const InitialConnectionContext& context);
+    bool checkIsUnsupportedSdkVersion(
+        const mqbnet::InitialConnectionContext& context);
 
     /// Initiate an outbound negotiation (i.e., send out some negotiation
     /// message and schedule a read of the response) using the specified
@@ -263,7 +265,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
         BSLS_KEYWORD_OVERRIDE;
 
     int negotiateOutboundOrReverse(
-        const InitialConnectionContextSp& initialConnectionContext);
+        const InitialConnectionContextSp& initialConnectionContext)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
