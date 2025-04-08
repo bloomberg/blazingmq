@@ -115,6 +115,8 @@ class Flattener {
     OptionsView d_optionsView;
     // Helps go through Options
 
+    bmqp::SchemaLearner* d_schemaLearner;
+
     // PRIVATE TYPES
     typedef bdlma::LocalSequentialAllocator<
         32 * sizeof(Protocol::SubQueueIdsArrayOld::value_type)>
@@ -187,7 +189,8 @@ class Flattener {
               const Event&                     event,
               bdlbb::BlobBufferFactory*        bufferFactory,
               BlobSpPool*                      blobSpPool_p,
-              bslma::Allocator*                allocator);
+              bslma::Allocator*                allocator,
+              bmqp::SchemaLearner*             schemaLearner = 0);
 
     // MANIPULATORS
 
@@ -372,13 +375,38 @@ Flattener::packMesage(const Protocol::SubQueueInfosArray& subQInfo)
         return result;  // RETURN
     }
 
+    int                               queueId = header.queueId();
+    const bmqp::MessagePropertiesInfo input(header);
+
+    bmqp::MessageProperties::SchemaPtr schema;
+
+    if (d_schemaLearner) {
+        bmqp::MessageProperties::SchemaPtr* schemaHolder =
+            d_schemaLearner->observe(d_schemaLearner->createContext(queueId),
+                                     input);
+
+        if (schemaHolder) {
+            schema = *schemaHolder;
+            if (!schema) {
+                // Learn new Schema by reading all MessageProperties.
+                bmqp::MessageProperties mps(d_allocator_p);
+
+                if (mps.streamIn(d_appData, input.isExtended()) == 0) {
+                    // Learn new schema.
+                    *schemaHolder = schema = mps.makeSchema(d_allocator_p);
+                }
+            }
+        }
+    }
+
     // Successfully packed the current message and associated it with the
     // current SubQueueId being processed.  Add the corresponding queueId for
     // this message associated with the current flattened event.
     d_currEventInfo.d_ids.push_back(
         bmqp::EventUtilQueueInfo(subQInfo[0].id(),
                                  header,
-                                 d_msgIterator.applicationDataSize()));
+                                 d_msgIterator.applicationDataSize(),
+                                 schema));
 
     return result;
 }
@@ -404,7 +432,8 @@ Flattener::Flattener(bsl::vector<EventUtilEventInfo>* eventInfos,
                      const Event&                     event,
                      bdlbb::BlobBufferFactory*        bufferFactory,
                      BlobSpPool*                      blobSpPool_p,
-                     bslma::Allocator*                allocator)
+                     bslma::Allocator*                allocator,
+                     bmqp::SchemaLearner*             schemaLearner)
 : d_eventInfos_p(eventInfos)
 , d_allocator_p(allocator)
 , d_builder(blobSpPool_p, allocator)
@@ -412,6 +441,7 @@ Flattener::Flattener(bsl::vector<EventUtilEventInfo>* eventInfos,
 , d_currEventInfo(allocator)
 , d_appData(bufferFactory, allocator)
 , d_optionsView(allocator)
+, d_schemaLearner(schemaLearner)
 {
     event.loadPushMessageIterator(&d_msgIterator);
     BSLS_ASSERT_SAFE(d_msgIterator.isValid());
