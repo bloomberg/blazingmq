@@ -262,8 +262,8 @@ void loadSessionDescription(bsl::string*                        out,
 // -----------------------
 
 int SessionNegotiator::createSessionOnMsgType(
-    const InitialConnectionContextSp& context,
-    bsl::shared_ptr<mqbnet::Session>* session)
+    bsl::shared_ptr<mqbnet::Session>* session,
+    const InitialConnectionContextSp& context)
 {
     enum RcEnum {
         // Value for the various RC error categories
