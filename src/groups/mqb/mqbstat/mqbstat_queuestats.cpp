@@ -118,10 +118,10 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
         MQBSTAT_CASE(e_NB_CONSUMER, "queue_consumers_count")
         MQBSTAT_CASE(e_MESSAGES_CURRENT, "queue_msgs_current")
         MQBSTAT_CASE(e_MESSAGES_MAX, "queue_content_msgs")
-        MQBSTAT_CASE(e_MESSAGES_UTILIZATION, "queue_msgs_utilization")
+        MQBSTAT_CASE(e_MESSAGES_UTILIZATION_MAX, "queue_msgs_utilization_max")
         MQBSTAT_CASE(e_BYTES_CURRENT, "queue_bytes_current")
         MQBSTAT_CASE(e_BYTES_MAX, "queue_content_bytes")
-        MQBSTAT_CASE(e_BYTES_UTILIZATION, "queue_bytes_utilization")
+        MQBSTAT_CASE(e_BYTES_UTILIZATION_MAX, "queue_bytes_utilization_max")
         MQBSTAT_CASE(e_PUT_MESSAGES_DELTA, "queue_put_msgs")
         MQBSTAT_CASE(e_PUT_BYTES_DELTA, "queue_put_bytes")
         MQBSTAT_CASE(e_PUT_MESSAGES_ABS, "queue_put_msgs_abs")
@@ -209,8 +209,8 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
     case QueueStatsDomain::Stat::e_MESSAGES_MAX: {
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES);
     }
-    case QueueStatsDomain::Stat::e_MESSAGES_UTILIZATION: {
-        // Calculate queue messages utilization, in percents.
+    case QueueStatsDomain::Stat::e_MESSAGES_UTILIZATION_MAX: {
+        // Calculate max queue messages utilization, in percents.
         return 100 * STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES) /
                STAT_SINGLE(value, DomainQueueStats::e_CFG_MSGS);
     }
@@ -220,8 +220,8 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
     case QueueStatsDomain::Stat::e_BYTES_MAX: {
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES);
     }
-    case QueueStatsDomain::Stat::e_BYTES_UTILIZATION: {
-        // Calculate queue bytes utilization, in percents.
+    case QueueStatsDomain::Stat::e_BYTES_UTILIZATION_MAX: {
+        // Calculate max queue bytes utilization, in percents.
         return 100 * STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES) /
                STAT_SINGLE(value, DomainQueueStats::e_CFG_BYTES);
     }
