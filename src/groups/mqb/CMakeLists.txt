@@ -10,6 +10,11 @@ endif()
 add_library( mqb )
 set_property( TARGET mqb PROPERTY POSITION_INDEPENDENT_CODE ON )
 
+# Configure version numbers from project before calling `target_bmq_style_uor`
+# so the generated header is installed.
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/mqbscm/mqbscm_versiontag.h.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/mqbscm/mqbscm_versiontag.h")
+
 # Pass build type to a source file so that it can print it in startup banner
 set_property(SOURCE "mqba/mqba_application.cpp"
              APPEND
