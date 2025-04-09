@@ -5,18 +5,35 @@
 # If the optional argument '--only-download' is provided, the script will only download
 # dependencies (build and install steps are skipped).
 
-set -euxo pipefail
+set -exo pipefail
 
-if [ $# == 1 ]; then
-  if [[ $1 == "--only-download" ]]; then
-    DO_BUILD=false
-  else
-     echo "Unexpected optional argument, only '--only-download' is supported"
-     exit 1
-  fi
-else
-    DO_BUILD=true
-fi
+DEPS_CONFIGURE_UFID="opt_64_cpp17"
+DEPS_SKIP_BUILD=0
+
+usage()
+{
+    echo "usage: ./build_deps.sh [--only-download] [--ufid <code>]"
+    echo "where: "
+    echo "    --only-download                    Only download and configure dependencies, skip build"
+    echo "    --ufid                <code>       The unified flag identifiers for the build system [${DEPS_CONFIGURE_UFID}]"
+    exit 1
+}
+
+while true ; do
+    case "$1" in
+        --help)
+            usage ;;
+        --ufid)
+            DEPS_CONFIGURE_UFID=$2 ; shift 2 ;;
+        --only-download)
+            DEPS_SKIP_BUILD=1 ; shift ;;
+        --*)
+            echo "Invalid option: ${1}"
+            usage ;;
+          *)
+            break ;;
+    esac
+done
 
 fetch_git() {
     local org=$1
@@ -49,12 +66,12 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u opt_64_cpp17)"
+    eval "$(bbs_build_env -u "${DEPS_CONFIGURE_UFID}")"
 }
 
 build_bde() {
     pushd srcs/bde
-    bbs_build configure
+    bbs_build configure -u "${DEPS_CONFIGURE_UFID}"
     bbs_build build -j8
     bbs_build --install=/opt/bb --prefix=/ install
     popd
@@ -62,13 +79,13 @@ build_bde() {
 
 build_ntf() {
     pushd srcs/ntf-core
-    ./configure                      \
-        --keep                       \
-        --prefix /opt/bb             \
-        --without-usage-examples     \
-        --without-applications       \
-        --without-warnings-as-errors \
-        --ufid opt_64_cpp17
+    ./configure                         \
+        --keep                          \
+        --prefix /opt/bb                \
+        --without-usage-examples        \
+        --without-applications          \
+        --without-warnings-as-errors    \
+        --ufid "${DEPS_CONFIGURE_UFID}"
     make -j8
     make install
     popd
@@ -81,6 +98,6 @@ build() {
 
 fetch_deps
 configure
-if [ "${DO_BUILD}" = true ]; then
+if [ "${DEPS_SKIP_BUILD}" = 0 ]; then
     build
 fi

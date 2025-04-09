@@ -69,7 +69,7 @@ struct PostExecutor {
     template <class FUNCTION>
     void post(FUNCTION f) const
     {
-        f();
+        bslmf::MovableRefUtil::access(f)();
         ++d_postCallCount;
     }
 };
@@ -101,14 +101,14 @@ struct PostDispatchExecutor {
     template <class FUNCTION>
     void post(FUNCTION f) const
     {
-        f();
+        bslmf::MovableRefUtil::access(f)();
         ++d_postCallCount;
     }
 
     template <class FUNCTION>
     void dispatch(FUNCTION f) const
     {
-        f();
+        bslmf::MovableRefUtil::access(f)();
         ++d_dispatchCallCount;
     }
 };
