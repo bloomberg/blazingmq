@@ -85,8 +85,8 @@ class Negotiator {
     /// Create a `session` based on the type of initial connection message in
     /// the specified `context`.
     virtual int createSessionOnMsgType(
-        const bsl::shared_ptr<InitialConnectionContext>& context,
-        bsl::shared_ptr<mqbnet::Session>*                session) = 0;
+        bsl::shared_ptr<mqbnet::Session>*                session,
+        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
 
     /// Send out outbound negotiation message or reverse connection request
     /// with the specified `context`.
