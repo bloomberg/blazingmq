@@ -121,11 +121,6 @@ void InitialConnectionHandler::readCallback(
     }
 
     switch (context->d_initialConnectionMessage.selectionId()) {
-    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_ID_AUTHENTICATE_REQUEST:
-    case bmqp_ctrlmsg::NegotiationMessage::
-        SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        // authn
-    } break;  // BREAK
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY:
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE:
     case bmqp_ctrlmsg::NegotiationMessage ::
