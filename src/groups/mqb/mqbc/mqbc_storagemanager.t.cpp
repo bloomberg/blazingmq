@@ -180,6 +180,7 @@ struct TestHelper {
                                  false,  // isLeader
                                  true,   // isCSLMode
                                  true,   // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
                                  d_tempDir.path(),
@@ -907,6 +908,7 @@ struct TestHelper {
                            &threadPool,
                            d_cluster_mp->isCSLModeEnabled(),
                            d_cluster_mp->isFSMWorkflow(),
+                           d_cluster_mp->doesFSMwriteQLIST(),
                            1,  // replicationFactor
                            bmqtst::TestHelperUtil::allocator());
 
