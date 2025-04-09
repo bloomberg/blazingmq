@@ -219,7 +219,7 @@ class PartitionFSM {
 
     /// A set of PartitionFSM observers.
     typedef bsl::unordered_set<PartitionFSMObserver*> ObserversSet;
-    typedef ObserversSet::iterator ObserversSetIter;
+    typedef ObserversSet::iterator                    ObserversSetIter;
 
   private:
     // DATA
@@ -257,9 +257,11 @@ class PartitionFSM {
     /// object.
     PartitionFSM& unregisterObserver(PartitionFSMObserver* observer);
 
-    /// Apply the events in the specified `eventsQueueSp` to this FSM
-    void applyEvent(
-        const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueueSp);
+    /// While the specified `eventsQueue` is not empty, pop the event from the
+    /// head of the queue and process it as an input to the FSM.  During the
+    /// processing, new events might be enqueued to the end of `eventsQueue`.
+    void popEventAndProcess(
+        const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueue);
 
     // ACCESSORS
 
