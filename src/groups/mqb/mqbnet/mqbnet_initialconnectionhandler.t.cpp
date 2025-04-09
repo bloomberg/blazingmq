@@ -58,10 +58,10 @@ using namespace bsl;
 /// A test implementation of the `mqbnet::InitialConnectionHandler` protocol
 struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
-    void initialConnect(mqbnet::InitialConnectionHandlerContext* context,
-                        const bsl::shared_ptr<bmqio::Channel>&   channel,
-                        const InitialConnectionCb& initialConnectionCb)
-        BSLS_KEYWORD_OVERRIDE
+    void handleInitialConnection(
+        mqbnet::InitialConnectionHandlerContext* context,
+        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        const InitialConnectionCb& initialConnectionCb) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }
@@ -136,10 +136,11 @@ static void test1_InitialConnectionHandler()
         mqbnet::InitialConnectionHandler::InitialConnectionCb
             dummyInitialConnectionCb;
 
-        BSLS_PROTOCOLTEST_ASSERT(testObj,
-                                 initialConnect(dummyContext_p,
-                                                dummyChannelSp,
-                                                dummyInitialConnectionCb));
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            handleInitialConnection(dummyContext_p,
+                                    dummyChannelSp,
+                                    dummyInitialConnectionCb));
     }
 }
 

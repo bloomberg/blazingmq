@@ -277,7 +277,7 @@ int SessionNegotiator::createSessionOnMsgType(
 
     bmqu::MemOutStream errStream;
 
-    switch (context->d_initialConnectionMessage_p.selectionId()) {
+    switch (context->d_initialConnectionMessage.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
         // This is the first message of the negotiation protocol; can either
         // represent:
@@ -286,7 +286,7 @@ int SessionNegotiator::createSessionOnMsgType(
         // - a cluster peer connecting to us (implying we are a cluster member)
         // - an admin client connecting to us
 
-        if (context->d_initialConnectionMessage_p.clientIdentity()
+        if (context->d_initialConnectionMessage.clientIdentity()
                 .clientType() == bmqp_ctrlmsg::ClientType::E_TCPADMIN) {
             // Remote client is connecting to us as an admin.
             context->d_connectionType = mqbnet::ConnectionType::e_ADMIN;
@@ -303,7 +303,7 @@ int SessionNegotiator::createSessionOnMsgType(
             }
         }
         else if (mqbnet::ClusterUtil::isClientOrProxy(
-                     context->d_initialConnectionMessage_p)) {
+                     context->d_initialConnectionMessage)) {
             // - clusterName empty implies the remote peer is a regular client
             // - clusterName non empty but nodeId invalid means remote side is
             //   connecting to us as a proxy to 'clusterName' (with nodeId
@@ -334,7 +334,7 @@ int SessionNegotiator::createSessionOnMsgType(
     case bmqp_ctrlmsg::NegotiationMessage ::
         SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
         context->d_isReversed  = true;
-        context->d_clusterName = context->d_initialConnectionMessage_p
+        context->d_clusterName = context->d_initialConnectionMessage
                                      .reverseConnectionRequest()
                                      .clusterName();
         context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
@@ -347,7 +347,7 @@ int SessionNegotiator::createSessionOnMsgType(
     }                                              // break;
     default: {
         errStream << "Invalid negotiation message received (unknown type): "
-                  << context->d_initialConnectionMessage_p;
+                  << context->d_initialConnectionMessage;
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
                                        error,
@@ -372,7 +372,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        context->d_initialConnectionMessage_p.isClientIdentityValue());
+        context->d_initialConnectionMessage.isClientIdentityValue());
     BSLS_ASSERT_SAFE(
         context->d_initialConnectionHandlerContext_p->isIncoming() ||
         context->d_isReversed);
@@ -380,7 +380,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     // 'listen'-established connection or a reversed one.
 
     bmqp_ctrlmsg::ClientIdentity& clientIdentity =
-        context->d_initialConnectionMessage_p.clientIdentity();
+        context->d_initialConnectionMessage.clientIdentity();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
                    << context->d_channelSp->peerUri()
@@ -543,10 +543,10 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
-        context->d_initialConnectionMessage_p.isBrokerResponseValue());
+        context->d_initialConnectionMessage.isBrokerResponseValue());
 
     bmqp_ctrlmsg::BrokerResponse& brokerResponse =
-        context->d_initialConnectionMessage_p.brokerResponse();
+        context->d_initialConnectionMessage.brokerResponse();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
                    << context->d_channelSp->peerUri()
@@ -599,16 +599,16 @@ int SessionNegotiator::sendNegotiationMessage(
     bmqp::EncodingType::Enum encodingType = bmqp::EncodingType::e_BER;
 
     if (message.isBrokerResponseValue() &&
-        context->d_initialConnectionMessage_p.isClientIdentityValue()) {
+        context->d_initialConnectionMessage.isClientIdentityValue()) {
         encodingType = bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
-            context->d_initialConnectionMessage_p.clientIdentity().features());
+            context->d_initialConnectionMessage.clientIdentity().features());
 
         if (encodingType == bmqp::EncodingType::e_UNKNOWN) {
             errorDescription
                 << "Failed building NegotiationMessage: client "
                 << "did not advertise a supported encoding type. "
                 << "Client features: '"
-                << context->d_initialConnectionMessage_p.clientIdentity()
+                << context->d_initialConnectionMessage.clientIdentity()
                        .features()
                 << "'";
             return rc_BUILD_FAILURE;  // RETURN
@@ -651,13 +651,12 @@ void SessionNegotiator::createSession(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context->d_connectionType !=
                      mqbnet::ConnectionType::e_UNKNOWN);
-    BSLS_ASSERT_SAFE(
-        !context->d_initialConnectionMessage_p.isUndefinedValue());
-    BSLS_ASSERT_SAFE(!context->d_initialConnectionMessage_p
+    BSLS_ASSERT_SAFE(!context->d_initialConnectionMessage.isUndefinedValue());
+    BSLS_ASSERT_SAFE(!context->d_initialConnectionMessage
                           .isReverseConnectionRequestValue());
 
     const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
-        context->d_initialConnectionMessage_p;
+        context->d_initialConnectionMessage;
     const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
         negoMsg.isClientIdentityValue()
             ? negoMsg.clientIdentity()
@@ -768,10 +767,10 @@ bool SessionNegotiator::checkIsDeprecatedSdkVersion(
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
-        context.d_initialConnectionMessage_p.isClientIdentityValue());
+        context.d_initialConnectionMessage.isClientIdentityValue());
 
     const bmqp_ctrlmsg::ClientIdentity& clientIdentity =
-        context.d_initialConnectionMessage_p.clientIdentity();
+        context.d_initialConnectionMessage.clientIdentity();
     if (!mqbu::SDKVersionUtil::isDeprecatedSdkVersion(
             clientIdentity.sdkLanguage(),
             clientIdentity.sdkVersion())) {
@@ -797,10 +796,10 @@ bool SessionNegotiator::checkIsUnsupportedSdkVersion(
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
-        context.d_initialConnectionMessage_p.isClientIdentityValue());
+        context.d_initialConnectionMessage.isClientIdentityValue());
 
     const bmqp_ctrlmsg::ClientIdentity& clientIdentity =
-        context.d_initialConnectionMessage_p.clientIdentity();
+        context.d_initialConnectionMessage.clientIdentity();
     if (mqbu::SDKVersionUtil::isSupportedSdkVersion(
             clientIdentity.sdkLanguage(),
             clientIdentity.sdkVersion())) {
