@@ -110,7 +110,7 @@ void InitialConnectionHandler::readCallback(
     *numNeeded = 0;
 
     // Process the received blob
-    rc = decodeNegotiationMessage(errStream, context, outPacket);
+    rc = decodeInitialConnectionMessage(errStream, context, outPacket);
     if (rc != 0) {
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_initialConnectionCb((rc * 10) +
@@ -120,7 +120,7 @@ void InitialConnectionHandler::readCallback(
         return;  // RETURN
     }
 
-    switch (context->d_initialConnectionMessage_p.selectionId()) {
+    switch (context->d_initialConnectionMessage.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_ID_AUTHENTICATE_REQUEST:
     case bmqp_ctrlmsg::NegotiationMessage::
         SELECTION_ID_AUTHENTICATE_RESPONSE: {
@@ -137,7 +137,7 @@ void InitialConnectionHandler::readCallback(
     } break;  // BREAK
     default: {
         errStream << "Invalid negotiation message received (unknown type): "
-                  << context->d_initialConnectionMessage_p;
+                  << context->d_initialConnectionMessage;
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
                                        error,
@@ -146,7 +146,7 @@ void InitialConnectionHandler::readCallback(
     }
 }
 
-int InitialConnectionHandler::decodeNegotiationMessage(
+int InitialConnectionHandler::decodeInitialConnectionMessage(
     bsl::ostream&                     errorDescription,
     const InitialConnectionContextSp& context,
     bdlbb::Blob&                      blob)
@@ -177,7 +177,7 @@ int InitialConnectionHandler::decodeNegotiationMessage(
         return rc_NOT_CONTROL_EVENT;  // RETURN
     }
 
-    int rc = event.loadControlEvent(&(context->d_initialConnectionMessage_p));
+    int rc = event.loadControlEvent(&(context->d_initialConnectionMessage));
     if (rc != 0) {
         errorDescription << "Invalid negotiation message received (failed "
                          << "decoding ControlEvent): [rc: " << rc << "]:\n"
@@ -230,7 +230,7 @@ InitialConnectionHandler::~InitialConnectionHandler()
 {
 }
 
-void InitialConnectionHandler::initialConnect(
+void InitialConnectionHandler::handleInitialConnection(
     mqbnet::InitialConnectionHandlerContext* context,
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const InitialConnectionCb&               initialConnectionCb)

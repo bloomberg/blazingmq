@@ -333,7 +333,7 @@ TCPSessionFactory::channelStatContextCreator(
                                      static_cast<bsl::uint16_t>(localPort));
 }
 
-void TCPSessionFactory::initialConnect(
+void TCPSessionFactory::handleInitialConnection(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const bsl::shared_ptr<OperationContext>& context)
 {
@@ -355,11 +355,11 @@ void TCPSessionFactory::initialConnect(
         .setResultState(context->d_resultState_p);
 
     // NOTE: we must ensure the 'initialConnectionCb' can be invoked from the
-    //       'initialConnect()' call as specified on the
-    //       'InitialConnectionHandler::initialConnect' method contract (this
-    //       means we can't have mutex lock around the call to
-    //       'initialConnect').
-    d_initialConnectionHandler_p->initialConnect(
+    //       'handleInitialConnection()' call as specified on the
+    //       'InitialConnectionHandler::handleInitialConnection' method
+    //       contract (this means we can't have mutex lock around the call to
+    //       'handleInitialConnection').
+    d_initialConnectionHandler_p->handleInitialConnection(
         initialConnectionHandlerContext.get(),
         channel,
         bdlf::BindUtil::bind(&TCPSessionFactory::negotiationComplete,
@@ -702,7 +702,7 @@ void TCPSessionFactory::channelStateCallback(
                 channel,
                 bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
-            initialConnect(channel, context);
+            handleInitialConnection(channel, context);
         }
     } break;
     case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {

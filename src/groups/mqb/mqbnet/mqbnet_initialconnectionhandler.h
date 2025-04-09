@@ -75,14 +75,14 @@ class InitialConnectionHandler {
     /// holding the initial connection context to use; and the
     /// InitialConnectionHandler concrete implementation can modify some of the
     /// members during the initial connection (i.e., between the
-    /// `initialConnect()` method and the invocation of the
+    /// `handleInitialConnection()` method and the invocation of the
     /// `initialConnectionCb` method.  Note that if no initial connection is
     /// needed, the `initialConnectionCb` may be invoked directly from inside
-    /// the call to `initialConnect()`.
-    virtual void
-    initialConnect(mqbnet::InitialConnectionHandlerContext* context,
-                   const bsl::shared_ptr<bmqio::Channel>&   channel,
-                   const InitialConnectionCb& initialConnectionCb) = 0;
+    /// the call to `handleInitialConnection()`.
+    virtual void handleInitialConnection(
+        mqbnet::InitialConnectionHandlerContext* context,
+        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        const InitialConnectionCb&               initialConnectionCb) = 0;
 };
 
 }  // close package namespace

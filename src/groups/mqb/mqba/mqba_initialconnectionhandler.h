@@ -89,9 +89,10 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// `context`, returning 0.  Return a non-zero code on error and
     /// populate the specified `errorDescription` with a description of the
     /// error.
-    int decodeNegotiationMessage(bsl::ostream& errorDescription,
-                                 const InitialConnectionContextSp& context,
-                                 bdlbb::Blob&                      blob);
+    int
+    decodeInitialConnectionMessage(bsl::ostream& errorDescription,
+                                   const InitialConnectionContextSp& context,
+                                   bdlbb::Blob&                      blob);
 
     /// Schedule a read for the initial connection of the session of the
     /// specified `context`.
@@ -108,10 +109,10 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     // MANIPULATORS
 
-    void initialConnect(mqbnet::InitialConnectionHandlerContext* context,
-                        const bsl::shared_ptr<bmqio::Channel>&   channel,
-                        const InitialConnectionCb& initialConnectionCb)
-        BSLS_KEYWORD_OVERRIDE;
+    void handleInitialConnection(
+        mqbnet::InitialConnectionHandlerContext* context,
+        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        const InitialConnectionCb& initialConnectionCb) BSLS_KEYWORD_OVERRIDE;
 };
 }
 }
