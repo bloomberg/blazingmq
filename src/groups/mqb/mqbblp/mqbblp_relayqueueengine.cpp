@@ -1802,7 +1802,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             ordinalPlusOne = 1 + app->ordinal();
             subscriptions.begin()->setId(ordinalPlusOne);
 
-            storePush(attributes, msgGUID, appData, subscriptions, true);
+            storePush(attributes, msgGUID, appData, subscriptions);
 
             // Attempt to deliver
             processAppRedelivery(subQueueId, app);
@@ -1886,7 +1886,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
     if (count) {
         // Pass correct ref count
         attributes->setRefCount(count);
-        storePush(attributes, msgGUID, appData, subscriptions, false);
+        storePush(attributes, msgGUID, appData, subscriptions);
     }
     return count;
 }
@@ -1927,8 +1927,7 @@ void RelayQueueEngine::storePush(
     mqbi::StorageMessageAttributes*           attributes,
     const bmqt::MessageGUID&                  msgGUID,
     const bsl::shared_ptr<bdlbb::Blob>&       appData,
-    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-    bool                                      isOutOfOrder)
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         // Save the message along with the subIds in the storage.  Note that
