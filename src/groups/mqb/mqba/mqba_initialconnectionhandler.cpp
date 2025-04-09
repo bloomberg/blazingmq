@@ -130,7 +130,7 @@ void InitialConnectionHandler::readCallback(
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE:
     case bmqp_ctrlmsg::NegotiationMessage ::
         SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
-        rc = d_negotiator_mp->createSessionOnMsgType(context, &session);
+        rc = d_negotiator_mp->createSessionOnMsgType(&session, context);
         if (rc == rc_CONTINUE_READ) {
             scheduleRead(context);
         }

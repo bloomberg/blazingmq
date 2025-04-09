@@ -229,8 +229,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Create a `session` based on the type of initial connection message in
     /// the specified `context`.
-    int createSessionOnMsgType(const InitialConnectionContextSp& context,
-                               bsl::shared_ptr<mqbnet::Session>* session)
+    int createSessionOnMsgType(bsl::shared_ptr<mqbnet::Session>* session,
+                               const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound negotiation message or reverse connection request
