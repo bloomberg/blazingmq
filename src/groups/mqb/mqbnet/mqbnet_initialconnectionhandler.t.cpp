@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiator.t.cpp                                            -*-C++-*-
-#include <mqbnet_negotiator.h>
+// mqbnet_initialconnectionhandler.t.cpp                        -*-C++-*-
+#include <mqbnet_initialconnectionhandler.h>
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
@@ -25,6 +25,7 @@
 #include <bmqio_channel.h>
 
 // BDE
+#include <bsls_nullptr.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
@@ -43,9 +44,10 @@ using namespace bsl;
 // Disabling 'weak-vtables' so that we can define all interface methods
 // inline, without the following warning:
 //..
-//  mqbnet_negotiator.t.cpp:50:1: error: 'NegotiatorTestImp' has no
-//  out-of-line virtual method definitions; its vtable will be emitted in
-//  every translation unit [-Werror,-Wweak-vtables]
+//  mqbnet_initialconnectionhandler.t.cpp:50:1: error:
+//  'InitialConnectionHandlerTestImp' has no out-of-line virtual method
+//  definitions; its vtable will be emitted in every translation unit
+//  [-Werror,-Wweak-vtables]
 //..
 #endif  // BSLS_PLATFORM_CMP_CLANG
 
@@ -53,35 +55,15 @@ using namespace bsl;
 //                 HELPER CLASSES AND FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
 
-/// A test implementation of the `mqbnet::Negotiator` protocol
-struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    int createSessionOnMsgType(
-        bsl::shared_ptr<mqbnet::Session>*                        session,
-        const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context)
+/// A test implementation of the `mqbnet::InitialConnectionHandler` protocol
+struct InitialConnectionHandlerTestImp
+: bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
+    void initialConnect(mqbnet::InitialConnectionHandlerContext* context,
+                        const bsl::shared_ptr<bmqio::Channel>&   channel,
+                        const InitialConnectionCb& initialConnectionCb)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
-        return 0;
-    }
-
-    int negotiateOutboundOrReverse(
-        const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
-            initialConnectionContext) BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-        return 0;
-    }
-};
-
-/// A mock implementation of SessionEventProcessor protocol, for testing
-/// `InitialConnectionHandlerContext`.
-class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
-  public:
-    ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE {}
-
-    void processEvent(const bmqp::Event&   event,
-                      mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE
-    {
     }
 };
 
@@ -89,7 +71,7 @@ class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_Negotiator()
+static void test1_InitialConnectionHandler()
 // ------------------------------------------------------------------------
 // PROTOCOL TEST:
 //   Ensure this class is a properly defined protocol.
@@ -106,11 +88,13 @@ static void test1_Negotiator()
 //: 5 All methods of the protocol are publicly accessible.
 //
 // Plan:
-//: 1 Define a concrete derived implementation, 'NegotiatorTestImp', of the
+//: 1 Define a concrete derived implementation,
+//: 'InitialConnectionHandlerTestImp', of the
 //:   protocol.
 //:
 //: 2 Create an object of the 'bsls::ProtocolTest' class template
-//:   parameterized by 'NegotiatorTestImp', and use it to verify that:
+//:   parameterized by 'InitialConnectionHandlerTestImp', and use it to verify
+//:   that:
 //:
 //:   1 The protocol is abstract. (C-1)
 //:
@@ -129,10 +113,10 @@ static void test1_Negotiator()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("Negotiator");
+    bmqtst::TestHelper::printTestName("InitialConnectionHandler");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<NegotiatorTestImp> testObj(
+    bsls::ProtocolTest<InitialConnectionHandlerTestImp> testObj(
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
@@ -147,66 +131,15 @@ static void test1_Negotiator()
     {
         PV("Verify that methods are public and virtual");
 
-        bsl::shared_ptr<mqbnet::InitialConnectionContext>
-                                         dummyInitialConnectionContextSp;
-        bsl::shared_ptr<mqbnet::Session> dummySessionSp;
+        mqbnet::InitialConnectionHandlerContext* dummyContext_p = 0;
+        bsl::shared_ptr<bmqio::Channel>          dummyChannelSp;
+        mqbnet::InitialConnectionHandler::InitialConnectionCb
+            dummyInitialConnectionCb;
 
-        BSLS_PROTOCOLTEST_ASSERT(
-            testObj,
-            negotiateOutboundOrReverse(dummyInitialConnectionContextSp));
-
-        BSLS_PROTOCOLTEST_ASSERT(
-            testObj,
-            createSessionOnMsgType(&dummySessionSp,
-                                   dummyInitialConnectionContextSp));
-    }
-}
-
-static void test2_NegotiatorContext()
-{
-    bmqtst::TestHelper::printTestName("InitialConnectionHandlerContext");
-
-    {
-        PV("Constructor");
-        mqbnet::InitialConnectionHandlerContext obj1(true);
-        BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
-        BMQTST_ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
-        BMQTST_ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
-        BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
-        BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
-
-        mqbnet::InitialConnectionHandlerContext obj2(false);
-        BMQTST_ASSERT_EQ(obj2.isIncoming(), false);
-    }
-
-    {
-        PV("Manipulators/Accessors");
-
-        mqbnet::InitialConnectionHandlerContext obj(true);
-
-        {  // MaxMissedHeartbeat
-            const char value = 5;
-            BMQTST_ASSERT_EQ(&(obj.setMaxMissedHeartbeat(value)), &obj);
-            BMQTST_ASSERT_EQ(obj.maxMissedHeartbeat(), value);
-        }
-
-        {  // UserData
-            int value = 7;
-            BMQTST_ASSERT_EQ(&(obj.setUserData(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.userData(), &value);
-        }
-
-        {  // ResultState
-            int value = 9;
-            BMQTST_ASSERT_EQ(&(obj.setResultState(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.resultState(), &value);
-        }
-
-        {  // EventProcessor
-            MockSessionEventProcessor value;
-            BMQTST_ASSERT_EQ(&(obj.setEventProcessor(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.eventProcessor(), &value);
-        }
+        BSLS_PROTOCOLTEST_ASSERT(testObj,
+                                 initialConnect(dummyContext_p,
+                                                dummyChannelSp,
+                                                dummyInitialConnectionCb));
     }
 }
 
@@ -220,8 +153,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 2: test2_NegotiatorContext(); break;
-    case 1: test1_Negotiator(); break;
+    case 1: test1_InitialConnectionHandler(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
