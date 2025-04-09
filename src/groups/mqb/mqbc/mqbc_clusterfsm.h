@@ -234,7 +234,7 @@ class ClusterFSM {
 
     /// A set of ClusterFSM observers.
     typedef bsl::unordered_set<ClusterFSMObserver*> ObserversSet;
-    typedef ObserversSet::iterator ObserversSetIter;
+    typedef ObserversSet::iterator                  ObserversSetIter;
 
   private:
     // DATA
@@ -269,8 +269,10 @@ class ClusterFSM {
     /// object.
     ClusterFSM& unregisterObserver(ClusterFSMObserver* observer);
 
-    /// Apply the events in the specified `eventsQueue` to this FSM.
-    void applyEvent(ClusterFSMArgsSp& eventsQueue);
+    /// While the specified `eventsQueue` is not empty, pop the event from the
+    /// head of the queue and process it as an input to the FSM.  During the
+    /// processing, new events might be enqueued to the end of `eventsQueue`.
+    void popEventAndProcess(ClusterFSMArgsSp& eventsQueue);
 
     // ACCESSORS
 

@@ -330,7 +330,7 @@ void StorageManager::dispatchEventToPartition(mqbs::FileStore*          fs,
     queueSp->emplace(event, eventDataVec);
 
     fs->execute(bdlf::BindUtil::bind(
-        &PartitionFSM::applyEvent,
+        &PartitionFSM::popEventAndProcess,
         d_partitionFSMVec[eventDataVec[0].partitionId()].get(),
         queueSp));
 }
@@ -1129,7 +1129,7 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
                 d_allocator_p);
         queueSp->emplace(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
 
-        d_partitionFSMVec[partitionId]->applyEvent(queueSp);
+        d_partitionFSMVec[partitionId]->popEventAndProcess(queueSp);
     }
 
     StorageUtil::processShutdownEventDispatched(
