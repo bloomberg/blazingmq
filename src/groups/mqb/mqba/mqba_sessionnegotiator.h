@@ -34,6 +34,7 @@
 /// concurrently from many IO threads.
 
 // MQB
+#include <mqba_negotiationcontext.h>
 #include <mqbconfm_messages.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
@@ -92,47 +93,6 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
   private:
     // PRIVATE TYPES
-    struct ConnectionType {
-        // Enum representing the type of session being negotiated, from that
-        // side of the connection's point of view.
-        enum Enum {
-            e_UNKNOWN,
-            e_CLUSTER_PROXY,   // Reverse connection proxy -> broker
-            e_CLUSTER_MEMBER,  // Cluster node -> cluster node
-            e_CLIENT,          // Either SDK or Proxy -> Proxy or cluster node
-            e_ADMIN
-        };
-    };
-
-    /// Struct used to hold the context associated to a session being
-    /// negotiated
-    struct NegotiationContext {
-        // PUBLIC DATA
-
-        /// The associated negotiatorContext, passed in by the caller.
-        mqbnet::NegotiatorContext* d_negotiatorContext_p;
-
-        /// The channel to use for the negotiation.
-        bsl::shared_ptr<bmqio::Channel> d_channelSp;
-
-        /// The callback to invoke to notify of the status of the negotiation.
-        mqbnet::Negotiator::NegotiationCb d_negotiationCb;
-
-        /// The negotiation message received from the remote peer.
-        bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
-
-        /// The cluster involved in the session being negotiated, or empty if
-        /// none.
-        bsl::string d_clusterName;
-
-        /// True if this is a "reversed" connection (on either side of the
-        /// connection).
-        bool d_isReversed;
-
-        /// The type of the session being negotiated.
-        ConnectionType::Enum d_connectionType;
-    };
-
     typedef bsl::shared_ptr<NegotiationContext> NegotiationContextSp;
 
   private:

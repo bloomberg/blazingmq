@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Mar 27 15:34:42 2025
+// Generated on Wed Apr  2 14:54:56 2025
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.h
 
 #ifdef COMPILING_BMQU_MANAGEDCALLBACK_H
@@ -317,11 +317,12 @@ inline char* ManagedCallback::place()
     static_assert(
         bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE>::value);
 #else
-    BSLS_ASSERT_SAFE(
-        bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE>::value);
+    typedef bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE> IsBase;
+    BSLS_ASSERT_SAFE(IsBase::value);
 #endif
 
-    d_callbackBuffer.resize(sizeof(CALLBACK_TYPE));
+    d_callbackBuffer.resize(
+        bsls::AlignmentUtil::roundUpToMaximalAlignment(sizeof(CALLBACK_TYPE)));
     d_empty = false;
     return d_callbackBuffer.data();
 }

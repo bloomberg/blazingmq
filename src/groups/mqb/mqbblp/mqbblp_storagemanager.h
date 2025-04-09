@@ -257,7 +257,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// Vector of `CanonicalQueueUri -> ReplicatedStorage` maps.  Vector is
     /// indexed by partitionId.  The maps contain *both* in-memory and
     /// file-backed storages.  Note that `d_storagesLock` must be held while
-    /// accessing nthis container and any of its elements (`URI -> Storage`
+    /// accessing this container and any of its elements (`URI -> Storage`
     /// maps), because they are accessed from partitions' dispatcher threads,
     /// as well as the cluster dispatcher thread.
     StorageSpMapVec d_storages;

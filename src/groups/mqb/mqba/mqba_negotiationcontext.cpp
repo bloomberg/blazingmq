@@ -1,4 +1,4 @@
-// Copyright 2018-2023 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_future_cpp03.cpp                                             -*-C++-*-
+// mqba_negotiationcontext.cpp                                  -*-C++-*-
 
-// Automatically generated file.  **DO NOT EDIT**
+#include <mqba_negotiationcontext.h>
 
-// Generated on Wed Apr  2 15:03:51 2025
-// Command line: sim_cpp11_features.pl bmqex_future.cpp
+#include <mqbscm_version.h>
 
-#define INCLUDED_BMQEX_FUTURE_CPP03  // Disable inclusion
-#include <bmqex_future_cpp03.h>      // Pro-forma #include
+namespace BloombergLP {
+namespace mqba {
 
-// Empty file except when compiling bmqex_future.cpp
-#ifdef COMPILING_BMQEX_FUTURE_CPP
-
-// No C++03 Expansion
-
-#endif  // defined(COMPILING_BMQEX_FUTURE_CPP)
+}  // close namespace mqba
+}  // close namespace BloombergLP

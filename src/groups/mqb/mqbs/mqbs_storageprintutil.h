@@ -67,7 +67,6 @@ struct StoragePrintUtil {
   private:
     // PRIVATE TYPES
     typedef mqbi::StorageManager::AppInfos AppInfos;
-    typedef AppInfos::const_iterator       AppInfosCIter;
 
   public:
     // TYPES

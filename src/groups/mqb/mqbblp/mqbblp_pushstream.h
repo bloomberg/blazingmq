@@ -121,19 +121,21 @@ struct PushStream {
     struct App {
         Elements                                   d_elements;
         bsl::shared_ptr<RelayQueueEngine_AppState> d_app;
-        /// Replica deduplicates PUSH for the same App in the same batch.
-        bmqt::MessageGUID d_lastGUID;
+        /// Replica deduplicates PUSH for the same App in the same iteration
+        /// (genCount).
+        bsl::pair<bmqt::MessageGUID, int> d_lastGUID;
 
         App(const bsl::shared_ptr<RelayQueueEngine_AppState>& app);
         void add(Element* element);
         void remove(Element* element);
 
-        /// Return 'true' if the specified `guid` is the same as in the last
-        /// `setLastPush` call.
-        bool isLastPush(const bmqt::MessageGUID& guid);
+        /// Return 'true' if the specified `guid` and `genCount` are the same
+        /// as in the last `setLastPush` call.
+        bool isLastPush(const bmqt::MessageGUID& guid, int genCount);
 
-        /// Cache the specified `guid` for subsequent checks by `isLastPush`.
-        void setLastPush(const bmqt::MessageGUID& guid);
+        /// Cache the specified `guid` and the specified `genCount` for
+        /// subsequent checks by `isLastPush`.
+        void setLastPush(const bmqt::MessageGUID& guid, int genCount);
 
         const Element* last() const;
     };
@@ -627,14 +629,16 @@ inline void PushStream::App::remove(Element* element)
     d_elements.remove(element, e_APP);
 }
 
-inline bool PushStream::App::isLastPush(const bmqt::MessageGUID& lastGUID)
+inline bool PushStream::App::isLastPush(const bmqt::MessageGUID& lastGUID,
+                                        int                      genCount)
 {
-    return d_lastGUID == lastGUID;
+    return d_lastGUID.second == genCount && d_lastGUID.first == lastGUID;
 }
 
-inline void PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID)
+inline void PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID,
+                                         int                      genCount)
 {
-    d_lastGUID = lastGUID;
+    d_lastGUID = bsl::make_pair(lastGUID, genCount);
 }
 
 inline const PushStream::Element* PushStream::App::last() const
