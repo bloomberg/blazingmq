@@ -82,9 +82,11 @@ void ClusterStateManager::onCommit(
 
     // NOTE: Even when using old workflow, we still apply all advisories to the
     // CSL. We just don't invoke the commit callbacks.
-    // Make an exception for QueueUpdateAdvisory
+    // Make an exception for QueueUpdateAdvisory and PartitionPrimaryAdvisory
     if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
-        !clusterMessage.choice().isQueueUpdateAdvisoryValue()) {
+        !clusterMessage.choice().isQueueUpdateAdvisoryValue() &&
+        !clusterMessage.choice().isPartitionPrimaryAdvisoryValue() &&
+        !clusterMessage.choice().isLeaderAdvisoryValue()) {
         return;  // RETURN
     }
 
@@ -94,6 +96,30 @@ void ClusterStateManager::onCommit(
     //     == bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
     //     return;                                                    // RETURN
     // }
+
+    // For LeaderAdvisory, we only apply PartitionPrimaryAdvisory part
+    // to CSL for now
+    if (clusterMessage.choice().isLeaderAdvisoryValue()) {
+        bmqp_ctrlmsg::ControlMessage  controlMsg;
+        bmqp_ctrlmsg::ClusterMessage& clusterMsg =
+            controlMsg.choice().makeClusterMessage();
+        bmqp_ctrlmsg::PartitionPrimaryAdvisory& partitionPrimaryAdv =
+            clusterMsg.choice().makePartitionPrimaryAdvisory();
+
+        const bmqp_ctrlmsg::LeaderAdvisory& leaderAdvisory =
+            clusterMessage.choice().leaderAdvisory();
+
+        partitionPrimaryAdv.sequenceNumber() = leaderAdvisory.sequenceNumber();
+        partitionPrimaryAdv.partitions()     = leaderAdvisory.partitions();
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Committed advisory (Partition Primary Advisory "
+                         "for Leader Advisory): "
+                      << advisory << ", with status '" << status << "'";
+
+        mqbc::ClusterUtil::apply(d_state_p, clusterMsg, *d_clusterData_p);
+        return;
+    }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Committed advisory: " << advisory << ", with status '"
@@ -969,23 +995,21 @@ void ClusterStateManager::onPartitionPrimaryAssignment(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
 
-    if (d_cluster_p->isCSLModeEnabled()) {
-        // This method will notify the storage about (potentially same)
-        // mapping.  This must be done before calling
-        // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' (via
-        // d_afterPartitionPrimaryAssignmentCb), because ClusterQueueHelper
-        // assumes that storage is aware of the mapping.
-        mqbc::ClusterUtil::onPartitionPrimaryAssignment(d_clusterData_p,
-                                                        d_storageManager_p,
-                                                        partitionId,
-                                                        primary,
-                                                        leaseId,
-                                                        status,
-                                                        oldPrimary,
-                                                        oldLeaseId);
+    // This method will notify the storage about (potentially same)
+    // mapping.  This must be done before calling
+    // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' (via
+    // d_afterPartitionPrimaryAssignmentCb), because ClusterQueueHelper
+    // assumes that storage is aware of the mapping.
+    mqbc::ClusterUtil::onPartitionPrimaryAssignment(d_clusterData_p,
+                                                    d_storageManager_p,
+                                                    partitionId,
+                                                    primary,
+                                                    leaseId,
+                                                    status,
+                                                    oldPrimary,
+                                                    oldLeaseId);
 
-        d_isFirstLeaderAdvisory = false;
-    }
+    d_isFirstLeaderAdvisory = false;
 
     d_afterPartitionPrimaryAssignmentCb(partitionId, primary, status);
 }
@@ -1130,11 +1154,6 @@ void ClusterStateManager::markOrphan(const bsl::vector<int>& partitions,
         d_state_p->setPartitionPrimary(partitions[i],
                                        pinfo.primaryLeaseId(),
                                        0);  // no primary node
-
-        if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-            d_storageManager_p->clearPrimaryForPartition(partitions[i],
-                                                         primary);
-        }
     }
 }
 
@@ -1989,66 +2008,6 @@ void ClusterStateManager::processClusterStateEvent(
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to apply cluster state event, rc: " << rc;
     }
-}
-
-void ClusterStateManager::processPartitionPrimaryAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isPartitionPrimaryAdvisoryValue());
-
-    const bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory =
-        message.choice().clusterMessage().choice().partitionPrimaryAdvisory();
-
-    if (d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "Received legacy partitionPrimaryAdvisory: "
-                       << advisory << " from: " << source << " in CSL mode.";
-
-        return;  // RETURN
-    }
-
-    if (source != d_clusterData_p->electorInfo().leaderNode()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": ignoring partition-primary advisory: " << advisory
-                      << " from cluster node " << source->nodeDescription()
-                      << " as this node is not the current perceived leader. "
-                      << "Current leader: "
-                      << d_clusterData_p->electorInfo().leaderNodeId();
-        return;  // RETURN
-    }
-    // 'source' is the perceived leader
-
-    const bmqp_ctrlmsg::LeaderMessageSequence& leaderMsgSeq =
-        advisory.sequenceNumber();
-
-    if (d_clusterData_p->electorInfo().leaderMessageSequence() >
-        leaderMsgSeq) {
-        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description()
-            << ": Got partition-primary advisory: " << advisory
-            << " from leader node " << source->nodeDescription()
-            << " with smaller leader message sequence: " << leaderMsgSeq
-            << ". Current value: "
-            << d_clusterData_p->electorInfo().leaderMessageSequence()
-            << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
-        return;  // RETURN
-    }
-
-    processPartitionPrimaryAdvisoryRaw(advisory.partitions(), source);
-
-    // Leader status and sequence number are updated unconditionally.
-    d_clusterData_p->electorInfo().setLeaderMessageSequence(leaderMsgSeq);
-    d_clusterData_p->electorInfo().setLeaderStatus(
-        mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }
 
 void ClusterStateManager::processLeaderAdvisory(
