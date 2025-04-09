@@ -1072,7 +1072,7 @@ void ClusterStateManager::applyFSMEvent(
                                        ClusterFSMArgs(d_allocator_p),
                                    d_allocator_p);
     eventsQueueSp->emplace(event, metadata);
-    d_clusterFSM.applyEvent(eventsQueueSp);
+    d_clusterFSM.popEventAndProcess(eventsQueueSp);
 }
 
 int ClusterStateManager::loadClusterStateSnapshot(ClusterState* out)
