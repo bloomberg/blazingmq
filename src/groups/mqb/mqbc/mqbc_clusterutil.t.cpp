@@ -75,14 +75,13 @@ struct Tester {
                       int                                 partitionId,
                       const mqbc::ClusterState::AppInfos& appIdInfos)
     {
-        bmqt::Uri                       uri(uriString, d_allocator_p);
+        bmqp_ctrlmsg::QueueInfo advisory(bmqtst::TestHelperUtil::allocator());
+
+        advisory.uri() = uriString;
+        key.loadBinary(&advisory.key());
+        advisory.partitionId() = partitionId;
         mqbc::ClusterState::QueueInfoSp queueInfo;
-        queueInfo.createInplace(d_allocator_p,
-                                uri,
-                                key,
-                                partitionId,
-                                appIdInfos,
-                                d_allocator_p);
+        queueInfo.createInplace(d_allocator_p, advisory, d_allocator_p);
         return queueInfo;
     }
 };
