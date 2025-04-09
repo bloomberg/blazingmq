@@ -402,8 +402,9 @@ class TCPSessionFactory {
 
     /// Asynchronously initial connection on the specified `channel` using the
     /// specified `context`.
-    void initialConnect(const bsl::shared_ptr<bmqio::Channel>&   channel,
-                        const bsl::shared_ptr<OperationContext>& context);
+    void
+    handleInitialConnection(const bsl::shared_ptr<bmqio::Channel>&   channel,
+                            const bsl::shared_ptr<OperationContext>& context);
 
     // PRIVATE MANIPULATORS
 
