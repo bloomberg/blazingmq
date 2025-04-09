@@ -64,7 +64,7 @@ struct InitialConnectionContext {
         d_initialConnectionCb;
 
     /// The negotiation message received from the remote peer.
-    bmqp_ctrlmsg::NegotiationMessage d_initialConnectionMessage;
+    bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
 
     /// The cluster involved in the session being negotiated, or empty if
     /// none.
