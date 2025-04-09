@@ -120,7 +120,7 @@ void InitialConnectionHandler::readCallback(
         return;  // RETURN
     }
 
-    switch (context->d_initialConnectionMessage.selectionId()) {
+    switch (context->d_negotiationMessage.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY:
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE:
     case bmqp_ctrlmsg::NegotiationMessage ::
@@ -132,7 +132,7 @@ void InitialConnectionHandler::readCallback(
     } break;  // BREAK
     default: {
         errStream << "Invalid negotiation message received (unknown type): "
-                  << context->d_initialConnectionMessage;
+                  << context->d_negotiationMessage;
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
                                        error,
@@ -172,7 +172,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         return rc_NOT_CONTROL_EVENT;  // RETURN
     }
 
-    int rc = event.loadControlEvent(&(context->d_initialConnectionMessage));
+    int rc = event.loadControlEvent(&(context->d_negotiationMessage));
     if (rc != 0) {
         errorDescription << "Invalid negotiation message received (failed "
                          << "decoding ControlEvent): [rc: " << rc << "]:\n"
