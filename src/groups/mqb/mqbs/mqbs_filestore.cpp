@@ -2550,7 +2550,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ". CRC32-C of payload in DATA file: " << checksum
                         << ". Payload offset in DATA file: " << appDataOffset
                         << BMQTSK_ALARMLOG_END;
-                    continue;  // CONTINUE
                 }
             }
 
