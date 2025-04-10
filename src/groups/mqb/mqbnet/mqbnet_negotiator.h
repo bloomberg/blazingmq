@@ -40,9 +40,9 @@
 // negotiation).
 //
 // Note that the 'InitialConnectionHandlerContext' passed in to the
-// 'Negotiator::negotiate()' method can be modified in the negotiator concrete
-// implementation to set some of its members that the caller will leverage and
-// use.
+// 'InitialConnectionHandler::handleInitialConnection()' method can be modified
+// in the InitialConnectionHandler concrete implementation to set some of its
+// members that the caller will leverage and use.
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
