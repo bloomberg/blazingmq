@@ -2658,7 +2658,7 @@ void ClusterQueueHelper::configureQueueDispatched(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_supportShutdownV2) {
+    if (d_isShutdownLogicOn) {
         BMQ_LOGTHROTTLE_INFO()
             << d_cluster_p->description()
             << ": Shutting down and skipping configure queue [: " << uri
@@ -4474,7 +4474,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_numPendingReopenQueueRequests(0)
 , d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
-, d_supportShutdownV2(false)
+, d_isShutdownLogicOn(false)
 {
     BSLS_ASSERT(
         d_clusterData_p->clusterConfig()
@@ -4768,28 +4768,6 @@ void ClusterQueueHelper::configureQueue(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->dispatcher()->inDispatcherThread(queue));
-
-    // Application first calls 'Cluster::initiateShutdown' (which may set
-    // 'd_supportShutdownV2'), followed by 'TransportManager::closeClients'
-    // which may result in 'QueueHandle::drop' leading to this call.
-    if (d_supportShutdownV2) {
-        // Assuming thread-safe 'description()'
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description()
-            << ": Shutting down and skipping close queue [: "
-            << handleParameters.uri()
-            << "], queueId: " << handleParameters.qId()
-            << ", handle parameters: " << handleParameters;
-
-        if (callback) {
-            bmqp_ctrlmsg::Status status;
-            status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-            status.message()  = "Shutting down.";
-            callback(status);
-        }
-
-        return;  // RETURN
-    }
 
     // TBD: Populate the 'bmqp_ctrlmsg::SubQueueIdInfo' of the handleParameters
     //      with subStream-specific (appId, upstreamSubQueueId) if applicable.
@@ -5181,7 +5159,7 @@ void ClusterQueueHelper::requestToStopPushing()
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     // Assume Shutdown V2
-    d_supportShutdownV2 = true;
+    d_isShutdownLogicOn = true;
 
     // Prevent future queue operations from sending PUSHes.
     for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
