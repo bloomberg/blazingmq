@@ -80,10 +80,10 @@ void InitialConnectionHandler::readCallback(
     if (!status) {
         errStream << "Read error: " << status;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCb((10 * status.category()) +
-                                           rc_READ_ERROR,
-                                       error,
-                                       session);
+        context->d_initialConnectionCompleteCb((10 * status.category()) +
+                                                   rc_READ_ERROR,
+                                               error,
+                                               session);
         return;  // RETURN
     }
 
@@ -94,9 +94,10 @@ void InitialConnectionHandler::readCallback(
         errStream << "Unrecoverable read error:\n"
                   << bmqu::BlobStartHexDumper(blob);
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCb((rc * 10) + rc_UNRECOVERABLE_READ_ERROR,
-                                       error,
-                                       session);
+        context->d_initialConnectionCompleteCb((rc * 10) +
+                                                   rc_UNRECOVERABLE_READ_ERROR,
+                                               error,
+                                               session);
         return;  // RETURN
     }
 
@@ -113,10 +114,10 @@ void InitialConnectionHandler::readCallback(
     rc = decodeInitialConnectionMessage(errStream, context, outPacket);
     if (rc != 0) {
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCb((rc * 10) +
-                                           rc_INVALID_NEGOTIATION_MESSAGE,
-                                       error,
-                                       session);
+        context->d_initialConnectionCompleteCb(
+            (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE,
+            error,
+            session);
         return;  // RETURN
     }
 
@@ -134,9 +135,9 @@ void InitialConnectionHandler::readCallback(
         errStream << "Invalid negotiation message received (unknown type): "
                   << context->d_negotiationMessage;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
-                                       error,
-                                       session);
+        context->d_initialConnectionCompleteCb(rc_INVALID_NEGOTIATION_TYPE,
+                                               error,
+                                               session);
     }
     }
 }
@@ -205,9 +206,10 @@ void InitialConnectionHandler::scheduleRead(
         bmqu::MemOutStream errStream;
         errStream << "Read failed while negotiating: " << status;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCb(-1,
-                                       error,
-                                       bsl::shared_ptr<mqbnet::Session>());
+        context->d_initialConnectionCompleteCb(
+            -1,
+            error,
+            bsl::shared_ptr<mqbnet::Session>());
         return;  // RETURN
     }
 }
@@ -228,7 +230,7 @@ InitialConnectionHandler::~InitialConnectionHandler()
 void InitialConnectionHandler::handleInitialConnection(
     const InitialConnectionContextSp&      context,
     const bsl::shared_ptr<bmqio::Channel>& channel,
-    const InitialConnectionCb&             initialConnectionCb)
+    const InitialConnectionCompleteCb&     initialConnectionCompleteCb)
 {
     // Create an NegotiationContext for that connection
     NegotiationContextSp negotiationContext;
@@ -236,9 +238,10 @@ void InitialConnectionHandler::handleInitialConnection(
 
     negotiationContext->d_initialConnectionContext_p = context;
     negotiationContext->d_channelSp                  = channel;
-    negotiationContext->d_initialConnectionCb        = initialConnectionCb;
-    negotiationContext->d_isReversed                 = false;
-    negotiationContext->d_clusterName                = "";
+    negotiationContext->d_initialConnectionCompleteCb =
+        initialConnectionCompleteCb;
+    negotiationContext->d_isReversed     = false;
+    negotiationContext->d_clusterName    = "";
     negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
 
     // Reading for inbound request or continue to read
