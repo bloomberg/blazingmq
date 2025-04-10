@@ -29,9 +29,7 @@
 ///
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
-///
-/// The implementation must be thread safe as 'negotiate()' may be called
-/// concurrently from many IO threads.
+/// TODO
 
 // MQB
 #include <mqbconfm_messages.h>

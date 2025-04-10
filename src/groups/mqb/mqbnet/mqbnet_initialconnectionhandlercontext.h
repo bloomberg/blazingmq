@@ -42,10 +42,11 @@ class Cluster;
 // =====================================
 
 /// VST for the context associated to a session being negotiated.  Each
-/// session being negotiated get its own context; and the Negotiator
-/// concrete implementation can modify some of the members during the
-/// negotiation (i.e., between the `negotiate()` method and the invocation
-/// of the `NegotiationCb` method.
+/// session being negotiated get its own context; and the
+/// InitialConnectionHandler concrete implementation can modify some of the
+/// members during the handleInitialConnection() (i.e., between the
+/// `handleInitialConnection()` method and the invocation of the
+/// `InitialConnectionCb` method.
 class InitialConnectionHandlerContext {
   private:
     // DATA
@@ -68,10 +69,10 @@ class InitialConnectionHandlerContext {
     // read on the channel once the session has been
     // successfully negotiated.  This may or may not be
     // set by the caller, before invoking
-    // 'Negotiator::negotiate()'; and may or may not be
+    // 'Negotiator::handleInitialConnection()'; and may or may not be
     // changed by the negotiator concrete
     // implementation before invoking the
-    // 'NegotiationCb'.  Note that a value of 0 will
+    // 'InitialConnectionCb'.  Note that a value of 0 will
     // use the negotiated session as the default event
     // processor.
 
@@ -81,10 +82,10 @@ class InitialConnectionHandlerContext {
     // 'resultCb' method (used to inform of the
     // success/failure of a session negotiation).  This
     // may or may not be set by the caller, before
-    // invoking 'Negotiator::negotiate()'; and may or
+    // invoking 'Negotiator::handleInitialConnection()'; and may or
     // may not be changed by the negotiator concrete
     // implementation before invoking the
-    // 'NegotiationCb'.  This is used to bind low level
+    // 'InitialConnectionCb'.  This is used to bind low level
     // data (from transport layer) to the session; and
     // can be overriden/set by the negotiation
     // implementation (typically for the case of
@@ -98,7 +99,7 @@ class InitialConnectionHandlerContext {
     // the Negotiator concrete implementation can use
     // while negotiating the session.  This may or may
     // not be set by the caller, before invoking
-    // 'Negotiator::negotiate()'; and should not be
+    // 'Negotiator::handleInitialConnection()'; and should not be
     // changed during negotiation (this data is not
     // used by the session factory, so changing it will
     // have no effect).  This is used to bind high
