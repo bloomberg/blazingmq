@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbnet_initialconnectionhandler.t.cpp                        -*-C++-*-
+#include <bslstl_sharedptr.h>
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
@@ -59,7 +60,7 @@ using namespace bsl;
 struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
     void handleInitialConnection(
-        mqbnet::InitialConnectionContext*      context,
+        const InitialConnectionContextSp&      context,
         const bsl::shared_ptr<bmqio::Channel>& channel,
         const InitialConnectionCb& initialConnectionCb) BSLS_KEYWORD_OVERRIDE
     {
@@ -131,8 +132,8 @@ static void test1_InitialConnectionHandler()
     {
         PV("Verify that methods are public and virtual");
 
-        mqbnet::InitialConnectionContext* dummyContext_p = 0;
-        bsl::shared_ptr<bmqio::Channel>   dummyChannelSp;
+        InitialConnectionContextSp      dummyContext_p = 0;
+        bsl::shared_ptr<bmqio::Channel> dummyChannelSp;
         mqbnet::InitialConnectionHandler::InitialConnectionCb
             dummyInitialConnectionCb;
 

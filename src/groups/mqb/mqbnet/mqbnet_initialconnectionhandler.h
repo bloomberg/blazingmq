@@ -60,6 +60,9 @@ class InitialConnectionHandler {
                                const bsl::shared_ptr<Session>& session)>
         InitialConnectionCb;
 
+    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
+        InitialConnectionContextSp;
+
   public:
     // CREATORS
 
@@ -80,7 +83,7 @@ class InitialConnectionHandler {
     /// needed, the `initialConnectionCb` may be invoked directly from inside
     /// the call to `handleInitialConnection()`.
     virtual void handleInitialConnection(
-        mqbnet::InitialConnectionContext*      context,
+        const InitialConnectionContextSp&      context,
         const bsl::shared_ptr<bmqio::Channel>& channel,
         const InitialConnectionCb&             initialConnectionCb) = 0;
 };
