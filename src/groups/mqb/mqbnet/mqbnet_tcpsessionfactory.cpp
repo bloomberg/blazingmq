@@ -359,7 +359,7 @@ void TCPSessionFactory::handleInitialConnection(
     //       contract (this means we can't have mutex lock around the call to
     //       'handleInitialConnection').
     d_initialConnectionHandler_p->handleInitialConnection(
-        initialConnectionContext.get(),
+        initialConnectionContext,
         channel,
         bdlf::BindUtil::bind(&TCPSessionFactory::negotiationComplete,
                              this,

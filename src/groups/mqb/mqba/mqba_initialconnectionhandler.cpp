@@ -226,7 +226,7 @@ InitialConnectionHandler::~InitialConnectionHandler()
 }
 
 void InitialConnectionHandler::handleInitialConnection(
-    mqbnet::InitialConnectionContext*      context,
+    const InitialConnectionContextSp&      context,
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const InitialConnectionCb&             initialConnectionCb)
 {

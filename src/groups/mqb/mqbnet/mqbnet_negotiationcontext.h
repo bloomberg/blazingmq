@@ -53,8 +53,7 @@ struct NegotiationContext {
     // DATA
     /// The associated InitialConnectionContext,
     /// passed in by the caller.
-    mqbnet::InitialConnectionContext* d_initialConnectionContext_p;
-    // TODO: change to shared pointer
+    bsl::shared_ptr<InitialConnectionContext> d_initialConnectionContext_p;
 
     /// The channel to use for the negotiation.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
