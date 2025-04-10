@@ -67,7 +67,7 @@ def test_broker_client(
         client.start_session()
         assert client.capture(r"CONNECTED", 5)
 
-        # Kill tproxy to brake the connection between broker and client
+        # Kill tproxy to break the connection between broker and client
         tproxy.kill()
         assert client.wait_connection_lost(5)
 
