@@ -33,7 +33,7 @@ from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.process.proc import Process
 
-pytestmark = order(1)
+pytestmark = order(2)
 
 
 def test_broker_client(
