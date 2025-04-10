@@ -247,7 +247,7 @@ class TransportManager {
     /// `status` representing whether it was a success or some failure, and
     /// the specified `session` being populated in case of `CHANNEL_UP`
     /// `event`.  The specified `resultState` is a user data provided by the
-    /// negotiator in the `InitialConnectionHandlerContext` struct used during
+    /// negotiator in the `InitialConnectionContext` struct used during
     /// negotiation of the session.  The specified `readCb` serves as read data
     /// callback when `enableRead` is called.  If the negotiation has specified
     /// cluster name (as in the case of proxy or cluster node) connection,
@@ -374,7 +374,7 @@ class TransportManager {
     ///   cluster.
     /// The optionally specified `userData` will be passed in to the
     /// `negotiate` method of the negotiator (through the
-    /// InitialConnectionHandlerContext) for any connections being established
+    /// InitialConnectionContext) for any connections being established
     /// as a result of this cluster creation.  Return 0 on success, or a
     /// non-zero value and populate the specified `errorDescription` with a
     /// description of the error in case of failure.
@@ -389,7 +389,7 @@ class TransportManager {
     /// be considered `persistent` with auto-reconnection when it goes down.
     /// The optionally specified `userData` will be passed in to the
     /// `negotiate` method of the negotiator (through the
-    /// InitialConnectionHandlerContext) for any connections being established
+    /// InitialConnectionContext) for any connections being established
     /// as a result of this connection creation.  Return 0 on success, or a
     /// non-zero value and populate the specified `errorDescription` with a
     /// description of the error in case of failure.
@@ -404,7 +404,7 @@ class TransportManager {
     /// the specified `clusterNode` with the corresponding
     /// `mqbnet::clusterNode` object.  Note that this is a method only
     /// intended to be used from the session negotiator in order to populate
-    /// the `resultState` of the `InitialConnectionHandlerContext`.
+    /// the `resultState` of the `InitialConnectionContext`.
     void* getClusterNodeAndState(bsl::ostream&            errorDescription,
                                  ClusterNode**            clusterNode,
                                  const bslstl::StringRef& clusterName,

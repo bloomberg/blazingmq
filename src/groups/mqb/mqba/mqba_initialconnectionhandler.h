@@ -20,7 +20,7 @@
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
-#include <mqbnet_initialconnectioncontext.h>
+#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
 
 // BMQ
@@ -46,8 +46,7 @@ class SessionNegotiator;
 class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
-        InitialConnectionContextSp;
+    typedef bsl::shared_ptr<mqbnet::NegotiationContext> NegotiationContextSp;
 
   private:
     // DATA
@@ -79,24 +78,23 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// `numNeeded` can be used to indicate if more bytes are needed in
     /// order to get a full message.  The specified `context` holds the
     /// initial connection context associated to this read.
-    void readCallback(const bmqio::Status&              status,
-                      int*                              numNeeded,
-                      bdlbb::Blob*                      blob,
-                      const InitialConnectionContextSp& context);
+    void readCallback(const bmqio::Status&        status,
+                      int*                        numNeeded,
+                      bdlbb::Blob*                blob,
+                      const NegotiationContextSp& context);
 
     /// Decode the initial connection messages received in the specified `blob`
     /// and store it, on success, in the corresponding member of the specified
     /// `context`, returning 0.  Return a non-zero code on error and
     /// populate the specified `errorDescription` with a description of the
     /// error.
-    int
-    decodeInitialConnectionMessage(bsl::ostream& errorDescription,
-                                   const InitialConnectionContextSp& context,
-                                   bdlbb::Blob&                      blob);
+    int decodeInitialConnectionMessage(bsl::ostream& errorDescription,
+                                       const NegotiationContextSp& context,
+                                       bdlbb::Blob&                blob);
 
     /// Schedule a read for the initial connection of the session of the
     /// specified `context`.
-    void scheduleRead(const InitialConnectionContextSp& context);
+    void scheduleRead(const NegotiationContextSp& context);
 
   public:
     // CREATORS
@@ -110,8 +108,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     // MANIPULATORS
 
     void handleInitialConnection(
-        mqbnet::InitialConnectionHandlerContext* context,
-        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        mqbnet::InitialConnectionContext*      context,
+        const bsl::shared_ptr<bmqio::Channel>& channel,
         const InitialConnectionCb& initialConnectionCb) BSLS_KEYWORD_OVERRIDE;
 };
 }

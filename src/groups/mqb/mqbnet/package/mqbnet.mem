@@ -11,5 +11,5 @@ mqbnet_tcpsessionfactory
 mqbnet_transportmanager
 mqbnet_elector
 mqbnet_initialconnectionhandler
-mqbnet_initialconnectionhandlercontext
 mqbnet_initialconnectioncontext
+mqbnet_negotiationcontext

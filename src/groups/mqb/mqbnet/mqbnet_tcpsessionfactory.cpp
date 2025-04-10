@@ -293,7 +293,7 @@ struct TCPSessionFactory_OperationContext {
     // caller (for the 'connect' operation); unused for
     // a 'listen' operation.  This is the initial value
     // that will be set for the
-    // 'InitialConnectionHandlerContext::resultState' passed to the
+    // 'InitialConnectionContext::resultState' passed to the
     // 'Negotiator::negotiate'.
 };
 
@@ -343,14 +343,13 @@ void TCPSessionFactory::handleInitialConnection(
                   << "': allocating a channel with '" << channel.get() << "' ["
                   << d_nbActiveChannels << " active channels]";
 
-    // Create a unique InitialConnectionHandlerContext for the channel, from
+    // Create a unique InitialConnectionContext for the channel, from
     // the OperationContext.  This shared_ptr is bound to the
     // 'negotiationComplete' callback below, which is what scopes its lifetime.
-    bsl::shared_ptr<InitialConnectionHandlerContext>
-        initialConnectionHandlerContext;
-    initialConnectionHandlerContext.createInplace(d_allocator_p,
-                                                  context->d_isIncoming);
-    (*initialConnectionHandlerContext)
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
+    initialConnectionContext.createInplace(d_allocator_p,
+                                           context->d_isIncoming);
+    (*initialConnectionContext)
         .setUserData(context->d_negotiationUserData_sp.get())
         .setResultState(context->d_resultState_p);
 
@@ -360,7 +359,7 @@ void TCPSessionFactory::handleInitialConnection(
     //       contract (this means we can't have mutex lock around the call to
     //       'handleInitialConnection').
     d_initialConnectionHandler_p->handleInitialConnection(
-        initialConnectionHandlerContext.get(),
+        initialConnectionContext.get(),
         channel,
         bdlf::BindUtil::bind(&TCPSessionFactory::negotiationComplete,
                              this,
@@ -369,7 +368,7 @@ void TCPSessionFactory::handleInitialConnection(
                              bdlf::PlaceHolders::_3,  // session
                              channel,
                              context,
-                             initialConnectionHandlerContext));
+                             initialConnectionContext));
 }
 
 void TCPSessionFactory::readCallback(const bmqio::Status& status,
@@ -483,12 +482,12 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
 }
 
 void TCPSessionFactory::negotiationComplete(
-    int                                                     statusCode,
-    const bsl::string&                                      errorDescription,
-    const bsl::shared_ptr<Session>&                         session,
-    const bsl::shared_ptr<bmqio::Channel>&                  channel,
-    const bsl::shared_ptr<OperationContext>&                context,
-    const bsl::shared_ptr<InitialConnectionHandlerContext>& negotiatorContext)
+    int                                              statusCode,
+    const bsl::string&                               errorDescription,
+    const bsl::shared_ptr<Session>&                  session,
+    const bsl::shared_ptr<bmqio::Channel>&           channel,
+    const bsl::shared_ptr<OperationContext>&         context,
+    const bsl::shared_ptr<InitialConnectionContext>& negotiatorContext)
 {
     // executed by one of the *IO* threads
 
@@ -1496,7 +1495,7 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 
 TCPSessionFactory::ChannelInfo::ChannelInfo(
     const bsl::shared_ptr<bmqio::Channel>& channel,
-    const InitialConnectionHandlerContext& context,
+    const InitialConnectionContext&        context,
     int                                    initialMissedHeartbeatCounter,
     const bsl::shared_ptr<Session>&        monitoredSession)
 : d_channel_p(channel.get())

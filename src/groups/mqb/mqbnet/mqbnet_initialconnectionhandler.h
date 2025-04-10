@@ -25,7 +25,7 @@
 // A session would be created at the end upon success.
 
 // MQB
-#include <mqbnet_initialconnectionhandlercontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 
@@ -80,9 +80,9 @@ class InitialConnectionHandler {
     /// needed, the `initialConnectionCb` may be invoked directly from inside
     /// the call to `handleInitialConnection()`.
     virtual void handleInitialConnection(
-        mqbnet::InitialConnectionHandlerContext* context,
-        const bsl::shared_ptr<bmqio::Channel>&   channel,
-        const InitialConnectionCb&               initialConnectionCb) = 0;
+        mqbnet::InitialConnectionContext*      context,
+        const bsl::shared_ptr<bmqio::Channel>& channel,
+        const InitialConnectionCb&             initialConnectionCb) = 0;
 };
 
 }  // close package namespace

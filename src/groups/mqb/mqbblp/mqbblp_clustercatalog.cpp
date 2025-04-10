@@ -697,10 +697,10 @@ int ClusterCatalog::count()
 }
 
 mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
-    bsl::ostream&                            errorDescription,
-    mqbnet::InitialConnectionHandlerContext* context,
-    const bslstl::StringRef&                 clusterName,
-    int                                      nodeId)
+    bsl::ostream&                     errorDescription,
+    mqbnet::InitialConnectionContext* context,
+    const bslstl::StringRef&          clusterName,
+    int                               nodeId)
 {
     mqbnet::ClusterNode* clusterNode = 0;
 
