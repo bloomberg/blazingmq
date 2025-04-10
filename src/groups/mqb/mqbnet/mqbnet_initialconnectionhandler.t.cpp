@@ -62,7 +62,8 @@ struct InitialConnectionHandlerTestImp
     void handleInitialConnection(
         const InitialConnectionContextSp&      context,
         const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionCb& initialConnectionCb) BSLS_KEYWORD_OVERRIDE
+        const InitialConnectionCompleteCb&     initialConnectionCompleteCb)
+        BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }
@@ -134,14 +135,14 @@ static void test1_InitialConnectionHandler()
 
         InitialConnectionContextSp      dummyContext_p = 0;
         bsl::shared_ptr<bmqio::Channel> dummyChannelSp;
-        mqbnet::InitialConnectionHandler::InitialConnectionCb
-            dummyInitialConnectionCb;
+        mqbnet::InitialConnectionHandler::InitialConnectionCompleteCb
+            dummyInitialConnectionCompleteCb;
 
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             handleInitialConnection(dummyContext_p,
                                     dummyChannelSp,
-                                    dummyInitialConnectionCb));
+                                    dummyInitialConnectionCompleteCb));
     }
 }
 

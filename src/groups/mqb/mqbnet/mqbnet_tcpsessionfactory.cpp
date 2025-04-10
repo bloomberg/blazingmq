@@ -353,7 +353,8 @@ void TCPSessionFactory::handleInitialConnection(
         .setUserData(context->d_negotiationUserData_sp.get())
         .setResultState(context->d_resultState_p);
 
-    // NOTE: we must ensure the 'initialConnectionCb' can be invoked from the
+    // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
+    // from the
     //       'handleInitialConnection()' call as specified on the
     //       'InitialConnectionHandler::handleInitialConnection' method
     //       contract (this means we can't have mutex lock around the call to

@@ -58,7 +58,7 @@ class InitialConnectionHandler {
     typedef bsl::function<void(int                status,
                                const bsl::string& errorDescription,
                                const bsl::shared_ptr<Session>& session)>
-        InitialConnectionCb;
+        InitialConnectionCompleteCb;
 
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
@@ -72,20 +72,20 @@ class InitialConnectionHandler {
     // MANIPULATORS
 
     /// Method invoked by the client of this object to negotiate a session
-    /// using the specified `channel`.  The specified `initialConnectionCb`
-    /// must be called with the result, whether success or failure, of the
-    /// initial connection.  The specified `context` is an in-out member
-    /// holding the initial connection context to use; and the
-    /// InitialConnectionHandler concrete implementation can modify some of the
-    /// members during the initial connection (i.e., between the
+    /// using the specified `channel`.  The specified
+    /// `initialConnectionCompleteCb` must be called with the result, whether
+    /// success or failure, of the initial connection.  The specified `context`
+    /// is an in-out member holding the initial connection context to use; and
+    /// the InitialConnectionHandler concrete implementation can modify some of
+    /// the members during the initial connection (i.e., between the
     /// `handleInitialConnection()` method and the invocation of the
-    /// `initialConnectionCb` method.  Note that if no initial connection is
-    /// needed, the `initialConnectionCb` may be invoked directly from inside
-    /// the call to `handleInitialConnection()`.
+    /// `initialConnectionCompleteCb` method.  Note that if no initial
+    /// connection is needed, the `initialConnectionCompleteCb` may be invoked
+    /// directly from inside the call to `handleInitialConnection()`.
     virtual void handleInitialConnection(
         const InitialConnectionContextSp&      context,
         const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionCb&             initialConnectionCb) = 0;
+        const InitialConnectionCompleteCb& initialConnectionCompleteCb) = 0;
 };
 
 }  // close package namespace

@@ -46,7 +46,7 @@ class Cluster;
 /// InitialConnectionHandler concrete implementation can modify some of the
 /// members during the handleInitialConnection() (i.e., between the
 /// `handleInitialConnection()` method and the invocation of the
-/// `InitialConnectionCb` method.
+/// `InitialConnectionCompleteCb` method.
 class InitialConnectionContext {
   private:
     // DATA
@@ -72,7 +72,7 @@ class InitialConnectionContext {
     // 'Negotiator::handleInitialConnection()'; and may or may not be
     // changed by the negotiator concrete
     // implementation before invoking the
-    // 'InitialConnectionCb'.  Note that a value of 0 will
+    // 'InitialConnectionCompleteCb'.  Note that a value of 0 will
     // use the negotiated session as the default event
     // processor.
 
@@ -85,7 +85,7 @@ class InitialConnectionContext {
     // invoking 'Negotiator::handleInitialConnection()'; and may or
     // may not be changed by the negotiator concrete
     // implementation before invoking the
-    // 'InitialConnectionCb'.  This is used to bind low level
+    // 'InitialConnectionCompleteCb'.  This is used to bind low level
     // data (from transport layer) to the session; and
     // can be overriden/set by the negotiation
     // implementation (typically for the case of
