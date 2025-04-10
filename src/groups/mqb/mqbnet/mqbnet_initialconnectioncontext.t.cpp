@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_initialconnectionhandlercontext.t.cpp                 -*-C++-*-
-#include <mqbnet_initialconnectionhandlercontext.h>
+// mqbnet_initialconnectioncontext.t.cpp                 -*-C++-*-
+#include <mqbnet_initialconnectioncontext.h>
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
-#include <mqbnet_initialconnectionhandlercontext.h>
+#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 
 // BMQ
@@ -40,7 +40,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 /// A mock implementation of SessionEventProcessor protocol, for testing
-/// `InitialConnectionHandlerContext`.
+/// `InitialConnectionContext`.
 class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
   public:
     ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE = default;
@@ -58,26 +58,26 @@ void MockSessionEventProcessor::processEvent(const bmqp::Event&   event,
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_InitialConnectionHandlerContext()
+static void test1_initialConnectionContext()
 {
-    bmqtst::TestHelper::printTestName("test1_InitialConnectionHandlerContext");
+    bmqtst::TestHelper::printTestName("test1_initialConnectionContext");
     {
         PV("Constructor");
-        mqbnet::InitialConnectionHandlerContext obj1(true);
+        mqbnet::InitialConnectionContext obj1(true);
         BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
         BMQTST_ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
         BMQTST_ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
 
-        mqbnet::InitialConnectionHandlerContext obj2(false);
+        mqbnet::InitialConnectionContext obj2(false);
         BMQTST_ASSERT_EQ(obj2.isIncoming(), false);
     }
 
     {
         PV("Manipulators/Accessors");
 
-        mqbnet::InitialConnectionHandlerContext obj(true);
+        mqbnet::InitialConnectionContext obj(true);
 
         {  // MaxMissedHeartbeat
             const char value = 5;
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 1: test1_InitialConnectionHandlerContext(); break;
+    case 1: test1_initialConnectionContext(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

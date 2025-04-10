@@ -13,11 +13,91 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_initialconnectioncontext.cpp                           -*-C++-*-
+// mqbnet_initialconnectioncontext.cpp                       -*-C++-*-
 #include <mqbnet_initialconnectioncontext.h>
 
+#include <mqbscm_version.h>
+
 namespace BloombergLP {
-namespace mqba {
+namespace mqbnet {
+
+// -------------------------------------
+// class InitialConnectionContext
+// -------------------------------------
+
+InitialConnectionContext::InitialConnectionContext(bool isIncoming)
+: d_isIncoming(isIncoming)
+, d_maxMissedHeartbeat(0)
+, d_eventProcessor_p(0)
+, d_resultState_p(0)
+, d_userData_p(0)
+, d_cluster_p(0)
+{
+    // NOTHING
+}
+
+InitialConnectionContext&
+InitialConnectionContext::setMaxMissedHeartbeat(int value)
+{
+    d_maxMissedHeartbeat = value;
+    return *this;
+}
+
+InitialConnectionContext& InitialConnectionContext::setUserData(void* value)
+{
+    d_userData_p = value;
+    return *this;
+}
+
+InitialConnectionContext& InitialConnectionContext::setResultState(void* value)
+{
+    d_resultState_p = value;
+    return *this;
+}
+
+InitialConnectionContext&
+InitialConnectionContext::setEventProcessor(SessionEventProcessor* value)
+{
+    d_eventProcessor_p = value;
+    return *this;
+}
+
+InitialConnectionContext&
+InitialConnectionContext::setCluster(Cluster* cluster)
+{
+    d_cluster_p = cluster;
+    return *this;
+}
+
+bool InitialConnectionContext::isIncoming() const
+{
+    return d_isIncoming;
+}
+
+Cluster* InitialConnectionContext::cluster() const
+{
+    return d_cluster_p;
+}
+
+int InitialConnectionContext::maxMissedHeartbeat() const
+{
+    return d_maxMissedHeartbeat;
+}
+
+void* InitialConnectionContext::userData() const
+{
+    return d_userData_p;
+}
+
+void* InitialConnectionContext::resultState() const
+{
+    return d_resultState_p;
+}
+
+SessionEventProcessor* InitialConnectionContext::eventProcessor() const
+{
+    return d_eventProcessor_p;
+}
 
 }  // close package namespace
 }  // close enterprise namespace

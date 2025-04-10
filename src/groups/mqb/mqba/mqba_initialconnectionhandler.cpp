@@ -55,10 +55,10 @@ const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 // ------------------
 
 void InitialConnectionHandler::readCallback(
-    const bmqio::Status&              status,
-    int*                              numNeeded,
-    bdlbb::Blob*                      blob,
-    const InitialConnectionContextSp& context)
+    const bmqio::Status&        status,
+    int*                        numNeeded,
+    bdlbb::Blob*                blob,
+    const NegotiationContextSp& context)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -142,9 +142,9 @@ void InitialConnectionHandler::readCallback(
 }
 
 int InitialConnectionHandler::decodeInitialConnectionMessage(
-    bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context,
-    bdlbb::Blob&                      blob)
+    bsl::ostream&               errorDescription,
+    const NegotiationContextSp& context,
+    bdlbb::Blob&                blob)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -184,7 +184,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
 }
 
 void InitialConnectionHandler::scheduleRead(
-    const InitialConnectionContextSp& context)
+    const NegotiationContextSp& context)
 {
     // Schedule a TimedRead
     bmqio::Status status;
@@ -226,32 +226,31 @@ InitialConnectionHandler::~InitialConnectionHandler()
 }
 
 void InitialConnectionHandler::handleInitialConnection(
-    mqbnet::InitialConnectionHandlerContext* context,
-    const bsl::shared_ptr<bmqio::Channel>&   channel,
-    const InitialConnectionCb&               initialConnectionCb)
+    mqbnet::InitialConnectionContext*      context,
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    const InitialConnectionCb&             initialConnectionCb)
 {
-    // Create an InitialConnectionContext for that connection
-    InitialConnectionContextSp initialConnectionContext;
-    initialConnectionContext.createInplace(d_allocator_p);
+    // Create an NegotiationContext for that connection
+    NegotiationContextSp negotiationContext;
+    negotiationContext.createInplace(d_allocator_p);
 
-    initialConnectionContext->d_initialConnectionHandlerContext_p = context;
-    initialConnectionContext->d_channelSp                         = channel;
-    initialConnectionContext->d_initialConnectionCb = initialConnectionCb;
-    initialConnectionContext->d_isReversed          = false;
-    initialConnectionContext->d_clusterName         = "";
-    initialConnectionContext->d_connectionType =
-        mqbnet::ConnectionType::e_UNKNOWN;
+    negotiationContext->d_initialConnectionContext_p = context;
+    negotiationContext->d_channelSp                  = channel;
+    negotiationContext->d_initialConnectionCb        = initialConnectionCb;
+    negotiationContext->d_isReversed                 = false;
+    negotiationContext->d_clusterName                = "";
+    negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
 
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
     if (context->isIncoming()) {
-        scheduleRead(initialConnectionContext);
+        scheduleRead(negotiationContext);
     }
     else {
-        if (d_negotiator_mp->negotiateOutboundOrReverse(
-                initialConnectionContext) == 0) {
-            scheduleRead(initialConnectionContext);
+        if (d_negotiator_mp->negotiateOutboundOrReverse(negotiationContext) ==
+            0) {
+            scheduleRead(negotiationContext);
         }
     }
 }
