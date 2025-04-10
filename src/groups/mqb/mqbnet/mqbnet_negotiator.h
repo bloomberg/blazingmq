@@ -27,7 +27,7 @@
 //
 //@DESCRIPTION: 'mqbnet::Negotiator' is a protocol for a session negotiator
 // that uses a provided established channel to negotiate and create an
-// 'mqbnet::Session' object.  'mqbnet::InitialConnectionHandlerContext' is a
+// 'mqbnet::Session' object.  'mqbnet::InitialConnectionContext' is a
 // value-semantic type holding the context associated with a session being
 // negotiated.  It allows bi-directional generic communication between the
 // application layer and the transport layer: for example, a user data
@@ -39,14 +39,14 @@
 // user data, which then can be retrieved at application layer during
 // negotiation).
 //
-// Note that the 'InitialConnectionHandlerContext' passed in to the
+// Note that the 'InitialConnectionContext' passed in to the
 // 'InitialConnectionHandler::handleInitialConnection()' method can be modified
 // in the InitialConnectionHandler concrete implementation to set some of its
 // members that the caller will leverage and use.
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
-#include <mqbnet_initialconnectionhandlercontext.h>
+#include <mqbnet_negotiationcontext.h>
 
 // BDE
 #include <bsl_functional.h>
@@ -85,13 +85,13 @@ class Negotiator {
     /// Create a `session` based on the type of initial connection message in
     /// the specified `context`.
     virtual int createSessionOnMsgType(
-        bsl::shared_ptr<mqbnet::Session>*                session,
-        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
+        bsl::shared_ptr<mqbnet::Session>*          session,
+        const bsl::shared_ptr<NegotiationContext>& context) = 0;
 
     /// Send out outbound negotiation message or reverse connection request
     /// with the specified `context`.
     virtual int negotiateOutboundOrReverse(
-        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
+        const bsl::shared_ptr<NegotiationContext>& context) = 0;
 };
 
 }  // close package namespace

@@ -18,7 +18,7 @@
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
-#include <mqbnet_initialconnectionhandlercontext.h>
+#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 
 // BMQ
@@ -59,8 +59,8 @@ using namespace bsl;
 struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
     void handleInitialConnection(
-        mqbnet::InitialConnectionHandlerContext* context,
-        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        mqbnet::InitialConnectionContext*      context,
+        const bsl::shared_ptr<bmqio::Channel>& channel,
         const InitialConnectionCb& initialConnectionCb) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
@@ -131,8 +131,8 @@ static void test1_InitialConnectionHandler()
     {
         PV("Verify that methods are public and virtual");
 
-        mqbnet::InitialConnectionHandlerContext* dummyContext_p = 0;
-        bsl::shared_ptr<bmqio::Channel>          dummyChannelSp;
+        mqbnet::InitialConnectionContext* dummyContext_p = 0;
+        bsl::shared_ptr<bmqio::Channel>   dummyChannelSp;
         mqbnet::InitialConnectionHandler::InitialConnectionCb
             dummyInitialConnectionCb;
 

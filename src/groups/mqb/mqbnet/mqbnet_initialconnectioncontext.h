@@ -13,69 +13,132 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_initialconnectioncontext.h                                -*-C++-*-
+// mqbnet_initialconnectioncontext.h                        -*-C++-*-
 #ifndef INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 #define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
-/// @file mqbnet_initialconnectioncontext.h
-///
-/// @brief Provide the context for initial connection handler for establishing
-/// sessions.
-///
+//@PURPOSE: Provide a context for an initial connection handler.
+//
+//@CLASSES:
+//  mqbnet::InitialConnectionContext: VST for the context associated to
+//  an initial connection
+//
+//@DESCRIPTION: 'InitialConnectionContext' provides the context
+// associated to an initial connection being established
+//
 
-// MQB
-#include <mqbnet_initialconnectionhandler.h>
-
-// BMQ
-#include <bmqp_ctrlmsg_messages.h>
+// BDE
 
 namespace BloombergLP {
+
 namespace mqbnet {
 
-struct ConnectionType {
-    // Enum representing the type of session being negotiated, from that
-    // side of the connection's point of view.
-    enum Enum {
-        e_UNKNOWN,
-        e_CLUSTER_PROXY,   // Reverse connection proxy -> broker
-        e_CLUSTER_MEMBER,  // Cluster node -> cluster node
-        e_CLIENT,          // Either SDK or Proxy -> Proxy or cluster node
-        e_ADMIN
-    };
-};
+// FORWARD DECLARATION
+class SessionEventProcessor;
+class Cluster;
 
-// ==============================
+// =====================================
 // class InitialConnectionContext
-// ==============================
+// =====================================
 
-// VST for an implementation of InitialConnectionContext
-struct InitialConnectionContext {
+/// VST for the context associated to a session being negotiated.  Each
+/// session being negotiated get its own context; and the
+/// InitialConnectionHandler concrete implementation can modify some of the
+/// members during the handleInitialConnection() (i.e., between the
+/// `handleInitialConnection()` method and the invocation of the
+/// `InitialConnectionCb` method.
+class InitialConnectionContext {
+  private:
     // DATA
-    /// The associated InitialConnectionHandlerContext,
-    /// passed in by the caller.
-    mqbnet::InitialConnectionHandlerContext*
-        d_initialConnectionHandlerContext_p;
+    bool d_isIncoming;
+    // True if the session being negotiated originates
+    // from a remote peer (i.e., a 'listen'); false if
+    // it originates from us (i.e., a 'connect).
 
-    /// The channel to use for the negotiation.
-    bsl::shared_ptr<bmqio::Channel> d_channelSp;
+    int d_maxMissedHeartbeat;
+    // If non-zero, enable smart-heartbeat and specify
+    // that the connection should be proactively
+    // resetted if no data has been received from this
+    // channel for the 'maxMissedHeartbeat' number of
+    // heartbeat intervals.  When enabled, heartbeat
+    // requests will be sent if no 'regular' data is
+    // being received.
 
-    /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::InitialConnectionHandler::InitialConnectionCb
-        d_initialConnectionCb;
+    SessionEventProcessor* d_eventProcessor_p;
+    // The event processor to use for initiating the
+    // read on the channel once the session has been
+    // successfully negotiated.  This may or may not be
+    // set by the caller, before invoking
+    // 'Negotiator::handleInitialConnection()'; and may or may not be
+    // changed by the negotiator concrete
+    // implementation before invoking the
+    // 'InitialConnectionCb'.  Note that a value of 0 will
+    // use the negotiated session as the default event
+    // processor.
 
-    /// The negotiation message received from the remote peer.
-    bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
+    void* d_resultState_p;
+    // Raw pointer, held not owned, to some user data
+    // the session factory will pass back to the
+    // 'resultCb' method (used to inform of the
+    // success/failure of a session negotiation).  This
+    // may or may not be set by the caller, before
+    // invoking 'Negotiator::handleInitialConnection()'; and may or
+    // may not be changed by the negotiator concrete
+    // implementation before invoking the
+    // 'InitialConnectionCb'.  This is used to bind low level
+    // data (from transport layer) to the session; and
+    // can be overriden/set by the negotiation
+    // implementation (typically for the case of
+    // 'listen' sessions, since those are
+    // 'sporadically' happening and there is not enough
+    // context at the transport layer to find back this
+    // data).
 
-    /// The cluster involved in the session being negotiated, or empty if
-    /// none.
-    bsl::string d_clusterName;
+    void* d_userData_p;
+    // Raw pointer, held not owned, to some user data
+    // the Negotiator concrete implementation can use
+    // while negotiating the session.  This may or may
+    // not be set by the caller, before invoking
+    // 'Negotiator::handleInitialConnection()'; and should not be
+    // changed during negotiation (this data is not
+    // used by the session factory, so changing it will
+    // have no effect).  This is used to bind high
+    // level data (from application layer) to the
+    // application layer (the negotiator concrete
+    // implementation) (typically for the case of
+    // 'connect' sessions to provide information to use
+    // for negotiating the session with the remote
+    // peer).
 
-    /// True if this is a "reversed" connection (on either side of the
-    /// connection).
-    bool d_isReversed;
+    Cluster* d_cluster_p;
+    // mqbnet::Cluster to inform about incoming (proxy)
+    // connection
 
-    /// The type of the session being negotiated.
-    ConnectionType::Enum d_connectionType;
+  public:
+    // CREATORS
+
+    /// Create a new object having the specified `isIncoming` value.
+    InitialConnectionContext(bool isIncoming);
+
+    // MANIPULATORS
+    InitialConnectionContext& setMaxMissedHeartbeat(int value);
+    InitialConnectionContext& setUserData(void* value);
+    InitialConnectionContext& setResultState(void* value);
+    InitialConnectionContext& setEventProcessor(SessionEventProcessor* value);
+
+    /// Set the corresponding field to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    InitialConnectionContext& setCluster(Cluster* cluster);
+
+    // ACCESSORS
+    bool     isIncoming() const;
+    Cluster* cluster() const;
+    int      maxMissedHeartbeat() const;
+    void*    userData() const;
+    void*    resultState() const;
+
+    /// Return the value of the corresponding field.
+    SessionEventProcessor* eventProcessor() const;
 };
 
 }  // close package namespace
