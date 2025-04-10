@@ -57,11 +57,10 @@ struct NegotiationContext {
 
     /// The channel to use for the negotiation.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
-    // TODO: move up
 
     /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::InitialConnectionHandler::InitialConnectionCb
-        d_initialConnectionCb;
+    mqbnet::InitialConnectionHandler::InitialConnectionCompleteCb
+        d_initialConnectionCompleteCb;
 
     /// The negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
