@@ -44,7 +44,7 @@ def test_broker_client(
     - Start a broker and save the port it is listening.
     - Start a tproxy redirecting to the broker started on the previous step.
     - Start a client and connect it to the tproxy started on the previous step.
-    - Kill the tproxy to brake the connection between the client and the broker.
+    - Kill the tproxy to break the connection between the client and the broker.
 
     Concerns:
     - The client is able to detect the connection loss.
