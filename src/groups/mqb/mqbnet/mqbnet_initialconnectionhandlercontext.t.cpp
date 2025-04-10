@@ -35,21 +35,6 @@
 using namespace BloombergLP;
 using namespace bsl;
 
-// Disable some compiler warning for simplified write of the
-// 'AbstractSessionTestImp'.
-#if defined(BSLS_PLATFORM_CMP_CLANG)
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#pragma clang diagnostic ignored "-Wweak-vtables"
-// Disabling 'weak-vtables' so that we can define all interface methods
-// inline, without the following warning:
-//..
-//  mqbnet_initialconnectionhandlercontext.t.cpp:50:1: error:
-//  'MockSessionEventProcessor' has no out-of-line virtual method definitions;
-//  its vtable will be emitted in every translation unit
-//  [-Werror,-Wweak-vtables]
-//..
-#endif  // BSLS_PLATFORM_CMP_CLANG
-
 // ============================================================================
 //                 HELPER CLASSES AND FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
@@ -58,13 +43,16 @@ using namespace bsl;
 /// `InitialConnectionHandlerContext`.
 class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
   public:
-    ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE {}
+    ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE = default;
 
     void processEvent(const bmqp::Event&   event,
-                      mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE
-    {
-    }
+                      mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 };
+
+void MockSessionEventProcessor::processEvent(const bmqp::Event&   event,
+                                             mqbnet::ClusterNode* source)
+{
+}
 
 // ============================================================================
 //                                    TESTS
@@ -73,7 +61,6 @@ class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
 static void test1_InitialConnectionHandlerContext()
 {
     bmqtst::TestHelper::printTestName("test1_InitialConnectionHandlerContext");
-
     {
         PV("Constructor");
         mqbnet::InitialConnectionHandlerContext obj1(true);
