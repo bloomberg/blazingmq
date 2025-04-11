@@ -16,8 +16,11 @@
 // mqbnet_negotiationcontext.cpp                           -*-C++-*-
 #include <mqbnet_negotiationcontext.h>
 
+#include <mqbscm_version.h>
 namespace BloombergLP {
 namespace mqba {
+
+// NOTHING
 
 }  // close package namespace
 }  // close enterprise namespace
