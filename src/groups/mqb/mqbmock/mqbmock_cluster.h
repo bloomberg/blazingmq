@@ -40,7 +40,6 @@
 
 // MQB
 
-#include "mqbnet_initialconnectionhandler.h"
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
@@ -100,6 +99,7 @@ class Domain;
 }
 namespace mqbnet {
 class Negotiator;
+class InitialConnectionHandler;
 }
 
 namespace mqbmock {

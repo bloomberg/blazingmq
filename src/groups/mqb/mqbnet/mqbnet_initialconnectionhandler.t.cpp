@@ -59,10 +59,7 @@ using namespace bsl;
 /// A test implementation of the `mqbnet::InitialConnectionHandler` protocol
 struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
-    void handleInitialConnection(
-        const InitialConnectionContextSp&      context,
-        const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionCompleteCb&     initialConnectionCompleteCb)
+    void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
@@ -133,16 +130,11 @@ static void test1_InitialConnectionHandler()
     {
         PV("Verify that methods are public and virtual");
 
-        InitialConnectionContextSp      dummyContext_p = 0;
-        bsl::shared_ptr<bmqio::Channel> dummyChannelSp;
-        mqbnet::InitialConnectionHandler::InitialConnectionCompleteCb
-            dummyInitialConnectionCompleteCb;
+        mqbnet::InitialConnectionHandler::InitialConnectionContextSp
+            dummyContext_sp;
 
-        BSLS_PROTOCOLTEST_ASSERT(
-            testObj,
-            handleInitialConnection(dummyContext_p,
-                                    dummyChannelSp,
-                                    dummyInitialConnectionCompleteCb));
+        BSLS_PROTOCOLTEST_ASSERT(testObj,
+                                 handleInitialConnection(dummyContext_sp));
     }
 }
 
