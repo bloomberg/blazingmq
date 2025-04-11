@@ -70,9 +70,10 @@ void InitialConnectionHandler::readCallback(
         rc_INVALID_NEGOTIATION_TYPE    = -4
     };
 
-    BALL_LOG_TRACE << "InitialConnectionHandler readCb: "
-                   << "[status: " << status << ", peer: '"
-                   << context->d_channelSp->peerUri() << "']";
+    BALL_LOG_TRACE
+        << "InitialConnectionHandler readCb: "
+        << "[status: " << status << ", peer: '"
+        << context->d_initialConnectionContext_p->channel()->peerUri() << "']";
 
     bsl::shared_ptr<mqbnet::Session> session;
     bmqu::MemOutStream               errStream;
@@ -189,7 +190,7 @@ void InitialConnectionHandler::scheduleRead(
 {
     // Schedule a TimedRead
     bmqio::Status status;
-    context->d_channelSp->read(
+    context->d_initialConnectionContext_p->channel()->read(
         &status,
         bmqp::Protocol::k_PACKET_MIN_SIZE,
         bdlf::BindUtil::bind(&InitialConnectionHandler::readCallback,
@@ -238,7 +239,6 @@ void InitialConnectionHandler::handleInitialConnection(
     negotiationContext.createInplace(d_allocator_p);
 
     negotiationContext->d_initialConnectionContext_p = context;
-    negotiationContext->d_channelSp                  = channel;
     negotiationContext->d_initialConnectionCompleteCb =
         initialConnectionCompleteCb;
     negotiationContext->d_isReversed     = false;
