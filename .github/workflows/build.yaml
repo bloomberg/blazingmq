@@ -192,7 +192,9 @@ jobs:
         run: |
           # Allow core dumps
           ulimit -c unlimited
-
+          go install github.com/kevwan/tproxy@latest
+          export GOPATH=$HOME/go
+          export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
