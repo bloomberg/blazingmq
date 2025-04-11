@@ -382,9 +382,10 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
     bmqp_ctrlmsg::ClientIdentity& clientIdentity =
         context->d_negotiationMessage.clientIdentity();
 
-    BALL_LOG_DEBUG << "Received negotiation message from '"
-                   << context->d_channelSp->peerUri()
-                   << "': " << clientIdentity;
+    BALL_LOG_DEBUG
+        << "Received negotiation message from '"
+        << context->d_initialConnectionContext_p->channel()->peerUri()
+        << "': " << clientIdentity;
 
     bsl::shared_ptr<mqbnet::Session> session;
 
@@ -395,7 +396,8 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
     case bmqp_ctrlmsg::ClientType::E_TCPBROKER:
     case bmqp_ctrlmsg::ClientType::E_TCPADMIN: {
         if (clientIdentity.hostName().empty()) {
-            clientIdentity.hostName() = context->d_channelSp->peerUri();
+            clientIdentity.hostName() =
+                context->d_initialConnectionContext_p->channel()->peerUri();
         }
     } break;
     case bmqp_ctrlmsg::ClientType::E_UNKNOWN:
@@ -510,9 +512,10 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
 
     // Create the session.  That also calculates 'maxMissedHeartbeats'
     bsl::string description;
-    loadSessionDescription(&description,
-                           clientIdentity,
-                           *(context->d_channelSp.get()));
+    loadSessionDescription(
+        &description,
+        clientIdentity,
+        *(context->d_initialConnectionContext_p->channel().get()));
 
     createSession(errorDescription, &session, context, description);
 
@@ -547,9 +550,10 @@ SessionNegotiator::onBrokerResponseMessage(bsl::ostream& errorDescription,
     bmqp_ctrlmsg::BrokerResponse& brokerResponse =
         context->d_negotiationMessage.brokerResponse();
 
-    BALL_LOG_DEBUG << "Received negotiation message from '"
-                   << context->d_channelSp->peerUri()
-                   << "': " << brokerResponse;
+    BALL_LOG_DEBUG
+        << "Received negotiation message from '"
+        << context->d_initialConnectionContext_p->channel()->peerUri()
+        << "': " << brokerResponse;
 
     bsl::shared_ptr<mqbnet::Session> session;
 
@@ -561,13 +565,15 @@ SessionNegotiator::onBrokerResponseMessage(bsl::ostream& errorDescription,
     }
 
     // Resolve 'hostName' of the brokerIdentity
-    bmqio::TCPEndpoint endpoint(context->d_channelSp->peerUri());
+    bmqio::TCPEndpoint endpoint(
+        context->d_initialConnectionContext_p->channel()->peerUri());
     brokerResponse.brokerIdentity().hostName() = endpoint.host();
 
     bsl::string description;
-    loadSessionDescription(&description,
-                           brokerResponse.brokerIdentity(),
-                           *(context->d_channelSp.get()));
+    loadSessionDescription(
+        &description,
+        brokerResponse.brokerIdentity(),
+        *(context->d_initialConnectionContext_p->channel().get()));
 
     createSession(errorDescription, &session, context, description);
 
@@ -629,7 +635,8 @@ int SessionNegotiator::sendNegotiationMessage(
 
     // Send response event
     bmqio::Status status;
-    context->d_channelSp->write(&status, *builder.blob());
+    context->d_initialConnectionContext_p->channel()->write(&status,
+                                                            *builder.blob());
     if (!status) {
         errorDescription << "Failed sending NegotiationMessage "
                          << "[status: " << status << ", message: " << message
@@ -664,7 +671,7 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
 
     if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
         mqba::AdminSession* session = new (*d_allocator_p)
-            AdminSession(context->d_channelSp,
+            AdminSession(context->d_initialConnectionContext_p->channel(),
                          negoMsg,
                          description,
                          d_dispatcher_p,
@@ -683,7 +690,7 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
             d_statContext_p->addSubcontext(statContextCfg);
 
         mqba::ClientSession* session = new (*d_allocator_p)
-            ClientSession(context->d_channelSp,
+            ClientSession(context->d_initialConnectionContext_p->channel(),
                           negoMsg,
                           description,
                           d_dispatcher_p,
@@ -737,12 +744,12 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
             return;  // RETURN
         }
 
-        out->reset(new (*d_allocator_p)
-                       mqbnet::DummySession(context->d_channelSp,
-                                            negoMsg,
-                                            clusterNode,
-                                            description,
-                                            d_allocator_p),
+        out->reset(new (*d_allocator_p) mqbnet::DummySession(
+                       context->d_initialConnectionContext_p->channel(),
+                       negoMsg,
+                       clusterNode,
+                       description,
+                       d_allocator_p),
                    d_allocator_p);
 
         // Configure heartbeat
