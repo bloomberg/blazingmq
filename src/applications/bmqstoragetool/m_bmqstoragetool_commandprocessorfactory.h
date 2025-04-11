@@ -25,7 +25,7 @@
 // corresponding command processor.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_journalfileprocessor.h>
+#include <m_bmqstoragetool_commandprocessor.h>
 #include <m_bmqstoragetool_parameters.h>
 
 // BDE

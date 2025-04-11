@@ -16,11 +16,13 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_RECORDPRINTER
 #define INCLUDED_M_BMQSTORAGETOOL_RECORDPRINTER
 
-//@PURPOSE: Provide utilities for printing journal file records.
+//@PURPOSE: Provide utilities for printing journal file records for different
+// formats.
 //
-//@CLASSES:
+//@CLASSES: m_bmqstoragetool::RecordPrinter::RecordDetailsPrinter
 //
-//@DESCRIPTION: 'm_bmqstoragetool::RecordPrinter' namespace provides methods
+//@DESCRIPTION: 'm_bmqstoragetool::RecordPrinter' namespace provides classes
+// and methods
 // for printing journal file records details. These methods are enhanced
 // versions of
 // mqbs::FileStoreProtocolPrinter::printRecord() methods.
@@ -32,7 +34,12 @@
 #include <bslma_allocator.h>
 
 // MQB
+#include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbs_filestoreprotocolprinter.h>
+#include <mqbsi_ledger.h>
+
+// BDE
+#include <bslma_allocator.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -84,7 +91,7 @@ class RecordDetailsPrinter {
 
     // PUBLIC METHODS
 
-    /// Print this object.
+    /// Print journal record details.
     template <typename RECORD_TYPE>
     void printRecordDetails(const RecordDetails<RECORD_TYPE>& rec);
 };
