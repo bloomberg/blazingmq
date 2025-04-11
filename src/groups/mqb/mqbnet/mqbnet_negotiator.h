@@ -45,28 +45,17 @@
 // members that the caller will leverage and use.
 
 // MQB
-#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 
 // BDE
-#include <bsl_functional.h>
 #include <bsl_memory.h>
-#include <bsl_string.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace bmqio {
-class Channel;
-}
 
 namespace mqbnet {
 
 // FORWARD DECLARATION
 class Session;
-class SessionEventProcessor;
-class Cluster;
 
 // ================
 // class Negotiator

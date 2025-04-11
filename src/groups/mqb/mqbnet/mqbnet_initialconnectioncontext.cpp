@@ -69,6 +69,21 @@ InitialConnectionContext::setCluster(Cluster* cluster)
     return *this;
 }
 
+InitialConnectionContext& InitialConnectionContext::setChannel(
+    const bsl::shared_ptr<bmqio::Channel>& value)
+{
+    d_channelSp = value;
+    return *this;
+}
+
+InitialConnectionContext&
+InitialConnectionContext::setInitialConnectionCompleteCb(
+    const InitialConnectionCompleteCb& value)
+{
+    d_initialConnectionCompleteCb = value;
+    return *this;
+}
+
 bool InitialConnectionContext::isIncoming() const
 {
     return d_isIncoming;
@@ -97,6 +112,18 @@ void* InitialConnectionContext::resultState() const
 SessionEventProcessor* InitialConnectionContext::eventProcessor() const
 {
     return d_eventProcessor_p;
+}
+
+const bsl::shared_ptr<bmqio::Channel>&
+InitialConnectionContext::channel() const
+{
+    return d_channelSp;
+}
+
+const InitialConnectionContext::InitialConnectionCompleteCb&
+InitialConnectionContext::initialConnectionCompleteCb() const
+{
+    return d_initialConnectionCompleteCb;
 }
 
 }  // close package namespace

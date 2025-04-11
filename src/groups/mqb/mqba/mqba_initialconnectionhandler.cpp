@@ -230,7 +230,8 @@ InitialConnectionHandler::~InitialConnectionHandler()
 void InitialConnectionHandler::handleInitialConnection(
     const InitialConnectionContextSp&      context,
     const bsl::shared_ptr<bmqio::Channel>& channel,
-    const InitialConnectionCompleteCb&     initialConnectionCompleteCb)
+    const mqbnet::InitialConnectionContext::InitialConnectionCompleteCb&
+        initialConnectionCompleteCb)
 {
     // Create an NegotiationContext for that connection
     NegotiationContextSp negotiationContext;

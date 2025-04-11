@@ -24,7 +24,7 @@
 ///
 
 // MQB
-#include <mqbnet_initialconnectionhandler.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -55,11 +55,14 @@ struct NegotiationContext {
     /// passed in by the caller.
     bsl::shared_ptr<InitialConnectionContext> d_initialConnectionContext_p;
 
+    // TODO: move to InitialConnectionContext
     /// The channel to use for the negotiation.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
 
+    // TODO: move this type to InitialConnectionContext
+    // and move this data to InitialConnectionContext
     /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::InitialConnectionHandler::InitialConnectionCompleteCb
+    mqbnet::InitialConnectionContext::InitialConnectionCompleteCb
         d_initialConnectionCompleteCb;
 
     /// The negotiation message received from the remote peer.
