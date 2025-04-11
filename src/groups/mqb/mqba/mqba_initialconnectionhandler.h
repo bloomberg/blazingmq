@@ -81,7 +81,9 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     void readCallback(const bmqio::Status&        status,
                       int*                        numNeeded,
                       bdlbb::Blob*                blob,
-                      const NegotiationContextSp& context);
+                      const NegotiationContextSp& context,
+                      const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
+                          initialConnectionContext);
 
     /// Decode the initial connection messages received in the specified `blob`
     /// and store it, on success, in the corresponding member of the specified
@@ -94,7 +96,9 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     /// Schedule a read for the initial connection of the session of the
     /// specified `context`.
-    void scheduleRead(const NegotiationContextSp& context);
+    void scheduleRead(const NegotiationContextSp& context,
+                      const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
+                          initialConnectionContext);
 
   public:
     // CREATORS
