@@ -204,9 +204,6 @@ class ClusterCatalog {
     typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
-    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
-        InitialConnectionContextSp;
-
   private:
     // DATA
 
@@ -387,7 +384,7 @@ class ClusterCatalog {
     /// negotiate.
     mqbnet::ClusterNode*
     onNegotiationForClusterSession(bsl::ostream& errorDescription,
-                                   const InitialConnectionContextSp& context,
+                                   mqbnet::InitialConnectionContext* context,
                                    const bslstl::StringRef& clusterName,
                                    int                      nodeId);
 

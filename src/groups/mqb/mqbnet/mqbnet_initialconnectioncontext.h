@@ -31,7 +31,6 @@
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
-#include <bslstl_sharedptr.h>
 
 namespace BloombergLP {
 
@@ -159,6 +158,8 @@ class InitialConnectionContext {
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
     setInitialConnectionCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext&
+    setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
     // ACCESSORS
     bool                                   isIncoming() const;
@@ -168,6 +169,7 @@ class InitialConnectionContext {
     void*                                  resultState() const;
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
     const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
+    const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
 
     /// Return the value of the corresponding field.
     SessionEventProcessor* eventProcessor() const;
