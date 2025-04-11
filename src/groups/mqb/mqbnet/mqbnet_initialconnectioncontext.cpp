@@ -84,6 +84,13 @@ InitialConnectionContext::setInitialConnectionCompleteCb(
     return *this;
 }
 
+InitialConnectionContext& InitialConnectionContext::setNegotiationContext(
+    const bsl::shared_ptr<NegotiationContext>& value)
+{
+    d_negotiationCtxSp = value;
+    return *this;
+}
+
 bool InitialConnectionContext::isIncoming() const
 {
     return d_isIncoming;
@@ -124,6 +131,12 @@ const InitialConnectionContext::InitialConnectionCompleteCb&
 InitialConnectionContext::initialConnectionCompleteCb() const
 {
     return d_initialConnectionCompleteCb;
+}
+
+const bsl::shared_ptr<NegotiationContext>&
+InitialConnectionContext::negotiationContext() const
+{
+    return d_negotiationCtxSp;
 }
 
 }  // close package namespace

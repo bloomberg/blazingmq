@@ -51,9 +51,9 @@ struct ConnectionType {
 // VST for an implementation of NegotiationContext
 struct NegotiationContext {
     // DATA
-    /// The associated InitialConnectionContext,
-    /// passed in by the caller.
-    bsl::shared_ptr<InitialConnectionContext> d_initialConnectionContext_p;
+    /// The associated InitialConnectionContext passed in by the caller.
+    /// Held, not owned
+    InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
