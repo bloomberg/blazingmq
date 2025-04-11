@@ -13,23 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_negotiationcontext.h                                    -*-C++-*-
-#ifndef INCLUDED_MQBA_NEGOTIATIONCONTEXT
-#define INCLUDED_MQBA_NEGOTIATIONCONTEXT
+// mqbnet_negotiationcontext.h                                -*-C++-*-
+#ifndef INCLUDED_MQBNET_NEGOTIATIONCONTEXT
+#define INCLUDED_MQBNET_NEGOTIATIONCONTEXT
 
-/// @file mqba_negotiationcontext.h
+/// @file mqbnet_negotiationcontext.h
 ///
-/// @brief Provide the context for negotiator for establishing sessions.
+/// @brief Provide the context for initial connection handler for establishing
+/// sessions.
 ///
 
 // MQB
-#include <mqbnet_negotiator.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
 namespace BloombergLP {
-namespace mqba {
+namespace mqbnet {
 
 struct ConnectionType {
     // Enum representing the type of session being negotiated, from that
@@ -47,17 +48,12 @@ struct ConnectionType {
 // class NegotiationContext
 // ========================
 
-// VST for an implementation of NegotiatiorContext
+// VST for an implementation of NegotiationContext
 struct NegotiationContext {
     // DATA
-    /// The associated negotiatorContext, passed in by the caller.
-    mqbnet::NegotiatorContext* d_negotiatorContext_p;
-
-    /// The channel to use for the negotiation.
-    bsl::shared_ptr<bmqio::Channel> d_channelSp;
-
-    /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::Negotiator::NegotiationCb d_negotiationCb;
+    /// The associated InitialConnectionContext passed in by the caller.
+    /// Held, not owned
+    InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;

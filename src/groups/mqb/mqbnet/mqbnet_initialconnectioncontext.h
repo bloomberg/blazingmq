@@ -13,39 +13,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiatorcontext.h                                     -*-C++-*-
-#ifndef INCLUDED_MQBNET_NEGOTIATORCONTEXT
-#define INCLUDED_MQBNET_NEGOTIATORCONTEXT
+// mqbnet_initialconnectioncontext.h                        -*-C++-*-
+#ifndef INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
+#define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
-//@PURPOSE: Provide a context for a session negotiator.
+//@PURPOSE: Provide a context for an initial connection handler.
 //
 //@CLASSES:
-//  mqbnet::NegotiatorContext: VST for the context associated to a negotiation
+//  mqbnet::InitialConnectionContext: VST for the context associated to
+//  an initial connection
 //
-//@DESCRIPTION: 'NegotiatorContext' provides the context associated to a
-// session being negotiated
+//@DESCRIPTION: 'InitialConnectionContext' provides the context
+// associated to an initial connection being established
 //
 
 // BDE
+#include <bsl_functional.h>
+#include <bsl_memory.h>
+#include <bsl_string.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqio {
+class Channel;
+};
 
 namespace mqbnet {
 
 // FORWARD DECLARATION
 class SessionEventProcessor;
 class Cluster;
+class Session;
+struct NegotiationContext;
 
-// =======================
-// class NegotiatorContext
-// =======================
+// ==============================
+// class InitialConnectionContext
+// ==============================
 
 /// VST for the context associated to a session being negotiated.  Each
-/// session being negotiated get its own context; and the Negotiator
-/// concrete implementation can modify some of the members during the
-/// negotiation (i.e., between the `negotiate()` method and the invocation
-/// of the `NegotiationCb` method.
-class NegotiatorContext {
+/// session being negotiated get its own context; and the
+/// InitialConnectionHandler concrete implementation can modify some of the
+/// members during the handleInitialConnection() (i.e., between the
+/// `handleInitialConnection()` method and the invocation of the
+/// `InitialConnectionCompleteCb` method.
+class InitialConnectionContext {
+  public:
+    typedef bsl::function<void(int                status,
+                               const bsl::string& errorDescription,
+                               const bsl::shared_ptr<Session>& session)>
+        InitialConnectionCompleteCb;
+
   private:
     // DATA
     bool d_isIncoming;
@@ -67,10 +85,10 @@ class NegotiatorContext {
     // read on the channel once the session has been
     // successfully negotiated.  This may or may not be
     // set by the caller, before invoking
-    // 'Negotiator::negotiate()'; and may or may not be
+    // 'Negotiator::handleInitialConnection()'; and may or may not be
     // changed by the negotiator concrete
     // implementation before invoking the
-    // 'NegotiationCb'.  Note that a value of 0 will
+    // 'InitialConnectionCompleteCb'.  Note that a value of 0 will
     // use the negotiated session as the default event
     // processor.
 
@@ -80,10 +98,10 @@ class NegotiatorContext {
     // 'resultCb' method (used to inform of the
     // success/failure of a session negotiation).  This
     // may or may not be set by the caller, before
-    // invoking 'Negotiator::negotiate()'; and may or
+    // invoking 'Negotiator::handleInitialConnection()'; and may or
     // may not be changed by the negotiator concrete
     // implementation before invoking the
-    // 'NegotiationCb'.  This is used to bind low level
+    // 'InitialConnectionCompleteCb'.  This is used to bind low level
     // data (from transport layer) to the session; and
     // can be overriden/set by the negotiation
     // implementation (typically for the case of
@@ -97,7 +115,7 @@ class NegotiatorContext {
     // the Negotiator concrete implementation can use
     // while negotiating the session.  This may or may
     // not be set by the caller, before invoking
-    // 'Negotiator::negotiate()'; and should not be
+    // 'Negotiator::handleInitialConnection()'; and should not be
     // changed during negotiation (this data is not
     // used by the session factory, so changing it will
     // have no effect).  This is used to bind high
@@ -112,28 +130,46 @@ class NegotiatorContext {
     // mqbnet::Cluster to inform about incoming (proxy)
     // connection
 
+    /// The channel to use for the initial connection.
+    bsl::shared_ptr<bmqio::Channel> d_channelSp;
+
+    /// The callback to invoke to notify of the status of the initial
+    /// connection.
+    InitialConnectionCompleteCb d_initialConnectionCompleteCb;
+
+    bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
+
   public:
     // CREATORS
 
     /// Create a new object having the specified `isIncoming` value.
-    NegotiatorContext(bool isIncoming);
+    InitialConnectionContext(bool isIncoming);
 
     // MANIPULATORS
-    NegotiatorContext& setMaxMissedHeartbeat(int value);
-    NegotiatorContext& setUserData(void* value);
-    NegotiatorContext& setResultState(void* value);
-    NegotiatorContext& setEventProcessor(SessionEventProcessor* value);
 
     /// Set the corresponding field to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    NegotiatorContext& setCluster(Cluster* cluster);
+    InitialConnectionContext& setMaxMissedHeartbeat(int value);
+    InitialConnectionContext& setUserData(void* value);
+    InitialConnectionContext& setResultState(void* value);
+    InitialConnectionContext& setEventProcessor(SessionEventProcessor* value);
+    InitialConnectionContext& setCluster(Cluster* cluster);
+    InitialConnectionContext&
+    setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
+    InitialConnectionContext&
+    setInitialConnectionCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext&
+    setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
     // ACCESSORS
-    bool     isIncoming() const;
-    Cluster* cluster() const;
-    int      maxMissedHeartbeat() const;
-    void*    userData() const;
-    void*    resultState() const;
+    bool                                   isIncoming() const;
+    Cluster*                               cluster() const;
+    int                                    maxMissedHeartbeat() const;
+    void*                                  userData() const;
+    void*                                  resultState() const;
+    const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
+    const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
 
     /// Return the value of the corresponding field.
     SessionEventProcessor* eventProcessor() const;
