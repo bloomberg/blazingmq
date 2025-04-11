@@ -351,7 +351,17 @@ void TCPSessionFactory::handleInitialConnection(
                                            context->d_isIncoming);
     (*initialConnectionContext)
         .setUserData(context->d_negotiationUserData_sp.get())
-        .setResultState(context->d_resultState_p);
+        .setResultState(context->d_resultState_p)
+        .setChannel(channel)
+        .setInitialConnectionCompleteCb(
+            bdlf::BindUtil::bind(&TCPSessionFactory::negotiationComplete,
+                                 this,
+                                 bdlf::PlaceHolders::_1,  // status
+                                 bdlf::PlaceHolders::_2,  // errorDescription
+                                 bdlf::PlaceHolders::_3,  // session
+                                 channel,
+                                 context,
+                                 initialConnectionContext));
 
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
     // from the
