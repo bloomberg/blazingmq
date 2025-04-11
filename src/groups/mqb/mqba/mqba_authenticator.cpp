@@ -39,24 +39,9 @@ const int k_AUTHENTICATION_READTIMEOUT = 3 * 60;  // 3 minutes
 
 }
 
-// -----------------------
+// -------------------
 // class Authenticator
-// -----------------------
-
-void Authenticator::readCallback(const bmqio::Status&           status,
-                                 int*                           numNeeded,
-                                 bdlbb::Blob*                   blob,
-                                 const AuthenticationContextSp& context)
-{
-}
-
-int Authenticator::decodeNegotiationMessage(
-    bsl::ostream&                  errorDescription,
-    const AuthenticationContextSp& context,
-    const bdlbb::Blob&             blob)
-{
-    return 0;
-}
+// -------------------
 
 int Authenticator::onAuthenticationRequest(
     bsl::ostream&                  errorDescription,
@@ -73,9 +58,9 @@ int Authenticator::onAuthenticationResponse(
 }
 
 int Authenticator::sendAuthenticationMessage(
-    bsl::ostream&                           errorDescription,
-    const bmqp_ctrlmsg::NegotiationMessage& message,
-    const AuthenticationContextSp&          context)
+    bsl::ostream&                              errorDescription,
+    const bmqp_ctrlmsg::AuthenticationMessage& message,
+    const AuthenticationContextSp&             context)
 {
     return 0;
 }
@@ -85,15 +70,12 @@ void Authenticator::initiateOutboundAuthentication(
 {
 }
 
-void Authenticator::scheduleRead(const AuthenticationContextSp& context)
-{
-}
-
 // CREATORS
 Authenticator::Authenticator(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_clusterCatalog_p(0)
 {
+    // NOTHING
 }
 
 /// Destructor
@@ -102,16 +84,10 @@ Authenticator::~Authenticator()
     // NOTHING: (required because of inheritance)
 }
 
-void Authenticator::authenticate(
-    mqbnet::AuthenticatorContext*                  context,
-    const bsl::shared_ptr<bmqio::Channel>&         channel,
-    const mqbnet::Authenticator::AuthenticationCb& authenticationCb)
+int Authenticator::authenticationOutboundOrReverse(
+    const AuthenticationContextSp& context)
 {
-    // Create a AuthenticationContextSp for that connection
-    AuthenticationContextSp AuthenticationContext;
-    AuthenticationContext.createInplace(d_allocator_p);
-
-    AuthenticationContext->d_authenticationCb = authenticationCb;
+    return 0;
 }
 
 }  // close package namespace
