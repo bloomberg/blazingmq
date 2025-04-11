@@ -200,26 +200,18 @@ jobs:
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
-            --bmq-keep-logs                      \
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb long                           \
             --reruns=3                          \
-            -n 4 -v
-      
-      # logs may contain fileanmes with colon which it's not supported on NTFS filesystem
-      # Thus creating an archive first
-      - name: Compress failure logs
-        if: failure()
-        working-directory: ${{ github.workspace }}/src/integration-tests
-        run: tar -zcvf failure-logs.tar.gz ./failure-logs
+            -n logical -v
 
       - name: Upload failure-logs as artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
-          path: ${{ github.workspace }}/src/integration-tests/failure-logs.tar.gz
+          path: ${{ github.workspace }}/src/integration-tests/failure-logs
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
