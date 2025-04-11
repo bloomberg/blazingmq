@@ -58,7 +58,9 @@ void InitialConnectionHandler::readCallback(
     const bmqio::Status&        status,
     int*                        numNeeded,
     bdlbb::Blob*                blob,
-    const NegotiationContextSp& context)
+    const NegotiationContextSp& context,
+    const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
+        initialConnectionContext)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -129,7 +131,7 @@ void InitialConnectionHandler::readCallback(
         SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
         rc = d_negotiator_mp->createSessionOnMsgType(&session, context);
         if (rc == rc_CONTINUE_READ) {
-            scheduleRead(context);
+            scheduleRead(context, initialConnectionContext);
         }
     } break;  // BREAK
     default: {
@@ -187,7 +189,9 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
 }
 
 void InitialConnectionHandler::scheduleRead(
-    const NegotiationContextSp& context)
+    const NegotiationContextSp& context,
+    const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
+        initialConnectionContext)
 {
     // Schedule a TimedRead
     bmqio::Status status;
@@ -199,7 +203,8 @@ void InitialConnectionHandler::scheduleRead(
                              bdlf::PlaceHolders::_1,  // status
                              bdlf::PlaceHolders::_2,  // numNeeded
                              bdlf::PlaceHolders::_3,  // blob
-                             context),
+                             context,
+                             initialConnectionContext),
         bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
     // NOTE: In the above binding, we skip '_4' (i.e., Channel*) and
     //       replace it by the channel shared_ptr (inside the context)
@@ -245,12 +250,12 @@ void InitialConnectionHandler::handleInitialConnection(
     // after sending a request ourselves
 
     if (context->isIncoming()) {
-        scheduleRead(negotiationContext);
+        scheduleRead(negotiationContext, context);
     }
     else {
         if (d_negotiator_mp->negotiateOutboundOrReverse(negotiationContext) ==
             0) {
-            scheduleRead(negotiationContext);
+            scheduleRead(negotiationContext, context);
         }
     }
 }

@@ -31,6 +31,7 @@
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bslstl_sharedptr.h>
 
 namespace BloombergLP {
 
@@ -45,6 +46,7 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 class Session;
+struct NegotiationContext;
 
 // ==============================
 // class InitialConnectionContext
@@ -135,6 +137,8 @@ class InitialConnectionContext {
     /// The callback to invoke to notify of the status of the initial
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
+
+    bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
   public:
     // CREATORS
