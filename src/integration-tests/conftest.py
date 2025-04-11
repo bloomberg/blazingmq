@@ -29,8 +29,11 @@ from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_makereport(item):
-    # store test results for each phase of a call, which can
-    # be "setup", "call", "teardown"
+    """
+    Store test results for each phase of a call, which can
+    be "setup", "call", "teardown"
+    """
+
     outcome = yield
     rep = outcome.get_result()
 

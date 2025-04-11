@@ -24,8 +24,10 @@ PHASE_REPORT_KEY = StashKey[Dict[str, CollectReport]]()
 
 
 def is_test_reported_failed(request):
-    # Use the test results reported by the pytest_runtest_makereport hook
-    # To decide if test failed
+    """
+    Use the test results reported by the pytest_runtest_makereport hook
+    To decide if test failed
+    """
 
     report = request.node.stash[PHASE_REPORT_KEY]
     if report["setup"].failed:
