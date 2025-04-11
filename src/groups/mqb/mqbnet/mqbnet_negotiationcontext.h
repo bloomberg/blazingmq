@@ -55,12 +55,6 @@ struct NegotiationContext {
     /// passed in by the caller.
     bsl::shared_ptr<InitialConnectionContext> d_initialConnectionContext_p;
 
-    // TODO: move this type to InitialConnectionContext
-    // and move this data to InitialConnectionContext
-    /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::InitialConnectionContext::InitialConnectionCompleteCb
-        d_initialConnectionCompleteCb;
-
     /// The negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
 
