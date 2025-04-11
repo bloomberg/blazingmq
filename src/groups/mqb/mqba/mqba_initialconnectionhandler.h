@@ -107,11 +107,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     // MANIPULATORS
 
-    void handleInitialConnection(
-        const InitialConnectionContextSp&      context,
-        const bsl::shared_ptr<bmqio::Channel>& channel,
-        const mqbnet::InitialConnectionContext::InitialConnectionCompleteCb&
-            initialConnectionCompleteCb) BSLS_KEYWORD_OVERRIDE;
+    void handleInitialConnection(const InitialConnectionContextSp& context)
+        BSLS_KEYWORD_OVERRIDE;
 };
 }
 }
