@@ -20,7 +20,7 @@
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
-#include <mqbnet_negotiationcontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiator.h>
 
 // BMQ
@@ -110,8 +110,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     void handleInitialConnection(
         const InitialConnectionContextSp&      context,
         const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionCompleteCb&     initialConnectionCompleteCb)
-        BSLS_KEYWORD_OVERRIDE;
+        const mqbnet::InitialConnectionContext::InitialConnectionCompleteCb&
+            initialConnectionCompleteCb) BSLS_KEYWORD_OVERRIDE;
 };
 }
 }

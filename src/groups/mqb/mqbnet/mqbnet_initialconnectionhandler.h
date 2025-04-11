@@ -27,12 +27,8 @@
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
 
-// BMQ
-
 // BDE
-#include <bsl_functional.h>
 #include <bsl_memory.h>
-#include <bsl_string.h>
 
 namespace BloombergLP {
 
@@ -43,11 +39,6 @@ class Channel;
 
 namespace mqbnet {
 
-// FORWARD DECLARATION
-class Session;
-class SessionEventProcessor;
-class Cluster;
-
 // ==============================
 // class InitialConnectionHandler
 // ==============================
@@ -55,11 +46,6 @@ class Cluster;
 class InitialConnectionHandler {
   public:
     // TYPES
-    typedef bsl::function<void(int                status,
-                               const bsl::string& errorDescription,
-                               const bsl::shared_ptr<Session>& session)>
-        InitialConnectionCompleteCb;
-
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
@@ -85,7 +71,8 @@ class InitialConnectionHandler {
     virtual void handleInitialConnection(
         const InitialConnectionContextSp&      context,
         const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionCompleteCb& initialConnectionCompleteCb) = 0;
+        const InitialConnectionContext::InitialConnectionCompleteCb&
+            initialConnectionCompleteCb) = 0;
 };
 
 }  // close package namespace
