@@ -13,47 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_authenticator.h -*-C++-*-
-#ifndef INCLUDED_MQBNET_AUTHENTICATOR
-#define INCLUDED_MQBNET_AUTHENTICATOR
-
-//@PURPOSE:
-//
-//@CLASSES:
-//
-//@DESCRIPTION:
-
-// MQB
+// mqbnet_authenticationcontext.cpp                           -*-C++-*-
 #include <mqbnet_authenticationcontext.h>
 
-// BDE
-#include <bsl_memory.h>
-
+#include <mqbscm_version.h>
 namespace BloombergLP {
-
 namespace mqbnet {
 
-// ================
-// class Authenticator
-// ================
-
-/// Protocol for an Authenticator
-class Authenticator {
-  public:
-    // CREATORS
-
-    /// Destructor
-    virtual ~Authenticator();
-
-    // MANIPULATORS
-
-    /// Send out outbound authentication message or reverse connection request
-    /// with the specified `context`.
-    virtual int authenticationOutboundOrReverse(
-        const bsl::shared_ptr<AuthenticationContext>& context) = 0;
-};
+// NOTHING
 
 }  // close package namespace
 }  // close enterprise namespace
-
-#endif
