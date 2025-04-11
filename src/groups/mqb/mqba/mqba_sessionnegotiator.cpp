@@ -298,9 +298,10 @@ int SessionNegotiator::createSessionOnMsgType(
                           << "is not supported";
                 bsl::string error(errStream.str().data(),
                                   errStream.str().length());
-                context->d_initialConnectionCompleteCb(rc_NO_ADMIN_CALLBACK,
-                                                       error,
-                                                       *session);
+                context->d_initialConnectionContext_p
+                    ->initialConnectionCompleteCb()(rc_NO_ADMIN_CALLBACK,
+                                                    error,
+                                                    *session);
                 return rc_NO_ADMIN_CALLBACK;  // RETURN
             }
         }
@@ -351,20 +352,27 @@ int SessionNegotiator::createSessionOnMsgType(
         errStream << "Invalid negotiation message received (unknown type): "
                   << context->d_negotiationMessage;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCompleteCb(rc_INVALID_NEGOTIATION_TYPE,
-                                               error,
-                                               *session);
+        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
+            rc_INVALID_NEGOTIATION_TYPE,
+            error,
+            *session);
         return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
     }
     }
 
     if (!(*session)) {
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCompleteCb(rc_NO_SESSION, error, *session);
+        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
+            rc_NO_SESSION,
+            error,
+            *session);
         return rc_NO_SESSION;  // RETURN
     }
 
-    context->d_initialConnectionCompleteCb(rc_SUCCESS, "", *session);
+    context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
+        rc_SUCCESS,
+        "",
+        *session);
     return rc_SUCCESS;
 }
 
@@ -868,7 +876,7 @@ int SessionNegotiator::initiateOutboundNegotiation(
     int rc = sendNegotiationMessage(errStream, negotiationMessage, context);
     if (rc != 0) {
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionCompleteCb(
+        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
             -1,
             error,
             bsl::shared_ptr<mqbnet::Session>());
@@ -934,10 +942,11 @@ int SessionNegotiator::negotiateOutboundOrReverse(
         if (rc != 0) {
             bsl::string error(errStream.str().data(),
                               errStream.str().length());
-            context->d_initialConnectionCompleteCb(
-                -1,
-                error,
-                bsl::shared_ptr<mqbnet::Session>());
+            context->d_initialConnectionContext_p
+                ->initialConnectionCompleteCb()(
+                    -1,
+                    error,
+                    bsl::shared_ptr<mqbnet::Session>());
             return rc;  // RETURN
         }
     }
