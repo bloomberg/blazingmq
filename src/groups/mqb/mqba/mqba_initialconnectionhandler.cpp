@@ -55,12 +55,10 @@ const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 // ------------------
 
 void InitialConnectionHandler::readCallback(
-    const bmqio::Status&        status,
-    int*                        numNeeded,
-    bdlbb::Blob*                blob,
-    const NegotiationContextSp& context,
-    const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
-        initialConnectionContext)
+    const bmqio::Status&              status,
+    int*                              numNeeded,
+    bdlbb::Blob*                      blob,
+    const InitialConnectionContextSp& context)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -72,10 +70,9 @@ void InitialConnectionHandler::readCallback(
         rc_INVALID_NEGOTIATION_TYPE    = -4
     };
 
-    BALL_LOG_TRACE
-        << "InitialConnectionHandler readCb: "
-        << "[status: " << status << ", peer: '"
-        << context->d_initialConnectionContext_p->channel()->peerUri() << "']";
+    BALL_LOG_TRACE << "InitialConnectionHandler readCb: "
+                   << "[status: " << status << ", peer: '"
+                   << context->channel()->peerUri() << "']";
 
     bsl::shared_ptr<mqbnet::Session> session;
     bmqu::MemOutStream               errStream;
@@ -83,10 +80,10 @@ void InitialConnectionHandler::readCallback(
     if (!status) {
         errStream << "Read error: " << status;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            (10 * status.category()) + rc_READ_ERROR,
-            error,
-            session);
+        context->initialConnectionCompleteCb()((10 * status.category()) +
+                                                   rc_READ_ERROR,
+                                               error,
+                                               session);
         return;  // RETURN
     }
 
@@ -97,10 +94,10 @@ void InitialConnectionHandler::readCallback(
         errStream << "Unrecoverable read error:\n"
                   << bmqu::BlobStartHexDumper(blob);
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            (rc * 10) + rc_UNRECOVERABLE_READ_ERROR,
-            error,
-            session);
+        context->initialConnectionCompleteCb()((rc * 10) +
+                                                   rc_UNRECOVERABLE_READ_ERROR,
+                                               error,
+                                               session);
         return;  // RETURN
     }
 
@@ -114,43 +111,38 @@ void InitialConnectionHandler::readCallback(
     *numNeeded = 0;
 
     // Process the received blob
-    rc = decodeInitialConnectionMessage(errStream, context, outPacket);
+    bsl::optional<bmqp_ctrlmsg::NegotiationMessage> negotiationMsg;
+
+    rc = decodeInitialConnectionMessage(errStream, outPacket, &negotiationMsg);
+
     if (rc != 0) {
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
+        context->initialConnectionCompleteCb()(
             (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE,
             error,
             session);
         return;  // RETURN
     }
 
-    switch (context->d_negotiationMessage.selectionId()) {
-    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY:
-    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE:
-    case bmqp_ctrlmsg::NegotiationMessage ::
-        SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
-        rc = d_negotiator_mp->createSessionOnMsgType(&session, context);
+    if (negotiationMsg.has_value()) {
+        context->negotiationContext()->d_negotiationMessage =
+            negotiationMsg.value();
+        rc = d_negotiator_mp->createSessionOnMsgType(
+            &session,
+            context->negotiationContext());
         if (rc == rc_CONTINUE_READ) {
-            scheduleRead(context, initialConnectionContext);
+            scheduleRead(context);
         }
-    } break;  // BREAK
-    default: {
-        errStream << "Invalid negotiation message received (unknown type): "
-                  << context->d_negotiationMessage;
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            rc_INVALID_NEGOTIATION_TYPE,
-            error,
-            session);
-    }
     }
 }
 
 int InitialConnectionHandler::decodeInitialConnectionMessage(
-    bsl::ostream&               errorDescription,
-    const NegotiationContextSp& context,
-    bdlbb::Blob&                blob)
+    bsl::ostream&                                    errorDescription,
+    bdlbb::Blob&                                     blob,
+    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>* message)
 {
+    BSLS_ASSERT(message);
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS               = 0,
@@ -177,7 +169,10 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         return rc_NOT_CONTROL_EVENT;  // RETURN
     }
 
-    int rc = event.loadControlEvent(&(context->d_negotiationMessage));
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
+
+    int rc = event.loadControlEvent(&negotiationMessage);
+
     if (rc != 0) {
         errorDescription << "Invalid negotiation message received (failed "
                          << "decoding ControlEvent): [rc: " << rc << "]:\n"
@@ -185,17 +180,17 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         return rc_INVALID_CONTROL_EVENT;  // RETURN
     }
 
+    *message = negotiationMessage;
+
     return rc_SUCCESS;
 }
 
 void InitialConnectionHandler::scheduleRead(
-    const NegotiationContextSp& context,
-    const bsl::shared_ptr<mqbnet::InitialConnectionContext>&
-        initialConnectionContext)
+    const InitialConnectionContextSp& context)
 {
     // Schedule a TimedRead
     bmqio::Status status;
-    context->d_initialConnectionContext_p->channel()->read(
+    context->channel()->read(
         &status,
         bmqp::Protocol::k_PACKET_MIN_SIZE,
         bdlf::BindUtil::bind(&InitialConnectionHandler::readCallback,
@@ -203,8 +198,7 @@ void InitialConnectionHandler::scheduleRead(
                              bdlf::PlaceHolders::_1,  // status
                              bdlf::PlaceHolders::_2,  // numNeeded
                              bdlf::PlaceHolders::_3,  // blob
-                             context,
-                             initialConnectionContext),
+                             context),
         bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
     // NOTE: In the above binding, we skip '_4' (i.e., Channel*) and
     //       replace it by the channel shared_ptr (inside the context)
@@ -213,7 +207,7 @@ void InitialConnectionHandler::scheduleRead(
         bmqu::MemOutStream errStream;
         errStream << "Read failed while negotiating: " << status;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
+        context->initialConnectionCompleteCb()(
             -1,
             error,
             bsl::shared_ptr<mqbnet::Session>());
@@ -238,24 +232,26 @@ void InitialConnectionHandler::handleInitialConnection(
     const InitialConnectionContextSp& context)
 {
     // Create an NegotiationContext for that connection
-    NegotiationContextSp negotiationContext;
+    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext;
     negotiationContext.createInplace(d_allocator_p);
 
-    negotiationContext->d_initialConnectionContext_p = context;
+    negotiationContext->d_initialConnectionContext_p = context.get();
     negotiationContext->d_isReversed                 = false;
     negotiationContext->d_clusterName                = "";
     negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
+
+    context->setNegotiationContext(negotiationContext);
 
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
     if (context->isIncoming()) {
-        scheduleRead(negotiationContext, context);
+        scheduleRead(context);
     }
     else {
-        if (d_negotiator_mp->negotiateOutboundOrReverse(negotiationContext) ==
-            0) {
-            scheduleRead(negotiationContext, context);
+        if (d_negotiator_mp->negotiateOutboundOrReverse(
+                context->negotiationContext()) == 0) {
+            scheduleRead(context);
         }
     }
 }
