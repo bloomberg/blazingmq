@@ -370,16 +370,7 @@ void TCPSessionFactory::handleInitialConnection(
     //       contract (this means we can't have mutex lock around the call to
     //       'handleInitialConnection').
     d_initialConnectionHandler_p->handleInitialConnection(
-        initialConnectionContext,
-        channel,
-        bdlf::BindUtil::bind(&TCPSessionFactory::negotiationComplete,
-                             this,
-                             bdlf::PlaceHolders::_1,  // status
-                             bdlf::PlaceHolders::_2,  // errorDescription
-                             bdlf::PlaceHolders::_3,  // session
-                             channel,
-                             context,
-                             initialConnectionContext));
+        initialConnectionContext);
 }
 
 void TCPSessionFactory::readCallback(const bmqio::Status& status,
