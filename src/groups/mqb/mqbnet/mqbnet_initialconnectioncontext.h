@@ -28,18 +28,27 @@
 //
 
 // BDE
+#include <bsl_functional.h>
+#include <bsl_memory.h>
+#include <bsl_string.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqio {
+class Channel;
+};
 
 namespace mqbnet {
 
 // FORWARD DECLARATION
 class SessionEventProcessor;
 class Cluster;
+class Session;
 
-// =====================================
+// ==============================
 // class InitialConnectionContext
-// =====================================
+// ==============================
 
 /// VST for the context associated to a session being negotiated.  Each
 /// session being negotiated get its own context; and the
@@ -48,6 +57,12 @@ class Cluster;
 /// `handleInitialConnection()` method and the invocation of the
 /// `InitialConnectionCompleteCb` method.
 class InitialConnectionContext {
+  public:
+    typedef bsl::function<void(int                status,
+                               const bsl::string& errorDescription,
+                               const bsl::shared_ptr<Session>& session)>
+        InitialConnectionCompleteCb;
+
   private:
     // DATA
     bool d_isIncoming;
@@ -114,6 +129,13 @@ class InitialConnectionContext {
     // mqbnet::Cluster to inform about incoming (proxy)
     // connection
 
+    /// The channel to use for the initial connection.
+    bsl::shared_ptr<bmqio::Channel> d_channelSp;
+
+    /// The callback to invoke to notify of the status of the initial
+    /// connection.
+    InitialConnectionCompleteCb d_initialConnectionCompleteCb;
+
   public:
     // CREATORS
 
@@ -121,21 +143,27 @@ class InitialConnectionContext {
     InitialConnectionContext(bool isIncoming);
 
     // MANIPULATORS
+
+    /// Set the corresponding field to the specified `value` and return a
+    /// reference offering modifiable access to this object.
     InitialConnectionContext& setMaxMissedHeartbeat(int value);
     InitialConnectionContext& setUserData(void* value);
     InitialConnectionContext& setResultState(void* value);
     InitialConnectionContext& setEventProcessor(SessionEventProcessor* value);
-
-    /// Set the corresponding field to the specified `value` and return a
-    /// reference offering modifiable access to this object.
     InitialConnectionContext& setCluster(Cluster* cluster);
+    InitialConnectionContext&
+    setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
+    InitialConnectionContext&
+    setInitialConnectionCompleteCb(const InitialConnectionCompleteCb& value);
 
     // ACCESSORS
-    bool     isIncoming() const;
-    Cluster* cluster() const;
-    int      maxMissedHeartbeat() const;
-    void*    userData() const;
-    void*    resultState() const;
+    bool                                   isIncoming() const;
+    Cluster*                               cluster() const;
+    int                                    maxMissedHeartbeat() const;
+    void*                                  userData() const;
+    void*                                  resultState() const;
+    const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
 
     /// Return the value of the corresponding field.
     SessionEventProcessor* eventProcessor() const;
