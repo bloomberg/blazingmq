@@ -68,11 +68,8 @@ class InitialConnectionHandler {
     /// `initialConnectionCompleteCb` method.  Note that if no initial
     /// connection is needed, the `initialConnectionCompleteCb` may be invoked
     /// directly from inside the call to `handleInitialConnection()`.
-    virtual void handleInitialConnection(
-        const InitialConnectionContextSp&      context,
-        const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionContext::InitialConnectionCompleteCb&
-            initialConnectionCompleteCb) = 0;
+    virtual void
+    handleInitialConnection(const InitialConnectionContextSp& context) = 0;
 };
 
 }  // close package namespace
