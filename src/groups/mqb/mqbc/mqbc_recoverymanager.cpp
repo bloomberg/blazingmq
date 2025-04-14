@@ -354,6 +354,7 @@ int RecoveryManager::processSendDataChunks(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs.inDispatcherThread());
+    BSLS_ASSERT_SAFE(fs.isOpen());
 
     enum RcEnum {
         // Value for the various RC error categories
