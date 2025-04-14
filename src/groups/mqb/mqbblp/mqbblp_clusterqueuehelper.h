@@ -461,9 +461,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     StopContexts d_stopContexts;
 
-    /// When `true`, this node is shutting down using shutdown v2 logic.
+    /// When `true`, this node is shutting down using new shutdown logic.
     /// This can only be true when all cluster nodes support StopRequest V2.
-    bsls::AtomicBool d_supportShutdownV2;
+    bsls::AtomicBool d_isShutdownLogicOn;
 
   private:
     // PRIVATE MANIPULATORS
@@ -1127,6 +1127,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Dump the internal state of this object to the specified
     /// `clusterQueueHelper` object.
     void loadState(mqbcmd::ClusterQueueHelper* clusterQueueHelper) const;
+
+    /// Return `true` if this node is shutting down using new shutdown logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    bool isShutdownLogicOn() const;
 };
 
 // ============================================================================
@@ -1333,6 +1337,11 @@ inline bool ClusterQueueHelper::isFailoverInProgress() const
 inline int ClusterQueueHelper::numPendingReopenQueueRequests() const
 {
     return d_numPendingReopenQueueRequests;
+}
+
+inline bool ClusterQueueHelper::isShutdownLogicOn() const
+{
+    return d_isShutdownLogicOn;
 }
 
 }  // close package namespace

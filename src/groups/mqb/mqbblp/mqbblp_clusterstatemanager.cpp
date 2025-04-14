@@ -1536,23 +1536,43 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             return;  // RETURN
         }
 
-        if (d_clusterData_p->electorInfo().leaderMessageSequence() >
-            leaderMsgSeq) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_cluster_p->description()
-                << ": got queueAssignmentAdvisory: " << queueAdvisory
-                << " from current leader: " << source->nodeDescription()
-                << ", with smaller leader message sequence: " << leaderMsgSeq
-                << ". Current value: "
-                << d_clusterData_p->electorInfo().leaderMessageSequence()
-                << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
+        const bmqp_ctrlmsg::LeaderMessageSequence& selfLMS =
+            d_clusterData_p->electorInfo().leaderMessageSequence();
+        if (selfLMS > leaderMsgSeq) {
+            if (selfLMS.electorTerm() == leaderMsgSeq.electorTerm() &&
+                selfLMS.sequenceNumber() ==
+                    leaderMsgSeq.sequenceNumber() + 1) {
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                    << d_cluster_p->description()
+                    << ": got queueAssignmentAdvisory: " << queueAdvisory
+                    << " from current leader: " << source->nodeDescription()
+                    << ", with smaller leader message sequence: "
+                    << leaderMsgSeq << ". Current value: " << selfLMS
+                    << ". However, this is likely due to a known bug where "
+                       "the CSL advisory commit bumps up leader message "
+                       "sequence by one before we apply that advisory. "
+                       "Therefore, **not** ignoring this advisory."
+                    << BMQTSK_ALARMLOG_END;
+            }
+            else {
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                    << d_cluster_p->description()
+                    << ": got queueAssignmentAdvisory: " << queueAdvisory
+                    << " from current leader: " << source->nodeDescription()
+                    << ", with smaller leader message sequence: "
+                    << leaderMsgSeq << ". Current value: " << selfLMS
+                    << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
+                return;  // RETURN
+            }
+        }
+        else {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(
+                leaderMsgSeq);
         }
 
-        // Leader status and sequence number are updated unconditionally.  It
-        // may have been updated by one of the callers of this routine, but
-        // there is no harm is setting these values again.
-        d_clusterData_p->electorInfo().setLeaderMessageSequence(leaderMsgSeq);
+        // Leader status is updated unconditionally.  It may have been updated
+        // by one of the callers of this routine, but there is no harm is
+        // setting this value again.
         d_clusterData_p->electorInfo().setLeaderStatus(
             mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
     }

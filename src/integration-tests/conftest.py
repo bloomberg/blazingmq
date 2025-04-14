@@ -15,15 +15,29 @@
 
 import contextlib
 import logging
+
 import pytest
 
 import blazingmq.dev.it.logging
+import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
-from blazingmq.dev.it.testconstants import (
-    eventual_consistency_param,
-    strong_consistency_param,
-)
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
+from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_runtest_makereport(item):
+    """
+    Store test results for each phase of a call, which can
+    be "setup", "call", "teardown"
+    """
+
+    outcome = yield
+    rep = outcome.get_result()
+
+    item.stash.setdefault(PHASE_REPORT_KEY, {})[rep.when] = rep
+
+    return rep
 
 
 def pytest_addoption(parser):
@@ -118,15 +132,6 @@ def pytest_addoption(parser):
         help=help_,
     )
 
-    help_ = "run with domain consistency: <eventual>, strong or both"
-    parser.addoption(
-        "--domain-consistency",
-        action="store",
-        default="eventual",
-        help=help_,
-        choices=("eventual", "strong", "both"),
-    )
-
 
 def pytest_configure(config):
     logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
@@ -166,15 +171,29 @@ def pytest_collection_modifyitems(config, items):
         )
 
 
-def pytest_generate_tests(metafunc):
-    # If the test function has a "domain_urls" argument, parametrize it
-    # using "--domain-consistency" cmd line option value.
-    if "domain_urls" in metafunc.fixturenames:
-        val = metafunc.config.getoption("domain_consistency")
-        if val == "eventual":
-            params = [eventual_consistency_param()]
-        elif val == "strong":
-            params = [strong_consistency_param()]
-        else:  # both
-            params = [eventual_consistency_param(), strong_consistency_param()]
-        metafunc.parametrize("domain_urls", params)
+@pytest.fixture
+def ec_domain_urls():
+    return tc.EC_DOMAIN_URLS
+
+
+@pytest.fixture
+def sc_domain_urls():
+    return tc.SC_DOMAIN_URLS
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            tc.SC_DOMAIN_URLS,
+            id="strong_consistency",
+            marks=[pytest.mark.strong_consistency],
+        ),
+        pytest.param(
+            tc.EC_DOMAIN_URLS,
+            id="eventual_consistency",
+            marks=[pytest.mark.eventual_consistency],
+        ),
+    ]
+)
+def domain_urls(request):
+    return request.param

@@ -56,6 +56,7 @@ from blazingmq.dev.paths import paths
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.reserveport import reserve_port
 from blazingmq.schemas import mqbcfg, mqbconf
+from blazingmq.dev.it.testhooks import is_test_reported_failed
 
 order = pytest.mark.order
 
@@ -210,7 +211,11 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
         if log_dir:
             log_dir = Path(log_dir)
             log_dir.mkdir(parents=True, exist_ok=True)
+
+            # Remove test filename:
             log_file_path = re.sub(r"^[^:]+::", "", request.node.nodeid)
+            # Replace "::" to avoid file name issues in NTFS file system:
+            log_file_path = re.sub(r"::", "__", log_file_path)
             log_file_path = re.sub(r"/", "-", log_file_path)
             log_file_path = (log_dir / (log_file_path + ".log")).resolve()
             log_file_handler = logging.FileHandler(
@@ -237,7 +242,8 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
             def remove_log_file_handler():
                 logging.getLogger().removeHandler(log_file_handler)
                 log_file_handler.close()
-                if failures == request.session.testsfailed and not get_option_ini(
+
+                if not is_test_reported_failed(request) and not get_option_ini(
                     request.config, "bmq_keep_logs"
                 ):
                     try:
