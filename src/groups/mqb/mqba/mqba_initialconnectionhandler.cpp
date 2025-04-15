@@ -63,7 +63,6 @@ void InitialConnectionHandler::readCallback(
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS            = 0,
-        rc_CONTINUE_READ      = 1,
         rc_READ_BLOB_ERROR    = -1,
         rc_PROCESS_BLOB_ERROR = -2,
     };
@@ -76,7 +75,8 @@ void InitialConnectionHandler::readCallback(
     bmqu::MemOutStream               errStream;
     bdlbb::Blob                      outPacket;
 
-    bool isFullBlob = true;
+    bool isFullBlob     = true;
+    bool isContinueRead = false;
 
     int rc =
         readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
@@ -92,13 +92,13 @@ void InitialConnectionHandler::readCallback(
                                                session);
     }
 
-    rc = processBlob(errStream, &session, outPacket, context);
+    rc = processBlob(errStream, &session, &isContinueRead, outPacket, context);
 
-    if (rc == rc_CONTINUE_READ) {
-        scheduleRead(context);
+    if (isContinueRead) {
+        return scheduleRead(context);  // RETURN
     }
 
-    else if (rc < 0) {
+    if (rc != 0) {
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->initialConnectionCompleteCb()((rc * 10) +
                                                    rc_PROCESS_BLOB_ERROR,
@@ -152,6 +152,7 @@ int InitialConnectionHandler::readBlob(bsl::ostream&        errorDescription,
 int InitialConnectionHandler::processBlob(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
+    bool*                             isContinueRead,
     const bdlbb::Blob&                blob,
     const InitialConnectionContextSp& context)
 {
@@ -178,6 +179,7 @@ int InitialConnectionHandler::processBlob(
         rc = d_negotiator_mp->createSessionOnMsgType(
             errorDescription,
             session,
+            isContinueRead,
             context->negotiationContext());
     }
     else {

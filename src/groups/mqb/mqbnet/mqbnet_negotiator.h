@@ -78,6 +78,7 @@ class Negotiator {
     virtual int createSessionOnMsgType(
         bsl::ostream&                              errorDescription,
         bsl::shared_ptr<mqbnet::Session>*          session,
+        bool*                                      isContinueRead,
         const bsl::shared_ptr<NegotiationContext>& context) = 0;
 
     /// Send out outbound negotiation message or reverse connection request

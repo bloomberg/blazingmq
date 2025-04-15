@@ -93,6 +93,7 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// TODO
     int processBlob(bsl::ostream&                     errorDescription,
                     bsl::shared_ptr<mqbnet::Session>* session,
+                    bool*                             isContinueRead,
                     const bdlbb::Blob&                blob,
                     const InitialConnectionContextSp& context);
 

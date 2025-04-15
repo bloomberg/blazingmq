@@ -231,7 +231,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// specified `errorDescription` with a description of the error otherwise.
     int createSessionOnMsgType(bsl::ostream& errorDescription,
                                bsl::shared_ptr<mqbnet::Session>* session,
-                               const NegotiationContextSp&       context)
+                               bool*                       isContinueRead,
+                               const NegotiationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound negotiation message or reverse connection request
