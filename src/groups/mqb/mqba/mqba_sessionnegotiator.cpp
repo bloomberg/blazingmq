@@ -262,6 +262,7 @@ void loadSessionDescription(bsl::string*                        out,
 // -----------------------
 
 int SessionNegotiator::createSessionOnMsgType(
+    bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
     const NegotiationContextSp&       context)
 {
@@ -276,8 +277,6 @@ int SessionNegotiator::createSessionOnMsgType(
         rc_SEND_NEGOTIATION_MESSAGE_ERROR = -3,
         rc_INVALID_NEGOTIATION_TYPE       = -4
     };
-
-    bmqu::MemOutStream errStream;
 
     switch (context->d_negotiationMessage.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
@@ -294,14 +293,9 @@ int SessionNegotiator::createSessionOnMsgType(
             context->d_connectionType = mqbnet::ConnectionType::e_ADMIN;
 
             if (!d_adminCb) {
-                errStream << "Admin callback is not specified: admin session "
-                          << "is not supported";
-                bsl::string error(errStream.str().data(),
-                                  errStream.str().length());
-                context->d_initialConnectionContext_p
-                    ->initialConnectionCompleteCb()(rc_NO_ADMIN_CALLBACK,
-                                                    error,
-                                                    *session);
+                errorDescription
+                    << "Admin callback is not specified: admin session "
+                    << "is not supported";
                 return rc_NO_ADMIN_CALLBACK;  // RETURN
             }
         }
@@ -320,7 +314,7 @@ int SessionNegotiator::createSessionOnMsgType(
             context->d_connectionType =
                 mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
-        *session = onClientIdentityMessage(errStream, context);
+        *session = onClientIdentityMessage(errorDescription, context);
     } break;
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE: {
         // This is the second part of the negotiation protocol.  If we haven't
@@ -332,7 +326,7 @@ int SessionNegotiator::createSessionOnMsgType(
                 mqbnet::ConnectionType::e_CLUSTER_MEMBER;
         }
 
-        *session = onBrokerResponseMessage(errStream, context);
+        *session = onBrokerResponseMessage(errorDescription, context);
     } break;
     case bmqp_ctrlmsg::NegotiationMessage ::
         SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
@@ -342,37 +336,24 @@ int SessionNegotiator::createSessionOnMsgType(
                                      .clusterName();
         context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
 
-        int rc = initiateOutboundNegotiation(context);
+        int rc = initiateOutboundNegotiation(errorDescription, context);
         if (rc == 0) {
             return rc_CONTINUE_READ;  // RETURN
         }
         return rc_SEND_NEGOTIATION_MESSAGE_ERROR;  // RETURN
-    }                                              // break;
+    }  // break;
     default: {
-        errStream << "Invalid negotiation message received (unknown type): "
-                  << context->d_negotiationMessage;
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            rc_INVALID_NEGOTIATION_TYPE,
-            error,
-            *session);
+        errorDescription
+            << "Invalid negotiation message received (unknown type): "
+            << context->d_negotiationMessage;
         return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
     }
     }
 
     if (!(*session)) {
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            rc_NO_SESSION,
-            error,
-            *session);
         return rc_NO_SESSION;  // RETURN
     }
 
-    context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-        rc_SUCCESS,
-        "",
-        *session);
     return rc_SUCCESS;
 }
 
@@ -855,6 +836,7 @@ SessionNegotiator::~SessionNegotiator()
 }
 
 int SessionNegotiator::initiateOutboundNegotiation(
+    bsl::ostream&               errorDescription,
     const NegotiationContextSp& context)
 {
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
@@ -871,22 +853,15 @@ int SessionNegotiator::initiateOutboundNegotiation(
                        context->d_clusterName,
                        nodeId);
 
-    bmqu::MemOutStream errStream;
+    int rc = sendNegotiationMessage(errorDescription,
+                                    negotiationMessage,
+                                    context);
 
-    int rc = sendNegotiationMessage(errStream, negotiationMessage, context);
-    if (rc != 0) {
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            -1,
-            error,
-            bsl::shared_ptr<mqbnet::Session>());
-        return rc;  // RETURN
-    }
-
-    return 0;
+    return rc;
 }
 
 int SessionNegotiator::negotiateOutboundOrReverse(
+    bsl::ostream&               errorDescription,
     const NegotiationContextSp& context)
 {
     BSLS_ASSERT_SAFE(context);
@@ -907,6 +882,8 @@ int SessionNegotiator::negotiateOutboundOrReverse(
             context->d_initialConnectionContext_p->userData());
     BSLS_ASSERT_SAFE(userData);
 
+    int rc = 0;
+
     if (userData->d_isClusterConnection) {
         context->d_clusterName = userData->d_clusterName;
         if (d_clusterCatalog_p->isMemberOf(context->d_clusterName)) {
@@ -918,10 +895,7 @@ int SessionNegotiator::negotiateOutboundOrReverse(
                 mqbnet::ConnectionType::e_CLUSTER_PROXY;
         }
 
-        int rc = initiateOutboundNegotiation(context);
-        if (rc != 0) {
-            return rc;  // RETURN
-        }
+        rc = initiateOutboundNegotiation(errorDescription, context);
     }
     else {
         // This is a reverse connection, we simply send the negotiation
@@ -938,23 +912,12 @@ int SessionNegotiator::negotiateOutboundOrReverse(
         context->d_isReversed     = true;
         context->d_connectionType = mqbnet::ConnectionType::e_CLIENT;
 
-        bmqu::MemOutStream errStream;
-        int                rc = sendNegotiationMessage(errStream,
-                                        negotiationMessage,
-                                        context);
-        if (rc != 0) {
-            bsl::string error(errStream.str().data(),
-                              errStream.str().length());
-            context->d_initialConnectionContext_p
-                ->initialConnectionCompleteCb()(
-                    -1,
-                    error,
-                    bsl::shared_ptr<mqbnet::Session>());
-            return rc;  // RETURN
-        }
+        rc = sendNegotiationMessage(errorDescription,
+                                    negotiationMessage,
+                                    context);
     }
 
-    return 0;
+    return rc;
 }
 
 }  // close package namespace
