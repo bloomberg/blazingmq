@@ -82,13 +82,28 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                       bdlbb::Blob*                      blob,
                       const InitialConnectionContextSp& context);
 
-    /// Decode the initial connection messages received in the specified `blob`
-    /// and store it, on success, in the specified optional `negotiationMsg`,
-    /// returning 0.  Return a non-zero code on error and populate the
-    /// specified `errorDescription` with a description of the error.
+    /// TODO
+    int readBlob(bsl::ostream&        errorDescription,
+                 bdlbb::Blob*         outPacket,
+                 bool*                isFullBlob,
+                 const bmqio::Status& status,
+                 int*                 numNeeded,
+                 bdlbb::Blob*         blob);
+
+    /// TODO
+    int processBlob(bsl::ostream&                     errorDescription,
+                    bsl::shared_ptr<mqbnet::Session>* session,
+                    const bdlbb::Blob&                blob,
+                    const InitialConnectionContextSp& context);
+
+    /// Decode the initial connection messages received in the specified
+    /// `blob` and store it, on success, in the specified optional
+    /// `negotiationMsg`, returning 0.  Return a non-zero code on error and
+    /// populate the specified `errorDescription` with a description of the
+    /// error.
     int decodeInitialConnectionMessage(
         bsl::ostream&                                    errorDescription,
-        bdlbb::Blob&                                     blob,
+        const bdlbb::Blob&                               blob,
         bsl::optional<bmqp_ctrlmsg::NegotiationMessage>* negotiationMsg);
 
     /// Schedule a read for the initial connection of the session of the

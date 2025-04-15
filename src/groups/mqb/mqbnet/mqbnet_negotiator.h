@@ -73,13 +73,19 @@ class Negotiator {
 
     /// Create a `session` based on the type of initial connection message in
     /// the specified `context`.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
     virtual int createSessionOnMsgType(
+        bsl::ostream&                              errorDescription,
         bsl::shared_ptr<mqbnet::Session>*          session,
         const bsl::shared_ptr<NegotiationContext>& context) = 0;
 
     /// Send out outbound negotiation message or reverse connection request
     /// with the specified `context`.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
     virtual int negotiateOutboundOrReverse(
+        bsl::ostream&                              errorDescription,
         const bsl::shared_ptr<NegotiationContext>& context) = 0;
 };
 

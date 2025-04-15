@@ -182,7 +182,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// Initiate an outbound negotiation (i.e., send out some negotiation
     /// message and schedule a read of the response) using the specified
     /// `context`.
-    int initiateOutboundNegotiation(const NegotiationContextSp& context);
+    int initiateOutboundNegotiation(bsl::ostream& errorDescription,
+                                    const NegotiationContextSp& context);
 
   public:
     // TRAITS
@@ -226,13 +227,19 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Create a `session` based on the type of initial connection message in
     /// the specified `context`.
-    int createSessionOnMsgType(bsl::shared_ptr<mqbnet::Session>* session,
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
+    int createSessionOnMsgType(bsl::ostream& errorDescription,
+                               bsl::shared_ptr<mqbnet::Session>* session,
                                const NegotiationContextSp&       context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound negotiation message or reverse connection request
     /// with the specified `context`.
-    int negotiateOutboundOrReverse(const NegotiationContextSp& context)
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
+    int negotiateOutboundOrReverse(bsl::ostream& errorDescription,
+                                   const NegotiationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
 
