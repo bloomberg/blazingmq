@@ -264,14 +264,15 @@ void loadSessionDescription(bsl::string*                        out,
 int SessionNegotiator::createSessionOnMsgType(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
+    bool*                             isContinueRead,
     const NegotiationContextSp&       context)
 {
     BSLS_ASSERT(session);
+    BSLS_ASSERT(isContinueRead);
 
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                        = 0,
-        rc_CONTINUE_READ                  = 1,
         rc_NO_SESSION                     = -1,
         rc_NO_ADMIN_CALLBACK              = -2,
         rc_SEND_NEGOTIATION_MESSAGE_ERROR = -3,
@@ -338,7 +339,8 @@ int SessionNegotiator::createSessionOnMsgType(
 
         int rc = initiateOutboundNegotiation(errorDescription, context);
         if (rc == 0) {
-            return rc_CONTINUE_READ;  // RETURN
+            *isContinueRead = true;
+            return rc_SUCCESS;  // RETURN
         }
         return rc_SEND_NEGOTIATION_MESSAGE_ERROR;  // RETURN
     }  // break;
