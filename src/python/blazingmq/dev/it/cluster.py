@@ -24,6 +24,7 @@ import shutil
 import signal
 from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
+import os
 
 from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.proc
@@ -679,10 +680,31 @@ class Cluster(contextlib.AbstractContextManager):
             ]
         )
 
+    def update_all_brokers_binary(self, new_version: str):
+        for broker in self.configurator.brokers.values():
+            self.update_broker_binary(broker, new_version)
+
+    def update_broker_binary(self, broker: cfg.Broker, new_version: str):
+        broker_path_var = f"BLAZINGMQ_BROKER_{broker.name.upper()}"
+        newversion_path_var = f"BLAZINGMQ_BROKER_{new_version.upper()}"
+        assert newversion_path_var in os.environ
+        new_path = os.environ[newversion_path_var]
+
+        os.environ[broker_path_var] = new_path
+        self.deploy_broker_local(broker)
+
+    def get_broker_local_site(self, broker: cfg.Broker):
+        return LocalSite(self.work_dir / broker.name)
+
+    def deploy_broker_local(self, broker: cfg.Broker):
+        self.configurator.deploy_programs(
+            broker, self.get_broker_local_site(broker)
+        )
+
     def deploy_domains(self):
         for broker in self.configurator.brokers.values():
             self.configurator.deploy_domains(
-                broker, LocalSite(self.work_dir / broker.name)
+                broker, self.get_broker_local_site(broker)
             )
 
     def reconfigure_domain(
