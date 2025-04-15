@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbnet_initialconnectionhandler.t.cpp                        -*-C++-*-
-#include <bslstl_sharedptr.h>
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
@@ -37,21 +36,6 @@
 using namespace BloombergLP;
 using namespace bsl;
 
-// Disable some compiler warning for simplified write of the
-// 'AbstractSessionTestImp'.
-#if defined(BSLS_PLATFORM_CMP_CLANG)
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#pragma clang diagnostic ignored "-Wweak-vtables"
-// Disabling 'weak-vtables' so that we can define all interface methods
-// inline, without the following warning:
-//..
-//  mqbnet_initialconnectionhandler.t.cpp:50:1: error:
-//  'InitialConnectionHandlerTestImp' has no out-of-line virtual method
-//  definitions; its vtable will be emitted in every translation unit
-//  [-Werror,-Wweak-vtables]
-//..
-#endif  // BSLS_PLATFORM_CMP_CLANG
-
 // ============================================================================
 //                 HELPER CLASSES AND FUNCTIONS FOR TESTING
 // ----------------------------------------------------------------------------
@@ -60,11 +44,14 @@ using namespace bsl;
 struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
     void handleInitialConnection(const InitialConnectionContextSp& context)
-        BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-    }
+        BSLS_KEYWORD_OVERRIDE;
 };
+
+void InitialConnectionHandlerTestImp::handleInitialConnection(
+    BSLS_ANNOTATION_UNUSED const InitialConnectionContextSp& context)
+{
+    markDone();
+}
 
 // ============================================================================
 //                                    TESTS

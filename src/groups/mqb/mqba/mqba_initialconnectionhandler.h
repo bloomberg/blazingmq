@@ -58,9 +58,6 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     bdlmt::FixedThreadPool d_threadPool;
 
-    /// Allocator store to spawn new allocators for sub components.
-    bmqma::CountingAllocatorStore d_allocators;
-
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 

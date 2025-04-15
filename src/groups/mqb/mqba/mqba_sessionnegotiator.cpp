@@ -889,7 +889,10 @@ int SessionNegotiator::initiateOutboundNegotiation(
 int SessionNegotiator::negotiateOutboundOrReverse(
     const NegotiationContextSp& context)
 {
+    BSLS_ASSERT_SAFE(context);
+    BSLS_ASSERT_SAFE(context->d_initialConnectionContext_p);
     BSLS_ASSERT_SAFE(!context->d_initialConnectionContext_p->isIncoming());
+
     // If this is a 'connect' negotiation, this could either represent an
     // outgoing proxy/cluster connection, or a reversed cluster connection;
     // the context's user data will tell.  We send the identity and then
