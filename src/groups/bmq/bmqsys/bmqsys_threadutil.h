@@ -59,22 +59,22 @@ struct ThreadUtil {
     /// thread parameter values set for the local operating system.
     static bslmt::ThreadAttributes defaultAttributes();
 
-    /// Set the name of the current thread to the specified `value`.  This
-    /// method is a no-op if `k_SUPPORT_THREAD_NAME` is false.
+    /// Set the name of the current thread to the specified `value`, truncated
+    /// to a length of 15 bytes.
     ///
     /// PLATFORM NOTE:
-    ///   - this functionality is only supported on LINUX, and the name can
-    ///     be up to 15 characters.
+    ///   - On platforms other than Linux, Solaris, Darwin, and Windows, this
+    ///     method has no effect.
     static void setCurrentThreadName(const bsl::string& value);
 
-    /// Set the name of the current thread to the specified `value`.  This
-    /// method is a no-op if `k_SUPPORT_THREAD_NAME` is false.  Unlike
-    /// `setCurrentThreadName`, this method uses a thread local variable to
-    /// ensure this is done only once per thread.
+    /// Set the name of the current thread to the specified `value`, truncated
+    /// to a length of 15 bytes.  Unlike `setCurrentThreadName`, this method
+    /// uses a thread local variable to ensure this is done only once per
+    /// thread.
     ///
     /// PLATFORM NOTE:
-    ///   - this functionality is only supported on LINUX, and the name can
-    ///     be up to 15 characters.
+    ///   - On platforms other than Linux, Solaris, Darwin, and Windows, this
+    ///     method has no effect.
     static void setCurrentThreadNameOnce(const bsl::string& value);
 };
 
