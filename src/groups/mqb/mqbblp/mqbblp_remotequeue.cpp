@@ -362,9 +362,9 @@ void RemoteQueue::pushMessage(
     bool                                 isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
-    mqbi::StorageResult::Enum      result  = mqbi::StorageResult::e_SUCCESS;
-    mqbi::Storage*                 storage = d_state_p->storage();
-    int                            msgSize = 0;
+    mqbi::StorageResult::Enum result  = mqbi::StorageResult::e_SUCCESS;
+    mqbi::Storage*            storage = d_state_p->storage();
+    int                       msgSize = 0;
 
     if (d_state_p->domain()->cluster()->isRemote()) {
         // In a proxy, 'appData' will always be non-null, irrespective of the
@@ -546,7 +546,9 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
         if (domainCfg.mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
-                domainCfg.mode().fanout().appIDs());
+                domainCfg.mode().fanout().publishAppIdMetrics()
+                    ? domainCfg.mode().fanout().appIDs()
+                    : bsl::vector<bsl::string>(d_allocator_p));
         }
     }
 
