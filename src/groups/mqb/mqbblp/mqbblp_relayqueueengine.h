@@ -350,8 +350,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void storePush(mqbi::StorageMessageAttributes*           attributes,
                    const bmqt::MessageGUID&                  msgGUID,
                    const bsl::shared_ptr<bdlbb::Blob>&       appData,
-                   const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-                   bool                                      isOutOfOrder);
+                   const bmqp::Protocol::SubQueueInfosArray& subscriptions);
 
     void beforeOneAppRemoved(unsigned int upstreamSubQueueId);
 
