@@ -522,17 +522,15 @@ int Dispatcher::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                     "bmqDispSession"),
-                mqbi::DispatcherClientType::e_SESSION);
-        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                     "bmqDispQueue"),
-                mqbi::DispatcherClientType::e_QUEUE);
-        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                     "bmqDispCluster"),
-                mqbi::DispatcherClientType::e_CLUSTER);
-    }
+    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                                 "bmqDispSession"),
+            mqbi::DispatcherClientType::e_SESSION);
+    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                                 "bmqDispQueue"),
+            mqbi::DispatcherClientType::e_QUEUE);
+    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                                 "bmqDispCluster"),
+            mqbi::DispatcherClientType::e_CLUSTER);
 
     d_isStarted = true;
 

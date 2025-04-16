@@ -279,12 +279,10 @@ int Task::initialize(bsl::ostream& errorDescription)
         return rc_SCHEDULER_START_FAILED;  // RETURN
     }
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        d_scheduler.scheduleEvent(
-            bsls::TimeInterval(0, 0),  // now
-            bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                 "bmqSchedTask"));
-    }
+    d_scheduler.scheduleEvent(
+        bsls::TimeInterval(0, 0),  // now
+        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                             "bmqSchedTask"));
 
     // -------------
     // LogController
@@ -344,10 +342,7 @@ int Task::initialize(bsl::ostream& errorDescription)
         return rc_CONTROLCHANNEL_START_FAILED;  // RETURN
     }
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        bdls::PipeUtil::send(pipePath,
-                             bsl::string(k_MTRAP_SET_THREADNAME) + "\n");
-    }
+    bdls::PipeUtil::send(pipePath, bsl::string(k_MTRAP_SET_THREADNAME) + "\n");
 
     // -------------------
     // M-Trap registration
