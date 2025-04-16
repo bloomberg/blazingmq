@@ -396,6 +396,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
 
                         if get_cluster_param(request, "_start_cluster", True):
                             with internal_use(cluster):
+                                leader_name = os.environ.get("BLAZINGMQ_LEADER_NAME")
                                 cluster.start(
                                     wait_leader=get_cluster_param(
                                         request, "_wait_leader", True
@@ -403,6 +404,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                                     wait_ready=get_cluster_param(
                                         request, "_wait_ready", False
                                     ),
+                                    leader_name=leader_name,
                                 )
 
                         if request.instance is not None and hasattr(
