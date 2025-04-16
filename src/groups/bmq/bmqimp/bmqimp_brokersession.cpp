@@ -5850,9 +5850,7 @@ void BrokerSession::setChannel(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the *IO* thread
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        bmqsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
-    }
+    bmqsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
 
     if (channel) {  // We are now connected to bmqbrkr
         BALL_LOG_INFO << "Channel is CREATED [host: " << channel->peerUri()

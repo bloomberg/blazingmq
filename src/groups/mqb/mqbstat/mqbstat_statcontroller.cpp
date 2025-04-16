@@ -725,12 +725,10 @@ int StatController::start(bsl::ostream& errorDescription)
         return -2;  // RETURN
     }
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        d_scheduler_mp->scheduleEvent(
-            bsls::TimeInterval(0),  // execute as soon as possible
-            bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                 "bmqSchedStat"));
-    }
+    d_scheduler_mp->scheduleEvent(
+        bsls::TimeInterval(0),  // execute as soon as possible
+        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                             "bmqSchedStat"));
 
     // Create and start the system stat monitor.  The SystemStats are used in
     // the dashboard screen, stat consumers, stats printer, ...  So we need to
