@@ -26,14 +26,10 @@
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
 #include <bslma_default.h>
+#include <bslmt_threadutil.h>
 #include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_platform.h>
-
-// Linux
-#if defined(BSLS_PLATFORM_OS_LINUX)
-#include <sys/prctl.h>
-#endif
 
 namespace BloombergLP {
 namespace bmqsys {
@@ -55,20 +51,14 @@ bslmt::ThreadAttributes ThreadUtil::defaultAttributes()
 // LINUX
 // -----
 #if defined(BSLS_PLATFORM_OS_LINUX)
-
 const bool ThreadUtil::k_SUPPORT_THREAD_NAME = true;
+#else
+const bool ThreadUtil::k_SUPPORT_THREAD_NAME = false;
+#endif
 
 void ThreadUtil::setCurrentThreadName(const bsl::string& value)
 {
-    int rc = prctl(PR_SET_NAME, value.c_str(), 0, 0, 0);
-    // We should use 'modern' APIs: pthread_setname_no(pthread_self()).  But
-    // Bloomberg is a bit old; API was added in glibc 2.12, and we have 2.5.
-    if (rc != 0) {
-        BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-        BALL_LOG_ERROR << "Failed to set thread name " << "[name: '" << value
-                       << "'" << ", rc: " << rc << ", strerr: '"
-                       << bsl::strerror(rc) << "']";
-    }
+    bslmt::ThreadUtil::setThreadName(value);
 }
 
 void ThreadUtil::setCurrentThreadNameOnce(const bsl::string& value)
@@ -86,28 +76,6 @@ void ThreadUtil::setCurrentThreadNameOnce(const bsl::string& value)
         s_named = true;
     }
 }
-
-// UNSUPPORTED_PLATFORMS
-// ---------------------
-#else
-
-const bool ThreadUtil::k_SUPPORT_THREAD_NAME = false;
-
-void ThreadUtil::setCurrentThreadName(
-    BSLS_ANNOTATION_UNUSED const bsl::string& value)
-{
-    // NOT AVAILABLE
-
-    static_cast<void>(k_LOG_CATEGORY);  // suppress unused variable warning
-}
-
-void ThreadUtil::setCurrentThreadNameOnce(
-    BSLS_ANNOTATION_UNUSED const bsl::string& value)
-{
-    // NOT AVAILABLE
-}
-
-#endif
 
 }  // close package namespace
 }  // close enterprise namespace
