@@ -47,12 +47,6 @@ namespace bmqsys {
 
 /// Utility namespace for thread management
 struct ThreadUtil {
-    // CONSTANTS
-
-    /// Boolean constant indicating whether the current platform supports
-    /// naming thread.
-    static const bool k_SUPPORT_THREAD_NAME;
-
     // CLASS METHODS
 
     /// Return `bslmt::ThreadAttributes` object pre-initialized with default
