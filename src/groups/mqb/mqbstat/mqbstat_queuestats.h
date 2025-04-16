@@ -507,8 +507,8 @@ struct DomainQueueStats {
         e_STAT_NO_SC_MSGS
 
         ,
-        // Value:      Current number of GUIDs stored in queue's history
-        //             (does not include messages in the queue)
+        /// Value:      Current number of GUIDs stored in queue's history
+        ///             (does not include messages in the queue)
         e_STAT_HISTORY
     };
 };
