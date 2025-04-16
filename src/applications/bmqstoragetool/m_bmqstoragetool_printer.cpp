@@ -75,15 +75,16 @@ void printDataFileMeta(bsl::ostream&                 ostream,
                        const mqbs::DataFileIterator* dataFile_p,
                        bslma::Allocator*             allocator)
 {
-    BSLS_ASSERT_SAFE(dataFile_p && dataFile_p->isValid());
+    if (!dataFile_p || !dataFile_p->isValid()) {
+        return;  // RETURN
+    }
 
-    const bsl::vector<const char*> fields = {"BlazingMQ File Header",
+    const bsl::vector<bsl::string> fields = {"BlazingMQ File Header",
                                              "Data File Header"};
 
-    PRINTER_TYPE1 printer(ostream, &fields);
+    PRINTER_TYPE1 printer(ostream, fields);
     {
         bmqu::MemOutStream s(allocator);
-        s << '\n';
         mqbs::FileStoreProtocolPrinter::printFileHeader<PRINTER_TYPE2>(
             s,
             *dataFile_p->mappedFileDescriptor());
@@ -91,7 +92,6 @@ void printDataFileMeta(bsl::ostream&                 ostream,
     }
     {
         bmqu::MemOutStream s(allocator);
-        s << '\n';
         mqbs::FileStoreProtocolPrinter::printDataFileHeader<PRINTER_TYPE2>(
             s,
             dataFile_p->header());
@@ -105,16 +105,17 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
                           const mqbs::JournalFileIterator* journalFile_p,
                           bslma::Allocator*                allocator)
 {
-    BSLS_ASSERT_SAFE(journalFile_p && journalFile_p->isValid());
+    if (!journalFile_p || !journalFile_p->isValid()) {
+        return;  // RETURN
+    }
 
-    const bsl::vector<const char*> fields = {"BlazingMQ File Header",
+    const bsl::vector<bsl::string> fields = {"BlazingMQ File Header",
                                              "Journal File Header",
                                              "Journal SyncPoint"};
 
-    PRINTER_TYPE1 printer(ostream, &fields);
+    PRINTER_TYPE1 printer(ostream, fields);
     {
         bmqu::MemOutStream s(allocator);
-        s << '\n';
         mqbs::FileStoreProtocolPrinter::printFileHeader<PRINTER_TYPE2>(
             s,
             *journalFile_p->mappedFileDescriptor());
@@ -122,7 +123,6 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
     }
     {
         bmqu::MemOutStream s(allocator);
-        s << '\n';
         mqbs::FileStoreProtocolPrinter::printJournalFileHeader<PRINTER_TYPE2>(
             s,
             journalFile_p->header(),
@@ -136,7 +136,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
         s << '\n';
         {
             // Print journal-specific fields
-            bsl::vector<const char*> fieldsSyncPoint(allocator);
+            bsl::vector<bsl::string> fieldsSyncPoint(allocator);
             fieldsSyncPoint.reserve(12);
             fieldsSyncPoint.push_back("Last Valid Record Offset");
             fieldsSyncPoint.push_back("Record Type");
@@ -151,7 +151,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
             fieldsSyncPoint.push_back("SyncPoint DataFileOffset (DWORDS)");
             fieldsSyncPoint.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-            PRINTER_TYPE2       p(s, &fieldsSyncPoint);
+            PRINTER_TYPE2       p(s, fieldsSyncPoint);
             bsls::Types::Uint64 lastRecPos =
                 journalFile_p->lastRecordPosition();
             p << lastRecPos;
@@ -237,7 +237,7 @@ void printQueueDetails(bsl::ostream&          ostream,
         const bsl::size_t       appKeysCount = details.d_appDetailsMap.size();
 
         // Setup fields to be displayed
-        bsl::vector<const char*> fields(allocator);
+        bsl::vector<bsl::string> fields(allocator);
         fields.reserve(8);
         fields.push_back("Queue Key");
         if (!details.d_queueUri.empty()) {
@@ -253,7 +253,7 @@ void printQueueDetails(bsl::ostream&          ostream,
         fields.push_back("Num Delete Records");
 
         {
-            PRINTER_TYPE printer(ostream, &fields);
+            PRINTER_TYPE printer(ostream, fields);
 
             // Print Queue Key id: either Key or URI
             printer << queueKey;
@@ -440,13 +440,13 @@ class HumanReadablePrinter : public Printer {
             d_ostream << "\nTotal number of queueOp records: "
                       << queueOpRecordsCount << '\n';
 
-            bsl::vector<const char*> fields(d_allocator_p);
+            bsl::vector<bsl::string> fields(d_allocator_p);
             fields.reserve(4);
             fields.push_back("Number of 'purge' operations");
             fields.push_back("Number of 'creation' operations");
             fields.push_back("Number of 'deletion' operations");
             fields.push_back("Number of 'addition' operations");
-            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            bmqu::AlignedPrinter printer(d_ostream, fields);
             printer << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
                     << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
                     << queueOpCountsVec[mqbs::QueueOpType::e_DELETION]
@@ -619,18 +619,16 @@ class JsonPrinter : public Printer {
     {
         if (processRecordTypes.d_message) {
             closeBraceIfOpen();
-            d_ostream << "  \"TotalMessages\": \"" << foundMessagesCount
-                      << "\"";
+            d_ostream << "  \"TotalMessages\": " << foundMessagesCount << "\"";
         }
         if (processRecordTypes.d_queueOp) {
             closeBraceIfOpen();
-            d_ostream << "  \"QueueOpRecords\": \"" << foundQueueOpCount
-                      << "\"";
+            d_ostream << "  \"QueueOpRecords\": " << foundQueueOpCount << "\"";
         }
         if (processRecordTypes.d_journalOp) {
             closeBraceIfOpen();
-            d_ostream << "  \"JournalOpRecords\": \"" << foundJournalOpCount
-                      << "\"";
+            d_ostream << "  \"JournalOpRecords\": "
+                      << foundJournalOpCount "\"";
         }
     }
 
@@ -641,9 +639,9 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"OutstandingRatio\": \"" << ratio
-                  << "\",\n  \"OutstandingMessages\": \""
-                  << outstandingMessagesCount << "\"";
+        d_ostream << "  \"OutstandingRatio\": " << ratio
+                  << ",\n  \"OutstandingMessages\": "
+                  << outstandingMessagesCount;
     }
 
     void printMessageSummary(bsl::size_t totalMessagesCount,
@@ -653,12 +651,12 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalMessagesNumber\": \"" << totalMessagesCount
-                  << "\",\n  \"PartiallyConfirmedMessagesNumber\": \""
+        d_ostream << "  \"TotalMessagesNumber\": " << totalMessagesCount
+                  << ",\n  \"PartiallyConfirmedMessagesNumber\": "
                   << partiallyConfirmedCount
-                  << "\",\n  \"ConfirmedMessagesNumber\": \"" << confirmedCount
-                  << "\",\n  \"OutstandingMessagesNumber\": \""
-                  << outstandingCount << "\"";
+                  << ",\n  \"ConfirmedMessagesNumber\": " << confirmedCount
+                  << ",\n  \"OutstandingMessagesNumber\": "
+                  << outstandingCount;
     }
 
     void printQueueOpSummary(bsls::Types::Uint64     queueOpRecordsCount,
@@ -668,7 +666,7 @@ class JsonPrinter : public Printer {
         BSLS_ASSERT_SAFE(queueOpCountsVec.size() >
                          mqbs::QueueOpType::e_ADDITION);
         closeBraceIfOpen();
-        bsl::vector<const char*> fields(d_allocator_p);
+        bsl::vector<bsl::string> fields(d_allocator_p);
         fields.reserve(5);
         fields.push_back("TotalQueueOperationsNumber");
         fields.push_back("PurgeOperationsNumber");
@@ -676,7 +674,7 @@ class JsonPrinter : public Printer {
         fields.push_back("DeletionOperationsNumber");
         fields.push_back("AdditionOperationsNumber");
 
-        bmqu::JsonPrinter<true, false, 0, 2> printer(d_ostream, &fields);
+        bmqu::JsonPrinter<true, false, 0, 2> printer(d_ostream, fields);
         printer << queueOpRecordsCount
                 << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
                 << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
@@ -688,8 +686,8 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"JournalOperationsNumber\": \""
-                  << journalOpRecordsCount << "\"";
+        d_ostream << "  \"JournalOperationsNumber\": "
+                  << journalOpRecordsCount;
     }
 
     void printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE
@@ -732,9 +730,9 @@ class JsonPrinter : public Printer {
                 d_ostream << ',';
             }
 
-            d_ostream << "\n    {\"leaseId\": \"" << it->leaseId()
-                      << "\", \"sequenceNumber\": \"" << it->sequenceNumber()
-                      << "\"}";
+            d_ostream << "\n    {\"leaseId\": " << it->leaseId()
+                      << ", \"sequenceNumber\": " << it->sequenceNumber()
+                      << "}";
         }
         d_ostream << "\n  ]";
     }
@@ -811,11 +809,11 @@ class JsonPrettyPrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
-                  << "\",\n";
+        d_ostream << "  \"totalRecordsNumber\": " << totalRecordsCount
+                  << ",\n";
 
         // Print information per Queue:
-        d_ostream << "  \"PerQueueRecordsNumber\": [\n";
+        d_ostream << "  \"perQueueRecordsNumber\": [\n";
         printQueueDetails<bmqu::JsonPrinter<true, true, 4, 6> >(
             d_ostream,
             queueDetailsMap,
@@ -873,7 +871,7 @@ class JsonLinePrinter : public JsonPrinter {
         d_ostream << "  \"JournalFileDetails\":\n";
         m_bmqstoragetool::printJournalFileMeta<
             bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
+            bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
                                                    journalFile_p,
                                                    d_allocator_p);
     }
@@ -885,7 +883,7 @@ class JsonLinePrinter : public JsonPrinter {
         d_ostream << "  \"DataFileDetails\": \n";
         m_bmqstoragetool::printDataFileMeta<
             bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
+            bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
                                                    dataFile_p,
                                                    d_allocator_p);
     }
@@ -895,11 +893,11 @@ class JsonLinePrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
-                  << "\",\n";
+        d_ostream << "  \"totalRecordsNumber\": " << totalRecordsCount
+                  << ",\n";
 
         // Print information per Queue:
-        d_ostream << "  \"PerQueueRecordsNumber\": [\n";
+        d_ostream << "  \"perQueueRecordsNumber\": [\n";
         printQueueDetails<bmqu::JsonPrinter<false, true, 4, 6> >(
             d_ostream,
             queueDetailsMap,
