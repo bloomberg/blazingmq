@@ -48,14 +48,6 @@ bslmt::ThreadAttributes ThreadUtil::defaultAttributes()
     return attributes;
 }
 
-// LINUX
-// -----
-#if defined(BSLS_PLATFORM_OS_LINUX)
-const bool ThreadUtil::k_SUPPORT_THREAD_NAME = true;
-#else
-const bool ThreadUtil::k_SUPPORT_THREAD_NAME = false;
-#endif
-
 void ThreadUtil::setCurrentThreadName(const bsl::string& value)
 {
     bslmt::ThreadUtil::setThreadName(value);
