@@ -36,6 +36,8 @@
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_scopeexit.h>
+#include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsls_timeinterval.h>
 
@@ -78,35 +80,46 @@ void InitialConnectionHandler::readCallback(
     bool isFullBlob     = true;
     bool isContinueRead = false;
 
-    int rc =
-        readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
+    int         rc = rc_SUCCESS;
+    bsl::string error;
 
-    if (!isFullBlob) {
+    // The completeCb is not triggered only when there's more to read
+    bdlb::ScopeExitAny guard(
+        bdlf::BindUtil::bind(&InitialConnectionHandler::complete,
+                             context,
+                             bsl::ref(rc),
+                             bsl::ref(error),
+                             bsl::ref(session)));
+
+    rc = readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
+    if (rc != 0) {
+        rc    = (rc * 10) + rc_READ_BLOB_ERROR;
+        error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
     }
 
-    if (rc != 0) {
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->initialConnectionCompleteCb()((rc * 10) + rc_READ_BLOB_ERROR,
-                                               error,
-                                               session);
+    if (!isFullBlob) {
+        guard.release();
+        return;  // RETURN
     }
 
     rc = processBlob(errStream, &session, &isContinueRead, outPacket, context);
+    if (rc != 0) {
+        rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
+        error = bsl::string(errStream.str().data(), errStream.str().length());
+        return;  // RETURN
+    }
 
     if (isContinueRead) {
-        return scheduleRead(context);  // RETURN
+        guard.release();
+        rc = scheduleRead(context);
     }
 
     if (rc != 0) {
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->initialConnectionCompleteCb()((rc * 10) +
-                                                   rc_PROCESS_BLOB_ERROR,
-                                               error,
-                                               session);
+        rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
+        error = bsl::string(errStream.str().data(), errStream.str().length());
+        return;  // RETURN
     }
-
-    context->initialConnectionCompleteCb()(rc_SUCCESS, "", session);
 }
 
 int InitialConnectionHandler::readBlob(bsl::ostream&        errorDescription,
@@ -241,9 +254,15 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
     return rc_SUCCESS;
 }
 
-void InitialConnectionHandler::scheduleRead(
+int InitialConnectionHandler::scheduleRead(
     const InitialConnectionContextSp& context)
 {
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS    = 0,
+        rc_READ_ERROR = -1
+    };
+
     // Schedule a TimedRead
     bmqio::Status status;
     context->channel()->read(
@@ -262,13 +281,19 @@ void InitialConnectionHandler::scheduleRead(
     if (!status) {
         bmqu::MemOutStream errStream;
         errStream << "Read failed while negotiating: " << status;
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->initialConnectionCompleteCb()(
-            -1,
-            error,
-            bsl::shared_ptr<mqbnet::Session>());
-        return;  // RETURN
+        return rc_READ_ERROR;  // RETURN
     }
+
+    return rc_SUCCESS;
+}
+
+void InitialConnectionHandler::complete(
+    const InitialConnectionContextSp&       context,
+    const int                               rc,
+    const bsl::string&                      error,
+    const bsl::shared_ptr<mqbnet::Session>& session)
+{
+    context->initialConnectionCompleteCb()(rc, error, session);
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
@@ -301,27 +326,39 @@ void InitialConnectionHandler::handleInitialConnection(
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
+    int                              rc = 0;
+    bsl::string                      error;
+    bsl::shared_ptr<mqbnet::Session> session;
+
+    // The completeCb is not triggered only when `scheduleRead` succeeds
+    // (with or without issuing an outbound message).
+    bdlb::ScopeExitAny guard(
+        bdlf::BindUtil::bind(&InitialConnectionHandler::complete,
+                             context,
+                             bsl::ref(rc),
+                             bsl::ref(error),
+                             bsl::ref(session)));
+
     bmqu::MemOutStream errStream;
 
     if (context->isIncoming()) {
-        scheduleRead(context);
+        rc = scheduleRead(context);
     }
     else {
-        int rc = d_negotiator_mp->negotiateOutboundOrReverse(
+        rc = d_negotiator_mp->negotiateOutboundOrReverse(
             errStream,
             context->negotiationContext());
         if (rc == 0) {
-            scheduleRead(context);
-        }
-        else {
-            bsl::string error(errStream.str().data(),
-                              errStream.str().length());
-            context->initialConnectionCompleteCb()(
-                rc,
-                error,
-                bsl::shared_ptr<mqbnet::Session>());
+            rc = scheduleRead(context);
         }
     }
+
+    if (rc != 0) {
+        error = bsl::string(errStream.str().data(), errStream.str().length());
+        return;
+    }
+
+    guard.release();
 }
 
 }  // close package namespace
