@@ -67,14 +67,14 @@ class Printer {
     /// Context including table and tip for printing and statcontext for
     /// stats.
     struct Context {
+        /// Stat Context pointer
         bmqst::StatContext* d_statContext_p;
-        // Stat Context pointer
 
+        /// Table
         bmqst::Table d_table;
-        // Table
 
+        /// tip
         bmqst::BasicTableInfoProvider d_tip;
-        // tip
     };
 
     typedef bsl::shared_ptr<Context>                   ContextSp;
@@ -86,28 +86,28 @@ class Printer {
     // DATA
     const mqbcfg::StatsConfig& d_config;  // Config to use.
 
+    /// FileObserver for the stats log dump.
     ball::FileObserver2 d_statsLogFile;
-    // FileObserver for the stats log dump.
 
+    /// Sequence number for stat log
+    /// records, used to synchronize the
+    /// stat log and the normal log.
     int d_lastStatId;
-    // Sequence number for stat log
-    // records, used to synchronize the
-    // stat log and the normal log.
 
+    /// Counter to know when to periodically
+    /// print the stats to file.
     int d_actionCounter;
-    // Counter to know when to periodically
-    // print the stats to file.
 
+    /// HiRes timer value of the last time
+    /// the Counting Allocators snapshot
+    /// happened on the context.
     bsls::Types::Int64 d_lastAllocatorSnapshot;
-    // HiRes timer value of the last time
-    // the Counting Allocators snapshot
-    // happened on the context.
 
+    /// Contexts map
     ContextsMap d_contexts;
-    // Contexts map
 
+    /// Mechanism to clean up old stat logs.
     bmqtsk::LogCleaner d_statLogCleaner;
-    // Mechanism to clean up old stat logs.
 
   private:
     // NOT IMPLEMENTED

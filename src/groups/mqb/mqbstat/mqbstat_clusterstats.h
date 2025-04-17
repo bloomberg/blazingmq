@@ -64,8 +64,8 @@ class ClusterStats {
     struct PartitionEventType {
         // TYPES
         enum Enum {
+            /// Time in nanoseconds it took for the rollover operation.
             e_PARTITION_ROLLOVER
-            // Time in nanoseconds it took for the rollover operation.
         };
     };
 
@@ -80,31 +80,28 @@ class ClusterStats {
             e_ROLE,
             e_LEADER_STATUS,
             e_PARTITION_CFG_DATA_BYTES,
-            e_PARTITION_CFG_JOURNAL_BYTES
+            e_PARTITION_CFG_JOURNAL_BYTES,
+
             // PartitionStats: those metrics make sense only from the
-            // 'partition
-            //                 level' stat context
-            ,
-            e_PARTITION_PRIMARY_STATUS
-            // Value from the 'PrimaryStatus::Enum' defining the primary
-            // status of this node for the partition.  Note that we report the
-            // highest observed value, so that if the node was primary at any
-            // time, even briefly, during the report interval, then it will be
-            // considered as primary for the whole interval.
-            ,
-            e_PARTITION_ROLLOVER_TIME
-            // Time in nanoseconds it took for the rollover of the partition.
-            // Note that in case when more than one rollover operations
-            // happened during the report interval, then the maximum time is
-            // returned.
-            ,
-            e_PARTITION_DATA_CONTENT
-            // Maximum observed outstanding bytes in the data file of the
-            // partition.
-            ,
+            //                 'partition level' stat context
+
+            /// Value from the 'PrimaryStatus::Enum' defining the primary
+            /// status of this node for the partition.  Note that we report the
+            /// highest observed value, so that if the node was primary at any
+            /// time, even briefly, during the report interval, then it will be
+            /// considered as primary for the whole interval.
+            e_PARTITION_PRIMARY_STATUS,
+            /// Time in nanoseconds it took for the rollover of the partition.
+            /// Note that in case when more than one rollover operations
+            /// happened during the report interval, then the maximum time is
+            /// returned.
+            e_PARTITION_ROLLOVER_TIME,
+            /// Maximum observed outstanding bytes in the data file of the
+            /// partition.
+            e_PARTITION_DATA_CONTENT,
+            /// Maximum observed outstanding bytes in the journal file of the
+            /// partition.
             e_PARTITION_JOURNAL_CONTENT
-            // Maximum observed outstanding bytes in the journal file of the
-            // partition.
         };
     };
 
@@ -159,15 +156,16 @@ class ClusterStats {
 
   private:
     // DATA
-    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext for the cluster
 
+    /// StatContext for the cluster
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
+
+    /// StatContext for each partition in
+    /// the cluster, indexed by the
+    /// partition id.  Those statContext
+    /// are created as children of the
+    /// above 'd_StatContext_mp'.
     bsl::vector<bsl::shared_ptr<bmqst::StatContext> > d_partitionsStatContexts;
-    // StatContext for each partition in
-    // the cluster, indexed by the
-    // partition id.  Those statContext
-    // are created as children of the
-    // above 'd_StatContext_mp'.
 
   private:
     // NOT IMPLEMENTED
@@ -306,23 +304,17 @@ class ClusterNodeStats {
     struct ClusterNodeStatsIndex {
         enum Enum {
             /// Value:      Number of ack messages delivered to the client
-            e_STAT_ACK
-
-            ,
-            e_STAT_CONFIRM
+            e_STAT_ACK,
             // Value:      Number of confirm messages delivered to the client
-
-            ,
-            e_STAT_PUSH
+            e_STAT_CONFIRM,
             // Value:      Accumulated bytes of all messages ever pushed to
             //             the client
             // Increments: Number of messages ever pushed to the client
-
-            ,
-            e_STAT_PUT
+            e_STAT_PUSH,
             // Value:      Accumulated bytes of all messages ever received from
             //             the client
             // Increments: Number of messages ever received from the client
+            e_STAT_PUT
         };
     };
 
