@@ -300,7 +300,6 @@ InitialConnectionHandler::InitialConnectionHandler(
     bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
     bslma::Allocator*                      allocator)
 : d_negotiator_mp(negotiator)
-, d_threadPool(1, 100, allocator)
 , d_allocator_p(allocator)
 {
 }
