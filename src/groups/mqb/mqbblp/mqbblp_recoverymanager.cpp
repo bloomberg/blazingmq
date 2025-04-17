@@ -1753,7 +1753,7 @@ int RecoveryManager::replayPartition(
                                                  &payloadRecordLen,
                                                  journalIt,
                                                  fti->dataFd(),
-                                                 false,  // fsmWorkflow
+                                                 true,  // qlistAware
                                                  fti->qlistFd());
 
         BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_UNDEFINED !=
