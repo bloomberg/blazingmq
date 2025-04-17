@@ -489,7 +489,7 @@ void TCPSessionFactory::negotiationComplete(
     const bsl::shared_ptr<Session>&                  session,
     const bsl::shared_ptr<bmqio::Channel>&           channel,
     const bsl::shared_ptr<OperationContext>&         context,
-    const bsl::shared_ptr<InitialConnectionContext>& negotiatorContext)
+    const bsl::shared_ptr<InitialConnectionContext>& initialConnectionContext)
 {
     // executed by one of the *IO* threads
 
@@ -520,7 +520,7 @@ void TCPSessionFactory::negotiationComplete(
                   << "' successfully negotiated a session [session: '"
                   << session->description() << "', channel: '" << channel.get()
                   << "', maxMissedHeartbeat: "
-                  << negotiatorContext->maxMissedHeartbeat() << "]";
+                  << initialConnectionContext->maxMissedHeartbeat() << "]";
 
     // Session is established; keep a hold to it.
 
@@ -551,7 +551,7 @@ void TCPSessionFactory::negotiationComplete(
 
         info.createInplace(d_allocator_p,
                            channel,
-                           *negotiatorContext,
+                           *initialConnectionContext,
                            d_initialMissedHeartbeatCounter,
                            monitoredSession);
         // See comments in 'calculateInitialMissedHbCounter'.
@@ -572,8 +572,8 @@ void TCPSessionFactory::negotiationComplete(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        negotiatorContext->cluster(),
-        negotiatorContext->resultState(),
+        initialConnectionContext->cluster(),
+        initialConnectionContext->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
                              bdlf::PlaceHolders::_1,  // status
