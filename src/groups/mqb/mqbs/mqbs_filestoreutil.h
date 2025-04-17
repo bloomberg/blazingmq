@@ -268,15 +268,16 @@ struct FileStoreUtil {
     /// corresponding journal, data and qlist files (if **specified**) in
     /// the specified 'journalFd' and 'dataFd', and the optionally specified
     /// 'qlistFd' respectively, and update the specified 'recoveryFileSet'
-    /// with the retrieved set, update the specified 'journalFilePos' and
-    /// 'dataFilePos' with the corresponding write offsets, and archive the
-    /// remaining sets to the specified 'config' archiveLocation.  If the
-    /// specified 'readOnly' is true, open the files in read-only mode.  Return
-    /// 0 on success, non zero value otherwise along with populating the
-    /// specified 'errorDescription' with a brief reason for logging
-    /// purposes.  Note that a return value of '1' is special and indicates
-    /// that no file sets were present at 'config' location.  Also note that
-    /// in case of error, this method closes any files it opened.
+    /// with the retrieved set, update the specified 'journalFilePos',
+    /// 'dataFilePos' and optionally specified 'qlistFilePos' with the
+    /// corresponding write offsets, and archive the remaining sets to the
+    /// specified 'config' archiveLocation.  If the specified 'readOnly' is
+    /// true, open the files in read-only mode.  Return 0 on success, non zero
+    /// value otherwise along with populating the specified 'errorDescription'
+    /// with a brief reason for logging purposes.  Note that a return value of
+    /// '1' is special and indicates that no file sets were present at 'config'
+    /// location.  Also note that in case of error, this method closes any
+    /// files it opened.
     static int openRecoveryFileSet(bsl::ostream&         errorDescription,
                                    MappedFileDescriptor* journalFd,
                                    MappedFileDescriptor* dataFd,
@@ -287,7 +288,8 @@ struct FileStoreUtil {
                                    int                   numSetsToCheck,
                                    const mqbs::DataStoreConfig& config,
                                    bool                         readOnly,
-                                   MappedFileDescriptor*        qlistFd = 0);
+                                   MappedFileDescriptor*        qlistFd = 0,
+                                   bsls::Types::Uint64* qlistFilePos    = 0);
 
     /// Set the specified 'journalOffset' and 'dataOffset' to the end of
     /// Journal/Data file header respectively based on the specified 'jit'
