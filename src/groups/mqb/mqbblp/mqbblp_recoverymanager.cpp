@@ -1753,7 +1753,7 @@ int RecoveryManager::replayPartition(
                                                  &payloadRecordLen,
                                                  journalIt,
                                                  fti->dataFd(),
-                                                 false,  // fsmWorkflow
+                                                 true,  // qlistAware
                                                  fti->qlistFd());
 
         BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_UNDEFINED !=
@@ -2984,6 +2984,7 @@ void RecoveryManager::startRecovery(
     bmqu::MemOutStream  errorDesc;
     bsls::Types::Uint64 journalFilePos;
     bsls::Types::Uint64 dataFilePos;
+    bsls::Types::Uint64 qlistFilePos;
 
     rc = mqbs::FileStoreUtil::openRecoveryFileSet(errorDesc,
                                                   &recoveryCtx.journalFd(),
@@ -2995,7 +2996,8 @@ void RecoveryManager::startRecovery(
                                                   k_MAX_NUM_FILE_SETS_TO_CHECK,
                                                   d_dataStoreConfig,
                                                   true,  // readOnly
-                                                  &recoveryCtx.qlistFd());
+                                                  &recoveryCtx.qlistFd(),
+                                                  &qlistFilePos);
 
     if ((rc != 0) && (rc != 1)) {
         BMQTSK_ALARMLOG_ALARM("RECOVERY")

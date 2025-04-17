@@ -184,6 +184,12 @@ class RecoveryManager {
         /// Write offset of the data file.
         bsls::Types::Uint64 d_dataFilePosition;
 
+        /// QList file descriptor to use for recovery.
+        mqbs::MappedFileDescriptor d_mappedQlistFd;
+
+        /// Write offset of the QList file.
+        bsls::Types::Uint64 d_qlistFilePosition;
+
         /// Peer node from which we are receiving live data.
         mqbnet::ClusterNode* d_liveDataSource_p;
 
@@ -505,6 +511,8 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_journalFilePosition(0)
 , d_mappedDataFd()
 , d_dataFilePosition(0)
+, d_mappedQlistFd()
+, d_qlistFilePosition(0)
 , d_liveDataSource_p(0)
 , d_bufferedEvents(basicAllocator)
 , d_receiveDataContext()
@@ -520,6 +528,8 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_journalFilePosition(other.d_journalFilePosition)
 , d_mappedDataFd(other.d_mappedDataFd)
 , d_dataFilePosition(other.d_dataFilePosition)
+, d_mappedQlistFd(other.d_mappedQlistFd)
+, d_qlistFilePosition(other.d_qlistFilePosition)
 , d_liveDataSource_p(other.d_liveDataSource_p)
 , d_bufferedEvents(other.d_bufferedEvents)
 , d_receiveDataContext(other.d_receiveDataContext)

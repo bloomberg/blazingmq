@@ -1043,7 +1043,8 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
                                        int                   numSetsToCheck,
                                        const mqbs::DataStoreConfig& config,
                                        bool                         readOnly,
-                                       MappedFileDescriptor*        qlistFd)
+                                       MappedFileDescriptor*        qlistFd,
+                                       bsls::Types::Uint64* qlistFilePos)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd);
@@ -1055,6 +1056,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
     BSLS_ASSERT_SAFE(0 < numSetsToCheck);
     BSLS_ASSERT_SAFE(!config.location().isEmpty());
     BSLS_ASSERT_SAFE(!config.archiveLocation().isEmpty());
+    BSLS_ASSERT_SAFE((!qlistFd && !qlistFilePos) || (qlistFd && qlistFilePos));
 
     enum {
         rc_NO_FILE_SETS_TO_RECOVER = 1  // Special rc, do not change
@@ -1100,6 +1102,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         FileStoreSet&            fs              = fileSets[i];
         const bsls::Types::Int64 journalFileSize = fs.journalFileSize();
         const bsls::Types::Int64 dataFileSize    = fs.dataFileSize();
+        const bsls::Types::Int64 qlistFileSize   = fs.qlistFileSize();
 
         BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;
@@ -1162,7 +1165,10 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         if (0 == rc) {
             *journalFilePos = journalFileSize;
             *dataFilePos    = dataFileSize;
-            recoveryIndex   = i;
+            if (qlistFilePos) {
+                *qlistFilePos = qlistFileSize;
+            }
+            recoveryIndex = i;
             break;  // BREAK
         }
         else {
