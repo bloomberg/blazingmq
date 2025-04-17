@@ -56,8 +56,6 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// Negotiator to use for converting a Channel to a Session
     bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
 
-    bdlmt::FixedThreadPool d_threadPool;
-
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
