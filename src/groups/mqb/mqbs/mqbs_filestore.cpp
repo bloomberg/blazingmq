@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbs_filestore.cpp                                                 -*-C++-*-
+#include <ball_log.h>
 #include <mqbs_filestore.h>
 
 #include <mqbscm_version.h>
@@ -390,6 +391,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     bsls::Types::Uint64 journalFilePos;
     bsls::Types::Uint64 dataFilePos;
+    bsls::Types::Uint64 qlistFilePos;
 
     int rc = FileStoreUtil::openRecoveryFileSet(errorDescription,
                                                 &journalFd,
@@ -401,7 +403,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                                                 k_MAX_NUM_FILE_SETS_TO_CHECK,
                                                 d_config,
                                                 true,  // readOnly
-                                                d_qListAware ? &qlistFd : 0);
+                                                d_qListAware ? &qlistFd : 0,
+                                                d_qListAware ? &qlistFilePos
+                                                             : 0);
 
     if (1 == rc) {
         // Special 'rc' implying no file sets present.
@@ -1711,7 +1715,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             syncPoint.qlistFileOffsetWords() = d_qListAware
                                                    ? rec.qlistFileOffsetWords()
                                                    : 0;
-            spoPair.offset() = jit->recordOffset();
+            spoPair.offset()                 = jit->recordOffset();
 
             d_syncPoints.push_front(spoPair);
 
@@ -1860,7 +1864,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << qlistFd->fileSize()
                             << "] during backward journal iteration. Record "
                             << "offset: " << jit->recordOffset()
-                            << ", record index: " << jit->recordIndex();
+                            << ", record index: " << jit->recordIndex()
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
 
                         return rc_INVALID_QLIST_OFFSET;  // RETURN
                     }
@@ -1880,7 +1886,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << "Journal record offset: " << jit->recordOffset()
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
-                            << ".";
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
 
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
@@ -1900,7 +1907,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
                             << ". QLIST file size: " << qlistFd->fileSize()
-                            << ".";
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
@@ -1914,7 +1922,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << jit->recordOffset()
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
-                            << ".";
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
@@ -1933,7 +1942,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
                             << ". QLIST file size: " << qlistFd->fileSize()
-                            << ".";
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
@@ -1950,7 +1960,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << jit->recordOffset()
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
-                            << ".";
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
@@ -1965,7 +1976,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
                             << ". QLIST file size: " << qlistFd->fileSize()
-                            << ".";
+                            << ", record sequence number: (" << primaryLeaseId
+                            << ", " << sequenceNum << ")";
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
@@ -2406,8 +2418,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_DATA_OFFSET;  // RETURN
             }
 
-            // Update 'dataOffset' if its the last message record (ie, first in
-            // the iteration since we are iterating backwards).
+            // Update 'dataOffset' if it's the last message record (ie, first
+            // in the iteration since we are iterating backwards).
 
             if (isLastMessageRecord) {
                 OffsetPtr<const DataHeader> dataHeader(dataFd->block(),
@@ -4341,6 +4353,12 @@ int FileStore::writeQueueCreationRecord(
         // Ensure that blob has enough data as indicated by length in
         // 'queueRecordHeader'.
 
+        BALL_LOG_ERROR
+            << "TODO yyan82 replica's writeQueueCreationRecord: HW = "
+            << queueRecHeader->headerWords()
+            << ", pid = " << d_config.partitionId() << ", primaryLeaseId "
+            << recHeader.sequenceNumber()
+            << ", seqNum = " << recHeader.sequenceNumber();
         queueRecHeaderLen = queueRecHeader->headerWords() *
                             bmqp::Protocol::k_WORD_SIZE;
         queueRecLength = queueRecHeader->queueRecordWords() *

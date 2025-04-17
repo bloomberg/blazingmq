@@ -14,6 +14,9 @@
 // limitations under the License.
 
 // mqbc_recoverymanager.cpp                                           -*-C++-*-
+#include "mqbs_qlistfileiterator.h"
+#include <ball_log.h>
+#include <bsls_assert.h>
 #include <mqbc_recoverymanager.h>
 
 #include <mqbscm_version.h>
@@ -263,6 +266,52 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
     }
     recoveryCtx.d_dataFilePosition = 0;
+
+    if (recoveryCtx.d_mappedQlistFd.isValid()) {
+        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedQlistFd,
+                                            recoveryCtx.d_qlistFilePosition,
+                                            errorDesc);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: " << "Failed to truncate QList file ["
+                << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedQlistFd.mapping(),
+                                         recoveryCtx.d_qlistFilePosition,
+                                         errorDesc);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: " << "Failed to flush QList file ["
+                << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedQlistFd);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: " << "Failed to close QList file ["
+                << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
+                << BMQTSK_ALARMLOG_END;
+        }
+    }
+    rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.qlistFile(),
+                                    d_dataStoreConfig.archiveLocation());
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: " << "Failed to move file ["
+            << recoveryCtx.d_recoveryFileSet.qlistFile() << "] "
+            << "to location [" << d_dataStoreConfig.archiveLocation()
+            << "] rc: " << rc << BMQTSK_ALARMLOG_END;
+    }
+    recoveryCtx.d_qlistFilePosition = 0;
 }
 
 void RecoveryManager::setExpectedDataChunkRange(
@@ -313,6 +362,9 @@ void RecoveryManager::setExpectedDataChunkRange(
     else {
         BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid() &&
                          recoveryCtx.d_mappedDataFd.isValid());
+        if (d_qListAware) {
+            BSLS_ASSERT_SAFE(recoveryCtx.d_mappedQlistFd.isValid());
+        }
     }
 
     BALL_LOG_INFO_BLOCK
@@ -384,11 +436,15 @@ int RecoveryManager::processSendDataChunks(
         bsl::make_shared<mqbs::MappedFileDescriptor>();
     bsl::shared_ptr<mqbs::MappedFileDescriptor> mappedDataFd =
         bsl::make_shared<mqbs::MappedFileDescriptor>();
+    // Only used if d_qlistAware == true
+    bsl::shared_ptr<mqbs::MappedFileDescriptor> mappedQlistFd =
+        bsl::make_shared<mqbs::MappedFileDescriptor>();
 
     rc = RecoveryUtil::loadFileDescriptors(mappedJournalFd.get(),
                                            mappedDataFd.get(),
-                                           fileSet);
-
+                                           fileSet,
+                                           d_qListAware ? mappedQlistFd.get()
+                                                        : 0);
     if (rc != 0) {
         return rc * 10 + rc_LOAD_FD_FAILURE;  // RETURN
     }
@@ -397,12 +453,18 @@ int RecoveryManager::processSendDataChunks(
         bsl::make_shared<bsls::AtomicInt>(0);
     bsl::shared_ptr<bsls::AtomicInt> dataChunkDeleterCounter =
         bsl::make_shared<bsls::AtomicInt>(0);
+    // Only used if d_qlistAware == true
+    bsl::shared_ptr<bsls::AtomicInt> qlistChunkDeleterCounter =
+        bsl::make_shared<bsls::AtomicInt>(0);
 
     // Scope Exit Guards to unmap the fds incase of errors.
     bdlb::ScopeExit<ChunkDeleter> guardJournalFd(
         ChunkDeleter(mappedJournalFd, journalChunkDeleterCounter));
     bdlb::ScopeExit<ChunkDeleter> guardDataFd(
         ChunkDeleter(mappedDataFd, dataChunkDeleterCounter));
+    // Only used if d_qlistAware == true
+    bdlb::ScopeExit<ChunkDeleter> guardQlistFd(
+        ChunkDeleter(mappedQlistFd, qlistChunkDeleterCounter));
 
     RecoveryUtil::validateArgs(beginSeqNum, endSeqNum, destination);
 
@@ -410,7 +472,6 @@ int RecoveryManager::processSendDataChunks(
     rc = journalIt.reset(
         mappedJournalFd.get(),
         mqbs::FileStoreProtocolUtil::bmqHeader(*mappedJournalFd.get()));
-
     if (0 != rc) {
         return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
@@ -454,12 +515,15 @@ int RecoveryManager::processSendDataChunks(
             return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
         }
 
-        RecoveryUtil::processJournalRecord(&storageMsgType,
-                                           &payloadRecordBase,
-                                           &payloadRecordLen,
-                                           journalIt,
-                                           *mappedDataFd,
-                                           true);  // fsmWorkflow
+        RecoveryUtil::processJournalRecord(
+            &storageMsgType,
+            &payloadRecordBase,
+            &payloadRecordLen,
+            journalIt,
+            *mappedDataFd,
+            d_qListAware,
+            d_qListAware ? *mappedQlistFd
+                         : mqbs::MappedFileDescriptor());  // fsmWorkflow
 
         BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_UNDEFINED !=
                          storageMsgType);
@@ -476,12 +540,21 @@ int RecoveryManager::processSendDataChunks(
         bmqt::EventBuilderResult::Enum builderRc;
         if (0 != payloadRecordBase) {
             BSLS_ASSERT_SAFE(0 != payloadRecordLen);
-            BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_DATA ==
-                             storageMsgType);
+            if (d_qListAware) {
+                BSLS_ASSERT_SAFE(
+                    bmqp::StorageMessageType::e_DATA == storageMsgType ||
+                    bmqp::StorageMessageType::e_QLIST == storageMsgType);
+            }
+            else {
+                BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_DATA ==
+                                 storageMsgType);
+            }
 
             bsl::shared_ptr<char> payloadRecordSp(
                 payloadRecordBase,
-                ChunkDeleter(mappedDataFd, dataChunkDeleterCounter));
+                bmqp::StorageMessageType::e_DATA == storageMsgType
+                    ? ChunkDeleter(mappedDataFd, dataChunkDeleterCounter)
+                    : ChunkDeleter(mappedQlistFd, qlistChunkDeleterCounter));
 
             bdlbb::BlobBuffer payloadRecordBlobBuffer(payloadRecordSp,
                                                       payloadRecordLen);
@@ -568,18 +641,22 @@ int RecoveryManager::processReceiveDataChunks(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_LAST_DATA_CHUNK        = 1,
-        rc_SUCCESS                = 0,
-        rc_UNEXPECTED_DATA        = -1,
-        rc_INVALID_RECOVERY_PEER  = -2,
-        rc_INVALID_STORAGE_HDR    = -3,
-        rc_INVALID_RECORD_SEQ_NUM = -4,
-        rc_JOURNAL_OUT_OF_SYNC    = -5,
-        rc_MISSING_PAYLOAD        = -6,
-        rc_MISSING_PAYLOAD_HDR    = -7,
-        rc_INCOMPLETE_PAYLOAD     = -8,
-        rc_DATA_OFFSET_MISMATCH   = -9,
-        rc_INVALID_QUEUE_RECORD   = -10
+        rc_LAST_DATA_CHUNK             = 1,
+        rc_SUCCESS                     = 0,
+        rc_UNEXPECTED_DATA             = -1,
+        rc_INVALID_RECOVERY_PEER       = -2,
+        rc_INVALID_STORAGE_HDR         = -3,
+        rc_INVALID_RECORD_SEQ_NUM      = -4,
+        rc_JOURNAL_OUT_OF_SYNC         = -5,
+        rc_MISSING_PAYLOAD             = -6,
+        rc_MISSING_PAYLOAD_HDR         = -7,
+        rc_INCOMPLETE_PAYLOAD          = -8,
+        rc_DATA_OFFSET_MISMATCH        = -9,
+        rc_MISSING_QUEUE_RECORD        = -10,
+        rc_MISSING_QUEUE_RECORD_HEADER = -11,
+        rc_INCOMPLETE_QUEUE_RECORD     = -12,
+        rc_INVALID_QUEUE_RECORD        = -13,
+        rc_QLIST_OFFSET_MISMATCH       = -14
     };
 
     RecoveryContext&    recoveryCtx    = d_recoveryContextVec[partitionId];
@@ -823,12 +900,182 @@ int RecoveryManager::processReceiveDataChunks(
                 return rc_DATA_OFFSET_MISMATCH;  // RETURN
             }
         }
+        else if (bmqp::StorageMessageType::e_QLIST == header.messageType()) {
+            bmqu::BlobObjectProxy<mqbs::QueueRecordHeader> queueRecHeader;
+            unsigned int queueRecHeaderLen = 0;
+            unsigned int queueRecLength    = 0;
+
+            mqbs::MappedFileDescriptor& qlistFile =
+                recoveryCtx.d_mappedQlistFd;
+            bsls::Types::Uint64& qlistFilePos =
+                recoveryCtx.d_qlistFilePosition;
+            bsls::Types::Uint64 qlistOffset = qlistFilePos;
+            if (d_qListAware) {
+                // Extract queue record's position from blob, based on
+                // 'recordPosition'.  Per replication algo, a storage
+                // message starts with journal record followed by queue
+                // record.  Queue record already contains
+                // 'mqbs::QueueRecordHeader' and is already WORD aligned.
+
+                bmqu::BlobPosition queueRecBeginPos;
+                int                rc = bmqu::BlobUtil::findOffsetSafe(
+                    &queueRecBeginPos,
+                    *blob,
+                    recordPosition,
+                    mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+
+                if (0 != rc) {
+                    return 10 * rc + rc_MISSING_QUEUE_RECORD;  // RETURN
+                }
+
+                queueRecHeader.reset(
+                    blob.get(),
+                    queueRecBeginPos,
+                    -mqbs::QueueRecordHeader::k_MIN_HEADER_SIZE,
+                    true,    // read
+                    false);  // write
+                if (!queueRecHeader.isSet()) {
+                    // Couldn't read QueueRecordHeader
+                    return rc_MISSING_QUEUE_RECORD_HEADER;  // RETURN
+                }
+
+                // Ensure that blob has enough data as indicated by length
+                // in 'queueRecordHeader'.
+
+                queueRecHeaderLen = queueRecHeader->headerWords() *
+                                    bmqp::Protocol::k_WORD_SIZE;
+                queueRecLength = queueRecHeader->queueRecordWords() *
+                                 bmqp::Protocol::k_WORD_SIZE;
+
+                bmqu::BlobPosition queueRecEndPos;
+                rc = bmqu::BlobUtil::findOffsetSafe(&queueRecEndPos,
+                                                    *blob,
+                                                    queueRecBeginPos,
+                                                    queueRecLength);
+                if (0 != rc) {
+                    return 10 * rc + rc_INCOMPLETE_QUEUE_RECORD;  // RETURN
+                }
+
+                BSLS_ASSERT_SAFE(qlistFile.isValid());
+                BSLS_ASSERT_SAFE(0 ==
+                                 qlistOffset % bmqp::Protocol::k_WORD_SIZE);
+                BSLS_ASSERT_SAFE(qlistFile.fileSize() >=
+                                 (qlistFilePos + queueRecLength));
+
+                // Append payload to QLIST file.
+
+                bmqu::BlobUtil::copyToRawBufferFromIndex(
+                    qlistFile.block().base() + qlistFilePos,
+                    *blob,
+                    queueRecBeginPos.buffer(),
+                    queueRecBeginPos.byte(),
+                    queueRecLength);
+                qlistFilePos += queueRecLength;
+            }
+
+            // Keep track of journal record's offset.
+
+            bsls::Types::Uint64 recordOffset = journalPos;
+
+            // Append message record to journal.
+
+            BSLS_ASSERT_SAFE(journal.fileSize() >=
+                             (journalPos + k_REQUESTED_JOURNAL_SPACE));
+            bmqu::BlobUtil::copyToRawBufferFromIndex(
+                journal.block().base() + recordOffset,
+                *blob,
+                recordPosition.buffer(),
+                recordPosition.byte(),
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            journalPos += mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+            mqbs::OffsetPtr<const mqbs::QueueOpRecord> queueRec(
+                journal.block(),
+                recordOffset);
+            if (mqbs::QueueOpType::e_CREATION != queueRec->type() &&
+                mqbs::QueueOpType::e_ADDITION != queueRec->type()) {
+                BALL_LOG_ERROR
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << " Unexpected QueueOpType: " << queueRec->type();
+                return rc_INVALID_QUEUE_RECORD;  // RETURN
+            }
+
+            bmqt::Uri               quri;
+            mqbi::Storage::AppInfos appIdKeyPairs;
+            if (d_qListAware) {
+                // Check qlist offset in the replicated journal record sent
+                // by the primary vs qlist offset maintained by self.  A
+                // mismatch means that replica's and primary's storages are
+                // no longer in sync, which indicates a bug in BlazingMQ
+                // replication algorithm.
+
+                if (qlistOffset !=
+                    (static_cast<bsls::Types::Uint64>(
+                         queueRec->queueUriRecordOffsetWords()) *
+                     bmqp::Protocol::k_WORD_SIZE)) {
+                    return rc_QLIST_OFFSET_MISMATCH;  // RETURN
+                }
+
+                // Retrieve QueueKey & QueueUri from QueueOpRecord and
+                // QueueUriRecord respectively, and notify storage manager.
+
+                unsigned int paddedUriLen =
+                    queueRecHeader->queueUriLengthWords() *
+                    bmqp::Protocol::k_WORD_SIZE;
+
+                BSLS_ASSERT_SAFE(0 < paddedUriLen);
+
+                const char* uriBegin = qlistFile.block().base() + qlistOffset +
+                                       queueRecHeaderLen;
+                bslstl::StringRef uri(uriBegin,
+                                      paddedUriLen -
+                                          uriBegin[paddedUriLen - 1]);
+                quri = bmqt::Uri(uri);
+                unsigned int appIdsAreaSize =
+                    queueRecLength - queueRecHeaderLen - paddedUriLen -
+                    mqbs::FileStoreProtocol::k_HASH_LENGTH -
+                    sizeof(unsigned int);  // Magic word
+                mqbs::MemoryBlock appIdsBlock(
+                    qlistFile.block().base() + qlistOffset +
+                        queueRecHeaderLen + paddedUriLen +
+                        mqbs::FileStoreProtocol::k_HASH_LENGTH,
+                    appIdsAreaSize);
+                mqbs::FileStoreProtocolUtil::loadAppInfos(
+                    &appIdKeyPairs,
+                    appIdsBlock,
+                    queueRecHeader->numAppIds());
+            }
+
+            BALL_LOG_INFO_BLOCK
+            {
+                BALL_LOG_OUTPUT_STREAM
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId
+                    << "]: " << "Received QueueCreationRecord of "
+                    << "type [" << queueRec->type() << "] for "
+                    << "queueKey [" << queueRec->queueKey() << "]";
+                if (d_qListAware) {
+                    BALL_LOG_OUTPUT_STREAM << ", queue [" << quri << "]"
+                                           << ", with ["
+                                           << appIdKeyPairs.size()
+                                           << "] appId/appKey pairs ";
+                    for (mqbi::Storage::AppInfos::const_iterator cit =
+                             appIdKeyPairs.cbegin();
+                         cit != appIdKeyPairs.cend();
+                         ++cit) {
+                        BALL_LOG_OUTPUT_STREAM << " [" << cit->first << ", "
+                                               << cit->second << "]";
+                    }
+                }
+            }
+        }
         else {
             // Append record to journal.  Note that here, we only assert on
             // journal file having space for 1 record.  This is because the
-            // journal record being written could be a sync point record with
-            // subType == SyncPointType::e_ROLLOVER, in which case, journal may
-            // not have space for more than 1 record.
+            // journal record being written could be a sync point record
+            // with subType == SyncPointType::e_ROLLOVER, in which case,
+            // journal may not have space for more than 1 record.
 
             BSLS_ASSERT_SAFE(
                 journal.fileSize() >=
@@ -853,10 +1100,10 @@ int RecoveryManager::processReceiveDataChunks(
                     recordOffset);
                 if (mqbs::QueueOpType::e_CREATION != queueRec->type() &&
                     mqbs::QueueOpType::e_ADDITION != queueRec->type()) {
-                    BALL_LOG_ERROR << d_clusterData.identity().description()
-                                   << " Partition [" << partitionId
-                                   << "]: " << " Unexpected QueueOpType: "
-                                   << queueRec->type();
+                    BALL_LOG_ERROR
+                        << d_clusterData.identity().description()
+                        << " Partition [" << partitionId << "]: "
+                        << " Unexpected QueueOpType: " << queueRec->type();
                     return rc_INVALID_QUEUE_RECORD;  // RETURN
                 }
             }
@@ -902,11 +1149,13 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
     recoveryCtx.d_recoveryFileSet.setJournalFile(fileSetSp->d_journalFileName)
         .setJournalFileSize(d_dataStoreConfig.maxJournalFileSize())
         .setDataFile(fileSetSp->d_dataFileName)
-        .setDataFileSize(d_dataStoreConfig.maxDataFileSize());
+        .setDataFileSize(d_dataStoreConfig.maxDataFileSize())
+        .setQlistFileSize(d_dataStoreConfig.maxQlistFileSize())
+        .setQlistFile(fileSetSp->d_qlistFileName);
 
     mqbs::FileStoreUtil::loadCurrentFiles(&recoveryCtx.d_recoveryFileSet,
                                           *fileSetSp,
-                                          false);  // needQList
+                                          d_qListAware);  // needQList
 
     recoveryCtx.d_mappedJournalFd     = fileSetSp->d_journalFile;
     recoveryCtx.d_journalFilePosition = fileSetSp->d_journalFilePosition;
@@ -914,6 +1163,11 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
     recoveryCtx.d_dataFilePosition    = fileSetSp->d_dataFilePosition;
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
+    if (d_qListAware) {
+        recoveryCtx.d_mappedQlistFd     = fileSetSp->d_qlistFile;
+        recoveryCtx.d_qlistFilePosition = fileSetSp->d_qlistFilePosition;
+        BSLS_ASSERT_SAFE(recoveryCtx.d_mappedQlistFd.isValid());
+    }
 
     BALL_LOG_INFO_BLOCK
     {
@@ -949,7 +1203,10 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         rc_SUCCESS               = 0,
         rc_OPEN_FILE_SET_FAILURE = -1,
         rc_INVALID_FILE_SET      = -2,
-        rc_FILE_ITERATOR_FAILURE = -3
+        rc_FILE_ITERATOR_FAILURE = -3,
+        rc_INVALID_DATA_OFFSET   = -4,
+        rc_INVALID_QLIST_OFFSET  = -5,
+        rc_INVALID_QLIST_RECORD  = -6
     };
 
     const int        k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
@@ -957,19 +1214,30 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
     if (recoveryCtx.d_mappedJournalFd.isValid()) {
         BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
+        if (d_qListAware) {
+            BSLS_ASSERT_SAFE(recoveryCtx.d_mappedQlistFd.isValid());
+        }
 
-        BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not opening recovery file set because it's already "
-                      << "opened.  Current recovery file set: "
-                      << recoveryCtx.d_recoveryFileSet
-                      << ", journal file position: "
-                      << recoveryCtx.d_journalFilePosition
-                      << ", data file position: "
-                      << recoveryCtx.d_dataFilePosition << ".";
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Not opening recovery file set because it's already "
+                << "opened.  Current recovery file set: "
+                << recoveryCtx.d_recoveryFileSet << ", journal file position: "
+                << recoveryCtx.d_journalFilePosition
+                << ", data file position: " << recoveryCtx.d_dataFilePosition;
+            if (d_qListAware) {
+                BALL_LOG_OUTPUT_STREAM << ", QList file position: "
+                                       << recoveryCtx.d_qlistFilePosition;
+            }
+            BALL_LOG_OUTPUT_STREAM << ".";
+        }
         return rc_SUCCESS;  // RETURN
     }
-    BSLS_ASSERT_SAFE(!recoveryCtx.d_mappedDataFd.isValid());
+    BSLS_ASSERT_SAFE(!recoveryCtx.d_mappedDataFd.isValid() &&
+                     !recoveryCtx.d_mappedQlistFd.isValid());
 
     int rc = mqbs::FileStoreUtil::openRecoveryFileSet(
         errorDescription,
@@ -981,7 +1249,9 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         partitionId,
         k_MAX_NUM_FILE_SETS_TO_CHECK,
         d_dataStoreConfig,
-        false);  // readOnly
+        false,  // readOnly
+        d_qListAware ? &recoveryCtx.d_mappedQlistFd : 0,
+        d_qListAware ? &recoveryCtx.d_qlistFilePosition : 0);
     if (rc == 1) {
         return rc_NO_FILE_SETS_TO_RECOVER;  // RETURN
     }
@@ -989,9 +1259,11 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         return rc * 10 + rc_OPEN_FILE_SET_FAILURE;  // RETURN
     }
 
-    rc = mqbs::FileStoreUtil::validateFileSet(recoveryCtx.d_mappedJournalFd,
-                                              recoveryCtx.d_mappedDataFd,
-                                              mqbs::MappedFileDescriptor());
+    rc = mqbs::FileStoreUtil::validateFileSet(
+        recoveryCtx.d_mappedJournalFd,
+        recoveryCtx.d_mappedDataFd,
+        d_qListAware ? recoveryCtx.d_mappedQlistFd
+                     : mqbs::MappedFileDescriptor());
 
     if (rc != 0) {
         errorDescription << d_clusterData.identity().description()
@@ -1000,23 +1272,29 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                          << " validation failed, rc: " << rc;
         mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
         mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
+        if (d_qListAware) {
+            mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedQlistFd);
+        }
 
         return rc * 10 + rc_INVALID_FILE_SET;  // RETURN
     }
 
-    // Set journal and data file position to the last record of the journal and
-    // data file respectively.
+    // Set journal, data and QList file position to the last record of the
+    // journal and data file respectively.
     mqbs::JournalFileIterator jit;
     mqbs::DataFileIterator    dit;
+    mqbs::QlistFileIterator   qit;
     rc = mqbs::FileStoreUtil::loadIterators(errorDescription,
                                             &jit,
-                                            &dit,  // dit
-                                            0,     // qit
+                                            &dit,
+                                            d_qListAware ? &qit : 0,
                                             recoveryCtx.d_mappedJournalFd,
                                             recoveryCtx.d_mappedDataFd,
-                                            mqbs::MappedFileDescriptor(),
+                                            d_qListAware
+                                                ? recoveryCtx.d_mappedQlistFd
+                                                : mqbs::MappedFileDescriptor(),
                                             recoveryCtx.d_recoveryFileSet,
-                                            false,  // needQList
+                                            d_qListAware,
                                             true);  // needData
     if (rc != 0) {
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
@@ -1027,9 +1305,13 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         &recoveryCtx.d_dataFilePosition,
         jit,
         dit,
-        false);  // needQList
+        d_qListAware,
+        d_qListAware ? &recoveryCtx.d_qlistFilePosition : 0,
+        d_qListAware ? qit : mqbs::QlistFileIterator());
 
-    bool isLastJournalRecord = true;  // ie, first in iteration
+    bool isLastJournalRecord = true;          // ie, first in iteration
+    bool isLastMessageRecord = true;          // ie, first in iteration
+    bool isLastQlistRecord   = d_qListAware;  // ie, first in iteration
     while (1 == (rc = jit.nextRecord())) {
         const mqbs::RecordHeader& recHeader = jit.recordHeader();
         mqbs::RecordType::Enum    rt        = recHeader.type();
@@ -1043,32 +1325,245 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
         if (mqbs::RecordType::e_MESSAGE == rt) {
             const mqbs::MessageRecord& rec = jit.asMessageRecord();
-            // Update 'd_dataFilePosition' if its the last message record (ie,
-            // first in the iteration since we are iterating backwards).
 
             bsls::Types::Uint64 dataHeaderOffset =
                 static_cast<bsls::Types::Uint64>(rec.messageOffsetDwords()) *
                 bmqp::Protocol::k_DWORD_SIZE;
 
-            mqbs::OffsetPtr<const mqbs::DataHeader> dataHeader(
-                dit.mappedFileDescriptor()->block(),
-                dataHeaderOffset);
-            const unsigned int totalLen = dataHeader->messageWords() *
-                                          bmqp::Protocol::k_WORD_SIZE;
+            if (0 == dataHeaderOffset) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "Encountered a MESSAGE record with GUID ["
+                    << rec.messageGUID() << "], queueKey [" << rec.queueKey()
+                    << "], but invalid DATA file offset field. Journal record "
+                    << "offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex() << ".";
 
-            recoveryCtx.d_dataFilePosition = dataHeaderOffset + totalLen;
+                return rc_INVALID_DATA_OFFSET;  // RETURN
+            }
 
+            if (dataHeaderOffset > recoveryCtx.d_mappedDataFd.fileSize()) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "Encountered a MESSAGE record with GUID ["
+                    << rec.messageGUID() << "], queueKey [" << rec.queueKey()
+                    << "], but out-of-bound DATA file offset field: "
+                    << dataHeaderOffset << ", DATA file size: "
+                    << recoveryCtx.d_mappedDataFd.fileSize()
+                    << ". Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex() << ".";
+
+                return rc_INVALID_DATA_OFFSET;  // RETURN
+            }
+
+            // Update 'd_dataFilePosition' if it's the last message record (ie,
+            // first in the iteration since we are iterating backwards).
+            if (isLastMessageRecord) {
+                mqbs::OffsetPtr<const mqbs::DataHeader> dataHeader(
+                    dit.mappedFileDescriptor()->block(),
+                    dataHeaderOffset);
+                const unsigned int totalLen = dataHeader->messageWords() *
+                                              bmqp::Protocol::k_WORD_SIZE;
+
+                recoveryCtx.d_dataFilePosition = dataHeaderOffset + totalLen;
+                isLastMessageRecord            = false;
+            }
+        }
+
+        if (d_qListAware && mqbs::RecordType::e_QUEUE_OP == rt) {
+            const mqbs::QueueOpRecord& rec         = jit.asQueueOpRecord();
+            mqbs::QueueOpType::Enum    queueOpType = rec.type();
+            BSLS_ASSERT_SAFE(mqbs::QueueOpType::e_UNDEFINED != queueOpType);
+
+            if ((mqbs::QueueOpType::e_CREATION != queueOpType &&
+                 mqbs::QueueOpType::e_ADDITION != queueOpType)) {
+                continue;  // CONTINUE
+            }
+
+            bsls::Types::Uint64 queueUriRecOffset = 0;
+            unsigned int        queueRecLength    = 0;
+            unsigned int        queueRecHeaderLen = 0;
+            unsigned int        paddedUriLen      = 0;
+            unsigned int        numAppIds         = 0;
+            BSLS_ASSERT_SAFE(0 != rec.queueUriRecordOffsetWords());
+
+            queueUriRecOffset = static_cast<bsls::Types::Uint64>(
+                                    rec.queueUriRecordOffsetWords()) *
+                                bmqp::Protocol::k_WORD_SIZE;
+
+            if (queueUriRecOffset > recoveryCtx.d_mappedQlistFd.fileSize()) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "Encountered a QueueOp record of type [" << queueOpType
+                    << "], with QLIST file offset field [" << queueUriRecOffset
+                    << "] greater than QLIST file size ["
+                    << recoveryCtx.d_mappedQlistFd.fileSize()
+                    << "] during backward journal iteration. Record "
+                    << "offset: " << jit.recordOffset()
+                    << ", record index: " << jit.recordIndex()
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+
+                return rc_INVALID_QLIST_OFFSET;  // RETURN
+            }
+
+            // 'queueUriRecOffset' == offset of mqbs::QueueRecordHeader
+
+            mqbs::OffsetPtr<const mqbs::QueueRecordHeader> queueRecHeader(
+                recoveryCtx.d_mappedQlistFd.block(),
+                queueUriRecOffset);
+
+            if (0 == queueRecHeader->headerWords()) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "For QueueOp record of type [" << queueOpType
+                    << "], the record present in QLIST file has "
+                    << "invalid 'headerWords' field in the header. "
+                    << "Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex()
+                    << ". QLIST record offset: " << queueUriRecOffset
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+
+                return rc_INVALID_QLIST_RECORD;  // RETURN
+            }
+
+            queueRecHeaderLen = queueRecHeader->headerWords() *
+                                bmqp::Protocol::k_WORD_SIZE;
+
+            if (recoveryCtx.d_mappedQlistFd.fileSize() <
+                (queueUriRecOffset + queueRecHeaderLen)) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "For QueueOp record of type [" << queueOpType
+                    << "], the record present in QLIST file has "
+                    << "invalid header size [" << queueRecHeaderLen
+                    << "]. Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex()
+                    << ". QLIST record offset: " << queueUriRecOffset
+                    << ". QLIST file size: "
+                    << recoveryCtx.d_mappedQlistFd.fileSize()
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+                return rc_INVALID_QLIST_RECORD;  // RETURN
+            }
+
+            if (0 == queueRecHeader->queueUriLengthWords()) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "For QueueOp record of type [" << queueOpType
+                    << "], the record present in QLIST file has "
+                    << "invalid 'queueUriLengthWords' field in the "
+                    << "header. Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex()
+                    << ". QLIST record offset: " << queueUriRecOffset
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+                return rc_INVALID_QLIST_RECORD;  // RETURN
+            }
+
+            paddedUriLen = queueRecHeader->queueUriLengthWords() *
+                           bmqp::Protocol::k_WORD_SIZE;
+
+            if (recoveryCtx.d_mappedQlistFd.fileSize() <
+                (queueUriRecOffset + paddedUriLen)) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "For QueueOp record of type [" << queueOpType
+                    << "], the record present in QLIST file has "
+                    << "invalid 'queueUriLengthWords' field in the "
+                    << "header. Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex()
+                    << ". QLIST record offset: " << queueUriRecOffset
+                    << ". QLIST file size: "
+                    << recoveryCtx.d_mappedQlistFd.fileSize()
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+                return rc_INVALID_QLIST_RECORD;  // RETURN
+            }
+
+            queueRecLength = queueRecHeader->queueRecordWords() *
+                             bmqp::Protocol::k_WORD_SIZE;
+
+            if (0 == queueRecLength) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "For QueueOp record of type [" << queueOpType
+                    << "], the record present in QLIST file has "
+                    << "invalid 'queueRecordWords' field in the "
+                    << "header. Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex()
+                    << ". QLIST record offset: " << queueUriRecOffset
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+                return rc_INVALID_QLIST_RECORD;  // RETURN
+            }
+
+            if (recoveryCtx.d_mappedQlistFd.fileSize() <
+                (queueUriRecOffset + queueRecLength)) {
+                errorDescription
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "For QueueOp record of type [" << queueOpType
+                    << "], the record present in QLIST file has "
+                    << "invalid 'queueRecLength' field in the header. "
+                    << "Journal record offset: " << jit.recordOffset()
+                    << ", journal record index: " << jit.recordIndex()
+                    << ". QLIST record offset: " << queueUriRecOffset
+                    << ". QLIST file size: "
+                    << recoveryCtx.d_mappedQlistFd.fileSize()
+                    << ", record sequence number: ("
+                    << recHeader.primaryLeaseId() << ", "
+                    << recHeader.sequenceNumber() << ")";
+                return rc_INVALID_QLIST_RECORD;  // RETURN
+            }
+
+            numAppIds = queueRecHeader->numAppIds();
+
+            // Only QueueOp.CREATION & QueueOp.ADDITION records have
+            // corresponding record in the QLIST file.
+
+            if (isLastQlistRecord) {
+                isLastQlistRecord               = false;
+                recoveryCtx.d_qlistFilePosition = queueUriRecOffset +
+                                                  queueRecLength;
+            }
+        }
+
+        if (!isLastJournalRecord && !isLastMessageRecord &&
+            !isLastQlistRecord) {
             break;  // BREAK
         }
     }
 
-    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
-                  << partitionId << "]: " << "Opened recovery file set: "
-                  << recoveryCtx.d_recoveryFileSet
-                  << ", journal file position: "
-                  << recoveryCtx.d_journalFilePosition
-                  << ", data file position: " << recoveryCtx.d_dataFilePosition
-                  << ".";
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: " << "Opened recovery file set: "
+            << recoveryCtx.d_recoveryFileSet
+            << ", journal file position: " << recoveryCtx.d_journalFilePosition
+            << ", data file position: " << recoveryCtx.d_dataFilePosition;
+        if (d_qListAware) {
+            BALL_LOG_OUTPUT_STREAM << ", QList file position: "
+                                   << recoveryCtx.d_qlistFilePosition;
+        }
+        BALL_LOG_OUTPUT_STREAM << ".";
+    }
 
     return rc_SUCCESS;
 }
@@ -1086,7 +1581,8 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
         // Value for the various RC error categories
         rc_SUCCESS                  = 0,
         rc_JOURNAL_FD_CLOSE_FAILURE = -1,
-        rc_DATA_FD_CLOSE_FAILURE    = -2
+        rc_DATA_FD_CLOSE_FAILURE    = -2,
+        rc_QLIST_FD_CLOSE_FAILURE   = -3
     };
 
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
@@ -1181,6 +1677,49 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
                       << recoveryCtx.d_dataFilePosition;
     }
     recoveryCtx.d_dataFilePosition = 0;
+
+    if (recoveryCtx.d_mappedQlistFd.isValid()) {
+        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedQlistFd,
+                                            recoveryCtx.d_qlistFilePosition,
+                                            errorDesc);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: " << "Failed to truncate QList file ["
+                << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedQlistFd.mapping(),
+                                         recoveryCtx.d_qlistFilePosition,
+                                         errorDesc);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: " << "Failed to flush QList file ["
+                << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedQlistFd);
+        if (rc != 0) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: " << "Failed to close QList file ["
+                << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
+                << BMQTSK_ALARMLOG_END;
+            return rc * 10 + rc_QLIST_FD_CLOSE_FAILURE;  // RETURN
+        }
+
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId
+                      << "]: " << "Closed QList file in recovery file set; "
+                      << "QList file position was "
+                      << recoveryCtx.d_qlistFilePosition;
+    }
+    recoveryCtx.d_qlistFilePosition = 0;
 
     return rc_SUCCESS;
 }

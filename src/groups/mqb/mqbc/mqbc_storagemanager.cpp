@@ -1248,9 +1248,10 @@ void StorageManager::do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
                 << partitionId << "]: "
                 << "Error while creating recovery file set, rc: " << rc
                 << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
-        }
 
-        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+            mqbu::ExitUtil::terminate(
+                mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+        }
     }
 
     if (rc != 0) {
