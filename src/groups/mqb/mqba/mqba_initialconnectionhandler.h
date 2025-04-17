@@ -109,7 +109,12 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     /// Schedule a read for the initial connection of the session of the
     /// specified `context`.
-    void scheduleRead(const InitialConnectionContextSp& context);
+    int scheduleRead(const InitialConnectionContextSp& context);
+
+    static void complete(const InitialConnectionContextSp&       context,
+                         const int                               rc,
+                         const bsl::string&                      error,
+                         const bsl::shared_ptr<mqbnet::Session>& session);
 
   public:
     // CREATORS
