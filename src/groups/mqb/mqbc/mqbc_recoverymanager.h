@@ -253,7 +253,7 @@ class RecoveryManager {
     bslma::Allocator* d_allocator_p;
 
     bool d_qListAware;
-    // Whether the broker still read and writes to the to-be-deprecated Qlist
+    // Whether the broker still reads and writes to the to-be-deprecated Qlist
     // file.
 
     /// Blob shared pointer pool to use
