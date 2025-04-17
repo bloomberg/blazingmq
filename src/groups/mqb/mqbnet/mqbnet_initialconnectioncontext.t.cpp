@@ -65,8 +65,6 @@ static void test1_initialConnectionContext()
         PV("Constructor");
         mqbnet::InitialConnectionContext obj1(true);
         BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
-        BMQTST_ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
-        BMQTST_ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
 
@@ -79,12 +77,6 @@ static void test1_initialConnectionContext()
 
         mqbnet::InitialConnectionContext obj(true);
 
-        {  // MaxMissedHeartbeat
-            const char value = 5;
-            BMQTST_ASSERT_EQ(&(obj.setMaxMissedHeartbeat(value)), &obj);
-            BMQTST_ASSERT_EQ(obj.maxMissedHeartbeat(), value);
-        }
-
         {  // UserData
             int value = 7;
             BMQTST_ASSERT_EQ(&(obj.setUserData(&value)), &obj);
@@ -95,12 +87,6 @@ static void test1_initialConnectionContext()
             int value = 9;
             BMQTST_ASSERT_EQ(&(obj.setResultState(&value)), &obj);
             BMQTST_ASSERT_EQ(obj.resultState(), &value);
-        }
-
-        {  // EventProcessor
-            MockSessionEventProcessor value;
-            BMQTST_ASSERT_EQ(&(obj.setEventProcessor(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.eventProcessor(), &value);
         }
     }
 }
