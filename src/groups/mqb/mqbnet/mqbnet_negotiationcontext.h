@@ -68,6 +68,30 @@ struct NegotiationContext {
 
     /// The type of the session being negotiated.
     ConnectionType::Enum d_connectionType;
+
+    /// If non-zero, enable smart-heartbeat and specify
+    /// that the connection should be proactively
+    /// resetted if no data has been received from this
+    /// channel for the 'maxMissedHeartbeat' number of
+    /// heartbeat intervals.  When enabled, heartbeat
+    /// requests will be sent if no 'regular' data is
+    /// being received.
+    int d_maxMissedHeartbeat;
+
+    /// The event processor to use for initiating the
+    /// read on the channel once the session has been
+    /// successfully negotiated.  This may or may not be
+    /// set by the caller, before invoking
+    /// 'InitialConnectionHandler::handleInitialConnection()';
+    /// and may or may not be changed by the negotiator concrete
+    /// implementation before invoking the
+    /// 'InitialConnectionCompleteCb'.  Note that a value of 0 will
+    /// use the negotiated session as the default event
+    /// processor.
+    SessionEventProcessor* d_eventProcessor_p;
+
+    /// mqbnet::Cluster to inform about incoming (proxy) connection
+    Cluster* d_cluster_p;
 };
 
 }  // close package namespace

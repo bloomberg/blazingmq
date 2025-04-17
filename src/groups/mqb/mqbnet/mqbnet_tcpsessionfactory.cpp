@@ -32,6 +32,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
 #include <mqbnet_cluster.h>
+#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 
 // BMQ
@@ -516,11 +517,13 @@ void TCPSessionFactory::negotiationComplete(
     }
 
     // Successful negotiation
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "' successfully negotiated a session [session: '"
-                  << session->description() << "', channel: '" << channel.get()
-                  << "', maxMissedHeartbeat: "
-                  << initialConnectionContext->maxMissedHeartbeat() << "]";
+    BALL_LOG_INFO
+        << "TCPSessionFactory '" << d_config.name()
+        << "' successfully negotiated a session [session: '"
+        << session->description() << "', channel: '" << channel.get()
+        << "', maxMissedHeartbeat: "
+        << initialConnectionContext->negotiationContext()->d_maxMissedHeartbeat
+        << "]";
 
     // Session is established; keep a hold to it.
 
@@ -572,7 +575,7 @@ void TCPSessionFactory::negotiationComplete(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext->cluster(),
+        initialConnectionContext->negotiationContext()->d_cluster_p,
         initialConnectionContext->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
@@ -1502,8 +1505,9 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
     const bsl::shared_ptr<Session>&        monitoredSession)
 : d_channel_p(channel.get())
 , d_session_sp(monitoredSession)
-, d_eventProcessor_p(context.eventProcessor())
-, d_monitor(context.maxMissedHeartbeat(), initialMissedHeartbeatCounter)
+, d_eventProcessor_p(context.negotiationContext()->d_eventProcessor_p)
+, d_monitor(context.negotiationContext()->d_maxMissedHeartbeat,
+            initialMissedHeartbeatCounter)
 {
     if (!d_eventProcessor_p) {
         // No eventProcessor was provided default to the negotiated session

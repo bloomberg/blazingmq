@@ -27,20 +27,10 @@ namespace mqbnet {
 
 InitialConnectionContext::InitialConnectionContext(bool isIncoming)
 : d_isIncoming(isIncoming)
-, d_maxMissedHeartbeat(0)
-, d_eventProcessor_p(0)
 , d_resultState_p(0)
 , d_userData_p(0)
-, d_cluster_p(0)
 {
     // NOTHING
-}
-
-InitialConnectionContext&
-InitialConnectionContext::setMaxMissedHeartbeat(int value)
-{
-    d_maxMissedHeartbeat = value;
-    return *this;
 }
 
 InitialConnectionContext& InitialConnectionContext::setUserData(void* value)
@@ -52,20 +42,6 @@ InitialConnectionContext& InitialConnectionContext::setUserData(void* value)
 InitialConnectionContext& InitialConnectionContext::setResultState(void* value)
 {
     d_resultState_p = value;
-    return *this;
-}
-
-InitialConnectionContext&
-InitialConnectionContext::setEventProcessor(SessionEventProcessor* value)
-{
-    d_eventProcessor_p = value;
-    return *this;
-}
-
-InitialConnectionContext&
-InitialConnectionContext::setCluster(Cluster* cluster)
-{
-    d_cluster_p = cluster;
     return *this;
 }
 
@@ -96,16 +72,6 @@ bool InitialConnectionContext::isIncoming() const
     return d_isIncoming;
 }
 
-Cluster* InitialConnectionContext::cluster() const
-{
-    return d_cluster_p;
-}
-
-int InitialConnectionContext::maxMissedHeartbeat() const
-{
-    return d_maxMissedHeartbeat;
-}
-
 void* InitialConnectionContext::userData() const
 {
     return d_userData_p;
@@ -114,11 +80,6 @@ void* InitialConnectionContext::userData() const
 void* InitialConnectionContext::resultState() const
 {
     return d_resultState_p;
-}
-
-SessionEventProcessor* InitialConnectionContext::eventProcessor() const
-{
-    return d_eventProcessor_p;
 }
 
 const bsl::shared_ptr<bmqio::Channel>&

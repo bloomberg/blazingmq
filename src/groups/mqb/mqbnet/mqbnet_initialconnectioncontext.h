@@ -72,27 +72,6 @@ class InitialConnectionContext {
     /// it originates from us (i.e., a 'connect).
     bool d_isIncoming;
 
-    /// If non-zero, enable smart-heartbeat and specify
-    /// that the connection should be proactively
-    /// resetted if no data has been received from this
-    /// channel for the 'maxMissedHeartbeat' number of
-    /// heartbeat intervals.  When enabled, heartbeat
-    /// requests will be sent if no 'regular' data is
-    /// being received.
-    int d_maxMissedHeartbeat;
-
-    /// The event processor to use for initiating the
-    /// read on the channel once the session has been
-    /// successfully negotiated.  This may or may not be
-    /// set by the caller, before invoking
-    /// 'InitialConnectionHandler::handleInitialConnection()';
-    /// and may or may not be changed by the negotiator concrete
-    /// implementation before invoking the
-    /// 'InitialConnectionCompleteCb'.  Note that a value of 0 will
-    /// use the negotiated session as the default event
-    /// processor.
-    SessionEventProcessor* d_eventProcessor_p;
-
     /// Raw pointer, held not owned, to some user data
     /// the session factory will pass back to the
     /// 'resultCb' method (used to inform of the
@@ -127,10 +106,6 @@ class InitialConnectionContext {
     /// peer).
     void* d_userData_p;
 
-    /// mqbnet::Cluster to inform about incoming (proxy)
-    /// connection
-    Cluster* d_cluster_p;
-
     /// The channel to use for the initial connection.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
 
@@ -151,11 +126,8 @@ class InitialConnectionContext {
 
     /// Set the corresponding field to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    InitialConnectionContext& setMaxMissedHeartbeat(int value);
     InitialConnectionContext& setUserData(void* value);
     InitialConnectionContext& setResultState(void* value);
-    InitialConnectionContext& setEventProcessor(SessionEventProcessor* value);
-    InitialConnectionContext& setCluster(Cluster* cluster);
     InitialConnectionContext&
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
@@ -164,17 +136,14 @@ class InitialConnectionContext {
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
     // ACCESSORS
+
+    /// Return the value of the corresponding field.
     bool                                   isIncoming() const;
-    Cluster*                               cluster() const;
-    int                                    maxMissedHeartbeat() const;
     void*                                  userData() const;
     void*                                  resultState() const;
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
     const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
-
-    /// Return the value of the corresponding field.
-    SessionEventProcessor* eventProcessor() const;
 };
 
 }  // close package namespace
