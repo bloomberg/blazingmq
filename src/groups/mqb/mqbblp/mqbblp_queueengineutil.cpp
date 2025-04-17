@@ -97,6 +97,8 @@ void releaseHandleAndInvoke(bdlmt::EventSchedulerEventHandle* handle,
                             bsls::AtomicBool*                 isScheduled,
                             const bsl::function<void()>&      fn)
 {
+    BALL_LOG_SET_CATEGORY("MQBBLP.PRIORITYQUEUEENGINE");
+    BALL_LOG_WARN << "releaseHandleAndInvoke";
     handle->release();
     if (isScheduled->load()) {
         isScheduled->store(false);
@@ -448,6 +450,8 @@ int QueueEngineUtil_ReleaseHandleProctor::releaseHandle(
     mqbi::QueueHandle*                         handle,
     const bmqp_ctrlmsg::QueueHandleParameters& params)
 {
+    // BALL_LOG_WARN <<  "QueueEngineUtil_ReleaseHandleProctor::releaseHandle";
+
     bsls::Types::Uint64 lostFlags = 0;
     int rc = d_queueState_p->handleCatalog().releaseHandleHelper(&d_handleSp,
                                                                  &lostFlags,
@@ -488,6 +492,8 @@ QueueEngineUtil_ReleaseHandleProctor::releaseQueueStream(
 {
     BSLS_ASSERT_SAFE(d_handleSp);
 
+    // BALL_LOG_WARN << "ueueEngineUtil_ReleaseHandleProctor::releaseQueueStream";
+
     mqbi::QueueHandleReleaseResult result;
     // Update queue's aggregated parameters.
     mqbi::QueueCounts cumulative = d_queueState_p->subtract(params);
@@ -507,6 +513,8 @@ mqbi::QueueHandleReleaseResult
 QueueEngineUtil_ReleaseHandleProctor::releaseStream(
     const bmqp_ctrlmsg::QueueHandleParameters& params)
 {
+    // BALL_LOG_WARN << "QueueEngineUtil_ReleaseHandleProctor::releaseStream";
+
     const bmqp_ctrlmsg::SubQueueIdInfo& info =
         bmqp::QueueUtil::extractSubQueueInfo(params);
 
@@ -565,6 +573,7 @@ void QueueEngineUtil_ReleaseHandleProctor::release()
 
 void QueueEngineUtil_ReleaseHandleProctor::invokeCallback()
 {
+    // BALL_LOG_WARN << "QueueEngineUtil_ReleaseHandleProctor::invokeCallback";
     if (d_refCount) {
         return;  // RETURN
     }
@@ -675,6 +684,8 @@ bool QueueEngineUtil_AppsDeliveryContext::reset(
 
     ++d_revCounter;
 
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::reset: " << result;
+
     return result;
 }
 
@@ -685,12 +696,15 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 {
     BSLS_ASSERT_SAFE(d_currentMessage->hasReceipt());
 
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp";
+
     ++d_numApps;
 
     if (d_queue_p->isDeliverAll()) {
         // collect all handles
         app.routing()->iterateConsumers(d_broadcastVisitor, d_currentMessage);
 
+        BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 0";
         // Broadcast does not need stats nor any special per-message treatment.
         return false;  // RETURN
     }
@@ -699,10 +713,12 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
         if (app.resumePoint().isUnset() && app.isAuthorized()) {
             // The 'app' needs to resume (in 'deliverMessages').
             // The queue iterator can advance leaving the 'app' behind.
+            BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 1-1";
             app.setResumePoint(d_currentMessage->guid());
         }
         ++d_numStops;
         // else the existing resumePoint is earlier (if authorized)
+        BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 1";
         return false;  // RETURN
     }
 
@@ -710,6 +726,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
         ordinal);
 
     if (!appView.isNew()) {
+        BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 2";
         return true;  // RETURN
     }
 
@@ -732,6 +749,8 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     if (result == Routers::e_SUCCESS) {
         // RootQueueEngine makes stat reports
 
+        BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 3";
+
         return true;  // RETURN
     }
 
@@ -749,6 +768,8 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
         ++d_numStops;
 
+        BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 4";
+
         return false;  // RETURN
     }
 
@@ -758,6 +779,8 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     // This app does not have capacity to deliver.  Still, move on and
     // consider (evaluate) subsequent messages for the 'app'.
     app.putAside(d_currentMessage->guid());
+
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::processApp 5";
 
     return putAsideReturnValue;
 }
@@ -769,6 +792,8 @@ bool QueueEngineUtil_AppsDeliveryContext::visit(
     BSLS_ASSERT_SAFE(
         d_currentAppView_p &&
         "`d_currentAppView_p` must be assigned before calling this function");
+
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::visit";
 
     d_consumers[subscription->handle()].push_back(
         bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId,
@@ -792,6 +817,8 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 {
     BSLS_ASSERT_SAFE(d_currentMessage);
 
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::deliverMessage: " << d_consumers.empty();
+
     if (!d_consumers.empty()) {
         for (Consumers::const_iterator it = d_consumers.begin();
              it != d_consumers.end();
@@ -799,11 +826,13 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
             BSLS_ASSERT_SAFE(!it->second.empty());
 
             if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
+                BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::deliverMessage 1";
                 it->first->deliverMessageNoTrack(*d_currentMessage,
                                                  "",  // msgGroupId,
                                                  it->second);
             }
             else {
+                BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::deliverMessage 2";
                 it->first->deliverMessage(*d_currentMessage,
                                           "",  // msgGroupId,
                                           it->second,
@@ -814,7 +843,10 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 
     if (haveProgress()) {
         d_currentMessage->advance();
+        BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::deliverMessage 3";
     }
+
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::deliverMessage 4";
 
     d_currentMessage = 0;
 }
@@ -903,6 +935,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
                                           const mqbi::StorageIterator* end)
 {
     // executed by the *QUEUE DISPATCHER* thread
+
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::deliverMessages";
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(delay);
@@ -995,6 +1029,8 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
     bool                         isOutOfOrder)
 {
     BSLS_ASSERT_SAFE(message);
+
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::tryDeliverOneMessage";
 
     const mqbi::AppMessage& appView = message->appMessageView(ordinal());
     if (!appView.isPending()) {
@@ -1114,6 +1150,8 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
 {
     BSLS_ASSERT_SAFE(delay);
 
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::processDeliveryLists";
+
     size_t numMessages = processDeliveryList(delay, reader, d_redeliveryList);
     if (*delay == bsls::TimeInterval()) {
         // The only excuse for stopping the iteration is poisonous message
@@ -1127,6 +1165,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
                                               mqbi::StorageIterator* reader,
                                               RedeliveryList&        list)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::processDeliveryList";
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(list.empty())) {
         return 0;  // RETURN
     }
@@ -1208,6 +1247,7 @@ void QueueEngineUtil_AppState::tryCancelThrottle(
     mqbi::QueueHandle*       handle,
     const bmqt::MessageGUID& msgGUID)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::tryCancelThrottle";
     Routers::Consumer* queueHandleContext = findQueueHandleContext(handle);
     if (!queueHandleContext) {
         // This is the case where a handle can be deconfigured but then later
@@ -1235,6 +1275,7 @@ void QueueEngineUtil_AppState::scheduleThrottle(
     bsls::TimeInterval           executionTime,
     const bsl::function<void()>& deliverMessageFn)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::scheduleThrottle";
     int shouldSchedule = -1;
 
     d_isScheduled.store(true);
@@ -1261,6 +1302,8 @@ void QueueEngineUtil_AppState::scheduleThrottle(
 void QueueEngineUtil_AppState::executeInQueueDispatcher(
     const bsl::function<void()>& deliverMessageFn)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::executeInQueueDispatcher";
+
     // executed by the *SCHEDULER DISPATCHER* thread
     if (d_isScheduled.load()) {
         d_queue_p->dispatcher()->execute(
@@ -1283,6 +1326,7 @@ void QueueEngineUtil_AppState::cancelThrottle()
 
 void QueueEngineUtil_AppState::undoRouting()
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::undoRouting";
     d_priorityCount = 0;
     cancelThrottle();
 
@@ -1296,6 +1340,7 @@ void QueueEngineUtil_AppState::rebuildConsumers(
     const QueueState*                           queueState,
     const bsl::shared_ptr<Routers::AppContext>& replacement)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::rebuildConsumers";
     // Rebuild ConsumersState for this app
     // Prepare the app for rebuilding consumers
     undoRouting();
@@ -1324,6 +1369,7 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     mqbi::QueueHandle*                  handle,
     const bmqp_ctrlmsg::SubQueueIdInfo& subQueue)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::transferUnconfirmedMessages";
     // Redistribute messages: append all pending messages to
     // the redelivery list.
 
@@ -1356,6 +1402,7 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
     const mqbi::StorageIterator* currentMessage,
     unsigned int                 ordinal)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::selectConsumer";
     unsigned int sId =
         currentMessage->appMessageView(ordinal).d_subscriptionId;
 
@@ -1378,6 +1425,7 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
 int QueueEngineUtil_AppState::setSubscription(
     const mqbconfm::Expression& value)
 {
+    BALL_LOG_WARN <<  "QueueEngineUtil_AppState::setSubscription";
     d_subcriptionExpression = value;
 
     if (mqbconfm::ExpressionVersion::E_VERSION_1 == value.version()) {
@@ -1402,6 +1450,7 @@ bool QueueEngineUtil_AppState::evaluateAppSubcription()
 void QueueEngineUtil_AppState::authorize(const mqbu::StorageKey& appKey,
                                          unsigned int            appOrdinal)
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::authorize";
     BSLS_ASSERT_SAFE(d_queue_p->storage());
 
     d_appKey       = appKey;
@@ -1411,6 +1460,7 @@ void QueueEngineUtil_AppState::authorize(const mqbu::StorageKey& appKey,
 
 bool QueueEngineUtil_AppState::authorize()
 {
+    BALL_LOG_WARN <<  "QueueEngineUtil_AppState::authorize";
     BSLS_ASSERT_SAFE(d_queue_p->storage());
 
     unsigned int     ordinal = 0;
@@ -1448,6 +1498,7 @@ void QueueEngineUtil_AppState::clear()
 
 void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::loadInternals";
     out->appId()                = appId();
     out->numConsumers()         = d_routing_sp->d_consumers.size();
     out->redeliveryListLength() = d_redeliveryList.size();
@@ -1457,6 +1508,7 @@ void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const
 void QueueEngineUtil_AppState::reportStats(
     const mqbi::StorageIterator* message) const
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppState::reportStats";
     if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
         const bsls::Types::Int64 timeDelta = getMessageQueueTime(
             message->attributes());

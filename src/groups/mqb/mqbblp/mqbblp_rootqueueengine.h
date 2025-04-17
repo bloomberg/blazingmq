@@ -102,9 +102,15 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const bool d_isFanout;
 
-    /// Event scheduler currently used for message throttling.  Held, not
+    /// Event scheduler currently used for message throttling and consumption monitor.  Held, not
     /// owned.
     bdlmt::EventScheduler* d_scheduler_p;
+
+    /// EventHandle for consumption Monitor.
+    bdlmt::EventSchedulerEventHandle d_consumptionMonitorEventHandle;
+
+    /// Return true if consumption Monitor event is scheduled.
+    bsls::AtomicBool d_isScheduled;
 
     /// Thread pool for any standalone work that can be offloaded to
     /// non-queue-dispatcher threads.  It is used to hex dump the payload of a
@@ -187,6 +193,14 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// `enableLog` is `true` it logs alarm data. Return `true` if there are
     /// un-delivered messages and `false` otherwise.
     bool logAlarmCb(const bsl::string& appId, bool enableLog) const;
+
+    /// Handler called by EventScheduler in its thread to pass event to queue dispatcher thread.
+    void consumptionMonitorEventSchedulerHandler();
+
+    void consumptionMonitorEventQueueDispatcherHandler();
+    // executeInQueueDispatcher(const bsl::function<void()>& consumptionMonitorFn);
+    
+    void consumptionMonitorOnAttemptToDelivery(AppStateSp& app, bool success);
 
   public:
     // TRAITS

@@ -208,6 +208,8 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
+    return;  // RETURN
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
@@ -219,6 +221,10 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
     }
 
     BSLS_ASSERT_SAFE(currentTimer >= d_currentTimer);
+
+
+    BALL_LOG_WARN << "QueueConsumptionMonitor::onTimer d_currentTimer: " << d_currentTimer
+                  << ", currentTimer: " << currentTimer <<  ", d_maxIdleTime: " << d_maxIdleTime << '\n';
 
     d_currentTimer = currentTimer;
 
@@ -232,20 +238,26 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
             // Queue is 'alive' because at least one message was sent
             // since the last 'timer'.
 
+            BALL_LOG_WARN << "d_messageSent is set!!!!!\n";
             info.d_messageSent        = false;
             info.d_lastKnownGoodTimer = d_currentTimer;
 
             if (info.d_state == State::e_IDLE) {
                 // object was in idle state
                 onTransitionToAlive(&info, id);
+                BALL_LOG_WARN << "onTimer after onTransitionToAlive, continue\n";
                 continue;  // CONTINUE
             }
 
             BSLS_ASSERT_SAFE(info.d_state == State::e_ALIVE);
+            BALL_LOG_WARN << "onTimer continue\n";
             continue;  // CONTINUE
         }
 
         if (d_currentTimer - info.d_lastKnownGoodTimer > d_maxIdleTime) {
+
+            BALL_LOG_WARN << "maxIdleTime EXCEEDED, call ALARM";
+
             // No delivered messages in the last 'maxIdleTime'.
 
             // Call callback to log alarm if there are undelivered messages.
@@ -268,6 +280,9 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
                     onTransitionToAlive(&info, id);
                 }
             }
+        }
+        else {
+            BALL_LOG_WARN << "maxIdleTime NOT exceeded, skip alarmn";
         }
     }
 }
