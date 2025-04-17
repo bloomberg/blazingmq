@@ -73,6 +73,7 @@ class DomainUrls(NamedTuple):
     uri_fanout_2_bar: str
     uri_fanout_2_baz: str
 
+
 EC_DOMAIN_URLS = DomainUrls(
     domain_priority=DOMAIN_PRIORITY,
     domain_fanout=DOMAIN_FANOUT,
@@ -101,4 +102,3 @@ SC_DOMAIN_URLS = DomainUrls(
     uri_fanout_2_bar=URI_FANOUT_SC_2_BAR,
     uri_fanout_2_baz=URI_FANOUT_SC_2_BAZ,
 )
-
