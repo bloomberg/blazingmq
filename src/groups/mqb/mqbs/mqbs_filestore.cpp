@@ -2132,8 +2132,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                         qinfo.appIdKeyPairs().find(
                                             cit->second);
                                 if (qinfoAppCit ==
-                                        qinfo.appIdKeyPairs().cend() ||
-                                    qinfoAppCit->second != cit->first) {
+                                    qinfo.appIdKeyPairs().cend()) {
                                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                                         << partitionDesc()
                                         << "Encountered a QueueOp ["
@@ -2143,12 +2142,29 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                         << "], offset: " << jit->recordOffset()
                                         << ", index: " << jit->recordIndex()
                                         << ", with appId/appKey mismatch. "
-                                           "Expected appId/appKey ["
+                                        << "Recovered appId/appKey ["
+                                        << cit->first << ", " << cit->second
+                                        << "] is not found in the cluster "
+                                        << "state." << BMQTSK_ALARMLOG_END;
+                                    return rc_APP_ID_KEY_MISMATCH;  // RETURN
+                                }
+                                else if (qinfoAppCit->second != cit->first) {
+                                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                                        << partitionDesc()
+                                        << "Encountered a QueueOp ["
+                                        << queueOpType
+                                        << "] record for queueKey ["
+                                        << queueKey
+                                        << "], offset: " << jit->recordOffset()
+                                        << ", index: " << jit->recordIndex()
+                                        << ", with appId/appKey mismatch. "
+                                        << "Expected appId/appKey ["
                                         << qinfoAppCit->second << ", "
                                         << qinfoAppCit->first
-                                        << "], recovered appId/appKey ["
-                                        << cit->first << ", " << cit->second
-                                        << "]." << BMQTSK_ALARMLOG_END;
+                                        << "] in the cluster state, recovered "
+                                        << "appId/appKey [" << cit->first
+                                        << ", " << cit->second << "]."
+                                        << BMQTSK_ALARMLOG_END;
                                     return rc_APP_ID_KEY_MISMATCH;  // RETURN
                                 }
                             }
@@ -3925,10 +3941,6 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                           2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
     }
 
-    BALL_LOG_ERROR << "Henshin! d_primaryLeaseId: " << d_primaryLeaseId
-                   << ", d_sequenceNum: " << d_sequenceNum << ", syncPt "
-                   << *spptr;
-
     // Write to self.
     int rc = writeSyncPointRecord(*spptr, type);
     if (0 != rc) {
@@ -5085,6 +5097,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                            mfd.mapping() + dataOffset);
         dataBlobBuffer.reset(dataBufferSp, totalDataLen);
     }
+
     bool flushAndRetry = false;
     do {
         if (bmqp::StorageMessageType::e_DATA == type) {
@@ -6763,9 +6776,6 @@ int FileStore::issueSyncPoint()
                                                  bmqp::Protocol::k_WORD_SIZE
                                            : 0;
 
-    BALL_LOG_ERROR << "Henshin Baron! " << d_qListAware << ", "
-                   << fs->d_qlistFilePosition << ", "
-                   << syncPoint.qlistFileOffsetWords();
     int rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
                                     true,  // ImmediateFlush
                                     &syncPoint);
@@ -6983,7 +6993,6 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
             d_qListAware
                 ? fs->d_qlistFilePosition / bmqp::Protocol::k_WORD_SIZE
                 : 0;
-        BALL_LOG_ERROR << "Henshin Gaim! " << syncPoint.qlistFileOffsetWords();
 
         // Explicitly update the sequence number, since we are passing the
         // SyncPt ourselves, and 'issueSyncPointInternal' won't increment
