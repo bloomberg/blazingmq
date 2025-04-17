@@ -114,7 +114,7 @@ const char k_LOG_CATEGORY[] = "BMQP.CRC32C";
 /// platform-dependant implementation to compute CRC32-C checksums.
 Crc32c::Crc32cFn g_crc32cCalculator = 0;
 
-const unsigned int k_CRC_TABLE_IL8_O32[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O32[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -170,7 +170,7 @@ const unsigned int k_CRC_TABLE_IL8_O32[256] =
      0xD5CF889D, 0x27A40B9E, 0x79B737BA, 0x8BDCB4B9, 0x988C474D, 0x6AE7C44E,
      0xBE2DA0A5, 0x4C4623A6, 0x5F16D052, 0xAD7D5351};
 
-const unsigned int k_CRC_TABLE_IL8_O40[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O40[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -226,7 +226,7 @@ const unsigned int k_CRC_TABLE_IL8_O40[256] =
      0x2D557F4C, 0x3EF7E73B, 0xD98EEDC6, 0xCA2C75B1, 0xFECBDD28, 0xED69455F,
      0x97048C1A, 0x84A6146D, 0xB041BCF4, 0xA3E32483};
 
-const unsigned int k_CRC_TABLE_IL8_O48[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O48[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -282,7 +282,7 @@ const unsigned int k_CRC_TABLE_IL8_O48[256] =
      0x0C158713, 0xA954156D, 0xE5F54FC1, 0x40B4DDBF, 0xAA9A1DCC, 0x0FDB8FB2,
      0x7B2BEBDB, 0xDE6A79A5, 0x3444B9D6, 0x91052BA8};
 
-const unsigned int k_CRC_TABLE_IL8_O56[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O56[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -338,7 +338,7 @@ const unsigned int k_CRC_TABLE_IL8_O56[256] =
      0x0302211C, 0xDE478BA4, 0x31035088, 0xEC46FA30, 0x8E647309, 0x5321D9B1,
      0x4A21617B, 0x9764CBC3, 0xF54642FA, 0x2803E842};
 
-const unsigned int k_CRC_TABLE_IL8_O64[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O64[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -394,7 +394,7 @@ const unsigned int k_CRC_TABLE_IL8_O64[256] =
      0x5D1E0A9E, 0x650F6532, 0x081E60E7, 0x300F0F4B, 0x783CBFBF, 0x402DD013,
      0xE85BDE57, 0xD04AB1FB, 0x9879010F, 0xA0686EA3};
 
-const unsigned int k_CRC_TABLE_IL8_O72[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O72[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -450,7 +450,7 @@ const unsigned int k_CRC_TABLE_IL8_O72[256] =
      0x3E8D5D3A, 0xD1BD3623, 0x37F2D291, 0xD8C2B988, 0xEC7E7252, 0x034E194B,
      0x8507E5E6, 0x6A378EFF, 0x5E8B4525, 0xB1BB2E3C};
 
-const unsigned int k_CRC_TABLE_IL8_O80[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O80[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -506,7 +506,7 @@ const unsigned int k_CRC_TABLE_IL8_O80[256] =
      0x5B3FECD4, 0x333CC01C, 0x60F48DC6, 0x08F7A10E, 0xB0F2D456, 0xD8F1F89E,
      0xC5144817, 0xAD1764DF, 0x15121187, 0x7D113D4F};
 
-const unsigned int k_CRC_TABLE_IL8_O88[256] =
+const bsl::uint32_t k_CRC_TABLE_IL8_O88[256] =
     // The following CRC lookup table was generated automagically using the
     // following model parameters:
     //
@@ -565,9 +565,9 @@ const unsigned int k_CRC_TABLE_IL8_O88[256] =
 /// Return the CRC32-C value calculated in software for the specified `data`
 /// over the specified `length` number of bytes, using the specified `crc`
 /// value as the starting point for the calculation.
-static inline unsigned int crc32cSoftware(const unsigned char* data,
-                                          unsigned int         length,
-                                          unsigned int         crc)
+static inline bsl::uint32_t crc32cSoftware(const bsl::uint8_t* data,
+                                           bsl::uint32_t       length,
+                                           bsl::uint32_t       crc)
 {
     crc = crc ^ ~0U;  // INIT = 0xFFFFFFFF: Initial value of the register
 
@@ -578,7 +578,8 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
                                      (sizeof(bsls::Types::IntPtr) - 1);
 
     // No. of bytes from `data` to next alignment boundary
-    unsigned adj = misaligned ? sizeof(bsls::Types::IntPtr) - misaligned : 0;
+    bsl::uint32_t adj = misaligned ? sizeof(bsls::Types::IntPtr) - misaligned
+                                   : 0;
     if (adj > length) {
         // the specified length to process is less than the distance from
         // 'data' to the next alignment boundary.
@@ -621,10 +622,10 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
     // [2] Process 8 bytes at a time until we have fewer than 8 bytes left.
 
     // end of last 8-byte block
-    const unsigned char* end = data + (length & (~0x7));
+    const bsl::uint8_t* end = data + (length & (~0x7));
     while (data < end) {
         // read two little endian integers
-        unsigned int u32a, u32b;
+        bsl::uint32_t u32a, u32b;
         u32a = (data[0] << 0) | (data[1] << 8) | (data[2] << 16) |
                (data[3] << 24);
         data += 4;
@@ -635,9 +636,9 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
 
         crc ^= u32a;
 
-        unsigned int term1 = k_CRC_TABLE_IL8_O88[crc & 0x000000FF] ^
-                             k_CRC_TABLE_IL8_O80[(crc >> 8) & 0x000000FF];
-        unsigned int term2 = crc >> 16;
+        bsl::uint32_t term1 = k_CRC_TABLE_IL8_O88[crc & 0x000000FF] ^
+                              k_CRC_TABLE_IL8_O80[(crc >> 8) & 0x000000FF];
+        bsl::uint32_t term2 = crc >> 16;
 
         crc = term1 ^ k_CRC_TABLE_IL8_O72[term2 & 0x000000FF] ^
               k_CRC_TABLE_IL8_O64[(term2 >> 8) & 0x000000FF];
@@ -697,8 +698,8 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
 /// intrinsic for the specified `data` over the specified `length` number
 /// of bytes, using the specified `crc` value as the starting point for the
 /// calculation.
-static unsigned int
-crc32c8s(const unsigned char* data, unsigned int length, unsigned int crc);
+static bsl::uint32_t
+crc32c8s(const bsl::uint8_t* data, bsl::uint32_t length, bsl::uint32_t crc);
 
 /// Calculate CRC32-C for the bytes between the buffer pointed to by the
 /// specified `dataPtr` and either the first alignment boundary (e.g.,
@@ -709,31 +710,31 @@ crc32c8s(const unsigned char* data, unsigned int length, unsigned int crc);
 /// length pointed to by `lengthPtr` will be decremented (between 0-7 times)
 /// to account for the number of bytes that were processed.  The specified
 /// `crc` value is used as the starting point for the calculation.
-static unsigned int crc32cUntilAligned(const unsigned char** dataPtr,
-                                       unsigned int*         lengthPtr,
-                                       unsigned int          crc);
+static bsl::uint32_t crc32cUntilAligned(const bsl::uint8_t** dataPtr,
+                                        bsl::uint32_t*       lengthPtr,
+                                        bsl::uint32_t        crc);
 
 /// Calculate the CRC32-C value (using SSE intrinsics) for the specified
 /// `data` over exactly 1024 bytes, using the specified `crc` value as the
 /// starting point for the calculation.  Behavior is undefined unless the
 /// buffer pointed to by `data` contains at least 1024 bytes.  Note that
 /// `data` need not be at an alignment boundary.
-static unsigned int crc32c1024SseInt(const unsigned char* data,
-                                     unsigned int         crc);
+static bsl::uint32_t crc32c1024SseInt(const bsl::uint8_t* data,
+                                      bsl::uint32_t       crc);
 
-static inline unsigned int
-crc32c8s(const unsigned char* data, unsigned int length, unsigned int crc)
+static inline bsl::uint32_t
+crc32c8s(const bsl::uint8_t* data, bsl::uint32_t length, bsl::uint32_t crc)
 {
-    const unsigned char* const end = data + length;
-
     // Process bytes one at a time until we reach an 8-byte boundary (or until
     // we reach the end of the buffer, whichever is sooner).
     crc = crc32cUntilAligned(&data, &length, crc);
 
+    const bsl::uint8_t* const end = data + length;
+
     // Process 8 bytes at a time doing aligned 64-bit reads
-    const bsls::Types::Uint64* dataUint64 =
-        reinterpret_cast<const bsls::Types::Uint64*>(data);
-    const bsls::Types::Uint64* endUint64 = dataUint64 + (length / 8);
+    const bsl::uint64_t* dataUint64 = reinterpret_cast<const bsl::uint64_t*>(
+        data);
+    const bsl::uint64_t* endUint64 = dataUint64 + (length / 8);
 
     while (dataUint64 < endUint64) {
         crc = __builtin_ia32_crc32di(crc, *dataUint64);
@@ -742,7 +743,7 @@ crc32c8s(const unsigned char* data, unsigned int length, unsigned int crc)
 
     // Process the last 7 (or less) bytes remaining after the last alignment
     // boundary
-    data = reinterpret_cast<const unsigned char*>(endUint64);
+    data = reinterpret_cast<const bsl::uint8_t*>(dataUint64);
 
     const bsls::Types::IntPtr diff = end - data;
     int                       i    = 0;
@@ -778,7 +779,7 @@ crc32c8s(const unsigned char* data, unsigned int length, unsigned int crc)
 }
 
 // Compute CRC32-C for 1024 bytes using SSE & recombine using lookup tables
-const unsigned int k_MUL_TABLE1_336[256] = {
+const bsl::uint32_t k_MUL_TABLE1_336[256] = {
     0x00000000, 0x8F158014, 0x1BC776D9, 0x94D2F6CD, 0x378EEDB2, 0xB89B6DA6,
     0x2C499B6B, 0xA35C1B7F, 0x6F1DDB64, 0xE0085B70, 0x74DAADBD, 0xFBCF2DA9,
     0x589336D6, 0xD786B6C2, 0x4354400F, 0xCC41C01B, 0xDE3BB6C8, 0x512E36DC,
@@ -823,7 +824,7 @@ const unsigned int k_MUL_TABLE1_336[256] = {
     0xD087F697, 0x5F927683, 0x93D3B698, 0x1CC6368C, 0x8814C041, 0x07014055,
     0xA45D5B2A, 0x2B48DB3E, 0xBF9A2DF3, 0x308FADE7};
 
-const unsigned int k_MUL_TABLE1_672[256] = {
+const bsl::uint32_t k_MUL_TABLE1_672[256] = {
     0x00000000, 0xE417F38A, 0xCDC391E5, 0x29D4626F, 0x9E6B553B, 0x7A7CA6B1,
     0x53A8C4DE, 0xB7BF3754, 0x393ADC87, 0xDD2D2F0D, 0xF4F94D62, 0x10EEBEE8,
     0xA75189BC, 0x43467A36, 0x6A921859, 0x8E85EBD3, 0x7275B90E, 0x96624A84,
@@ -873,37 +874,45 @@ const unsigned int k_MUL_TABLE1_672[256] = {
 /// `crc` value as the starting point for the calculation.  Processing is 8
 /// or 1024 bytes at a time, depending on `length`, and lookup tables are
 /// used for recombination.
-static inline unsigned int crc32cSse64bit(const unsigned char* data,
-                                          unsigned int         length,
-                                          unsigned int         crc)
+static inline bsl::uint32_t crc32cSse64bit(const bsl::uint8_t* data,
+                                           bsl::uint32_t       length,
+                                           bsl::uint32_t       crc)
 {
     crc = crc ^ ~0U;  // INIT = 0xFFFFFFFF: Initial value of the register
 
-    // Process ('length' mod 1024) bytes
-    unsigned int i = length % 1024;
-    if (i) {
-        length -= i;  // length = k * 1024 for k in {0, 1, 2, ...}
-        crc = crc32c8s(data, i, crc);
-        data += i;
-        i = 0;
-    }
+    // Find the next alignment boundary
+    crc = crc32cUntilAligned(&data, &length, crc);
 
+    bsl::uint32_t i = 0;
     // Process remaining 'k' chunks of 1024 bytes each
-    while (i < length) {
+    while (i + 1024 < length) {
         crc = crc32c1024SseInt(&data[i], crc);
         i += 1024;
     }
 
+    // Process remaining bytes
+    length -= i;
+    data += i;
+    crc = crc32c8s(data, length, crc);
+
     return crc ^ ~0U;  // XOROUT = true: Do a final XOR on output
 }
 
-static inline unsigned int crc32cUntilAligned(const unsigned char** dataPtr,
-                                              unsigned int*         lengthPtr,
-                                              unsigned int          crc)
+/// Computes the crc up to the next 8-byte alignment boundary indicated by
+/// `dataPtr`.
+///
+/// @param[in,out] dataPtr A pointer to the byte buffer. @param[in,out]
+/// lengthPtr A pointer to the @param[in,out] dataPtr A pointer to the byte
+/// buffer. @post dataPtr is either pointing to an 8-byte aligned address
+/// unless
+/// `*lengthPtr` was smaller than the distance to the next boundary position.
+static inline bsl::uint32_t crc32cUntilAligned(const bsl::uint8_t** dataPtr,
+                                               bsl::uint32_t*       lengthPtr,
+                                               bsl::uint32_t        crc)
 {
-    const unsigned char* data       = *dataPtr;
-    unsigned int         length     = *lengthPtr;
-    bsls::Types::IntPtr  misaligned = reinterpret_cast<bsls::Types::IntPtr>(
+    const bsl::uint8_t* data       = *dataPtr;
+    bsl::uint32_t       length     = *lengthPtr;
+    bsls::Types::IntPtr misaligned = reinterpret_cast<bsls::Types::IntPtr>(
                                          data) &
                                      (sizeof(bsls::Types::IntPtr) - 1);
 
@@ -951,8 +960,8 @@ static inline unsigned int crc32cUntilAligned(const unsigned char** dataPtr,
     return crc;
 }
 
-static inline unsigned int crc32c1024SseInt(const unsigned char* data,
-                                            unsigned int         crc)
+static inline bsl::uint32_t crc32c1024SseInt(const bsl::uint8_t* data,
+                                             bsl::uint32_t       crc)
 {
 // Intel White Paper: Fast CRC Computation for iSCSI Polynomial Using CRC32
 // Instruction
@@ -1051,16 +1060,16 @@ static inline unsigned int crc32c1024SseInt(const unsigned char* data,
 /// `crc` value as the starting point for the calculation.  Unlike
 /// `crc32cSse64bit`, this function does not leverage instruction level
 /// parallelism, but rather calculates consecutive CRCs in "serial".
-static inline unsigned int crc32cHardwareSerial(const unsigned char* data,
-                                                unsigned int         length,
-                                                unsigned int         crc)
+static inline bsl::uint32_t crc32cHardwareSerial(const bsl::uint8_t* data,
+                                                 bsl::uint32_t       length,
+                                                 bsl::uint32_t       crc)
 {
     crc = crc ^ ~0U;  // INIT = 0xFFFFFFFF: Initial value of the register
 
 #ifdef BSLS_PLATFORM_CPU_64_BIT
     // 64 bit implementation
-    unsigned int sum    = crc;
-    unsigned int offset = 0;
+    bsl::uint32_t sum    = crc;
+    bsl::uint32_t offset = 0;
 
     // Process bytes one at a time until we reach an 8-byte boundary and can
     // start doing aligned 64-bit reads.
@@ -1091,15 +1100,15 @@ static inline unsigned int crc32cHardwareSerial(const unsigned char* data,
     }
 #else
     // 32 bit implementation
-    unsigned int sum    = crc;
-    unsigned int offset = 0;
+    bsl::uint32_t sum    = crc;
+    bsl::uint32_t offset = 0;
 
     // Process bytes one at a time until we reach a 4-byte boundary and can
     // start doing aligned 32-bit reads.
-    unsigned int mask = reinterpret_cast<unsigned int>(data) &
-                        (sizeof(unsigned int) - 1);
+    bsl::uint32_t mask = reinterpret_cast<bsl::uint32_t>(data) &
+                         (sizeof(bsl::uint32_t) - 1);
     if (mask != 0) {
-        unsigned int limit = bsl::min(length, sizeof(unsigned int) - mask);
+        bsl::uint32_t limit = bsl::min(length, sizeof(bsl::uint32_t) - mask);
         while (offset < limit) {
             sum = __builtin_ia32_crc32qi(sum, data[offset]);
             offset++;
@@ -1107,11 +1116,11 @@ static inline unsigned int crc32cHardwareSerial(const unsigned char* data,
     }
 
     // Process 4 bytes at a time until we have fewer than 4 bytes left.
-    while (offset + sizeof(unsigned int) <= length) {
-        const unsigned int* src = reinterpret_cast<const unsigned int*>(
+    while (offset + sizeof(bsl::uint32_t) <= length) {
+        const bsl::uint32_t* src = reinterpret_cast<const bsl::uint32_t*>(
             data + offset);
         sum = __builtin_ia32_crc32si(sum, *src);
-        offset += sizeof(unsigned int);
+        offset += sizeof(bsl::uint32_t);
     }
 
     // Process any bytes remaining after the last aligned 4-byte block.
@@ -1146,7 +1155,7 @@ void Crc32c::initialize()
 #endif
 
 #ifdef BMQP_SSE4_2
-        unsigned int eax, ebx, ecx, edx;
+        bsl::uint32_t eax, ebx, ecx, edx;
         __cpuid(1, eax, ebx, ecx, edx);
 
         if (ecx & BMQP_SSE4_2) {  // SSE 4.2 Support for CRC32-C
@@ -1185,8 +1194,8 @@ void Crc32c::initialize()
     }
 }
 
-unsigned int
-Crc32c::calculate(const void* data, unsigned int length, unsigned int crc)
+bsl::uint32_t
+Crc32c::calculate(const void* data, bsl::uint32_t length, bsl::uint32_t crc)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_crc32cCalculator && "initialize() not called");
@@ -1198,12 +1207,12 @@ Crc32c::calculate(const void* data, unsigned int length, unsigned int crc)
         return crc;  // RETURN
     }
 
-    return g_crc32cCalculator(static_cast<const unsigned char*>(data),
+    return g_crc32cCalculator(static_cast<const bsl::uint8_t*>(data),
                               length,
                               crc);
 }
 
-unsigned int Crc32c::calculate(const bdlbb::Blob& blob, unsigned int crc)
+bsl::uint32_t Crc32c::calculate(const bdlbb::Blob& blob, bsl::uint32_t crc)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_crc32cCalculator && "initialize() not called");
@@ -1232,9 +1241,9 @@ unsigned int Crc32c::calculate(const bdlbb::Blob& blob, unsigned int crc)
 // struct Crc32c_Impl
 // ------------------
 
-unsigned int Crc32c_Impl::calculateSoftware(const void*  data,
-                                            unsigned int length,
-                                            unsigned int crc)
+bsl::uint32_t Crc32c_Impl::calculateSoftware(const void*   data,
+                                             bsl::uint32_t length,
+                                             bsl::uint32_t crc)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE((data || !length) &&
@@ -1245,13 +1254,11 @@ unsigned int Crc32c_Impl::calculateSoftware(const void*  data,
         return crc;  // RETURN
     }
 
-    return crc32cSoftware(static_cast<const unsigned char*>(data),
-                          length,
-                          crc);
+    return crc32cSoftware(static_cast<const bsl::uint8_t*>(data), length, crc);
 }
 
-unsigned int Crc32c_Impl::calculateSoftware(const bdlbb::Blob& blob,
-                                            unsigned int       crc)
+bsl::uint32_t Crc32c_Impl::calculateSoftware(const bdlbb::Blob& blob,
+                                             bsl::uint32_t      crc)
 {
     const int numBuffers = blob.numDataBuffers();
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(numBuffers == 0)) {
@@ -1273,9 +1280,9 @@ unsigned int Crc32c_Impl::calculateSoftware(const bdlbb::Blob& blob,
     return crc;
 }
 
-unsigned int Crc32c_Impl::calculateHardwareSerial(const void*  data,
-                                                  unsigned int length,
-                                                  unsigned int crc)
+bsl::uint32_t Crc32c_Impl::calculateHardwareSerial(const void*   data,
+                                                   bsl::uint32_t length,
+                                                   bsl::uint32_t crc)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE((data || !length) &&
@@ -1286,7 +1293,7 @@ unsigned int Crc32c_Impl::calculateHardwareSerial(const void*  data,
         return crc;  // RETURN
     }
 
-    const unsigned char* dataUchar = static_cast<const unsigned char*>(data);
+    const bsl::uint8_t* dataUchar = static_cast<const bsl::uint8_t*>(data);
 #ifdef BMQP_CRC32C_LIKE_X86_GCC
     return crc32cHardwareSerial(dataUchar, length, crc);
 #else
