@@ -13,23 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_negotiationcontext.h                                    -*-C++-*-
-#ifndef INCLUDED_MQBA_NEGOTIATIONCONTEXT
-#define INCLUDED_MQBA_NEGOTIATIONCONTEXT
+// mqbnet_negotiationcontext.h                                -*-C++-*-
+#ifndef INCLUDED_MQBNET_NEGOTIATIONCONTEXT
+#define INCLUDED_MQBNET_NEGOTIATIONCONTEXT
 
-/// @file mqba_negotiationcontext.h
+/// @file mqbnet_negotiationcontext.h
 ///
-/// @brief Provide the context for negotiator for establishing sessions.
+/// @brief Provide the context for initial connection handler for establishing
+/// sessions.
 ///
 
 // MQB
-#include <mqbnet_negotiator.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
 namespace BloombergLP {
-namespace mqba {
+namespace mqbnet {
 
 struct ConnectionType {
     // Enum representing the type of session being negotiated, from that
@@ -47,17 +48,12 @@ struct ConnectionType {
 // class NegotiationContext
 // ========================
 
-// VST for an implementation of NegotiatiorContext
+// VST for an implementation of NegotiationContext
 struct NegotiationContext {
     // DATA
-    /// The associated negotiatorContext, passed in by the caller.
-    mqbnet::NegotiatorContext* d_negotiatorContext_p;
-
-    /// The channel to use for the negotiation.
-    bsl::shared_ptr<bmqio::Channel> d_channelSp;
-
-    /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::Negotiator::NegotiationCb d_negotiationCb;
+    /// The associated InitialConnectionContext passed in by the caller.
+    /// Held, not owned
+    InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
@@ -72,6 +68,30 @@ struct NegotiationContext {
 
     /// The type of the session being negotiated.
     ConnectionType::Enum d_connectionType;
+
+    /// If non-zero, enable smart-heartbeat and specify
+    /// that the connection should be proactively
+    /// resetted if no data has been received from this
+    /// channel for the 'maxMissedHeartbeat' number of
+    /// heartbeat intervals.  When enabled, heartbeat
+    /// requests will be sent if no 'regular' data is
+    /// being received.
+    int d_maxMissedHeartbeat;
+
+    /// The event processor to use for initiating the
+    /// read on the channel once the session has been
+    /// successfully negotiated.  This may or may not be
+    /// set by the caller, before invoking
+    /// 'InitialConnectionHandler::handleInitialConnection()';
+    /// and may or may not be changed by the negotiator concrete
+    /// implementation before invoking the
+    /// 'InitialConnectionCompleteCb'.  Note that a value of 0 will
+    /// use the negotiated session as the default event
+    /// processor.
+    SessionEventProcessor* d_eventProcessor_p;
+
+    /// mqbnet::Cluster to inform about incoming (proxy) connection
+    Cluster* d_cluster_p;
 };
 
 }  // close package namespace
