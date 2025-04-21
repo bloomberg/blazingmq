@@ -109,8 +109,11 @@ void InitialConnectionHandler::readCallback(
     }
 
     if (isContinueRead) {
-        guard.release();
         rc = scheduleRead(context);
+
+        if (rc == 0) {
+            guard.release();
+        }
     }
 
     if (rc != 0) {
