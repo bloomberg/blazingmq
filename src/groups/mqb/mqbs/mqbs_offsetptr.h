@@ -28,7 +28,6 @@
 // in a block of memory.
 
 // MQB
-
 #include <mqbs_memoryblock.h>
 
 // BDE

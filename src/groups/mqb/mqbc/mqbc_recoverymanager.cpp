@@ -1257,6 +1257,12 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     else if (rc != 0) {
         return rc * 10 + rc_OPEN_FILE_SET_FAILURE;  // RETURN
     }
+    BALL_LOG_ERROR << "yyan82 TODO rm recoveryCtx.d_mappedQlistFd = "
+                   << recoveryCtx.d_mappedQlistFd.fileSize() << ", "
+                   << recoveryCtx.d_mappedQlistFd.mappingSize() << ", "
+                   << recoveryCtx.d_mappedQlistFd.mapping() << ", "
+                   << recoveryCtx.d_mappedQlistFd.fd() << ", "
+                   << recoveryCtx.d_mappedQlistFd.isValid();
 
     rc = mqbs::FileStoreUtil::validateFileSet(
         recoveryCtx.d_mappedJournalFd,

@@ -27,6 +27,7 @@
 
 // MQB
 
+#include <ball_log.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_mappedfiledescriptor.h>
 #include <mqbs_memoryblockiterator.h>
@@ -259,6 +260,12 @@ inline const QlistFileHeader& QlistFileIterator::header() const
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(0 != d_qlistHeaderOffset);
 
+    BALL_LOG_SET_CATEGORY("yyan82 TODO rm");
+    BALL_LOG_ERROR << "d_blockIter.block()->base() = "
+                   << d_blockIter.block()->base()
+                   << ", d_blockIter.block()->size() = "
+                   << d_blockIter.block()->size()
+                   << ", d_qlistHeaderOffset = " << d_qlistHeaderOffset;
     OffsetPtr<const QlistFileHeader> rec(*d_blockIter.block(),
                                          d_qlistHeaderOffset);
     return *rec;

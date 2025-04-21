@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbs_filestoreutil.cpp                                             -*-C++-*-
+#include <ball_log.h>
 #include <mqbs_filestoreutil.h>
 
 #include <mqbscm_version.h>
@@ -1340,6 +1341,9 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
             return rc_QLIST_FILE_ITERATOR_FAILURE;  // RETURN
         }
         BSLS_ASSERT_SAFE(qit->isValid());
+        BALL_LOG_ERROR << "yyan82 TODO rm qit->isValid() = " << qit->isValid()
+                       << ", qit->header().headerWords() = "
+                       << qit->header().headerWords();
     }
 
     if (needData) {
