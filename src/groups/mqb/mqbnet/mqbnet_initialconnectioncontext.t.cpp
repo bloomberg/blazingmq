@@ -22,7 +22,7 @@
 #include <mqbnet_session.h>
 
 // BMQ
-#include <bmqio_channel.h>
+#include <bmqio_testchannel.h>
 
 // BDE
 #include <bsls_platform.h>
@@ -34,25 +34,6 @@
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace bsl;
-
-// ============================================================================
-//                 HELPER CLASSES AND FUNCTIONS FOR TESTING
-// ----------------------------------------------------------------------------
-
-/// A mock implementation of SessionEventProcessor protocol, for testing
-/// `InitialConnectionContext`.
-class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
-  public:
-    ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE = default;
-
-    void processEvent(const bmqp::Event&   event,
-                      mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
-};
-
-void MockSessionEventProcessor::processEvent(const bmqp::Event&   event,
-                                             mqbnet::ClusterNode* source)
-{
-}
 
 // ============================================================================
 //                                    TESTS
@@ -88,6 +69,14 @@ static void test1_initialConnectionContext()
             BMQTST_ASSERT_EQ(&(obj.setResultState(&value)), &obj);
             BMQTST_ASSERT_EQ(obj.resultState(), &value);
         }
+
+        {  // Channel
+            bsl::shared_ptr<bmqio::TestChannel> channel;
+            bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();
+            channel.createInplace(allocator);
+            BMQTST_ASSERT_EQ(&(obj.setChannel(channel)), &obj);
+            BMQTST_ASSERT_EQ(obj.channel(), channel);
+        }
     }
 }
 
@@ -108,5 +97,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
