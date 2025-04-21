@@ -993,10 +993,10 @@ int RecoveryManager::processReceiveDataChunks(
                 recordOffset);
             if (mqbs::QueueOpType::e_CREATION != queueRec->type() &&
                 mqbs::QueueOpType::e_ADDITION != queueRec->type()) {
-                BALL_LOG_ERROR
-                    << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << " Unexpected QueueOpType: " << queueRec->type();
+                BALL_LOG_ERROR << d_clusterData.identity().description()
+                               << " Partition [" << partitionId
+                               << "]: " << " Unexpected QueueOpType: "
+                               << queueRec->type();
                 return rc_INVALID_QUEUE_RECORD;  // RETURN
             }
 
@@ -1051,14 +1051,13 @@ int RecoveryManager::processReceiveDataChunks(
                 BALL_LOG_OUTPUT_STREAM
                     << d_clusterData.identity().description() << " Partition ["
                     << partitionId
-                    << "]: " << "Received QueueCreationRecord of "
-                    << "type [" << queueRec->type() << "] for "
-                    << "queueKey [" << queueRec->queueKey() << "]";
+                    << "]: " << "Received QueueCreationRecord of " << "type ["
+                    << queueRec->type() << "] for " << "queueKey ["
+                    << queueRec->queueKey() << "]";
                 if (d_qListAware) {
-                    BALL_LOG_OUTPUT_STREAM << ", queue [" << quri << "]"
-                                           << ", with ["
-                                           << appIdKeyPairs.size()
-                                           << "] appId/appKey pairs ";
+                    BALL_LOG_OUTPUT_STREAM
+                        << ", queue [" << quri << "]" << ", with ["
+                        << appIdKeyPairs.size() << "] appId/appKey pairs ";
                     for (mqbi::Storage::AppInfos::const_iterator cit =
                              appIdKeyPairs.cbegin();
                          cit != appIdKeyPairs.cend();
@@ -1099,10 +1098,10 @@ int RecoveryManager::processReceiveDataChunks(
                     recordOffset);
                 if (mqbs::QueueOpType::e_CREATION != queueRec->type() &&
                     mqbs::QueueOpType::e_ADDITION != queueRec->type()) {
-                    BALL_LOG_ERROR
-                        << d_clusterData.identity().description()
-                        << " Partition [" << partitionId << "]: "
-                        << " Unexpected QueueOpType: " << queueRec->type();
+                    BALL_LOG_ERROR << d_clusterData.identity().description()
+                                   << " Partition [" << partitionId
+                                   << "]: " << " Unexpected QueueOpType: "
+                                   << queueRec->type();
                     return rc_INVALID_QUEUE_RECORD;  // RETURN
                 }
             }
@@ -1332,8 +1331,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             if (0 == dataHeaderOffset) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "Encountered a MESSAGE record with GUID ["
+                    << partitionId
+                    << "]: " << "Encountered a MESSAGE record with GUID ["
                     << rec.messageGUID() << "], queueKey [" << rec.queueKey()
                     << "], but invalid DATA file offset field. Journal record "
                     << "offset: " << jit.recordOffset()
@@ -1345,8 +1344,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             if (dataHeaderOffset > recoveryCtx.d_mappedDataFd.fileSize()) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "Encountered a MESSAGE record with GUID ["
+                    << partitionId
+                    << "]: " << "Encountered a MESSAGE record with GUID ["
                     << rec.messageGUID() << "], queueKey [" << rec.queueKey()
                     << "], but out-of-bound DATA file offset field: "
                     << dataHeaderOffset << ", DATA file size: "
@@ -1395,10 +1394,10 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             if (queueUriRecOffset > recoveryCtx.d_mappedQlistFd.fileSize()) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "Encountered a QueueOp record of type [" << queueOpType
-                    << "], with QLIST file offset field [" << queueUriRecOffset
-                    << "] greater than QLIST file size ["
+                    << partitionId
+                    << "]: " << "Encountered a QueueOp record of type ["
+                    << queueOpType << "], with QLIST file offset field ["
+                    << queueUriRecOffset << "] greater than QLIST file size ["
                     << recoveryCtx.d_mappedQlistFd.fileSize()
                     << "] during backward journal iteration. Record "
                     << "offset: " << jit.recordOffset()
@@ -1419,8 +1418,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             if (0 == queueRecHeader->headerWords()) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "For QueueOp record of type [" << queueOpType
+                    << partitionId << "]: " << "For QueueOp record of type ["
+                    << queueOpType
                     << "], the record present in QLIST file has "
                     << "invalid 'headerWords' field in the header. "
                     << "Journal record offset: " << jit.recordOffset()
@@ -1440,8 +1439,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                 (queueUriRecOffset + queueRecHeaderLen)) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "For QueueOp record of type [" << queueOpType
+                    << partitionId << "]: " << "For QueueOp record of type ["
+                    << queueOpType
                     << "], the record present in QLIST file has "
                     << "invalid header size [" << queueRecHeaderLen
                     << "]. Journal record offset: " << jit.recordOffset()
@@ -1458,8 +1457,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             if (0 == queueRecHeader->queueUriLengthWords()) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "For QueueOp record of type [" << queueOpType
+                    << partitionId << "]: " << "For QueueOp record of type ["
+                    << queueOpType
                     << "], the record present in QLIST file has "
                     << "invalid 'queueUriLengthWords' field in the "
                     << "header. Journal record offset: " << jit.recordOffset()
@@ -1478,8 +1477,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                 (queueUriRecOffset + paddedUriLen)) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "For QueueOp record of type [" << queueOpType
+                    << partitionId << "]: " << "For QueueOp record of type ["
+                    << queueOpType
                     << "], the record present in QLIST file has "
                     << "invalid 'queueUriLengthWords' field in the "
                     << "header. Journal record offset: " << jit.recordOffset()
@@ -1499,8 +1498,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             if (0 == queueRecLength) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "For QueueOp record of type [" << queueOpType
+                    << partitionId << "]: " << "For QueueOp record of type ["
+                    << queueOpType
                     << "], the record present in QLIST file has "
                     << "invalid 'queueRecordWords' field in the "
                     << "header. Journal record offset: " << jit.recordOffset()
@@ -1516,8 +1515,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                 (queueUriRecOffset + queueRecLength)) {
                 errorDescription
                     << d_clusterData.identity().description() << " Partition ["
-                    << partitionId << "]: "
-                    << "For QueueOp record of type [" << queueOpType
+                    << partitionId << "]: " << "For QueueOp record of type ["
+                    << queueOpType
                     << "], the record present in QLIST file has "
                     << "invalid 'queueRecLength' field in the header. "
                     << "Journal record offset: " << jit.recordOffset()

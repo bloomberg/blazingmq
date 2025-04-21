@@ -2403,8 +2403,8 @@ void StorageManager::do_processBufferedLiveData(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(fs);
     if (!fs->isOpen()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot process buffered live data because "
+                       << " Partition [" << partitionId
+                       << "]: " << "Cannot process buffered live data because "
                        << "FileStore is not opened.";
 
         return;  // RETURN
