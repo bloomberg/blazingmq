@@ -277,17 +277,14 @@ jobs:
   build_and_test_bmqprometheus_plugin:
     name: "Build Prometheus plugin [ubuntu]"
     runs-on: ubuntu-latest
-    needs: build_ubuntu
+    needs: get_dependencies
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/cache/restore@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
+          path: deps
+          key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up plugins dependencies
         run: |
@@ -306,6 +303,10 @@ jobs:
             libz-dev \
             autoconf \
             libtool
+
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
 
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
@@ -326,7 +327,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
-            -DINSTALL_TARGETS=prometheus
+            -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
           cmake --build build/blazingmq --parallel 8 --target all
 
       - name: Create prometheus dir
