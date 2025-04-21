@@ -14,13 +14,9 @@
 // limitations under the License.
 
 // mqba_initialconnectionhandler.cpp                           -*-C++-*-
-
-// MQB
 #include <mqba_initialconnectionhandler.h>
 
-/// Implementation Notes
-///====================
-
+#include <mqbscm_version.h>
 // MQB
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
@@ -84,6 +80,8 @@ void InitialConnectionHandler::readCallback(
     bsl::string error;
 
     // The completeCb is not triggered only when there's more to read
+    // (didn't receive a full blob; or received a full blob and
+    // successfully scheduled another read)
     bdlb::ScopeExitAny guard(
         bdlf::BindUtil::bind(&InitialConnectionHandler::complete,
                              context,
@@ -347,6 +345,8 @@ void InitialConnectionHandler::handleInitialConnection(
         rc = d_negotiator_mp->negotiateOutboundOrReverse(
             errStream,
             context->negotiationContext());
+
+        // Send outbound request success, continue to read
         if (rc == 0) {
             rc = scheduleRead(context);
         }

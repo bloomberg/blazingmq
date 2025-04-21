@@ -80,7 +80,6 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                       bdlbb::Blob*                      blob,
                       const InitialConnectionContextSp& context);
 
-    /// TODO
     int readBlob(bsl::ostream&        errorDescription,
                  bdlbb::Blob*         outPacket,
                  bool*                isFullBlob,
@@ -88,7 +87,6 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                  int*                 numNeeded,
                  bdlbb::Blob*         blob);
 
-    /// TODO
     int processBlob(bsl::ostream&                     errorDescription,
                     bsl::shared_ptr<mqbnet::Session>* session,
                     bool*                             isContinueRead,
