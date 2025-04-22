@@ -328,8 +328,9 @@ class QueueStatsClient {
 
   private:
     // DATA
+
+    /// StatContext
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext
 
   private:
     // NOT IMPLEMENTED
