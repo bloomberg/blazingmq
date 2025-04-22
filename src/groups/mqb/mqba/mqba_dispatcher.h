@@ -64,6 +64,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>  // BSLA_UNREACHABLE
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -631,6 +632,7 @@ Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
         BSLS_ASSERT_OPT(false && "Invalid type");
         return -1;  // RETURN
     }  // break;
+    default: BSLA_UNREACHABLE;
     }
 
     return 0;

@@ -37,6 +37,7 @@
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>  // BSLA_UNREACHABLE
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -280,6 +281,7 @@ inline bool MessageDumper::DumpContext::isEnabled() const
         d_isEnabled = (d_actionValue >= bmqsys::Time::highResolutionTimer());
         // Expiration time is in the future
     } break;  // BREAK
+    default: BSLA_UNREACHABLE;
     }
 
     return d_isEnabled;

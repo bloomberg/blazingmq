@@ -733,9 +733,10 @@ const char* MockSession::toAscii(const Method method)
         return "int confirmMessage(const MessageConfirmationCookie& cookie)";
     case e_CONFIRM_MESSAGES:
         return "int confirmMessages(ConfirmEventBuilder *builder)";
+    default: return "UNKNOWN";
     }
 
-    return "UNKNOWN";
+    BSLA_UNREACHABLE;
 }
 
 void MockSession::initializeStats()
