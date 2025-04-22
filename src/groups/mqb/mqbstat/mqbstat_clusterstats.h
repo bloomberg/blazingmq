@@ -294,8 +294,9 @@ class ClusterNodeStats {
 
   private:
     // DATA
+
+    /// StatContext
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext
 
     // PRIVATE TYPES
 
@@ -305,15 +306,15 @@ class ClusterNodeStats {
         enum Enum {
             /// Value:      Number of ack messages delivered to the client
             e_STAT_ACK,
-            // Value:      Number of confirm messages delivered to the client
+            /// Value:      Number of confirm messages delivered to the client
             e_STAT_CONFIRM,
-            // Value:      Accumulated bytes of all messages ever pushed to
-            //             the client
-            // Increments: Number of messages ever pushed to the client
+            /// Value:      Accumulated bytes of all messages ever pushed to
+            ///             the client
+            /// Increments: Number of messages ever pushed to the client
             e_STAT_PUSH,
-            // Value:      Accumulated bytes of all messages ever received from
-            //             the client
-            // Increments: Number of messages ever received from the client
+            /// Value:      Accumulated bytes of all messages ever received
+            ///             from the client
+            /// Increments: Number of messages ever received from the client
             e_STAT_PUT
         };
     };

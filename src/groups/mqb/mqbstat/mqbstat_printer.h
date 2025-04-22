@@ -84,7 +84,9 @@ class Printer {
 
   private:
     // DATA
-    const mqbcfg::StatsConfig& d_config;  // Config to use.
+
+    /// Config to use.
+    const mqbcfg::StatsConfig& d_config;
 
     /// FileObserver for the stats log dump.
     ball::FileObserver2 d_statsLogFile;
