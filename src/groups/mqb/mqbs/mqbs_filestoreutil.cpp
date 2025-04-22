@@ -1188,7 +1188,10 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
 
                 *journalFilePos = journalFileSize;
                 *dataFilePos    = dataFileSize;
-                recoveryIndex   = i;
+                if (qlistFilePos) {
+                    *qlistFilePos = qlistFileSize;
+                }
+                recoveryIndex = i;
                 break;  // BREAK
             }
 
