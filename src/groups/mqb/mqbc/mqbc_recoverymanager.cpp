@@ -1288,7 +1288,9 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     // journal and data file respectively.
     mqbs::JournalFileIterator jit;
     mqbs::DataFileIterator    dit;
-    mqbs::QlistFileIterator   qit;
+    mqbs::QlistFileIterator
+        qit;  // TODO yyan82 This can go out-of-scope. WTF you doing passing it
+              // to `mqbs::FileStoreUtil::setFileHeaderOffsets` down there?
     rc = mqbs::FileStoreUtil::loadIterators(errorDescription,
                                             &jit,
                                             &dit,
