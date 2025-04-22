@@ -42,6 +42,7 @@
 #include <bsl_string.h>
 #include <bsl_utility.h>  // bsl::pair, bsl::make_pair
 #include <bsl_vector.h>
+#include <bsla_annotations.h>  // BSLA_UNREACHABLE
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -175,6 +176,7 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
 
         return mqbc::ClusterStateRecordType::e_COMMIT;
     }
+    default: BSLA_UNREACHABLE;
     }
 
     BSLS_ASSERT_OPT(false && "Unreachable by design.");
