@@ -49,6 +49,9 @@ namespace mqbs {
 /// This component provides a mechanism to iterate over a BlazingMQ queue
 /// list file.
 class QlistFileIterator {
+  private:  // TODO rm yyan82
+    BALL_LOG_SET_CLASS_CATEGORY("yyan82 TODO rm");
+
   private:
     // DATA
     const MappedFileDescriptor* d_mfd_p;
@@ -260,12 +263,25 @@ inline const QlistFileHeader& QlistFileIterator::header() const
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(0 != d_qlistHeaderOffset);
 
-    BALL_LOG_SET_CATEGORY("yyan82 TODO rm");
     BALL_LOG_ERROR << "d_blockIter.block()->base() = "
                    << d_blockIter.block()->base()
                    << ", d_blockIter.block()->size() = "
                    << d_blockIter.block()->size()
-                   << ", d_qlistHeaderOffset = " << d_qlistHeaderOffset;
+                   << ", d_qlistHeaderOffset = " << d_qlistHeaderOffset
+                   << ", d_blockIter.position() = " << d_blockIter.position()
+                   << ", casting to Uint64 --  d_qlistHeaderOffset = "
+                   << static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset)
+                   << ", d_blockIter.block()->size() = "
+                   << d_blockIter.block()->size();
+    if (static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) <
+        d_blockIter.block()->size()) {
+        BALL_LOG_ERROR
+            << "yyan82 TODO rm Why is this smaller? d_qlistHeaderOffset = "
+            << static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) << ", "
+            << d_blockIter.block()->size();
+    }
+    BSLS_ASSERT_SAFE(static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) <
+                     d_blockIter.block()->size());  // TODO yyan rm
     OffsetPtr<const QlistFileHeader> rec(*d_blockIter.block(),
                                          d_qlistHeaderOffset);
     return *rec;

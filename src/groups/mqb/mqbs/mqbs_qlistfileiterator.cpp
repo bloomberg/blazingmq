@@ -110,7 +110,6 @@ int QlistFileIterator::reset(const MappedFileDescriptor* mfd,
     // Complete QlistFileHeader is present
 
     d_qlistHeaderOffset = d_blockIter.position();
-    BALL_LOG_SET_CATEGORY("yyan82 TODO rm");
     BALL_LOG_ERROR << "d_qlistHeaderOffset = " << d_qlistHeaderOffset
                    << ", d_blockIter.position() = " << d_blockIter.position();
 

@@ -93,6 +93,8 @@ class OffsetPtr {
 template <class TYPE>
 inline OffsetPtr<TYPE>::OffsetPtr(const MemoryBlock& block, bsl::size_t offset)
 {
+    BSLS_ASSERT_SAFE(static_cast<bsls::Types::Uint64>(offset) <
+                     block.size());  // TODO rm yyan82
     reset(block, offset);
 }
 
@@ -102,7 +104,7 @@ inline void OffsetPtr<TYPE>::reset(const MemoryBlock& block,
                                    bsl::size_t        offset)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(offset < block.size());
+    BSLS_ASSERT_SAFE(static_cast<bsls::Types::Uint64>(offset) < block.size());
     BSLS_ASSERT_SAFE(bsls::AlignmentUtil::calculateAlignmentOffset(
                          block.base() + offset,
                          bsls::AlignmentFromType<TYPE>::VALUE) == 0);

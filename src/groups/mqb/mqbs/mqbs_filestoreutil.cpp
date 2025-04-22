@@ -634,6 +634,11 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
 
     if (needQList) {
         // Qlist file -- append BlazingMQ header
+        BALL_LOG_ERROR << "yyan82 TODO rm qlistFile.block().base() = "
+                       << qlistFile.block().base()
+                       << ", qlistFile.block().size() = "
+                       << qlistFile.block().size()
+                       << ", qlistFilePos = " << qlistFilePos;
         fh.reset(qlistFile.block(), qlistFilePos);
 
         new (fh.get()) FileHeader();
