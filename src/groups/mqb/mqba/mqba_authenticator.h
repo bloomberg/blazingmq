@@ -39,6 +39,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
@@ -66,6 +67,13 @@ class Authenticator : public mqbnet::Authenticator {
   public:
     // TYPES
 
+    /// Type of a pool of shared pointers to blob
+    typedef bdlcc::SharedObjectPool<
+        bdlbb::Blob,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        BlobSpPool;
+
   private:
     typedef bsl::shared_ptr<mqbnet::AuthenticationContext>
         AuthenticationContextSp;
@@ -75,6 +83,8 @@ class Authenticator : public mqbnet::Authenticator {
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
+
+    BlobSpPool* d_blobSpPool_p;
 
     /// Cluster catalog to query for cluster information.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
@@ -130,7 +140,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// `bufferFactory`, `dispatcher`, `statContext`, `scheduler` and
     /// `blobSpPool` to inject in the negotiated sessions.  Use the
     /// specified `allocator` for all memory allocations.
-    Authenticator(bslma::Allocator* allocator);
+    Authenticator(BlobSpPool* blobSpPool, bslma::Allocator* allocator);
 
     /// Destructor
     ~Authenticator() BSLS_KEYWORD_OVERRIDE;
@@ -143,6 +153,9 @@ class Authenticator : public mqbnet::Authenticator {
 
     // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
+
+    int handleAuthenticationOnMsgType(const AuthenticationContextSp& context)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound authentication message or reverse connection request
     /// with the specified `context`.
