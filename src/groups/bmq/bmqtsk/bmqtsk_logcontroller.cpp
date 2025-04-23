@@ -438,8 +438,8 @@ LogController::LogController(bdlmt::EventScheduler* scheduler,
 , d_config(allocator)
 , d_multiplexObserver(allocator)
 , d_fileObserver(ball::Severity::e_OFF,  // disable stdout (we use Console)
-                 false,                // use UTC time
-                 8192,                 // maxQueueLogEntries
+                 false,                  // use UTC time
+                 8192,                   // maxQueueLogEntries
                  allocator)
 , d_alarmLog(allocator)
 , d_consoleObserver(allocator)
@@ -682,15 +682,15 @@ void LogController::setVerbosityLevel(ball::Severity::Level passVerbosity,
                                       ball::Severity::Level triggerVerbosity)
 {
     ball::Administration::setDefaultThresholdLevels(
-        recordVerbosity,       // recording level
-        passVerbosity,         // passthrough level
-        triggerVerbosity,      // trigger level
+        recordVerbosity,         // recording level
+        passVerbosity,           // passthrough level
+        triggerVerbosity,        // trigger level
         ball::Severity::e_OFF);  // triggerAll level
     ball::Administration::setThresholdLevels(
         "*",
-        recordVerbosity,       // recording level
-        passVerbosity,         // passthrough level
-        triggerVerbosity,      // trigger level
+        recordVerbosity,         // recording level
+        passVerbosity,           // passthrough level
+        triggerVerbosity,        // trigger level
         ball::Severity::e_OFF);  // triggerAll level
 }
 
@@ -705,14 +705,14 @@ void LogController::setCategoryVerbosity(const bsl::string&    category,
     ball::Administration::addCategory(
         categoryNoStar.c_str(),
         ball::Severity::e_OFF,   // recording level
-        verbosity,             // passthrough level
+        verbosity,               // passthrough level
         ball::Severity::e_OFF,   // trigger level
         ball::Severity::e_OFF);  // triggerAll level
 
     ball::Administration::setThresholdLevels(
         category.c_str(),
         ball::Severity::e_OFF,   // recording level
-        verbosity,             // passthrough level
+        verbosity,               // passthrough level
         ball::Severity::e_OFF,   // trigger level
         ball::Severity::e_OFF);  // triggerAll level
 }

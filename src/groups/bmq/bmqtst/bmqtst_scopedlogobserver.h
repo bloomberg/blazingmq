@@ -45,7 +45,8 @@
 // observer object for testing purposes.
 //
 // First, create a 'bmqtst::ScopedLogObserver' object having a desired severity
-// threshold for capturing log records (in this case, 'ball::Severity::e_ERROR').
+// threshold for capturing log records (in this case,
+// 'ball::Severity::e_ERROR').
 //..
 //  BALL_LOG_SET_CATEGORY("TEST");
 //  bmqtst::ScopedLogObserver observer(ball::Severity::e_ERROR,
