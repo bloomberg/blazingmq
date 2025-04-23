@@ -6,5 +6,5 @@ mqba_configprovider
 mqba_dispatcher
 mqba_domainmanager
 mqba_domainresolver
-mqba_initialconnectionhandler
+mqba_negotiationcontext
 mqba_sessionnegotiator
