@@ -47,6 +47,9 @@ class Authenticator {
 
     // MANIPULATORS
 
+    virtual int handleAuthenticationOnMsgType(
+        const bsl::shared_ptr<AuthenticationContext>& context) = 0;
+
     /// Send out outbound authentication message or reverse connection request
     /// with the specified `context`.
     virtual int authenticationOutboundOrReverse(
