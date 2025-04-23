@@ -207,6 +207,7 @@ const char* EventType::toAscii(EventType::Enum value)
         CASE(HEARTBEAT_REQ)
         CASE(HEARTBEAT_RSP)
         CASE(REPLICATION_RECEIPT)
+        CASE(AUTHENTICATION)
     default: return "(* UNKNOWN *)";
     }
 
