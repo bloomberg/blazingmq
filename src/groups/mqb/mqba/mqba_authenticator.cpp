@@ -20,6 +20,7 @@
 
 /// Implementation Notes
 ///====================
+/// TODO
 
 // MQB
 #include <mqbblp_clustercatalog.h>
@@ -82,8 +83,6 @@ int Authenticator::onAuthenticationRequest(
         response.lifetimeMs()        = 10 * 60 * 1000;
     }
 
-    BALL_LOG_INFO << "send authn response " << authenticationResponse;
-
     int rc = sendAuthenticationMessage(errorDescription,
                                        authenticationResponse,
                                        context);
@@ -95,7 +94,9 @@ int Authenticator::onAuthenticationResponse(
     bsl::ostream&                  errorDescription,
     const AuthenticationContextSp& context)
 {
-    return 0;
+    BALL_LOG_ERROR << "Not Implemented";
+
+    return -1;
 }
 
 int Authenticator::sendAuthenticationMessage(
@@ -162,6 +163,8 @@ Authenticator::~Authenticator()
 }
 
 int Authenticator::handleAuthenticationOnMsgType(
+    bsl::ostream&                  errorDescription,
+    bool*                          isContinueRead,
     const AuthenticationContextSp& context)
 {
     enum RcEnum {
@@ -176,33 +179,22 @@ int Authenticator::handleAuthenticationOnMsgType(
     switch (context->d_authenticationMessage.selectionId()) {
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATE_REQUEST: {
-        BALL_LOG_INFO << "Received authn request: "
-                      << context->d_authenticationMessage;
         rc = onAuthenticationRequest(errStream, context);
     } break;  // BREAK
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        BALL_LOG_INFO << "Received authn response: "
-                      << context->d_authenticationMessage;
+        rc = onAuthenticationResponse(errStream, context);
     } break;  // BREAK
     default: {
-        errStream << "Invalid authentication message received (unknown type): "
-                  << context->d_authenticationMessage;
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            rc_ERROR,
-            error,
-            bsl::shared_ptr<mqbnet::Session>());
+        errorDescription
+            << "Invalid authentication message received (unknown type): "
+            << context->d_authenticationMessage;
         return rc_ERROR;  // RETURN
     }
     }
 
-    if (rc != rc_SUCCESS) {
-        bsl::string error(errStream.str().data(), errStream.str().length());
-        context->d_initialConnectionContext_p->initialConnectionCompleteCb()(
-            rc_ERROR,
-            error,
-            bsl::shared_ptr<mqbnet::Session>());
+    if (rc == rc_SUCCESS) {
+        *isContinueRead = true;
     }
 
     return rc;

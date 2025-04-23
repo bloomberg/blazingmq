@@ -32,18 +32,6 @@
 namespace BloombergLP {
 namespace mqbnet {
 
-struct ConnectionType {
-    // Enum representing the type of session being negotiated, from that
-    // side of the connection's point of view.
-    enum Enum {
-        e_UNKNOWN,
-        e_CLUSTER_PROXY,   // Reverse connection proxy -> broker
-        e_CLUSTER_MEMBER,  // Cluster node -> cluster node
-        e_CLIENT,          // Either SDK or Proxy -> Proxy or cluster node
-        e_ADMIN
-    };
-};
-
 // ========================
 // class NegotiationContext
 // ========================
