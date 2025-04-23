@@ -29,11 +29,13 @@
 ///
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
-/// TODO
+///
+/// The implementation must be thread safe as 'negotiate()' may be called
+/// concurrently from many IO threads.
 
 // MQB
+#include <mqba_negotiationcontext.h>
 #include <mqbconfm_messages.h>
-#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
 
@@ -91,7 +93,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<mqbnet::NegotiationContext> NegotiationContextSp;
+    typedef bsl::shared_ptr<NegotiationContext> NegotiationContextSp;
 
   private:
     // DATA
@@ -136,6 +138,25 @@ class SessionNegotiator : public mqbnet::Negotiator {
   private:
     // PRIVATE MANIPULATORS
 
+    /// Read callback method invoked when receiving data in the specified
+    /// `blob`, if the specified `status` indicates success.  The specified
+    /// `numNeeded` can be used to indicate if more bytes are needed in
+    /// order to get a full message.  The specified `context` holds the
+    /// negotiation context associated to this read.
+    void readCallback(const bmqio::Status&        status,
+                      int*                        numNeeded,
+                      bdlbb::Blob*                blob,
+                      const NegotiationContextSp& context);
+
+    /// Decode the negotiation messages received in the specified `blob` and
+    /// store it, on success, in the corresponding member of the specified
+    /// `context`, returning 0.  Return a non-zero code on error and
+    /// populate the specified `errorDescription` with a description of the
+    /// error.
+    int decodeNegotiationMessage(bsl::ostream&               errorDescription,
+                                 const NegotiationContextSp& context,
+                                 const bdlbb::Blob&          blob);
+
     /// Invoked when received a `ClientIdentity` negotiation message with
     /// the specified `context`.  Creates and return a Session on success,
     /// or return a null pointer and populate the specified
@@ -171,19 +192,20 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using a deprecated version of the libbmq SDK.
-    bool
-    checkIsDeprecatedSdkVersion(const mqbnet::NegotiationContext& context);
+    bool checkIsDeprecatedSdkVersion(const NegotiationContext& context);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using an unsupported version of the libbmq SDK.
-    bool
-    checkIsUnsupportedSdkVersion(const mqbnet::NegotiationContext& context);
+    bool checkIsUnsupportedSdkVersion(const NegotiationContext& context);
 
     /// Initiate an outbound negotiation (i.e., send out some negotiation
     /// message and schedule a read of the response) using the specified
     /// `context`.
-    int initiateOutboundNegotiation(bsl::ostream& errorDescription,
-                                    const NegotiationContextSp& context);
+    void initiateOutboundNegotiation(const NegotiationContextSp& context);
+
+    /// Schedule a read for the negotiation of the session of the specified
+    /// `context`.
+    void scheduleRead(const NegotiationContextSp& context);
 
   public:
     // TRAITS
@@ -225,23 +247,15 @@ class SessionNegotiator : public mqbnet::Negotiator {
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
 
-    /// Create a `session` based on the type of initial connection message in
-    /// the specified `context`.  Set `isContinueRead` to true if we want to
-    /// continue reading instead of creating a session just yet.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
-    int createSessionOnMsgType(bsl::ostream& errorDescription,
-                               bsl::shared_ptr<mqbnet::Session>* session,
-                               bool*                       isContinueRead,
-                               const NegotiationContextSp& context)
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Send out outbound negotiation message or reverse connection request
-    /// with the specified `context`.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
-    int negotiateOutboundOrReverse(bsl::ostream& errorDescription,
-                                   const NegotiationContextSp& context)
+    /// Negotiate the connection on the specified `channel` associated with
+    /// the specified negotiation `context` and invoke the specified
+    /// `negotiationCb` once the negotiation is complete (either success or
+    /// failure).  Note that if no negotiation are needed, the
+    /// `negotiationCb` may be invoked directly from inside the call to
+    /// `negotiate`.
+    void negotiate(mqbnet::NegotiatorContext*               context,
+                   const bsl::shared_ptr<bmqio::Channel>&   channel,
+                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE;
 };
 

@@ -697,10 +697,10 @@ int ClusterCatalog::count()
 }
 
 mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
-    bsl::ostream&                     errorDescription,
-    mqbnet::InitialConnectionContext* context,
-    const bslstl::StringRef&          clusterName,
-    int                               nodeId)
+    bsl::ostream&              errorDescription,
+    mqbnet::NegotiatorContext* context,
+    const bslstl::StringRef&   clusterName,
+    int                        nodeId)
 {
     mqbnet::ClusterNode* clusterNode = 0;
 
@@ -713,10 +713,8 @@ mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
             errorDescription << "Cluster '" << clusterName << "' not found";
             return 0;  // RETURN
         }
-        context->negotiationContext()->d_cluster_p =
-            &it->second.d_cluster_sp->netCluster();
-        context->negotiationContext()->d_eventProcessor_p =
-            it->second.d_eventProcessor_p;
+        context->setCluster(&it->second.d_cluster_sp->netCluster());
+        context->setEventProcessor(it->second.d_eventProcessor_p);
     }
 
     // 2. Lookup the nodeId and populate resultState

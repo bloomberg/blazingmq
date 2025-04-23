@@ -21,7 +21,6 @@
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
-#include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_relayqueueengine.h>
@@ -336,17 +335,10 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
 
-    bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        initialConnectionHandlerMp(
-            new (*d_allocator_p) InitialConnectionHandler(
-                negotiatorMp,
-                d_allocators.get("InitialConnectionHandler")),
-            d_allocator_p);
-
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
-                                   initialConnectionHandlerMp,
+                                   negotiatorMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
                                d_allocator_p);
@@ -885,7 +877,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Command command;
     bsl::string     parseError;
     if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
-        os << "Unable to decode command (rc: " << rc << ", error: '"
+        os << "Unable to decode command " << "(rc: " << rc << ", error: '"
            << parseError << "')";
         return rc + 10 * rc_PARSE_ERROR;  // RETURN
     }
