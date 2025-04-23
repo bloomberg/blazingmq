@@ -339,7 +339,7 @@
 //  bslma::ManagedPtr<bmqst::StatContext> client2 =
 //        context.addSubcontext(bmqst::StatContextConfiguration("tcp://5678"));
 //..
-// Suppose we receive a mesage from the first client and another message
+// Suppose we receive a message from the first client and another message
 // from the second client:
 //..
 //  int messageLength = 100;    // size of the message in bytes
@@ -840,7 +840,7 @@ class StatContext {
 
     /// Initialize the specified `update` based on the state of this object.
     /// After initialization, `update` will have a valid configuration, and
-    /// a number of empty value upates equal to the number of values within
+    /// a number of empty value updates equal to the number of values within
     /// this context.
     void initializeUpdate(bmqstm::StatContextUpdate* update) const;
 

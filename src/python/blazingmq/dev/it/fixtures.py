@@ -37,8 +37,7 @@ import shutil
 import tempfile
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
-from collections.abc import Generator, Iterator
+from typing import Callable, Iterator, List, Optional, Tuple
 import psutil
 
 import pytest

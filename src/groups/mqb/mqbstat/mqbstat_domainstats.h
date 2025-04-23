@@ -71,8 +71,9 @@ class DomainStats {
 
   private:
     // DATA
+
+    /// StatContext
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext
 
     // PRIVATE TYPES
 

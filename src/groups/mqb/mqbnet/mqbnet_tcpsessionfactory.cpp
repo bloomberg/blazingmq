@@ -656,9 +656,7 @@ void TCPSessionFactory::channelStateCallback(
     // This is an infrequent enough operation (compared to a 'readCb') that it
     // is fine to do this here (since we have no other ways to
     // proactively-execute code in the IO threads created by the channelPool).
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        bmqsys::ThreadUtil::setCurrentThreadNameOnce(d_threadName);
-    }
+    bmqsys::ThreadUtil::setCurrentThreadNameOnce(d_threadName);
 
     BALL_LOG_TRACE << "TCPSessionFactory '" << d_config.name()
                    << "': channelStateCallback [event: " << event
