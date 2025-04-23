@@ -258,9 +258,9 @@ Metrics in the following section are reported only by the node primary of the qu
 |queue_cfg_msgs|The configured queue messages capacity, used to compute percentage of resource used.|
 |queue_cfg_bytes|The configured queue bytes capacity, used to compute percentage of resource used.|
 |queue_content_msgs|The maximum snapshot'd value over the report interval window for the number of messages pending in the queue.|
-|queue_msgs_utilization|Queue messages utilization: queue_content_msgs / queue_cfg_msgs * 100%.|
+|queue_msgs_utilization_max|Queue messages utilization max: queue_content_msgs max/ queue_cfg_msgs * 100%.|
 |queue_content_bytes|The maximum snapshot'd value over the report interval window for the cumulated bytes of all messages pending in the queue.|
-|queue_bytes_utilization|Queue bytes utilization: queue_content_bytes / queue_cfg_bytes * 100%.|
+|queue_bytes_utilization_max|Queue bytes utilization max: queue_content_bytes max/ queue_cfg_bytes * 100%.|
 |queue_queue_time_avg|Represent the average time elapsed between when the message was received by the primary, and when it was pushed downstream to the next hop consumer for the messages pushed during the report interval window. This basically represents how long a message stayed in the queue due to no (usable) consumer available. Note that if the primary has switched between the put and the push, then the reported time only has seconds precision.|
 |queue_queue_time_max|Represent the maximum time elapsed between when the message was received by the primary, and when it was pushed downstream to the next hop consumer for the messages pushed during the report interval window. This basically represents how long a message stayed in the queue due to no (usable) consumer available. Note that if the primary has switched between the put and the push, then the reported time only has seconds precision.|
 |queue_reject_msgs|Total number of rejected messages for the queue (where the number delivery attempts reaches 0) over the report interval window.|
