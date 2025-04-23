@@ -140,17 +140,17 @@ LogControllerConfig::LogControllerConfig(bslma::Allocator* allocator)
 , d_rotationSeconds(60 * 60 * 24)     // 1 day
 , d_logfileFormat("%d (%t) %s %F:%l %m\n\n", allocator)
 , d_consoleFormat("%d (%t) %s %F:%l %m\n", allocator)
-, d_loggingVerbosity(ball::Severity::INFO)
+, d_loggingVerbosity(ball::Severity::e_INFO)
 , d_bslsLogSeverityThreshold(bsls::LogSeverity::e_ERROR)
-, d_consoleSeverityThreshold(ball::Severity::OFF)
+, d_consoleSeverityThreshold(ball::Severity::e_OFF)
 , d_syslogEnabled(false)
 , d_syslogFormat("%d (%t) %s %F:%l %m\n\n", allocator)
 , d_syslogAppName("")
-, d_syslogVerbosity(ball::Severity::ERROR)
+, d_syslogVerbosity(ball::Severity::e_ERROR)
 , d_categories(allocator)
 , d_recordBufferSizeBytes(32 * 1024)  // 32 KB
-, d_recordingVerbosity(ball::Severity::OFF)
-, d_triggerVerbosity(ball::Severity::OFF)
+, d_recordingVerbosity(ball::Severity::e_OFF)
+, d_triggerVerbosity(ball::Severity::e_OFF)
 {
     // NOTHING
 }
@@ -437,7 +437,7 @@ LogController::LogController(bdlmt::EventScheduler* scheduler,
 , d_isInitialized(false)
 , d_config(allocator)
 , d_multiplexObserver(allocator)
-, d_fileObserver(ball::Severity::OFF,  // disable stdout (we use Console)
+, d_fileObserver(ball::Severity::e_OFF,  // disable stdout (we use Console)
                  false,                // use UTC time
                  8192,                 // maxQueueLogEntries
                  allocator)
@@ -685,13 +685,13 @@ void LogController::setVerbosityLevel(ball::Severity::Level passVerbosity,
         recordVerbosity,       // recording level
         passVerbosity,         // passthrough level
         triggerVerbosity,      // trigger level
-        ball::Severity::OFF);  // triggerAll level
+        ball::Severity::e_OFF);  // triggerAll level
     ball::Administration::setThresholdLevels(
         "*",
         recordVerbosity,       // recording level
         passVerbosity,         // passthrough level
         triggerVerbosity,      // trigger level
-        ball::Severity::OFF);  // triggerAll level
+        ball::Severity::e_OFF);  // triggerAll level
 }
 
 void LogController::setCategoryVerbosity(const bsl::string&    category,
@@ -704,17 +704,17 @@ void LogController::setCategoryVerbosity(const bsl::string&    category,
 
     ball::Administration::addCategory(
         categoryNoStar.c_str(),
-        ball::Severity::OFF,   // recording level
+        ball::Severity::e_OFF,   // recording level
         verbosity,             // passthrough level
-        ball::Severity::OFF,   // trigger level
-        ball::Severity::OFF);  // triggerAll level
+        ball::Severity::e_OFF,   // trigger level
+        ball::Severity::e_OFF);  // triggerAll level
 
     ball::Administration::setThresholdLevels(
         category.c_str(),
-        ball::Severity::OFF,   // recording level
+        ball::Severity::e_OFF,   // recording level
         verbosity,             // passthrough level
-        ball::Severity::OFF,   // trigger level
-        ball::Severity::OFF);  // triggerAll level
+        ball::Severity::e_OFF,   // trigger level
+        ball::Severity::e_OFF);  // triggerAll level
 }
 
 int LogController::processCommand(const bsl::string& cmd, bsl::ostream& os)

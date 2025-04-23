@@ -644,7 +644,7 @@ static void test7_testLongUri()
 
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::WARN,
+    bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
 
     bsl::string domainStr("bmq://my.domain/",
@@ -661,7 +661,7 @@ static void test7_testLongUri()
     BMQTST_ASSERT_EQ(observer.records().size(), 1U);
 
     BMQTST_ASSERT_EQ(observer.records()[0].fixedFields().severity(),
-                     ball::Severity::ERROR);
+                     ball::Severity::e_ERROR);
 
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         observer.records()[0],

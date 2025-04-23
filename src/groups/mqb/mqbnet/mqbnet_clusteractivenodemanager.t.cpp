@@ -44,7 +44,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
 
     mqbnet::Cluster::NodesList nodes;
@@ -65,7 +65,7 @@ static void test2_activeNodeWithinDC()
 {
     bmqtst::TestHelper::printTestName("ACTIVE NODE IN SAME DC");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
 
     // Set up mock cluster
@@ -157,7 +157,7 @@ static void test3_activeNodeOutsideDC()
 {
     bmqtst::TestHelper::printTestName("ACTIVE NDOE OUTSIDE DC");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
 
     // Set up mock cluster
@@ -235,7 +235,7 @@ static void test4_panicInExtendedMode()
 {
     bmqtst::TestHelper::printTestName("ACTIVE NDOE OUTSIDE DC");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
 
     // Set up mock cluster

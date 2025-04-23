@@ -1996,7 +1996,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
 
     bdlbb::Blob* blob = event.blob().get();
 
-    if (BALL_LOG_IS_ENABLED(ball::Severity::TRACE)) {
+    if (BALL_LOG_IS_ENABLED(ball::Severity::e_TRACE)) {
         ClientSessionState::QueueStateMap::const_iterator it =
             d_queueSessionManager.queues().find(event.queueId());
 

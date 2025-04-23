@@ -134,26 +134,26 @@ void Application::setUpLog()
                                        ball::LoggerManagerConfiguration(),
                                        d_allocator_p);
 
-    ball::Severity::Level logLevel = ball::Severity::INFO;
+    ball::Severity::Level logLevel = ball::Severity::e_INFO;
     switch (d_parameters.verbosity()) {
     case ParametersVerbosity::e_SILENT: {
-        logLevel = ball::Severity::OFF;
+        logLevel = ball::Severity::e_OFF;
     } break;
     case ParametersVerbosity::e_TRACE: {
-        logLevel = ball::Severity::TRACE;
+        logLevel = ball::Severity::e_TRACE;
     } break;
     case ParametersVerbosity::e_DEBUG: {
-        logLevel = ball::Severity::DEBUG;
+        logLevel = ball::Severity::e_DEBUG;
     } break;
     case ParametersVerbosity::e_INFO: {
-        logLevel = ball::Severity::INFO;
+        logLevel = ball::Severity::e_INFO;
     } break;
     case ParametersVerbosity::e_WARNING: {
-        logLevel = ball::Severity::WARN;
+        logLevel = ball::Severity::e_WARN;
     } break;
     case ParametersVerbosity::e_ERROR:
     case ParametersVerbosity::e_FATAL: {
-        logLevel = ball::Severity::ERROR;
+        logLevel = ball::Severity::e_ERROR;
     } break;
     }
 
@@ -162,7 +162,7 @@ void Application::setUpLog()
             ? CommandLineParameters::DEFAULT_INITIALIZER_LOG_FORMAT
             : d_parameters.logFormat();
 
-    d_consoleObserver.setSeverityThreshold(ball::Severity::TRACE);
+    d_consoleObserver.setSeverityThreshold(ball::Severity::e_TRACE);
     // We use the ballLoggerManager global threshold to determine what gets
     // logged, so the console observer should print any logs it receives.
 
@@ -174,10 +174,10 @@ void Application::setUpLog()
 
     // Set default verbosity to the specified one
     ball::LoggerManager::singleton().setDefaultThresholdLevels(
-        ball::Severity::OFF,   // recording level
+        ball::Severity::e_OFF,   // recording level
         logLevel,              // passthrough level
-        ball::Severity::OFF,   // trigger level
-        ball::Severity::OFF);  // triggerAll level
+        ball::Severity::e_OFF,   // trigger level
+        ball::Severity::e_OFF);  // triggerAll level
 
     d_multiplexObserver.registerObserver(&d_consoleObserver);
 }
@@ -893,7 +893,7 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
     // Setup logging
     ball::StreamObserver             observer(&bsl::cout);
     ball::LoggerManagerConfiguration configuration;
-    configuration.setDefaultThresholdLevelsIfValid(ball::Severity::WARN);
+    configuration.setDefaultThresholdLevelsIfValid(ball::Severity::e_WARN);
 
     ball::LoggerManagerScopedGuard guard(&observer, configuration);
 
