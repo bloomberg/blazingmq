@@ -801,6 +801,10 @@ class Cluster : public mqbi::Cluster,
     const mqbcfg::ClusterProxyDefinition*
     clusterProxyConfig() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `true` if this node is shutting down using new shutdown logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    bool isShutdownLogicOn() const BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual: mqbi::Cluster)
 
@@ -933,6 +937,11 @@ inline const bsl::string& Cluster::description() const
 inline mqbi::StorageManager* Cluster::storageManager() const
 {
     return d_storageManager_mp.get();
+}
+
+inline bool Cluster::isShutdownLogicOn() const
+{
+    return d_clusterOrchestrator.queueHelper().isShutdownLogicOn();
 }
 
 }  // close package namespace

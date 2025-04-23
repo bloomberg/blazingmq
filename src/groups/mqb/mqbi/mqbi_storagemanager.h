@@ -167,8 +167,7 @@ class StorageManagerIterator {
 class StorageManager {
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfos  AppInfos;
-    typedef AppInfos::const_iterator AppInfosCIter;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef bsl::unordered_set<bsl::string> AppIds;
     typedef AppIds::iterator                AppIdsIter;

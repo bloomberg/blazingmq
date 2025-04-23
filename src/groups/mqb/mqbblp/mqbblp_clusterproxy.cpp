@@ -682,7 +682,6 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     default: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
                        << "Received unknown event: " << event;
-        BSLS_ASSERT_SAFE(false && "Unknown event received");
         return;  // RETURN
     };
     }

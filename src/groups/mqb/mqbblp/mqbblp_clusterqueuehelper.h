@@ -226,6 +226,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // List of all open queue pending contexts which are awaiting for a
         // next step on the queue (assignment, ...).
 
+        bsl::vector<VoidFunctor> d_pendingUpdates;
+        // Operations pending QueueUpdate.
+
         // Number of in flight contexts, that is the number of contexts for
         // which `d_callback` has not yet been called. Note that this may be
         // different than `d_pending.size` because the `d_pending` vector
@@ -412,10 +415,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// queue which have a proper valid unique queueId.
     typedef bsl::unordered_map<int, QueueContext*> QueueContextByIdMap;
 
-    typedef AppInfos::const_iterator AppInfosCIter;
-
-    typedef mqbc::ClusterStateQueueInfo::AppInfos AppInfos;
-
   private:
     // DATA
 
@@ -462,9 +461,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     StopContexts d_stopContexts;
 
-    /// When `true`, this node is shutting down using shutdown v2 logic.
+    /// When `true`, this node is shutting down using new shutdown logic.
     /// This can only be true when all cluster nodes support StopRequest V2.
-    bsls::AtomicBool d_supportShutdownV2;
+    bsls::AtomicBool d_isShutdownLogicOn;
 
   private:
     // PRIVATE MANIPULATORS
@@ -879,6 +878,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                            int                                 code,
                            const char*                         message);
 
+    bool setStopContext(const mqbnet::ClusterNode*          clusterNode,
+                        const bsl::shared_ptr<StopContext>& contextSp);
+
+    void convertToLocal(const QueueContextSp& queueContext,
+                        mqbi::Domain*         domain);
     // PRIVATE ACCESSORS
 
     /// Return true if for the specified `partitionId`, there is currently a
@@ -908,8 +912,12 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                  bsls::Types::Uint64*  genCount,
                                  int                   partitionId) const;
 
-    bool setStopContext(const mqbnet::ClusterNode*          clusterNode,
-                        const bsl::shared_ptr<StopContext>& contextSp);
+    /// Compare the specified `state` and `domainConfig` and populate the
+    //// specified `added` and `removed` with missing/extra Apps.
+    void match(bsl::vector<bsl::string>*          added,
+               bsl::vector<bsl::string>*          removed,
+               const mqbc::ClusterStateQueueInfo& state,
+               const mqbconfm::QueueMode&         domainConfig);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterMembershipObserver)
@@ -1118,6 +1126,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Dump the internal state of this object to the specified
     /// `clusterQueueHelper` object.
     void loadState(mqbcmd::ClusterQueueHelper* clusterQueueHelper) const;
+
+    /// Return `true` if this node is shutting down using new shutdown logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    bool isShutdownLogicOn() const;
 };
 
 // ============================================================================
@@ -1324,6 +1336,11 @@ inline bool ClusterQueueHelper::isFailoverInProgress() const
 inline int ClusterQueueHelper::numPendingReopenQueueRequests() const
 {
     return d_numPendingReopenQueueRequests;
+}
+
+inline bool ClusterQueueHelper::isShutdownLogicOn() const
+{
+    return d_isShutdownLogicOn;
 }
 
 }  // close package namespace

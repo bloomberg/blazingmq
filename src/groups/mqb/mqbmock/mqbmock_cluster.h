@@ -483,6 +483,10 @@ class Cluster : public mqbi::Cluster {
                                  bool*                 isSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `true` if this node is shutting down using new shutdown logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    bool isShutdownLogicOn() const BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
 
@@ -710,6 +714,11 @@ inline bsls::TimeInterval Cluster::getTime() const
 inline bsls::Types::Int64 Cluster::getTimeInt64() const
 {
     return d_timeSource.now().seconds();
+}
+
+inline bool Cluster::isShutdownLogicOn() const
+{
+    return false;
 }
 
 }  // close package namespace

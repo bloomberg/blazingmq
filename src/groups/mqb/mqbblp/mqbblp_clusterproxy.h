@@ -553,6 +553,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                                  bool*                 isSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `true` if this node is shutting down using new shutdown logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    bool isShutdownLogicOn() const BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
 
@@ -836,6 +840,11 @@ inline const bsl::string& ClusterProxy::description() const
 inline const mqbnet::Cluster& ClusterProxy::netCluster() const
 {
     return *(d_clusterData.membership().netCluster());
+}
+
+inline bool ClusterProxy::isShutdownLogicOn() const
+{
+    return d_queueHelper.isShutdownLogicOn();
 }
 
 }  // close package namespace

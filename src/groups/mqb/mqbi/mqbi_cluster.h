@@ -469,6 +469,10 @@ class Cluster : public DispatcherClient {
                                          mqbnet::ClusterNode** node,
                                          bool*                 isSelfPrimary,
                                          int partitionId) const = 0;
+
+    /// Return `true` if this node is shutting down using new shutdown logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    virtual bool isShutdownLogicOn() const = 0;
 };
 
 struct ClusterResources {

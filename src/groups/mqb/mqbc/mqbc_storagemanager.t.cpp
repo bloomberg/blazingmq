@@ -791,10 +791,12 @@ struct TestHelper {
             rec.d_timestamp,
             true);  // isNewQueue
 
-        d_cluster_mp->_state().assignQueue(uri_t,
-                                           queueKey,
-                                           partitionId,
-                                           mqbc::ClusterState::AppInfos());
+        bmqp_ctrlmsg::QueueInfo advisory(bmqtst::TestHelperUtil::allocator());
+
+        advisory.uri() = rec.d_uri;
+        queueKey.loadBinary(&advisory.key());
+        advisory.partitionId() = partitionId;
+        d_cluster_mp->_state().assignQueue(advisory);
 
         BSLS_ASSERT_OPT(rc == 0);
         return queueKey;

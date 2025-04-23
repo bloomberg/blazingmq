@@ -231,15 +231,6 @@ void QueueSessionManager::onQueueOpenCb(
 {
     // executed by *ANY* thread
 
-    // First step in this routine is to update the cookie with the queue handle
-    // if 'confirmationCookie' is valid.  If this open-queue request has
-    // succeeded, this client session object should eventually set
-    // 'confirmationCookie' to 0 (see 'onQueueOpenCbDispatched').
-
-    if (confirmationCookie) {
-        confirmationCookie->d_handle = queueHandle;
-    }
-
     bmqu::AtomicValidatorGuard guard(validator.get());
     if (!guard.isValid()) {
         // The session was destroyed before we received the response (see

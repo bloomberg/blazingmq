@@ -1319,18 +1319,43 @@ void RelayQueueEngine::releaseHandleImpl(
 
     proctor->addRef();
 
-    // Send a close queue request upstream.
-    d_queueState_p->domain()->cluster()->configureQueue(
-        d_queueState_p->queue(),
-        effectiveHandleParam,
-        upstreamSubQueueId,
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(&RelayQueueEngine::onHandleReleased,
-                                           d_self.acquireWeak()),
-            bdlf::PlaceHolders::_1,  // Status
-            handle,
+    mqbi::Cluster* cluster = d_queueState_p->domain()->cluster();
+
+    BSLS_ASSERT_SAFE(cluster);
+
+    if (cluster->isShutdownLogicOn()) {
+        // Application first calls 'Cluster::initiateShutdown' (which may set
+        // 'd_supportShutdownV2'), followed by 'TransportManager::closeClients'
+        // which may result in 'QueueHandle::drop' leading to this call.
+
+        BMQ_LOGTHROTTLE_INFO()
+            << "Shutting down and skipping close queue [: "
+            << d_queueState_p->uri() << "], queueId: " << d_queueState_p->id()
+            << ", handle parameters: " << effectiveHandleParam;
+
+        bmqp_ctrlmsg::Status status;
+        status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+        status.message()  = "Shutting down.";
+
+        onHandleReleasedDispatched(status,
+                                   handle,
+                                   effectiveHandleParam,
+                                   proctor);
+    }
+    else {
+        // Send a close queue request upstream.
+        d_queueState_p->domain()->cluster()->configureQueue(
+            d_queueState_p->queue(),
             effectiveHandleParam,
-            proctor));
+            upstreamSubQueueId,
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                                     &RelayQueueEngine::onHandleReleased,
+                                     d_self.acquireWeak()),
+                                 bdlf::PlaceHolders::_1,  // Status
+                                 handle,
+                                 effectiveHandleParam,
+                                 proctor));
+    }
 }
 
 void RelayQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,

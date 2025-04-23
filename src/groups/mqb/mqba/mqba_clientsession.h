@@ -261,8 +261,6 @@ class ClientSession : public mqbnet::Session,
         // V2.
         e_SHUTTING_DOWN,
         /// Shutting down due to `initiateShutdown` request.
-        e_SHUTTING_DOWN_V2,
-        /// Disconnecting due to the client disconnect request.
         e_DISCONNECTING,
         /// The session is disconnected and no longer valid.
         e_DISCONNECTED,
@@ -361,6 +359,7 @@ class ClientSession : public mqbnet::Session,
 
     /// If present, call when `tearDownAllQueuesDone`.  This is the callback
     /// given in `initiateShutdown`.
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     ShutdownCb d_shutdownCallback;
 
     /// HiRes timer value of the begin session/queue operation.
@@ -456,6 +455,8 @@ class ClientSession : public mqbnet::Session,
 
     void invalidateDispatched();
 
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+    // V2.
     void deconfigureAndWait(ShutdownContextSp& context);
 
     void checkUnconfirmed(const ShutdownContextSp& shutdownCtx,
