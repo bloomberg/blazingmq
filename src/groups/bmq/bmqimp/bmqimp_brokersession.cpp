@@ -18,7 +18,7 @@
 
 #include <bmqscm_version.h>
 // BMQ
-#include <bmqimp_negotiatedchannelfactory.h>
+#include <bmqimp_initialconnectionchannelfactory.h>
 #include <bmqimp_queue.h>
 #include <bmqp_ackeventbuilder.h>
 #include <bmqp_ackmessageiterator.h>
@@ -409,7 +409,7 @@ void BrokerSession::SessionFsm::setStarted(
     // Temporary safety switch to control configure request.
     d_session.d_channel_sp->properties().load(
         &d_session.d_doConfigureStream,
-        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM);
+        InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM);
 }
 
 bmqt::GenericResult::Enum
@@ -3621,7 +3621,8 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BALL_LOG_ERROR << "Unable to flatten PUSH event" << " [rc: " << rc
+            BALL_LOG_ERROR << "Unable to flatten PUSH event"
+                           << " [rc: " << rc
                            << ", length: " << event.blob()->length()
                            << ", eventMessageCount: " << eventMessageCount
                            << "]" << bsl::endl
@@ -6043,7 +6044,7 @@ void BrokerSession::onOpenQueueResponse(
 
         if (d_channel_sp->properties().load(
                 &isMPsEx,
-                NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MPS_EX)) {
+                InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_MPS_EX)) {
             BSLS_ASSERT_SAFE(isMPsEx);
             queue->setOldStyle(false);
         }

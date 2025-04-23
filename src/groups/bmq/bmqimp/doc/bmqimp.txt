@@ -30,7 +30,7 @@ dependency.  The list below shows the hierarchical ordering of the components.
   2. bmqpimp_eventsstats
      bmqpimp_queue
 
-  1. bmqimp_negotiatedchannelfactory
+  1. bmqimp_initialconnectionchannelfactory
      bmqimp_stat
 ..
 
@@ -57,8 +57,8 @@ dependency.  The list below shows the hierarchical ordering of the components.
 : 'bmqimp_messagedumper':
 :      Provide a meschanism to dump messages.
 :
-: 'bmqimp_negotiatedchannelfactory':
-:      Provide a 'ChannelFactory' that negotiates upon connecting to peer.
+: 'bmqimp_initialconnectionchannelfactory':
+:      Provide a 'ChannelFactory' that authenticates and negotiates upon connecting to peer.
 :
 : 'bmqpimp_queue':
 :      Provide a type object to represent information about a queue.

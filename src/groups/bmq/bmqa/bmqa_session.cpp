@@ -246,6 +246,14 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
 
     static bsls::AtomicInt s_sessionInstanceCount(0);
 
+    // Authentication Message
+    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticateRequest&  ar =
+        authenticaionMessage.makeAuthenticateRequest();
+    bsl::string str = "username:password";
+    ar.mechanism()  = "basic";
+    ar.data()       = bsl::vector<char>(str.begin(), str.end());  // hexBinary
+
     // Negotiation Message
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
     bmqp_ctrlmsg::ClientIdentity& ci = negotiationMessage.makeClientIdentity();
@@ -311,6 +319,7 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
     sessionImpl->d_application_mp.load(
         new (*(sessionImpl->d_allocator_p))
             bmqimp::Application(options,
+                                authenticaionMessage,
                                 negotiationMessage,
                                 eventHandler,
                                 sessionImpl->d_allocator_p),

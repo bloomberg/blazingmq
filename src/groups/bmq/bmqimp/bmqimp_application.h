@@ -38,7 +38,7 @@
 
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
-#include <bmqimp_negotiatedchannelfactory.h>
+#include <bmqimp_initialconnectionchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_heartbeatmonitor.h>
 #include <bmqt_sessionoptions.h>
@@ -81,7 +81,7 @@ namespace bmqimp {
 class Application {
   public:
     // PUBLIC TYPES
-    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPool   BlobSpPool;
     typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
   private:
@@ -134,7 +134,7 @@ class Application {
 
     bmqio::StatChannelFactory d_statChannelFactory;
 
-    NegotiatedChannelFactory d_negotiatedChannelFactory;
+    InitialConnectionChannelFactory d_initialConnectionChannelFactory;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
@@ -226,7 +226,8 @@ class Application {
         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     bsl::shared_ptr<bmqp::HeartbeatMonitor>
     createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel);
-    void startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
+    void
+         startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
                         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     void stopHeartbeat();
 
@@ -249,10 +250,12 @@ class Application {
     /// negotiation.  The application will use the specified
     /// `eventHandlerCB`.  Use the specified `allocator` for all memory
     /// allocations.
-    Application(const bmqt::SessionOptions&             sessionOptions,
-                const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-                const EventQueue::EventHandlerCallback& eventHandlerCB,
-                bslma::Allocator*                       allocator);
+    Application(
+        const bmqt::SessionOptions&                sessionOptions,
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+        const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
+        const EventQueue::EventHandlerCallback&    eventHandlerCB,
+        bslma::Allocator*                          allocator);
 
     /// Destructor
     ~Application();

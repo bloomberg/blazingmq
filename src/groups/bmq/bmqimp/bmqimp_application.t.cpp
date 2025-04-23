@@ -45,11 +45,14 @@ static void test1_breathingTest()
 
     // Create a default application
     bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
         bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
+                            authenticaionMessage,
                             negotiationMessage,
                             emptyEventHandler,
                             bmqtst::TestHelperUtil::allocator());
@@ -78,11 +81,14 @@ static void test2_startStopTest()
 
     // Create a default application, make sure it can start/stop
     bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
         bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
+                            authenticaionMessage,
                             negotiationMessage,
                             emptyEventHandler,
                             bmqtst::TestHelperUtil::allocator());
@@ -130,11 +136,14 @@ static void test3_startStopAsyncTest()
 
     // Create a default application, make sure it can start/stop
     bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
         bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
+                            authenticaionMessage,
                             negotiationMessage,
                             emptyEventHandler,
                             bmqtst::TestHelperUtil::allocator());
