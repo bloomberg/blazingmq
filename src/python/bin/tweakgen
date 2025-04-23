@@ -138,4 +138,4 @@ with open(generated, "w", encoding="ascii") as fp:
     generate(mqbcfg.ClusterDefinition, 2, fp)
     print(FOOTER, file=fp)
 
-subprocess.check_call(["black", "-q", str(generated)])
+subprocess.check_call(["ruff", "format", "--silent", str(generated)])
