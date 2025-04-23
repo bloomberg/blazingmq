@@ -197,9 +197,9 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     domain_fanout = domain_urls.domain_fanout
 
     domains = {domain.name: domain for domain in single_node.configurator.domains}
-    domains[domain_fanout].definition.parameters.mode.fanout.publish_app_id_metrics = (
-        True
-    )
+    domains[
+        domain_fanout
+    ].definition.parameters.mode.fanout.publish_app_id_metrics = True
     single_node.deploy_domains()
 
     # Preconditions

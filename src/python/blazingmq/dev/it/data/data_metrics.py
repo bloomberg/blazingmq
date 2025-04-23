@@ -26,7 +26,6 @@ Note: when the metrics collection evolves, it might be necessary to update
       condition placeholders (see 'GreaterThan').
 """
 
-
 from typing import Any
 
 
