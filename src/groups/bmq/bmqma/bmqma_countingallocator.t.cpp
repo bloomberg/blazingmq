@@ -249,7 +249,7 @@ static void test3_deallocate()
 
     // 3. Deallocate previously deallocated memory and verify failure, as
     //    well as ensure that an error is logged.
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_SAFE_FAIL(obj.deallocate(buf));
     BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);

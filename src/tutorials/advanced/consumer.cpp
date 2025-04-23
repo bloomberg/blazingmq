@@ -702,7 +702,7 @@ int main(BSLS_ANNOTATION_UNUSED int         argc,
     // Set up logging with output to the console and verbosity set to
     // INFO-level.  This way we will get logs from the BlazingMQ SDK.
     const bsl::string           logFormat = "%d (%t) %c %s [%F:%l] %m\n";
-    const ball::Severity::Level level     = ball::Severity::INFO;
+    const ball::Severity::Level level     = ball::Severity::e_INFO;
 
     ball::FileObserver observer;
     observer.disableFileLogging();
@@ -710,10 +710,10 @@ int main(BSLS_ANNOTATION_UNUSED int         argc,
     observer.setStdoutThreshold(level);
 
     ball::LoggerManagerConfiguration config;
-    config.setDefaultThresholdLevelsIfValid(ball::Severity::OFF,
+    config.setDefaultThresholdLevelsIfValid(ball::Severity::e_OFF,
                                             level,
-                                            ball::Severity::OFF,
-                                            ball::Severity::OFF);
+                                            ball::Severity::e_OFF,
+                                            ball::Severity::e_OFF);
 
     ball::LoggerManagerScopedGuard manager(&observer, config);
     BALL_LOG_SET_CATEGORY("CONSUMER.MAIN");

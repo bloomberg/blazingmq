@@ -1488,14 +1488,14 @@ void ClusterQueueHelper::onReopenQueueResponse(
     // TODO: remove this not thread-safe use of 'getUpstreamParameters'.
     if (!queueptr->getUpstreamParameters(&streamParamsCopy,
                                          upstreamSubQueueId)) {
-        ball::Severity::Level logSeverity = ball::Severity::WARN;
+        ball::Severity::Level logSeverity = ball::Severity::e_WARN;
 
         if (bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID == upstreamSubQueueId) {
             // There is an optimization in RelayQueueEngine::configureHandle
             // not to send producer parameters upstream if they are the same as
             // default constructed.  In this case the UpstreamParameters cache
             // does not have parameters for the k_DEFAULT_SUBQUEUE_ID.
-            logSeverity = ball::Severity::INFO;
+            logSeverity = ball::Severity::e_INFO;
 
             // Consider this queue successfully reopen
             notifyQueue(queueContext.get(),

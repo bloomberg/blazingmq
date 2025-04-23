@@ -178,8 +178,8 @@ void Interactive::processCommand(const StartCommand& command)
         rc = d_session_p->start(bsls::TimeInterval(5.0));
     }
 
-    ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
-                                              : ball::Severity::ERROR);
+    ball::Severity::Level severity = (rc == 0 ? ball::Severity::e_INFO
+                                              : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity)
         << "<-- session.start(5.0) => " << bmqt::GenericResult::Enum(rc)
         << " (" << rc << ")";
@@ -297,8 +297,8 @@ void Interactive::processCommand(const OpenQueueCommand& command)
 
     const ball::Severity::Level severity = ((status.result() ==
                                              bmqt::OpenQueueResult::e_SUCCESS)
-                                                ? ball::Severity::INFO
-                                                : ball::Severity::ERROR);
+                                                ? ball::Severity::e_INFO
+                                                : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity) << "<-- session.openQueueSync() => "
                               << status.result() << " (" << status << ")";
 
@@ -378,8 +378,8 @@ void Interactive::processCommand(const ConfigureQueueCommand& command)
 
     const ball::Severity::Level severity =
         (status.result() == bmqt::ConfigureQueueResult::e_SUCCESS
-             ? ball::Severity::INFO
-             : ball::Severity::ERROR);
+             ? ball::Severity::e_INFO
+             : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity) << "<-- session.configureQueueSync() => "
                               << status.result() << " (" << status << ")";
 }
@@ -416,8 +416,8 @@ void Interactive::processCommand(const CloseQueueCommand& command)
 
     const ball::Severity::Level severity =
         (status.result() == bmqt::CloseQueueResult::e_SUCCESS
-             ? ball::Severity::INFO
-             : ball::Severity::ERROR);
+             ? ball::Severity::e_INFO
+             : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity) << "<-- session.closeQueueSync() => "
                               << status.result() << " (" << status << ")";
 
@@ -508,8 +508,8 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
     // Post
     rc = d_session_p->post(eventBuilder.messageEvent());
 
-    ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
-                                              : ball::Severity::ERROR);
+    ball::Severity::Level severity = (rc == 0 ? ball::Severity::e_INFO
+                                              : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity)
         << "<-- session.post() => " << bmqt::GenericResult::Enum(rc) << " ("
         << rc << ")";
@@ -632,8 +632,8 @@ void Interactive::processCommand(const ConfirmCommand& command)
         // this is interactive mode ...)
         rc = d_session_p->confirmMessage(itMsg->second);
 
-        ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
-                                                  : ball::Severity::ERROR);
+        ball::Severity::Level severity = (rc == 0 ? ball::Severity::e_INFO
+                                                  : ball::Severity::e_ERROR);
         BALL_LOG_STREAM(severity)
             << "<-- session.confirmMessage() => "
             << bmqt::GenericResult::Enum(rc) << " (" << rc << ")";
@@ -829,8 +829,8 @@ void Interactive::processCommand(const LoadPostCommand& command)
     // Post
     const int rc = d_session_p->post(eventBuilder.messageEvent());
 
-    ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
-                                              : ball::Severity::ERROR);
+    ball::Severity::Level severity = (rc == 0 ? ball::Severity::e_INFO
+                                              : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity)
         << "<-- session.post() => " << bmqt::GenericResult::Enum(rc) << " ("
         << rc << ")";
@@ -1093,8 +1093,8 @@ void Interactive::onOpenQueueStatus(const bmqa::OpenQueueStatus& status)
 
     const ball::Severity::Level severity = ((status.result() ==
                                              bmqt::OpenQueueResult::e_SUCCESS)
-                                                ? ball::Severity::INFO
-                                                : ball::Severity::ERROR);
+                                                ? ball::Severity::e_INFO
+                                                : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity) << "<-- session.openQueueAsync() => "
                               << status.result() << " (" << status << ")";
 
@@ -1117,8 +1117,8 @@ void Interactive::onConfigureQueueStatus(
 
     const ball::Severity::Level severity =
         ((status.result() == bmqt::ConfigureQueueResult::e_SUCCESS)
-             ? ball::Severity::INFO
-             : ball::Severity::ERROR);
+             ? ball::Severity::e_INFO
+             : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity) << "<-- session.configureQueueAsync() => "
                               << status.result() << " (" << status << ")";
 }
@@ -1131,8 +1131,8 @@ void Interactive::onCloseQueueStatus(const bmqa::CloseQueueStatus& status)
 
     const ball::Severity::Level severity = ((status.result() ==
                                              bmqt::CloseQueueResult::e_SUCCESS)
-                                                ? ball::Severity::INFO
-                                                : ball::Severity::ERROR);
+                                                ? ball::Severity::e_INFO
+                                                : ball::Severity::e_ERROR);
     BALL_LOG_STREAM(severity) << "<-- session.closeQueueAsync() => "
                               << status.result() << " (" << status << ")";
 
