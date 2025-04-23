@@ -330,8 +330,9 @@ class QueueStatsClient {
 
   private:
     // DATA
+
+    /// StatContext
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext
 
   private:
     // NOT IMPLEMENTED
@@ -509,8 +510,8 @@ struct DomainQueueStats {
         e_STAT_NO_SC_MSGS
 
         ,
-        // Value:      Current number of GUIDs stored in queue's history
-        //             (does not include messages in the queue)
+        /// Value:      Current number of GUIDs stored in queue's history
+        ///             (does not include messages in the queue)
         e_STAT_HISTORY
     };
 };

@@ -446,7 +446,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     bslma::ManagedPtr<bmqst::StatContext> client2 = context.addSubcontext(
         bmqst::StatContextConfiguration("tcp://5678"));
 
-    // Suppose we receive a mesage from the first client and another message
+    // Suppose we receive a message from the first client and another message
     // from the second client:
     int messageLength = 100;  // size of the message in bytes
     client1->adjustValue(0, messageLength);

@@ -188,7 +188,9 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (isReconfigure) {
         if (domainCfg.mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
-                domainCfg.mode().fanout().appIDs());
+                domainCfg.mode().fanout().publishAppIdMetrics()
+                    ? domainCfg.mode().fanout().appIDs()
+                    : bsl::vector<bsl::string>(d_allocator_p));
         }
     }
 

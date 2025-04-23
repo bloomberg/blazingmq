@@ -25,6 +25,8 @@ setup_package_provider()
 # -----------------------------------------------------------------------------
 
 enable_testing()
+# Configure tests to be part of the 'all' target
+add_custom_target(all.t ALL)
 
 set( CMAKE_POSITION_INDEPENDENT_CODE ON )
 

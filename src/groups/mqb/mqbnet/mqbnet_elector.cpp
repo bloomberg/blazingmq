@@ -2234,15 +2234,13 @@ Elector::Elector(mqbcfg::ElectorConfig&      config,
 
     d_state.setTerm(initialTerm);
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        // Per scheduler's contract, it's ok to schedule events before its
-        // started.
+    // Per scheduler's contract, it's ok to schedule events before its
+    // started.
 
-        d_scheduler.scheduleEvent(
-            bsls::TimeInterval(0, 0),  // now
-            bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                 "bmqSchedElec"));
-    }
+    d_scheduler.scheduleEvent(
+        bsls::TimeInterval(0, 0),  // now
+        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                             "bmqSchedElec"));
 }
 
 Elector::~Elector()
