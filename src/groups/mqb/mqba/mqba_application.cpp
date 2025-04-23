@@ -200,13 +200,11 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 
     // Print banner
     BALL_LOG_INFO
-        << "Starting"
-        << "\n   ____  __  __  ___  _               _"
+        << "Starting" << "\n   ____  __  __  ___  _               _"
         << "\n  | __ )|  \\/  |/ _ \\| |__  _ __ ___ | | _____ _ __"
         << "\n  |  _ \\| |\\/| | | | | '_ \\| '__/ _ \\| |/ / _ \\ '__|"
         << "\n  | |_) | |  | | |_| | |_) | | | (_) |   <  __/ |"
-        << "\n  |____/|_|  |_|\\__\\_\\_.__/|_|  \\___/|_|\\_\\___|_|"
-        << "\n"
+        << "\n  |____/|_|  |_|\\__\\_\\_.__/|_|  \\___/|_|\\_\\___|_|" << "\n"
         << "\n    Instance..............: " << brkrCfg.brokerInstanceName()
         << "\n    Version...............: " << brkrCfg.brokerVersion()
         << "\n    Build Type............: " << MQBA_STRINGIFY(BMQ_BUILD_TYPE)
@@ -887,8 +885,8 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Command command;
     bsl::string     parseError;
     if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
-        os << "Unable to decode command "
-           << "(rc: " << rc << ", error: '" << parseError << "')";
+        os << "Unable to decode command (rc: " << rc << ", error: '"
+           << parseError << "')";
         return rc + 10 * rc_PARSE_ERROR;  // RETURN
     }
 

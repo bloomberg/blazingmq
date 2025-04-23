@@ -65,9 +65,8 @@ void InitialConnectionHandler::readCallback(
         rc_PROCESS_BLOB_ERROR = -2,
     };
 
-    BALL_LOG_TRACE << "InitialConnectionHandler readCb: "
-                   << "[status: " << status << ", peer: '"
-                   << context->channel()->peerUri() << "']";
+    BALL_LOG_TRACE << "InitialConnectionHandler readCb: [status: " << status
+                   << ", peer: '" << context->channel()->peerUri() << "']";
 
     bsl::shared_ptr<mqbnet::Session> session;
     bmqu::MemOutStream               errStream;
