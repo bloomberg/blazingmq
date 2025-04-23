@@ -57,16 +57,16 @@ class InitialConnectionHandler {
 
     // MANIPULATORS
 
-    /// Method invoked by the client of this object to negotiate a session
-    /// using the specified `channel`.  The specified
-    /// `initialConnectionCompleteCb` must be called with the result, whether
-    /// success or failure, of the initial connection.  The specified `context`
-    /// is an in-out member holding the initial connection context to use; and
-    /// the InitialConnectionHandler concrete implementation can modify some of
+    /// Method invoked by the client of this object to negotiate a session.
+    /// The specified `context` is an in-out member holding the initial
+    /// connection context to use, including an `InitialConnectionCompleteCb`,
+    /// which must be called with the result, whether success or failure, of
+    /// the initial connection.
+    /// The InitialConnectionHandler concrete implementation can modify some of
     /// the members during the initial connection (i.e., between the
     /// `handleInitialConnection()` method and the invocation of the
-    /// `initialConnectionCompleteCb` method.  Note that if no initial
-    /// connection is needed, the `initialConnectionCompleteCb` may be invoked
+    /// `InitialConnectionCompleteCb` method.  Note that if no initial
+    /// connection is needed, the `InitialConnectionCompleteCb` may be invoked
     /// directly from inside the call to `handleInitialConnection()`.
     virtual void
     handleInitialConnection(const InitialConnectionContextSp& context) = 0;

@@ -107,6 +107,9 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// specified `context`.
     int scheduleRead(const InitialConnectionContextSp& context);
 
+    /// Call the `InitialConnectionCompleteCb` with the specified `context`,
+    /// return code `rc`, and `error` string to indicate the completion of
+    /// negotiation.
     static void complete(const InitialConnectionContextSp&       context,
                          const int                               rc,
                          const bsl::string&                      error,
@@ -123,6 +126,17 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     // MANIPULATORS
 
+    /// Method invoked by the client of this object to negotiate a session.
+    /// The specified `context` is an in-out member holding the initial
+    /// connection context to use, including an `InitialConnectionCompleteCb`,
+    /// which must be called with the result, whether success or failure, of
+    /// the initial connection.
+    /// The InitialConnectionHandler concrete implementation can modify some of
+    /// the members during the initial connection (i.e., between the
+    /// `handleInitialConnection()` method and the invocation of the
+    /// `InitialConnectionCompleteCb` method.  Note that if no initial
+    /// connection is needed, the `InitialConnectionCompleteCb` may be invoked
+    /// directly from inside the call to `handleInitialConnection()`.
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };

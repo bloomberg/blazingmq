@@ -401,7 +401,7 @@ class TCPSessionFactory {
         const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle);
 
     /// Handle initial connection on the specified `channel` using the
-    /// specified `context`. Asynchronously authenticate and negotiate.
+    /// specified `context`.  Asynchronously authenticate and negotiate.
     void
     handleInitialConnection(const bsl::shared_ptr<bmqio::Channel>&   channel,
                             const bsl::shared_ptr<OperationContext>& context);

@@ -226,7 +226,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
     //   (virtual: mqbnet::Negotiator)
 
     /// Create a `session` based on the type of initial connection message in
-    /// the specified `context`.
+    /// the specified `context`.  Set `isContinueRead` to true if we want to
+    /// continue reading instead of creating a session just yet.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int createSessionOnMsgType(bsl::ostream& errorDescription,
