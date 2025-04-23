@@ -3369,6 +3369,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
         // Receipt event arrives from replication nodes to primary.
         d_storageManager_mp->processReceiptEvent(event, source);
     } break;  // BREAK
+    case bmqp::EventType::e_AUTHENTICATION: {
+        // TODO
+        BALL_LOG_ERROR << "Received Authentication Event but reauthentication "
+                          "logic is not implemented yet.";
+    } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     default: {
         BMQTSK_ALARMLOG_ALARM("CLUSTER")
