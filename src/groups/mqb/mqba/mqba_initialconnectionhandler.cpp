@@ -48,9 +48,9 @@ const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 
 }  // close unnamed namespace
 
-// ------------------
+// ------------------------------
 // class InitialConnectionHandler
-// ------------------
+// ------------------------------
 
 void InitialConnectionHandler::readCallback(
     const bmqio::Status&              status,
@@ -89,7 +89,7 @@ void InitialConnectionHandler::readCallback(
                              bsl::ref(session)));
 
     rc = readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
-    if (rc != 0) {
+    if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_READ_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
@@ -101,7 +101,7 @@ void InitialConnectionHandler::readCallback(
     }
 
     rc = processBlob(errStream, &session, &isContinueRead, outPacket, context);
-    if (rc != 0) {
+    if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
@@ -110,7 +110,7 @@ void InitialConnectionHandler::readCallback(
     if (isContinueRead) {
         rc = scheduleRead(errStream, context);
 
-        if (rc == 0) {
+        if (rc == rc_SUCCESS) {
             guard.release();
         }
     }
@@ -325,9 +325,8 @@ void InitialConnectionHandler::handleInitialConnection(
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
-    int                              rc = 0;
-    bsl::string                      error;
-    bsl::shared_ptr<mqbnet::Session> session;
+    int         rc = 0;
+    bsl::string error;
 
     // The completeCb is not triggered only when `scheduleRead` succeeds
     // (with or without issuing an outbound message).
@@ -336,22 +335,20 @@ void InitialConnectionHandler::handleInitialConnection(
                              context,
                              bsl::ref(rc),
                              bsl::ref(error),
-                             bsl::ref(session)));
+                             bsl::shared_ptr<mqbnet::Session>()));
 
     bmqu::MemOutStream errStream;
 
-    if (context->isIncoming()) {
-        rc = scheduleRead(errStream, context);
-    }
-    else {
+    if (!context->isIncoming()) {
         rc = d_negotiator_mp->negotiateOutboundOrReverse(
             errStream,
             context->negotiationContext());
+    }
 
-        // Send outbound request success, continue to read
-        if (rc == 0) {
-            rc = scheduleRead(errStream, context);
-        }
+    // Read when this is an incoming request or succeeds in sending an
+    // outbound request.
+    if (rc == 0) {
+        rc = scheduleRead(errStream, context);
     }
 
     if (rc != 0) {
@@ -359,6 +356,8 @@ void InitialConnectionHandler::handleInitialConnection(
         return;
     }
 
+    // This line won't be hit. Since if `scheduleRead` succeeds, the same
+    // callback will be triggered in `readCallback`.
     guard.release();
 }
 
