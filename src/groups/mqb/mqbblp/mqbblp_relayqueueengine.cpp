@@ -977,6 +977,7 @@ int RelayQueueEngine::rebuildInternalState(
 }
 
 mqbi::QueueHandle* RelayQueueEngine::getHandle(
+    const mqbi::OpenQueueConfirmationCookie&                  context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -1021,7 +1022,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         // Already aware of this queueId from this client.
         if (QueueEngineUtil::validateUri(handleParameters,
                                          queueHandle,
-                                         *clientContext) != 0) {
+                                         clientContext.get()) != 0) {
             CALLBACK(bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
                      -1,
                      "Queue URI mismatch for same queueId.",
@@ -1116,11 +1117,12 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         }
     }
 
-    queueHandle->registerSubStream(
-        downstreamInfo,
-        upstreamSubQueueId,
-        mqbi::QueueCounts(handleParameters.readCount(),
-                          handleParameters.writeCount()));
+    mqbi::QueueHandle::SubStreams::const_iterator citSubStream =
+        queueHandle->registerSubStream(
+            downstreamInfo,
+            upstreamSubQueueId,
+            mqbi::QueueCounts(handleParameters.readCount(),
+                              handleParameters.writeCount()));
 
     // If a new reader/write, insert its (default-valued) stream parameters
     // into our map of consumer stream parameters advertised upstream.
@@ -1135,6 +1137,9 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
             &insertResult.first->second.d_handleParameters,
             handleParameters);
     }
+
+    context->d_stats = citSubStream->second.d_clientStats;
+
     // Inform the requester of the success
     CALLBACK(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "", queueHandle);
 

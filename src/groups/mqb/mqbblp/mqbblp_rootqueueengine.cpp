@@ -592,6 +592,7 @@ int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
 }
 
 mqbi::QueueHandle* RootQueueEngine::getHandle(
+    const mqbi::OpenQueueConfirmationCookie&                  context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -812,11 +813,14 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
                                        d_queueState_p->handleParameters()));
 
     // Register substream
-    queueHandle->registerSubStream(
-        subStreamInfo,
-        upstreamSubQueueId,
-        mqbi::QueueCounts(handleParameters.readCount(),
-                          handleParameters.writeCount()));
+    mqbi::QueueHandle::SubStreams::const_iterator citSubStream =
+        queueHandle->registerSubStream(
+            subStreamInfo,
+            upstreamSubQueueId,
+            mqbi::QueueCounts(handleParameters.readCount(),
+                              handleParameters.writeCount()));
+
+    context->d_stats = citSubStream->second.d_clientStats;
 
     // Inform the requester of the success
     CALLBACK(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "", queueHandle);

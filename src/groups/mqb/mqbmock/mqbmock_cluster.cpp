@@ -173,19 +173,24 @@ void Cluster::_initializeNodeSessions()
     NodesListIter nodeIter = clusterMembership.netCluster()->nodes().begin();
     NodesListIter endIter  = clusterMembership.netCluster()->nodes().end();
     for (; nodeIter != endIter; ++nodeIter) {
+        // Create stat context for each cluster node
+        bmqst::StatContextConfiguration config((*nodeIter)->hostName());
+
+        StatContextSp statContextSp(
+            d_clusterData_mp->clusterNodesStatContext()->addSubcontext(config),
+            d_allocator_p);
+
         mqbc::ClusterMembership::ClusterNodeSessionSp nodeSessionSp;
         nodeSessionSp.createInplace(d_allocator_p,
                                     this,
                                     *nodeIter,
                                     d_clusterData_mp->identity().name(),
                                     d_clusterData_mp->identity().identity(),
+                                    statContextSp,
                                     d_allocator_p);
-        nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE);
 
-        // Create stat context for each cluster node
-        bmqst::StatContextConfiguration config((*nodeIter)->hostName());
-        nodeSessionSp->statContext() =
-            d_clusterData_mp->clusterNodesStatContext()->addSubcontext(config);
+        nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE,
+                                     bmqp_ctrlmsg::NodeStatus::E_AVAILABLE);
 
         clusterMembership.clusterNodeSessionMap().insert(
             bsl::make_pair(*nodeIter, nodeSessionSp));
@@ -240,6 +245,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
+, d_putFunctor()
 , d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
@@ -488,6 +494,29 @@ int Cluster::processCommand(mqbcmd::ClusterResult*        result,
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* out)
 {
     out->makeClusterStatus();
+}
+
+mqbi::InlineResult::Enum Cluster::sendConfirmInline(
+    BSLS_ANNOTATION_UNUSED int   partitionId,
+    BSLS_ANNOTATION_UNUSED const bmqp::ConfirmMessage& message)
+{
+    return mqbi::InlineResult::e_UNAVAILABLE;
+}
+
+mqbi::InlineResult::Enum
+Cluster::sendPutInline(int                                       partitionId,
+                       const bmqp::PutHeader&                    putHeader,
+                       const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                       const bsl::shared_ptr<bdlbb::Blob>&       options,
+                       const bsl::shared_ptr<bmqu::AtomicState>& state,
+                       bsls::Types::Uint64                       genCount)
+{
+    return d_putFunctor(partitionId,
+                        putHeader,
+                        appData,
+                        options,
+                        state,
+                        genCount);
 }
 
 void Cluster::purgeAndGCQueueOnDomain(

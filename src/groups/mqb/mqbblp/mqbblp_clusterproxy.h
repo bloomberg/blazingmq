@@ -226,9 +226,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Throttling parameters for failed ACK messages.
     bmqu::ThrottledActionParams d_throttledFailedAckMessages;
 
-    /// Throttling parameters for skipped PUT messages.
-    bmqu::ThrottledActionParams d_throttledSkippedPutMessages;
-
     /// Cluster state monitor.
     ClusterStateMonitor d_clusterMonitor;
 
@@ -244,6 +241,14 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     ///
     /// @note Should be part of `ClusterResources`.
     StopRequestManagerType* d_stopRequestsManager_p;
+
+    mqbnet::ClusterNode* d_activeNode_p;
+    // Protected by d_gateActiveNode - it is safe to use while
+    // 'mqbc::GateKeeper::Status(d_gateActiveNode).isOpen()'
+    // 'd_activeNodeManager.activeNode()' does not provide such guarantee.
+    // Also, updated after 'd_clusterData.electorInfo().setElectorInfo'
+
+    mqbc::GateKeeper d_gateActiveNode;
 
   private:
     // PRIVATE MANIPULATORS
@@ -305,25 +310,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // PRIVATE MANIPULATORS
     //   (Event processing)
 
-    /// Generate a NACK with the specified `status` for a PUT message having
-    /// the specified `putHeader` from the specified `source`.  The nack is
-    /// replied to the `source`.  Log the specified `rc` as a reason for the
-    /// NACK.
-    void generateNack(bmqt::AckResult::Enum               status,
-                      const bmqp::PutHeader&              putHeader,
-                      DispatcherClient*                   source,
-                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                      const bsl::shared_ptr<bdlbb::Blob>& options,
-                      bmqt::GenericResult::Enum           rc);
-
     void onPushEvent(const mqbi::DispatcherPushEvent& event);
 
     void onAckEvent(const mqbi::DispatcherAckEvent& event);
-
-    void onRelayPutEvent(const mqbi::DispatcherPutEvent& event,
-                         mqbi::DispatcherClient*         source);
-
-    void onRelayConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
     void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
@@ -528,6 +517,25 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
+
+    /// Send the specified CONFIRM 'message' for the specified 'partitionId'
+    /// without switching thread context.
+    /// 'onRelayConfirmEvent' replacement.
+    mqbi::InlineResult::Enum sendConfirmInline(
+        int                         partitionId,
+        const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
+
+    /// Send PUT message for the specified 'partitionId' using the specified
+    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
+    /// switching thread context.
+    /// 'onRelayPutEvent' replacement.
+    mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
+                  bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
     /// Purge and force GC queues in this cluster on a given domain.
     void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,

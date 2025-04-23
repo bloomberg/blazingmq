@@ -207,7 +207,11 @@ struct TestHelper {
                              unsigned int          leaseId,
                              mqbnet::ClusterNode*  node)
     {
-        d_cluster_mp->_state().setPartitionPrimary(partitionId, leaseId, node);
+        d_cluster_mp->_state().setPartitionPrimary(
+            partitionId,
+            leaseId,
+            d_cluster_mp->_clusterData()->membership().getClusterNodeSession(
+                node));
         storageManager->setPrimaryForPartition(partitionId, node, leaseId);
     }
 

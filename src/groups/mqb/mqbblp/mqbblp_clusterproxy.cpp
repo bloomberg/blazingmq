@@ -85,30 +85,6 @@ void completeShutDown(const CompletionCallback& callback)
 // ------------------
 
 // PRIVATE MANIPULATORS
-void ClusterProxy::generateNack(bmqt::AckResult::Enum               status,
-                                const bmqp::PutHeader&              putHeader,
-                                DispatcherClient*                   source,
-                                const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                const bsl::shared_ptr<bdlbb::Blob>& options,
-                                bmqt::GenericResult::Enum           rc)
-{
-    // executed by the *DISPATCHER* thread
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-
-    mqbc::ClusterUtil::generateNack(status,
-                                    putHeader,
-                                    source,
-                                    dispatcher(),
-                                    appData,
-                                    options);
-
-    BMQU_THROTTLEDACTION_THROTTLE(
-        d_throttledSkippedPutMessages,
-        BALL_LOG_ERROR << description() << ": skipping relay-PUT message ["
-                       << "queueId: " << putHeader.queueId() << ", GUID: "
-                       << putHeader.messageGUID() << "], rc: " << rc << ".";);
-}
 
 void ClusterProxy::startDispatched()
 {
@@ -385,6 +361,8 @@ void ClusterProxy::onActiveNodeUp(mqbnet::ClusterNode* activeNode)
         return;  // RETURN
     }
 
+    d_activeNode_p = activeNode;
+
     // Indicate we have a new leader (in proxy, the active is equal to the
     // leader); this will trigger a reopen of the queues that will eventually
     // invoke the queueHelper's 'stateRestoredFn' (i.e., 'onQueuesReopened').
@@ -398,6 +376,8 @@ void ClusterProxy::onActiveNodeUp(mqbnet::ClusterNode* activeNode)
     // to e_ACTIVE.  Hence, we do: e_UNDEFINED -> e_PASSIVE -> e_ACTIVE
     d_clusterData.electorInfo().setLeaderStatus(
         mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+
+    d_gateActiveNode.open();
 }
 
 void ClusterProxy::onActiveNodeDown(const mqbnet::ClusterNode* node)
@@ -407,6 +387,9 @@ void ClusterProxy::onActiveNodeDown(const mqbnet::ClusterNode* node)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
     BSLS_ASSERT_SAFE(node);
+
+    d_gateActiveNode.close();
+    d_activeNode_p = 0;
 
     if (d_isStopping) {
         BALL_LOG_INFO << description() << ": Ignoring 'ActiveNodeDown' "
@@ -543,95 +526,6 @@ void ClusterProxy::onAckEvent(const mqbi::DispatcherAckEvent& event)
     }
 }
 
-void ClusterProxy::onRelayPutEvent(const mqbi::DispatcherPutEvent& event,
-                                   mqbi::DispatcherClient*         source)
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(event.isRelay() == true);
-
-    // This event is invoked as a result of RemoteQueue asking cluster proxy to
-    // relay PUT message to cluster on it's behalf.  Note that we don't check
-    // if we have an active node connection, and simply add the PUT message to
-    // the builder.  If there is no active connection right now, these PUT
-    // messages will be relayed whenever a connection with new active is
-    // established and state is restored (ie, queues are re-opened).
-
-    const bmqp::PutHeader& ph       = event.putHeader();
-    bsls::Types::Uint64    genCount = event.genCount();
-    bsls::Types::Uint64    term = d_clusterData.electorInfo().electorTerm();
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(genCount != term)) {
-        BMQU_THROTTLEDACTION_THROTTLE(
-            d_throttledSkippedPutMessages,
-            BALL_LOG_WARN << description() << ": skipping relay-PUT message ["
-                          << "queueId: " << ph.queueId() << ", GUID: "
-                          << ph.messageGUID() << "], genCount: " << genCount
-                          << " vs " << term << ".";);
-        return;  // RETURN
-    }
-
-    mqbnet::ClusterNode*      activeNode = d_activeNodeManager.activeNode();
-    bmqt::GenericResult::Enum rc;
-
-    if (activeNode) {
-        rc = activeNode->channel().writePut(event.putHeader(),
-                                            event.blob(),
-                                            event.state());
-    }
-    else {
-        rc = bmqt::GenericResult::e_NOT_CONNECTED;
-    }
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != bmqt::GenericResult::e_SUCCESS)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-        generateNack(bmqt::AckResult::e_NOT_READY,
-                     ph,
-                     source,
-                     event.blob(),
-                     event.options(),
-                     rc);
-    }
-}
-
-void ClusterProxy::onRelayConfirmEvent(
-    const mqbi::DispatcherConfirmEvent& event)
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(event.isRelay() == true);
-
-    // This event is invoked as a result of RemoteQueue asking cluster proxy to
-    // relay CONFIRM message to cluster on it's behalf.
-
-    mqbnet::ClusterNode*        activeNode = d_activeNodeManager.activeNode();
-    const bmqp::ConfirmMessage& confirmMsg = event.confirmMessage();
-    bmqt::GenericResult::Enum   rc;
-
-    if (activeNode) {
-        rc = activeNode->channel().writeConfirm(confirmMsg.queueId(),
-                                                confirmMsg.subQueueId(),
-                                                confirmMsg.messageGUID());
-    }
-    else {
-        rc = bmqt::GenericResult::e_NOT_CONNECTED;
-    }
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != bmqt::GenericResult::e_SUCCESS)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Failed to relay Confirm message [rc: " << rc
-                       << ", GUID: " << confirmMsg.messageGUID()
-                       << ", queue Id: " << confirmMsg.queueId() << ""
-                       << ", subqueue Id: " << confirmMsg.subQueueId() << "";
-    }
-}
-
 void ClusterProxy::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
 {
     // executed by the *DISPATCHER* thread
@@ -649,14 +543,13 @@ void ClusterProxy::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
     // these REJECT messages will be relayed whenever a connection with new
     // active is established and state is restored (ie, queues are re-opened).
 
-    const bmqp::RejectMessage& rejectMsg  = event.rejectMessage();
-    mqbnet::ClusterNode*       activeNode = d_activeNodeManager.activeNode();
+    const bmqp::RejectMessage& rejectMsg = event.rejectMessage();
     bmqt::GenericResult::Enum  rc;
 
-    if (activeNode) {
-        rc = activeNode->channel().writeReject(rejectMsg.queueId(),
-                                               rejectMsg.subQueueId(),
-                                               rejectMsg.messageGUID());
+    if (d_activeNode_p) {
+        rc = d_activeNode_p->channel().writeReject(rejectMsg.queueId(),
+                                                   rejectMsg.subQueueId(),
+                                                   rejectMsg.messageGUID());
     }
     else {
         rc = bmqt::GenericResult::e_NOT_CONNECTED;
@@ -806,9 +699,7 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    mqbnet::ClusterNode* activeNode = d_activeNodeManager.activeNode();
-
-    if (!activeNode) {
+    if (!d_activeNode_p) {
         // Not connected to any node, can't deliver the request.
         ball::Severity::Level severity = ball::Severity::ERROR;
         if (d_activeNodeLookupEventHandle) {
@@ -824,7 +715,7 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
     }
 
-    if (target && target != activeNode) {
+    if (target && target != d_activeNode_p) {
         if (!d_isStopping) {
             // Don't warn/alarm if self is stopping.
             BALL_LOG_WARN << description() << ": Unable to send request "
@@ -832,20 +723,20 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
                           << ", because specified target "
                           << target->nodeDescription() << " is different from "
                           << "the upstream node as perceived by the proxy "
-                          << activeNode->nodeDescription() << ".";
+                          << d_activeNode_p->nodeDescription() << ".";
         }
         return bmqt::GenericResult::e_REFUSED;  // RETURN
     }
 
-    request->setGroupId(activeNode->nodeId());
+    request->setGroupId(d_activeNode_p->nodeId());
 
     return d_clusterData.requestManager().sendRequest(
         request,
         bdlf::BindUtil::bind(&mqbnet::ClusterNode::write,
-                             activeNode,
+                             d_activeNode_p,
                              bdlf::PlaceHolders::_1,
                              bmqp::EventType::e_CONTROL),
-        activeNode->nodeDescription(),
+        d_activeNode_p->nodeDescription(),
         timeout);
 }
 
@@ -1077,12 +968,13 @@ ClusterProxy::ClusterProxy(
                       mqbcfg::BrokerConfig::get().hostDataCenter())
 , d_queueHelper(&d_clusterData, &d_state, 0, allocator)
 , d_nodeStatsMap(allocator)
-, d_throttledFailedAckMessages(5000, 1)   // 1 log per 5s interval
-, d_throttledSkippedPutMessages(5000, 1)  // 1 log per 5s interval
+, d_throttledFailedAckMessages(5000, 1)  // 1 log per 5s interval
 , d_clusterMonitor(&d_clusterData, &d_state, d_allocator_p)
 , d_activeNodeLookupEventHandle()
 , d_shutdownChain(d_allocator_p)
 , d_stopRequestsManager_p(stopRequestsManager)
+, d_activeNode_p(0)
+, d_gateActiveNode()
 {
     // PRECONDITIONS
     mqbnet::Cluster* netCluster_p = d_clusterData.membership().netCluster();
@@ -1329,9 +1221,9 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
         out->makeClusterProxyStatus();
 
     clusterProxyStatus.description() = description();
-    if (d_activeNodeManager.activeNode()) {
+    if (d_activeNode_p) {
         clusterProxyStatus.activeNodeDescription().makeValue(
-            d_activeNodeManager.activeNode()->nodeDescription());
+            d_activeNode_p->nodeDescription());
     }
 
     clusterProxyStatus.isHealthy() = d_clusterMonitor.isHealthy();
@@ -1352,6 +1244,85 @@ void ClusterProxy::purgeAndGCQueueOnDomain(
     result->makeError().message() = os.str();
 }
 
+mqbi::InlineResult::Enum
+ClusterProxy::sendConfirmInline(BSLS_ANNOTATION_UNUSED int  partitionId,
+                                const bmqp::ConfirmMessage& message)
+{
+    // executed by the *ANY* thread
+
+    // This event is invoked as a result of RemoteQueue asking cluster proxy to
+    // relay CONFIRM message to cluster on it's behalf.
+
+    mqbc::GateKeeper::Status primaryStatus(d_gateActiveNode);
+
+    if (!primaryStatus.isOpen()) {
+        return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
+    }
+
+    bmqt::GenericResult::Enum rc;
+
+    BSLS_ASSERT_SAFE(d_activeNode_p);
+
+    rc = d_activeNode_p->channel().writeConfirm(message.queueId(),
+                                                message.subQueueId(),
+                                                message.messageGUID());
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            rc != bmqt::GenericResult::e_SUCCESS)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return mqbi::InlineResult::e_CHANNEL_ERROR;  // RETURN
+    }
+
+    return mqbi::InlineResult::e_SUCCESS;
+}
+
+mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
+    BSLS_ANNOTATION_UNUSED int          partitionId,
+    const bmqp::PutHeader&              putHeader,
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    const bsl::shared_ptr<bmqu::AtomicState>&                  state,
+    bsls::Types::Uint64                                        genCount)
+{
+    // This event is invoked as a result of RemoteQueue asking cluster proxy to
+    // relay PUT message to cluster on it's behalf.  Note that we don't check
+    // if we have an active node connection, and simply add the PUT message to
+    // the builder.  If there is no active connection right now, these PUT
+    // messages will be relayed whenever a connection with new active is
+    // established and state is restored (ie, queues are re-opened).
+
+    // This event is invoked as a result of RemoteQueue asking cluster proxy to
+    // relay CONFIRM message to cluster on it's behalf.
+
+    mqbc::GateKeeper::Status primaryStatus(d_gateActiveNode);
+
+    if (!primaryStatus.isOpen()) {
+        return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(d_activeNode_p);
+
+    // This assumes thread-safe access to
+    // d_clusterData.electorInfo().electorTerm() if the gate is open
+
+    bsls::Types::Uint64 term = d_clusterData.electorInfo().electorTerm();
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(genCount != term)) {
+        return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
+    }
+
+    bmqt::GenericResult::Enum rc;
+
+    rc = d_activeNode_p->channel().writePut(putHeader, appData, state);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            rc != bmqt::GenericResult::e_SUCCESS)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return mqbi::InlineResult::e_CHANNEL_ERROR;  // RETURN
+    }
+
+    return mqbi::InlineResult::e_SUCCESS;
+}
+
 // MANIPULATORS
 //   (virtual: mqbi::DispatcherClient)
 void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
@@ -1366,24 +1337,11 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
-        if (realEvent->isRelay()) {
-            onRelayPutEvent(*realEvent, event.source());
-        }
-        else {
-            BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
-                           << "PUT event not yet implemented";
-        }
+        BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
+                       << "PUT event not yet implemented";
     } break;
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
-        if (realEvent->isRelay()) {
-            onRelayConfirmEvent(*realEvent);
-        }
-        else {
-            BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
-                           << "CONFIRM event not yet implemented";
-        }
+        BALL_LOG_ERROR << "#UNEXPECTED_EVENT (CONFIRM)" << description();
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
         const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();

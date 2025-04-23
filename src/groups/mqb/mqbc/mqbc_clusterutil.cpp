@@ -87,9 +87,13 @@ void applyPartitionPrimary(
         mqbnet::ClusterNode* proposedPrimaryNode =
             clusterData.membership().netCluster()->lookupNode(
                 info.primaryNodeId());
+        ClusterNodeSession* ns =
+            clusterData.membership().getClusterNodeSession(
+                proposedPrimaryNode);
+
         clusterState->setPartitionPrimary(info.partitionId(),
                                           info.primaryLeaseId(),
-                                          proposedPrimaryNode);
+                                          ns);
     }
 }
 
@@ -509,7 +513,7 @@ void ClusterUtil::assignPartitions(
 
                 clusterState->setPartitionPrimary(pinfo.partitionId(),
                                                   pinfo.primaryLeaseId() + 1,
-                                                  primary);
+                                                  primaryNs);
             }
 
             BALL_LOG_INFO << clusterData.identity().description()

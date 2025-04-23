@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbc_clusterstate.cpp                                              -*-C++-*-
+#include <mqbc_clusternodesession.h>
 #include <mqbc_clusterstate.h>
 
 #include <mqbscm_version.h>
@@ -301,7 +302,7 @@ ClusterState& ClusterState::unregisterObserver(ClusterStateObserver* observer)
 
 ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
                                                 unsigned int leaseId,
-                                                mqbnet::ClusterNode* node)
+                                                ClusterNodeSession* ns)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -311,21 +312,25 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
     ClusterStatePartitionInfo& pinfo      = d_partitionsInfo[partitionId];
-    mqbnet::ClusterNode*       oldPrimary = pinfo.primaryNode();
+    ClusterNodeSession*        oldPrimary = pinfo.primaryNodeSession();
     const unsigned int         oldLeaseId = pinfo.primaryLeaseId();
 
     BSLS_ASSERT_SAFE(leaseId >= oldLeaseId);
 
-    pinfo.setPrimaryNode(node);
-    if (node) {
+    mqbnet::ClusterNode* node           = 0;
+    mqbnet::ClusterNode* oldPrimaryNode = oldPrimary
+                                              ? oldPrimary->clusterNode()
+                                              : 0;
+    if (ns) {
+        node = ns->clusterNode();
+        BSLS_ASSERT_SAFE(node);
         pinfo.setPrimaryNodeId(node->nodeId());
     }
     else {
         pinfo.setPrimaryNodeId(mqbnet::Cluster::k_INVALID_NODE_ID);
     }
-    pinfo.setPrimaryLeaseId(leaseId);
 
-    if (node == oldPrimary) {
+    if (ns == oldPrimary) {
         // We are being notified about the same primary.  Check leaseId.  Note
         // that leader can bump up just the leaseId while keeping the primary
         // node unchanged.
@@ -338,21 +343,30 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
         }
     }
 
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: closing the gate " << partitionId;
+    d_gatePrimary[partitionId].close();
+
+    pinfo.setPrimaryNodeSession(ns);
+
+    pinfo.setPrimaryLeaseId(leaseId);
+
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus =
         bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED;
-    if (node) {
+    if (ns) {
         // By default, a new primary is PASSIVE.
         primaryStatus = bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE;
     }
     pinfo.setPrimaryStatus(primaryStatus);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting primary of Partition [" << partitionId << "] to "
-                  << "[" << (node ? node->nodeDescription() : "** NULL **")
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: Setting primary of Partition [" << partitionId
+                  << "] to ["
+                  << (node ? node->nodeDescription() : "** NULL **")
                   << "], leaseId: [" << leaseId << "], primaryStatus: ["
                   << primaryStatus << "], oldPrimary: ["
-                  << (oldPrimary ? oldPrimary->nodeDescription()
-                                 : "** NULL **")
+                  << (oldPrimaryNode ? oldPrimaryNode->nodeDescription()
+                                     : "** NULL **")
                   << "], oldLeaseId: [" << oldLeaseId << "].";
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
@@ -361,7 +375,7 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
                                             node,
                                             leaseId,
                                             pinfo.primaryStatus(),
-                                            oldPrimary,
+                                            oldPrimaryNode,
                                             oldLeaseId);
     }
 
@@ -380,9 +394,9 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
     ClusterStatePartitionInfo& pinfo = d_partitionsInfo[partitionId];
-    if (0 == pinfo.primaryNode()) {
-        BALL_LOG_ERROR << "Cluster [" << d_cluster_p->name() << "]: "
-                       << "Failed to set the primary status of Partition ["
+    if (0 == pinfo.primaryNodeSession()) {
+        BALL_LOG_ERROR << "Cluster [" << d_cluster_p->name()
+                       << "]: Failed to set the primary status of Partition ["
                        << partitionId << "] to [" << value
                        << "], reason: primary node is ** NULL **.";
 
@@ -392,13 +406,17 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
                      pinfo.primaryStatus());
 
+    mqbnet::ClusterNode* node = pinfo.primaryNode();
+
+    BSLS_ASSERT_SAFE(node);
+
     bmqp_ctrlmsg::PrimaryStatus::Value oldStatus = pinfo.primaryStatus();
     pinfo.setPrimaryStatus(value);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting status of primary ["
-                  << pinfo.primaryNode()->nodeDescription()
-                  << "] of Partition [" << partitionId << "] to [" << value
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: Setting status of primary ["
+                  << node->nodeDescription() << "] of Partition ["
+                  << partitionId << "] to [" << value
                   << "], oldPrimaryStatus: [" << oldStatus << "], leaseId: ["
                   << pinfo.primaryLeaseId() << "].";
 
@@ -410,12 +428,27 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
              it != d_observers.end();
              ++it) {
             (*it)->onPartitionPrimaryAssignment(partitionId,
-                                                pinfo.primaryNode(),
+                                                node,
                                                 pinfo.primaryLeaseId(),
                                                 value,
-                                                pinfo.primaryNode(),
+                                                node,
                                                 pinfo.primaryLeaseId());
         }
+    }
+
+    // TODO: this code assumes that it is safe to send PUTs and CONFIRMS at
+    // this point if the status is E_ACTIVE or close the gate otherwise.
+    // May need to open the gate later/close earlier by a separate call.
+
+    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: opening the gate " << partitionId;
+        d_gatePrimary[partitionId].open();
+    }
+    else {
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: closing the gate " << partitionId;
+        d_gatePrimary[partitionId].close();
     }
 
     return *this;
