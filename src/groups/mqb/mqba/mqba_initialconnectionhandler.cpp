@@ -108,7 +108,7 @@ void InitialConnectionHandler::readCallback(
     }
 
     if (isContinueRead) {
-        rc = scheduleRead(context);
+        rc = scheduleRead(errStream, context);
 
         if (rc == 0) {
             guard.release();
@@ -255,6 +255,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
 }
 
 int InitialConnectionHandler::scheduleRead(
+    bsl::ostream&                     errorDescription,
     const InitialConnectionContextSp& context)
 {
     enum RcEnum {
@@ -279,8 +280,7 @@ int InitialConnectionHandler::scheduleRead(
     //       replace it by the channel shared_ptr (inside the context)
 
     if (!status) {
-        bmqu::MemOutStream errStream;
-        errStream << "Read failed while negotiating: " << status;
+        errorDescription << "Read failed while negotiating: " << status;
         return rc_READ_ERROR;  // RETURN
     }
 
@@ -341,7 +341,7 @@ void InitialConnectionHandler::handleInitialConnection(
     bmqu::MemOutStream errStream;
 
     if (context->isIncoming()) {
-        rc = scheduleRead(context);
+        rc = scheduleRead(errStream, context);
     }
     else {
         rc = d_negotiator_mp->negotiateOutboundOrReverse(
@@ -350,7 +350,7 @@ void InitialConnectionHandler::handleInitialConnection(
 
         // Send outbound request success, continue to read
         if (rc == 0) {
-            rc = scheduleRead(context);
+            rc = scheduleRead(errStream, context);
         }
     }
 

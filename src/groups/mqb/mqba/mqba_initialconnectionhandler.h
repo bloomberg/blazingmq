@@ -104,8 +104,11 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
         bsl::optional<bmqp_ctrlmsg::NegotiationMessage>* negotiationMsg);
 
     /// Schedule a read for the initial connection of the session of the
-    /// specified `context`.
-    int scheduleRead(const InitialConnectionContextSp& context);
+    /// specified `context`.  Return a non-zero code on error and
+    /// populate the specified `errorDescription` with a description of the
+    /// error.
+    int scheduleRead(bsl::ostream&                     errorDescription,
+                     const InitialConnectionContextSp& context);
 
     /// Call the `InitialConnectionCompleteCb` with the specified `context`,
     /// return code `rc`, and `error` string to indicate the completion of
