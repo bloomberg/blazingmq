@@ -48,6 +48,8 @@ class Authenticator {
     // MANIPULATORS
 
     virtual int handleAuthenticationOnMsgType(
+        bsl::ostream&                                 errorDescription,
+        bool*                                         isContinueRead,
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
     /// Send out outbound authentication message or reverse connection request

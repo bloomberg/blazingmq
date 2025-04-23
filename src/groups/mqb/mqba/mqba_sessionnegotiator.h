@@ -44,7 +44,6 @@
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
