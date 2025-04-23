@@ -175,7 +175,7 @@ void Application::setUpLog()
     // Set default verbosity to the specified one
     ball::LoggerManager::singleton().setDefaultThresholdLevels(
         ball::Severity::e_OFF,   // recording level
-        logLevel,              // passthrough level
+        logLevel,                // passthrough level
         ball::Severity::e_OFF,   // trigger level
         ball::Severity::e_OFF);  // triggerAll level
 
