@@ -154,7 +154,9 @@ class Authenticator : public mqbnet::Authenticator {
     // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
 
-    int handleAuthenticationOnMsgType(const AuthenticationContextSp& context)
+    int handleAuthenticationOnMsgType(bsl::ostream& errorDescription,
+                                      bool*         isContinueRead,
+                                      const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound authentication message or reverse connection request
