@@ -273,11 +273,12 @@ inline const QlistFileHeader& QlistFileIterator::header() const
                    << static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset)
                    << ", d_blockIter.block()->size() = "
                    << d_blockIter.block()->size();
-    if (static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) <
+    if (static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) >=
         d_blockIter.block()->size()) {
         BALL_LOG_ERROR
-            << "yyan82 TODO rm Why is this smaller? d_qlistHeaderOffset = "
-            << static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) << ", "
+            << "yyan82 TODO rm Why is this bigger? d_qlistHeaderOffset = "
+            << static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset)
+            << ", d_blockIter.block()->size() = "
             << d_blockIter.block()->size();
     }
     BSLS_ASSERT_SAFE(static_cast<bsls::Types::Uint64>(d_qlistHeaderOffset) <
