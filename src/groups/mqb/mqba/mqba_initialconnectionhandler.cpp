@@ -115,7 +115,7 @@ void InitialConnectionHandler::readCallback(
         }
     }
 
-    if (rc != 0) {
+    if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
@@ -339,16 +339,18 @@ void InitialConnectionHandler::handleInitialConnection(
 
     bmqu::MemOutStream errStream;
 
-    if (!context->isIncoming()) {
+    if (context->isIncoming()) {
+        rc = scheduleRead(errStream, context);
+    }
+    else {
         rc = d_negotiator_mp->negotiateOutboundOrReverse(
             errStream,
             context->negotiationContext());
-    }
 
-    // Read when this is an incoming request or succeeds in sending an
-    // outbound request.
-    if (rc == 0) {
-        rc = scheduleRead(errStream, context);
+        // Send outbound request success, continue to read
+        if (rc == 0) {
+            rc = scheduleRead(errStream, context);
+        }
     }
 
     if (rc != 0) {
