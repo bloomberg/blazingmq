@@ -71,9 +71,9 @@ void queueHolderDummy(const bsl::shared_ptr<mqbi::Queue>& queue)
 }
 
 /// Validates an application subscription.
-bool validdateSubscriptionExpression(bsl::ostream& errorDescription,
-                                     const mqbconfm::Expression& expression,
-                                     bslma::Allocator*           allocator)
+bool validateSubscriptionExpression(bsl::ostream& errorDescription,
+                                    const mqbconfm::Expression& expression,
+                                    bslma::Allocator*           allocator)
 {
     if (mqbconfm::ExpressionVersion::E_VERSION_1 == expression.version()) {
         if (!expression.text().empty()) {
@@ -147,7 +147,7 @@ int validateConfig(bsl::ostream& errorDescription,
     bool        allSubscriptionsAreValid = true;
 
     for (bsl::size_t i = 0; i < size; ++i) {
-        if (!validdateSubscriptionExpression(
+        if (!validateSubscriptionExpression(
                 errorDescription,
                 newConfig.subscriptions()[i].expression(),
                 allocator)) {
