@@ -417,17 +417,14 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM>(
                 msgSize);
 
-        // Report CONFIRM time only at first hop
         // Note that we update metric per entire queue and also per `appId`
-        if (d_clientContext_sp->isFirstHop()) {
-            d_domainStats_p->onEvent<
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME>(
+        d_domainStats_p
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME>(
                 timeDelta);
-            d_domainStats_p->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
-                timeDelta,
-                appId);
-        }
+        d_domainStats_p->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+            timeDelta,
+            appId);
     }
 
     return resourceUsageStateChange;
