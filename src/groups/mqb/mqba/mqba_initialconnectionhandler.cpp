@@ -48,9 +48,9 @@ const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 
 }  // close unnamed namespace
 
-// ------------------
+// ------------------------------
 // class InitialConnectionHandler
-// ------------------
+// ------------------------------
 
 void InitialConnectionHandler::readCallback(
     const bmqio::Status&              status,
@@ -89,7 +89,7 @@ void InitialConnectionHandler::readCallback(
                              bsl::ref(session)));
 
     rc = readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
-    if (rc != 0) {
+    if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_READ_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
@@ -101,21 +101,21 @@ void InitialConnectionHandler::readCallback(
     }
 
     rc = processBlob(errStream, &session, &isContinueRead, outPacket, context);
-    if (rc != 0) {
+    if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
     }
 
     if (isContinueRead) {
-        rc = scheduleRead(context);
+        rc = scheduleRead(errStream, context);
 
-        if (rc == 0) {
+        if (rc == rc_SUCCESS) {
             guard.release();
         }
     }
 
-    if (rc != 0) {
+    if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
         return;  // RETURN
@@ -255,6 +255,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
 }
 
 int InitialConnectionHandler::scheduleRead(
+    bsl::ostream&                     errorDescription,
     const InitialConnectionContextSp& context)
 {
     enum RcEnum {
@@ -279,8 +280,7 @@ int InitialConnectionHandler::scheduleRead(
     //       replace it by the channel shared_ptr (inside the context)
 
     if (!status) {
-        bmqu::MemOutStream errStream;
-        errStream << "Read failed while negotiating: " << status;
+        errorDescription << "Read failed while negotiating: " << status;
         return rc_READ_ERROR;  // RETURN
     }
 
@@ -325,9 +325,8 @@ void InitialConnectionHandler::handleInitialConnection(
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
-    int                              rc = 0;
-    bsl::string                      error;
-    bsl::shared_ptr<mqbnet::Session> session;
+    int         rc = 0;
+    bsl::string error;
 
     // The completeCb is not triggered only when `scheduleRead` succeeds
     // (with or without issuing an outbound message).
@@ -336,12 +335,12 @@ void InitialConnectionHandler::handleInitialConnection(
                              context,
                              bsl::ref(rc),
                              bsl::ref(error),
-                             bsl::ref(session)));
+                             bsl::shared_ptr<mqbnet::Session>()));
 
     bmqu::MemOutStream errStream;
 
     if (context->isIncoming()) {
-        rc = scheduleRead(context);
+        rc = scheduleRead(errStream, context);
     }
     else {
         rc = d_negotiator_mp->negotiateOutboundOrReverse(
@@ -350,7 +349,7 @@ void InitialConnectionHandler::handleInitialConnection(
 
         // Send outbound request success, continue to read
         if (rc == 0) {
-            rc = scheduleRead(context);
+            rc = scheduleRead(errStream, context);
         }
     }
 
@@ -359,6 +358,8 @@ void InitialConnectionHandler::handleInitialConnection(
         return;
     }
 
+    // This line won't be hit. Since if `scheduleRead` succeeds, the same
+    // callback will be triggered in `readCallback`.
     guard.release();
 }
 
