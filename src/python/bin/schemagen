@@ -43,18 +43,18 @@ COPYRIGHT
 cd "${python_root}"
 
 
-function copyright_black {
+function copyright_ruff {
     echo "$copyright
 
 $(cat "$1")" > "$1"
-    black -q "$1"
+    ruff format --silent "$1"
 }
 
 function generate {
     xsdata generate --package blazingmq.schemas "$1"
-    copyright_black "$2"
+    copyright_ruff "$2"
 }
 
 generate "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd" blazingmq/schemas/mqbcfg.py
 generate "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd" blazingmq/schemas/mqbconf.py
-copyright_black blazingmq/schemas/__init__.py
+copyright_ruff blazingmq/schemas/__init__.py

@@ -16,6 +16,7 @@
 """
 Testing runtime reconfiguration of domains.
 """
+
 import time
 from typing import Optional
 
@@ -161,7 +162,7 @@ class TestReconfigureDomains:
         # Modify the domain configuration to hold 1 more message per queue.
         multi_node.config.domains[
             domain_urls.domain_priority
-        ].definition.parameters.storage.queue_limits.messages = (INITIAL_MSG_QUOTA + 1)
+        ].definition.parameters.storage.queue_limits.messages = INITIAL_MSG_QUOTA + 1
         multi_node.reconfigure_domain(domain_urls.domain_priority, succeed=True)
 
         # Observe that posting one more message now succeeds for each queue.
