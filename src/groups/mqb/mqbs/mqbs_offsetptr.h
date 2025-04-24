@@ -28,6 +28,7 @@
 // in a block of memory.
 
 // MQB
+#include <ball_log.h>
 #include <mqbs_memoryblock.h>
 
 // BDE
@@ -104,6 +105,19 @@ inline void OffsetPtr<TYPE>::reset(const MemoryBlock& block,
                                    bsl::size_t        offset)
 {
     // PRECONDITIONS
+    BALL_LOG_SET_CATEGORY("OFFSET_PTR_yyan82_TODO_rm")
+
+    BALL_LOG_ERROR << "yyan82 TODO rm OffsetPtr block information: d_ptr_p = "
+                   << d_ptr_p  // << ", *d_ptr_p = " << *d_ptr_p
+                   << ", block.base() = " << block.base()
+                   << ", block.size() = " << block.size()
+                   << ", offset = " << offset;
+    if (static_cast<bsls::Types::Uint64>(offset) >= block.size()) {
+        BALL_LOG_ERROR << "yyan82 TODO rm Why is this bigger in "
+                          "OffsetPr? offset = "
+                       << static_cast<bsls::Types::Uint64>(offset)
+                       << ", block.size() = " << block.size();
+    }
     BSLS_ASSERT_SAFE(static_cast<bsls::Types::Uint64>(offset) < block.size());
     BSLS_ASSERT_SAFE(bsls::AlignmentUtil::calculateAlignmentOffset(
                          block.base() + offset,

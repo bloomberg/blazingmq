@@ -110,7 +110,11 @@ int QlistFileIterator::reset(const MappedFileDescriptor* mfd,
     // Complete QlistFileHeader is present
 
     d_qlistHeaderOffset = d_blockIter.position();
-    BALL_LOG_ERROR << "d_qlistHeaderOffset = " << d_qlistHeaderOffset
+    BALL_LOG_ERROR << "d_mfd =... " << d_mfd_p->fd()
+                   << ", d_mfd_p->block().base() = " << d_mfd_p->block().base()
+                   << ", d_mfd_p->block().size() = " << d_mfd_p->block().size()
+                   << ", " << d_mfd_p->fileSize() << ", " << d_mfd_p->mapping()
+                   << ", d_qlistHeaderOffset = " << d_qlistHeaderOffset
                    << ", d_blockIter.position() = " << d_blockIter.position();
 
     // Reset 'd_blockIter' accordingly with appropriate 'remaining' bytes.
