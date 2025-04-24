@@ -8,6 +8,5 @@ pytest-repeat
 pytest-rerunfailures
 pytest-xdist
 pyyaml
-ruff
 termcolor
 xsdata
