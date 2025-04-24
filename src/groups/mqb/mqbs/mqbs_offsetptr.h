@@ -107,11 +107,13 @@ inline void OffsetPtr<TYPE>::reset(const MemoryBlock& block,
     // PRECONDITIONS
     BALL_LOG_SET_CATEGORY("OFFSET_PTR_yyan82_TODO_rm")
 
-    BALL_LOG_ERROR << "yyan82 TODO rm OffsetPtr block information: d_ptr_p = "
-                   << d_ptr_p  // << ", *d_ptr_p = " << *d_ptr_p
-                   << ", block.base() = " << block.base()
-                   << ", block.size() = " << block.size()
-                   << ", offset = " << offset;
+    // TODO Too much noise if we print like this
+    // BALL_LOG_ERROR << "yyan82 TODO rm OffsetPtr block information: "
+    //                //<< "d_ptr_p = "
+    //                //<< d_ptr_p  // << ", *d_ptr_p = " << *d_ptr_p
+    //                << ", block.base() = " << block.base()
+    //                << ", block.size() = " << block.size()
+    //                << ", offset = " << offset;
     if (static_cast<bsls::Types::Uint64>(offset) >= block.size()) {
         BALL_LOG_ERROR << "yyan82 TODO rm Why is this bigger in "
                           "OffsetPr? offset = "
