@@ -140,7 +140,7 @@ class Queue:
             self.close()
 
     def __repr__(self):
-        return f"Queue<{self.client.name}: {', '.join([ self.uri] + self.flags)}>"
+        return f"Queue<{self.client.name}: {', '.join([self.uri] + self.flags)}>"
 
     def post(self, *args, **kwargs):
         return self.client.post(self.uri, *args, **kwargs)

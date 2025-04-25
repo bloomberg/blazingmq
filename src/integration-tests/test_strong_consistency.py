@@ -145,7 +145,8 @@ class TestStrongConsistency:
         self._break_post_unbreak(multi_node, Killer, False)
 
     def test_strong_consistency_local(
-        self, single_node  # pylint: disable=unused-argument
+        self,
+        single_node,  # pylint: disable=unused-argument
     ):
         # post SC
         self.producer.post(

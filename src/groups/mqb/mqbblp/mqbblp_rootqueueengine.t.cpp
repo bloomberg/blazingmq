@@ -2073,7 +2073,7 @@ static void test15_priorityReleaseActiveConsumerWithoutNullReconfigure()
     bmqtst::TestHelper::printTestName("RELEASE ACTIVE CONSUMER WITHOUT NULL"
                                       " RECONFIGURE");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -2173,7 +2173,7 @@ static void test16_priorityReleaseDormantConsumerWithoutNullReconfigure()
     bmqtst::TestHelper::printTestName("RELEASE DORMANT CONSUMER WITHOUT NULL"
                                       " RECONFIGURE");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler

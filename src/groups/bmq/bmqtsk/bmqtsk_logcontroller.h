@@ -169,7 +169,7 @@ class LogControllerConfig {
         /// Create a new object having the optionally specified `verbosity`
         /// and `color` properties.
         explicit CategoryProperties(
-            ball::Severity::Level verbosity = ball::Severity::OFF,
+            ball::Severity::Level verbosity = ball::Severity::e_OFF,
             const bsl::string&    color     = "");
     };
 
@@ -474,8 +474,8 @@ class LogController {
     /// publication of that record and any records in the logger's buffer.
     void setVerbosityLevel(
         ball::Severity::Level passVerbosity,
-        ball::Severity::Level recordVerbosity  = ball::Severity::OFF,
-        ball::Severity::Level triggerVerbosity = ball::Severity::OFF);
+        ball::Severity::Level recordVerbosity  = ball::Severity::e_OFF,
+        ball::Severity::Level triggerVerbosity = ball::Severity::e_OFF);
 
     /// Change the verbosity of the specified `category` to the specified
     /// `verbosity`.  `category` can be an expression, with a terminating
@@ -538,8 +538,8 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         return -1;  // RETURN
     }
 
-    d_recordingVerbosity = ball::Severity::OFF;
-    d_triggerVerbosity   = ball::Severity::OFF;
+    d_recordingVerbosity = ball::Severity::e_OFF;
+    d_triggerVerbosity   = ball::Severity::e_OFF;
 
     ball::Severity::Level bslsSeverityAsBal = ball::Severity::e_ERROR;
     // TODO: enforcing 'obj' to have 'bslsLogSeverityThreshold' accessor is a

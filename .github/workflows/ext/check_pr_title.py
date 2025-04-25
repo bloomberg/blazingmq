@@ -20,6 +20,7 @@ Usage:
 export PR_TITLE="<...>"
 python3 check_pr_title.py
 """
+
 import os
 
 

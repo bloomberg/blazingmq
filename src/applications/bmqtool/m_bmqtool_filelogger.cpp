@@ -56,7 +56,7 @@ class LogRecord {
   public:
     LogRecord(ball::FileObserver2& out,
               const char*          category,
-              int                  severity = ball::Severity::INFO)
+              int                  severity = ball::Severity::e_INFO)
     : d_record()
     , d_out(out)
     , d_os(init(d_record, category, severity))

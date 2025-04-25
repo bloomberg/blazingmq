@@ -22,7 +22,6 @@ scripts for running a cluster.
 # pylint: disable=missing-function-docstring, missing-class-docstring, consider-using-f-string
 # pyright: reportOptionalMemberAccess=false
 
-
 import copy
 import functools
 import itertools

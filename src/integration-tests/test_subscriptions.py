@@ -62,6 +62,7 @@ Not implemented:
 - test_restricted_operands:
     Expression validation is on evaluator side for now.
 """
+
 import re
 import time
 from datetime import datetime
