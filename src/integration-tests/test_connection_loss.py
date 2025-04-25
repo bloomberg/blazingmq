@@ -21,6 +21,7 @@ import json
 import re
 from typing import Dict
 
+import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
@@ -35,10 +36,17 @@ from blazingmq.dev.it.process.proc import Process
 
 pytestmark = order(2)
 
+# NOTE: We run these tests only in strong consistency mode because consistency
+# doesn't matter for the tested functionality. We don't even open queues.
+# Hence, we can save time skipping eventual consistency tests.
+
 
 @tweak.broker.app_config.network_interfaces.heartbeats.client(2)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
-def test_broker_client(cluster: Cluster) -> None:
+def test_broker_client(
+    cluster: Cluster,
+    sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     Test: connection loss between a broker and a client.
     - Start a broker and save the port it is listening.
@@ -79,7 +87,10 @@ def test_broker_client(cluster: Cluster) -> None:
 @tweak.cluster.elector.quorum(4)
 @tweak.broker.app_config.network_interfaces.heartbeats.cluster_peer(3)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
-def test_force_leader_primary_divergence(multi_node: Cluster) -> None:
+def test_force_leader_primary_divergence(
+    multi_node: Cluster,
+    sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     Test: connection loss between cluster nodes.
     - Run three instances of tproxy redirecting to endpoints of nodes "east2", "west1" and "west2".
