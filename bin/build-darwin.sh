@@ -12,9 +12,9 @@
 # - pkg-config
 # - Python3
 
-echo "Before running this script, install following prerequisites, if not present yet,"
-echo "by executing the following commands:"
-echo "brew install flex bison google-benchmark googletest zlib"
+echo -e "Before running this script, install the following prerequisites, if not present yet, " \
+        "by executing the following commands:\n"                                                \
+        "brew install flex bison google-benchmark googletest zlib"
 
 set -e
 set -u
