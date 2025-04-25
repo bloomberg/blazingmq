@@ -2,10 +2,10 @@
 
 # This script builds BlazingMQ and all of its dependencies.
 
-echo -e "Before running this script, install following prerequisites, if not present yet," \
-        "by executing the following commands:\n" \
-        "sudo apt update && sudo apt -y install ca-certificates\n" \
-        "sudo apt install -y --no-install-recommends" \
+echo -e "Before running this script, install the following prerequisites, if not present yet, " \
+        "by executing the following commands:\n"                                                \
+        "sudo apt update && sudo apt -y install ca-certificates\n"                              \
+        "sudo apt install -y --no-install-recommends"                                           \
         "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev"
 
 # :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
