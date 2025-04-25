@@ -11,13 +11,10 @@
 # - Perl
 # - pkg-config
 # - Python3
-#
-# Before running this script, install following prerequisites, if not present
-# yet, by copy-and-pasting the commands between `<<PREREQUISITES` and
-# `PREREQUISITES` below:
-<<PREREQUISITES
-brew install flex bison google-benchmark googletest zlib
-PREREQUISITES
+
+echo "Before running this script, install following prerequisites, if not present yet,"
+echo "by executing the following commands:"
+echo "brew install flex bison google-benchmark googletest zlib"
 
 set -e
 set -u
