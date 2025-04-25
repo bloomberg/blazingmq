@@ -110,7 +110,15 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bdlmt::EventSchedulerEventHandle d_consumptionMonitorEventHandle;
 
     /// Return true if consumption Monitor event is scheduled.
-    bsls::AtomicBool d_isScheduled;
+    bsls::AtomicBool d_consumptionMonitorIsScheduled;
+
+    /// The oldest message GUID for the consumption monitor.
+    bmqt::MessageGUID d_consumptionMonitorOldestMsgGUID;
+    /// The oldest message GUID appId for the consumption monitor.
+    // mqbu::StorageKey d_consumptionMonitorOldestMsgAppKey;
+    bsl::string d_consumptionMonitorOldestMsgAppId;
+    /// The set of staled appIds for the consumption monitor.
+    bsl::unordered_set<bsl::string> d_consumptionMonitorStaleAppIds;
 
     /// Thread pool for any standalone work that can be offloaded to
     /// non-queue-dispatcher threads.  It is used to hex dump the payload of a
@@ -200,7 +208,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void consumptionMonitorEventQueueDispatcherHandler();
     // executeInQueueDispatcher(const bsl::function<void()>& consumptionMonitorFn);
     
-    void consumptionMonitorOnAttemptToDelivery(AppStateSp& app, bool success);
+    void consumptionMonitorOnAttemptToDelivery(AppState* app, bool success);
 
   public:
     // TRAITS
