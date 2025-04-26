@@ -14,10 +14,10 @@
 // limitations under the License.
 
 // mqbc_recoverymanager.cpp                                           -*-C++-*-
-#include "mqbs_qlistfileiterator.h"
 #include <ball_log.h>
 #include <bsls_assert.h>
 #include <mqbc_recoverymanager.h>
+#include <mqbs_qlistfileiterator.h>
 
 #include <mqbscm_version.h>
 // IMPLEMENTATION NOTES:
@@ -1262,7 +1262,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         recoveryCtx.d_mappedDataFd,
         d_qListAware ? recoveryCtx.d_mappedQlistFd
                      : mqbs::MappedFileDescriptor());
-
     if (rc != 0) {
         errorDescription << d_clusterData.identity().description()
                          << " Partition [" << partitionId << "]: "
@@ -1285,12 +1284,10 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     rc = mqbs::FileStoreUtil::loadIterators(errorDescription,
                                             &jit,
                                             &dit,
-                                            d_qListAware ? &qit : 0,
+                                            &qit,
                                             recoveryCtx.d_mappedJournalFd,
                                             recoveryCtx.d_mappedDataFd,
-                                            d_qListAware
-                                                ? recoveryCtx.d_mappedQlistFd
-                                                : mqbs::MappedFileDescriptor(),
+                                            recoveryCtx.d_mappedQlistFd,
                                             recoveryCtx.d_recoveryFileSet,
                                             d_qListAware,
                                             true);  // needData
