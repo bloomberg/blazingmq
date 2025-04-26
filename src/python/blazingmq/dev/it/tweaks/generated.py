@@ -1319,7 +1319,6 @@ class TweakFactory:
             is_fsmworkflow = IsFsmworkflow()
 
             class DoesFsmwriteQlist(metaclass=TweakMetaclass):
-
                 def __call__(self, value: bool) -> Callable: ...
 
             does_fsmwrite_qlist = DoesFsmwriteQlist()
