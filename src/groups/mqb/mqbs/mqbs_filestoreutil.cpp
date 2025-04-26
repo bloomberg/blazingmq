@@ -1187,7 +1187,10 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
 
                 *journalFilePos = journalFileSize;
                 *dataFilePos    = dataFileSize;
-                recoveryIndex   = i;
+                if (qlistFilePos) {
+                    *qlistFilePos = qlistFileSize;
+                }
+                recoveryIndex = i;
                 break;  // BREAK
             }
 
@@ -1331,17 +1334,6 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
     }
     BSLS_ASSERT_SAFE(jit->isValid());
 
-    if (needQList) {
-        rc = qit->reset(&qlistFd, FileStoreProtocolUtil::bmqHeader(qlistFd));
-        if (0 != rc) {
-            errorDescription << "Failed to create qlist iterator for ["
-                             << fileSet.qlistFile() << "], rc: " << rc;
-
-            return rc_QLIST_FILE_ITERATOR_FAILURE;  // RETURN
-        }
-        BSLS_ASSERT_SAFE(qit->isValid());
-    }
-
     if (needData) {
         rc = dit->reset(&dataFd, FileStoreProtocolUtil::bmqHeader(dataFd));
         if (0 != rc) {
@@ -1351,6 +1343,21 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
             return rc_DATA_FILE_ITERATOR_FAILURE;  // RETURN
         }
         BSLS_ASSERT_SAFE(dit->isValid());
+    }
+
+    if (needQList) {
+        rc = qit->reset(&qlistFd, FileStoreProtocolUtil::bmqHeader(qlistFd));
+        if (0 != rc) {
+            errorDescription << "Failed to create qlist iterator for ["
+                             << fileSet.qlistFile() << "], rc: " << rc;
+
+            return rc_QLIST_FILE_ITERATOR_FAILURE;  // RETURN
+        }
+        BSLS_ASSERT_SAFE(qit->isValid());
+        BALL_LOG_ERROR << "xxm 2";
+        BALL_LOG_ERROR << "yyan82 TODO rm qit->isValid() = " << qit->isValid()
+                       << ", qit->header().headerWords() = "
+                       << qit->header().headerWords();
     }
 
     return rc_SUCCESS;
