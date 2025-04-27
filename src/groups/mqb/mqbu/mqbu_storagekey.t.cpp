@@ -36,9 +36,9 @@
 #include <bsls_types.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -728,7 +728,7 @@ void testN6_orderedMapWithCustomHashBenchmark()
 }
 
 // Begin Google Benchmark Tests
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void
 testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -954,7 +954,7 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     // </time>
 }
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 }  // close unnamed namespace
 
@@ -1011,7 +1011,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
