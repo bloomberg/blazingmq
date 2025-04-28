@@ -417,6 +417,8 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM>(
                 msgSize);
 
+        HELLO
+
         // Note that we update metric per entire queue and also per `appId`
         d_domainStats_p
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME>(
