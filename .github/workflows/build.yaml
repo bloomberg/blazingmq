@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - main
+      - "**"
   pull_request:
     branches:
       - main
@@ -12,122 +12,32 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+
 jobs:
-  get_dependencies:
-    name: "Dependencies"
-    uses: ./.github/workflows/dependencies.yaml
-
   build_ubuntu:
-    name: Build [ubuntu]
-    runs-on: ubuntu-latest
-    needs: get_dependencies
-    steps:
-      - uses: actions/checkout@v4
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
 
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
+  build_unit_tests_cxx:
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      target: "all.t"
 
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
+  run_unit_tests_cxx:
+   name: Run UT [c++]
+   needs: build_unit_tests_cxx
+   steps:
+    - name: Restore cache
+      uses: actions/cache/restore@v4
+      with: 
+        key: cache-${{ github.sha }}-all.t
 
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
-
-      - name: Build BlazingMQ
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all
-
-      - name: Clean-up build directories before caching
-        run: |
-          find . -name "*.o" -type f -delete
-          find . -name "*.a" -type f -delete
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
-
-  unit_tests_cxx:
-    name: UT [c++]
-    runs-on: ubuntu-latest
-    needs: get_dependencies
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
-
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
-
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
-
-      - name: Build BlazingMQ UTs
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all.t
-
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure
+    - name: Run C++ Unit Tests
+      run: |
+        cd ${{ github.workspace }}/build/blazingmq
+        ctest --output-on-failure
 
   unit_tests_python:
     name: UT [python]
@@ -136,13 +46,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/cache@v4
         with:
           path: |
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ github.sha }}
+          key: cache-${{ github.sha }}-all
 
       - name: Run Python Unit Tests
         env:
@@ -176,7 +86,7 @@ jobs:
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ github.sha }}
+          key: cache-${{ github.sha }}-all
 
       - name: Setup core_pattern
         run: |
@@ -242,7 +152,7 @@ jobs:
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ github.sha }}
+          key: cache-${{ github.sha }}-all
 
       - name: Run Fuzz Test
         run: |
@@ -287,7 +197,7 @@ jobs:
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ github.sha }}
+          key: cache-${{ github.sha }}-all
 
       - name: Set up plugins dependencies
         run: |

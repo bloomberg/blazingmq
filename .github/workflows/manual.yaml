@@ -16,28 +16,110 @@ on:
 # Full commit SHAs (e.g., a1b2c3d4)
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+
+  build2:
+    name: "Build ref ${{ matrix.ref }}"
     strategy:
       matrix:
         include:
           - ref: ${{ github.event.inputs.ref1 }}
-            folder: repo1
           - ref: ${{ github.event.inputs.ref2 }}
-            folder: repo2
 
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ matrix.ref }}
+
+  integration_tests_ubuntu:
+    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
+    strategy:
+      matrix:
+        mode: ["fsm_mode"]
+        cluster: ["multi"]
+        consistency: ["strong_consistency"]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    needs: build2
+    env:
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:    
-    - name: Checkout ${{ matrix.ref }}
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ github.repository }}
-        ref: ${{ matrix.ref }}
-        path: ${{ matrix.folder }}
-        fetch-depth: 0
+      - name: Checkout repo1
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref1 }}
+          path: repo1
+          fetch-depth: 0
 
-    - name: Show commit hash for ${{ matrix.ref }}
-      working-directory: ${{ matrix.folder }}
-      run: |
-        git rev-parse HEAD
+      - name: Checkout repo2
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref2 }}
+          path: repo2
+          fetch-depth: 0
+
+      - name: Get repo1 commit SHA
+        working-directory: repo1
+        id: get_sha1
+        run: echo "sha1=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Get repo2 commit SHA
+        working-directory: repo2
+        id: get_sha2
+        run: echo "sha2=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ env.sha1 }}-all
+      
+      - name: Move cached folders to repo1
+        run: |
+          mv build/blazingmq repo1/build/blazingmq
+          mv deps repo1/deps
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ env.sha2 }}-all
+
+      - name: Move cached folders to repo2
+        run: |
+          mv build/blazingmq repo2/build/blazingmq
+          mv deps repo2/deps
 
 
+      - name: Run Integration Tests
+        working-directory: repo1
+        env:
+          BLAZINGMQ_LEADER_NAME: "EAST2"
+          BLAZINGMQ_BROKER_EAST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+          BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+          BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+          BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+          # BLAZINGMQ_BROKER_NEW:
+        run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          ${{ github.workspace }}/src/integration-tests/run-tests \
+            "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
+            --log-level ERROR                   \
+            --log-file-level=info               \
+            --bmq-tolerate-dirty-shutdown       \
+            --bmq-log-dir=failure-logs          \
+            --bmq-log-level=INFO                \
+            --junitxml=integration-tests.xml    \
+            --tb long                           \
+            --reruns=3                          \
+            -n logical -v
+
+      - name: Upload failure-logs as artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
+          path: ${{ github.workspace }}/src/integration-tests/failure-logs
+          retention-days: 5

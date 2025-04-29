@@ -1,0 +1,91 @@
+name: Build Ubuntu
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Ref to build"
+        required: true
+        type: string
+      target:
+        description: "Build target"
+        required: true
+        default: "all"
+        type: string
+
+jobs:
+  get_dependencies:
+    name: "Dependencies"
+    uses: ./.github/workflows/dependencies.yaml
+
+  build_ubuntu:
+    name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    needs: get_dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      
+      - name: Show commit hash for ${{ matrix.ref }}
+        run: |
+          git rev-parse HEAD    
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: ${{ needs.get_dependencies.outputs.cache_key }}
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
+
+      - name: Build BlazingMQ
+        env:
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+        run: |
+          cmake -S . -B build/blazingmq -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBDE_BUILD_TARGET_SAFE=ON \
+            -DBDE_BUILD_TARGET_64=ON \
+            -DBDE_BUILD_TARGET_CPP17=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
+            -DCMAKE_INSTALL_LIBDIR=lib64
+          cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }} 
+
+      - name: Clean-up build directories before caching
+        run: |
+          find . -name "*.o" -type f -delete
+          find . -name "*.a" -type f -delete
+
+      - name: Get commit SHA
+        id: get_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ env.sha }}-${{ inputs.target }} 
