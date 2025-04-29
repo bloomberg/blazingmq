@@ -1,0 +1,47 @@
+name: Manual workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref1:
+        description: 'Branch name, tag, or commit SHA #1'
+        required: true
+      ref2:
+        description: 'Branch name, tag, or commit SHA #2'
+        required: true
+
+# The ref parameter in actions/checkout is flexible and can accept:
+# Branch names (e.g., main)
+# Tag names (e.g., v1.2.3)
+# Full commit SHAs (e.g., a1b2c3d4)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:    
+    - name: Checkout ref1
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.event.inputs.ref1 }}
+        path: repo1
+        fetch-depth: 0
+
+    - name: Checkout ref2
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.event.inputs.ref2 }}
+        path: repo2
+        fetch-depth: 0
+
+    - name: Show checked out refs
+      run: |
+        echo "ref 1:"
+        cd repo1
+        git rev-parse HEAD
+        echo "ref 2:"
+        cd ../repo2
+        git rev-parse HEAD    
+
