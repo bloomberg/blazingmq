@@ -268,6 +268,7 @@ jobs:
             curl \
             flex \
             google-benchmark \
+            googletest \
             ninja \
             python@3.10 \
             zlib
