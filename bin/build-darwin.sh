@@ -2,7 +2,7 @@
 
 # This script builds BlazingMQ and all of its dependencies.
 #
-# Required prerequisites:
+# Required tools:
 # - Clang
 # - CMake
 # - git
@@ -12,6 +12,9 @@
 # - pkg-config
 # - Python3
 
+echo -e "Before running this script, install the following prerequisites, if not present yet," \
+        "by executing the following commands:\n"                                               \
+        "brew install flex bison google-benchmark googletest zlib"
 
 set -e
 set -u
@@ -80,10 +83,6 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     popd
     touch "${DIR_BUILD}/ntf/.complete"
 fi
-
-
-# Build other dependencies
-brew install flex bison google-benchmark googletest zlib
 
 # Determine paths based on Intel vs Apple Silicon CPU
 if [ "$(uname -p)" == 'arm' ]; then

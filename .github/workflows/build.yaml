@@ -264,12 +264,14 @@ jobs:
       - name: Set up dependencies
         run: |
           brew install \
-            curl \
-            python@3.10 \
-            ninja \
             bison \
+            curl \
             flex \
-            google-benchmark
+            google-benchmark \
+            googletest \
+            ninja \
+            python@3.10 \
+            zlib
 
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
