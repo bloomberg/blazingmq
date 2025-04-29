@@ -28,6 +28,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ matrix.ref }}
+      target: "all"
 
   integration_tests_ubuntu:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
