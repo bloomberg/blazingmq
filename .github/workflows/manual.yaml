@@ -18,30 +18,26 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - ref: ${{ github.event.inputs.ref1 }}
+            folder: repo1
+          - ref: ${{ github.event.inputs.ref2 }}
+            folder: repo2
 
     steps:    
-    - name: Checkout ref1
+    - name: Checkout ${{ matrix.ref }}
       uses: actions/checkout@v4
       with:
         repository: ${{ github.repository }}
-        ref: ${{ github.event.inputs.ref1 }}
-        path: repo1
+        ref: ${{ matrix.ref }}
+        path: ${{ matrix.folder }}
         fetch-depth: 0
 
-    - name: Checkout ref2
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ github.repository }}
-        ref: ${{ github.event.inputs.ref2 }}
-        path: repo2
-        fetch-depth: 0
-
-    - name: Show checked out refs
+    - name: Show commit hash for ${{ matrix.ref }}
+      working-directory: ${{ matrix.folder }}
       run: |
-        echo "ref 1:"
-        cd repo1
         git rev-parse HEAD
-        echo "ref 2:"
-        cd ../repo2
-        git rev-parse HEAD    
+
 
