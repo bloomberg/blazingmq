@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbplug_authenticator.cpp                                          -*-C++-*-
+#include <bsls_nullptr.h>
 #include <mqbplug_authenticator.h>
 
 #include <mqbscm_version.h>
@@ -21,27 +22,27 @@
 namespace BloombergLP {
 namespace mqbplug {
 
-// ========================
+// ------------------------
 // class AuthenticationData
-// ========================
+// ------------------------
 
 AuthenticationData::~AuthenticationData()
 {
     // NOTHING
 }
 
-// ===================
+// -------------------
 // class Authenticator
-// ===================
+// -------------------
 
 Authenticator::~Authenticator()
 {
     // NOTHING
 }
 
-// ================================
+// --------------------------------
 // class AuthenticatorPluginFactory
-// ================================
+// --------------------------------
 
 AuthenticatorPluginFactory::AuthenticatorPluginFactory()
 {
@@ -51,6 +52,27 @@ AuthenticatorPluginFactory::AuthenticatorPluginFactory()
 AuthenticatorPluginFactory::~AuthenticatorPluginFactory()
 {
     // NOTHING
+}
+
+// -----------------------
+// class AuthenticatorUtil
+// -----------------------
+
+const mqbcfg::AuthenticatorPluginConfig*
+AuthenticatorUtil::findAuthenticatorConfig(const bslstl::StringRef& name)
+{
+    const bsl::vector<mqbcfg::AuthenticatorPluginConfig>& authenticatorsCfg =
+        mqbcfg::BrokerConfig::get().authentication().plugins();
+
+    for (bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator cit =
+             authenticatorsCfg.cbegin();
+         cit != authenticatorsCfg.cend();
+         ++cit) {
+        if (cit->name() == name) {
+            return &(*cit);
+        }
+    }
+    return 0;
 }
 
 }  // close package namespace
