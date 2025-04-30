@@ -171,14 +171,30 @@ def pytest_collection_modifyitems(config, items):
         )
 
 
-@pytest.fixture
-def ec_domain_urls():
-    return tc.EC_DOMAIN_URLS
+@pytest.fixture(
+    params=[
+        pytest.param(
+            tc.EC_DOMAIN_URLS,
+            id="eventual_consistency",
+            marks=[pytest.mark.eventual_consistency],
+        ),
+    ]
+)
+def ec_domain_urls(request):
+    return request.param
 
 
-@pytest.fixture
-def sc_domain_urls():
-    return tc.SC_DOMAIN_URLS
+@pytest.fixture(
+    params=[
+        pytest.param(
+            tc.SC_DOMAIN_URLS,
+            id="strong_consistency",
+            marks=[pytest.mark.strong_consistency],
+        ),
+    ]
+)
+def sc_domain_urls(request):
+    return request.param
 
 
 @pytest.fixture(

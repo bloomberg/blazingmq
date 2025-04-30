@@ -619,7 +619,11 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_shutdown_upstream_proxy(self, cartesian_product_cluster: Cluster):
+    def test_shutdown_upstream_proxy(
+        self,
+        cartesian_product_cluster: Cluster,
+        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    ):
         if not cartesian_product_cluster.virtual_nodes():
             # Skip cluster without virtual nodes
             return

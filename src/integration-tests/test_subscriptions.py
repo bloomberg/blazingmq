@@ -740,7 +740,10 @@ def test_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.expect_messages(expected, confirm=True)
 
 
-def test_broadcast(cluster: Cluster):
+def test_broadcast(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Test: subscriptions work in broadcast mode.
     - Create 1 producer
