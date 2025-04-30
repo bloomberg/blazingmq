@@ -92,7 +92,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     QueueState* d_queueState_p;
 
-    QueueConsumptionMonitor d_consumptionMonitor;
+    // QueueConsumptionMonitor d_consumptionMonitor;
 
     /// Map of appId to AppState
     Apps d_apps;
@@ -390,6 +390,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// `currentTimer`; can be used for regular status check, such as for
     /// ensuring messages on the queue are flowing and not accumulating.
     /// THREAD: This method is called from the Queue's dispatcher thread.
+    // TODO: remove from interface???
     void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `addedAppIds` have been dynamically

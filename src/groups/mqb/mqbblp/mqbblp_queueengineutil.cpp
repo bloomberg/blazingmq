@@ -858,6 +858,7 @@ bool QueueEngineUtil_AppsDeliveryContext::isEmpty() const
 
 bool QueueEngineUtil_AppsDeliveryContext::haveProgress() const
 {
+    BALL_LOG_WARN << "QueueEngineUtil_AppsDeliveryContext::haveProgress: d_numStops: " << d_numStops << ", d_numApps: " << d_numApps;
     return (d_numStops < d_numApps || d_numApps == 0);
 }
 
