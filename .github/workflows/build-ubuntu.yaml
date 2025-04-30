@@ -26,33 +26,34 @@ jobs:
   build_ubuntu:
     name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
     runs-on: ubuntu-latest
-    needs: get_dependencies
-    env:
-      CACHE_KEY: cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }} 
+    needs: get_dependencies   
     steps:
-
-      - name: Check If Cache exists
-        id: cache-check
-        uses: actions/cache@v4
-        with:
-          path: build/blazingmq
-          key: "${{ CACHE_KEY }}"
-
-      - name: Cancel job if cache hit
-        if: steps.cache-check.outputs.cache-hit == 'true'
-        run: |
-          echo "Cache hit – skipping remaining steps"
-          exit 0
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
       
-      - name: Show commit hash for ${{ matrix.ref }}
+      - name: Get commit SHA
+        id: get_sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Generate cache key
+        id: get_cache_key
+        run: echo "CACHE_KEY=cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }}" >> $GITHUB_ENV
+
+      - name: Check If Cache exists
+        id: cache-check
+        uses: actions/cache@v4
+        with:
+          path: build/blazingmq
+          key: "${{ env.CACHE_KEY }}"
+
+      - name: Cancel job if cache hit
+        if: steps.cache-check.outputs.cache-hit == 'true'
         run: |
-          git rev-parse HEAD    
+          echo "Cache hit – skipping remaining steps"
+          exit 0
 
       - uses: actions/cache/restore@v4
         with:
@@ -99,14 +100,10 @@ jobs:
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
 
-      - name: Get commit SHA
-        id: get_sha
-        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
-
       - uses: actions/cache@v4
         with:
           path: |
             build/blazingmq
             deps
             /opt/bb/include
-          key: "${{ CACHE_KEY }}"
+          key: "${{ env.CACHE_KEY }}"
