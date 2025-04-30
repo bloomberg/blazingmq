@@ -2347,6 +2347,3 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
-
-// ----------------------------------------------------------------------------
-// NOTICE:
