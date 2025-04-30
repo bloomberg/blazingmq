@@ -172,6 +172,19 @@ class AuthenticatorPluginFactory : public PluginFactory {
     create(bslma::Allocator* allocator) = 0;
 };
 
+// ========================
+// struct AuthenticatorUtil
+// ========================
+
+struct AuthenticatorUtil {
+    // STATIC CLASS METHODS
+
+    /// Find authenticator config with the specified `name`
+    // TODO: statconsumer pass in `bslstl::StringRef`. should it be const & ?
+    static const mqbcfg::AuthenticatorPluginConfig*
+    findAuthenticatorConfig(const bslstl::StringRef& name);
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
