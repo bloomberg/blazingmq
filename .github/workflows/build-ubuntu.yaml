@@ -12,6 +12,11 @@ on:
         required: true
         default: "all"
         type: string
+      cache_key_suffix:
+        description: "Cache Key Suffix"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   get_dependencies:
@@ -82,18 +87,10 @@ jobs:
         id: get_sha
         run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      - name: LS
-        run: |
-          ls -la
-
-      - name: LS build/blazingmq
-        run: |
-          ls -la build/blazingmq
-
       - uses: actions/cache@v4
         with:
           path: |
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ env.sha }}-${{ inputs.target }} 
+          key: cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }} 
