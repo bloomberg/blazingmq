@@ -16,10 +16,6 @@ on:
 # Full commit SHAs (e.g., a1b2c3d4)
 
 
-env:
-  TARGET: "all"
-  CACHE_KEY_SUFFIX: "-manual"
-
 
 jobs:
 
@@ -34,8 +30,8 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ matrix.ref }}
-      target: "$TARGET"
-      cache_key_suffix: "$CACHE_KEY_SUFFIX"
+      target: "all"
+      cache_key_suffix: "-manual"
 
   integration_tests_ubuntu:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
@@ -80,7 +76,7 @@ jobs:
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ env.sha1 }}-$TARGET$CACHE_KEY_SUFFIX
+          key: cache-${{ env.sha1 }}-all-manual
 
       - name: Move cached folders to repo1
         run: |
@@ -94,7 +90,7 @@ jobs:
           path: |
             build/blazingmq
             deps
-          key: cache-${{ env.sha2 }}-$TARGET$CACHE_KEY_SUFFIX
+          key: cache-${{ env.sha2 }}-all-manual
 
       - name: Move cached folders to repo2
         run: |
