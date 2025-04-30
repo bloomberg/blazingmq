@@ -330,7 +330,7 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
             -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool
+          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqbrkr_plugins
 
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir
