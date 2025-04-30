@@ -15,11 +15,14 @@ concurrency:
 
 jobs:
   build_ubuntu:
+    name: "Build all"
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
+      target: "all"
 
   build_unit_tests_cxx:
+    name: "Build all.t"
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
@@ -28,10 +31,16 @@ jobs:
   run_unit_tests_cxx:
    name: Run UT [c++]
    needs: build_unit_tests_cxx
+   runs-on: ubuntu-latest
    steps:
-    - name: Restore cache
-      uses: actions/cache/restore@v4
-      with: 
+    - uses: actions/checkout@v4
+
+    - uses: actions/cache@v4
+      with:
+        path: |
+          build/blazingmq
+          deps
+          /opt/bb/include
         key: cache-${{ github.sha }}-all.t
 
     - name: Run C++ Unit Tests

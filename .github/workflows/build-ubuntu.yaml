@@ -71,7 +71,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }} 
+          cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
 
       - name: Clean-up build directories before caching
         run: |
@@ -81,6 +81,14 @@ jobs:
       - name: Get commit SHA
         id: get_sha
         run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: LS
+        run: |
+          ls -la
+
+      - name: LS build/blazingmq
+        run: |
+          ls -la build/blazingmq
 
       - uses: actions/cache@v4
         with:
