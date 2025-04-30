@@ -27,7 +27,23 @@ jobs:
     name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
     runs-on: ubuntu-latest
     needs: get_dependencies
+    env:
+      CACHE_KEY: cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }} 
     steps:
+
+      - name: Check If Cache exists
+        id: cache-check
+        uses: actions/cache@v4
+        with:
+          path: build/blazingmq
+          key: "${{ CACHE_KEY }}"
+
+      - name: Cancel job if cache hit
+        if: steps.cache-check.outputs.cache-hit == 'true'
+        run: |
+          echo "Cache hit – skipping remaining steps"
+          exit 0
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -93,4 +109,4 @@ jobs:
             build/blazingmq
             deps
             /opt/bb/include
-          key: cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }} 
+          key: "${{ CACHE_KEY }}"
