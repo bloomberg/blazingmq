@@ -293,7 +293,7 @@ static void test4_panicInExtendedMode()
         mgr.enableExtendedSelection();
         int rc = mgr.refresh();
         BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NO_CHANGE);
-        BMQTST_ASSERT_EQ(1L, logObserver.records().size());
+        BMQTST_ASSERT_EQ(1UL, logObserver.records().size());
         BMQTST_ASSERT(
             logObserver.records().back().fixedFields().messageRef().find(
                 "PANIC [CLUSTER_ACTIVE_NODE]") != bsl::string::npos);
@@ -310,7 +310,7 @@ static void test4_panicInExtendedMode()
     {
         int rc = mgr.onNodeDown(&west1);
         BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE);
-        BMQTST_ASSERT_EQ(2L, logObserver.records().size());
+        BMQTST_ASSERT_EQ(2UL, logObserver.records().size());
         BMQTST_ASSERT(
             logObserver.records().back().fixedFields().messageRef().find(
                 "PANIC [CLUSTER_ACTIVE_NODE]") != bsl::string::npos);
