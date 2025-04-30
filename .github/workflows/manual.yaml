@@ -75,14 +75,11 @@ jobs:
             /opt/bb/include
           key: cache-${{ env.sha1 }}-all
 
-      - name: LS
-        run: |
-          ls -la
-      
       - name: Move cached folders to repo1
         run: |
-          mv -r build/blazingmq repo1/build/blazingmq
-          mv -r deps repo1/deps
+          mkdir -p repo1/build
+          mv build/blazingmq repo1/build/blazingmq
+          mv deps repo1/deps
 
       - uses: actions/cache@v4
         with:
@@ -91,14 +88,11 @@ jobs:
             deps
           key: cache-${{ env.sha2 }}-all
 
-      - name: LS
-        run: |
-          ls -la
-      
       - name: Move cached folders to repo2
         run: |
-          mv -r build/blazingmq repo2/build/blazingmq
-          mv -r deps repo2/deps
+          mkdir -p repo2/build
+          mv build/blazingmq repo2/build/blazingmq
+          mv deps repo2/deps
 
       - name: Run Integration Tests
         working-directory: repo1
@@ -108,7 +102,6 @@ jobs:
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
-          # BLAZINGMQ_BROKER_NEW:
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
