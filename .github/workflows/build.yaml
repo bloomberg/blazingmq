@@ -127,7 +127,7 @@ jobs:
       - name: Run C++ Unit Tests
         run: |
           cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure
+          ctest --output-on-failure -L \^unit\$
 
   unit_tests_python:
     name: UT [python]
