@@ -87,8 +87,8 @@ jobs:
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ${{ github.workspace }}/src/integration-tests/run-tests \
+          pip install -r ./src/python/requirements.txt
+          ./src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
