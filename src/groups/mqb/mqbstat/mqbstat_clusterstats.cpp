@@ -175,6 +175,26 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
     }
+    case Stat::e_PARTITION_DATA_UTILIZATION_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_PARTITION_DATA_BYTES);
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, e_PARTITION_CFG_DATA_BYTES);
+        return (value == bsl::numeric_limits<bsls::Types::Int64>::min() ||
+                limit == 0)
+                   ? 0
+                   : (100 * value / limit);
+    }
+    case Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_PARTITION_JOURNAL_BYTES);
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
+        return (value == bsl::numeric_limits<bsls::Types::Int64>::min() ||
+                limit == 0)
+                   ? 0
+                   : (100 * value / limit);
+    }
 
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
@@ -316,6 +336,14 @@ ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
     d_statContext_mp->setValue(
         ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
         journalBytes);
+    bsl::vector<bsl::shared_ptr<bmqst::StatContext> >::const_iterator it =
+        d_partitionsStatContexts.cbegin();
+    for (; it != d_partitionsStatContexts.cend(); ++it) {
+        (*it)->setValue(ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
+                        dataBytes);
+        (*it)->setValue(ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
+                        journalBytes);
+    }
     return *this;
 }
 

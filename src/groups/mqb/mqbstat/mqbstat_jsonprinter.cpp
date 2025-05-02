@@ -76,8 +76,10 @@ struct ConversionUtils {
 
         populateMetric(&values, ctx, Stat::e_MESSAGES_CURRENT);
         populateMetric(&values, ctx, Stat::e_MESSAGES_MAX);
+        populateMetric(&values, ctx, Stat::e_MESSAGES_UTILIZATION_MAX);
         populateMetric(&values, ctx, Stat::e_BYTES_CURRENT);
         populateMetric(&values, ctx, Stat::e_BYTES_MAX);
+        populateMetric(&values, ctx, Stat::e_BYTES_UTILIZATION_MAX);
 
         populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_DELTA);
         populateMetric(&values, ctx, Stat::e_PUT_BYTES_DELTA);
@@ -122,6 +124,32 @@ struct ConversionUtils {
         populateMetric(&values, ctx, Stat::e_HISTORY_ABS);
     }
 
+    inline static void populateAppIdStats(bdljsn::JsonObject* queueObject,
+                                          const bmqst::StatContext& ctx)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(queueObject);
+
+        if (ctx.numValues() == 0) {
+            // Prefer to omit an empty "values" object
+            return;  // RETURN
+        }
+
+        bdljsn::JsonObject& values = (*queueObject)["values"].makeObject();
+
+        typedef mqbstat::QueueStatsDomain::Stat Stat;
+
+        populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_AVG);
+        populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_MAX);
+        populateMetric(&values, ctx, Stat::e_QUEUE_TIME_AVG);
+        populateMetric(&values, ctx, Stat::e_QUEUE_TIME_MAX);
+
+        populateMetric(&values, ctx, Stat::e_MESSAGES_CURRENT);
+        populateMetric(&values, ctx, Stat::e_MESSAGES_MAX);
+        populateMetric(&values, ctx, Stat::e_BYTES_CURRENT);
+        populateMetric(&values, ctx, Stat::e_BYTES_MAX);
+    }
+
     inline static void populateOneDomainStats(bdljsn::JsonObject* domainObject,
                                               const bmqst::StatContext& ctx)
     {
@@ -147,7 +175,7 @@ struct ConversionUtils {
                     // Do not expect another nested StatContext within appId
                     BSLS_ASSERT_SAFE(0 == appIdIt->numSubcontexts());
 
-                    populateQueueStats(
+                    populateAppIdStats(
                         &appIdsObject[appIdIt->name()].makeObject(),
                         *appIdIt);
                 }
