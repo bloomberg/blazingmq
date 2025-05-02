@@ -49,18 +49,14 @@ jobs:
           path: build/blazingmq
           key: "${{ env.CACHE_KEY }}"
 
-      - name: Cancel job if cache hit
-        if: steps.cache-check.outputs.cache-hit == 'true'
-        run: |
-          echo "Cache hit – skipping remaining steps"
-          exit 0
-
       - uses: actions/cache/restore@v4
+        if: steps.cache-check.outputs.cache-hit != 'true'
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up dependencies
+        if: steps.cache-check.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -qy build-essential \
@@ -78,10 +74,12 @@ jobs:
             libz-dev
 
       - name: Install cached non packaged dependencies
+        if: steps.cache-check.outputs.cache-hit != 'true'
         working-directory: deps
         run: ../docker/build_deps.sh
 
       - name: Build BlazingMQ
+        if: steps.cache-check.outputs.cache-hit != 'true'
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
@@ -96,11 +94,13 @@ jobs:
           cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
 
       - name: Clean-up build directories before caching
+        if: steps.cache-check.outputs.cache-hit != 'true'
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
 
       - uses: actions/cache@v4
+        if: steps.cache-check.outputs.cache-hit != 'true'
         with:
           path: |
             build/blazingmq

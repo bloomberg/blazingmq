@@ -77,6 +77,7 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ env.sha1 }}-all-manual
+          fail-on-cache-miss: true
 
       - name: Move cached folders to repo1
         run: |
@@ -91,6 +92,7 @@ jobs:
             build/blazingmq
             deps
           key: cache-${{ env.sha2 }}-all-manual
+          fail-on-cache-miss: true
 
       - name: Move cached folders to repo2
         run: |
