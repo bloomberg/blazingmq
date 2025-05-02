@@ -87,6 +87,18 @@ jobs:
       - name: LS repo2
         run: ls -lah repo2
 
+      - name: chmod repo1
+        working-directory: repo1
+        run: |
+          chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+          ls -lah ./build/blazingmq/src/applications/bmqbrkr/
+
+      - name: chmod repo2
+        working-directory: repo2
+        run: |
+          chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+          ls -lah ./build/blazingmq/src/applications/bmqbrkr/
+
       - name: Run Integration Tests
         working-directory: repo1
         env:
@@ -97,6 +109,7 @@ jobs:
           BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
         run: |
           pip install -r ./src/python/requirements.txt
+
           ./src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \

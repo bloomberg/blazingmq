@@ -71,6 +71,9 @@ jobs:
           path: .
           name: cache-${{ github.sha }}-all
 
+      - name: Chmod bmqbrkr
+        run: chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+
       - name: Setup core_pattern
         run: |
           # Default Ubuntu core_pattern: '|/usr/lib/systemd/systemd-coredump %P %u %g %s %t 9223372036854775808 %h'
@@ -85,10 +88,13 @@ jobs:
         run: |
           # Allow core dumps
           ulimit -c unlimited
+
           go install github.com/kevwan/tproxy@latest
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
+
           ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \
@@ -134,10 +140,13 @@ jobs:
           path: .
           name: cache-${{ github.sha }}-all
 
+      - name: Chmod bmqbrkr
+        run: chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+
       - name: Run Fuzz Test
+        working-directory: src/python
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          cd src/python
+          pip install -r ./requirements.txt
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
 
   build_macosx:
@@ -173,8 +182,15 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: cache-${{ github.sha }}-all-include
+
+      - uses: actions/download-artifact@v4
+        with:
           path: .
           name: cache-${{ github.sha }}-all
+
+      - name: Chmod bmqbrkr
+        run: chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
 
       - name: Set up plugins dependencies
         run: |
