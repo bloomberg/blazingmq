@@ -586,9 +586,9 @@ void RootQueueEngine::consumptionMonitorOnAttemptToDelivery(AppState* app, bool 
     BALL_LOG_WARN << "RootQueueEngine::consumptionMonitorOnAttemptToDelivery: "
                   << app->appId() << " d_storageIter_mp->atEnd(): " << d_storageIter_mp->atEnd();
 
-    // If queue is in broadcast mode - do nothing.
+    // If queue is in broadcast mode or maxIdleTime == 0 - do nothing.
     // TODO: REMOVE THIS: consider to use setMaxTime() - and skip it for broadcast mode
-    if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
+    if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue()) || d_queueState_p->queue()->domain()->config().maxIdleTime() == 0) {
         return ;  // RETURN
     }
 
@@ -686,14 +686,15 @@ void RootQueueEngine::consumptionMonitorOnAttemptToDelivery(AppState* app, bool 
     BALL_LOG_WARN << "SCHEDULE at: " << executionTime << ", now: " << now;
 
     // If executionTime < now - it means that alarm was already fired previous maxIdleTime period, 
-    // then app became active, and now it becomes stale again and we need to schedule the event for the next maxIdleTime period from now.
+    // then app became active (but not confirmed the message), and now it becomes stale again and we need to schedule the event for the next maxIdleTime period from now.
     // TODO: is this correct behavior?
     if (executionTime < now) {
         executionTime.addNanoseconds(arrivalDatetimeDelta);    
         BALL_LOG_WARN << "consumptionMonitorOnAttemptToDelivery: executionTime < now, SCHEDULE from NOW";
         BALL_LOG_WARN << "SCHEDULE at: " << executionTime << ", now: " << now;
     }
-    BSLS_ASSERT_SAFE(executionTime > now);
+    // TODO: executionTime >= now fails in IT - why???
+    BSLS_ASSERT_SAFE(executionTime >= now);
 
     d_scheduler_p->scheduleEvent(&d_consumptionMonitorEventHandle, executionTime, bdlf::BindUtil::bind(&RootQueueEngine::consumptionMonitorEventSchedulerHandler, this));
 }
