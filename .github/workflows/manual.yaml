@@ -87,17 +87,13 @@ jobs:
       - name: LS repo2
         run: ls -lah repo2
 
-      - name: chmod repo1
+      - name: Chmod all .tsk
         working-directory: repo1
-        run: |
-          chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
-          ls -lah ./build/blazingmq/src/applications/bmqbrkr/
+        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
-      - name: chmod repo2
+      - name: Chmod all .tsk
         working-directory: repo2
-        run: |
-          chmod +x ./build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
-          ls -lah ./build/blazingmq/src/applications/bmqbrkr/
+        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Integration Tests
         working-directory: repo1
