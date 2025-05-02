@@ -42,21 +42,19 @@ jobs:
         id: get_cache_key
         run: echo "CACHE_KEY=cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }}" >> $GITHUB_ENV
 
-      - name: Check If Cache exists
-        id: cache-check
-        uses: actions/cache@v4
-        with:
-          path: build/blazingmq
-          key: "${{ env.CACHE_KEY }}"
+      # - name: Check If Cache exists
+      #   id: cache-check
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: build/blazingmq
+      #     key: "${{ env.CACHE_KEY }}"
 
       - uses: actions/cache/restore@v4
-        if: steps.cache-check.outputs.cache-hit != 'true'
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up dependencies
-        if: steps.cache-check.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -qy build-essential \
@@ -74,12 +72,10 @@ jobs:
             libz-dev
 
       - name: Install cached non packaged dependencies
-        if: steps.cache-check.outputs.cache-hit != 'true'
         working-directory: deps
         run: ../docker/build_deps.sh
 
       - name: Build BlazingMQ
-        if: steps.cache-check.outputs.cache-hit != 'true'
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
@@ -94,16 +90,15 @@ jobs:
           cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
 
       - name: Clean-up build directories before caching
-        if: steps.cache-check.outputs.cache-hit != 'true'
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
 
-      - uses: actions/cache@v4
-        if: steps.cache-check.outputs.cache-hit != 'true'
+      - uses: actions/upload-artifact@v4
         with:
           path: |
             build/blazingmq
             deps
             /opt/bb/include
-          key: "${{ env.CACHE_KEY }}"
+          name: "${{ env.CACHE_KEY }}"
+          retention-days: 1

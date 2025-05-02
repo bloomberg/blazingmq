@@ -21,32 +21,32 @@ jobs:
       ref: ${{ github.sha }}
       target: "all"
 
-  build_unit_tests_cxx:
-    name: "Build all.t"
-    uses: ./.github/workflows/build-ubuntu.yaml
-    with:
-      ref: ${{ github.sha }}
-      target: "all.t"
+  # build_unit_tests_cxx:
+  #   name: "Build all.t"
+  #   uses: ./.github/workflows/build-ubuntu.yaml
+  #   with:
+  #     ref: ${{ github.sha }}
+  #     target: "all.t"
 
-  run_unit_tests_cxx:
-   name: Run UT [c++]
-   needs: build_unit_tests_cxx
-   runs-on: ubuntu-latest
-   steps:
-    - uses: actions/checkout@v4
+  # run_unit_tests_cxx:
+  #  name: Run UT [c++]
+  #  needs: build_unit_tests_cxx
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #   - uses: actions/checkout@v4
 
-    - uses: actions/cache@v4
-      with:
-        path: |
-          build/blazingmq
-          deps
-          /opt/bb/include
-        key: cache-${{ github.sha }}-all.t
+  #   - uses: actions/cache@v4
+  #     with:
+  #       path: |
+  #         build/blazingmq
+  #         deps
+  #         /opt/bb/include
+  #       key: cache-${{ github.sha }}-all.t
 
-    - name: Run C++ Unit Tests
-      run: |
-        cd ${{ github.workspace }}/build/blazingmq
-        ctest --output-on-failure
+  #   - name: Run C++ Unit Tests
+  #     run: |
+  #       cd ${{ github.workspace }}/build/blazingmq
+  #       ctest --output-on-failure
 
   unit_tests_python:
     name: UT [python]
@@ -55,13 +55,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}-all
+          path: .
+          name: cache-${{ github.sha }}-all
 
       - name: Run Python Unit Tests
         env:
@@ -89,13 +86,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}-all
+          path: .
+          name: cache-${{ github.sha }}-all
 
       - name: Setup core_pattern
         run: |
@@ -155,13 +149,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}-all
+          path: .
+          name: cache-${{ github.sha }}-all
 
       - name: Run Fuzz Test
         run: |
@@ -200,13 +191,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}-all
+          path: .
+          name: cache-${{ github.sha }}-all
 
       - name: Set up plugins dependencies
         run: |

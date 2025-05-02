@@ -15,8 +15,6 @@ on:
 # Tag names (e.g., v1.2.3)
 # Full commit SHAs (e.g., a1b2c3d4)
 
-
-
 jobs:
 
   build2:
@@ -70,36 +68,15 @@ jobs:
         id: get_sha2
         run: echo "sha2=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ env.sha1 }}-all-manual
-          fail-on-cache-miss: true
+          path: ./repo1
+          name: cache-${{ env.sha1 }}-all-manual
 
-      - name: Move cached folders to repo1
-        run: |
-          ls -lah
-          mkdir -p repo1/build
-          mv build/blazingmq repo1/build/blazingmq
-          mv deps repo1/deps
-
-      - uses: actions/cache@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-          key: cache-${{ env.sha2 }}-all-manual
-          fail-on-cache-miss: true
-
-      - name: Move cached folders to repo2
-        run: |
-          ls -lah
-          mkdir -p repo2/build
-          mv build/blazingmq repo2/build/blazingmq
-          mv deps repo2/deps
+          path: ./repo2
+          name: cache-${{ env.sha2 }}-all-manual
 
       - name: Run Integration Tests
         working-directory: repo1
