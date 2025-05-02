@@ -42,13 +42,6 @@ jobs:
         id: get_cache_key
         run: echo "CACHE_KEY=cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }}" >> $GITHUB_ENV
 
-      # - name: Check If Cache exists
-      #   id: cache-check
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: build/blazingmq
-      #     key: "${{ env.CACHE_KEY }}"
-
       - uses: actions/cache/restore@v4
         with:
           path: deps
@@ -95,10 +88,16 @@ jobs:
           find . -name "*.a" -type f -delete
 
       - uses: actions/upload-artifact@v4
+        if: inputs.target != 'all.t'
         with:
           path: |
             build/blazingmq
             deps
-            /opt/bb/include
           name: "${{ env.CACHE_KEY }}"
           retention-days: 1
+
+      - name: Run UT [c++]
+        if: inputs.target == 'all.t'
+        run: |
+          cd ${{ github.workspace }}/build/blazingmq
+          ctest --output-on-failure

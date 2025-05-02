@@ -77,7 +77,7 @@ jobs:
         with:
           path: ./repo2
           name: cache-${{ env.sha2 }}-all-manual
-      
+
       - name: LS
         run: ls -lah
 
@@ -86,9 +86,6 @@ jobs:
 
       - name: LS repo2
         run: ls -lah repo2
-
-      - name: LS /opt/bb/include
-        run: ls -lah /opt/bb/include
 
       - name: Run Integration Tests
         working-directory: repo1

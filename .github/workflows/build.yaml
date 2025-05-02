@@ -21,32 +21,12 @@ jobs:
       ref: ${{ github.sha }}
       target: "all"
 
-  # build_unit_tests_cxx:
-  #   name: "Build all.t"
-  #   uses: ./.github/workflows/build-ubuntu.yaml
-  #   with:
-  #     ref: ${{ github.sha }}
-  #     target: "all.t"
-
-  # run_unit_tests_cxx:
-  #  name: Run UT [c++]
-  #  needs: build_unit_tests_cxx
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #   - uses: actions/checkout@v4
-
-  #   - uses: actions/cache@v4
-  #     with:
-  #       path: |
-  #         build/blazingmq
-  #         deps
-  #         /opt/bb/include
-  #       key: cache-${{ github.sha }}-all.t
-
-  #   - name: Run C++ Unit Tests
-  #     run: |
-  #       cd ${{ github.workspace }}/build/blazingmq
-  #       ctest --output-on-failure
+  unit_tests_cxx:
+    name: "Build all.t"
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      target: "all.t"
 
   unit_tests_python:
     name: UT [python]
