@@ -12,11 +12,6 @@ on:
         required: true
         default: "all"
         type: string
-      cache_key_suffix:
-        description: "Cache Key Suffix"
-        required: false
-        default: ""
-        type: string
 
 jobs:
   get_dependencies:
@@ -40,7 +35,7 @@ jobs:
 
       - name: Generate cache key
         id: get_cache_key
-        run: echo "CACHE_KEY=cache-${{ env.sha }}-${{ inputs.target }}${{ inputs.cache_key_suffix }}" >> $GITHUB_ENV
+        run: echo "CACHE_KEY=cache-${{ env.sha }}-${{ inputs.target }}" >> $GITHUB_ENV
 
       - uses: actions/cache/restore@v4
         with:
@@ -96,13 +91,12 @@ jobs:
           name: "${{ env.CACHE_KEY }}"
           retention-days: 1
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/cache@v4
         if: inputs.target != 'all.t'
         with:
           path: |
             /opt/bb/include
-          name: "${{ env.CACHE_KEY }}-include"
-          retention-days: 1
+          key: "${{ env.CACHE_KEY }}-include"
 
       - name: Run UT [c++]
         if: inputs.target == 'all.t'

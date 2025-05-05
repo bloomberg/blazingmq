@@ -29,7 +29,6 @@ jobs:
     with:
       ref: ${{ matrix.ref }}
       target: "all"
-      cache_key_suffix: "-manual"
 
   integration_tests_ubuntu:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
@@ -43,19 +42,18 @@ jobs:
     needs: build2
     env:
         RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
-    steps:    
-      - name: Checkout repo1
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.ref1 }}
-          path: repo1
-          fetch-depth: 0
+    steps:
 
-      - name: Checkout repo2
+      - name: Checkout repositories
+        strategy:
+          matrix:
+        repo:
+          - { path: repo1, ref: ${{ github.event.inputs.ref1 }} }
+          - { path: repo2, ref: ${{ github.event.inputs.ref2 }} }
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.ref2 }}
-          path: repo2
+          ref: ${{ matrix.repo.ref }}
+          path: ${{ matrix.repo.path }}
           fetch-depth: 0
 
       - name: Get repo1 commit SHA
@@ -68,31 +66,24 @@ jobs:
         id: get_sha2
         run: echo "sha2=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        strategy:
+          matrix:
+        repo:
+          - { path: repo1, sha: ${{ env.sha1 }} }
+          - { path: repo2, sha: ${{ env.sha2 }} }
+        uses: actions/download-artifact@v4
         with:
-          path: ./repo1
-          name: cache-${{ env.sha1 }}-all-manual
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: ./repo2
-          name: cache-${{ env.sha2 }}-all-manual
-
-      - name: LS
-        run: ls -lah
-
-      - name: LS repo1
-        run: ls -lah repo1
-
-      - name: LS repo2
-        run: ls -lah repo2
+          path: ./${{ matrix.repo.path }}
+          name: cache-${{ matrix.repo.sha }}-all
 
       - name: Chmod all .tsk
-        working-directory: repo1
-        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
-
-      - name: Chmod all .tsk
-        working-directory: repo2
+        strategy:
+          matrix:
+        repo:
+          - repo1
+          - repo2
+        working-directory: ${{ matrix.repo }}
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Integration Tests
