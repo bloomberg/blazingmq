@@ -95,8 +95,10 @@ jobs:
         if: inputs.target != 'all.t'
         with:
           path: |
+            build/blazingmq
+            deps
             /opt/bb/include
-          key: "${{ env.CACHE_KEY }}-include"
+          key: "${{ env.CACHE_KEY }}"
 
       - name: Run UT [c++]
         if: inputs.target == 'all.t'
