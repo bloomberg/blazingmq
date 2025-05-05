@@ -179,6 +179,8 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
+          path: |
+            /opt/bb/include
           key: cache-${{ github.sha }}-all-include
 
       - uses: actions/download-artifact@v4
