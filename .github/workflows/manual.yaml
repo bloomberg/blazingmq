@@ -119,3 +119,50 @@ jobs:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
           retention-days: 5
+
+  cleunup_artifacts:
+    name: Cleanup artifacts
+    runs-on: ubuntu-latest
+    needs: integration_tests_ubuntu
+    steps:
+      - name: Checkout repo1
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref1 }}
+          path: repo1
+          fetch-depth: 0
+
+      - name: Checkout repo2
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref2 }}
+          path: repo2
+          fetch-depth: 0
+
+      - name: Get repo1 commit SHA
+        working-directory: repo1
+        id: get_sha1
+        run: echo "sha1=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Get repo2 commit SHA
+        working-directory: repo2
+        id: get_sha2
+        run: echo "sha2=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Create 
+        run: echo "cache-${{ github.event.inputs.ref1 }}-all" > artifact1.txt
+      - name: Create 
+        run: echo "cache-${{ github.event.inputs.ref1 }}-all" > artifact1.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: artifact1.txt
+          name: cache-${{ env.sha1 }}-all
+          overwrite: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: artifact2.txt
+          name: cache-${{ env.sha2 }}-all
+          overwrite: true
+
