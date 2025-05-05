@@ -138,12 +138,14 @@ jobs:
           name: cache-${{ github.sha }}-all
 
       - name: Chmod all .tsk
-        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
+        run: |
+          find ./build -type f -name "*.tsk" -exec chmod +x {} +
+          chmod +x ./build/blazingmq/src/applications/bmqbrkr/run
 
       - name: Run Fuzz Test
-        working-directory: src/python
         run: |
-          pip install -r ./requirements.txt
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
 
   build_macosx:
