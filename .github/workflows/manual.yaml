@@ -124,6 +124,7 @@ jobs:
     name: Cleanup artifacts
     runs-on: ubuntu-latest
     needs: integration_tests_ubuntu
+    if: always() 
     steps:
       - name: Checkout repo1
         uses: actions/checkout@v4

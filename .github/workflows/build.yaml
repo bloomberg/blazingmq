@@ -191,7 +191,7 @@ jobs:
         with:
           path: |
             /opt/bb/include
-          key: cache-${{ github.sha }}-all-include
+          key: cache-${{ github.sha }}-all
 
       - uses: actions/download-artifact@v4
         with:
