@@ -150,10 +150,10 @@ jobs:
         id: get_sha2
         run: echo "sha2=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      - name: Create 
+      - name: Create dummy contents
         run: echo "cache-${{ github.event.inputs.ref1 }}-all" > artifact1.txt
       - name: Create 
-        run: echo "cache-${{ github.event.inputs.ref1 }}-all" > artifact1.txt
+        run: echo "cache-${{ github.event.inputs.ref2 }}-all" > artifact2.txt
 
       - uses: actions/upload-artifact@v4
         with:
