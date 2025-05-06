@@ -20,21 +20,25 @@ on:
 # Full commit SHAs (e.g., a1b2c3d4)
 
 jobs:
+  get_dependencies:
+    name: "Dependencies"
+    uses: ./.github/workflows/dependencies.yaml
 
-  build2:
-    name: "Build ref ${{ matrix.ref }}"
-    strategy:
-      matrix:
-        include:
-          - ref: ${{ github.event.inputs.ref1 }}
-          - ref: ${{ github.event.inputs.ref2 }}
-
+  build1:
+    name: "Build ref ${{ github.event.inputs.ref1 }}"
+    needs: get_dependencies
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
-      ref: ${{ matrix.ref }}
+      ref: ${{ github.event.inputs.ref1 }}
       target: "all"
-      upload_build_artifact: true
-      create_cache: false
+  
+  build2:
+    name: "Build ref ${{ github.event.inputs.ref2 }}"
+    needs: get_dependencies
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.event.inputs.ref2 }}
+      target: "all"
 
   integration_tests_ubuntu:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
@@ -45,7 +49,9 @@ jobs:
         consistency: ["strong_consistency"]
       fail-fast: false
     runs-on: ubuntu-latest
-    needs: build2
+    needs: 
+      - build1
+      - build2
     env:
         RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:    
@@ -63,30 +69,18 @@ jobs:
           path: repo2
           fetch-depth: 0
 
-      - name: Get repo1 commit SHA
-        working-directory: repo1
-        id: get_sha1
-        run: echo "sha1=$(git rev-parse HEAD)" >> $GITHUB_ENV
-
-      - name: Get repo2 commit SHA
-        working-directory: repo2
-        id: get_sha2
-        run: echo "sha2=$(git rev-parse HEAD)" >> $GITHUB_ENV
-
       - uses: actions/download-artifact@v4
         with:
           path: ./repo1
-          name: cache-${{ env.sha1 }}-all
-
+          name: ${{needs.build1.outputs.cache_key }}
       - uses: actions/download-artifact@v4
         with:
           path: ./repo2
-          name: cache-${{ env.sha2 }}-all
+          name: ${{needs.build2.outputs.cache_key }}
 
       - name: Chmod all .tsk
         working-directory: repo1
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
-
       - name: Chmod all .tsk
         working-directory: repo2
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +

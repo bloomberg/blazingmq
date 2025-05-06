@@ -12,16 +12,6 @@ on:
         required: true
         default: "all"
         type: string
-      upload_build_artifact:
-        description: "Upload build artifact"
-        required: false
-        default: false
-        type: boolean
-      create_cache:
-        description: "Create cache"
-        required: false
-        default: true
-        type: boolean
     outputs:
       cache_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -99,7 +89,7 @@ jobs:
           find . -name "*.a" -type f -delete
 
       - uses: actions/upload-artifact@v4
-        if: inputs.target != 'all.t' && inputs.upload_build_artifact == true
+        if: inputs.target != 'all.t'
         with:
           path: |
             build/blazingmq
@@ -107,14 +97,12 @@ jobs:
           name: ${{ steps.get_cache_key.outputs.cache_key }}
           retention-days: 1
 
-      - uses: actions/cache/save@v4
-        if: inputs.target != 'all.t' && inputs.create_cache == true
+      - uses: actions/upload-artifact@v4
+        if: inputs.target != 'all.t'
         with:
           path: |
-            build/blazingmq
-            deps
             /opt/bb/include
-          key: ${{ steps.get_cache_key.outputs.cache_key }}
+          key: ${{ steps.get_cache_key.outputs.cache_key }}-include
 
       - name: Run UT [c++]
         if: inputs.target == 'all.t'
