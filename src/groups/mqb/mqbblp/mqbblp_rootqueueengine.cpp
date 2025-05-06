@@ -1582,15 +1582,14 @@ void RootQueueEngine::afterNewMessage(
     // Deliver new messages to active (alive and capable to deliver) consumers
 
     while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
-
         // Assume, all Apps need to deliver (some may be at capacity)
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
             AppStateSp& app = iter->second;
 
             bool success = d_appsDeliveryContext.processApp(*app,
-                app->ordinal(),
-                false);
+                                                            app->ordinal(),
+                                                            false);
             if (success) {
                 // Consider this message as sent out
 
@@ -2256,7 +2255,6 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
                       << ") now has storage: [App Id: " << appId
                       << ", key: " << appKey << ", ordinal: " << appOrdinal
                       << "]";
-
     }
 
     iter->second->authorize(appKey, appOrdinal);
