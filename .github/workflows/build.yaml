@@ -35,14 +35,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/restore@v4
-        with:
-          path: |
-            /opt/bb/include
-            build/blazingmq
-            deps
-          key: cache-${{ github.sha }}-all
-
       - name: Run Python Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
@@ -75,7 +67,8 @@ jobs:
             /opt/bb/include
             build/blazingmq
             deps
-          key: cache-${{ github.sha }}-all
+          key: ${{ needs.build_ubuntu.outputs.cache_key }}
+          fail-on-cache-miss: true
 
       - name: Setup core_pattern
         run: |
@@ -144,7 +137,8 @@ jobs:
             /opt/bb/include
             build/blazingmq
             deps
-          key: cache-${{ github.sha }}-all
+          key: ${{ needs.build_ubuntu.outputs.cache_key }}
+          fail-on-cache-miss: true
 
       - name: Run Fuzz Test
         run: |
@@ -185,11 +179,8 @@ jobs:
 
       - uses: actions/cache/restore@v4
         with:
-          path: |
-            /opt/bb/include
-            build/blazingmq
-            deps
-          key: cache-${{ github.sha }}-all
+          path: deps
+          key: ${{ needs.build_ubuntu.outputs.cache_key }}
 
       - name: Set up plugins dependencies
         run: |

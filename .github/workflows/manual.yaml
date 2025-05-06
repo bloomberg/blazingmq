@@ -119,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
-          path: ${{ github.workspace }}/src/integration-tests/failure-logs
+          path: ${{ github.workspace }}/repo1/src/integration-tests/failure-logs
           retention-days: 5
 
   cleunup_artifacts:
@@ -147,7 +147,7 @@ jobs:
       - name: Get ${{ matrix.repo_config.name }} commit SHA
         id: get_sha
         working-directory: ${{ matrix.repo_config.name }}
-        run: echo "::set-output name=commit_sha::$(git rev-parse HEAD)"
+        run: echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Create dummy content for ${{ matrix.repo_config.name }}
         run: echo "cache-${{ matrix.repo_config.input_ref }}-all" > ${{ matrix.repo_config.artifact_file_name }}
