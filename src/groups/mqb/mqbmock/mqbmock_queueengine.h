@@ -193,12 +193,6 @@ class QueueEngine : public mqbi::QueueEngine {
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Periodically invoked with the current time provided in the specified
-    /// `currentTimer`; can be used for regular status check, such as for
-    /// ensuring messages on the queue are flowing and not accumulating.
-    /// THREAD: This method is called from the Queue's dispatcher thread.
-    void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
-
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all application subscriptions and exclude applications with
     /// negative results from message delivery.  Return 0 on success or an

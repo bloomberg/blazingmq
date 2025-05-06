@@ -44,6 +44,8 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     producer = proxy.create_client("producer")
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Create consumer but not open the queue
     consumer = proxy.create_client("consumer")
 
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)

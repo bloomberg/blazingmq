@@ -25,7 +25,6 @@
 /// implementation for use at the primary node.
 
 // MQB
-#include <mqbblp_queueconsumptionmonitor.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
@@ -52,6 +51,7 @@
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bdlmt_fixedthreadpool.h>
 #include <bsls_keyword.h>
 
 #include <bslstl_stringref.h>
@@ -87,12 +87,60 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// appId -> AppStateSp
     typedef bsl::unordered_map<bsl::string, AppStateSp> Apps;
 
+    /// Helper VST class representing queue consumption monitor data
+    class QueueConsumptionMonitorData {
+      private:      
+      // PRIVATE DATA
+  
+      /// Maximum time, in seconds, before the queue is declared idle.
+      bsls::Types::Int64 d_maxIdleTime;
+
+      /// EventHandle for consumption Monitor.
+      bdlmt::EventSchedulerEventHandle d_eventHandle;
+
+      /// Set to true when consumption monitor event is scheduled.
+      bsls::AtomicBool d_isScheduled;
+
+      /// The set of stale appIds.
+      bsl::unordered_set<bsl::string> d_staleAppIds;
+
+    public:
+      // CREATORS
+      
+      QueueConsumptionMonitorData(bslma::Allocator* allocator = 0);
+
+      // MANIPULATORS
+
+      /// Set the maximum idle time for the consumption monitor.
+      void setMaxIdleTime(bsls::Types::Int64 maxIdleTime);
+      
+      /// Return reference to modifiable event handle.
+      bdlmt::EventSchedulerEventHandle& eventHandle();
+
+      /// Return reference to modifiable isScheduled flag.
+      bsls::AtomicBool& isScheduled();
+
+      /// Return reference to modifiable set of stale appIds.
+      bsl::unordered_set<bsl::string>& staleAppIds();
+
+      /// Put the object back in construction state.
+      void reset();
+
+      // ACCESSORS
+
+      /// Return the maximum idle time value, in seconds. Zero value means that consumption monitor is disabled.
+      bsls::Types::Int64 maxIdleTime() const;
+
+      /// Return the time interval for the event to be scheduled for the given 'arrivalTimeDeltaNs' (in nanoseconds).
+      bsls::TimeInterval calculateEventTime(bsls::Types::Int64 arrivalTimeDeltaNs) const;
+    };
+
   private:
     // DATA
 
     QueueState* d_queueState_p;
 
-    // QueueConsumptionMonitor d_consumptionMonitor;
+    QueueConsumptionMonitorData d_consumptionMonitor;
 
     /// Map of appId to AppState
     Apps d_apps;
@@ -105,20 +153,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// Event scheduler currently used for message throttling and consumption monitor.  Held, not
     /// owned.
     bdlmt::EventScheduler* d_scheduler_p;
-
-    /// EventHandle for consumption Monitor.
-    bdlmt::EventSchedulerEventHandle d_consumptionMonitorEventHandle;
-
-    /// Return true if consumption Monitor event is scheduled.
-    bsls::AtomicBool d_consumptionMonitorIsScheduled;
-
-    /// The oldest message GUID for the consumption monitor.
-    bmqt::MessageGUID d_consumptionMonitorOldestMsgGUID;
-    /// The oldest message GUID appId for the consumption monitor.
-    // mqbu::StorageKey d_consumptionMonitorOldestMsgAppKey;
-    bsl::string d_consumptionMonitorOldestMsgAppId;
-    /// The set of staled appIds for the consumption monitor.
-    bsl::unordered_set<bsl::string> d_consumptionMonitorStaleAppIds;
 
     /// Thread pool for any standalone work that can be offloaded to
     /// non-queue-dispatcher threads.  It is used to hex dump the payload of a
@@ -163,6 +197,18 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void deliverMessages(AppState* app);
 
+    /// This method is called when the message delivery occured to check conditions for scheduling the event
+    /// for consumption monitor. 
+    void onMessageSent(AppState* app, bool success);
+
+    /// Handler called by EventScheduler in its thread to forward event to the queue dispatcher thread.
+    void consumptionMonitorEventSchedulerHandler(bmqt::MessageGUID oldestMsgGUID, bsl::string oldestMsgAppId);
+
+    /// Consumption monitor event dispatcher. It checks that message for given 'oldestMsgGUID' and 'oldestMsgAppId'
+    /// is still in the queue and if so, it triggers `queue stuck` alarm. Then it checks if there are any undelivered messages (for all apps, except stale ones) and reschedules
+    /// the consumption monitor event if needed.
+    void consumptionMonitorEventDispatcher(bmqt::MessageGUID oldestMsgGUID, bsl::string oldestMsgAppId);
+    
     // PRIVATE ACCESSORS
 
     /// Set up data structures for the specified `appId`.  Return 0 on
@@ -196,19 +242,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
-    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
-    /// If there are un-delivered messages for the specified `appKey` and
-    /// `enableLog` is `true` it logs alarm data. Return `true` if there are
-    /// un-delivered messages and `false` otherwise.
-    bool logAlarmCb(const bsl::string& appId, bool enableLog) const;
-
-    /// Handler called by EventScheduler in its thread to pass event to queue dispatcher thread.
-    void consumptionMonitorEventSchedulerHandler();
-
-    void consumptionMonitorEventQueueDispatcherHandler();
-    // executeInQueueDispatcher(const bsl::function<void()>& consumptionMonitorFn);
-    
-    void consumptionMonitorOnAttemptToDelivery(AppState* app, bool success);
+    /// This method is called by `consumptionMonitorEventDispatcher()` when alarm condition is met to log alarm data.
+    void logAlarm(Apps::const_iterator cItApp) const;
 
   public:
     // TRAITS
@@ -385,13 +420,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
-
-    /// Periodically invoked with the current time provided in the specified
-    /// `currentTimer`; can be used for regular status check, such as for
-    /// ensuring messages on the queue are flowing and not accumulating.
-    /// THREAD: This method is called from the Queue's dispatcher thread.
-    // TODO: remove from interface???
-    void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `addedAppIds` have been dynamically
     /// registered.
