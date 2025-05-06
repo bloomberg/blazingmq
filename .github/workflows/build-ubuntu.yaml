@@ -102,7 +102,8 @@ jobs:
         with:
           path: |
             /opt/bb/include
-          key: ${{ steps.get_cache_key.outputs.cache_key }}-include
+          name: ${{ steps.get_cache_key.outputs.cache_key }}-include
+          retention-days: 1
 
       - name: Run UT [c++]
         if: inputs.target == 'all.t'
