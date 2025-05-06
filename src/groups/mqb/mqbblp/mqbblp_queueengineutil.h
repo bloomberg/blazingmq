@@ -266,9 +266,6 @@ class RedeliveryList {
     Map          d_map;
     unsigned int d_stamp;
 
-    BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUEENGINEUTIL_APPSTATE1");
-
-
   private:
     void trim(iterator* cit) const;
 
@@ -611,9 +608,6 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
     // Avoid reading the attributes if not necessary.  Get timeDelta on demand.
     // See comment in `QueueEngineUtil_AppsDeliveryContext::processApp`.
-
-    BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUEENGINEUTIL_APPSTATE2");
-
 
   public:
     // TRAITS
