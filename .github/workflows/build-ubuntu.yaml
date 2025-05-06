@@ -12,6 +12,16 @@ on:
         required: true
         default: "all"
         type: string
+      upload_build_artifact:
+        description: "Upload build artifact"
+        required: false
+        default: false
+        type: boolean
+      create_cache:
+        description: "Create cache"
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   get_dependencies:
@@ -83,7 +93,7 @@ jobs:
           find . -name "*.a" -type f -delete
 
       - uses: actions/upload-artifact@v4
-        if: inputs.target != 'all.t'
+        if: inputs.target != 'all.t' && inputs.upload_build_artifact == true
         with:
           path: |
             build/blazingmq
@@ -91,8 +101,8 @@ jobs:
           name: "${{ env.CACHE_KEY }}"
           retention-days: 1
 
-      - uses: actions/cache@v4
-        if: inputs.target != 'all.t'
+      - uses: actions/cache/save@v4
+        if: inputs.target != 'all.t' && inputs.create_cache == true
         with:
           path: |
             build/blazingmq

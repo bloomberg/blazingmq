@@ -35,9 +35,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache/restore@v4
         with:
-          name: cache-${{ github.sha }}-all
+          path: |
+            /opt/bb/include
+            build/blazingmq
+            deps
+          key: cache-${{ github.sha }}-all
 
       - name: Run Python Unit Tests
         env:
@@ -65,12 +69,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache/restore@v4
         with:
-          name: cache-${{ github.sha }}-all
-
-      - name: Chmod all .tsk
-        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
+          path: |
+            /opt/bb/include
+            build/blazingmq
+            deps
+          key: cache-${{ github.sha }}-all
 
       - name: Setup core_pattern
         run: |
@@ -141,15 +146,6 @@ jobs:
             deps
           key: cache-${{ github.sha }}-all
 
-      # - uses: actions/download-artifact@v4
-      #   with:
-      #     name: cache-${{ github.sha }}-all
-
-      # - name: Chmod all .tsk
-      #   run: |
-      #     find ./build -type f -name "*.tsk" -exec chmod +x {} +
-      #     chmod +x ./build/blazingmq/src/applications/bmqbrkr/run
-
       - name: Run Fuzz Test
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
@@ -191,14 +187,9 @@ jobs:
         with:
           path: |
             /opt/bb/include
+            build/blazingmq
+            deps
           key: cache-${{ github.sha }}-all
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: cache-${{ github.sha }}-all
-
-      - name: Chmod all .tsk
-        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Set up plugins dependencies
         run: |
