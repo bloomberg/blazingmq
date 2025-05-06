@@ -665,6 +665,39 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
         )
 
 
+def test_csl_repair_after_stop(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
+    """Adding Apps to an existing queue in the absense of primary results in
+    the App missing in the CSL.  The CSL needs repair
+    """
+    proxies = cluster.proxy_cycle()
+
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_FANOUT_SC, flags=["write,ack"], succeed=True)
+
+    producer.post(tc.URI_FANOUT_SC, ["msg1"], block=True)
+
+    producer.close(tc.URI_FANOUT_SC, succeed=True)
+
+    cluster.stop_nodes()
+
+    updated_app_ids = default_app_ids.copy()
+    updated_app_ids.remove("foo")
+    updated_app_ids.append("new1")
+
+    cluster.config.domains[
+        tc.DOMAIN_FANOUT_SC
+    ].definition.parameters.mode.fanout.app_ids = updated_app_ids
+
+    cluster.deploy_domains()
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+
+    producer.open(tc.URI_FANOUT_SC, flags=["write,ack"], succeed=True)
+
+
 def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Add an App to Domain config of an existing queue, and then force a
     Replica to become new Primary.  Start new Consumer.  Make sure the Consumer
@@ -725,7 +758,10 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     consumer.close(f"{du.uri_fanout}?id=new_app", block=True, succeed=True)
 
 
-def test_old_data_new_app(cluster: Cluster):
+def test_old_data_new_app(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """Do this: m1, +new_app_1, m2, +new_app2, m3, +new_app3, m4, -new_app2
     Old apps  receive  4
     new_app_1 receives 3
@@ -894,7 +930,10 @@ def test_old_data_new_app(cluster: Cluster):
     assert leader.outputs_substr(f"Printing 0 message(s)", 5)
 
 
-def test_proxy_partial_push(cluster: Cluster):
+def test_proxy_partial_push(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """Make Proxy receive PUSH after closing one App"""
 
     leader = cluster.last_known_leader

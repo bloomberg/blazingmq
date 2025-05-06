@@ -219,6 +219,7 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(bslma::Allocator* allocator)
 , d_numHandleCreationsInProgress(0)
 , d_queueExpirationTimestampMs(0)
 , d_pending(allocator)
+, d_pendingUpdates(allocator)
 , d_inFlight(0)
 {
     // NOTHING
@@ -235,6 +236,7 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(
 , d_numHandleCreationsInProgress(other.d_numHandleCreationsInProgress)
 , d_queueExpirationTimestampMs(other.d_queueExpirationTimestampMs)
 , d_pending(other.d_pending)
+, d_pendingUpdates(other.d_pendingUpdates, allocator)
 , d_inFlight(other.d_inFlight)
 {
     // NOTHING
@@ -790,15 +792,19 @@ void ClusterQueueHelper::processPendingContexts(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    // NOTE: We don't check if there are any pending contexts because 1) the
-    //       caller typically would have checked for that already and 2) even
-    //       if there are none, the below code will mostly be a no-op.
+    if (queueContext->d_liveQInfo.d_pending.empty()) {
+        return;  // RETURN
+    }
 
     // Swap the contexts to process them one by one and also clear the
     // pendingContexts of the queue info: they will be enqueued back, if
     // needed.
     bsl::vector<OpenQueueContextSp> contexts(d_allocator_p);
     contexts.swap(queueContext->d_liveQInfo.d_pending);
+
+    BALL_LOG_INFO << d_cluster_p->description() << ": Proceeding with "
+                  << contexts.size() << " associated pending contexts for '"
+                  << queueContext->uri() << "'";
 
     for (bsl::vector<OpenQueueContextSp>::iterator it = contexts.begin();
          it != contexts.end();
@@ -1482,14 +1488,14 @@ void ClusterQueueHelper::onReopenQueueResponse(
     // TODO: remove this not thread-safe use of 'getUpstreamParameters'.
     if (!queueptr->getUpstreamParameters(&streamParamsCopy,
                                          upstreamSubQueueId)) {
-        ball::Severity::Level logSeverity = ball::Severity::WARN;
+        ball::Severity::Level logSeverity = ball::Severity::e_WARN;
 
         if (bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID == upstreamSubQueueId) {
             // There is an optimization in RelayQueueEngine::configureHandle
             // not to send producer parameters upstream if they are the same as
             // default constructed.  In this case the UpstreamParameters cache
             // does not have parameters for the k_DEFAULT_SUBQUEUE_ID.
-            logSeverity = ball::Severity::INFO;
+            logSeverity = ball::Severity::e_INFO;
 
             // Consider this queue successfully reopen
             notifyQueue(queueContext.get(),
@@ -1849,6 +1855,44 @@ bool ClusterQueueHelper::createQueue(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(context);
+    BSLS_ASSERT_SAFE(context->d_domain_p);
+    BSLS_ASSERT_SAFE(context->queueContext());
+
+    QueueContext*   queueContext = context->queueContext();
+    QueueLiveState& qinfo        = queueContext->d_liveQInfo;
+    const int       pid          = queueContext->partitionId();
+    const bool      isPrimary    = !d_cluster_p->isRemote() &&
+                           d_clusterState_p->isSelfPrimary(pid);
+    mqbi::Domain* domain = context->d_domain_p;
+
+    if (isPrimary) {
+        // Make sure the Cluster state and the domain config agrees.
+        // If there are missing/extra Apps, repair the Cluste state with a
+        // QueueUpdateAdvisory and wait for 'onQueueUpdated' to continue to
+        // 'registerQueue'.
+
+        bsl::vector<bsl::string> added(d_allocator_p);
+        bsl::vector<bsl::string> removed(d_allocator_p);
+
+        match(&added,
+              &removed,
+              *queueContext->d_stateQInfo_sp,
+              domain->config().mode());
+
+        if (!removed.empty() || !added.empty()) {
+            // Add to 'd_pending' before calling 'updateAppIds' which can be
+            // both synchronous (legacy) and asynchronous (CSL)
+            queueContext->d_liveQInfo.d_pending.push_back(context);
+
+            d_clusterStateManager_p->updateAppIds(added,
+                                                  removed,
+                                                  domain->name(),
+                                                  "");
+            // Cannot continue until 'onQueueUpdated'
+
+            return false;  // RETURN
+        }
+    }
 
     const bmqp_ctrlmsg::QueueHandleParameters& parameters =
         openQueueResponse.originalRequest().handleParameters();
@@ -1874,11 +1918,6 @@ bool ClusterQueueHelper::createQueue(
     bmqu::MemOutStream                         errorDescription(&la);
     bmqp_ctrlmsg::Status                       status;
 
-    QueueContext*   queueContext = context->queueContext();
-    QueueLiveState& qinfo        = queueContext->d_liveQInfo;
-    const int       pid          = queueContext->partitionId();
-    const bool      isPrimary    = !d_cluster_p->isRemote() &&
-                           d_clusterState_p->isSelfPrimary(pid);
     bsl::shared_ptr<mqbi::Queue> queue = createQueueFactory(errorDescription,
                                                             *context,
                                                             openQueueResponse);
@@ -1971,10 +2010,11 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(context.d_domain_p);
 
     QueueContext* queueContext = context.queueContext();
 
-    BSLS_ASSERT_SAFE(isQueueAssigned(*(queueContext)));
+    BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
     BSLS_ASSERT_SAFE(context.d_domain_p);
 
     const int pid = queueContext->partitionId();
@@ -2618,7 +2658,7 @@ void ClusterQueueHelper::configureQueueDispatched(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_supportShutdownV2) {
+    if (d_isShutdownLogicOn) {
         BMQ_LOGTHROTTLE_INFO()
             << d_cluster_p->description()
             << ": Shutting down and skipping configure queue [: " << uri
@@ -3541,13 +3581,12 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
          cit != d_queues.cend();
          ++cit) {
         const QueueContextSp& queueContext = cit->second;
-
+        QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
         if (allPartitions) {
             // Attempt to re-issue open-queue requests for all appropriate
             // queues across *all* partitions.
 
-            if (!queueContext->d_liveQInfo.d_queue_sp &&
-                queueContext->d_liveQInfo.d_inFlight == 0) {
+            if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0) {
                 // Queue instance does not exist and self node is not waiting
                 // for any pending open-queue responses.  So there is no need
                 // to re-issue an open-queue request for this one.
@@ -3585,9 +3624,8 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext.get()));
             BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext.get()));
 
-            QueueLiveState& qinfo = queueContext->d_liveQInfo;
-
-            if (qinfo.d_queue_sp) {
+            // Verify the CSL if needed by comparing it with the Domain config
+            if (liveQInfo.d_queue_sp) {
                 if (isSelfPrimary) {
                     // We are assuming that it is not possible for a node to be
                     // primary, lose primary-ship and regain primary-ship;
@@ -3601,26 +3639,36 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     // node creates a local queue instance (see
                     // 'createQueueFactory').
 
-                    d_storageManager_p->registerQueue(
-                        queueContext->uri(),
-                        queueContext->key(),
-                        queueContext->partitionId(),
-                        queueContext->d_stateQInfo_sp->appInfos(),
-                        qinfo.d_queue_sp->domain());
+                    bsl::vector<bsl::string> added(d_allocator_p);
+                    bsl::vector<bsl::string> removed(d_allocator_p);
+                    mqbi::Domain* domain = liveQInfo.d_queue_sp->domain();
 
-                    // Convert the queue from remote to local instance.
-                    queueContext->d_liveQInfo.d_queue_sp->convertToLocal();
-                    queueContext->d_liveQInfo.d_id =
-                        bmqp::QueueId::k_PRIMARY_QUEUE_ID;
+                    match(&added,
+                          &removed,
+                          *queueContext->d_stateQInfo_sp,
+                          domain->config().mode());
 
-                    if (!queueContext->d_liveQInfo.d_pending.empty()) {
-                        // Proceed with pending contexts, if any.
-                        BALL_LOG_INFO
-                            << d_cluster_p->description()
-                            << ": Proceeding with "
-                            << queueContext->d_liveQInfo.d_pending.size()
-                            << " associated pending contexts for '"
-                            << queueContext->uri() << "'";
+                    if (!removed.empty() || !added.empty()) {
+                        VoidFunctor park = bdlf::BindUtil::bind(
+                            &ClusterQueueHelper::convertToLocal,
+                            this,
+                            queueContext,
+                            domain);
+
+                        // Add to 'd_pendingUpdates' before calling
+                        // 'updateAppIds' which can be both synchronous
+                        // (legacy) and asynchronous (CSL)
+                        liveQInfo.d_pendingUpdates.push_back(park);
+
+                        d_clusterStateManager_p->updateAppIds(added,
+                                                              removed,
+                                                              domain->name(),
+                                                              "");
+                        // Cannot continue until 'onQueueUpdated'
+                        // Send QueueUpdateAdvisory and _wait_ for commit
+                    }
+                    else {
+                        convertToLocal(queueContext, domain);
 
                         processPendingContexts(queueContext);
                     }
@@ -4295,8 +4343,9 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
     QueueContextMapIter qiter = d_queues.find(uri);
     BSLS_ASSERT_SAFE(qiter != d_queues.end());
 
-    mqbblp::Queue* queue       = qiter->second->d_liveQInfo.d_queue_sp.get();
-    const int      partitionId = qiter->second->partitionId();
+    QueueContext&  queueContext = *qiter->second;
+    mqbblp::Queue* queue        = queueContext.d_liveQInfo.d_queue_sp.get();
+    const int      partitionId  = queueContext.partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
 
     if (d_cluster_p->isCSLModeEnabled()) {
@@ -4308,25 +4357,24 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
             d_storageManager_p->updateQueueReplica(
                 partitionId,
                 uri,
-                qiter->second->key(),
+                queueContext.key(),
                 addedAppIds,
                 d_clusterState_p->domainStates()
                     .at(uri.qualifiedDomain())
                     ->domain());
         }
 
-        for (AppInfosCIter cit = removedAppIds.cbegin();
+        for (AppInfos::const_iterator cit = removedAppIds.cbegin();
              cit != removedAppIds.cend();
              ++cit) {
             if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
                 // Note: In non-CSL mode, the queue deletion callback is
                 // invoked at replica nodes when they receive a queue deletion
                 // record from the primary in the partition stream.
-                d_storageManager_p->unregisterQueueReplica(
-                    partitionId,
-                    uri,
-                    qiter->second->key(),
-                    cit->second);
+                d_storageManager_p->unregisterQueueReplica(partitionId,
+                                                           uri,
+                                                           queueContext.key(),
+                                                           cit->second);
             }
         }
     }
@@ -4351,6 +4399,28 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
     BALL_LOG_INFO << d_cluster_p->description() << ": Updated queue: " << uri
                   << ", addedAppIds: " << printer1
                   << ", removedAppIds: " << printer2;
+
+    // Resume open queue request(s) waiting for new App(s).
+    processPendingContexts(qiter->second);
+
+    if (queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
+        return;  // RETURN
+    }
+
+    // Swap the contexts to process them one by one and also clear the
+    // pendingContexts of the queue info: they will be enqueued back, if
+    // needed.
+    bsl::vector<VoidFunctor> pending(d_allocator_p);
+    pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
+
+    BALL_LOG_INFO << d_cluster_p->description() << ": processing "
+                  << pending.size() << " pending Apps Updates.";
+
+    for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
+         it != pending.end();
+         ++it) {
+        (*it)();
+    }
 }
 
 void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
@@ -4404,7 +4474,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_numPendingReopenQueueRequests(0)
 , d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
-, d_supportShutdownV2(false)
+, d_isShutdownLogicOn(false)
 {
     BSLS_ASSERT(
         d_clusterData_p->clusterConfig()
@@ -4698,28 +4768,6 @@ void ClusterQueueHelper::configureQueue(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->dispatcher()->inDispatcherThread(queue));
-
-    // Application first calls 'Cluster::initiateShutdown' (which may set
-    // 'd_supportShutdownV2'), followed by 'TransportManager::closeClients'
-    // which may result in 'QueueHandle::drop' leading to this call.
-    if (d_supportShutdownV2) {
-        // Assuming thread-safe 'description()'
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description()
-            << ": Shutting down and skipping close queue [: "
-            << handleParameters.uri()
-            << "], queueId: " << handleParameters.qId()
-            << ", handle parameters: " << handleParameters;
-
-        if (callback) {
-            bmqp_ctrlmsg::Status status;
-            status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-            status.message()  = "Shutting down.";
-            callback(status);
-        }
-
-        return;  // RETURN
-    }
 
     // TBD: Populate the 'bmqp_ctrlmsg::SubQueueIdInfo' of the handleParameters
     //      with subStream-specific (appId, upstreamSubQueueId) if applicable.
@@ -5111,7 +5159,7 @@ void ClusterQueueHelper::requestToStopPushing()
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     // Assume Shutdown V2
-    d_supportShutdownV2 = true;
+    d_isShutdownLogicOn = true;
 
     // Prevent future queue operations from sending PUSHes.
     for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
@@ -6099,16 +6147,27 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
             continue;  // CONTINUE
         }
 
+        // With asynchronous CSL repair, it is possible to have
+        // '0 == qinfo.d_queue_sp' while waiting for QueueUpdate
+
+        if (qinfo.d_numHandleCreationsInProgress) {
+            continue;  // CONTINUE
+        }
+        if (qinfo.d_numQueueHandles) {
+            continue;  // CONTINUE
+        }
+        if (!queueContextSp->d_liveQInfo.d_pending.empty()) {
+            continue;  // CONTINUE
+        }
+        if (queueContextSp->d_liveQInfo.d_inFlight) {
+            continue;  // CONTINUE
+        }
+
         if (0 == qinfo.d_queue_sp) {
             // Even though queue is assigned to an active primary node (self),
             // it is possible that queue instance does not exist.  This could
             // occur if this queue was recovered at startup and there have been
             // no clients for this queue.
-
-            BSLS_ASSERT_SAFE(0 == qinfo.d_numHandleCreationsInProgress);
-            BSLS_ASSERT_SAFE(0 == qinfo.d_numQueueHandles);
-            BSLS_ASSERT_SAFE(queueContextSp->d_liveQInfo.d_pending.empty());
-            BSLS_ASSERT_SAFE(0 == queueContextSp->d_liveQInfo.d_inFlight);
 
             if (immediate) {
                 queuesToGc.push_back(it);
@@ -6267,13 +6326,19 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
                                                            pid,
                                                            *d_clusterState_p);
 
-        // Apply 'queueUnassignedAdvisory' to CSL
-        d_clusterStateManager_p->unassignQueue(queueAdvisory);
-
         if (!d_cluster_p->isCSLModeEnabled()) {
             // Broadcast 'queueUnassignedAdvisory' to all followers
+            //
+            // NOTE: We must broadcast this control message before applying to
+            // CSL, because if CSL is running in eventual consistency it will
+            // immediately apply a commit with a higher seqeuence number than
+            // the QueueUnassignedAdvisory.  If we ever receive the commit
+            // before the QUA, we will alarm due to out-of-sequence advisory.
             d_clusterData_p->messageTransmitter().broadcastMessage(controlMsg);
         }
+
+        // Apply 'queueUnassignedAdvisory' to CSL
+        d_clusterStateManager_p->unassignQueue(queueAdvisory);
     }
 
     return rc_SUCCESS;  // RETURN
@@ -6437,6 +6502,77 @@ void ClusterQueueHelper::loadState(
                 os.str();
             os.reset();
         }
+    }
+}
+
+void ClusterQueueHelper::convertToLocal(const QueueContextSp& queueContext,
+                                        mqbi::Domain*         domain)
+{
+    d_storageManager_p->registerQueue(
+        queueContext->uri(),
+        queueContext->key(),
+        queueContext->partitionId(),
+        queueContext->d_stateQInfo_sp->appInfos(),
+        domain);
+
+    // Convert the queue from remote to local instance.
+    queueContext->d_liveQInfo.d_queue_sp->convertToLocal();
+    queueContext->d_liveQInfo.d_id = bmqp::QueueId::k_PRIMARY_QUEUE_ID;
+}
+
+void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,
+                               bsl::vector<bsl::string>*          removed,
+                               const mqbc::ClusterStateQueueInfo& state,
+                               const mqbconfm::QueueMode&         domainConfig)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    BSLS_ASSERT_SAFE(added);
+    BSLS_ASSERT_SAFE(removed);
+
+    if (!domainConfig.isFanoutValue()) {
+        return;
+    }
+
+    bsl::unordered_set<bsl::string> inTheConfig(
+        domainConfig.fanout().appIDs().cbegin(),
+        domainConfig.fanout().appIDs().cend(),
+        d_allocator_p);
+
+    for (AppInfos::const_iterator citInTheState = state.appInfos().begin();
+         citInTheState != state.appInfos().end();
+         ++citInTheState) {
+        const bsl::string& appId = citInTheState->first;
+        bsl::unordered_set<bsl::string>::const_iterator citInTheConfig =
+            inTheConfig.find(appId);
+
+        if (citInTheConfig == inTheConfig.end()) {
+            // TODO: handle dynamic App
+            BALL_LOG_ERROR << d_cluster_p->description()
+                           << " removing extra App '" << appId
+                           << "' in the Cluster State of '" << state.uri()
+                           << "'";
+            removed->push_back(appId);
+        }
+        else {
+            inTheConfig.erase(citInTheConfig);
+        }
+    }
+    for (bsl::unordered_set<bsl::string>::const_iterator citInTheConfig =
+             inTheConfig.begin();
+         citInTheConfig != inTheConfig.end();
+         ++citInTheConfig) {
+        const bsl::string& appId = *citInTheConfig;
+        // TODO: handle dynamic App
+        BALL_LOG_ERROR << d_cluster_p->description() << " adding missing App '"
+                       << appId << "' in the Cluster State of '" << state.uri()
+                       << "'";
+
+        added->push_back(appId);
     }
 }
 

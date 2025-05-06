@@ -31,6 +31,7 @@ import blazingmq.dev.it.testconstants as tc
 import blazingmq.dev.configurator.configurator as cfg
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.proc import Process
 from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
 
 logger = logging.getLogger(__name__)
@@ -103,6 +104,7 @@ class Cluster(contextlib.AbstractContextManager):
         self._virtual_nodes: List[Broker] = []
         self._proxies: List[Broker] = []
         self._clients: List[Client] = []
+        self._other_processes: List[Process] = []
 
         # out soon
         self._tool_extra_args = tool_extra_args
@@ -238,6 +240,10 @@ class Cluster(contextlib.AbstractContextManager):
                 process.force_stop()
                 bad_exit = True
 
+        for process in self._other_processes:
+            self._logger.info("killing subordinate process %s", process.name)
+            process.force_stop()
+
         if bad_exit:
             raise RuntimeError("cluster did not shut down cleanly")
 
@@ -351,6 +357,39 @@ class Cluster(contextlib.AbstractContextManager):
             raise RuntimeError(f"Cannot use start_proxy to start node {broker.name}")
 
         return self._start_broker(broker, self._proxies, None)
+
+    def start_tproxy(
+        self, broker: Union[cfg.Broker, str], port: str = None
+    ) -> Tuple[str, Process]:
+        """Start the tproxy for the specified 'broker'.
+
+        If the 'port' is specified tproxy will try to start listening it.
+        Otherwise, tproxy will allocate a port itself.
+        """
+
+        if isinstance(broker, str):
+            broker = self.config.configurator.brokers[broker]
+
+        self._logger.info("starting tproxy for [%s]", broker.name)
+
+        command = [
+            "tproxy",
+            "-r",
+            f"{broker.host}:{broker.port}",
+        ]
+        if port is not None:
+            command.extend(["-p", port])
+
+        tproxy = Process(
+            f"tproxy_{broker.name}",
+            command,
+        )
+        tproxy.start()
+        tproxy_port = tproxy.capture(r"Listening on (.+):(\d+)", timeout=2).group(2)
+
+        self._other_processes.append(tproxy)
+
+        return tproxy_port, tproxy
 
     def process(self, name):
         """Return the process (node or proxy) specified by 'name'."""

@@ -2,7 +2,7 @@
 
 # This script builds BlazingMQ and all of its dependencies.
 #
-# Required prerequisites:
+# Required tools:
 # - Clang
 # - CMake
 # - git
@@ -12,6 +12,9 @@
 # - pkg-config
 # - Python3
 
+echo -e "Before running this script, install the following prerequisites, if not present yet," \
+        "by executing the following commands:\n"                                               \
+        "brew install flex bison google-benchmark googletest zlib"
 
 set -e
 set -u
@@ -39,10 +42,10 @@ mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.13.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.18.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
@@ -80,10 +83,6 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     popd
     touch "${DIR_BUILD}/ntf/.complete"
 fi
-
-
-# Build other dependencies
-brew install flex bison google-benchmark googletest zlib
 
 # Determine paths based on Intel vs Apple Silicon CPU
 if [ "$(uname -p)" == 'arm' ]; then

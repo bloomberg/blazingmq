@@ -478,7 +478,10 @@ def test_verify_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     )
 
 
-def test_verify_broadcast(cluster: Cluster):
+def test_verify_broadcast(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     # 1: Setup producers and consumers
     proxies = cluster.proxy_cycle()
 

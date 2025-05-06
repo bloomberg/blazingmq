@@ -45,10 +45,11 @@
 // observer object for testing purposes.
 //
 // First, create a 'bmqtst::ScopedLogObserver' object having a desired severity
-// threshold for capturing log records (in this case, 'ball::Severity::ERROR').
+// threshold for capturing log records (in this case,
+// 'ball::Severity::e_ERROR').
 //..
 //  BALL_LOG_SET_CATEGORY("TEST");
-//  bmqtst::ScopedLogObserver observer(ball::Severity::ERROR,
+//  bmqtst::ScopedLogObserver observer(ball::Severity::e_ERROR,
 //  bmqtst::TestHelperUtil::allocator());
 //..
 // Next, publish a log using the BALL logging infrastructure.  Note that the
@@ -132,7 +133,7 @@ class ScopedLogObserver : public ball::ObserverAdapter {
 
     /// Set the severity threshold to the specified `value`: any log which
     /// severity is greater than or equal to `value` will be recorded.  Use
-    /// `ball::Severity::OFF` to completely disable this observer.  Return a
+    /// `ball::Severity::e_OFF` to completely disable this observer.  Return a
     /// reference to this object.
     ScopedLogObserver& setSeverityThreshold(ball::Severity::Level value);
 
@@ -161,7 +162,7 @@ class ScopedLogObserver : public ball::ObserverAdapter {
 
     /// Return whether this observer is enabled or not.  Note that this is
     /// just a convenience shortcut for comparing the `severityThreshold`
-    /// with a value of `ball::Severity::OFF`.
+    /// with a value of `ball::Severity::e_OFF`.
     bool isEnabled() const;
 
     /// Return a reference not offering modifiable access to the list of

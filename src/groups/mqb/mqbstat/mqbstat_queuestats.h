@@ -110,8 +110,10 @@ class QueueStatsDomain {
             e_NB_CONSUMER,
             e_MESSAGES_CURRENT,
             e_MESSAGES_MAX,
+            e_MESSAGES_UTILIZATION_MAX,
             e_BYTES_CURRENT,
             e_BYTES_MAX,
+            e_BYTES_UTILIZATION_MAX,
             e_PUT_MESSAGES_DELTA,
             e_PUT_BYTES_DELTA,
             e_PUT_MESSAGES_ABS,
@@ -328,8 +330,9 @@ class QueueStatsClient {
 
   private:
     // DATA
+
+    /// StatContext
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext
 
   private:
     // NOT IMPLEMENTED
@@ -507,8 +510,8 @@ struct DomainQueueStats {
         e_STAT_NO_SC_MSGS
 
         ,
-        // Value:      Current number of GUIDs stored in queue's history
-        //             (does not include messages in the queue)
+        /// Value:      Current number of GUIDs stored in queue's history
+        ///             (does not include messages in the queue)
         e_STAT_HISTORY
     };
 };

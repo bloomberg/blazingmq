@@ -20,6 +20,7 @@ python3 check_license.py [--path PATH]
 optional arguments:
   --path PATH to the directory containing sources to check
 """
+
 import argparse
 import glob
 from pathlib import Path

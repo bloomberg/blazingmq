@@ -572,21 +572,21 @@
 #define INIT_BALL_LOGGING()                                                   \
     /* create logger configuration */                                         \
     ball::LoggerManagerConfiguration _logConfig;                              \
-    ball::Severity::Level            _logSeverity = ball::Severity::WARN;     \
+    ball::Severity::Level            _logSeverity = ball::Severity::e_WARN;   \
     {                                                                         \
         if (bmqtst::TestHelperUtil::verbosityLevel() == 1) {                  \
-            _logSeverity = ball::Severity::INFO;                              \
+            _logSeverity = ball::Severity::e_INFO;                            \
         }                                                                     \
         else if (bmqtst::TestHelperUtil::verbosityLevel() == 2) {             \
-            _logSeverity = ball::Severity::DEBUG;                             \
+            _logSeverity = ball::Severity::e_DEBUG;                           \
         }                                                                     \
         else if (bmqtst::TestHelperUtil::verbosityLevel() >= 3) {             \
-            _logSeverity = ball::Severity::TRACE;                             \
+            _logSeverity = ball::Severity::e_TRACE;                           \
         }                                                                     \
-        _logConfig.setDefaultThresholdLevelsIfValid(ball::Severity::OFF,      \
+        _logConfig.setDefaultThresholdLevelsIfValid(ball::Severity::e_OFF,    \
                                                     _logSeverity,             \
-                                                    ball::Severity::OFF,      \
-                                                    ball::Severity::OFF);     \
+                                                    ball::Severity::e_OFF,    \
+                                                    ball::Severity::e_OFF);   \
     }                                                                         \
                                                                               \
     ball::AttributeContextProctor _attributeContextProctor;                   \

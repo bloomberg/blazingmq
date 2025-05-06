@@ -73,6 +73,54 @@ bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
     return true;
 }
 
+void ClusterStateQueueInfo::setApps(const bmqp_ctrlmsg::QueueInfo& advisory)
+{
+    BSLS_ASSERT_SAFE(uri() == advisory.uri());
+
+    d_appInfos.clear();
+
+    for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
+             advisory.appIds().cbegin();
+         cit != advisory.appIds().cend();
+         ++cit) {
+        BSLS_ASSERT_SAFE(!cit->appId().empty());
+        BSLS_ASSERT_SAFE(!cit->appKey().empty());
+
+        d_appInfos.insert(mqbi::ClusterStateManager::AppInfo(
+            bsl::string(cit->appId(), d_allocator_p),
+            mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                             cit->appKey().data())));
+    }
+}
+
+bool ClusterStateQueueInfo::equal(
+    const bmqp_ctrlmsg::QueueInfo& advisory) const
+{
+    BSLS_ASSERT_SAFE(uri() == advisory.uri());
+
+    if (partitionId() != advisory.partitionId()) {
+        return false;
+    }
+    if (key() != mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                  advisory.key().data())) {
+        return false;
+    }
+
+    if (advisory.appIds().size() != appInfos().size()) {
+        return false;
+    }
+
+    for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
+             advisory.appIds().cbegin();
+         cit != advisory.appIds().cend();
+         ++cit) {
+        if (appInfos().count(cit->appId()) == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
                                            int           level,
                                            int           spacesPerLevel) const
@@ -414,15 +462,15 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
     return *this;
 }
 
-bool ClusterState::assignQueue(const bmqt::Uri&        uri,
-                               const mqbu::StorageKey& key,
-                               int                     partitionId,
-                               const AppInfos&         appIdInfos)
+bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+
+    const bmqt::Uri& uri         = advisory.uri();
+    const int        partitionId = advisory.partitionId();
 
     bool                  isNewAssignment = true;
     DomainStatesIter      domIt = domainStates().find(uri.qualifiedDomain());
@@ -443,12 +491,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
     if (queueIt == domIt->second->queuesInfo().end()) {
         QueueInfoSp queueInfo;
 
-        queueInfo.createInplace(d_allocator_p,
-                                uri,
-                                key,
-                                partitionId,
-                                appIdInfos,
-                                d_allocator_p);
+        queueInfo.createInplace(d_allocator_p, advisory, d_allocator_p);
 
         queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
     }
@@ -459,17 +502,18 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
             // insists on re-assigning
             isNewAssignment = false;
 
-            if (queueIt->second->key() == key &&
-                queueIt->second->partitionId() == partitionId &&
-                queueIt->second->hasTheSameAppIds(appIdInfos)) {
+            ClusterStateQueueInfo fromAdvisory(advisory, d_allocator_p);
+
+            if (queueIt->second->isEquivalent(fromAdvisory)) {
                 // If queue info is unchanged, can simply return
                 return false;  // RETURN
             }
 
             updatePartitionQueueMapped(queueIt->second->partitionId(), -1);
         }
-        queueIt->second->setKey(key).setPartitionId(partitionId);
-        queueIt->second->appInfos() = appIdInfos;
+
+        queueIt->second->setKey(advisory).setPartitionId(partitionId);
+        queueIt->second->setApps(advisory);
     }
 
     // Set the queue as assigned
@@ -477,9 +521,12 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
 
     updatePartitionQueueMapped(partitionId, 1);
 
-    bmqu::Printer<AppInfos> printer(&appIdInfos);
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Assigning queue [" << uri << "], queueKey: [" << key
+    bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer(
+        &advisory.appIds());
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: Assigning queue [" << uri << "], queueKey: ["
+                  << mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                      advisory.key().data())
                   << "] to Partition [" << partitionId
                   << "] with appIdInfos: [" << printer
                   << "], isNewAssignment: " << isNewAssignment << ".";
@@ -568,10 +615,7 @@ void ClusterState::clearQueues()
     }
 }
 
-int ClusterState::updateQueue(const bmqt::Uri&   uri,
-                              const bsl::string& domain,
-                              const AppInfos&    addedAppIds,
-                              const AppInfos&    removedAppIds)
+int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -585,6 +629,13 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
         rc_APPID_ALREADY_EXISTS = -2,
         rc_APPID_NOT_FOUND      = -3
     };
+
+    const bmqt::Uri&   uri    = update.uri();
+    const bsl::string& domain = update.domain();
+
+    // TODO: avoid this extra copy
+    AppInfos addedAppIds(d_allocator_p);
+    AppInfos removedAppIds(d_allocator_p);
 
     if (uri.isValid()) {
         BSLS_ASSERT_SAFE(uri.qualifiedDomain() == domain);
@@ -600,28 +651,43 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
         if (iter == domIt->second->queuesInfo().end()) {
             return rc_QUEUE_NOT_FOUND;  // RETURN
         }
+        AppInfos& appInfos = iter->second->appInfos();
 
-        AppInfos& appIdInfos = iter->second->appInfos();
-        for (AppInfosCIter citer = addedAppIds.cbegin();
-             citer != addedAppIds.cend();
+        for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
+                 update.addedAppIds().cbegin();
+             citer != update.addedAppIds().cend();
              ++citer) {
-            if (!appIdInfos.insert(*citer).second) {
+            const AppInfo appInfo = bsl::make_pair(
+                citer->appId(),
+                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                 citer->appKey().data()));
+
+            if (!appInfos.insert(appInfo).second) {
                 return rc_APPID_ALREADY_EXISTS;  // RETURN
             }
+            addedAppIds.insert(appInfo);
         }
 
-        for (AppInfosCIter citer = removedAppIds.begin();
-             citer != removedAppIds.end();
+        for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
+                 update.removedAppIds().cbegin();
+             citer != update.removedAppIds().cend();
              ++citer) {
-            const AppInfosCIter appIdInfoCIter = appIdInfos.find(citer->first);
-            if (appIdInfoCIter == appIdInfos.cend()) {
+            const AppInfo appInfo = bsl::make_pair(
+                citer->appId(),
+                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                 citer->appKey().data()));
+
+            if (appInfos.erase(citer->appId()) == 0) {
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
-            appIdInfos.erase(appIdInfoCIter);
+
+            removedAppIds.insert(appInfo);
         }
 
-        bmqu::Printer<AppInfos> printer1(&addedAppIds);
-        bmqu::Printer<AppInfos> printer2(&removedAppIds);
+        bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer1(
+            &update.addedAppIds());
+        bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer2(
+            &update.removedAppIds());
         BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                       << "Updating queue [" << uri << "], queueKey: ["
                       << iter->second->key() << "], partitionId: ["
@@ -630,10 +696,12 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
                       << ", removedAppIds: " << printer2 << ".";
     }
     else {
-        // This update is for an entire domain, instead of any individual
+        // This update is for the entire domain, instead of any individual
         // queue.
-        bmqu::Printer<AppInfos> printer1(&addedAppIds);
-        bmqu::Printer<AppInfos> printer2(&removedAppIds);
+        bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer1(
+            &update.addedAppIds());
+        bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer2(
+            &update.removedAppIds());
         BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                       << "Updating domain: [" << domain
                       << "], addedAppIds: " << printer1

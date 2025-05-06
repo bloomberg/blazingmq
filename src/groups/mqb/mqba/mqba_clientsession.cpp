@@ -911,44 +911,38 @@ void ClientSession::initiateShutdownDispatched(
     BALL_LOG_INFO << description()
                   << ": initiateShutdownDispatched. Timeout: " << timeout;
 
+    bdlb::ScopeExitAny scopeExit(callback);
+
     if (d_operationState == e_DEAD) {
         // The client is disconnected.  No need to wait for tearDown.
-        callback();
         return;  // RETURN
     }
 
     if (d_operationState == e_SHUTTING_DOWN) {
         // More than one cluster calls 'initiateShutdown'?
-        callback();
-        return;  // RETURN
-    }
-
-    if (d_operationState == e_SHUTTING_DOWN_V2) {
-        // More than one cluster calls 'initiateShutdown'?
-        callback();
         return;  // RETURN
     }
 
     flush();  // Flush any pending messages
 
-    // 'tearDown' should invoke the 'callback'
-    d_shutdownCallback = callback;
-
-    if (d_operationState == e_DISCONNECTING) {
-        // Not teared down yet. No need to wait for unconfirmed messages.
-        // Wait for tearDown.
-
-        closeChannel();
-        return;  // RETURN
-    }
-
     if (supportShutdownV2) {
-        d_operationState = e_SHUTTING_DOWN_V2;
+        d_operationState = e_DISCONNECTING;
         d_queueSessionManager.shutDown();
-
-        callback();
     }
     else {
+        // 'tearDown' should invoke the 'callback'
+        d_shutdownCallback = callback;
+
+        scopeExit.release();
+
+        if (d_operationState == e_DISCONNECTING) {
+            // Not torn down yet. No need to wait for unconfirmed messages.
+            // Wait for tearDown.
+
+            closeChannel();
+            return;  // RETURN
+        }
+
         // After de-configuring (below), wait for unconfirmed messages.
         // Once the wait for unconfirmed is over, close the channel
 
@@ -2002,7 +1996,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
 
     bdlbb::Blob* blob = event.blob().get();
 
-    if (BALL_LOG_IS_ENABLED(ball::Severity::TRACE)) {
+    if (BALL_LOG_IS_ENABLED(ball::Severity::e_TRACE)) {
         ClientSessionState::QueueStateMap::const_iterator it =
             d_queueSessionManager.queues().find(event.queueId());
 
@@ -3221,15 +3215,13 @@ void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
         // Even if the waiting is in progress, still reply with StopResponse
         return;  // RETURN
     }
-    if (d_operationState == e_SHUTTING_DOWN_V2) {
-        // The broker is already shutting down or processing a StopRequest
-        // The de-configuring is done.
-        // Even if the waiting is in progress, still reply with StopResponse
-        return;  // RETURN
-    }
 
     if (d_operationState == e_DISCONNECTING) {
-        // The client is disconnecting.  No-op
+        // The broker is already shutting down or processing a StopRequest or
+        // disconnecting.
+        // The de-configuring is done.
+        // Even if the waiting is in progress, still reply with StopResponse
+
         return;  // RETURN
     }
     for (QueueStateMapCIter cit = d_queueSessionManager.queues().begin();

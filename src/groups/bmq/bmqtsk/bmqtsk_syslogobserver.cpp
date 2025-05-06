@@ -38,7 +38,7 @@ namespace bmqtsk {
 SyslogObserver::SyslogObserver(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_formatter(allocator)
-, d_severityThreshold(ball::Severity::INFO)
+, d_severityThreshold(ball::Severity::e_INFO)
 {
     d_formatter.disablePublishInLocalTime();  // Always use UTC time
 }
