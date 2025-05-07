@@ -610,7 +610,7 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
         d_queueState_p->queue()));
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-        d_consumptionMonitor.maxIdleTime() == 0)) {
+            d_consumptionMonitor.maxIdleTime() == 0)) {
         // monitoring is disabled
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
