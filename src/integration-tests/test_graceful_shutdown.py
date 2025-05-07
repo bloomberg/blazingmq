@@ -246,7 +246,9 @@ class TestGracefulShutdown:
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_proxy(
-        self, multi_node, domain_urls: tc.DomainUrls  # pylint: disable=unused-argument
+        self,
+        _,
+        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
     ):
         proxy = self.replica_proxy
         self.kill_wait_unconfirmed(proxy, domain_urls)
@@ -254,16 +256,16 @@ class TestGracefulShutdown:
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_replica(
-        self, multi_node, domain_urls: tc.DomainUrls  # pylint: disable=unused-argument
+        self,
+        multi_node: Cluster,
+        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
     ):
         cluster = multi_node
         replica = cluster.process(self.replica_proxy.get_active_node())
         self.kill_wait_unconfirmed(replica, domain_urls)
 
     @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
-    def test_give_up_unconfirmed(
-        self, multi_node, domain_urls: tc.DomainUrls
-    ):  # pylint: disable=unused-argument
+    def test_give_up_unconfirmed(self, multi_node: Cluster, domain_urls: tc.DomainUrls):  # pylint: disable=unused-argument
         uriWrite = domain_urls.uri_fanout
         uriRead = domain_urls.uri_fanout_foo
 

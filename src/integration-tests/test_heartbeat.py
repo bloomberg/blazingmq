@@ -61,7 +61,10 @@ def _verify_delivery_and_confirm(consumer, uri, messages):
 @tweak.broker.app_config.network_interfaces.heartbeats.cluster_peer(2)
 @tweak.broker.app_config.network_interfaces.heartbeats.upstream_broker(2)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
-def test_dead_leader(cluster: Cluster):
+def test_dead_leader(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
     next(proxies)
@@ -129,7 +132,10 @@ def test_dead_leader(cluster: Cluster):
 @tweak.broker.app_config.network_interfaces.heartbeats.downstream_broker(3)
 @tweak.broker.app_config.network_interfaces.heartbeats.client(3)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
-def test_dead_proxy(cluster: Cluster):
+def test_dead_proxy(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
     next(proxies)
@@ -185,7 +191,10 @@ def test_dead_proxy(cluster: Cluster):
 @tweak.broker.app_config.network_interfaces.heartbeats.upstream_broker(2)
 @tweak.broker.app_config.network_interfaces.heartbeats.client(2)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
-def test_dead_replica(cluster: Cluster):
+def test_dead_replica(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
     next(proxies)

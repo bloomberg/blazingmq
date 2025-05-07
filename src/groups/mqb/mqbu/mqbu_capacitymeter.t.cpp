@@ -115,7 +115,7 @@ static void test2_logStateChange()
         PV("STATE - NORMAL");
 
         bmqtst::ScopedLogObserver observer(
-            ball::Severity::WARN,
+            ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
                                           bmqtst::TestHelperUtil::allocator());
@@ -134,7 +134,7 @@ static void test2_logStateChange()
         PV("STATE - HIGH WATERMARK");
 
         bmqtst::ScopedLogObserver observer(
-            ball::Severity::WARN,
+            ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
                                           bmqtst::TestHelperUtil::allocator());
@@ -159,7 +159,7 @@ static void test2_logStateChange()
 
         const ball::Record& record = observer.records()[0];
         BMQTST_ASSERT_EQ(record.fixedFields().severity(),
-                         ball::Severity::ERROR);
+                         ball::Severity::e_ERROR);
 
         BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             record,
@@ -177,7 +177,7 @@ static void test2_logStateChange()
         PV("STATE - FULL");
 
         bmqtst::ScopedLogObserver observer(
-            ball::Severity::WARN,
+            ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
                                           bmqtst::TestHelperUtil::allocator());
@@ -190,7 +190,7 @@ static void test2_logStateChange()
         BMQTST_ASSERT_EQ(observer.records().size(), 1U);
 
         BMQTST_ASSERT_EQ(observer.records()[0].fixedFields().severity(),
-                         ball::Severity::ERROR);
+                         ball::Severity::e_ERROR);
         BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             observer.records()[0],
             "ALARM \\[CAPACITY_STATE_FULL\\]",
@@ -208,7 +208,7 @@ static void test2_logStateChange()
         PV("STATE - HIGH WATERMARK TO FULL");
 
         bmqtst::ScopedLogObserver observer(
-            ball::Severity::WARN,
+            ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
                                           bmqtst::TestHelperUtil::allocator());
@@ -231,7 +231,7 @@ static void test2_logStateChange()
             "dummy.*Messages.*HIGH_WATERMARK",
             bmqtst::TestHelperUtil::allocator()));
         BMQTST_ASSERT_EQ(observer.records()[0].fixedFields().severity(),
-                         ball::Severity::ERROR);
+                         ball::Severity::e_ERROR);
 
         PVV("Commit resources -> Full");
         capacityMeter.commitUnreserved(k_MSGS_LIMIT -
@@ -284,7 +284,7 @@ static void test3_enhancedLog()
     const bsls::Types::Int64 k_BYTES_HIGH_WATERMARK_VALUE = k_BYTES_LIMIT *
                                                             k_BYTES_THRESHOLD;
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::WARN,
+    bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
     mqbu::CapacityMeter       capacityMeter(
         "dummy",
@@ -311,7 +311,7 @@ static void test3_enhancedLog()
     BMQTST_ASSERT_EQ(observer.records().size(), 1U);
 
     const ball::Record& record = observer.records()[0];
-    BMQTST_ASSERT_EQ(record.fixedFields().severity(), ball::Severity::ERROR);
+    BMQTST_ASSERT_EQ(record.fixedFields().severity(), ball::Severity::e_ERROR);
 
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         record,

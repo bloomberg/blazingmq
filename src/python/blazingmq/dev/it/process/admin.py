@@ -20,7 +20,6 @@ blazingmq.dev.it.process.admin
 PURPOSE: Provide a BMQ admin client.
 """
 
-
 import socket
 import json
 from typing import Optional, Union

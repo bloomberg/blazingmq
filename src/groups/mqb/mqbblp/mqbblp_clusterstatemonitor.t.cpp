@@ -287,7 +287,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
     NotificationEvaluator notifications(bmqtst::TestHelperUtil::allocator());
 
@@ -350,7 +350,7 @@ static void test2_checkAlarmsWithResetTest()
 {
     bmqtst::TestHelper::printTestName("CHECK ALARMS WITH RESET");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
     NotificationEvaluator notifications(bmqtst::TestHelperUtil::allocator());
 
@@ -571,7 +571,7 @@ static void test3_alwaysInvalidStateTest()
 {
     bmqtst::TestHelper::printTestName("ALWAYS INVALID STATE");
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
                                           bmqtst::TestHelperUtil::allocator());
     NotificationEvaluator notifications(bmqtst::TestHelperUtil::allocator());
 

@@ -26,7 +26,10 @@ from blazingmq.dev.it.process.client import Client
 pytestmark = order(3)
 
 
-def test_breathing(cluster: Cluster):
+def test_breathing(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that broadcast mode works properly for a single producer and a
     single consumer.
@@ -51,7 +54,10 @@ def test_breathing(cluster: Cluster):
     assert msgs[0].payload == "msg1"
 
 
-def test_multi_consumers(cluster: Cluster):
+def test_multi_consumers(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that broadcast mode works properly for multiple consumers.
     """
@@ -72,7 +78,10 @@ def test_multi_consumers(cluster: Cluster):
         assert msgs[0].payload == "msg1"
 
 
-def test_multi_producers_consumers(cluster: Cluster):
+def test_multi_producers_consumers(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that broadcast mode works properly for multiple producers and
     consumers.
@@ -102,7 +111,10 @@ def test_multi_producers_consumers(cluster: Cluster):
             assert msgs[i - 1].payload == f"msg{i}"
 
 
-def test_resubscribe(cluster: Cluster):
+def test_resubscribe(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that when a consumer undergoes a re-subscription, messages
     posted during non-subscription will not be received.
@@ -139,7 +151,10 @@ def test_resubscribe(cluster: Cluster):
     assert msgs[0].payload == "msg3"
 
 
-def test_add_consumers(cluster: Cluster):
+def test_add_consumers(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that only active consumers receive messages as new consumers are
     being added.
@@ -180,7 +195,10 @@ def test_add_consumers(cluster: Cluster):
         assert msgs[0].payload == "msg2"
 
 
-def test_dynamic_priorities(cluster: Cluster):
+def test_dynamic_priorities(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that only the highest priority consumers receive messages when
     the priorities are dynamically changing
@@ -258,7 +276,10 @@ def test_dynamic_priorities(cluster: Cluster):
     assert not cr2.list(tc.URI_BROADCAST, block=True)
 
 
-def test_priority_failover(cluster: Cluster):
+def test_priority_failover(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that when highest priority consumers unsubscribe gradually, only
     the new highest priority consumers might receive messages.
@@ -311,7 +332,10 @@ def test_priority_failover(cluster: Cluster):
     assert msgs[0].payload == "msg3"
 
 
-def test_add_variable_priority_consumers(cluster: Cluster):
+def test_add_variable_priority_consumers(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Verify that only the highest priority consumers receive messages as new
     consumers with variable priority are being added.

@@ -55,6 +55,7 @@ def contains(path: pathlib.Path, filenames: typing.List[str]) -> bool:
             return all([proc.outputs_substr(filename) for filename in sorted(filenames)])
 ```
 """
+
 import abc
 from contextlib import ExitStack, suppress
 import inspect

@@ -286,7 +286,7 @@ void Printer::logStats()
     attributes.setFileName(__FILE__);
     attributes.setLineNumber(__LINE__);
     attributes.setCategory(k_LOG_CATEGORY);
-    attributes.setSeverity(ball::Severity::INFO);
+    attributes.setSeverity(ball::Severity::e_INFO);
 
     // Dump stats into bmqbrkr.stats.log
     attributes.clearMessage();

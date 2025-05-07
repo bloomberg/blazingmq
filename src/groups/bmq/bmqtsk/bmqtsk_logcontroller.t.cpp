@@ -81,19 +81,20 @@ static void test1_logControllerConfigFromObj()
     BMQTST_ASSERT_EQ(config.rotationBytes(), 2048);
     BMQTST_ASSERT_EQ(config.logfileFormat(), "%d (%t) %s %F:%l %m\n\n");
     BMQTST_ASSERT_EQ(config.consoleFormat(), "%d (%t) %s %F:%l %m\n\n");
-    BMQTST_ASSERT_EQ(config.loggingVerbosity(), ball::Severity::DEBUG);
+    BMQTST_ASSERT_EQ(config.loggingVerbosity(), ball::Severity::e_DEBUG);
     BMQTST_ASSERT_EQ(config.bslsLogSeverityThreshold(),
                      bsls::LogSeverity::e_ERROR);
-    BMQTST_ASSERT_EQ(config.consoleSeverityThreshold(), ball::Severity::INFO);
+    BMQTST_ASSERT_EQ(config.consoleSeverityThreshold(),
+                     ball::Severity::e_INFO);
 
     BMQTST_ASSERT_EQ(config.syslogEnabled(), true);
     BMQTST_ASSERT_EQ(config.syslogFormat(), "test %d (%t) %s %F:%l %m\n\n");
     BMQTST_ASSERT_EQ(config.syslogAppName(), "testapp");
-    BMQTST_ASSERT_EQ(config.syslogVerbosity(), ball::Severity::INFO);
+    BMQTST_ASSERT_EQ(config.syslogVerbosity(), ball::Severity::e_INFO);
 
     BMQTST_ASSERT_EQ(config.recordBufferSizeBytes(), 32768);
-    BMQTST_ASSERT_EQ(config.recordingVerbosity(), ball::Severity::OFF);
-    BMQTST_ASSERT_EQ(config.triggerVerbosity(), ball::Severity::OFF);
+    BMQTST_ASSERT_EQ(config.recordingVerbosity(), ball::Severity::e_OFF);
+    BMQTST_ASSERT_EQ(config.triggerVerbosity(), ball::Severity::e_OFF);
 }
 
 // ============================================================================

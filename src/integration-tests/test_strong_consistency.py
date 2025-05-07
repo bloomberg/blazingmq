@@ -138,31 +138,53 @@ class TestStrongConsistency:
                     lambda: len(self.consumer.list(uri, block=True)) == 1, 2
                 )
 
-    def test_suspend_post_resume(self, multi_node: Cluster):
+    def test_suspend_post_resume(
+        self,
+        multi_node: Cluster,
+        sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    ):
         self._break_post_unbreak(multi_node, Suspender, False)
 
-    def test_kill_post_start(self, multi_node: Cluster):
+    def test_kill_post_start(
+        self,
+        multi_node: Cluster,
+        sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    ):
         self._break_post_unbreak(multi_node, Killer, False)
 
     def test_strong_consistency_local(
-        self, single_node  # pylint: disable=unused-argument
+        self,
+        single_node,  # pylint: disable=unused-argument
+        sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
     ):
         # post SC
         self.producer.post(
-            tc.URI_FANOUT_SC, payload=["msg"], succeed=True, wait_ack=True
+            sc_domain_urls.uri_fanout, payload=["msg"], succeed=True, wait_ack=True
         )
 
         # receive SC messages
         self.consumer.wait_push_event()
-        for uri in [tc.URI_FANOUT_SC_FOO, tc.URI_FANOUT_SC_BAR, tc.URI_FANOUT_SC_BAZ]:
+        for uri in [
+            sc_domain_urls.uri_fanout_foo,
+            sc_domain_urls.uri_fanout_bar,
+            sc_domain_urls.uri_fanout_baz,
+        ]:
             # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
             assert wait_until(lambda: len(self.consumer.list(uri, block=True)) == 1, 2)
 
     @tweak.domain.deduplication_time_ms(1000)
-    def test_timeout_receipt(self, multi_node: Cluster):
+    def test_timeout_receipt(
+        self,
+        multi_node: Cluster,
+        sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    ):
         self._break_post_unbreak(multi_node, Suspender, True)
 
-    def test_dynamic_replication_factor(self, multi_node: Cluster):
+    def test_dynamic_replication_factor(
+        self,
+        multi_node: Cluster,
+        sc_domain_urls: tc.DomainUrls,
+    ):
         leader = multi_node.last_known_leader
 
         # Exercise the LIST_TUNABLES command to ensure it executes safely.
@@ -177,7 +199,7 @@ class TestStrongConsistency:
             # Default replication-factor is 3. Since only two nodes are active, no
             # PUSH event should be issued.
             self.producer.post(
-                tc.URI_FANOUT_SC, payload=["msg"], succeed=True, wait_ack=True
+                sc_domain_urls.uri_fanout, payload=["msg"], succeed=True, wait_ack=True
             )
             assert not self.consumer.wait_push_event(timeout=5, quiet=False)
 
@@ -188,28 +210,34 @@ class TestStrongConsistency:
 
             # Post another message; make sure that it's receipted without issue.
             self.producer.post(
-                tc.URI_FANOUT_SC, payload=["msg"], succeed=True, wait_ack=True
+                sc_domain_urls.uri_fanout, payload=["msg"], succeed=True, wait_ack=True
             )
             assert self.consumer.wait_push_event()
 
             # Each fanout queue should now have two messages.
             for uri in [
-                tc.URI_FANOUT_SC_FOO,
-                tc.URI_FANOUT_SC_BAR,
-                tc.URI_FANOUT_SC_BAZ,
+                sc_domain_urls.uri_fanout_foo,
+                sc_domain_urls.uri_fanout_bar,
+                sc_domain_urls.uri_fanout_baz,
             ]:
                 # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
                 assert wait_until(
                     lambda: len(self.consumer.list(uri, block=True)) == 2, 2
                 )
 
-    def test_change_consistency(self, multi_node: Cluster):
+    def test_change_consistency(
+        self,
+        multi_node: Cluster,
+        ec_domain_urls: tc.DomainUrls,
+    ):
         leader = multi_node.last_known_leader
         assert leader
 
         # Open priority queue.
-        self.consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
-        self.producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+        self.consumer.open(ec_domain_urls.uri_priority, flags=["read"], succeed=True)
+        self.producer.open(
+            ec_domain_urls.uri_priority, flags=["write,ack"], succeed=True
+        )
 
         # Build list of nodes to be suspended.
         suspended_nodes = multi_node.nodes(
@@ -226,7 +254,7 @@ class TestStrongConsistency:
 
                 # Verify that a message can be sent to non-SC queue.
                 self.producer.post(
-                    tc.URI_PRIORITY,
+                    ec_domain_urls.uri_priority,
                     payload=["msg-without-receipt"],
                     succeed=True,
                     wait_ack=True,
@@ -250,7 +278,7 @@ class TestStrongConsistency:
 
                 # Since only two nodes are active, no PUSH event is issued.
                 self.producer.post(
-                    tc.URI_PRIORITY,
+                    ec_domain_urls.uri_priority,
                     payload=["msg-with-receipt"],
                     succeed=True,
                     wait_ack=False,

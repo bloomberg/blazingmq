@@ -104,7 +104,10 @@ def test_remove_domain_when_cluster_unhealthy(
     assert res.split("\n").count("No queue purged.") == 3
 
 
-def test_remove_different_domain(cluster: Cluster):
+def test_remove_different_domain(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     send DOMAINS REMOVE command to remove a different domain
     the original one should be intact
@@ -424,7 +427,10 @@ def test_remove_domain_with_unconfirmed_message(
     assert "Purged 3 message(s)" in res
 
 
-def test_remove_domain_not_on_disk(cluster: Cluster):
+def test_remove_domain_not_on_disk(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     issue DOMAINS REMOVE command when the domain is not on disk
     """
@@ -439,7 +445,10 @@ def test_remove_domain_not_on_disk(cluster: Cluster):
     assert f"Domain '{domain_name}' doesn't exist" in res
 
 
-def test_remove_domain_on_disk_not_in_cache(cluster: Cluster):
+def test_remove_domain_on_disk_not_in_cache(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     issue DOMAINS REMOVE command when the domain is not on disk
     """

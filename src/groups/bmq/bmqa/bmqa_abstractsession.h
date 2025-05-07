@@ -411,7 +411,7 @@ class AbstractSession {
     ///-----------------
 
     /// Configure this session instance to dump messages to the installed
-    /// logger at `ball::Severity::INFO` level according to the specified
+    /// logger at `ball::Severity::e_INFO` level according to the specified
     /// `command` that should adhere to the following pattern:
     /// ```
     ///  IN|OUT ON|OFF|100|10s

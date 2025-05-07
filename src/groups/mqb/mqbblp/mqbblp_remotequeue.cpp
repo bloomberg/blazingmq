@@ -1219,8 +1219,8 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
 
         ball::Severity::Level severity = (ackResult ==
                                                   bmqt::AckResult::e_SUCCESS
-                                              ? ball::Severity::DEBUG
-                                              : ball::Severity::INFO);
+                                              ? ball::Severity::e_DEBUG
+                                              : ball::Severity::e_INFO);
 
         if (d_throttledFailedAckMessages.requestPermission()) {
             BALL_LOG_STREAM(severity)

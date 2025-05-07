@@ -30,7 +30,10 @@ from blazingmq.dev.it.process.client import Client
 TIMEOUT = 1
 
 
-def test_adminsession_res_log_stat(multi_node: Cluster):
+def test_adminsession_res_log_stat(
+    multi_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     """
     Test: STAT SHOW command: response message only generate on the node itself
     """

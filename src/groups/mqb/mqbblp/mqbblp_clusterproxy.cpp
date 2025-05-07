@@ -810,12 +810,12 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
 
     if (!activeNode) {
         // Not connected to any node, can't deliver the request.
-        ball::Severity::Level severity = ball::Severity::ERROR;
+        ball::Severity::Level severity = ball::Severity::e_ERROR;
         if (d_activeNodeLookupEventHandle) {
             // If the cluster is being established, since it's lazily created,
             // it is expected that the first request will fail to send, just
             // silence the error.
-            severity = ball::Severity::INFO;
+            severity = ball::Severity::e_INFO;
         }
         BALL_LOG_STREAM(severity)
             << "#CLUSTER_SEND_FAILURE " << description()

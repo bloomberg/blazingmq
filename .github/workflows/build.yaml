@@ -62,7 +62,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all
+          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool
 
       - name: Clean-up build directories before caching
         run: |
@@ -264,12 +264,12 @@ jobs:
       - name: Set up dependencies
         run: |
           brew install \
-            curl \
-            python@3.10 \
-            ninja \
             bison \
             flex \
-            google-benchmark
+            google-benchmark \
+            googletest \
+            python@3.10 \
+            zlib
 
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
@@ -328,7 +328,7 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
             -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
-          cmake --build build/blazingmq --parallel 8 --target all
+          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
 
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir

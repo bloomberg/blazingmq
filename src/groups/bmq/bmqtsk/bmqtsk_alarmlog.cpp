@@ -69,7 +69,7 @@ void AlarmLog::publish(const ball::Record&          record,
                        BSLS_ANNOTATION_UNUSED const ball::Context& context)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
-            (record.fixedFields().severity() > ball::Severity::ERROR) ||
+            (record.fixedFields().severity() > ball::Severity::e_ERROR) ||
             (record.customFields().length() == 0))) {
         // We are only interested in ERROR severity, and only the ones which
         // have a userField (the alarm type) set.
