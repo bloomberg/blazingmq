@@ -236,8 +236,6 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 log_file_handler.setLevel(log_file_level)
                 logging.getLogger().setLevel(log_file_level)
 
-            failures = 0
-
             def remove_log_file_handler():
                 logging.getLogger().removeHandler(log_file_handler)
                 log_file_handler.close()
