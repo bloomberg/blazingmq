@@ -205,7 +205,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// This method is called when the message delivery occured to check
     /// conditions for scheduling the event for consumption monitor
-    /// for the specified `app` and `success`.  
+    /// for the specified `app` and `success`.
     void onMessageSent(AppState* app, bool success);
 
     /// Handler called by EventScheduler in its thread to forward event to the

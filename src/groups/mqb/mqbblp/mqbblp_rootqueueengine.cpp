@@ -161,7 +161,7 @@ RootQueueEngine::QueueConsumptionMonitorData::calculateEventTime(
     // the queue for a long time (e.g. not confirmed) and we need to schedule
     // the event for the next maxIdleTime period from now.
     // TODO: is this correct behavior? Or should we log alarm immediately?
-    // This situation can happen in scenario when message was posted while 
+    // This situation can happen in scenario when message was posted while
     // the consumer was offline. Then the consumer comes online and the message
     // is successfully delivered but not confirmed yet.
     if (executionTime < now) {
@@ -655,8 +655,7 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
         }
 
         bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIter =
-            d_queueState_p->storage()->getIterator(
-                it->second->appKey());
+            d_queueState_p->storage()->getIterator(it->second->appKey());
 
         if (!oldestMsgIter->atEnd()) {
             // Get message's arrival time delta;
