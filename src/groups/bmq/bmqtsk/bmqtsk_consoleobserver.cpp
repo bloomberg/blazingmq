@@ -149,12 +149,12 @@ ConsoleObserver::getColorCodeForRecord(const ball::Record& record) const
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex was LOCKED
 
     // Errors and Warnings have a special color, regardless of the category
-    if (record.fixedFields().severity() == ball::Severity::WARN) {
+    if (record.fixedFields().severity() == ball::Severity::e_WARN) {
         ColorMap::const_iterator it = d_colorMap.find(k_COLOR_WARN);
         BSLS_ASSERT_SAFE(it != d_colorMap.end());
         return it->second.c_str();  // RETURN
     }
-    if (record.fixedFields().severity() == ball::Severity::ERROR) {
+    if (record.fixedFields().severity() == ball::Severity::e_ERROR) {
         ColorMap::const_iterator it = d_colorMap.find(k_COLOR_ERROR);
         BSLS_ASSERT_SAFE(it != d_colorMap.end());
         return it->second.c_str();  // RETURN
@@ -181,7 +181,7 @@ ConsoleObserver::getColorCodeForRecord(const ball::Record& record) const
 ConsoleObserver::ConsoleObserver(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_formatter(allocator)
-, d_severityThreshold(ball::Severity::INFO)
+, d_severityThreshold(ball::Severity::e_INFO)
 , d_colorMap(allocator)
 , d_categoryColorVec(allocator)
 {

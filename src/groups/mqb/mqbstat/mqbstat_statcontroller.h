@@ -136,11 +136,12 @@ class StatController {
     /// Struct containing a statcontext and bool specifying if the
     /// statcontext is managed.
     struct StatContextDetails {
-        StatContextSp d_statContext_sp;  // Stat Context
+        /// Stat Context
+        StatContextSp d_statContext_sp;
 
-        bool d_managed;  // Bool to specify a managed
-                         // statcontext. A managed statcontext
-                         // is never snapshotted.
+        /// Bool to specify a managed statcontext. A managed statcontext is
+        /// never snapshotted.
+        bool d_managed;
 
         StatContextDetails();
 
@@ -155,6 +156,7 @@ class StatController {
         StatContextDetailsMap;
 
     // DATA
+
     /// Allocator store to spawn new allocators
     /// for sub-components.
     bmqma::CountingAllocatorStore d_allocators;

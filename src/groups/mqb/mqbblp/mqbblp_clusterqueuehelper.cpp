@@ -1488,14 +1488,14 @@ void ClusterQueueHelper::onReopenQueueResponse(
     // TODO: remove this not thread-safe use of 'getUpstreamParameters'.
     if (!queueptr->getUpstreamParameters(&streamParamsCopy,
                                          upstreamSubQueueId)) {
-        ball::Severity::Level logSeverity = ball::Severity::WARN;
+        ball::Severity::Level logSeverity = ball::Severity::e_WARN;
 
         if (bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID == upstreamSubQueueId) {
             // There is an optimization in RelayQueueEngine::configureHandle
             // not to send producer parameters upstream if they are the same as
             // default constructed.  In this case the UpstreamParameters cache
             // does not have parameters for the k_DEFAULT_SUBQUEUE_ID.
-            logSeverity = ball::Severity::INFO;
+            logSeverity = ball::Severity::e_INFO;
 
             // Consider this queue successfully reopen
             notifyQueue(queueContext.get(),
@@ -2159,6 +2159,9 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
 
     if (result.hasNoHandleClients() || (result.hasNoHandleStreamConsumers() &&
                                         result.hasNoHandleStreamProducers())) {
+        // Expect `handle` to be non-empty with these values in `result`
+        BSLS_ASSERT_SAFE(handle);
+
         // An event that may need erasing stream(s)
         CNSQueueHandleMapIter it = requester->queueHandles().find(queueId);
         if (it != requester->queueHandles().end()) {
@@ -2212,10 +2215,14 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
     // Releasing the handle in the queue's thread allows to keep the handle
     // alive until the check is complete.
 
-    handle->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&handleHolderDummy, handle),
-        handle->queue(),
-        mqbi::DispatcherEventType::e_DISPATCHER);
+    if (handle) {
+        // We might call this callback with empty `handle`,
+        // no need to keep it alive in dispatcher in this case
+        handle->queue()->dispatcher()->execute(
+            bdlf::BindUtil::bind(&handleHolderDummy, handle),
+            handle->queue(),
+            mqbi::DispatcherEventType::e_DISPATCHER);
+    }
 }
 
 void ClusterQueueHelper::onHandleConfigured(

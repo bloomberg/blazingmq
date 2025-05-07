@@ -37,8 +37,7 @@ import shutil
 import tempfile
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
-from collections.abc import Generator, Iterator
+from typing import Callable, Iterator, List, Optional, Tuple
 import psutil
 
 import pytest
@@ -357,7 +356,9 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
             def apply_tweaks(stage: int):
                 for request_location in "cls", "function", "instance":
                     if request_context := getattr(request, request_location, None):
-                        tweaks: List[Tuple[Tweak, bool]] = getattr(request_context, TWEAK_ATTRIBUTE, None)  # type: ignore
+                        tweaks: List[Tuple[Tweak, bool]] = getattr(
+                            request_context, TWEAK_ATTRIBUTE, None
+                        )  # type: ignore
                         if tweaks:
                             for tweak_callable, tweak_stage in tweaks:
                                 if tweak_stage == stage:

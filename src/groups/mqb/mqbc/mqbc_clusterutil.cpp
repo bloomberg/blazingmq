@@ -953,7 +953,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         static void panic(mqbi::Domain* domain)
         {
             BMQTSK_ALARMLOG_PANIC("DOMAIN_QUEUE_LIMIT_FULL")
-                << "domain '" << domain->name()
+                << "domain '" << "bmq://" << domain->name()
                 << "' has reached the maximum number of queues (limit: "
                 << domain->config().maxQueues() << ")." << BMQTSK_ALARMLOG_END;
         }
@@ -961,8 +961,8 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         static void alarm(mqbi::Domain* domain, int queues)
         {
             BMQTSK_ALARMLOG_ALARM("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK")
-                << "domain '" << domain->name() << "' has reached the "
-                << (k_MAX_QUEUES_HIGH_WATERMARK * 100)
+                << "domain '" << "bmq://" << domain->name()
+                << "' has reached the " << (k_MAX_QUEUES_HIGH_WATERMARK * 100)
                 << "% watermark limit for the number of queues "
                    "(current: "
                 << queues << ", limit: " << domain->config().maxQueues()
@@ -1957,7 +1957,7 @@ void ClusterUtil::loadPartitionsInfo(
 
     for (int pid = 0; pid < static_cast<int>(state.partitions().size());
          ++pid) {
-        const ClusterStatePartitionInfo&   pinfo = state.partition(pid);
+        const ClusterStatePartitionInfo& pinfo = state.partition(pid);
         BSLS_ASSERT_SAFE(pinfo.partitionId() == pid);
 
         bmqp_ctrlmsg::PartitionPrimaryInfo info;

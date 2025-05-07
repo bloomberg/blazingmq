@@ -30,7 +30,10 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 pytestmark = order(6)
 
 
-def test_leader_node_delay(cluster: Cluster):
+def test_leader_node_delay(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
     leader = cluster.last_known_leader
     followers = [node for node in cluster.nodes() if node is not leader]
 

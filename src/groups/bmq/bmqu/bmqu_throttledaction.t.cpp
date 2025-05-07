@@ -148,7 +148,7 @@ static void test2_throttleNoReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
@@ -272,7 +272,7 @@ static void test3_throttleWithDefaultReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
@@ -401,7 +401,7 @@ static void test4_throttleWithCustomReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe

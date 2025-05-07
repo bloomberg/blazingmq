@@ -15,11 +15,13 @@
 
 // mqbnet_negotiator.t.cpp                                            -*-C++-*-
 #include <mqbnet_negotiator.h>
-#include <mqbnet_negotiatorcontext.h>
 
 // MQB
+#include <mqbnet_initialconnectioncontext.h>
+#include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 
+// BMQ
 #include <bmqio_channel.h>
 
 // BDE
@@ -53,24 +55,24 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    void negotiate(mqbnet::NegotiatorContext*               context,
-                   const bsl::shared_ptr<bmqio::Channel>&   channel,
-                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
+    int createSessionOnMsgType(
+        bsl::ostream&                                      errorDescription,
+        bsl::shared_ptr<mqbnet::Session>*                  session,
+        bool*                                              isContinueRead,
+        const bsl::shared_ptr<mqbnet::NegotiationContext>& context)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
+        return 0;
     }
-};
 
-/// A mock implementation of SessionEventProcessor protocol, for testing
-/// `NegotiatorContext`.
-class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
-  public:
-    ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE {}
-
-    void processEvent(const bmqp::Event&   event,
-                      mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE
+    int negotiateOutboundOrReverse(
+        bsl::ostream&                                      errorDescription,
+        const bsl::shared_ptr<mqbnet::NegotiationContext>& negotiationContext)
+        BSLS_KEYWORD_OVERRIDE
     {
+        markDone();
+        return 0;
     }
 };
 
@@ -136,62 +138,21 @@ static void test1_Negotiator()
     {
         PV("Verify that methods are public and virtual");
 
-        mqbnet::NegotiatorContext*        dummyNegotiatorContext_p = 0;
-        bsl::shared_ptr<bmqio::Channel>   dummyChannelSp;
-        mqbnet::Negotiator::NegotiationCb dummyNegotiationCb;
+        bsl::shared_ptr<mqbnet::NegotiationContext> dummyNegotiationContextSp;
+        bsl::shared_ptr<mqbnet::Session>            dummySessionSp;
+        bmqu::MemOutStream                          errStream;
+        bool                                        isContinueRead = false;
 
-        BSLS_PROTOCOLTEST_ASSERT(testObj,
-                                 negotiate(dummyNegotiatorContext_p,
-                                           dummyChannelSp,
-                                           dummyNegotiationCb));
-    }
-}
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            negotiateOutboundOrReverse(errStream, dummyNegotiationContextSp));
 
-static void test2_NegotiatorContext()
-{
-    bmqtst::TestHelper::printTestName("NegotiatorContext");
-
-    {
-        PV("Constructor");
-        mqbnet::NegotiatorContext obj1(true);
-        BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
-        BMQTST_ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
-        BMQTST_ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
-        BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
-        BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
-
-        mqbnet::NegotiatorContext obj2(false);
-        BMQTST_ASSERT_EQ(obj2.isIncoming(), false);
-    }
-
-    {
-        PV("Manipulators/Accessors");
-
-        mqbnet::NegotiatorContext obj(true);
-
-        {  // MaxMissedHeartbeat
-            const char value = 5;
-            BMQTST_ASSERT_EQ(&(obj.setMaxMissedHeartbeat(value)), &obj);
-            BMQTST_ASSERT_EQ(obj.maxMissedHeartbeat(), value);
-        }
-
-        {  // UserData
-            int value = 7;
-            BMQTST_ASSERT_EQ(&(obj.setUserData(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.userData(), &value);
-        }
-
-        {  // ResultState
-            int value = 9;
-            BMQTST_ASSERT_EQ(&(obj.setResultState(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.resultState(), &value);
-        }
-
-        {  // EventProcessor
-            MockSessionEventProcessor value;
-            BMQTST_ASSERT_EQ(&(obj.setEventProcessor(&value)), &obj);
-            BMQTST_ASSERT_EQ(obj.eventProcessor(), &value);
-        }
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            createSessionOnMsgType(errStream,
+                                   &dummySessionSp,
+                                   &isContinueRead,
+                                   dummyNegotiationContextSp));
     }
 }
 
@@ -205,7 +166,6 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 2: test2_NegotiatorContext(); break;
     case 1: test1_Negotiator(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;

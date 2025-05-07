@@ -42,6 +42,7 @@ options:
   --no-docker           don't run Prometheus in docker, assume it is running on localhost
 
 """
+
 __test__ = False  # This is not for pytest.
 
 import argparse
@@ -252,7 +253,7 @@ def main(args):
     print("\n\n\n========================================")
     print(f"{len(results)} integration tests executed with following results:")
     for test, result in results.items():
-        print(f'{test} : {"passed" if result else "failed"}')
+        print(f"{test} : {'passed' if result else 'failed'}")
 
     return not all(results.values())
 

@@ -258,7 +258,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             cluster = self.cluster_name
 
         return self.command(
-            f"CLUSTERS CLUSTER {cluster} STORAGE REPLICATION " f"SET quorum {quorum}",
+            f"CLUSTERS CLUSTER {cluster} STORAGE REPLICATION SET quorum {quorum}",
             succeed,
         )
 
@@ -306,7 +306,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
     def alarms(self, pattern=None, timeout=5):
         with internal_use(self):
-            m = self.capture(f'ALARM.*{pattern or ""}', timeout)
+            m = self.capture(f"ALARM.*{pattern or ''}", timeout)
             self._logger.info(f"alarms?: {m}")
             return m
 
@@ -321,7 +321,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
     def panics(self, pattern=None, timeout=5):
         with internal_use(self):
-            m = self.capture(f'PANIC.*{pattern or ""}', timeout)
+            m = self.capture(f"PANIC.*{pattern or ''}", timeout)
             self._logger.info(f"panics?: {m}")
             return m
 

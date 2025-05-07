@@ -120,7 +120,7 @@ ball::Severity::Level ScopedLogObserver::severityThreshold() const
 
 bool ScopedLogObserver::isEnabled() const
 {
-    return severityThreshold() != ball::Severity::OFF;
+    return severityThreshold() != ball::Severity::e_OFF;
 }
 
 const bsl::vector<ball::Record>& ScopedLogObserver::records() const

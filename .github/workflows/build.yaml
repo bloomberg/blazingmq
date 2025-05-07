@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
-      target: "all"
+      target: "bmqbrkr bmqtool"
 
   unit_tests_cxx:
     name: "Build all.t"
@@ -162,12 +162,12 @@ jobs:
       - name: Set up dependencies
         run: |
           brew install \
-            curl \
-            python@3.10 \
-            ninja \
             bison \
             flex \
-            google-benchmark
+            google-benchmark \
+            googletest \
+            python@3.10 \
+            zlib
 
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
@@ -202,6 +202,10 @@ jobs:
             autoconf \
             libtool
 
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
+
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
 
@@ -221,8 +225,8 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
-            -DINSTALL_TARGETS=prometheus
-          cmake --build build/blazingmq --parallel 8 --target all
+            -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
+          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
 
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir

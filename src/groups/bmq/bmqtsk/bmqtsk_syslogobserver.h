@@ -41,7 +41,7 @@
 //..
 //  bmqtsk::SyslogObserver syslogObserver(allocator);
 //
-//  syslogObserver.setSeverityThreshold(ball::Severity::INFO)
+//  syslogObserver.setSeverityThreshold(ball::Severity::e_INFO)
 //                .setLogFromat("%d (%t) %s %F:%l %m\n");
 //  syslogObserver.enableLogging();
 //..
@@ -150,7 +150,7 @@ class SyslogObserver : public ball::ObserverAdapter {
 
     /// Set the severity threshold to the specified `value`: any log which
     /// severity is greater than or equal to `value` will be printed to
-    /// stdout.  Use `ball::Severity::OFF` to completely disable this
+    /// stdout.  Use `ball::Severity::e_OFF` to completely disable this
     /// observer.  Return a reference to this object offering modification
     /// access.
     SyslogObserver& setSeverityThreshold(ball::Severity::Level value);
@@ -181,7 +181,7 @@ class SyslogObserver : public ball::ObserverAdapter {
 
     /// Return whether this observer is enabled or not.  Note that this is
     /// just a convenience shortcut for comparing the `severityThreshold`
-    /// with a value of `ball::Severity::OFF`.
+    /// with a value of `ball::Severity::e_OFF`.
     bool isEnabled() const;
 };
 
@@ -215,7 +215,7 @@ inline ball::Severity::Level SyslogObserver::severityThreshold() const
 
 inline bool SyslogObserver::isEnabled() const
 {
-    return d_severityThreshold != ball::Severity::OFF;
+    return d_severityThreshold != ball::Severity::e_OFF;
 }
 
 }  // close package namespace

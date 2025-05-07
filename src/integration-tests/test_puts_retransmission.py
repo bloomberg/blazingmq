@@ -113,7 +113,7 @@ class TestPutsRetransmission:
         num_errors = 0
 
         def warning(test_logger, prefix, p1, p2=None):
-            test_logger.warning(f'{prefix}: {p1}{f" vs existing {p2}" if p2 else ""}')
+            test_logger.warning(f"{prefix}: {p1}{f' vs existing {p2}' if p2 else ''}")
 
         def error(test_logger, prefix, p1, p2=None):
             nonlocal num_errors
@@ -457,7 +457,7 @@ class TestPutsRetransmission:
                         consumer_log,
                         f"--messageProperties={self.mps}",
                         "--maxunconfirmed",
-                        f"{NUM_MESSAGES}:{NUM_MESSAGES*1024}",
+                        f"{NUM_MESSAGES}:{NUM_MESSAGES * 1024}",
                     ],
                 ),
                 0,  # total received
@@ -619,7 +619,11 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_shutdown_upstream_proxy(self, cartesian_product_cluster: Cluster):
+    def test_shutdown_upstream_proxy(
+        self,
+        cartesian_product_cluster: Cluster,
+        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    ):
         if not cartesian_product_cluster.virtual_nodes():
             # Skip cluster without virtual nodes
             return
