@@ -113,8 +113,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
         // MANIPULATORS
 
-        /// Set the maximum idle time. If maxIdleTime is equal to zero,
-        /// consumption monitor is disabled.
+        /// Set the maximum idle time, in seconds.
+        /// If maxIdleTime is equal to zero, consumption monitor is disabled.
         void setMaxIdleTime(bsls::Types::Int64 maxIdleTime);
 
         /// Return reference to modifiable event handle.
@@ -204,7 +204,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void deliverMessages(AppState* app);
 
     /// This method is called when the message delivery occured to check
-    /// conditions for scheduling the event for consumption monitor.
+    /// conditions for scheduling the event for consumption monitor
+    /// for the specified `app` and `success`.  
     void onMessageSent(AppState* app, bool success);
 
     /// Handler called by EventScheduler in its thread to forward event to the
@@ -255,7 +256,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
     /// This method is called by `consumptionMonitorEventDispatcher()` when
-    /// alarm condition is met to log alarm data.
+    /// alarm condition is met to log alarm data for the specified `cItApp`.
     void logAlarm(Apps::const_iterator cItApp) const;
 
   public:

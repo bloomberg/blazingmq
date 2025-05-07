@@ -78,9 +78,9 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 
 }  // close unnamed namespace
 
-// ----------------------------------------------
+// --------------------------------------------------
 // class RootQueueEngine::QueueConsumptionMonitorData
-// ----------------------------------------------
+// --------------------------------------------------
 
 // CREATORS
 
@@ -161,6 +161,9 @@ RootQueueEngine::QueueConsumptionMonitorData::calculateEventTime(
     // the queue for a long time (e.g. not confirmed) and we need to schedule
     // the event for the next maxIdleTime period from now.
     // TODO: is this correct behavior? Or should we log alarm immediately?
+    // This situation can happen in scenario when message was posted while 
+    // the consumer was offline. Then the consumer comes online and the message
+    // is successfully delivered but not confirmed yet.
     if (executionTime < now) {
         executionTime.addNanoseconds(arrivalTimeDeltaNs);
     }
@@ -377,6 +380,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                    // similarly to the constructor.
 }
 
+// MANIPULATORS
 //   (virtual mqbi::QueueEngine)
 int RootQueueEngine::configure(bsl::ostream& errorDescription,
                                bool          isReconfigure)
@@ -652,7 +656,7 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
 
         bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIter =
             d_queueState_p->storage()->getIterator(
-                it->second->appKey());  // mqbu::StorageKey::k_NULL_KEY,
+                it->second->appKey());
 
         if (!oldestMsgIter->atEnd()) {
             // Get message's arrival time delta;
@@ -765,7 +769,6 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
-    BALL_LOG_WARN << "RootQueueEngine::resetState: " << d_queueState_p->uri();
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->undoRouting();
         it->second->routing()->reset();
@@ -1092,9 +1095,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
         upstreamSubQueueId = iter->second->upstreamSubQueueId();
 
         if (!iter->second->isAuthorized()) {
-            if (iter->second->authorize()) {
-                // d_consumptionMonitor.registerSubStream(appId);
-            }
+            iter->second->authorize();
         }
     }
     else {
@@ -2218,8 +2219,6 @@ void RootQueueEngine::afterAppIdUnregistered(
 
         // There is no need to purge the storage.  'removeVirtualStorage' will
         // do that.
-
-        // d_consumptionMonitor.unregisterSubStream(appId);
     }
 
     d_queueState_p->storageManager()->updateQueuePrimary(

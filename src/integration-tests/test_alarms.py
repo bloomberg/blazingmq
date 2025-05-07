@@ -50,12 +50,14 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait some time and check no alarms is triggered
+    # Wait some time and check no alarm is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
 
 
 @tweak.domain.max_idle_time(1)
-def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):  # pylint: disable=unused-argument
+def test_broadcast_no_alarms(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):  # pylint: disable=unused-argument
     """
     Test no broker ALARMS in broadcast mode.
     """
@@ -69,7 +71,7 @@ def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):  # p
     # Post a message
     producer.post(tc.URI_BROADCAST, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait more than max idle time and check no alarms is triggered
+    # Wait more than max idle time and check no alarm is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
 
 
@@ -152,7 +154,7 @@ def test_priority_transition_active_alarm_active(
     # Post a message
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait more than max idle time and check no alarms is triggered
+    # Wait more than max idle time and check no alarm is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
 
     # Close consumer queue and post one more message
@@ -346,7 +348,7 @@ def test_fanout_transition_active_alarm_active(
 
     producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait more than max idle time and check no alarms is triggered
+    # Wait more than max idle time and check no alarm is triggered
     time.sleep(2)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
