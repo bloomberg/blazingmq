@@ -55,7 +55,7 @@ template <typename PRINTER_TYPE>
 class RecordDetailsPrinter {
   private:
     bsl::ostream&                   d_ostream;
-    bsl::vector<const char*>        d_fields;
+    bsl::vector<bsl::string>        d_fields;
     bslma::ManagedPtr<PRINTER_TYPE> d_printer_mp;
     bslma::Allocator*               d_allocator_p;
 
@@ -175,7 +175,7 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
     // It's ok to pass a vector by pointer and push elements after that as
     // we've reserved it's capacity in advance. Hense, no reallocations will
     // happen and the pointer won't get invalidated.
-    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
+    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, d_fields),
                       d_allocator_p);
 
     *d_printer_mp << details.d_record.header().type() << details.d_recordIndex
