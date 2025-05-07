@@ -681,31 +681,43 @@ class Cluster(contextlib.AbstractContextManager):
         )
 
     def update_all_brokers_binary(self, new_version: str):
+        """Update all brokers to the specified version."""
+
         for broker in self.configurator.brokers.values():
             self.update_broker_binary(broker, new_version)
 
     def update_broker_binary(self, broker: cfg.Broker, new_version: str):
+        """Update the specified broker to the specified version."""
+
         broker_path_var = f"BLAZINGMQ_BROKER_{broker.name.upper()}"
         newversion_path_var = f"BLAZINGMQ_BROKER_{new_version.upper()}"
-        assert newversion_path_var in os.environ
-        new_path = os.environ[newversion_path_var]
 
-        os.environ[broker_path_var] = new_path
-        self.deploy_broker_local(broker)
+        if newversion_path_var in os.environ:
+            new_path = os.environ[newversion_path_var]
+            os.environ[broker_path_var] = new_path
+            self.deploy_broker_local(broker)
+
+            self._logger.debug(f"Updated {broker_path_var} to {new_path}")
+        else:
+            self._logger.warning(
+                f"Failed to update broker {broker.name.upper()}. {newversion_path_var} is undefined"
+            )
 
     def get_broker_local_site(self, broker: cfg.Broker):
+        """Return the local site for the specified broker."""
+
         return LocalSite(self.work_dir / broker.name)
 
     def deploy_broker_local(self, broker: cfg.Broker):
-        self.configurator.deploy_programs(
-            broker, self.get_broker_local_site(broker)
-        )
+        """Deploy the specified broker to the local site."""
+
+        self.configurator.deploy_programs(broker, self.get_broker_local_site(broker))
 
     def deploy_domains(self):
+        """Deploy the domains for all brokers in the cluster."""
+
         for broker in self.configurator.brokers.values():
-            self.configurator.deploy_domains(
-                broker, self.get_broker_local_site(broker)
-            )
+            self.configurator.deploy_domains(broker, self.get_broker_local_site(broker))
 
     def reconfigure_domain(
         self,
