@@ -117,40 +117,40 @@ jobs:
           path: ${{ github.workspace }}/repo1/src/integration-tests/failure-logs
           retention-days: 5
 
-  cleunup_artifacts:
-    name: Cleanup artifacts
-    runs-on: ubuntu-latest
-    needs: integration_tests_ubuntu
-    if: always() 
-    strategy:
-      matrix:
-        repo_config:
-          - name: repo1
-            input_ref: ${{ github.event.inputs.ref1 }}
-            artifact_file_name: artifact1.txt
-          - name: repo2
-            input_ref: ${{ github.event.inputs.ref2 }}
-            artifact_file_name: artifact2.txt
-    steps:
-      - name: Checkout ${{ matrix.repo_config.name }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ matrix.repo_config.input_ref }}
-          path: ${{ matrix.repo_config.name }}
-          fetch-depth: 0
+  # cleunup_artifacts:
+  #   name: Cleanup artifacts
+  #   runs-on: ubuntu-latest
+  #   needs: integration_tests_ubuntu
+  #   if: always() 
+  #   strategy:
+  #     matrix:
+  #       repo_config:
+  #         - name: repo1
+  #           input_ref: ${{ github.event.inputs.ref1 }}
+  #           artifact_file_name: artifact1.txt
+  #         - name: repo2
+  #           input_ref: ${{ github.event.inputs.ref2 }}
+  #           artifact_file_name: artifact2.txt
+  #   steps:
+  #     - name: Checkout ${{ matrix.repo_config.name }}
+  #       uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ matrix.repo_config.input_ref }}
+  #         path: ${{ matrix.repo_config.name }}
+  #         fetch-depth: 0
 
-      - name: Get ${{ matrix.repo_config.name }} commit SHA
-        id: get_sha
-        working-directory: ${{ matrix.repo_config.name }}
-        run: echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+  #     - name: Get ${{ matrix.repo_config.name }} commit SHA
+  #       id: get_sha
+  #       working-directory: ${{ matrix.repo_config.name }}
+  #       run: echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Create dummy content for ${{ matrix.repo_config.name }}
-        run: echo "cache-${{ matrix.repo_config.input_ref }}-all" > ${{ matrix.repo_config.artifact_file_name }}
+  #     - name: Create dummy content for ${{ matrix.repo_config.name }}
+  #       run: echo "cache-${{ matrix.repo_config.input_ref }}-all" > ${{ matrix.repo_config.artifact_file_name }}
 
-      - name: Upload artifact for ${{ matrix.repo_config.name }}
-        uses: actions/upload-artifact@v4
-        with:
-          path: ${{ matrix.repo_config.artifact_file_name }}
-          name: cache-${{ steps.get_sha.outputs.commit_sha }}-all
-          overwrite: true
-          retention-days: 1
+  #     - name: Upload artifact for ${{ matrix.repo_config.name }}
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: ${{ matrix.repo_config.artifact_file_name }}
+  #         name: cache-${{ steps.get_sha.outputs.commit_sha }}-all
+  #         overwrite: true
+  #         retention-days: 1
