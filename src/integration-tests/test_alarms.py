@@ -46,7 +46,7 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     # Create consumer but not open the queue
-    consumer = proxy.create_client("consumer")
+    proxy.create_client("consumer")
 
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
@@ -55,7 +55,9 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
 
 
 @tweak.domain.max_idle_time(1)
-def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):
+def test_broadcast_no_alarms(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):  # pylint: disable=unused-argument
     """
     Test no broker ALARMS in broadcast mode.
     """
@@ -231,7 +233,7 @@ def test_fanout_no_alarms_for_a_slow_queue(
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
     # Create 2 consumers except "bar"
-    app_ids = tc.TEST_APPIDS
+    app_ids = tc.TEST_APPIDS[:]
     app_ids.remove("bar")
     consumers = {}
     for app_id in app_ids:
@@ -288,7 +290,7 @@ def test_fanout_transition_active_alarm_active(
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
     # Create consumers
-    app_ids = tc.TEST_APPIDS
+    app_ids = tc.TEST_APPIDS[:]
     consumers = {}
     for app_id in app_ids:
         consumer = next(proxies).create_client(app_id)
@@ -338,7 +340,7 @@ def test_fanout_alarms_subscription_mismatch(
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
     # Create consumers, for 'foo' with wrong subscription expression
-    app_ids = tc.TEST_APPIDS
+    app_ids = tc.TEST_APPIDS[:]
     consumers = {}
     for app_id in app_ids:
         subscr_expr = "x == 1" if app_id == "foo" else "x == 0"
