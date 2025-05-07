@@ -32,29 +32,70 @@ from blazingmq.dev.it.fixtures import (
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
 
-pytestmark = order(2)
+new_version_suffix = "NEW_VERSION"
 
-def update_and_redeploy(multi_node_cluster: Cluster):
+def update_and_redeploy(cluster: Cluster):
+    """Update the cluster and redeploy it."""
+
     # Stop all nodes
-    multi_node_cluster.stop_nodes()
+    cluster.stop_nodes()
 
     # Update env var for all node, i.e. BLAZINGMQ_BROKER_{NAME}
     # to the value stored in BLAZINGMQ_BROKER_NEW_VERSION
-    multi_node_cluster.update_all_brokers_binary("NEW_VERSION")
+    cluster.update_all_brokers_binary(new_version_suffix)
     
     # Restart all nodes to apply binary update
-    multi_node_cluster.start_nodes(wait_leader=True, wait_ready=True)
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
 
-def test_redeploy_basic(multi_node: Cluster, domain_urls: tc.DomainUrls):
+
+def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
+    """Simple test start, stop, update broker version for all nodes and restart."""
+
+    cluster = multi3_node
+
     uri_priority = domain_urls.uri_priority
 
     # Start a producer and post a message.
-    proxies = multi_node.proxy_cycle()
+    proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
-    update_and_redeploy(multi_node)
+    update_and_redeploy(cluster)
+
+    producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
+
+    consumer = next(proxies).create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+    consumer.wait_push_event()
+    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
+
+
+def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
+    """
+        Test to upgrade binaries of cluster nodes one by one.
+        Every time a node is upgraded, all the nodes are restarted.
+    """
+
+    cluster = multi3_node
+
+    uri_priority = domain_urls.uri_priority
+
+    # Start a producer and post a message.
+    proxies = cluster.proxy_cycle()
+    producer = next(proxies).create_client("producer")
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
+    producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
+
+    for broker in cluster.configurator.brokers.values():
+        # Stop the node
+        cluster.stop_nodes(broker.name)
+
+        # Update binary for the given broker
+        cluster.update_broker_binary(broker, new_version_suffix)
+
+        # Restart all nodes to apply binary update
+        cluster.start_nodes(wait_leader=True, wait_ready=True)
 
     producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
 

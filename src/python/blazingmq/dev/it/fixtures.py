@@ -635,6 +635,65 @@ def multi_node(request):
 
 
 ###############################################################################
+# multi3_node cluster
+
+
+def multi3_node_cluster_config(
+    configurator: cfg.Configurator,
+    port_allocator: Iterator[int],
+    mode: Mode,
+    reverse_proxy: bool = False,
+) -> None:
+    mode.tweak(configurator.proto.cluster)
+
+    data_centers = ("east")
+
+    cluster = configurator.cluster(
+        name="itCluster",
+        nodes=[
+            configurator.broker(
+                name=f"{data_center}{broker}",
+                tcp_host="localhost",
+                tcp_port=next(port_allocator),
+                data_center=data_center,
+            )
+            for data_center in data_centers
+            for broker in ("1", "2", "3")
+        ],
+    )
+
+    add_test_domains(cluster)
+
+    for data_center in data_centers:
+        configurator.broker(
+            name=f"{data_center}p",
+            tcp_host="localhost",
+            tcp_port=next(port_allocator),
+            data_center=data_center,
+        ).proxy(cluster, reverse=reverse_proxy)
+
+
+multi3_node_cluster_params = [
+    pytest.param(
+        functools.partial(multi3_node_cluster_config, mode=mode),
+        id=f"multi3_node{mode.suffix}",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.multi3,
+            *mode.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+
+@pytest.fixture(params=multi3_node_cluster_params)
+def multi3_node(request):
+    yield from cluster_fixture(request, request.param)
+
+
+###############################################################################
 # multi_node cluster with multiple TCP listeners
 
 
