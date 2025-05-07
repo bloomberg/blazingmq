@@ -70,6 +70,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{needs.build_ubuntu.outputs.cache_key }}
+
+        # Set execution permissions for all .tsk 
+        # which were lost when the artifact was created
       - name: Chmod all .tsk        
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
@@ -137,7 +140,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{needs.build_ubuntu.outputs.cache_key }}
-      - name: Chmod all .tsk        
+
+        # Set execution permissions for all .tsk 
+        # which were lost when the artifact was created
+      - name: Chmod all .tsk
         run: |
           find ./build -type f -name "*.tsk" -exec chmod +x {} +
           chmod +x ./build/blazingmq/src/applications/bmqbrkr/run

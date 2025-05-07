@@ -78,6 +78,8 @@ jobs:
           path: ./repo2
           name: ${{needs.build2.outputs.cache_key }}
 
+        # Set execution permissions for all .tsk 
+        # which were lost when the artifact was created
       - name: Chmod all .tsk
         working-directory: repo1
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
