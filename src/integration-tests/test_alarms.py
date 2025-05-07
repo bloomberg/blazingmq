@@ -55,9 +55,7 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
 
 
 @tweak.domain.max_idle_time(1)
-def test_broadcast_no_alarms(
-    cluster: Cluster, domain_urls: tc.DomainUrls
-):  # pylint: disable=unused-argument
+def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):  # pylint: disable=unused-argument
     """
     Test no broker ALARMS in broadcast mode.
     """
