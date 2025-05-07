@@ -609,6 +609,13 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+        d_consumptionMonitor.maxIdleTime() == 0)) {
+        // monitoring is disabled
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
+
     // Check if the given oldest message is still in the queue
     Apps::const_iterator cItApp = d_apps.find(oldestMsgAppId);
     if (cItApp != d_apps.end() && head(cItApp->second)) {

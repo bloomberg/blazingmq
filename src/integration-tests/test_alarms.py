@@ -50,7 +50,7 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait some time and check for alarms
+    # Wait some time and check no alarms is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
 
 
@@ -69,7 +69,7 @@ def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):  # p
     # Post a message
     producer.post(tc.URI_BROADCAST, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait more than max idle time and check for alarms
+    # Wait more than max idle time and check no alarms is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
 
 
@@ -109,6 +109,7 @@ def test_priority_no_alarms_for_a_slow_queue(
 
     # First, test the alarm
     assert leader.alarms("QUEUE_STUCK", 1)
+    assert leader.capture(r"For appId: __default")
     leader.drain()
 
     # Then test no alarm while consumer1 slowly confirms
@@ -125,6 +126,7 @@ def test_priority_no_alarms_for_a_slow_queue(
         uri_priority, flags=["read"], max_unconfirmed_messages=1, succeed=True
     )
 
+    # Test that no alarm is triggered
     time.sleep(1)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
@@ -140,32 +142,77 @@ def test_priority_transition_active_alarm_active(
     leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
 
+    # Create producer and consumer
     producer = proxy.create_client("producer")
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     consumer = proxy.create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
+    # Post a message
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait more than max idle time and check for alarms
+    # Wait more than max idle time and check no alarms is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
 
     # Close consumer queue and post one more message
     consumer.close(uri_priority, succeed=True)
 
-    producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, ["msg2"], succeed=True, wait_ack=True)
 
     # Test that alarm is triggered
     assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.capture(r"For appId: __default")
     leader.drain()
 
     # Open consumer queue and post one more message
     consumer.open(uri_priority, flags=["read"], succeed=True)
-    producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, ["msg3"], succeed=True, wait_ack=True)
 
     # Test that queue is no longer in alarm state
     assert leader.outputs_regex(r"no longer appears to be stuck.", 1)
+
+
+@tweak.domain.max_idle_time(1)
+def test_priority_enable_disable_alarm(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """
+    Test that alarm is triggered if consumption monitor is enabled (maxIdleTime > 0) in priority mode.
+    Then reconfigure domain to disable consumption monitor (maxIdleTime = 0) and check that no alarm is triggered.
+    """
+    du = domain_urls
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer, but consumer doesn't open a queue
+    producer = proxy.create_client("producer")
+    producer.open(du.uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+
+    # Post a message
+    producer.post(du.uri_priority, ["msg1"], succeed=True, wait_ack=True)
+
+    # Test that alarm is triggered
+    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.capture(r"For appId: __default")
+    leader.drain()
+
+    # Open consumer queue
+    consumer.open(du.uri_priority, flags=["read"], succeed=True)
+
+    # Test that queue is no longer in alarm state
+    assert leader.outputs_regex(r"no longer appears to be stuck.", 1)
+
+    # Disable consumption monitor (maxIdleTime = 0)
+    cluster.config.domains[du.domain_priority].definition.parameters.max_idle_time = 0
+    cluster.reconfigure_domain(du.domain_priority, succeed=True)
+
+    # Close consumer queue and post one more message
+    consumer.close(du.uri_priority, succeed=True)
+    producer.post(du.uri_priority, ["msg2"], succeed=True, wait_ack=True)
+
+    # Test that alarm is not triggered
+    assert not leader.alarms("QUEUE_STUCK", 2)
 
 
 @tweak.domain.max_idle_time(1)
@@ -202,6 +249,7 @@ def test_priority_alarms_subscription_mismatch(
     time.sleep(2)
 
     assert leader.alarms("QUEUE_STUCK", 1)
+    assert leader.capture(r"For appId: __default")
     assert leader.capture(r"Put aside list size: 1")
     assert leader.capture(r"Redelivery list size: 0")
     assert leader.capture(r"Consumer subscription expressions:")
@@ -251,7 +299,7 @@ def test_fanout_no_alarms_for_a_slow_queue(
 
     # First, test the alarm
     assert leader.alarms("QUEUE_STUCK", 1)
-    assert leader.outputs_regex(r"For appId: bar", 1)
+    assert leader.capture(r"For appId: bar")
     leader.drain()
 
     # Then test no alarm while consumer 'foo' slowly confirms
@@ -268,6 +316,7 @@ def test_fanout_no_alarms_for_a_slow_queue(
     consumer_bar = next(proxies).create_client("bar")
     consumer_bar.open(f"{uri_fanout}?id=bar", flags=["read"], succeed=True)
 
+    # Test that no alarm is triggered
     time.sleep(1)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
@@ -297,7 +346,7 @@ def test_fanout_transition_active_alarm_active(
 
     producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
-    # Wait more than max idle time and check for alarms
+    # Wait more than max idle time and check no alarms is triggered
     time.sleep(2)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
@@ -309,7 +358,7 @@ def test_fanout_transition_active_alarm_active(
 
     # Test that alarm is triggered
     assert leader.alarms("QUEUE_STUCK", 1)
-    assert leader.outputs_regex(r"For appId: foo", 1)
+    assert leader.capture(r"For appId: foo")
     leader.drain()
 
     # Open consumer queue and post one more message
@@ -328,7 +377,6 @@ def test_fanout_alarms_subscription_mismatch(
     Test broker ALARM log content in fanout mode for producer/consumer subscription
     expression mismatch (put aside list is not empty).
     """
-
     uri_fanout = domain_urls.uri_fanout
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
