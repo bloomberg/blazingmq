@@ -26,6 +26,7 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
     multi_node,
+    multi3_node,
     order,
     tweak,
 )  # pylint: disable=unused-import
