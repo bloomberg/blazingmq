@@ -94,10 +94,12 @@ find_package(BISON 3 REQUIRED)
 
 BISON_TARGET(SimpleEvaluatorParser
              bmqeval/bmqeval_simpleevaluatorparser.y
-             ${CMAKE_CURRENT_BINARY_DIR}/bmqeval_simpleevaluatorparser.cpp)
+             ${CMAKE_CURRENT_BINARY_DIR}/bmqeval_simpleevaluatorparser.cpp
+             COMPILE_FLAGS -Wall)
 FLEX_TARGET(SimpleEvaluatorScanner
             bmqeval/bmqeval_simpleevaluatorscanner.l
-            ${CMAKE_CURRENT_BINARY_DIR}/bmqeval_simpleevaluatorscanner.cpp)
+            ${CMAKE_CURRENT_BINARY_DIR}/bmqeval_simpleevaluatorscanner.cpp
+            COMPILE_FLAGS --warn)
 ADD_FLEX_BISON_DEPENDENCY(SimpleEvaluatorScanner SimpleEvaluatorParser)
 
 target_sources(bmqeval-iface
