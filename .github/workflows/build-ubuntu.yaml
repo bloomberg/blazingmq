@@ -42,11 +42,6 @@ jobs:
       - name: Generate cache key
         id: get_cache_key
         run: echo "cache_key=cache-${{ env.sha }}-${{ inputs.target }}" >> $GITHUB_OUTPUT
-        
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
@@ -56,6 +51,12 @@ jobs:
             build/blazingmq
             deps
           key: ${{ steps.get_cache_key.outputs.cache_key }}
+        
+      - uses: actions/cache/restore@v4
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        with:
+          path: deps
+          key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
@@ -101,6 +102,12 @@ jobs:
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
 
+      - name: Run UT [c++]
+        if: inputs.target == 'all.t'
+        run: |
+          cd ${{ github.workspace }}/build/blazingmq
+          ctest --output-on-failure
+
       - uses: actions/upload-artifact@v4
         if: inputs.target != 'all.t'
         with:
@@ -110,8 +117,11 @@ jobs:
           name: ${{ steps.get_cache_key.outputs.cache_key }}
           retention-days: 1
 
-      - name: Run UT [c++]
-        if: inputs.target == 'all.t'
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure
+      - name: Build Cache Save
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+          key: ${{ steps.get_cache_key.outputs.cache_key }}
