@@ -75,6 +75,7 @@
 %token PLUS "+" MINUS "-";
 %token TIMES "*" DIVIDES "/" MODULUS "%";
 %token EQ "=" NE "<>" LT "<" LE "<=" GE ">=" GT ">";
+%token NOT "!";
 %token <bsl::string> EXISTS "exists";
 
 %left OR;
@@ -83,7 +84,7 @@
 %left LT LE GE GT;
 %left PLUS MINUS;
 %left TIMES DIVIDES MODULUS;
-%right NOT "!";
+%precedence NOT;
 
 %type<bsl::string> variable;
 %type<SimpleEvaluator::ExpressionPtr> expression;
@@ -168,7 +169,7 @@ expression
         { $$ = ctx.makeNumBinaryExpression<bsl::divides>($1, $3); }
     | expression MODULUS expression
         { $$ = ctx.makeNumBinaryExpression<bsl::modulus>($1, $3); }
-    | MINUS %prec NOT expression
+    | MINUS expression %prec NOT
         { $$ = ctx.makeUnaryExpression<SimpleEvaluator::UnaryMinus>($2); }
     | LPAR expression RPAR
         { $$ = $2; }
