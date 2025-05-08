@@ -148,8 +148,8 @@ class TestMaxQueues:
     @start_cluster(False)
     def test_max_queue_restore(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
         du = domain_urls
-        [q1, q2, q3, q4, q5, q6, q7, q8, q9] = [
-            f"bmq://{du.domain_priority}/q{i}" for i in range(9)
+        [q1, q2, q3, q4, q5, q6, q7] = [
+            f"bmq://{du.domain_priority}/q{i}" for i in range(7)
         ]
 
         cluster = multi_node
