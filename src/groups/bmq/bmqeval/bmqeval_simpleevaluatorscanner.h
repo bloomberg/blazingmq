@@ -68,11 +68,6 @@
 #define YY_DECL                                                               \
     SimpleEvaluatorParser::symbol_type SimpleEvaluatorScanner::get_next_token()
 
-#define register
-// We compile in C++17, and 'register' is not allowed as a storage class
-// anymore, so disable the keyword. If this is too controversial, we can write
-// the scanner by hand.
-
 #include <bmqeval_simpleevaluatorparser.hpp>  // this is needed for symbol_type
 
 namespace BloombergLP {

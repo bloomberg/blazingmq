@@ -50,10 +50,6 @@
 
 }
 
-%{
-    bsl::ostream* d_os;
-%}
-
 %lex-param { SimpleEvaluatorScanner& scanner }
 %parse-param { SimpleEvaluatorScanner& scanner }
 %parse-param { CompilationContext& ctx }
