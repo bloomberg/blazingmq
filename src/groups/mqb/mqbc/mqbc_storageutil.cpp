@@ -1221,8 +1221,26 @@ int StorageUtil::assignPartitionDispatcherThreads(
         mqbi::DispatcherClientType::e_QUEUE);
     BSLS_ASSERT_SAFE(numProcessors > 0);
 
+    bslma::Allocator*              baseAllocator = allocators->baseAllocator();
+    bsl::vector<bslma::Allocator*> queueThreadAllocators(numProcessors,
+                                                         baseAllocator);
+    bsl::vector<bmqp::BlobPoolUtil::BlobSpPoolSp> blobSpPools(numProcessors,
+                                                              baseAllocator);
+
+    // Allocater per-thread resources
+    for (int i = 0; i < numProcessors; ++i) {
+        bmqu::MemOutStream allocatorName(baseAllocator);
+        allocatorName << "QueueDispatcherThread" << i;
+
+        bslma::Allocator* queueThreadAllocator = allocators->get(
+            allocatorName.str());
+        queueThreadAllocators.at(i) = queueThreadAllocator;
+        blobSpPools.at(i)           = bmqp::BlobPoolUtil::createBlobPool(
+            queueThreadAllocator);
+    }
+
     for (int i = 0; i < config.numPartitions(); ++i) {
-        int                   processorId = i % numProcessors;
+        const int             processorId = i % numProcessors;
         mqbs::DataStoreConfig dsCfg;
         dsCfg.setScheduler(&clusterData->scheduler())
             .setBufferFactory(&clusterData->bufferFactory())
@@ -1246,27 +1264,19 @@ int StorageUtil::assignPartitionDispatcherThreads(
             dsCfg.setQueueDeletionCb(queueDeletionCb.value());
         }
 
-        // Get named allocator from associated bmqma::CountingAllocatorStore
-        bslma::Allocator* fileStoreAllocator = allocators->get(
-            bsl::string("Partition") + bsl::to_string(i));
-
-        bsl::shared_ptr<mqbs::FileStore> fsSp(
-            new (*fileStoreAllocator)
-                mqbs::FileStore(dsCfg,
-                                processorId,
-                                dispatcher,
-                                clusterData->membership().netCluster(),
-                                &clusterData->stats(),
-                                blobSpPool,
-                                &clusterData->stateSpPool(),
-                                threadPool,
-                                cluster.isCSLModeEnabled(),
-                                cluster.isFSMWorkflow(),
-                                replicationFactor,
-                                fileStoreAllocator),
-            fileStoreAllocator);
-
-        (*fileStores)[i] = fsSp;
+        (*fileStores)[i] = bsl::allocate_shared<mqbs::FileStore>(
+            queueThreadAllocators.at(processorId),
+            dsCfg,
+            processorId,
+            dispatcher,
+            clusterData->membership().netCluster(),
+            &clusterData->stats(),
+            blobSpPools.at(processorId),
+            &clusterData->stateSpPool(),
+            threadPool,
+            cluster.isCSLModeEnabled(),
+            cluster.isFSMWorkflow(),
+            replicationFactor);
     }
 
     return rc_SUCCESS;
