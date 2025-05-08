@@ -13,6 +13,10 @@
 %define api.namespace { BloombergLP::bmqeval }
 %code requires
 {
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+    #pragma clang diagnostic ignored "-Wswitch-enum"
+
     #include <bsl_functional.h>
     #include <string>
     #include <bmqeval_simpleevaluator.h>
@@ -177,3 +181,5 @@ expression
 void SimpleEvaluatorParser::error(const std::string& message) {
     ctx.d_os << message << " at offset " << scanner.lastTokenLocation();
 }
+
+#pragma clang diagnostic pop
