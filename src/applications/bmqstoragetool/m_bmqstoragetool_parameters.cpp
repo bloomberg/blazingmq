@@ -210,17 +210,14 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
         }
     }
 
-    if (d_summary && d_details) {
-        stream << "'--summary' can't be combined with '--details' "
+    const bool isFilterPresent = !d_queueKey.empty() || !d_queueName.empty() ||
+                                 !d_seqNum.empty() || !d_offset.empty() ||
+                                 rangeArgPresent || !d_cslRecordType.empty();
+    if (d_summary && (d_details || isFilterPresent)) {
+        stream << "'--summary' can't be combined with '--details' and filters "
+                  "(record type, range, queue name/key, offset, seq.num) "
                   "options, as it "
                   "calculates and outputs statistics\n";
-    }
-
-    if (d_outstanding + d_confirmed + d_partiallyConfirmed > 1) {
-        stream
-            << "These filter flags can't be specified together: outstanding, "
-               "confirmed, partially-confirmed. You can specify only one of "
-               "them\n";
     }
 
     bsl::vector<bsl::string>::const_iterator it = d_queueKey.cbegin();
