@@ -1790,14 +1790,6 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
                      "This method should only be invoked in non-CSL mode");
 }
 
-void ClusterStateManager::processPartitionPrimaryAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
-}
-
 void ClusterStateManager::processLeaderAdvisory(
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
