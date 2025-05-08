@@ -90,7 +90,9 @@ jobs:
       - name: Run Integration Tests
         working-directory: repo1
         env:
-          # BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
+          # TODO: can be empty -> do not set
+          # BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}" 
+          
           BLAZINGMQ_BROKER_EAST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"

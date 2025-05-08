@@ -48,7 +48,17 @@ jobs:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
 
+      - uses: actions/cache/restore@v4
+        id: build-cache-restore-step
+        if: inputs.target != 'all.t' # For unit tests we don't cache build
+        with:
+          path: |
+            build/blazingmq
+            deps
+          key: ${{ steps.get_cache_key.outputs.cache_key }}
+
       - name: Set up dependencies
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -qy build-essential \
@@ -66,10 +76,12 @@ jobs:
             libz-dev
 
       - name: Install cached non packaged dependencies
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         working-directory: deps
         run: ../docker/build_deps.sh
 
       - name: Build BlazingMQ
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
@@ -84,6 +96,7 @@ jobs:
           cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
 
       - name: Clean-up build directories before caching
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
@@ -96,14 +109,6 @@ jobs:
             deps
           name: ${{ steps.get_cache_key.outputs.cache_key }}
           retention-days: 1
-
-      # - uses: actions/upload-artifact@v4
-      #   if: inputs.target != 'all.t'
-      #   with:
-      #     path: |
-      #       /opt/bb/include
-      #     name: ${{ steps.get_cache_key.outputs.cache_key }}-include
-      #     retention-days: 1
 
       - name: Run UT [c++]
         if: inputs.target == 'all.t'
