@@ -25,6 +25,7 @@
 /// implementation for use at the primary node.
 
 // MQB
+#include <mqbblp_queueconsumptionmonitor.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbblp_queuestate.h>
 #include <mqbconfm_messages.h>
@@ -146,7 +147,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     QueueState* d_queueState_p;
 
-    QueueConsumptionMonitorData d_consumptionMonitor;
+    QueueConsumptionMonitorData d_consumptionMonitorData;
+    QueueConsumptionMonitor d_consumptionMonitor;
 
     /// Map of appId to AppState
     Apps d_apps;
@@ -258,6 +260,13 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// This method is called by `consumptionMonitorEventDispatcher()` when
     /// alarm condition is met to log alarm data for the specified `cItApp`.
     void logAlarm(Apps::const_iterator cItApp) const;
+
+    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
+    /// If there are un-delivered messages for the specified `appKey` and
+    /// `enableLog` is `true` it logs alarm data.  Return `arrivaTimelDelta` 
+    // (in nanoseconds) of the oldest un-delivered message if any
+    // or `-1` otherwise.
+    bsls::Types::Int64 logAlarmCb(const bsl::string& appId, bool enableLog) const;
 
   public:
     // TRAITS
@@ -434,6 +443,14 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
+    /// Called by the `mqbi::Queue::postMessage` when the message
+    /// has been posted by the specified `source` and saved in the storage.
+    /// It could be used to monitor the message delivery for
+    /// ensuring messages on the queue are flowing and not accumulating.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    void afterPostMessage(mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `addedAppIds` have been dynamically
     /// registered.

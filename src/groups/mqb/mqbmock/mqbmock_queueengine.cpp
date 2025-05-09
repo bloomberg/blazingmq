@@ -135,6 +135,11 @@ void QueueEngine::afterQueuePurged(
     // NOTHING
 }
 
+void QueueEngine::afterPostMessage(BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+{
+    // NOTHING
+}
+
 mqbi::StorageResult::Enum QueueEngine::evaluateAppSubscriptions(
     BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,

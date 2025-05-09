@@ -1606,6 +1606,17 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
     }
 }
 
+void RelayQueueEngine::afterPostMessage(BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+{
+   // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    // NOTHING
+}
+
 mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
     BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,

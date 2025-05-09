@@ -231,6 +231,9 @@ void RootQueueEngine::deliverMessages(AppState* app)
                                  app));
     }
 
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(numMessages > 0)) {
+        d_consumptionMonitor.onMessageSent(app->appId());
+    } 
     onMessageSent(app, (numMessages > 0));
 
     if (app->isReadyForDelivery()) {
@@ -350,7 +353,14 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                                  const mqbconfm::Domain& domainConfig,
                                  bslma::Allocator*       allocator)
 : d_queueState_p(queueState)
-, d_consumptionMonitor(allocator)
+, d_consumptionMonitorData(allocator)
+, d_consumptionMonitor(
+    queueState,
+    bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
+                         this,
+                         bdlf::PlaceHolders::_1,   // appKey
+                         bdlf::PlaceHolders::_2),  // enableLog
+    allocator)
 , d_apps(allocator)
 , d_hasAppSubscriptions(false)
 , d_isFanout(domainConfig.mode().isFanoutValue())
@@ -490,6 +500,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     }
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
+        d_consumptionMonitorData.setMaxIdleTime(config().maxIdleTime());
         d_consumptionMonitor.setMaxIdleTime(config().maxIdleTime());
     }
 
@@ -504,8 +515,10 @@ void RootQueueEngine::onMessageSent(AppState* app, bool success)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
+    return;  // RETURN
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            d_consumptionMonitor.maxIdleTime() == 0)) {
+            d_consumptionMonitorData.maxIdleTime() == 0)) {
         // monitoring is disabled
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
@@ -513,9 +526,9 @@ void RootQueueEngine::onMessageSent(AppState* app, bool success)
 
     // If delivery was successful, check if app is in stale state.
     bsl::unordered_set<bsl::string>::const_iterator staleAppIdIt =
-        d_consumptionMonitor.staleAppIds().find(app->appId());
+        d_consumptionMonitorData.staleAppIds().find(app->appId());
     bool isStaleApp = (staleAppIdIt !=
-                       d_consumptionMonitor.staleAppIds().end());
+                       d_consumptionMonitorData.staleAppIds().end());
     if (success) {
         if (isStaleApp) {
             // Print log that this App becomes active.
@@ -532,7 +545,7 @@ void RootQueueEngine::onMessageSent(AppState* app, bool success)
                           << "' no longer appears to be stuck.";
 
             // Remove appId from stale appIds set
-            d_consumptionMonitor.staleAppIds().erase(staleAppIdIt);
+            d_consumptionMonitorData.staleAppIds().erase(staleAppIdIt);
         }
         return;  // RETURN
     }
@@ -542,7 +555,7 @@ void RootQueueEngine::onMessageSent(AppState* app, bool success)
     }
 
     // Check if alarm event is already scheduled
-    if (d_consumptionMonitor.isScheduled()) {
+    if (d_consumptionMonitorData.isScheduled()) {
         // Already scheduled, do nothing.
         return;  // RETURN
     }
@@ -567,13 +580,13 @@ void RootQueueEngine::onMessageSent(AppState* app, bool success)
     // Calculate the time to schedule the event as:
     //   executionTime = now - 'the oldest message arrivalTimeDelta' +
     //   maxIdleTime
-    bsls::TimeInterval executionTime = d_consumptionMonitor.calculateEventTime(
+    bsls::TimeInterval executionTime = d_consumptionMonitorData.calculateEventTime(
         arrivalTimeDeltaNs);
 
-    d_consumptionMonitor.isScheduled().store(true);
+    d_consumptionMonitorData.isScheduled().store(true);
 
     d_scheduler_p->scheduleEvent(
-        &d_consumptionMonitor.eventHandle(),
+        &d_consumptionMonitorData.eventHandle(),
         executionTime,
         bdlf::BindUtil::bind(
             &RootQueueEngine::consumptionMonitorEventSchedulerHandler,
@@ -591,7 +604,7 @@ void RootQueueEngine::consumptionMonitorEventSchedulerHandler(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_scheduler_p->isInDispatcherThread());
 
-    d_consumptionMonitor.isScheduled().store(false);
+    d_consumptionMonitorData.isScheduled().store(false);
 
     // Forward event to the queue dispatcher thread
     d_queueState_p->queue()->dispatcher()->execute(
@@ -614,7 +627,7 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
         d_queueState_p->queue()));
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            d_consumptionMonitor.maxIdleTime() == 0)) {
+            d_consumptionMonitorData.maxIdleTime() == 0)) {
         // monitoring is disabled
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
@@ -634,7 +647,7 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
             // The message is still in the queue, trigger alarm and mark this
             // appId as a stale.
             logAlarm(cItApp);
-            d_consumptionMonitor.staleAppIds().insert(oldestMsgAppId);
+            d_consumptionMonitorData.staleAppIds().insert(oldestMsgAppId);
         }
     }
 
@@ -643,7 +656,7 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
     bsls::Types::Int64 maxArrivaTimelDelta = 0;
     for (Apps::const_iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         // Skip already stale apps
-        if (d_consumptionMonitor.staleAppIds().count(it->first) > 0) {
+        if (d_consumptionMonitorData.staleAppIds().count(it->first) > 0) {
             continue;  // CONTINUE
         }
 
@@ -683,26 +696,26 @@ void RootQueueEngine::consumptionMonitorEventDispatcher(
     // Calculate the time to schedule the event as:
     //   executionTime = now - 'the oldest message arrival time delta' +
     //   maxIdleTime
-    bsls::TimeInterval executionTime = d_consumptionMonitor.calculateEventTime(
+    bsls::TimeInterval executionTime = d_consumptionMonitorData.calculateEventTime(
         maxArrivaTimelDelta);
 
     // Reschedule alarm event
 
-    d_consumptionMonitor.isScheduled().store(true);
+    d_consumptionMonitorData.isScheduled().store(true);
 
     int shouldSchedule = -1;
-    if (d_consumptionMonitor.eventHandle()) {
+    if (d_consumptionMonitorData.eventHandle()) {
         // We need to check the return code for the case that event was already
         // dispatched in the event scheduler's thread but the handle wasn't
         // released yet.
         shouldSchedule = d_scheduler_p->rescheduleEvent(
-            d_consumptionMonitor.eventHandle(),
+            d_consumptionMonitorData.eventHandle(),
             executionTime);
     }
 
     if (shouldSchedule != 0) {
         d_scheduler_p->scheduleEvent(
-            &d_consumptionMonitor.eventHandle(),
+            &d_consumptionMonitorData.eventHandle(),
             executionTime,
             bdlf::BindUtil::bind(
                 &RootQueueEngine::consumptionMonitorEventSchedulerHandler,
@@ -757,6 +770,8 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
         BSLS_ASSERT_SAFE(!appKey.isNull());
         iter->second->authorize(appKey, ordinal);
 
+        d_consumptionMonitor.registerSubStream(appId);
+
         BALL_LOG_INFO << "Found virtual storage for appId [" << appId
                       << "], queue [" << d_queueState_p->uri() << "], appKey ["
                       << appKey << "], ordinal [" << ordinal << "]";
@@ -773,10 +788,10 @@ void RootQueueEngine::resetState(bool isShuttingDown)
         it->second->routing()->reset();
     }
 
-    if (d_consumptionMonitor.eventHandle()) {
-        d_scheduler_p->cancelEventAndWait(d_consumptionMonitor.eventHandle());
+    if (d_consumptionMonitorData.eventHandle()) {
+        d_scheduler_p->cancelEventAndWait(d_consumptionMonitorData.eventHandle());
     }
-    d_consumptionMonitor.reset();
+    d_consumptionMonitorData.reset();
 
     if (!isShuttingDown) {
         d_apps.clear();
@@ -1094,7 +1109,9 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
         upstreamSubQueueId = iter->second->upstreamSubQueueId();
 
         if (!iter->second->isAuthorized()) {
-            iter->second->authorize();
+            if (iter->second->authorize()) {
+                d_consumptionMonitor.registerSubStream(appId);
+            }
         }
     }
     else {
@@ -1600,6 +1617,8 @@ void RootQueueEngine::afterNewMessage(
             if (success) {
                 // Consider this message as sent out
 
+                d_consumptionMonitor.onMessageSent(iter->first);
+
                 // Report queue time metric per App
                 // Report 'queue time' metric for all active appIds
                 d_queueState_p->queue()->stats()->onEvent(
@@ -1897,6 +1916,17 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
     iter->second->clear();
 }
 
+void RootQueueEngine::afterPostMessage(BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+{
+   // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    d_consumptionMonitor.onMessagePosted();
+}
+
 bsl::ostream&
 RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&      stream,
                                         const bsl::string& appId) const
@@ -2136,6 +2166,148 @@ void RootQueueEngine::logAlarm(Apps::const_iterator cItApp) const
     return;
 }
 
+bsls::Types::Int64 RootQueueEngine::logAlarmCb(const bsl::string& appId,
+                                 bool               enableLog) const
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    // Get AppState by appKey.
+    Apps::const_iterator cItApp = d_apps.find(appId);
+    if (cItApp == d_apps.end()) {
+        BALL_LOG_WARN << "No app found for appId: " << appId;
+        return false;  // RETURN
+    }
+    const AppStateSp& app = cItApp->second;
+
+    // Default arrival time delta, means no un-delivered messages
+    bsls::Types::Int64 arrivaTimelDelta = -1;
+
+    // Check if there are un-delivered messages
+    bslma::ManagedPtr<mqbi::StorageIterator> headIt = head(app);
+
+    if (!headIt) {
+        // No un-delivered messages, do nothing.
+        BALL_LOG_WARN << "No un-delivered messages for appId: " << appId;
+        return arrivaTimelDelta;  // RETURN
+    }
+
+    // Get the arrival time delta of the oldest un-delivered message.
+    mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta, headIt->attributes());
+
+    if (!enableLog) {
+        // There are un-delivered messages, but log is disabled.
+        return arrivaTimelDelta;  // RETURN
+    }
+
+    // Calculate alarm time
+    bsls::TimeInterval alarmTime = d_consumptionMonitorData.calculateEventTime(arrivaTimelDelta);
+    // If the alarm time is in the future, don't log the alarm.
+    if (alarmTime > d_scheduler_p->now()) {
+        BALL_LOG_WARN << "alarm time is in the future for appId: " << appId << ", alarmTime: " << alarmTime << "now: " << d_scheduler_p->now();
+        return arrivaTimelDelta;  // RETURN
+    }
+        
+    // Logging alarm info
+    bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
+
+    bmqu::MemOutStream ss(&localAllocator);
+
+    // Log app consumers queue handles info
+    int idx          = 1;
+    int numConsumers = 0;
+
+    const QueueEngineUtil_AppState::Consumers& consumers = app->consumers();
+    for (QueueEngineUtil_AppState::Consumers::const_iterator citConsumer =
+             consumers.begin();
+         citConsumer != consumers.end();
+         ++citConsumer) {
+        mqbi::QueueHandle* const queueHandle_p = citConsumer->first;
+
+        const mqbi::QueueHandle::SubStreams& subStreamInfos =
+            queueHandle_p->subStreamInfos();
+
+        for (mqbi::QueueHandle::SubStreams::const_iterator citSubStreams =
+                 subStreamInfos.begin();
+             citSubStreams != subStreamInfos.end();
+             ++citSubStreams) {
+            numConsumers += citSubStreams->second.d_counts.d_readCount;
+
+            const int level = 2, spacesPerLevel = 2;
+
+            ss << "\n  " << idx++ << ". "
+               << queueHandle_p->client()->description()
+               << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "Handle Parameters .....: "
+               << queueHandle_p->handleParameters()
+               << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "Number of unconfirmed messages .....: "
+               << queueHandle_p->countUnconfirmed()
+               << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "UnconfirmedMonitors ....:";
+
+            const bsl::vector<const mqbu::ResourceUsageMonitor*> monitors =
+                queueHandle_p->unconfirmedMonitors(app->appId());
+            for (size_t i = 0; i < monitors.size(); ++i) {
+                ss << "\n  " << *monitors[i];
+            }
+        }
+    }
+
+    bmqu::MemOutStream   out(&localAllocator);
+    mqbi::Storage* const storage = d_queueState_p->storage();
+
+    out << "Queue '" << d_queueState_p->uri();
+    if (app->appId() != bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
+        out << "?id=" << app->appId();
+    }
+    out << "' ";
+    storage->capacityMeter()->printShortSummary(out);
+    out << ", max idle time "
+        << bmqu::PrintUtil::prettyTimeInterval(
+               config().maxIdleTime() *
+               bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
+        << " appears to be stuck. It currently has " << numConsumers
+        << " consumers." << ss.str() << '\n';
+
+    // Log un-delivered messages info
+    logAppSubscriptionInfo(out, app);
+
+    // Print the 10 oldest messages in the queue
+    static const int k_NUM_MSGS = 10;
+    const int        level = 0, spacesPerLevel = 2;
+
+    out << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+        << k_NUM_MSGS << " oldest messages in the queue:\n";
+
+    mqbcmd::Result result;
+    mqbs::StoragePrintUtil::listMessages(&result.makeQueueContents(),
+                                         app->appId(),
+                                         0,
+                                         k_NUM_MSGS,
+                                         storage);
+    mqbcmd::HumanPrinter::print(out, result);
+
+    // Print the current head of the queue
+    out << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+        << "Current head of the queue:\n";
+
+    mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                        storage,
+                                        *headIt);
+
+    mqbcmd::HumanPrinter::print(out, result);
+    out << "\n";
+
+    BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
+
+    return arrivaTimelDelta;
+}
+
+
 void RootQueueEngine::afterAppIdRegistered(
     const mqbi::Storage::AppInfos& addedAppIds)
 {
@@ -2218,6 +2390,8 @@ void RootQueueEngine::afterAppIdUnregistered(
 
         // There is no need to purge the storage.  'removeVirtualStorage' will
         // do that.
+
+        d_consumptionMonitor.unregisterSubStream(appId);        
     }
 
     d_queueState_p->storageManager()->updateQueuePrimary(
@@ -2260,6 +2434,8 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
                       << ") now has storage: [App Id: " << appId
                       << ", key: " << appKey << ", ordinal: " << appOrdinal
                       << "]";
+
+        d_consumptionMonitor.registerSubStream(appId);                      
     }
 
     iter->second->authorize(appKey, appOrdinal);
@@ -2334,18 +2510,23 @@ RootQueueEngine::head(const AppStateSp app) const
                                                app->appKey(),
                                                app->putAsideList().first());
     }
-    else if (!d_storageIter_mp->atEnd()) {
-        d_queueState_p->storage()->getIterator(&out,
-                                               app->appKey(),
-                                               d_storageIter_mp->guid());
-    }
     else if (!app->resumePoint().isUnset()) {
         if (d_queueState_p->storage()->getIterator(&out,
                                                    app->appKey(),
                                                    app->resumePoint()) !=
             mqbi::StorageResult::e_SUCCESS) {
+            // The message is gone because of either GC or purge.
+            // In either case, start at the beginning.
+            // This code relies on TTL per Queue (Domain), not per message - if
+            // 'resumePoint()' has exceeded the TTL, everything before that had
+            // as well.
             out = d_queueState_p->storage()->getIterator(app->appKey());
         }
+    }
+    else if (!d_storageIter_mp->atEnd()) {
+        d_queueState_p->storage()->getIterator(&out,
+                                               app->appKey(),
+                                               d_storageIter_mp->guid());
     }
 
     return out;

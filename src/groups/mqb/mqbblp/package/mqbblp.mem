@@ -11,6 +11,7 @@ mqbblp_messagegroupidhelper
 mqbblp_messagegroupidmanager
 mqbblp_pushstream
 mqbblp_queue
+mqbblp_queueconsumptionmonitor
 mqbblp_queueenginetester
 mqbblp_queueengineutil
 mqbblp_queuehandle

@@ -189,6 +189,12 @@ class QueueEngine {
     virtual void afterQueuePurged(const bsl::string&      appId,
                                   const mqbu::StorageKey& appKey) = 0;
 
+    /// Called by the `mqbi::Queue::postMessage` when the message
+    /// has been posted by the specified `source` and saved in the storage.
+    /// It could be used to monitor the message delivery for
+    /// ensuring messages on the queue are flowing and not accumulating.
+    virtual void afterPostMessage(mqbi::QueueHandle* source) = 0;
+
     /// Called after the specified `addedAppIds` have been dynamically
     /// registered.
     ///
