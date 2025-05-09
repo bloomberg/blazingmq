@@ -20,7 +20,10 @@
 
 /// Implementation Notes
 ///====================
-/// TODO
+/// The 'Authenticator' class is responsible for handling authentication when
+/// the InitialConnectionHanlder receives and passes over an authentication
+/// message. It authenticates based on the received AuthenticationRequest and
+/// sends back an AuthenticationResponse.
 
 // MQB
 #include <mqbblp_clustercatalog.h>
@@ -66,22 +69,10 @@ int Authenticator::onAuthenticationRequest(
     bmqp_ctrlmsg::AuthenticateResponse& response =
         authenticationResponse.makeAuthenticateResponse();
 
-    // TODO: authenticate
-    if (authenticateRequest.mechanism() == "") {
-        BALL_LOG_ERROR << "Error on authentication";
-
-        bmqu::MemOutStream os;
-        os << "Mechanism is unspecified";
-        response.status().category() =
-            bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED;
-        response.status().message() = os.str();
-        response.status().code()    = -1;
-    }
-    else {
-        response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-        response.status().code()     = 0;
-        response.lifetimeMs()        = 10 * 60 * 1000;
-    }
+    // Always succeeds for now
+    response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    response.status().code()     = 0;
+    response.lifetimeMs()        = 10 * 60 * 1000;
 
     int rc = sendAuthenticationMessage(errorDescription,
                                        authenticationResponse,
@@ -113,7 +104,6 @@ int Authenticator::sendAuthenticationMessage(
 
     bmqp::EncodingType::Enum encodingType = bmqp::EncodingType::e_BER;
 
-    // TODO: why do we create a local allocator?
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
@@ -144,6 +134,7 @@ int Authenticator::sendAuthenticationMessage(
 void Authenticator::initiateOutboundAuthentication(
     const AuthenticationContextSp& context)
 {
+    BALL_LOG_ERROR << "Not Implemented";
 }
 
 // CREATORS
@@ -151,7 +142,6 @@ Authenticator::Authenticator(BlobSpPool*       blobSpPool,
                              bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_blobSpPool_p(blobSpPool)
-, d_clusterCatalog_p(0)
 {
     // NOTHING
 }
@@ -162,10 +152,9 @@ Authenticator::~Authenticator()
     // NOTHING: (required because of inheritance)
 }
 
-int Authenticator::handleAuthenticationOnMsgType(
-    bsl::ostream&                  errorDescription,
-    bool*                          isContinueRead,
-    const AuthenticationContextSp& context)
+int Authenticator::handleAuthentication(bsl::ostream& errorDescription,
+                                        bool*         isContinueRead,
+                                        const AuthenticationContextSp& context)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -203,7 +192,9 @@ int Authenticator::handleAuthenticationOnMsgType(
 int Authenticator::authenticationOutboundOrReverse(
     const AuthenticationContextSp& context)
 {
-    return 0;
+    BALL_LOG_ERROR << "Not Implemented";
+
+    return -1;
 }
 
 }  // close package namespace

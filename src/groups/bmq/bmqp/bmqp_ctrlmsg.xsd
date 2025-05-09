@@ -16,6 +16,7 @@
        Any message sent is of either one of those top level types:
           o ControlMessage
           o NegotiationMessage
+          o AuthenticationMessage
 
        The following convention is used for controlMessage:
          Each request is just the name of the request ('openQueue',
@@ -1796,7 +1797,7 @@
     </annotation>
     <sequence>
       <element name='mechanism' type='string'/>
-      <element name='data'      type='hexBinary'  minOccurs='0'/>
+      <element name='data'      type='base64Binary'  minOccurs='0'/>
     </sequence>
   </complexType>
 
@@ -1811,6 +1812,7 @@
         lifetimeMs.: The duration (in milliseconds) the client's session is
                      valid for. The client must re-authenticate before the
                      lifetime expires or it will be disconnected.
+                     The session lifetime is undefined if this value is unset.
       </documentation>
     </annotation>
     <sequence>

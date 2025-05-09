@@ -19,8 +19,7 @@
 
 /// @file mqbnet_negotiationcontext.h
 ///
-/// @brief Provide the context for initial connection handler for establishing
-/// sessions.
+/// @brief Provide the context for negotiating and establishing sessions.
 ///
 
 // MQB

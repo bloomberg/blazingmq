@@ -19,8 +19,7 @@
 
 /// @file mqbnet_authenticationcontext.h
 ///
-/// @brief Provide the context for initial connection handler for establishing
-/// sessions.
+/// @brief Provide the context for authenticating connections.
 ///
 
 // MQB
@@ -45,10 +44,6 @@ struct AuthenticationContext {
 
     /// The authentication message received from the remote peer.
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
-
-    /// The cluster involved in the session being authenticated,
-    /// or empty if none.
-    bsl::string d_clusterName;
 
     /// True if this is a "reversed" connection (on either side of the
     /// connection).
