@@ -192,7 +192,7 @@ int InitialConnectionHandler::processBlob(
         context->authenticationContext()->d_authenticationMessage =
             authenticationMsg.value();
 
-        rc = d_authenticator_mp->handleAuthenticationOnMsgType(
+        rc = d_authenticator_mp->handleAuthentication(
             errorDescription,
             isContinueRead,
             context->authenticationContext());
@@ -208,9 +208,9 @@ int InitialConnectionHandler::processBlob(
             context->negotiationContext());
     }
     else {
-        errorDescription
-            << "Decode NegotiationMessage succeeds but nothing is "
-               "loaded into the NegotiationMessage.";
+        errorDescription << "Decode AuthenticationMessage or "
+                            "NegotiationMessage succeeds but nothing gets "
+                            "loaded in.";
         rc = (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
     }
 
@@ -246,29 +246,27 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         return rc_INVALID_MESSAGE;  // RETURN
     }
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
     if (event.isAuthenticationEvent()) {
-        const int rc = event.loadAuthenticationEvent(&authenticaionMessage);
+        const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
-            BALL_LOG_ERROR
-                << "Invalid response from broker [reason: 'authentication "
+            errorDescription
+                << "Invalid message received [reason: 'authentication "
                    "event is not an AuthenticationMessage', rc: "
-                << rc << "]: " << event;
+                << rc << "]:" << bmqu::BlobStartHexDumper(&blob);
             return rc_INVALID_AUTHENTICATION_EVENT;  // RETURN
         }
 
-        *authenticationMsg = authenticaionMessage;
+        *authenticationMsg = authenticationMessage;
     }
     else if (event.isControlEvent()) {
         const int rc = event.loadControlEvent(&negotiationMessage);
         if (rc != 0) {
-            BALL_LOG_ERROR
-                << "Invalid response from broker [reason: 'authentication "
-                   "event is not an AuthenticationMessage', rc: "
-                << rc << "]: " << event;
-
+            errorDescription << "Invalid message received [reason: 'control "
+                                "event is not a NegotiationMessage', rc: "
+                             << rc << "]:" << bmqu::BlobStartHexDumper(&blob);
             return rc_INVALID_CONTROL_EVENT;  // RETURN
         }
 
@@ -350,7 +348,6 @@ void InitialConnectionHandler::setupContext(
 
     authenticationContext->d_initialConnectionContext_p = context.get();
     authenticationContext->d_isReversed                 = false;
-    authenticationContext->d_clusterName                = "";
     authenticationContext->d_connectionType =
         mqbnet::ConnectionType::e_UNKNOWN;
 
@@ -392,6 +389,9 @@ void InitialConnectionHandler::handleConnectionFlow(
         rc = scheduleRead(errStream, context);
     }
     else {
+        // TODO: When we are ready to move on to the next step, we should
+        // call `authenticationOutboundOrReverse` here instead before calling
+        // `negotiateOutboundOrReverse`.
         rc = d_negotiator_mp->negotiateOutboundOrReverse(
             errStream,
             context->negotiationContext());
@@ -407,8 +407,6 @@ void InitialConnectionHandler::handleConnectionFlow(
         return;
     }
 
-    // This line won't be hit. Since if `scheduleRead` succeeds, the same
-    // callback will be triggered in `readCallback`.
     guard.release();
 }
 

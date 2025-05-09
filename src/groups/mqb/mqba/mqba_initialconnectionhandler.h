@@ -17,6 +17,24 @@
 #ifndef INCLUDED_MQBA_INITIALCONNECTIONHANDLER
 #define INCLUDED_MQBA_INITIALCONNECTIONHANDLER
 
+/// @file mqba_initialconnectionhandler.h
+///
+/// @brief Provide a handler for initial connection.
+///
+/// @bbref{mqba::InitialConnectionHandler} implements the
+/// @bbref{mqbnet::InitialConnectionHandler} interface to manage the initial
+/// connection of a session with a BlazingMQ client or another broker. It
+/// either reads incoming Authentication and Negotiation messages from the IO
+/// layer, dispatches them to the appropriate handler for processing, or
+/// calling the appropriate handler to send outbound Authentication and
+/// Negotiation messages.
+///
+/// Thread Safety                     {#mqba_initialconnectionhandler_thread}
+/// =============
+///
+/// The implementation must be thread safe as 'handleInitialConnection()' may
+/// be called concurrently from many IO threads.
+
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
@@ -37,10 +55,6 @@
 namespace BloombergLP {
 
 namespace mqba {
-
-// FORWARD DECLARATION
-class SessionNegotiator;
-class Authenticator;
 
 // ==============================
 // class InitialConnectionHandler

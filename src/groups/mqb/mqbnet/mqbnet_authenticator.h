@@ -17,25 +17,27 @@
 #ifndef INCLUDED_MQBNET_AUTHENTICATOR
 #define INCLUDED_MQBNET_AUTHENTICATOR
 
-//@PURPOSE:
-//
-//@CLASSES:
-//
-//@DESCRIPTION:
+/// @file mqbnet_authenticator.h
+///
+/// @brief Provide a protocol for an authenticator.
+///
+/// @bbref{mqbnet::Authenticator} is a protocol for an authenticator that
+/// (re)authenticates a connection with a BlazingMQ client or another bmqbrkr.
 
 // MQB
 #include <mqbnet_authenticationcontext.h>
 
 // BDE
+#include <bsl_iostream.h>
 #include <bsl_memory.h>
 
 namespace BloombergLP {
 
 namespace mqbnet {
 
-// ================
+// ===================
 // class Authenticator
-// ================
+// ===================
 
 /// Protocol for an Authenticator
 class Authenticator {
@@ -47,13 +49,20 @@ class Authenticator {
 
     // MANIPULATORS
 
-    virtual int handleAuthenticationOnMsgType(
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// in the specified `context`.  Set `isContinueRead` to true if we want to
+    /// continue reading instead of finishing authentication.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
+    virtual int handleAuthentication(
         bsl::ostream&                                 errorDescription,
         bool*                                         isContinueRead,
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
     /// Send out outbound authentication message or reverse connection request
     /// with the specified `context`.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
     virtual int authenticationOutboundOrReverse(
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 };

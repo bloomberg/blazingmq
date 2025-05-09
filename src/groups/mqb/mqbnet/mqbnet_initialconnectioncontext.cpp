@@ -18,6 +18,12 @@
 
 #include <mqbscm_version.h>
 
+// BMQ
+#include <bmqio_channel.h>
+
+// BDE
+#include <bsl_memory.h>
+
 namespace BloombergLP {
 namespace mqbnet {
 

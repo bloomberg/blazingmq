@@ -19,17 +19,21 @@
 
 /// @file mqba_authenticator.h
 ///
-/// @brief
+/// @brief Provide an authenticator for authenticating a connection.
 ///
+/// @bbref{mqba::Authenticator} implements the @bbref{mqbnet::Authenticator}
+/// interface to authenticate a connection with a BlazingMQ client or another
+/// bmqbrkr.  From a @bbref{bmqio::Channel}, it will exchange authentication
+/// message and authenticate depending on the authentication message received.
 ///
 /// Thread Safety                              {#mqba_authenticator_thread}
 /// =============
-///
-/// The implementation must be thread safe as 'authenticate()' may be called
-/// concurrently from many IO threads.
+/// This component is owned by `InitialConnectionHandler`, and its functions
+/// are called only from there.  It is not thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>
+#include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
 
 // BMQ
@@ -86,9 +90,6 @@ class Authenticator : public mqbnet::Authenticator {
 
     BlobSpPool* d_blobSpPool_p;
 
-    /// Cluster catalog to query for cluster information.
-    mqbblp::ClusterCatalog* d_clusterCatalog_p;
-
   private:
     // NOT IMPLEMENTED
 
@@ -99,17 +100,20 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Invoked when received a `ClientIdentity` authentication message with
-    /// the specified `context`.  Creates and return a Session on success,
-    /// or return a null pointer and populate the specified
-    /// `errorDescription` with a description of the error on failure.
+    /// Invoked when received a `AuthenticationRequest` authentication message
+    /// with the specified `context`.  The behavior of this function is
+    /// undefined unless `d_authenticationMessage` in the `context` is an
+    /// `AuthenticateRequest` and this request is incoming or reversed
+    /// connection.  Returns 0 on success, or return a non-zero code and
+    /// populate the specified `errorDescription` with a description of the
+    /// error on failure.
     int onAuthenticationRequest(bsl::ostream& errorDescription,
                                 const AuthenticationContextSp& context);
 
-    /// Invoked when received a `BrokerResponse` authentication message with
-    /// the specified `context`.  Creates and return a Session on success,
-    /// or return a null pointer and populate the specified
-    /// `errorDescription` with a description of the error on failure.
+    /// Invoked when received a `AuthenticationResponse` authentication message
+    /// with the specified `context`.  Returns 0 on success, or return a
+    /// non-zero code and populate the specified `errorDescription` with
+    /// a description of the error on failure.
     int onAuthenticationResponse(bsl::ostream& errorDescription,
                                  const AuthenticationContextSp& context);
 
@@ -146,17 +150,11 @@ class Authenticator : public mqbnet::Authenticator {
     ~Authenticator() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-
-    /// Set the cluster catalog to use to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    Authenticator& setClusterCatalog(mqbblp::ClusterCatalog* value);
-
-    // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
 
-    int handleAuthenticationOnMsgType(bsl::ostream& errorDescription,
-                                      bool*         isContinueRead,
-                                      const AuthenticationContextSp& context)
+    int handleAuthentication(bsl::ostream&                  errorDescription,
+                             bool*                          isContinueRead,
+                             const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound authentication message or reverse connection request
@@ -164,21 +162,6 @@ class Authenticator : public mqbnet::Authenticator {
     int authenticationOutboundOrReverse(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-// -------------------
-// class Authenticator
-// -------------------
-
-inline Authenticator&
-Authenticator::setClusterCatalog(mqbblp::ClusterCatalog* value)
-{
-    d_clusterCatalog_p = value;
-    return *this;
-}
 
 }  // close package namespace
 }  // close enterprise namespace

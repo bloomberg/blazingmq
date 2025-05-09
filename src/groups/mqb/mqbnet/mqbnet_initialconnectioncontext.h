@@ -17,15 +17,20 @@
 #ifndef INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 #define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
-//@PURPOSE: Provide a context for an initial connection handler.
-//
-//@CLASSES:
-//  mqbnet::InitialConnectionContext: VST for the context associated to
-//  an initial connection
-//
-//@DESCRIPTION: 'InitialConnectionContext' provides the context
-// associated to an initial connection being established
-//
+/// @file mqbnet_initialconnectioncontext.h
+/// @brief VST for the context associated to an initial connection.
+///
+/// @bbref{mqbnet::InitialConnectionContext} is a
+/// value-semantic type holding the context associated with a session being
+/// negotiated.  It allows bi-directional generic communication between the
+/// application layer and the transport layer: for example, a user data
+/// information can be passed in at application layer, kept and carried over in
+/// the transport layer and retrieved in the negotiator concrete
+/// implementation.  Similarly, a 'cookie' can be passed in from application
+/// layer, to the result callback notification in the transport layer (usefull
+/// for 'listen-like' established connection where the entry point doesn't
+/// allow to bind specific user data, which then can be retrieved at
+/// application layer during negotiation).
 
 // BDE
 #include <bsl_functional.h>

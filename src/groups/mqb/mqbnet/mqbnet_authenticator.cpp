@@ -21,9 +21,9 @@
 namespace BloombergLP {
 namespace mqbnet {
 
-// ----------------
+// -------------------
 // class Authenticator
-// ----------------
+// -------------------
 
 Authenticator::~Authenticator()
 {
