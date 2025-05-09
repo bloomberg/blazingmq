@@ -6,7 +6,7 @@ bmqimp_eventsstats
 bmqimp_manualhosthealthmonitor
 bmqimp_messagecorrelationidcontainer
 bmqimp_messagedumper
-bmqimp_negotiatedchannelfactory
+bmqimp_initialconnectionchannelfactory
 bmqimp_queue
 bmqimp_queuemanager
 bmqimp_stat

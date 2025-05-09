@@ -20,6 +20,7 @@
 #include <mqbnet_initialconnectionhandler.h>
 
 // MQB
+#include <mqbnet_authenticator.h>
 #include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiator.h>
 
@@ -39,6 +40,7 @@ namespace mqba {
 
 // FORWARD DECLARATION
 class SessionNegotiator;
+class Authenticator;
 
 // ==============================
 // class InitialConnectionHandler
@@ -53,7 +55,10 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   private:
     // DATA
 
-    /// Negotiator to use for converting a Channel to a Session
+    /// Authenticator to use for authenticating a connection.
+    bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
+
+    /// Negotiator to use for converting a Channel to a Session.
     bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
 
     /// Allocator to use.
@@ -99,9 +104,10 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// populate the specified `errorDescription` with a description of the
     /// error.
     int decodeInitialConnectionMessage(
-        bsl::ostream&                                    errorDescription,
-        const bdlbb::Blob&                               blob,
-        bsl::optional<bmqp_ctrlmsg::NegotiationMessage>* negotiationMsg);
+        bsl::ostream&                                       errorDescription,
+        const bdlbb::Blob&                                  blob,
+        bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
+        bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg);
 
     /// Schedule a read for the initial connection of the session of the
     /// specified `context`.  Return a non-zero code on error and
@@ -118,11 +124,17 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                          const bsl::string&                      error,
                          const bsl::shared_ptr<mqbnet::Session>& session);
 
+    void setupContext(const InitialConnectionContextSp& context);
+
+    void handleConnectionFlow(const InitialConnectionContextSp& context);
+
   public:
     // CREATORS
 
-    InitialConnectionHandler(bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
-                             bslma::Allocator*                      allocator);
+    InitialConnectionHandler(
+        bslma::ManagedPtr<mqbnet::Authenticator>& authenticator,
+        bslma::ManagedPtr<mqbnet::Negotiator>&    negotiator,
+        bslma::Allocator*                         allocator);
 
     /// Destructor
     ~InitialConnectionHandler() BSLS_KEYWORD_OVERRIDE;
