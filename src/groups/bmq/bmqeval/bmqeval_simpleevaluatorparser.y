@@ -13,6 +13,10 @@
 %define api.namespace { BloombergLP::bmqeval }
 %code requires
 {
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+    #pragma clang diagnostic ignored "-Wswitch-enum"
+
     #include <bsl_functional.h>
     #include <string>
     #include <bmqeval_simpleevaluator.h>
@@ -50,10 +54,6 @@
 
 }
 
-%{
-    bsl::ostream* d_os;
-%}
-
 %lex-param { SimpleEvaluatorScanner& scanner }
 %parse-param { SimpleEvaluatorScanner& scanner }
 %parse-param { CompilationContext& ctx }
@@ -75,6 +75,7 @@
 %token PLUS "+" MINUS "-";
 %token TIMES "*" DIVIDES "/" MODULUS "%";
 %token EQ "=" NE "<>" LT "<" LE "<=" GE ">=" GT ">";
+%token NOT "!";
 %token <bsl::string> EXISTS "exists";
 
 %left OR;
@@ -83,7 +84,7 @@
 %left LT LE GE GT;
 %left PLUS MINUS;
 %left TIMES DIVIDES MODULUS;
-%right NOT "!";
+%precedence NOT;
 
 %type<bsl::string> variable;
 %type<SimpleEvaluator::ExpressionPtr> expression;
@@ -168,7 +169,7 @@ expression
         { $$ = ctx.makeNumBinaryExpression<bsl::divides>($1, $3); }
     | expression MODULUS expression
         { $$ = ctx.makeNumBinaryExpression<bsl::modulus>($1, $3); }
-    | MINUS %prec NOT expression
+    | MINUS expression %prec NOT
         { $$ = ctx.makeUnaryExpression<SimpleEvaluator::UnaryMinus>($2); }
     | LPAR expression RPAR
         { $$ = $2; }
@@ -181,3 +182,5 @@ expression
 void SimpleEvaluatorParser::error(const std::string& message) {
     ctx.d_os << message << " at offset " << scanner.lastTokenLocation();
 }
+
+#pragma clang diagnostic pop

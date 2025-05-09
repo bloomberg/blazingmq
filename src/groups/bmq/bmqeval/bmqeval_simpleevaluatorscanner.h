@@ -62,16 +62,11 @@
 #endif
 
 // Scanner method signature is defined by this macro. Original yylex() returns
-// int.  Sinice Bison 3 uses symbol_type, we must change returned type. We also
+// int.  Since Bison 3 uses symbol_type, we must change returned type. We also
 // rename it to something sane, since you cannot overload return type.
 #undef YY_DECL
 #define YY_DECL                                                               \
     SimpleEvaluatorParser::symbol_type SimpleEvaluatorScanner::get_next_token()
-
-#define register
-// We compile in C++17, and 'register' is not allowed as a storage class
-// anymore, so disable the keyword. If this is too controversial, we can write
-// the scanner by hand.
 
 #include <bmqeval_simpleevaluatorparser.hpp>  // this is needed for symbol_type
 
