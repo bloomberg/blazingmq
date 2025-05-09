@@ -246,11 +246,11 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         return rc_INVALID_MESSAGE;  // RETURN
     }
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
     if (event.isAuthenticationEvent()) {
-        const int rc = event.loadAuthenticationEvent(&authenticaionMessage);
+        const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
             BALL_LOG_ERROR
                 << "Invalid response from broker [reason: 'authentication "
@@ -259,7 +259,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
             return rc_INVALID_AUTHENTICATION_EVENT;  // RETURN
         }
 
-        *authenticationMsg = authenticaionMessage;
+        *authenticationMsg = authenticationMessage;
     }
     else if (event.isControlEvent()) {
         const int rc = event.loadControlEvent(&negotiationMessage);

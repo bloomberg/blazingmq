@@ -247,9 +247,9 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
     static bsls::AtomicInt s_sessionInstanceCount(0);
 
     // Authentication Message
-    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::AuthenticateRequest&  ar =
-        authenticaionMessage.makeAuthenticateRequest();
+        authenticationMessage.makeAuthenticateRequest();
     bsl::string str = "username:password";
     ar.mechanism()  = "basic";
     ar.data()       = bsl::vector<char>(str.begin(), str.end());  // hexBinary
@@ -319,7 +319,7 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
     sessionImpl->d_application_mp.load(
         new (*(sessionImpl->d_allocator_p))
             bmqimp::Application(options,
-                                authenticaionMessage,
+                                authenticationMessage,
                                 negotiationMessage,
                                 eventHandler,
                                 sessionImpl->d_allocator_p),

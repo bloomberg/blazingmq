@@ -362,11 +362,11 @@ int InitialConnectionChannelFactory::decodeInitialConnectionMessage(
         return bmqio::ChannelFactoryEvent::e_CONNECT_FAILED;  // RETURN
     }
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
     if (event.isAuthenticationEvent()) {
-        const int rc = event.loadAuthenticationEvent(&authenticaionMessage);
+        const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
             BALL_LOG_ERROR
                 << "Invalid response from broker [reason: 'authentication "
@@ -379,11 +379,11 @@ int InitialConnectionChannelFactory::decodeInitialConnectionMessage(
             return bmqio::ChannelFactoryEvent::e_CONNECT_FAILED;  // RETURN
         }
 
-        if (!authenticaionMessage.isAuthenticateResponseValue()) {
+        if (!authenticationMessage.isAuthenticateResponseValue()) {
             BALL_LOG_ERROR
                 << "Invalid response from broker [reason: 'authentication "
                 << "event is not an authenticationResponse']: "
-                << authenticaionMessage;
+                << authenticationMessage;
             bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                                  "authenticationError",
                                  rc_INVALID_AUTHENTICATION_RESPONSE);
@@ -391,7 +391,7 @@ int InitialConnectionChannelFactory::decodeInitialConnectionMessage(
             return bmqio::ChannelFactoryEvent::e_CONNECT_FAILED;  // RETURN
         }
 
-        *authenticationMsg = authenticaionMessage;
+        *authenticationMsg = authenticationMessage;
     }
     else if (event.isControlEvent()) {
         const int rc = event.loadControlEvent(&negotiationMessage);
