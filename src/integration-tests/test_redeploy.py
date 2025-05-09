@@ -29,6 +29,7 @@ from blazingmq.dev.it.fixtures import (
     multi3_node,
     order,
     tweak,
+    start_cluster,
 )  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
@@ -49,6 +50,7 @@ def update_and_redeploy(cluster: Cluster):
     cluster.start_nodes(wait_leader=True, wait_ready=True)
 
 
+@start_cluster(start=True, wait_leader=True, wait_ready=True)
 def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test start, stop, update broker version for all nodes and restart."""
 
@@ -73,6 +75,7 @@ def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
 
 
+@start_cluster(start=True, wait_leader=True, wait_ready=True)
 def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     """
         Test to upgrade binaries of cluster nodes one by one.

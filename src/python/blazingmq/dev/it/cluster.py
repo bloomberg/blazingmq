@@ -700,7 +700,7 @@ class Cluster(contextlib.AbstractContextManager):
             self._logger.debug(f"Updated {broker_path_var} to {new_path}")
         else:
             self._logger.warning(
-                f"Failed to update broker {broker.name.upper()}. {newversion_path_var} is undefined"
+                f"Skipped updating binary for broker {broker.name.upper()}. {newversion_path_var} is undefined"
             )
 
     def get_broker_local_site(self, broker: cfg.Broker):
