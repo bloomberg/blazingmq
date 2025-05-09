@@ -38,6 +38,10 @@ logger = logging.getLogger(__name__)
 
 CORE_PATTERN_PATH = "/proc/sys/kernel/core_pattern"
 
+QUORUM_DEFAULT = 0
+QUORUM_TO_ENSURE_LEADER = 1
+QUORUM_TO_ENSURE_NOT_LEADER = 100
+
 
 def _match_broker(broker, **kw):
     datacenter = kw.get("datacenter", None)
@@ -134,7 +138,9 @@ class Cluster(contextlib.AbstractContextManager):
             self.last_known_leader.config.port
         )
 
-    def start(self, wait_leader=True, wait_ready=False):
+    def start(
+        self, wait_leader=True, wait_ready=False, leader_name: Union[str, None] = None
+    ):
         """
         Start all the nodes and proxies in the cluster.
 
@@ -144,6 +150,8 @@ class Cluster(contextlib.AbstractContextManager):
         See also: 'wait_status' for more information on the 'ready' flags.
         """
 
+        need_preset_leader = leader_name is not None
+
         with internal_use(self):
             for broker in self.config.configurator.brokers.values():
                 if len(broker.clusters.my_virtual_clusters) > 0:
@@ -151,7 +159,14 @@ class Cluster(contextlib.AbstractContextManager):
                 elif len(broker.clusters.my_clusters) == 0:
                     self.start_proxy(broker)
                 else:
-                    self.start_node(broker)
+                    brkrproc = self.start_node(broker)
+
+                    # Select leader based on the given leader_name
+                    if need_preset_leader:
+                        if broker.name == leader_name:
+                            brkrproc.set_quorum(QUORUM_TO_ENSURE_LEADER)
+                        else:
+                            brkrproc.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
 
             if self.is_single_node:
                 self._proxies = self._nodes
@@ -159,6 +174,11 @@ class Cluster(contextlib.AbstractContextManager):
             else:
                 self.wait_status(wait_leader, wait_ready)
                 self.drain()
+
+            # Reset quorum to default
+            if need_preset_leader:
+                for brkrproc in self._nodes:
+                    brkrproc.set_quorum(QUORUM_DEFAULT)
 
         return (self._nodes, self._proxies)
 
@@ -296,7 +316,7 @@ class Cluster(contextlib.AbstractContextManager):
         self._logger.info("restarting all nodes")
         for node in self.nodes():
             if node is not self.last_known_leader:
-                node.set_quorum(100)
+                node.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
 
         self.last_known_leader = None
         with internal_use(self):
@@ -731,9 +751,13 @@ class Cluster(contextlib.AbstractContextManager):
 
         return None
 
-    def _start_broker(self, broker: cfg.Broker, array, cluster_name):
+    def _start_broker(
+        self, broker: cfg.Broker, nodes: List[Broker], cluster_name: Union[str, None]
+    ):
         if broker.name in self._processes:
-            raise RuntimeError(f'node "{broker.name}" is already running')
+            raise RuntimeError(
+                f'node "{broker.name}" is already running in cluster "{cluster_name}"'
+            )
 
         process = Broker(
             broker,
@@ -746,7 +770,7 @@ class Cluster(contextlib.AbstractContextManager):
         process.start()
 
         self._processes[broker.name] = process
-        array.append(process)
+        nodes.append(process)
 
         process.wait_until_started()
 
