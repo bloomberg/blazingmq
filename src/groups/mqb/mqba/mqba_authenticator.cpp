@@ -113,7 +113,6 @@ int Authenticator::sendAuthenticationMessage(
 
     bmqp::EncodingType::Enum encodingType = bmqp::EncodingType::e_BER;
 
-    // TODO: why do we create a local allocator?
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     bmqp::SchemaEventBuilder builder(d_blobSpPool_p,

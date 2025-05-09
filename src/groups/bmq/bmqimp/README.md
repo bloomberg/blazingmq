@@ -22,4 +22,4 @@ Component                                | Provides ...
 `bmqpimp_eventsstats`                    | a mechanism to keep track of Events statistics.
 `bmqpimp_queue`                          | a type object to represent information about a queue.
 `bmqimp_stat`                            | utilities for stat manipulation.
-`bmqimp_initialconnectionchannelfactory` | a channel factory that authenticates a peer and and negotiates with it.
+`bmqimp_initialconnectionchannelfactory` | a channel factory that authenticates a peer and negotiates with it.

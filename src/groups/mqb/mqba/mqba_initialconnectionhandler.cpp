@@ -208,9 +208,9 @@ int InitialConnectionHandler::processBlob(
             context->negotiationContext());
     }
     else {
-        errorDescription
-            << "Decode NegotiationMessage succeeds but nothing is "
-               "loaded into the NegotiationMessage.";
+        errorDescription << "Decode AuthenticationMessage or "
+                            "NegotiationMessage succeeds but nothing gets "
+                            "loaded in.";
         rc = (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
     }
 
@@ -246,11 +246,11 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         return rc_INVALID_MESSAGE;  // RETURN
     }
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
     if (event.isAuthenticationEvent()) {
-        const int rc = event.loadAuthenticationEvent(&authenticaionMessage);
+        const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
             BALL_LOG_ERROR
                 << "Invalid response from broker [reason: 'authentication "
@@ -259,15 +259,14 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
             return rc_INVALID_AUTHENTICATION_EVENT;  // RETURN
         }
 
-        *authenticationMsg = authenticaionMessage;
+        *authenticationMsg = authenticationMessage;
     }
     else if (event.isControlEvent()) {
         const int rc = event.loadControlEvent(&negotiationMessage);
         if (rc != 0) {
-            BALL_LOG_ERROR
-                << "Invalid response from broker [reason: 'authentication "
-                   "event is not an AuthenticationMessage', rc: "
-                << rc << "]: " << event;
+            BALL_LOG_ERROR << "Invalid response from broker [reason: 'control "
+                              "event is not an NegotiationMessage', rc: "
+                           << rc << "]: " << event;
 
             return rc_INVALID_CONTROL_EVENT;  // RETURN
         }

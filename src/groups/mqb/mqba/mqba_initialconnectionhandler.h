@@ -38,10 +38,6 @@ namespace BloombergLP {
 
 namespace mqba {
 
-// FORWARD DECLARATION
-class SessionNegotiator;
-class Authenticator;
-
 // ==============================
 // class InitialConnectionHandler
 // ==============================
