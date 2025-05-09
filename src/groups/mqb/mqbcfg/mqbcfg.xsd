@@ -87,6 +87,7 @@
         configureStream......: send new ConfigureStream instead of old ConfigureQueue
         advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
         routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
+        authentication.......: configuration for authentication
       </documentation>
     </annotation>
     <sequence>
@@ -110,6 +111,7 @@
       <element name='configureStream'      type='boolean' default='false'/>
       <element name='advertiseSubscriptions' type='boolean' default='false'/>
       <element name='routeCommandTimeoutMs' type='int' default='3000'/>
+      <element name='authentication'       type='tns:AuthenticatorConfig'/>
     </sequence>
   </complexType>
 
@@ -302,6 +304,68 @@
     <sequence>
       <element name='libraries' type='string' maxOccurs='unbounded'/>
       <element name='enabled'   type='string' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='AuthenticatorConfig'>
+    <annotation>
+      <documentation>
+        Top level type for the broker's authentication configurations.
+
+        plugins...........:
+            Configurations for authenticator plugins. A config should be present
+            for each authenticator plugin enabled on the broker.
+        fallbackPrincipal.:
+            Principal to assign to a client in case the client does not support
+            authentication or has not been configured to authenticate. When set,
+            authentication is effectively optional. When not set, authentication
+            is required and clients which cannot or do not authenticate will be
+            rejected.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='plugins'           type='tns:AuthenticatorPluginConfig' maxOccurs='unbounded'/>
+      <element name='fallbackPrincipal' type='string' minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name="AuthenticatorPluginConfig">
+    <annotation>
+      <documentation>
+        The configuration for an authenticator plugin.
+
+        name....:
+            The name of the authenticator plugin.
+        configs.:
+            Plugin-specific configurations.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'    type='string'/>
+      <element name='configs' type='tns:GenericKeyValue' minOccurs='0' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name="GenericKeyValue">
+    <annotation>
+      <documentation>
+        key...: configuration key/name
+        value.: configuration value
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='key' type='string'/>
+      <element name='value'>
+        <complexType>
+          <choice>
+            <element name='boolVal'   type='boolean'/>
+            <element name='intVal'    type='int'/>
+            <element name='longVal'   type='long'/>
+            <element name='doubleVal' type='double'/>
+            <element name='stringVal' type='string'/>
+          </choice>
+        </complexType>
+      </element>
     </sequence>
   </complexType>
 
