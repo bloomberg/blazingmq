@@ -883,14 +883,10 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             k_ASSIGNMENT_WHILE_UNAVAILABLE;  // RETURN
     }
 
-    ClusterStateQueueInfo::State::Enum previousState =
-        ClusterStateQueueInfo::State::k_NONE;
-
     ClusterState::DomainStates& domainStates = clusterState->domainStates();
     DomainStatesIter domIt = domainStates.find(uri.qualifiedDomain());
 
     UriToQueueInfoMapIter queueIt;
-
     if (domIt == domainStates.end()) {
         ClusterState::DomainStateSp domainState;
         domainState.createInplace(allocator, allocator);
@@ -902,29 +898,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         queueIt = domIt->second->queuesInfo().find(uri);
     }
 
-    if (queueIt == domIt->second->queuesInfo().end()) {
-        QueueInfoSp queueInfo;
-
-        queueInfo.createInplace(allocator, uri, allocator);
-
-        queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
-    }
-    else {
-        previousState = queueIt->second->state();
-    }
-
-    if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
-        BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
-                      << uri << "' is already pending.";
-        return QueueAssignmentResult::k_ASSIGNMENT_OK;
-    }
-
-    if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
-        BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
-                      << uri << "' is already done.";
-        return QueueAssignmentResult::k_ASSIGNMENT_OK;
-    }
-
+    // There is nothing we can do if we don't have a built logical domain.
     if (domIt->second->domain() == 0) {
         BSLS_ASSERT_SAFE(clusterData->domainFactory());
         clusterData->domainFactory()->createDomain(
@@ -949,6 +923,28 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         }
     }
 
+    ClusterStateQueueInfo::State::Enum previousState =
+        ClusterStateQueueInfo::State::k_NONE;
+    if (queueIt != domIt->second->queuesInfo().end()) {
+        // If we have a queue state in the map, we can extract this state.
+        // For k_ASSIGNED or k_ASSIGNING states we don't need to do anything
+        // here and can return early.
+        // If the state is k_UNASSIGNING, we proceed with assigning.
+        previousState = queueIt->second->state();
+
+        if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
+            BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
+                          << uri << "' is already pending.";
+            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
+        }
+
+        if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
+            BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
+                          << uri << "' is already done.";
+            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
+        }
+    }
+
     struct local {
         static void panic(mqbi::Domain* domain)
         {
@@ -970,30 +966,56 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         }
     };
 
-    const int registeredQueues = domIt->second->numAssignedQueues();
-    const int maxQueues        = domIt->second->domain()->config().maxQueues();
-    if (maxQueues != 0) {
-        const int requestedQueues = registeredQueues + 1;
-        if (requestedQueues > maxQueues) {
-            local::panic(domIt->second->domain());
-        }
-        else {
-            const int watermark = static_cast<int>(
-                maxQueues * k_MAX_QUEUES_HIGH_WATERMARK);
-            if (registeredQueues < watermark && requestedQueues >= watermark) {
-                local::alarm(domIt->second->domain(), requestedQueues);
+    if (queueIt == domIt->second->queuesInfo().end()) {
+        BSLS_ASSERT_SAFE(previousState ==
+                         ClusterStateQueueInfo::State::k_NONE);
+
+        // Need to check if we have capacity before we allocate resources
+        // for this new queue.  The current number of registered queues is:
+        // num(assigned) + num(assigning) + num(unassigning).
+        const int registeredQueues = static_cast<int>(
+            domIt->second->queuesInfo().size());
+        const int maxQueues = domIt->second->domain()->config().maxQueues();
+        if (maxQueues != 0) {
+            const int requestedQueues = registeredQueues + 1;
+            if (requestedQueues > maxQueues) {
+                local::panic(domIt->second->domain());
+            }
+            else {
+                const int watermark = static_cast<int>(
+                    maxQueues * k_MAX_QUEUES_HIGH_WATERMARK);
+                if (registeredQueues < watermark &&
+                    requestedQueues >= watermark) {
+                    local::alarm(domIt->second->domain(), requestedQueues);
+                }
+            }
+
+            if (requestedQueues > maxQueues) {
+                if (status) {
+                    status->category() =
+                        bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+                    status->code()    = mqbi::ClusterErrorCode::e_LIMIT;
+                    status->message() = k_MAXIMUM_NUMBER_OF_QUEUES_REACHED;
+                }
+
+                return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
             }
         }
 
-        if (requestedQueues > maxQueues) {
-            if (status) {
-                status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-                status->code()     = mqbi::ClusterErrorCode::e_LIMIT;
-                status->message()  = k_MAXIMUM_NUMBER_OF_QUEUES_REACHED;
-            }
+        // We have capacity and can add this queue to the collection.
+        // The queue will be in k_ASSIGNING state until we commit queue
+        // assignment advisory.
+        QueueInfoSp queueInfo;
 
-            return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
-        }
+        queueInfo.createInplace(allocator, uri, allocator);
+
+        queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
+    }
+    else {
+        // Note that we already have `queueIt` and allocated resources for this
+        // queue.  No need to allocate new QueueInfo and check capacity.
+        BSLS_ASSERT_SAFE(previousState ==
+                         ClusterStateQueueInfo::State::k_UNASSIGNING);
     }
 
     // Set the queue as assigning (no longer pending unassignment)
