@@ -211,6 +211,8 @@ Every broker reports this metric for each of the clusters it has created, with t
 |Metric Name|Description|
 |-----------|-----------|
 |cluster_healthiness|Represents whether this cluster is healthy, as perceived from this host. If the cluster was considered healthy during the entire report interval, a value of 1 is reported; on the other hand, if the cluster was unhealthy for at least one snapshot during the report interval, a value of 2 is reported. Cluster being considered healthy means different things depending on if the host is a proxy to the cluster or a member of the cluster. If it is a proxy, having an active upstream node is sufficient for it to be healthy. For a member, it means being aware of an active leader, all partitions assigned to an active primary, etc.|
+|cluster_partition_cfg_journal_bytes|The configured partition’s journal size, used to compute percentage of resource used. This metric is reported only by the leader node of the cluster, with the bmqCluster and instanceName tags set, and with the host tag set to 'dummy'.|
+|cluster_partition_cfg_data_bytes|The configured partition’s data size, used to compute percentage of resource used. This metric is reported only by the leader node of the cluster, with the bmqCluster and instanceName tags set, and with the host tag set to 'dummy'.|
 
 ### Cluster partitions metrics
 The following metrics are reported for each partition, only by the primary of the partition, with the 'Cluster' and 'Instance' tags set. Note that in the following metrics name \<X\> represents the partition id (0 based integer).
@@ -219,7 +221,9 @@ The following metrics are reported for each partition, only by the primary of th
 |-----------|-----------|
 |cluster_\<partition name\>_rollover_time|The time (in nanoseconds) it took for the rollover operation of the partition. Note that if more than one rollover happened for the partition during the report interval, then the maximum time is reported. This metric can be used to see how long, but also how often, rollover happens for a partition.|
 |cluster_\<partition name\>_journal_outstanding_bytes|The maximum observed outstanding bytes in the journal file of the partition over the report interval. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
+|cluster_\<partition name\>_journal_utilization_max|The maximum observed utilization of the journal file of the partition over the report interval: '100 * cluster_\<partition name\>_journal_outstanding_bytes / cluster_partition_cfg_journal_bytes'. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
 |cluster_\<partition name\>_data_outstanding_bytes|The maximum observed outstanding bytes in the data file of the partition over the report interval. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
+|cluster_\<partition name\>_data_utilization_max|The maximum observed utilization of the data file of the partition over the report interval: '100 * cluster_\<partition name\>_data_outstanding_bytes / cluster_partition_cfg_data_bytes'. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
 
 ### Domain metrics
 Domain metrics represent high level metrics related to a domain. Only the leader node of the cluster reports them, with the 'Cluster', 'Domain', 'Tier' and 'Instance' tags set.
