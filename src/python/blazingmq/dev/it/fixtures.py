@@ -646,7 +646,7 @@ def multi3_node_cluster_config(
 ) -> None:
     mode.tweak(configurator.proto.cluster)
 
-    data_centers = ("east")
+    data_centers = ["east"]
 
     cluster = configurator.cluster(
         name="itCluster",

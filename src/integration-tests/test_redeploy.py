@@ -69,6 +69,7 @@ def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     consumer = next(proxies).create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
+
     assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
 
 
@@ -89,8 +90,8 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
     for broker in cluster.configurator.brokers.values():
-        # Stop the node
-        cluster.stop_nodes(broker.name)
+        # Stop all nodes
+        cluster.stop_nodes()
 
         # Update binary for the given broker
         cluster.update_broker_binary(broker, new_version_suffix)

@@ -88,7 +88,7 @@ jobs:
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Integration Tests
-        working-directory: repo1
+        working-directory: repo2
         env:
           # TODO: can be empty -> do not set
           # BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}" 
@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
-          path: ${{ github.workspace }}/repo1/src/integration-tests/failure-logs
+          path: ${{ github.workspace }}/repo2/src/integration-tests/failure-logs
           retention-days: 5
 
   # cleunup_artifacts:
