@@ -175,42 +175,7 @@ class QueueConsumptionMonitor {
         /// but is otherwise unspecified.
         static const char* toAscii(State::Enum value);
     };
-
-    /// Struct-enum representing the possible state-transition, as a result
-    /// of calls to the `onTimer` method.
-    struct Transition {
-        enum Enum { e_UNCHANGED = 0, e_ALIVE = 1, e_IDLE = 2 };
-
-        // CLASS METHODS
-
-        /// Write the string representation of the specified enumeration
-        /// `value` to the specified output `stream`, and return a reference
-        /// to `stream`.  Optionally specify an initial indentation `level`,
-        /// whose absolute value is incremented recursively for nested
-        /// objects.  If `level` is specified, optionally specify
-        /// `spacesPerLevel`, whose absolute value indicates the number of
-        /// spaces per indentation level for this and all of its nested
-        /// objects.  If `level` is negative, suppress indentation of the
-        /// first line.  If `spacesPerLevel` is negative, format the entire
-        /// output on one line, suppressing all but the initial indentation
-        /// (as governed by `level`).  See `toAscii` for what constitutes
-        /// the string representation of a `Transition::Enum` value.
-        static bsl::ostream& print(bsl::ostream&    stream,
-                                   Transition::Enum value,
-                                   int              level          = 0,
-                                   int              spacesPerLevel = 4);
-
-        /// Return the non-modifiable string representation corresponding to
-        /// the specified enumeration `value`, if it exists, and a unique
-        /// (error) string otherwise.  The string representation of `value`
-        /// matches its corresponding enumerator name with the `e_` prefix
-        /// elided.  Note that specifying a `value` that does not match any
-        /// of the enumerators will result in a string representation that
-        /// is distinct from any of those corresponding to the enumerators,
-        /// but is otherwise unspecified.
-        static const char* toAscii(Transition::Enum value);
-    };
-
+    
     /// Callback function to log alarm info when queue state transitions to
     /// idle. First argument is the app id, second argument is a boolean flag
     /// to enable logging. If `enableLog` is `false`, logging is skipped.
@@ -252,7 +217,13 @@ class QueueConsumptionMonitor {
     /// Held but not owned.
     QueueState* d_queueState_p;
 
-    /// Maximum time, in arbitrary units, before the queue is declared idle.
+    /// Event scheduler. Held but not owned.
+    bdlmt::EventScheduler* d_scheduler_p;
+
+    /// EventHandle for triggering alarm.
+    bdlmt::EventSchedulerEventHandle d_alarmEventHandle;
+
+    /// Maximum time, in seconds, before the queue is declared idle.
     bsls::Types::Int64 d_maxIdleTime;
 
     /// Timer, in arbitrary unit, of the current time.
@@ -274,17 +245,31 @@ class QueueConsumptionMonitor {
     /// Return the `SubStreamInfo` corresponding to the specified `id`.
     const SubStreamInfo& subStreamInfo(const bsl::string& id) const;
 
+    /// Calculate the time interval for the event to be scheduled for the
+    /// given 'arrivalTimeDeltaNs' (in nanoseconds) as followss:
+    /// executionTime = now - arrivalTimeDeltaNs + maxIdleTime.
+    bsls::TimeInterval calculateEventTime(bsls::Types::Int64 arrivalTimeDeltaNs) const;
+
+    // MANIPULATORS
+
     /// Return the `SubStreamInfo` corresponding to the specified `id`.  It
     /// is an error to specify an `id` that has not been previously
     /// registered via `registerSubStream`.
     SubStreamInfo& subStreamInfo(const bsl::string& id);
 
-    // MANIPULATORS
-
     /// Update the specified `subStreamInfo`, associated to the specified
     /// `id`, and write log, upon transition to alive state.
     void onTransitionToAlive(SubStreamInfo*     subStreamInfo,
                              const bsl::string& id);
+
+    /// Handler called by EventScheduler in scheduler dispatcher thread to forward event to the
+    /// queue dispatcher thread.
+    void executeInQueueDispatcher();
+                             
+    /// Alarm event dispatcher, executed in queue dispatcher thread.
+    /// It checks if there are apps that meet alarm condition and trigger the alarm for them.
+    //  If there are undelivered messages (among apps) it reschedules alarm event.
+    void alarmEventDispatched();
 
   public:
     // TRAITS
@@ -294,13 +279,16 @@ class QueueConsumptionMonitor {
     // CREATORS
 
     /// Create a `QueueConsumptionMonitor` object that monitors the queue
-    /// specified by `queueState`. Use the specified `loggingCb` callback for
+    /// specified by `queueState`. Use the specified `scheduler_p` for events
+    //  scheduling and `loggingCb` callback for
     /// logging alarm data. Use the optionally specified `allocator` to supply
     /// memory.  If `allocator` is 0, the currently installed default allocator
     /// is used.
     QueueConsumptionMonitor(QueueState*       queueState,
                             const LoggingCb&  loggingCb,
                             bslma::Allocator* allocator);
+
+    ~QueueConsumptionMonitor();
 
     // MANIPULATORS
 
@@ -331,6 +319,11 @@ class QueueConsumptionMonitor {
     /// if the queue transitions back to active.
     void onTimer(bsls::Types::Int64 currentTimer);
 
+    /// Notify the monitor that message were posted
+    /// (for any substream).  It is used to schedule the event 
+    /// (if it was not scheduled yet) to monitor the delivery.
+    void onMessagePosted();
+
     /// Notify the monitor that one or more messages were sent during the
     /// current time period for the substream specified by `id`.  It is an
     /// error to specify an `id` that has not been previously registered via
@@ -357,17 +350,6 @@ class QueueConsumptionMonitor {
 /// ```
 bsl::ostream& operator<<(bsl::ostream&                        stream,
                          QueueConsumptionMonitor::State::Enum value);
-
-/// Write the string representation of the specified enumeration `value` to
-/// the specified output `stream` in a single-line format, and return a
-/// reference to `stream`.  See `toAscii` for what constitutes the string
-/// representation of a `QueueConsumptionMonitor::Transition::Enum` value.
-/// Note that this method has the same behavior as
-/// ```
-/// mqbblp::QueueConsumptionMonitor::Transition::print(stream, value, 0, -1);
-/// ```
-bsl::ostream& operator<<(bsl::ostream&                             stream,
-                         QueueConsumptionMonitor::Transition::Enum value);
 
 // ============================================================================
 //                            INLINE DEFINITIONS
@@ -445,17 +427,6 @@ mqbblp::operator<<(bsl::ostream&                        stream,
                    QueueConsumptionMonitor::State::Enum value)
 {
     return QueueConsumptionMonitor::State::print(stream, value, 0, -1);
-}
-
-// ------------------------------------------
-// struct QueueConsumptionMonitor::Transition
-// ------------------------------------------
-
-inline bsl::ostream&
-mqbblp::operator<<(bsl::ostream&                             stream,
-                   QueueConsumptionMonitor::Transition::Enum value)
-{
-    return QueueConsumptionMonitor::Transition::print(stream, value, 0, -1);
 }
 
 }  // close enterprise namespace

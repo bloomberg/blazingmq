@@ -81,42 +81,6 @@ const char* QueueConsumptionMonitor::State::toAscii(
 #undef case
 }
 
-// ------------------------------------------
-// struct QueueConsumptionMonitor::Transition
-// ------------------------------------------
-
-bsl::ostream& QueueConsumptionMonitor::Transition::print(
-    bsl::ostream&                             stream,
-    QueueConsumptionMonitor::Transition::Enum value,
-    int                                       level,
-    int                                       spacesPerLevel)
-{
-    stream << bmqu::PrintUtil::indent(level, spacesPerLevel)
-           << QueueConsumptionMonitor::Transition::toAscii(value);
-
-    if (spacesPerLevel >= 0) {
-        stream << '\n';
-    }
-
-    return stream;
-}
-
-const char* QueueConsumptionMonitor::Transition::toAscii(
-    QueueConsumptionMonitor::Transition::Enum value)
-{
-#define CASE(X)                                                               \
-    case e_##X: return #X;
-
-    switch (value) {
-        CASE(UNCHANGED)
-        CASE(ALIVE)
-        CASE(IDLE)
-    default: return "(* UNKNOWN *)";
-    }
-
-#undef case
-}
-
 // ---------------------------------------------
 // struct QueueConsumptionMonitor::SubStreamInfo
 // ---------------------------------------------
@@ -138,6 +102,8 @@ QueueConsumptionMonitor::QueueConsumptionMonitor(QueueState*       queueState,
                                                  const LoggingCb&  loggingCb,
                                                  bslma::Allocator* allocator)
 : d_queueState_p(queueState)
+, d_scheduler_p(queueState->scheduler())
+, d_alarmEventHandle()
 , d_maxIdleTime(0)
 , d_currentTimer(0)
 , d_subStreamInfos(allocator)
@@ -145,8 +111,16 @@ QueueConsumptionMonitor::QueueConsumptionMonitor(QueueState*       queueState,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p);
+    BSLS_ASSERT_SAFE(d_scheduler_p);
     BSLS_ASSERT_SAFE(d_loggingCb);
 }
+
+QueueConsumptionMonitor::~QueueConsumptionMonitor()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!d_alarmEventHandle);
+}
+
 
 // MANIPULATORS
 QueueConsumptionMonitor&
@@ -160,12 +134,22 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
 
     d_maxIdleTime = value;
 
+    // If monitor is disabled and event was scheduled (e.g. in case of reconfigure),
+    // cancel the event.
+    if (value == 0 && d_alarmEventHandle) {
+        d_scheduler_p->cancelEventAndWait(&d_alarmEventHandle);
+    }
+    // TODO: need to reschedule the event if it was already scheduled.
+    // But there is no way to get execution time of the scheduled event, because
+    // d_scheduler_p is also used by throttleEventHandle and EventScheduler::nextPendingEventTime()
+    // returns the closest event time for all handles.
+    
     for (SubStreamInfoMapIter iter = d_subStreamInfos.begin(),
                               last = d_subStreamInfos.end();
          iter != last;
          ++iter) {
         iter->second = SubStreamInfo();
-    }
+    }    
 
     return *this;
 }
@@ -202,6 +186,33 @@ void QueueConsumptionMonitor::reset()
     d_maxIdleTime  = 0;
     d_currentTimer = 0;
     d_subStreamInfos.clear();
+    if (d_alarmEventHandle) {
+        d_scheduler_p->cancelEvent(&d_alarmEventHandle);
+    }
+}
+
+void QueueConsumptionMonitor::onMessagePosted()
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    BALL_LOG_WARN << "QueueConsumptionMonitor::onMessagePosted() called";
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    if (d_alarmEventHandle) {
+        // Event is already scheduled.
+        return;  // RETURN
+    }
+
+    // Schedule the event to be executed in 'now + maxIdleTime' time.
+    const bsls::TimeInterval executionTime = calculateEventTime(0);
+
+    d_scheduler_p->scheduleEvent(
+        &d_alarmEventHandle,
+        executionTime,
+        bdlf::BindUtil::bind(&QueueConsumptionMonitor::executeInQueueDispatcher, this));
 }
 
 void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
@@ -292,6 +303,67 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
     uriBuilder.uri(&uri);
 
     BALL_LOG_INFO << "Queue '" << uri << "' no longer appears to be stuck.";
+}
+
+void QueueConsumptionMonitor::executeInQueueDispatcher()
+{
+    // executed by the *SCHEDULER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_scheduler_p->isInDispatcherThread());
+
+    // Forward event to the queue dispatcher thread
+    d_queueState_p->queue()->dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &QueueConsumptionMonitor::alarmEventDispatched,
+            this),
+        d_queueState_p->queue());
+}
+
+void QueueConsumptionMonitor::alarmEventDispatched()
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_maxIdleTime > 0);
+
+    BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() called";
+
+    // Check condition for alarm and trigger it if needed.
+    bsls::TimeInterval now = d_scheduler_p->now();
+    bsls::TimeInterval minExecTime = now;
+    for (SubStreamInfoMapIter iter = d_subStreamInfos.begin(),
+                              last = d_subStreamInfos.end();
+         iter != last;
+         ++iter) {
+        SubStreamInfo&          info   = iter->second;
+        const bsl::string&      id     = iter->first;
+        if (info.d_state == State::e_IDLE) {
+            // skip idle state
+            continue;  // CONTINUE
+        }
+        
+    }
+    
+}
+
+// ACCESSORS
+
+bsls::TimeInterval QueueConsumptionMonitor::calculateEventTime(
+    bsls::Types::Int64 arrivalTimeDeltaNs) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(arrivalTimeDeltaNs >= 0);
+
+    // Calculate the time to schedule the event as:
+    // executionTime = now - arrivalTimeDelta + maxIdleTime
+    bsls::TimeInterval executionTime = d_scheduler_p->now();
+    executionTime.addNanoseconds(-arrivalTimeDeltaNs);
+    executionTime.addSeconds(d_maxIdleTime);
+
+    return executionTime;
 }
 
 }  // close package namespace

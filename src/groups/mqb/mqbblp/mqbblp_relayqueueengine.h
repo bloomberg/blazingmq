@@ -500,12 +500,13 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Periodically invoked with the current time provided in the specified
-    /// `currentTimer`; can be used for regular status check, such as for
+    /// Called by the `mqbi::Queue::postMessage` when the message
+    /// has been posted by the specified `source` and saved in the storage.
+    /// It could be used to monitor the message delivery for
     /// ensuring messages on the queue are flowing and not accumulating.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
+    void afterPostMessage(mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after creation of a new storage for the specified
     /// `appIdKeyPair`.
