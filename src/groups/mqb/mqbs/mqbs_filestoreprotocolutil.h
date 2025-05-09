@@ -92,10 +92,10 @@ struct FileStoreProtocolUtil {
                       bsls::Types::Uint64         lastJournalSyncPoint);
 
     /// Return zero if the journal file represented by the specified
-    /// `journalFd` contains a valid and non-null first sync point record,
-    /// non-zero value otherwise.
-    static int
-    hasValidFirstSyncPointRecord(const MappedFileDescriptor& journalFd);
+    /// `journalFd` contains a valid and non-null first rollover sync point
+    /// record, non-zero value otherwise.
+    static int hasValidFirstRolloverSyncPointRecord(
+        const MappedFileDescriptor& journalFd);
 
     /// Load into the specified `buffer` the MD5 digest of the section of
     /// the specified `blob` of the specified `length` starting at the

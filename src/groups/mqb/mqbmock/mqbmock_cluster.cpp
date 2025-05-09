@@ -82,7 +82,8 @@ void Cluster::_initializeClusterDefinition(
     const bslstl::StringRef&                archive,
     const bsl::vector<mqbcfg::ClusterNode>& nodes,
     bool                                    isCSLMode,
-    bool                                    isFSMWorkflow)
+    bool                                    isFSMWorkflow,
+    bool                                    doesFSMwriteQLIST)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -96,6 +97,8 @@ void Cluster::_initializeClusterDefinition(
 
     d_clusterDefinition.clusterAttributes().isCSLModeEnabled() = isCSLMode;
     d_clusterDefinition.clusterAttributes().isFSMWorkflow()    = isFSMWorkflow;
+    d_clusterDefinition.clusterAttributes().doesFSMwriteQLIST() =
+        doesFSMwriteQLIST;
 
     mqbcfg::PartitionConfig& partitionCfg =
         d_clusterDefinition.partitionConfig();
@@ -204,6 +207,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
                  bool                      isLeader,
                  bool                      isCSLMode,
                  bool                      isFSMWorkflow,
+                 bool                      doesFSMwriteQLIST,
                  const ClusterNodeDefs&    clusterNodeDefs,
                  const bslstl::StringRef&  name,
                  const bslstl::StringRef&  location,
@@ -255,7 +259,8 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
                                  archive,
                                  clusterNodeDefs,
                                  isCSLMode,
-                                 isFSMWorkflow);
+                                 isFSMWorkflow,
+                                 doesFSMwriteQLIST);
     _initializeNetcluster();
 
     d_statContexts.insert(

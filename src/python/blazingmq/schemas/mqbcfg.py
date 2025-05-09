@@ -47,6 +47,10 @@ class ClusterAttributes:
     isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
     cluster.  This flag *must* be false if
     'isCSLModeEnabled' is false.
+    doesFSMwriteQLIST: indicates whether the broker still writes to the
+    to-be-deprecated QLIST file when FSM workflow is
+    enabled.  If above 'isFSMWorkflow' flag is false,
+    this flag is ignored.
     """
 
     is_cslmode_enabled: bool = field(
@@ -62,6 +66,15 @@ class ClusterAttributes:
         default=False,
         metadata={
             "name": "isFSMWorkflow",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    does_fsmwrite_qlist: bool = field(
+        default=True,
+        metadata={
+            "name": "doesFSMwriteQLIST",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,

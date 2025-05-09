@@ -386,6 +386,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Whether CSL FSM worklow is in
     // effect
 
+    bool d_qListAware;
+    // Whether the broker still read and writes to the to-be-deprecated Qlist
+    // file.
+
     bool d_ignoreCrc32c;
     // Whether to ignore Crc32
     // calculations.  We should only set
@@ -702,6 +706,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               bdlmt::FixedThreadPool* miscWorkThreadPool,
               bool                    isCSLModeEnabled,
               bool                    isFSMWorkflow,
+              bool                    doesFSMwriteQLIST,
               int                     replicationFactor,
               bslma::Allocator*       allocator);
 

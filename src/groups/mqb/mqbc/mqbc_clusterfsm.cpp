@@ -85,7 +85,7 @@ ClusterFSM& ClusterFSM::unregisterObserver(ClusterFSMObserver* observer)
     return *this;
 }
 
-void ClusterFSM::applyEvent(ClusterFSMArgsSp& eventsQueue)
+void ClusterFSM::popEventAndProcess(ClusterFSMArgsSp& eventsQueue)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!eventsQueue->empty());
@@ -160,7 +160,7 @@ void ClusterFSM::applyEvent(ClusterFSMArgsSp& eventsQueue)
 
     eventsQueue->pop();
     if (!eventsQueue->empty()) {
-        applyEvent(eventsQueue);
+        popEventAndProcess(eventsQueue);
     }
     else {
         // NOTHING

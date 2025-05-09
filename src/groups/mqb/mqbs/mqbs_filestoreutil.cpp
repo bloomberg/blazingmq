@@ -1043,8 +1043,8 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
                                        int                   numSetsToCheck,
                                        const mqbs::DataStoreConfig& config,
                                        bool                         readOnly,
-                                       bool                  isFSMWorkflow,
-                                       MappedFileDescriptor* qlistFd)
+                                       MappedFileDescriptor*        qlistFd,
+                                       bsls::Types::Uint64* qlistFilePos)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd);
@@ -1056,6 +1056,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
     BSLS_ASSERT_SAFE(0 < numSetsToCheck);
     BSLS_ASSERT_SAFE(!config.location().isEmpty());
     BSLS_ASSERT_SAFE(!config.archiveLocation().isEmpty());
+    BSLS_ASSERT_SAFE((!qlistFd && !qlistFilePos) || (qlistFd && qlistFilePos));
 
     enum {
         rc_NO_FILE_SETS_TO_RECOVER = 1  // Special rc, do not change
@@ -1101,6 +1102,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         FileStoreSet&            fs              = fileSets[i];
         const bsls::Types::Int64 journalFileSize = fs.journalFileSize();
         const bsls::Types::Int64 dataFileSize    = fs.dataFileSize();
+        const bsls::Types::Int64 qlistFileSize   = fs.qlistFileSize();
 
         BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;
@@ -1115,7 +1117,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
             // can write to it.
             fs.setJournalFileSize(config.maxJournalFileSize())
                 .setDataFileSize(config.maxDataFileSize());
-            if (!isFSMWorkflow) {
+            if (qlistFd) {
                 fs.setQlistFileSize(config.maxQlistFileSize());
             }
 
@@ -1158,18 +1160,23 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         // Files have now been opened and basic validation has been performed.
-        rc = FileStoreProtocolUtil::hasValidFirstSyncPointRecord(*journalFd);
-        if (isFSMWorkflow || 0 == rc) {
+        rc = FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
+            *journalFd);
+        if (0 == rc) {
             *journalFilePos = journalFileSize;
             *dataFilePos    = dataFileSize;
-            recoveryIndex   = i;
+            if (qlistFilePos) {
+                *qlistFilePos = qlistFileSize;
+            }
+            recoveryIndex = i;
             break;  // BREAK
         }
         else {
             // No valid first sync point record in this file.
-            BALL_LOG_INFO << "Partition [" << partitionId << "]"
-                          << ": No valid first sync point found in journal"
-                          << "file [" << fs.journalFile() << "], rc: " << rc;
+            BALL_LOG_INFO
+                << "Partition [" << partitionId << "]"
+                << ": No valid first rollover sync point found in journal"
+                << "file [" << fs.journalFile() << "], rc: " << rc;
 
             if ((fileSets.size() == 1) || (numSetsToCheck == 0)) {
                 // In case there is only 1 recoverable set or this is our last
@@ -1180,7 +1187,10 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
 
                 *journalFilePos = journalFileSize;
                 *dataFilePos    = dataFileSize;
-                recoveryIndex   = i;
+                if (qlistFilePos) {
+                    *qlistFilePos = qlistFileSize;
+                }
+                recoveryIndex = i;
                 break;  // BREAK
             }
 
@@ -1324,17 +1334,6 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
     }
     BSLS_ASSERT_SAFE(jit->isValid());
 
-    if (needQList) {
-        rc = qit->reset(&qlistFd, FileStoreProtocolUtil::bmqHeader(qlistFd));
-        if (0 != rc) {
-            errorDescription << "Failed to create qlist iterator for ["
-                             << fileSet.qlistFile() << "], rc: " << rc;
-
-            return rc_QLIST_FILE_ITERATOR_FAILURE;  // RETURN
-        }
-        BSLS_ASSERT_SAFE(qit->isValid());
-    }
-
     if (needData) {
         rc = dit->reset(&dataFd, FileStoreProtocolUtil::bmqHeader(dataFd));
         if (0 != rc) {
@@ -1344,6 +1343,21 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
             return rc_DATA_FILE_ITERATOR_FAILURE;  // RETURN
         }
         BSLS_ASSERT_SAFE(dit->isValid());
+    }
+
+    if (needQList) {
+        rc = qit->reset(&qlistFd, FileStoreProtocolUtil::bmqHeader(qlistFd));
+        if (0 != rc) {
+            errorDescription << "Failed to create qlist iterator for ["
+                             << fileSet.qlistFile() << "], rc: " << rc;
+
+            return rc_QLIST_FILE_ITERATOR_FAILURE;  // RETURN
+        }
+        BSLS_ASSERT_SAFE(qit->isValid());
+        BALL_LOG_ERROR << "xxm 2";
+        BALL_LOG_ERROR << "yyan82 TODO rm qit->isValid() = " << qit->isValid()
+                       << ", qit->header().headerWords() = "
+                       << qit->header().headerWords();
     }
 
     return rc_SUCCESS;
