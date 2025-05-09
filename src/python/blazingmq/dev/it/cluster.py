@@ -151,7 +151,7 @@ class Cluster(contextlib.AbstractContextManager):
         See also: 'wait_status' for more information on the 'ready' flags.
         """
 
-        need_preset_leader = leader_name is not None
+        need_preset_leader = bool(leader_name)
 
         with internal_use(self):
             for broker in self.config.configurator.brokers.values():
