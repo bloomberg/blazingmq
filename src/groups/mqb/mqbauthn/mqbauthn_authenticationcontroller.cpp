@@ -119,10 +119,10 @@ void AuthenticationController::stop()
 }
 
 int AuthenticationController::authenticate(
-    bsl::ostream&                      errorDescription,
-    mqbplug::AuthenticationResult*     result,
-    const bslstl::StringRef&           mechanism,
-    const mqbplug::AuthenticationData& input)
+    bsl::ostream&                                   errorDescription,
+    bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
+    bslstl::StringRef                               mechanism,
+    const mqbplug::AuthenticationData&              input)
 {
     enum RcEnum {
         // Enum for the various RC error categories
