@@ -57,8 +57,8 @@ class CompositeSequenceNumber {
 
     /// Create CompositeSequenceNumber from the specified `leaseId` and
     /// `sequenceNumber`
-    CompositeSequenceNumber(unsigned int        leaseId,
-                            bsls::Types::Uint64 sequenceNumber);
+    explicit CompositeSequenceNumber(bsls::Types::Uint64 leaseId,
+                                     bsls::Types::Uint64 sequenceNumber);
 
     // MANIPULATORS
 
@@ -75,7 +75,7 @@ class CompositeSequenceNumber {
     // ACCESSORS
 
     /// Return primary Lease Id value.
-    unsigned int leaseId() const;
+    bsls::Types::Uint64 leaseId() const;
 
     /// Return sequence number value.
     bsls::Types::Uint64 sequenceNumber() const;
@@ -138,7 +138,7 @@ bool operator<=(const CompositeSequenceNumber& lhs,
 
 // ACCESSORS
 
-inline unsigned int CompositeSequenceNumber::leaseId() const
+inline bsls::Types::Uint64 CompositeSequenceNumber::leaseId() const
 {
     return d_compositeSequenceNumber.first;
 }
