@@ -20,11 +20,11 @@ functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     multi3_node,
     start_cluster,
-)  # pylint: disable=unused-import
+)
 from blazingmq.dev.it.util import wait_until
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
