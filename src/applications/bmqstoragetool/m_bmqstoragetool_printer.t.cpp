@@ -493,14 +493,15 @@ static void test6_humanReadableFooterTest()
         bmqtst::TestHelperUtil::allocator());
 
     {
-        Parameters::ProcessRecordTypes recordTypes(false);
+        Parameters::ProcessRecordTypes recordTypes;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
         BMQTST_ASSERT(resultStream.isEmpty());
     }
 
     {
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        Parameters::ProcessRecordTypes recordTypes(true);
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
         recordTypes.d_queueOp   = true;
         recordTypes.d_journalOp = true;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -513,7 +514,8 @@ static void test6_humanReadableFooterTest()
     {
         resultStream.reset();
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        Parameters::ProcessRecordTypes recordTypes(true);
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
         recordTypes.d_queueOp   = true;
         recordTypes.d_journalOp = true;
         printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -737,7 +739,7 @@ static void test9_jsonPrettyGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid << "\"\n"
                            << "  ]\n"
                            << "}\n";
@@ -771,7 +773,7 @@ static void test9_jsonPrettyGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {\"LogicError\" : \"guid " << guid
                            << " not found\"}\n"
                            << "  ]\n"
@@ -808,7 +810,7 @@ static void test9_jsonPrettyGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid1 << "\",\n"
                            << "    {\"LogicError\" : \"guid " << guid2
                            << " not found\"}\n"
@@ -974,7 +976,7 @@ static void test10_jsonPrettyMessageTest()
         // Prepare expected output
         expectedStream
             << "{\n"
-            << "  \"MessagesFound\": [\n"
+            << "  \"Records\": [\n"
             << "    {\n"
             << "      \"RecordType\": \"MESSAGE\",\n"
             << "      \"Index\": \"1\",\n"
@@ -1070,7 +1072,7 @@ static void test11_jsonPrettyRecordsTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"QueueOpRecordsFound\": [\n"
+                << "  \"Records\": [\n"
                 << "    {\n"
                 << "      \"RecordType\": \"QUEUE_OP\",\n"
                 << "      \"Index\": \"12345\",\n"
@@ -1125,7 +1127,7 @@ static void test11_jsonPrettyRecordsTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"JournalOpRecordsFound\": [\n"
+                << "  \"Records\": [\n"
                 << "    {\n"
                 << "      \"RecordType\": \"JOURNAL_OP\",\n"
                 << "      \"Index\": \"12345\",\n"
@@ -1319,7 +1321,7 @@ static void test14_jsonPrettyFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(false);
+            Parameters::ProcessRecordTypes recordTypes;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1340,7 +1342,8 @@ static void test14_jsonPrettyFooterTest()
                 Parameters::PrintMode::e_JSON_PRETTY,
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -1371,7 +1374,8 @@ static void test14_jsonPrettyFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -1642,7 +1646,7 @@ static void test17_jsonLineGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid << "\"\n"
                            << "  ]\n"
                            << "}\n";
@@ -1676,7 +1680,7 @@ static void test17_jsonLineGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {\"LogicError\" : \"guid " << guid
                            << " not found\"}\n"
                            << "  ]\n"
@@ -1713,7 +1717,7 @@ static void test17_jsonLineGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid1 << "\",\n"
                            << "    {\"LogicError\" : \"guid " << guid2
                            << " not found\"}\n"
@@ -1879,7 +1883,7 @@ static void test18_jsonLineMessageTest()
         // Prepare expected output
         expectedStream
             << "{\n"
-            << "  \"MessagesFound\": [\n"
+            << "  \"Records\": [\n"
             << "    {" << "\"RecordType\": \"MESSAGE\", "
             << "\"Index\": \"1\", " << "\"Offset\": \"44\", "
             << "\"PrimaryLeaseId\": \"100\", " << "\"SequenceNumber\": \"1\", "
@@ -1957,7 +1961,7 @@ static void test19_jsonLineRecordsTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"QueueOpRecordsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {" << "\"RecordType\": \"QUEUE_OP\", "
                            << "\"Index\": \"12345\", "
                            << "\"Offset\": \"56789\", "
@@ -2009,7 +2013,7 @@ static void test19_jsonLineRecordsTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"JournalOpRecordsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {" << "\"RecordType\": \"JOURNAL_OP\", "
                            << "\"Index\": \"12345\", "
                            << "\"Offset\": \"56789\", "
@@ -2201,7 +2205,7 @@ static void test22_jsonLineFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(false);
+            Parameters::ProcessRecordTypes recordTypes;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2222,7 +2226,8 @@ static void test22_jsonLineFooterTest()
                 Parameters::PrintMode::e_JSON_LINE,
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -2253,7 +2258,8 @@ static void test22_jsonLineFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(11u, 22ul, 33ul, recordTypes);

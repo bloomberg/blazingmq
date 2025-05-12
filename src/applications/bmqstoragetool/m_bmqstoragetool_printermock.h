@@ -24,6 +24,7 @@
 //@DESCRIPTION: Printer mock for unit testing.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_cslprinter.h>
 #include <m_bmqstoragetool_printer.h>
 
 // GMOCK
@@ -102,6 +103,42 @@ class PrinterMock : public Printer {
     MOCK_CONST_METHOD1(printGuidsNotFound, void(const GuidsList&));
     MOCK_CONST_METHOD1(printOffsetsNotFound, void(const OffsetsVec&));
     MOCK_CONST_METHOD1(printCompositesNotFound, void(const CompositesVec&));
+};
+
+class CslPrinterMock : public CslPrinter {
+  public:
+    // CREATORS
+    CslPrinterMock() {}
+
+    ~CslPrinterMock() BSLS_KEYWORD_OVERRIDE {}
+
+    // PUBLIC METHODS
+
+    MOCK_CONST_METHOD2(printShortResult,
+                       void(const mqbc::ClusterStateRecordHeader& header,
+                            const mqbsi::LedgerRecordId&          recordId));
+
+    MOCK_CONST_METHOD3(printDetailResult,
+                       void(const bmqp_ctrlmsg::ClusterMessage&   record,
+                            const mqbc::ClusterStateRecordHeader& header,
+                            const mqbsi::LedgerRecordId&          recordId));
+
+    MOCK_CONST_METHOD1(printOffsetsNotFound, void(const OffsetsVec& Offsets));
+
+    MOCK_CONST_METHOD1(printCompositesNotFound,
+                       void(const CompositesVec& seqNums));
+
+    MOCK_CONST_METHOD5(
+        printSummaryResult,
+        void(const CslRecordCount&                    recordCount,
+             const CslUpdateChoiceMap&                updateChoiceMap,
+             const QueueMap&                          queueMap,
+             const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+             unsigned int                             queuesLimit));
+
+    MOCK_CONST_METHOD2(printFooter,
+                       void(const CslRecordCount& recordCount,
+                            const Parameters::ProcessCslRecordTypes&));
 };
 
 }  // close package namespace

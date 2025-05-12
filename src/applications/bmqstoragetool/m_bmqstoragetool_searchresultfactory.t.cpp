@@ -35,10 +35,11 @@ static void test1_breathingTest()
 // BREATHING TEST
 //
 // Concerns:
-//   Exercise the basic functionality of the component.
+//   Exercise the basic functionality of the component. Check that
+//   `SearchResult` object is created by default.
 //
 // Testing:
-//   Basic functionality
+//   createSearchResult()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
@@ -77,6 +78,37 @@ static void test1_breathingTest()
     BMQTST_ASSERT(dynamic_cast<SearchResult*>(searchResult.get()) != 0);
 }
 
+static void test2_cslSearchResultTest()
+// ------------------------------------------------------------------------
+// CSL SEARCH RESULT TEST
+//
+// Concerns:
+//  Check that `CslSearchResult` object is created for CSL mode parameters.
+//
+// Testing:
+//   createCslSearchResult()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CSL SEARCH RESULT TEST");
+    CommandLineArguments arguments(bmqtst::TestHelperUtil::allocator());
+    Parameters params(arguments, bmqtst::TestHelperUtil::allocator());
+    // CSL mode parameters
+    params.d_cslMode = true;
+
+    // Create printer
+    bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
+        params.d_printMode,
+        bsl::cout,
+        bmqtst::TestHelperUtil::allocator());
+
+    bsl::shared_ptr<CslSearchResult> searchResult =
+        SearchResultFactory::createCslSearchResult(
+            &params,
+            printer,
+            bmqtst::TestHelperUtil::allocator());
+    ASSERT(dynamic_cast<CslSearchResult*>(searchResult.get()) != 0);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -88,6 +120,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 1: test1_breathingTest(); break;
+    case 2: test2_cslSearchResultTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
