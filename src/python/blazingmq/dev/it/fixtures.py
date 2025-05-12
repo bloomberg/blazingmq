@@ -385,9 +385,6 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 tool_extra_args=tool_extra_args,
                 **extra_cluster_kw_args,
             ) as cluster:
-                failures = (
-                    0 + request.session.testsfailed
-                )  # it doesn't work without the `0 +`, why?
 
                 try:
                     with internal_use(cluster):
