@@ -385,7 +385,6 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 tool_extra_args=tool_extra_args,
                 **extra_cluster_kw_args,
             ) as cluster:
-
                 try:
                     with internal_use(cluster):
                         logger.debug("starting cluster")

@@ -19,22 +19,16 @@ in the middle of things.  Note that this test does not test the HA
 functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 """
 
-import re
-import time
-
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
-    multi_node,
     multi3_node,
-    order,
-    tweak,
     start_cluster,
 )  # pylint: disable=unused-import
-from blazingmq.dev.it.process.client import Client
-from blazingmq.dev.it.util import attempt, wait_until
+from blazingmq.dev.it.util import wait_until
 
-new_version_suffix = "NEW_VERSION"
+NEW_VERSION_SUFFIX = "NEW_VERSION"
+
 
 def update_and_redeploy(cluster: Cluster):
     """Update the cluster and redeploy it."""
@@ -44,8 +38,8 @@ def update_and_redeploy(cluster: Cluster):
 
     # Update env var for all node, i.e. BLAZINGMQ_BROKER_{NAME}
     # to the value stored in BLAZINGMQ_BROKER_NEW_VERSION
-    cluster.update_all_brokers_binary(new_version_suffix)
-    
+    cluster.update_all_brokers_binary(NEW_VERSION_SUFFIX)
+
     # Restart all nodes to apply binary update
     cluster.start_nodes(wait_leader=True, wait_ready=True)
 
@@ -54,17 +48,15 @@ def update_and_redeploy(cluster: Cluster):
 def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test start, stop, update broker version for all nodes and restart."""
 
-    cluster = multi3_node
-
     uri_priority = domain_urls.uri_priority
 
     # Start a producer and post a message.
-    proxies = cluster.proxy_cycle()
+    proxies = multi3_node.proxy_cycle()
     producer = next(proxies).create_client("producer")
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
-    update_and_redeploy(cluster)
+    update_and_redeploy(multi3_node)
 
     producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
 
@@ -78,29 +70,27 @@ def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
 @start_cluster(start=True, wait_leader=True, wait_ready=True)
 def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     """
-        Test to upgrade binaries of cluster nodes one by one.
-        Every time a node is upgraded, all the nodes are restarted.
+    Test to upgrade binaries of cluster nodes one by one.
+    Every time a node is upgraded, all the nodes are restarted.
     """
-
-    cluster = multi3_node
 
     uri_priority = domain_urls.uri_priority
 
     # Start a producer and post a message.
-    proxies = cluster.proxy_cycle()
+    proxies = multi3_node.proxy_cycle()
     producer = next(proxies).create_client("producer")
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
-    for broker in cluster.configurator.brokers.values():
+    for broker in multi3_node.configurator.brokers.values():
         # Stop all nodes
-        cluster.stop_nodes()
+        multi3_node.stop_nodes()
 
         # Update binary for the given broker
-        cluster.update_broker_binary(broker, new_version_suffix)
+        multi3_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
 
         # Restart all nodes to apply binary update
-        cluster.start_nodes(wait_leader=True, wait_ready=True)
+        multi3_node.start_nodes(wait_leader=True, wait_ready=True)
 
     producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
 
@@ -108,4 +98,3 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
     assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
-
