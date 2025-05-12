@@ -167,5 +167,63 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     return searchResult;
 }
 
+bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
+    const Parameters*                  params,
+    const bsl::shared_ptr<CslPrinter>& printer,
+    bslma::Allocator*                  allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    // Create CslSearchResult implementation
+    bsl::shared_ptr<CslSearchResult> cslSearchResult;
+    if (params->d_details) {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchDetailResult(printer,
+                                               params->d_processCslRecordTypes,
+                                               alloc),
+            alloc);
+    }
+    else if (params->d_summary) {
+        cslSearchResult.reset(
+            new (*alloc) CslSummaryResult(printer,
+                                          params->d_processCslRecordTypes,
+                                          params->d_queueMap,
+                                          params->d_cslSummaryQueuesLimit,
+                                          alloc),
+            alloc);
+    }
+    else {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchShortResult(printer,
+                                              params->d_processCslRecordTypes,
+                                              alloc),
+            alloc);
+    }
+
+    if (!params->d_seqNum.empty()) {
+        // Search composite sequence numbers
+        cslSearchResult.reset(
+            new (*alloc) CslSearchSequenceNumberDecorator(cslSearchResult,
+                                                          params->d_seqNum,
+                                                          alloc),
+            alloc);
+    }
+    else if (!params->d_offset.empty()) {
+        // Search offsets
+        cslSearchResult.reset(new (*alloc)
+                                  CslSearchOffsetDecorator(cslSearchResult,
+                                                           params->d_offset,
+                                                           alloc),
+                              alloc);
+    }
+
+    BSLS_ASSERT(cslSearchResult);
+
+    return cslSearchResult;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

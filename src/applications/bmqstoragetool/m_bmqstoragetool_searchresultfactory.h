@@ -25,6 +25,7 @@
 // corresponding search result object.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_cslsearchresult.h>
 #include <m_bmqstoragetool_filemanager.h>
 #include <m_bmqstoragetool_payloaddumper.h>
 #include <m_bmqstoragetool_searchresult.h>
@@ -43,7 +44,7 @@ class SearchResultFactory {
   public:
     // MANIPULATORS
 
-    /// Create command processor for specified 'params' using specified
+    /// Create SearchResult object for the specified 'params' using specified
     /// 'ostream' and 'allocator'.
     static bsl::shared_ptr<SearchResult>
     createSearchResult(const Parameters*                     params,
@@ -51,6 +52,13 @@ class SearchResultFactory {
                        const bsl::shared_ptr<Printer>&       printer,
                        bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
                        bslma::Allocator*                     allocator);
+
+    /// Create CslSearchResult object for the specified 'params' using
+    /// specified 'ostream' and 'allocator'.
+    static bsl::shared_ptr<CslSearchResult>
+    createCslSearchResult(const Parameters*                  params,
+                          const bsl::shared_ptr<CslPrinter>& printer,
+                          bslma::Allocator*                  allocator);
 };
 
 }  // close package namespace
