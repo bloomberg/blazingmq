@@ -1345,12 +1345,11 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
         BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
         for (size_t i = 0; i < d_queues.size(); ++i) {
-            int rc = d_config.d_threadPool_p->enqueueJob(
+            BSLA_MAYBE_UNUSED int rc = d_config.d_threadPool_p->enqueueJob(
                 bdlf::BindUtil::bind(&ThisClass::processQueue,
                                      this,
                                      static_cast<int>(i)));
             BSLS_ASSERT_SAFE(rc == 0);
-            (void)rc;  // Compiler happiness
         }
     }
 

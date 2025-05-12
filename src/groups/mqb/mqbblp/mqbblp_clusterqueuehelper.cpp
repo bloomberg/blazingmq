@@ -144,7 +144,8 @@ void afterAppIdUnregisteredDispatched(
     queue->queueEngine()->afterAppIdUnregistered(appInfos);
 }
 
-void handleHolderDummy(const bsl::shared_ptr<mqbi::QueueHandle>& handle)
+void handleHolderDummy(
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<mqbi::QueueHandle>& handle)
 {
     // executed by ONE of the *QUEUE* dispatcher threads
 
@@ -1914,9 +1915,9 @@ bool ClusterQueueHelper::createQueue(
             context->d_handleParameters),
         d_allocator_p);
 
-    bdlma::LocalSequentialAllocator<1024>      la(d_allocator_p);
-    bmqu::MemOutStream                         errorDescription(&la);
-    bmqp_ctrlmsg::Status                       status;
+    bdlma::LocalSequentialAllocator<1024> la(d_allocator_p);
+    bmqu::MemOutStream                    errorDescription(&la);
+    bmqp_ctrlmsg::Status                  status;
 
     bsl::shared_ptr<mqbi::Queue> queue = createQueueFactory(errorDescription,
                                                             *context,
@@ -4297,10 +4298,11 @@ void ClusterQueueHelper::onQueueUnassigned(
                   << ": Unassigned queue: " << *info;
 }
 
-void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
-                                        const bsl::string& domain,
-                                        const AppInfos&    addedAppIds,
-                                        const AppInfos&    removedAppIds)
+void ClusterQueueHelper::onQueueUpdated(
+    const bmqt::Uri&        uri,
+    BSLA_MAYBE_UNUSED const bsl::string& domain,
+    const AppInfos&                      addedAppIds,
+    const AppInfos&                      removedAppIds)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4694,7 +4696,7 @@ void ClusterQueueHelper::openQueue(
         QueueContextSp queueContext;
         queueContext.createInplace(d_allocator_p, uriKey, d_allocator_p);
 
-        d_queues[uriKey]         = queueContext;
+        d_queues[uriKey] = queueContext;
         context->setQueueContext(queueContext.get());
 
         // Register the context to the pending list.
@@ -5156,13 +5158,12 @@ void ClusterQueueHelper::requestToStopPushing()
 }
 
 void ClusterQueueHelper::contextHolder(
-    const bsl::shared_ptr<StopContext>& contextSp,
-    const VoidFunctor&                  action)
+    BSLA_UNUSED const bsl::shared_ptr<StopContext>& contextSp,
+    const VoidFunctor&                              action)
 {
     if (action) {
         action();
     }
-    (void)contextSp;
 }
 
 void ClusterQueueHelper::sendErrorResponse(
@@ -6421,7 +6422,7 @@ void ClusterQueueHelper::loadState(
     int qIdx = 0;
     for (QueueContextMapConstIter it = d_queues.begin(); it != d_queues.end();
          ++it, ++qIdx) {
-        const QueueLiveState&                info = it->second->d_liveQInfo;
+        const QueueLiveState&                  info = it->second->d_liveQInfo;
         const bsl::vector<OpenQueueContextSp>& contexts =
             it->second->d_liveQInfo.d_pending;
         const int pid = it->second->partitionId();

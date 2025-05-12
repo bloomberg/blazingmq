@@ -3177,9 +3177,8 @@ void BrokerSession::fsmThreadLoop()
     while (true) {
         bsl::shared_ptr<Event> event;
 
-        const int rc = d_fsmEventQueue.popFront(&event);
+        BSLA_MAYBE_UNUSED const int rc = d_fsmEventQueue.popFront(&event);
         BSLS_ASSERT_SAFE(rc == 0);
-        (void)rc;
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event)) {  // PoisonPill
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             // Drain left over events (there should be none)
@@ -6247,13 +6246,13 @@ void BrokerSession::onConfigureQueueResponse(
     if (context->isError()) {
         // Ignore cancelled request that has already timed out
         if (context->isLateResponse()) {
-            const bmqt::GenericResult::Enum res = context->result();
+            BSLA_MAYBE_UNUSED const bmqt::GenericResult::Enum res =
+                context->result();
 
             BSLS_ASSERT_SAFE(res == bmqt::GenericResult::e_CANCELED ||
                              res == bmqt::GenericResult::e_NOT_CONNECTED ||
                              res == bmqt::GenericResult::e_NOT_SUPPORTED);
 
-            (void)res;
             BALL_LOG_INFO << id() << "Ignore cancelled request: "
                           << context->request();
             return;  // RETURN
@@ -7128,10 +7127,10 @@ void BrokerSession::removePendingControlMessage(
     // Remove the request from the retransmission buffer
     bmqt::MessageGUID guid;
     guid.fromHex(context->userData().theString().data());
-    const int rc = d_messageCorrelationIdContainer.remove(guid);
+    BSLA_MAYBE_UNUSED const int rc = d_messageCorrelationIdContainer.remove(
+        guid);
 
     BSLS_ASSERT_SAFE(0 == rc);
-    (void)rc;
 
     // Reset request id
     context->adoptUserData(bdld::Datum::createNull());

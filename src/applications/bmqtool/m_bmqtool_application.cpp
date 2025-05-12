@@ -56,6 +56,7 @@
 #include <bdlt_timeunitratio.h>
 #include <bsl_numeric.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmt_semaphore.h>
@@ -752,14 +753,13 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                     const bmqa::Message& message)>
                     f(&bmqa::ConfirmEventBuilder::addMessageConfirmation);
 
-                bmqt::EventBuilderResult::Enum rc =
+                BSLA_MAYBE_UNUSED bmqt::EventBuilderResult::Enum rc =
                     bmqp::ProtocolUtil::buildEvent(
                         BuildConfirmFunctor(confirmBuilder, message),
                         BuildConfirmOverflowFunctor(*d_session_mp.get(),
                                                     confirmBuilder));
 
                 BSLS_ASSERT_SAFE(rc == 0);
-                (void)rc;  // compiler happiness
 
                 // Write to log file
                 d_fileLogger.writeConfirmMessage(message);
@@ -987,9 +987,8 @@ int Application::start()
     d_scheduler.start();
 
     if (!d_parameters.logFilePath().empty()) {
-        bool rc = d_fileLogger.open();
+        BSLA_MAYBE_UNUSED bool rc = d_fileLogger.open();
         BSLS_ASSERT_SAFE(rc);
-        (void)rc;  // Compiler happiness
     }
 
     int rc = initialize();

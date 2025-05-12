@@ -34,6 +34,7 @@
 
 // BDE
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -94,7 +95,7 @@ struct ClusterStateFileHeader {
     char d_fileKey[mqbu::StorageKey::e_KEY_LENGTH_BINARY];
 
     /// Reserved.
-    unsigned char d_reserved[2];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[2];
 
   public:
     // CONSTANTS
@@ -288,7 +289,7 @@ struct ClusterStateRecordHeader {
     unsigned char d_headerWordsAndRecordType;
 
     /// Reserved.
-    unsigned char d_reserved[3];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[3];
 
     /// Total size (in words) of the leader advisory representing the cluster
     /// state updates.
@@ -399,9 +400,6 @@ inline ClusterStateFileHeader::ClusterStateFileHeader()
     setHeaderWords(sizeof(ClusterStateFileHeader) /
                    bmqp::Protocol::k_WORD_SIZE);
     setFileKey(mqbu::StorageKey::k_NULL_KEY);
-
-    // Suppress "unused variable" warning
-    (void)d_reserved;
 }
 
 // MANIPULATORS
@@ -470,9 +468,6 @@ inline ClusterStateRecordHeader::ClusterStateRecordHeader()
     bsl::memset(this, 0, sizeof(ClusterStateRecordHeader));
     setHeaderWords(sizeof(ClusterStateRecordHeader) /
                    bmqp::Protocol::k_WORD_SIZE);
-
-    // Suppress "unused variable" warning
-    (void)d_reserved;
 }
 
 // MANIPULATORS

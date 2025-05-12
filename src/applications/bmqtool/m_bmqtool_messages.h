@@ -19,36 +19,23 @@
 
 //@PURPOSE: Provide value-semantic attribute classes
 
-#include <bslalg_typetraits.h>
-
 #include <bdlat_attributeinfo.h>
-
 #include <bdlat_enumeratorinfo.h>
-
 #include <bdlat_selectioninfo.h>
-
 #include <bdlat_typetraits.h>
-
-#include <bslh_hash.h>
-#include <bsls_objectbuffer.h>
-
-#include <bslma_default.h>
-
-#include <bsls_assert.h>
-
 #include <bdlb_nullablevalue.h>
-
-#include <bsl_string.h>
-
-#include <bsl_vector.h>
-
-#include <bsls_types.h>
-
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
-
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
+#include <bsla_annotations.h>
+#include <bslalg_typetraits.h>
+#include <bslh_hash.h>
+#include <bslma_default.h>
+#include <bsls_assert.h>
+#include <bsls_objectbuffer.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 
@@ -7345,17 +7332,17 @@ inline bool CloseQueueCommand::async() const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int CloseStorageCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+int CloseStorageCommand::manipulateAttributes(
+    BSLA_UNUSED t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int CloseStorageCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                             int            id)
+int CloseStorageCommand::manipulateAttribute(
+    BSLA_UNUSED t_MANIPULATOR& manipulator,
+    int                        id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -7381,16 +7368,16 @@ int CloseStorageCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int CloseStorageCommand::accessAttributes(t_ACCESSOR& accessor) const
+int CloseStorageCommand::accessAttributes(
+    BSLA_UNUSED t_ACCESSOR& accessor) const
 {
-    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int CloseStorageCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+int CloseStorageCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
+                                         int                     id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8075,16 +8062,17 @@ inline const bdlb::NullableValue<bsl::string>& ListCommand::uri() const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int ListQueuesCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+int ListQueuesCommand::manipulateAttributes(
+    BSLA_UNUSED t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int ListQueuesCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+int ListQueuesCommand::manipulateAttribute(
+    BSLA_UNUSED t_MANIPULATOR& manipulator,
+    int                        id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8110,16 +8098,15 @@ int ListQueuesCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int ListQueuesCommand::accessAttributes(t_ACCESSOR& accessor) const
+int ListQueuesCommand::accessAttributes(BSLA_UNUSED t_ACCESSOR& accessor) const
 {
-    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int ListQueuesCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+int ListQueuesCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
+                                       int                     id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8298,16 +8285,17 @@ MessagePropertyType::print(bsl::ostream&              stream,
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int MetadataCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+int MetadataCommand::manipulateAttributes(
+    BSLA_UNUSED t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int MetadataCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+int MetadataCommand::manipulateAttribute(
+    BSLA_UNUSED t_MANIPULATOR& manipulator,
+    int                        id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8333,16 +8321,15 @@ int MetadataCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int MetadataCommand::accessAttributes(t_ACCESSOR& accessor) const
+int MetadataCommand::accessAttributes(BSLA_UNUSED t_ACCESSOR& accessor) const
 {
-    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int MetadataCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+int MetadataCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
+                                     int                     id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {

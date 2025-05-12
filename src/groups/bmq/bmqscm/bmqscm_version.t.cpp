@@ -19,6 +19,7 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslim_testutil.h>
 
 // CONVENIENCE
@@ -41,16 +42,11 @@ static void aSsErT(bool b, const char* s, int i)
 
 int main(int argc, char** argv)
 {
-    int  test                = argc > 1 ? atoi(argv[1]) : 0;
-    bool verbose             = argc > 2;
-    bool veryVerbose         = argc > 3;
-    bool veryVeryVerbose     = argc > 4;
-    bool veryVeryVeryVerbose = argc > 5;
-    // Prevent potential compiler unused warning
-    (void)verbose;
-    (void)veryVerbose;
-    (void)veryVeryVerbose;
-    (void)veryVeryVeryVerbose;
+    int              test                = argc > 1 ? atoi(argv[1]) : 0;
+    bool             verbose             = argc > 2;
+    BSLA_UNUSED bool veryVerbose         = argc > 3;
+    BSLA_UNUSED bool veryVeryVerbose     = argc > 4;
+    BSLA_UNUSED bool veryVeryVeryVerbose = argc > 5;
 
     cout << "TEST " << __FILE__ << " CASE " << test << endl;
     switch (test) {

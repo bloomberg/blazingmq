@@ -322,10 +322,9 @@ void ClusterActiveNodeManager::loadNodesInfo(mqbcmd::NodeStatuses* out) const
         mqbcmd::ClusterNodeInfo& node = nodes.back();
         node.description()            = it->first->nodeDescription();
         node.isAvailable().makeValue(it->first->isAvailable());
-        int rc = mqbcmd::NodeStatus::fromInt(&node.status(),
-                                             it->second.d_status);
+        BSLA_MAYBE_UNUSED int rc =
+            mqbcmd::NodeStatus::fromInt(&node.status(), it->second.d_status);
         BSLS_ASSERT_SAFE(!rc && "Unsupported node status");
-        (void)rc;
     }
 }
 

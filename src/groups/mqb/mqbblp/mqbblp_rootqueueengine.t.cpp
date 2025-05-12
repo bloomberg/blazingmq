@@ -40,6 +40,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
@@ -727,7 +728,8 @@ static void test2_broadcastConfirmAssertFails()
     mqbblp::QueueEngineTesterGuard<mqbblp::RootQueueEngine> guard(&tester);
 
     // 1) 1 consumer
-    mqbmock::QueueHandle* C1 = tester.getHandle("C1 readCount=1");
+    BSLA_MAYBE_UNUSED mqbmock::QueueHandle* C1 = tester.getHandle(
+        "C1 readCount=1");
     tester.configureHandle("C1 consumerPriority=-1 consumerPriorityCount=1");
 
     // 2) Post 1 message to the queue, and invoke the engine to broadcast it
@@ -740,7 +742,6 @@ static void test2_broadcastConfirmAssertFails()
     BMQTST_ASSERT_SAFE_FAIL(tester.confirm(
         "C1",
         mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(), "0")));
-    (void)C1;  // Compiler happiness
 }
 
 static void test3_broadcastCannotDeliver()

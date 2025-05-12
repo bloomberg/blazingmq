@@ -23,17 +23,17 @@
 #include <bdlb_string.h>
 
 #include <bdlb_nullablevalue.h>
-#include <bsl_string.h>
-#include <bsl_vector.h>
-#include <bslim_printer.h>
-#include <bsls_assert.h>
-#include <bsls_types.h>
-
 #include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
+#include <bsla_annotations.h>
+#include <bslim_printer.h>
+#include <bsls_assert.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -410,10 +410,9 @@ const char CloseStorageCommand::CLASS_NAME[] = "CloseStorageCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-CloseStorageCommand::lookupAttributeInfo(const char* name, int nameLength)
+CloseStorageCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
+                                         BSLA_UNUSED int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
     return 0;
 }
 
@@ -1479,10 +1478,9 @@ const char ListQueuesCommand::CLASS_NAME[] = "ListQueuesCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-ListQueuesCommand::lookupAttributeInfo(const char* name, int nameLength)
+ListQueuesCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
+                                       BSLA_UNUSED int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
     return 0;
 }
 
@@ -1706,10 +1704,9 @@ const char MetadataCommand::CLASS_NAME[] = "MetadataCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-MetadataCommand::lookupAttributeInfo(const char* name, int nameLength)
+MetadataCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
+                                     BSLA_UNUSED int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
     return 0;
 }
 

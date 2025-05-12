@@ -353,6 +353,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -1394,10 +1395,9 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
                                  requestId)));
 
     // Insert the request in the map
-    bsl::pair<RequestMapIter, bool> insertRC = d_requests.insert(
-        bsl::make_pair(requestId, request));
+    BSLA_MAYBE_UNUSED bsl::pair<RequestMapIter, bool> insertRC =
+        d_requests.insert(bsl::make_pair(requestId, request));
     BSLS_ASSERT_SAFE(insertRC.second);
-    (void)insertRC;  // Compiler happiness
 
     return bmqt::GenericResult::e_SUCCESS;
 }
@@ -1484,11 +1484,10 @@ void RequestManager<REQUEST, RESPONSE>::cancelAllRequestsImpl(
                 || groupId == it->second->groupId()) {
                 // Do not notify about timed out requests.
                 if (!it->second->d_haveTimeout) {
-                    bsl::pair<RequestMapIter, bool> insertRC =
-                        requestsCopy.insert(
+                    BSLA_MAYBE_UNUSED bsl::pair<RequestMapIter, bool>
+                                      insertRC = requestsCopy.insert(
                             bsl::make_pair(it->first, it->second));
                     BSLS_ASSERT_SAFE(insertRC.second);
-                    (void)insertRC;  // Compiler happiness
                 }
                 d_requests.erase(it++);
             }
