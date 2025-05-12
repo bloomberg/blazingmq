@@ -26,6 +26,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_memory.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
 
@@ -92,10 +93,10 @@ class AuthenticationController {
 
     void stop();
 
-    int authenticate(bsl::ostream&                      errorDescription,
-                     mqbplug::AuthenticationResult*     result,
-                     const bslstl::StringRef&           mechanism,
-                     const mqbplug::AuthenticationData& input);
+    int authenticate(bsl::ostream& errorDescription,
+                     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
+                     bslstl::StringRef                               mechanism,
+                     const mqbplug::AuthenticationData&              input);
 };
 
 }  // close package namespace
