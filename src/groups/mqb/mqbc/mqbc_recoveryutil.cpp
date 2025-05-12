@@ -30,6 +30,7 @@
 
 // BDE
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -203,19 +204,15 @@ int RecoveryUtil::loadOffsets(
 }
 
 void RecoveryUtil::validateArgs(
-    const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
-    const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
-    mqbnet::ClusterNode*                         destination)
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* destination)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
     BSLS_ASSERT_SAFE(0 < endSeqNum.primaryLeaseId());
     BSLS_ASSERT_SAFE(0 < endSeqNum.sequenceNumber());  // TBD: Is this ok?
     BSLS_ASSERT_SAFE(destination);
-
-    (void)beginSeqNum;  // Compiler happiness
-    (void)endSeqNum;    // Compiler happiness
-    (void)destination;  // Compiler happiness
 }
 
 int RecoveryUtil::bootstrapCurrentSeqNum(

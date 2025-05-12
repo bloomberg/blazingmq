@@ -40,6 +40,7 @@
 #include <bsl_cstdlib.h>  // for bsl::atoi
 #include <bsl_sstream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -446,11 +447,10 @@ void MessageDumper::dumpPutEvent(bsl::ostream&             out,
     bmqt::CorrelationId correlationId;
     int                 msgNum = 0;
     while (iter.next() == 1) {
-        int rc = d_messageCorrelationIdContainer_p->find(
+        BSLA_MAYBE_UNUSED int rc = d_messageCorrelationIdContainer_p->find(
             &correlationId,
             iter.header().messageGUID());
         BSLS_ASSERT_SAFE((rc == 0) && "correlationId not found");
-        (void)rc;  // Compiler happiness
 
         out << "PUT Message #" << ++msgNum << ": "
             << "[correlationId: " << correlationId << ", queue: "

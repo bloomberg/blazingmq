@@ -37,6 +37,7 @@
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslma_default.h>
 #include <bslmf_assert.h>
@@ -393,11 +394,11 @@ int Message::ackStatus() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isInitialized());
 
-    const bmqp::Event& rawEvent = d_impl.d_event_p->rawEvent();
+    BSLA_MAYBE_UNUSED const bmqp::Event& rawEvent =
+        d_impl.d_event_p->rawEvent();
 
     BSLS_ASSERT_SAFE(rawEvent.isAckEvent() &&
                      "Event is not an AckMessage event");
-    (void)rawEvent;  // Compiler happiness
 
     return bmqp::ProtocolUtil::ackResultFromCode(
         d_impl.d_event_p->ackMessageIterator()->message().status());

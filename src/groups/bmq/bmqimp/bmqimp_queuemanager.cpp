@@ -25,6 +25,7 @@
 // BDE
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bslmt_mutexassert.h>
 #include <bsls_assert.h>
@@ -175,18 +176,16 @@ void QueueManager::insertQueue(const QueueSp& queue)
 
     BSLS_ASSERT_SAFE(queueInfo.d_subQueueIdsMap.find(queue->uri().id()) ==
                      queueInfo.d_subQueueIdsMap.end());
-    bsl::pair<SubQueueIdsMap::iterator, bool> insertRet =
+    BSLA_MAYBE_UNUSED bsl::pair<SubQueueIdsMap::iterator, bool> insertRet =
         queueInfo.d_subQueueIdsMap.insert(
             bsl::make_pair(queue->uri().id(), subId));
     BSLS_ASSERT_SAFE(insertRet.second);
-    (void)insertRet;  // Compiler happiness
 
     // Insert into queues map
     const bmqp::QueueId queueId(queue->id(), subId);
-    bsl::pair<QueuesMap::iterator, QueuesMap::InsertResult> addRet =
-        d_queues.insert(queueId, queue->correlationId(), queue);
+    BSLA_MAYBE_UNUSED   bsl::pair<QueuesMap::iterator, QueuesMap::InsertResult>
+        addRet = d_queues.insert(queueId, queue->correlationId(), queue);
     BSLS_ASSERT_SAFE(addRet.second == QueuesMap::e_INSERTED);
-    (void)addRet.second;  // Compiler happiness
 }
 
 QueueManager::QueueSp QueueManager::removeQueue(const Queue* queue)
@@ -221,10 +220,9 @@ QueueManager::QueueSp QueueManager::removeQueue(const Queue* queue)
     if (subQueueIdsMap.empty()) {
         // No more appIds for this canonical URI, so we can remove it from the
         // URIs map
-        UrisMap::size_type numErasedUris = d_uris.erase(
+        BSLA_MAYBE_UNUSED UrisMap::size_type numErasedUris = d_uris.erase(
             bsl::string(queue->uri().canonical(), d_allocator_p));
         BSLS_ASSERT_SAFE(numErasedUris == 1);
-        (void)numErasedUris;  // Compiler happiness
     }
 
     return queueSp;

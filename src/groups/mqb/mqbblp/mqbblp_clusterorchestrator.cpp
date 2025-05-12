@@ -129,15 +129,15 @@ void ClusterOrchestrator::onElectorStateChange(
     }
 }
 
-void ClusterOrchestrator::electorTransitionToDormant(int leaderNodeId,
-                                                     bsls::Types::Uint64 term)
+void ClusterOrchestrator::electorTransitionToDormant(
+    BSLA_MAYBE_UNUSED int leaderNodeId,
+    bsls::Types::Uint64   term)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT(mqbnet::Elector::k_INVALID_NODE_ID == leaderNodeId);
-    (void)leaderNodeId;  // Compiler happiness
 
     if (mqbnet::ElectorState::e_DORMANT ==
         d_clusterData_p->electorInfo().electorState()) {
@@ -236,8 +236,8 @@ void ClusterOrchestrator::electorTransitionToFollower(int leaderNodeId,
 }
 
 void ClusterOrchestrator::electorTransitionToCandidate(
-    int                 leaderNodeId,
-    bsls::Types::Uint64 term)
+    BSLA_MAYBE_UNUSED int leaderNodeId,
+    bsls::Types::Uint64   term)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -246,7 +246,6 @@ void ClusterOrchestrator::electorTransitionToCandidate(
     BSLS_ASSERT(mqbnet::ElectorState::e_CANDIDATE !=
                 d_clusterData_p->electorInfo().electorState());
     BSLS_ASSERT(mqbnet::Elector::k_INVALID_NODE_ID == leaderNodeId);
-    (void)leaderNodeId;  // Compiler happiness
 
     d_clusterData_p->electorInfo().setElectorInfo(
         mqbnet::ElectorState::e_CANDIDATE,
@@ -255,8 +254,9 @@ void ClusterOrchestrator::electorTransitionToCandidate(
         mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
 }
 
-void ClusterOrchestrator::electorTransitionToLeader(int leaderNodeId,
-                                                    bsls::Types::Uint64 term)
+void ClusterOrchestrator::electorTransitionToLeader(
+    BSLA_MAYBE_UNUSED int leaderNodeId,
+    bsls::Types::Uint64   term)
 {
     // executed by the *DISPATCHER* thread
 
@@ -267,7 +267,6 @@ void ClusterOrchestrator::electorTransitionToLeader(int leaderNodeId,
         leaderNodeId);
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_CANDIDATE ==
                      d_clusterData_p->electorInfo().electorState());
-    (void)leaderNodeId;  // Compiler happiness
 
     // The 'leaderMessageSequence' of this node should NOT be updated with new
     // term and sequenceNum of zero, because it will be used during leader

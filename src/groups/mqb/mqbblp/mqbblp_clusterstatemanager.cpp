@@ -683,8 +683,8 @@ void ClusterStateManager::processBufferedQueueAdvisories()
 // PRIVATE MANIPULATORS
 //   (virtual: mqbc::ElectorInfoObserver)
 void ClusterStateManager::onClusterLeader(
-    mqbnet::ClusterNode*                node,
-    mqbc::ElectorInfoLeaderStatus::Enum status)
+    mqbnet::ClusterNode* node,
+    BSLA_MAYBE_UNUSED mqbc::ElectorInfoLeaderStatus::Enum status)
 {
     // executed by the cluster *DISPATCHER* thread
 

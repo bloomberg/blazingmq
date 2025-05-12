@@ -545,10 +545,8 @@ void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 
 mqbi::StorageResult::Enum
 InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                             bsls::Types::Uint64     timestamp)
+                             BSLA_UNUSED bsls::Types::Uint64 timestamp)
 {
-    (void)timestamp;
-
     d_autoConfirms.emplace_back(appKey);
 
     return mqbi::StorageResult::e_SUCCESS;

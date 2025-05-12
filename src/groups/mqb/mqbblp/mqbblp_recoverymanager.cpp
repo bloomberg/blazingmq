@@ -3388,7 +3388,6 @@ void RecoveryManager::processRecoveryEvent(
         }
 
         BSLS_ASSERT_SAFE(isData || isJournal || isQlist);
-        (void)isJournal;  // Compiler happiness
 
         if (header.fileChunkType() != recoveryCtx.expectedChunkFileType()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")

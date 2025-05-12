@@ -26,6 +26,7 @@
 #include <bsl_algorithm.h>
 #include <bsl_cstring.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmf_assert.h>
 #include <bsls_performancehint.h>
@@ -199,10 +200,9 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
     const Protocol::SubQueueIdsArrayOld& subQueueIds)
 {
     // PRECONDITIONS
-    const int optionsSize = d_options.size();
+    BSLA_MAYBE_UNUSED const int optionsSize = d_options.size();
     BSLS_ASSERT_SAFE((optionsSize > 0 && d_currPushHeader.isSet()) ||
                      (optionsSize == 0 && !d_currPushHeader.isSet()));
-    (void)optionsSize;  // compiler happiness
 
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;
@@ -254,10 +254,9 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     bool                                packRdaCounter)
 {
     // PRECONDITIONS
-    const int optionsSize = d_options.size();
+    BSLA_MAYBE_UNUSED const int optionsSize = d_options.size();
     BSLS_ASSERT_SAFE((optionsSize > 0 && d_currPushHeader.isSet()) ||
                      (optionsSize == 0 && !d_currPushHeader.isSet()));
-    (void)optionsSize;  // compiler happiness
 
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;
@@ -366,10 +365,9 @@ PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
     // is meant to ensure that both error scenarios are captured by this
     // method.
 
-    const int optionsSize = d_options.size();
+    BSLA_MAYBE_UNUSED const int optionsSize = d_options.size();
     BSLS_ASSERT_SAFE((optionsSize > 0 && d_currPushHeader.isSet()) ||
                      (optionsSize == 0 && !d_currPushHeader.isSet()));
-    (void)optionsSize;  // compiler happiness
 
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;

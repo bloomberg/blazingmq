@@ -1088,11 +1088,6 @@ int main(int argc, char** argv)
     veryVerbose         = argc > 3;
     veryVeryVerbose     = argc > 4;
     veryVeryVeryVerbose = argc > 5;
-    // Prevent potential compiler unused warning
-    (void)verbose;
-    (void)veryVerbose;
-    (void)veryVeryVerbose;
-    (void)veryVeryVeryVerbose;
 
     // Initialize BALL
     INIT_BALL_LOGGING_VERBOSITY(verbose, veryVerbose);
