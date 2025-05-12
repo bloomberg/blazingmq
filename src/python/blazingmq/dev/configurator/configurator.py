@@ -262,7 +262,7 @@ class Configurator:
 
     def deploy_programs(self, broker: Broker, site: Site) -> None:
         broker_path = str(paths.get_broker_path(broker.name))
-        logger.debug(f"deploy_programs {broker.name} :: {broker_path}")
+        logger.debug("deploy_programs %s :: %s", broker.name, broker_path)
         site.install(broker_path, "bin")
         site.install(str(paths.tool), "bin")
         site.install(str(paths.plugins), ".")
