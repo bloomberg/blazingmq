@@ -440,7 +440,7 @@ class ClusterState {
     typedef UriToQueueInfoMap::iterator                UriToQueueInfoMapIter;
     typedef UriToQueueInfoMap::const_iterator          UriToQueueInfoMapCIter;
 
-    struct DomainState {
+    struct DomainState BSLS_KEYWORD_FINAL {
       private:
         // DATA
         int               d_numAssignedQueues;
@@ -455,7 +455,7 @@ class ClusterState {
 
         /// Create a new DomainState using the specified `allocator` for
         /// memory allocations.
-        DomainState(bslma::Allocator* allocator);
+        explicit DomainState(bslma::Allocator* allocator);
 
         // MANIPULATORS
 

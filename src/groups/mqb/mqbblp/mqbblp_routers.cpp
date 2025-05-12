@@ -619,9 +619,18 @@ Routers::Result Routers::AppContext::selectConsumer(
         }
     }
     if (group) {
-        return d_router.iterateSubscriptions(visitor, *group)
-                   ? e_SUCCESS
-                   : e_NO_CAPACITY;  // RETURN
+        if (!group->d_canDeliver) {
+            // Another option is to 'iterateGroups'
+            return e_NO_CAPACITY_ALL;  // RETURN
+        }
+        if (d_router.iterateSubscriptions(visitor, *group)) {
+            return e_SUCCESS;
+        }
+        else {
+            group->d_canDeliver = false;
+
+            return e_NO_CAPACITY;  // RETURN
+        }
     }
     else {
         return d_router.iterateGroups(visitor);  // RETURN
