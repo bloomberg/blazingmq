@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbplug_authenticator.cpp                                          -*-C++-*-
-#include <bsls_nullptr.h>
 #include <mqbplug_authenticator.h>
 
 #include <mqbscm_version.h>
@@ -22,11 +21,11 @@
 namespace BloombergLP {
 namespace mqbplug {
 
-// ------------------------
-// class AuthenticationData
-// ------------------------
+// --------------------------
+// class AuthenticationResult
+// --------------------------
 
-AuthenticationData::~AuthenticationData()
+AuthenticationResult::~AuthenticationResult()
 {
     // NOTHING
 }
@@ -59,7 +58,7 @@ AuthenticatorPluginFactory::~AuthenticatorPluginFactory()
 // -----------------------
 
 const mqbcfg::AuthenticatorPluginConfig*
-AuthenticatorUtil::findAuthenticatorConfig(const bslstl::StringRef& name)
+AuthenticatorUtil::findAuthenticatorConfig(bslstl::StringRef name)
 {
     const bsl::vector<mqbcfg::AuthenticatorPluginConfig>& authenticatorsCfg =
         mqbcfg::BrokerConfig::get().authentication().plugins();
