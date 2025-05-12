@@ -33,6 +33,7 @@
 //
 
 // BDE
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 
@@ -121,10 +122,8 @@ inline bool AtomicState::tryLock()
 
 inline void AtomicState::unlock()
 {
-    const int result = d_value.subtract(e_LOCK);
-
+    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_LOCK);
     BSLS_ASSERT_SAFE(result >= e_INIT);
-    (void)result;
 }
 
 inline void AtomicState::reset()

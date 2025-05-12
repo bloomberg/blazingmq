@@ -1451,8 +1451,9 @@ void ClusterStateManager::setPrimaryStatus(
     d_state_p->setPartitionPrimaryStatus(partitionId, status);
 }
 
-void ClusterStateManager::markOrphan(const bsl::vector<int>& partitions,
-                                     mqbnet::ClusterNode*    primary)
+void ClusterStateManager::markOrphan(
+    const bsl::vector<int>& partitions,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primary)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1804,10 +1805,9 @@ void ClusterStateManager::processShutdownEvent()
     applyFSMEvent(ClusterFSM::Event::e_STOP_NODE, ClusterFSMEventMetadata());
 }
 
-void ClusterStateManager::onNodeUnavailable(mqbnet::ClusterNode* node)
+void ClusterStateManager::onNodeUnavailable(
+    BSLA_UNUSED mqbnet::ClusterNode* node)
 {
-    (void)node;
-
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }
 
@@ -1823,8 +1823,9 @@ void ClusterStateManager::onNodeStopped()
 
 // MANIPULATORS
 //   (virtual: mqbc::ElectorInfoObserver)
-void ClusterStateManager::onClusterLeader(mqbnet::ClusterNode*          node,
-                                          ElectorInfoLeaderStatus::Enum status)
+void ClusterStateManager::onClusterLeader(
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node,
+    BSLA_MAYBE_UNUSED ElectorInfoLeaderStatus::Enum status)
 {
     // executed by the cluster *DISPATCHER* thread
 

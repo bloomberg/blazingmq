@@ -262,14 +262,17 @@ class ThrowingExecutor {
     }
 
     template <class FUNCTION>
-    BSLA_NORETURN void dispatch(FUNCTION) const
+    BSLA_MAYBE_UNUSED BSLA_NORETURN void dispatch(FUNCTION) const
     {
         throw ExceptionType();
     }
 
   public:
     // ACCESSORS
-    bool operator==(const ThrowingExecutor&) const { return true; }
+    BSLA_MAYBE_UNUSED bool operator==(const ThrowingExecutor&) const
+    {
+        return true;
+    }
 };
 
 // ==========================
@@ -408,12 +411,6 @@ static void test1_strand_creators()
 // ------------------------------------------------------------------------
 {
     typedef bmqex::Strand<IdentifiableExecutor> Strand;
-
-    // compiler hapiness
-    {
-        (void)&ThrowingExecutor::dispatch<int>;
-        (void)&ThrowingExecutor::operator==;
-    }
 
     // 1. default constructor
     {

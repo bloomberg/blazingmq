@@ -244,6 +244,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_cstring.h>
+#include <bsla_annotations.h>
 #include <bsls_objectbuffer.h>
 #include <bsls_performancehint.h>
 #include <bsls_types.h>
@@ -805,8 +806,8 @@ template <class TYPE>
 inline void
 BlobObjectProxy<TYPE>::loadEndPosition(bmqu::BlobPosition* pos) const
 {
-    int ret = bmqu::BlobUtil::findOffset(pos, *d_blob_p, d_position, d_length);
-    (void)ret;
+    BSLA_MAYBE_UNUSED int ret =
+        bmqu::BlobUtil::findOffset(pos, *d_blob_p, d_position, d_length);
     // This should never fail since 'isSet()' will only be true if there are
     // 'd_length' bytes in the blob.
     BSLS_ASSERT(ret == 0);

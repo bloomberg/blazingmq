@@ -123,12 +123,10 @@ struct TestAdminRetranslator {
     TestAdminRetranslator() {}
 
     int enqueueCommand(
-        const bslstl::StringRef&                        source,
+        BSLA_UNUSED const bslstl::StringRef&            source,
         const bsl::string&                              cmd,
         const mqbnet::Session::AdminCommandProcessedCb& onProcessedCb)
     {
-        (void)source;
-
         int rc = 0;
         onProcessedCb(rc, cmd);
         return rc;
@@ -244,7 +242,7 @@ static void test1_watermark()
     // Prepare sample admin command control message event
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         bmqtst::TestHelperUtil::allocator());
-    bmqp_ctrlmsg::ControlMessage          admin(&localAllocator);
+    bmqp_ctrlmsg::ControlMessage admin(&localAllocator);
 
     admin.rId() = rId;
     admin.choice().makeAdminCommand();

@@ -88,6 +88,7 @@
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_sstream.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {
@@ -369,9 +370,9 @@ void MessageGroupIdManager::Index::removeHandle(const Handle& handle)
         BSLS_ASSERT_SAFE(iterator != d_msgGroupIdInfo.end());
 
         // Remove from data structure b).
-        const int erased = d_leastUsedMsgGroupIdFirst.erase(iterator);
+        BSLA_MAYBE_UNUSED const int erased = d_leastUsedMsgGroupIdFirst.erase(
+            iterator);
         BSLS_ASSERT_SAFE(erased == 1);
-        (void)erased;
 
         // Remove from data structure a).
         d_msgGroupIdInfo.erase(iterator);
@@ -414,9 +415,9 @@ MessageGroupIdManager::Index::insert(const MsgGroupId& msgGroupId,
     d_leastLoadedHandleFirst.erase(it);
 
     // Insert to data structure c).
-    const bsl::pair<MsgGroupIdSet::iterator, bool> rs = it->second.insert(mit);
+    BSLA_MAYBE_UNUSED const bsl::pair<MsgGroupIdSet::iterator, bool> rs =
+        it->second.insert(mit);
     BSLS_ASSERT_SAFE(rs.second);
-    (void)rs;
 
     // Update data structure d) (2/2).
     d_leastLoadedHandleFirst.insert(it);
@@ -430,9 +431,9 @@ void MessageGroupIdManager::Index::updateTime(
 {
     // This does a remove and re-add to the data structure b) and a
     // modification in data structure a).  All the others should be unaffected.
-    const int erased = d_leastUsedMsgGroupIdFirst.erase(target);
+    BSLA_MAYBE_UNUSED const int erased = d_leastUsedMsgGroupIdFirst.erase(
+        target);
     BSLS_ASSERT_SAFE(erased == 1);
-    (void)erased;
 
     target->second.second = lastSeen;
 
@@ -482,18 +483,17 @@ void MessageGroupIdManager::Index::erase(
     // Modify the appropriate 'MsgGroupIdSet' from the data structure c).  Note
     // that this doesn't remove any handle from 'd_handleToGroups' thus all
     // 'HandleToGroups::iterator's (including 'it') remain unaffected/valid.
-    MsgGroupIdSet& msgGroupIdSet = it->second;
-    const int      count         = msgGroupIdSet.erase(iterator);
+    MsgGroupIdSet&              msgGroupIdSet = it->second;
+    BSLA_MAYBE_UNUSED const int count         = msgGroupIdSet.erase(iterator);
     BSLS_ASSERT_SAFE(count == 1);
-    (void)count;
 
     // Update data structure d) (2/2).
     d_leastLoadedHandleFirst.insert(it);
 
     // Remove from data structure b).
-    const int erased = d_leastUsedMsgGroupIdFirst.erase(iterator);
+    BSLA_MAYBE_UNUSED const int erased = d_leastUsedMsgGroupIdFirst.erase(
+        iterator);
     BSLS_ASSERT_SAFE(erased == 1);
-    (void)erased;
 
     // Remove from data structure a).
     d_msgGroupIdInfo.erase(iterator);

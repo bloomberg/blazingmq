@@ -72,6 +72,7 @@
 #include <bsl_limits.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_allocatorargt.h>
@@ -485,7 +486,7 @@ MonitoredQueue<QUEUE, QUEUE_TRAITS>::setWatermarks(
     bsls::Types::Int64 highWatermark,
     bsls::Types::Int64 highWatermark2)
 {
-    const bsls::Types::Int64 intMax =
+    BSLA_MAYBE_UNUSED const bsls::Types::Int64 intMax =
         bsl::numeric_limits<bsls::Types::Int64>::max();
     BSLS_ASSERT(lowWatermark >= 0);
     BSLS_ASSERT(lowWatermark < highWatermark);
@@ -496,8 +497,6 @@ MonitoredQueue<QUEUE, QUEUE_TRAITS>::setWatermarks(
     d_lowWatermark   = lowWatermark;
     d_highWatermark  = highWatermark;
     d_highWatermark2 = highWatermark2;
-
-    (void)intMax;  // prod-build compiler happiness
 
     return *this;
 }

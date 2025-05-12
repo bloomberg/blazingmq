@@ -1274,8 +1274,8 @@ void ClientSession::processDisconnectAllQueuesDone(
 }
 
 void ClientSession::processDisconnect(
-    const bmqp_ctrlmsg::ControlMessage&             controlMessage,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    const bmqp_ctrlmsg::ControlMessage& controlMessage,
+    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1361,10 +1361,10 @@ void ClientSession::processOpenQueue(
 
 void ClientSession::openQueueCb(
     const bmqp_ctrlmsg::Status& status,
-    BSLA_UNUSED mqbi::QueueHandle*                  handle,
-    const bmqp_ctrlmsg::OpenQueueResponse&          openQueueResponse,
-    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    BSLA_UNUSED mqbi::QueueHandle*         handle,
+    const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
+    const bmqp_ctrlmsg::ControlMessage&    handleParamsCtrlMsg,
+    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1442,9 +1442,9 @@ void ClientSession::processCloseQueue(
 }
 
 void ClientSession::closeQueueCb(
-    const bsl::shared_ptr<mqbi::QueueHandle>&       handle,
-    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    const bsl::shared_ptr<mqbi::QueueHandle>& handle,
+    const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg,
+    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -3195,9 +3195,10 @@ void ClientSession::processClusterMessage(
     }
 }
 
-void ClientSession::onDeconfiguredHandle(const ShutdownContextSp& contextSp)
+void ClientSession::onDeconfiguredHandle(
+    BSLA_UNUSED const ShutdownContextSp& contextSp)
 {
-    (void)contextSp;
+    // empty
 }
 
 void ClientSession::processStopRequest(ShutdownContextSp& contextSp)

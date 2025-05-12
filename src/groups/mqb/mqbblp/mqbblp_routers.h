@@ -247,9 +247,8 @@ class Routers {
             void release()
             {
                 if (isValid()) {
-                    size_t n = d_owner.erase(d_key);
+                    BSLA_MAYBE_UNUSED size_t n = d_owner.erase(d_key);
                     BSLS_ASSERT_SAFE(n == 1);
-                    (void)n;
                 }
             }
             VALUE&     value() { return d_value.object(); }
@@ -406,8 +405,8 @@ class Routers {
     struct SubscriptionId {
         /// The Expression.
         const Expressions::SharedItem d_itExpression;
-        const unsigned int d_upstreamSubQueueId;
-        PriorityGroup*     d_priorityGroup;
+        const unsigned int            d_upstreamSubQueueId;
+        PriorityGroup*                d_priorityGroup;
 
         SubscriptionId(const Expressions::SharedItem& itExpression,
                        const unsigned int             upstreamSubQueueId);

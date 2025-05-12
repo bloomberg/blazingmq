@@ -67,6 +67,7 @@
 #include <bsl_streambuf.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
@@ -1090,10 +1091,10 @@ ProtocolUtil::QueueInfo<VALUE>::insert(const bsl::string& appId,
     iterator itStream(result.first);
 
     for (size_t i = 0; i < subscriptions.size(); ++i) {
-        bsl::pair<typename SubscriptionsMap::iterator, bool> insertRC =
-            d_subscriptions.insert(bsl::make_pair(subscriptions[i], itStream));
+        BSLA_MAYBE_UNUSED bsl::pair<typename SubscriptionsMap::iterator, bool>
+                          insertRC = d_subscriptions.insert(
+                bsl::make_pair(subscriptions[i], itStream));
         BSLS_ASSERT_SAFE(insertRC.second);
-        (void)insertRC;
     }
     return itStream;
 }
@@ -1295,10 +1296,10 @@ inline void ProtocolUtil::QueueInfo<VALUE>::addSubscriptions(
     for (Subscriptions::const_iterator it = subscriptions.begin();
          it != subscriptions.end();
          ++it) {
-        bsl::pair<typename SubscriptionsMap::iterator, bool> insertRC =
-            d_subscriptions.insert(bsl::make_pair(it->sId(), itStream));
+        BSLA_MAYBE_UNUSED bsl::pair<typename SubscriptionsMap::iterator, bool>
+                          insertRC = d_subscriptions.insert(
+                bsl::make_pair(it->sId(), itStream));
         BSLS_ASSERT_SAFE(insertRC.second);
-        (void)insertRC;
     }
 }
 

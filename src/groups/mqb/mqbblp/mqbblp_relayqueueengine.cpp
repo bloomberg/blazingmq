@@ -741,12 +741,11 @@ void RelayQueueEngine::configureApp(
 
     // Update effective upstream parameters if specified 'handle' is a reader
     bmqp_ctrlmsg::StreamParameters streamParamsToSend;
-    bool hasStreamParamsToSend = d_queueState_p->getUpstreamParameters(
-        &streamParamsToSend,
-        upstreamSubQueueId);
+    BSLA_MAYBE_UNUSED bool         hasStreamParamsToSend =
+        d_queueState_p->getUpstreamParameters(&streamParamsToSend,
+                                              upstreamSubQueueId);
 
     BSLS_ASSERT_SAFE(hasStreamParamsToSend);
-    (void)hasStreamParamsToSend;
 
     if (hadParameters && previousParameters == streamParamsToSend) {
         // Last advertised stream parameters for this queue are same as the
@@ -1709,9 +1708,10 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
     iter->second->authorize(appKey, appOrdinal);
 }
 
-void RelayQueueEngine::unregisterStorage(const bsl::string&      appId,
-                                         const mqbu::StorageKey& appKey,
-                                         unsigned int            appOrdinal)
+void RelayQueueEngine::unregisterStorage(
+    const bsl::string&      appId,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_UNUSED unsigned int                  appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1731,8 +1731,6 @@ void RelayQueueEngine::unregisterStorage(const bsl::string&      appId,
 
         iter->second->unauthorize();
     }
-
-    (void)appOrdinal;
 }
 
 bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(

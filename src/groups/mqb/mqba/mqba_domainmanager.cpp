@@ -70,8 +70,8 @@ const int k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE = 5;
 /// external source and called after all the interesting
 /// processing is done.
 void onDomain(const bmqp_ctrlmsg::Status& status,
-              mqbi::Domain*               domain,
-              bslmt::Latch*               latch)
+              BSLA_MAYBE_UNUSED mqbi::Domain* domain,
+              bslmt::Latch*                   latch)
 {
     // executed by *ANY* thread
 
