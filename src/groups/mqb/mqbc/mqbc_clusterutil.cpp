@@ -1370,8 +1370,8 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
                                                  allocator);
         if (!success) {
             BALL_LOG_ERROR << "Failed to unregister appIds " << printRemoved
-                           << " and to register appIds " << printAdded << " for '"
-                           << uri
+                           << " and to register appIds " << printAdded
+                           << " for '" << uri
                            << "'.  Current state: " << *qinfoCit->second;
 
             return;  // RETURN
@@ -1877,7 +1877,7 @@ int ClusterUtil::load(ClusterState*               state,
     BSLS_ASSERT_SAFE(iterator);
     BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
         &clusterData.cluster()));
-    
+
     /// Value for the various RC error categories
     enum RcEnum {
         /// No error
