@@ -30,7 +30,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.event.inputs.ref1 }}
-      target: "all"
+      target: "bmqbrkr bmqtool"
   
   build2:
     name: "Build ref ${{ github.event.inputs.ref2 }}"
@@ -38,7 +38,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.event.inputs.ref2 }}
-      target: "all"
+      target: "bmqbrkr bmqtool"
 
   integration_tests_ubuntu_upgrade_version:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
