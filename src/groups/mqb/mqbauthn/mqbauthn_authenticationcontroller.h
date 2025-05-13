@@ -59,7 +59,7 @@ class AuthenticationController {
     AuthenticatorMap d_authenticators;
 
     /// Fallback principal
-    bsl::string d_principal;
+    bsl::optional<bsl::string> d_principal;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
