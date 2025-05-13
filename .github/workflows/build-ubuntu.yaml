@@ -110,7 +110,7 @@ jobs:
         if: inputs.target == 'all.t'
         run: |
           cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure
+          ctest --output-on-failure -L \^unit\$
 
       - uses: actions/upload-artifact@v4
         if: inputs.target != 'all.t'

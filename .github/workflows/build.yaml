@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
-      target: "bmqbrkr bmqtool"
+      target: "bmqbrkr bmqtool all.it"
 
   unit_tests_cxx:
     name: "Build all.t"
@@ -108,6 +108,15 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             -n logical -v
+
+      - name: Print core information
+        if: failure()
+        run: |
+          sudo apt-get install -qy gdb
+
+          python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
+          --cores-dir=${{ github.workspace }}/src/integration-tests/failure-logs \
+          --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
 
       - name: Upload failure-logs as artifacts
         if: failure()

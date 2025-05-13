@@ -4087,23 +4087,6 @@ void ClusterQueueHelper::onQueueAssigned(
             return;  // RETURN
         }
         else {
-            if (1 == d_clusterState_p->queueKeys().count(info->key())) {
-                // Self node's queue context is unaware of the assigned queue,
-                // but queueKey specified in the advisory is present in the
-                // 'queueKeys' data structure.
-
-                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                    << d_cluster_p->description()
-                    << ": attempting to apply queue assignment for a known but"
-                    << " unassigned queue, but queueKey is not unique. "
-                    << "QueueKey [" << info->key() << "], URI [" << info->uri()
-                    << "], Partition [" << info->partitionId()
-                    << "]. Current leader is: '" << leaderDescription
-                    << "'. Ignoring this entry in the advisory."
-                    << BMQTSK_ALARMLOG_END;
-                return;  // RETURN
-            }
-
             // Update queue's mapping etc.
             BSLA_MAYBE_UNUSED mqbc::ClusterState::QueueKeysInsertRc insertRc =
                 d_clusterState_p->queueKeys().insert(info->key());
@@ -4113,21 +4096,9 @@ void ClusterQueueHelper::onQueueAssigned(
     else {
         // First time hearing about this queue.  Update 'queueKeys' and
         // ensure that queue key is unique.
-        mqbc::ClusterState::QueueKeysInsertRc insertRc =
+        BSLA_MAYBE_UNUSED mqbc::ClusterState::QueueKeysInsertRc insertRc =
             d_clusterState_p->queueKeys().insert(info->key());
-
-        if (false == insertRc.second) {
-            // QueueKey is not unique.
-
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_cluster_p->description()
-                << ": attempting to apply queue assignment for an unknown "
-                << "queue [" << info->uri() << "] assigned to Partition ["
-                << info->partitionId() << "], but queueKey [" << info->key()
-                << "] is not unique. Current leader is: '" << leaderDescription
-                << "'. Ignoring this assignment." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
+        BSLS_ASSERT_SAFE(insertRc.second);
 
         // Create the queueContext.
         queueContext.reset(new (*d_allocator_p)
