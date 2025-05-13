@@ -99,10 +99,14 @@ jobs:
         env:
           BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
 
+          # Broker path for proxy nodes
+          BLAZINGMQ_BROKER: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
           BLAZINGMQ_BROKER_EAST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
-          BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
-          BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+          BLAZINGMQ_BROKER_EAST3: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Broker path to be used after version upgrade
           BLAZINGMQ_BROKER_NEW_VERSION: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
         run: |
           pip install -r ./src/python/requirements.txt
@@ -186,6 +190,9 @@ jobs:
         working-directory: repoit
         env:
           BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
+
+          # Broker path for proxy nodes
+          BLAZINGMQ_BROKER: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
 
           BLAZINGMQ_BROKER_EAST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
