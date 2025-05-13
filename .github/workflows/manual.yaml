@@ -132,9 +132,9 @@ jobs:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
     strategy:
       matrix:
-        mode: ["fsm_mode"]
+        mode: ["legacy_mode", "fsm_mode"]
         cluster: ["multi"]
-        consistency: ["strong_consistency"]
+        consistency: ["eventual_consistency", "strong_consistency"]
       fail-fast: false
     runs-on: ubuntu-latest
     needs:
