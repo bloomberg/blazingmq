@@ -41,7 +41,11 @@ jobs:
 
       - name: Generate cache key
         id: get_cache_key
-        run: echo "cache_key=cache-${{ env.sha }}-${{ inputs.target }}" >> $GITHUB_OUTPUT
+        # When restoring from cache fails, it searches for other keys to fall back to.
+        # It the given key is a prefix of another key, it will be used. 
+        # E.g. "...-all" can fallback to "...-all.t" 
+        # Thus do not put the target at the end of the key.
+        run: echo "cache_key=cache-${{ inputs.target }}-${{ env.sha }}" >> $GITHUB_OUTPUT
 
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
