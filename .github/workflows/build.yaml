@@ -62,7 +62,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool
+          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool all.it
 
       - name: Clean-up build directories before caching
         run: |
@@ -127,7 +127,7 @@ jobs:
       - name: Run C++ Unit Tests
         run: |
           cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure
+          ctest --output-on-failure -L \^unit\$
 
   unit_tests_python:
     name: UT [python]
@@ -207,6 +207,15 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             -n logical -v
+
+      - name: Print core information
+        if: failure()
+        run: |
+          sudo apt-get install -qy gdb
+
+          python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
+          --cores-dir=${{ github.workspace }}/src/integration-tests/failure-logs \
+          --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
 
       - name: Upload failure-logs as artifacts
         if: failure()
