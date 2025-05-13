@@ -55,6 +55,13 @@ jobs:
     env:
         RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
+      - name: Checkout ITs repo
+        uses: actions/checkout@v4
+        with:
+          # The ref of the workflow that triggered this workflow
+          path: repoit
+          fetch-depth: 0
+
       - name: Checkout repo1
         uses: actions/checkout@v4
         with:
@@ -88,7 +95,7 @@ jobs:
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Integration Tests
-        working-directory: repo2
+        working-directory: repoit
         env:
           BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
 
@@ -117,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
-          path: ${{ github.workspace }}/repo2/src/integration-tests/failure-logs
+          path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
           retention-days: 5
 
 
@@ -136,6 +143,13 @@ jobs:
     env:
         RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
+      - name: Checkout ITs repo
+        uses: actions/checkout@v4
+        with:
+          # The ref of the workflow that triggered this workflow
+          path: repoit
+          fetch-depth: 0
+
       - name: Checkout repo1
         uses: actions/checkout@v4
         with:
@@ -169,7 +183,7 @@ jobs:
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Integration Tests
-        working-directory: repo2
+        working-directory: repoit
         env:
           BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
 
@@ -201,5 +215,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
-          path: ${{ github.workspace }}/repo2/src/integration-tests/failure-logs
+          path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
           retention-days: 5
