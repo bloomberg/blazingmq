@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - "**"
+      - main
   pull_request:
     branches:
       - main
@@ -12,14 +12,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-
 jobs:
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
 
   build_ubuntu:
-    name: "Build all"
+    name: "Build [ubuntu]"
     needs: get_dependencies
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
@@ -27,7 +26,7 @@ jobs:
       target: "bmqbrkr bmqtool all.it"
 
   unit_tests_cxx:
-    name: "Build all.t"
+    name: "UT [c++]"
     needs: get_dependencies
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
@@ -66,7 +65,7 @@ jobs:
         RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/download-artifact@v4
         with:
           name: ${{needs.build_ubuntu.outputs.cache_key }}
