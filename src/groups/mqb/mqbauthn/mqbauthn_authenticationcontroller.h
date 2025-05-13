@@ -17,10 +17,7 @@
 #ifndef INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 #define INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 
-// BMQ
-
 // MQB
-#include <bslstl_unorderedmap.h>
 #include <mqbplug_authenticator.h>
 #include <mqbplug_pluginmanager.h>
 
@@ -59,7 +56,7 @@ class AuthenticationController {
     AuthenticatorMap d_authenticators;
 
     /// Fallback principal
-    bsl::string d_principal;
+    bsl::optional<bsl::string> d_principal;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
@@ -91,8 +88,15 @@ class AuthenticationController {
     /// stream with the description of the error.
     int start(bsl::ostream& errorDescription);
 
+    /// Stop the AuthenticationController.
     void stop();
 
+    /// Authenticate using the specified AuthenticationData `input` and
+    /// `mechanism`.  On success, populate the specified `result` with the
+    /// authentication result.
+    /// Return 0 on success, or a non-zero return code on error and fill in the
+    /// specified `errorDescription` stream with the description of the error.
+    /// Note that the `mechanism` is case insensitive.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
                      bslstl::StringRef                               mechanism,

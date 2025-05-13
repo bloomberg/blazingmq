@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbauthn_authenticationcontroller.cpp                          -*-C++-*-
-#include <bslstl_vector.h>
 #include <mqbauthn_authenticationcontroller.h>
 
 #include <mqbscm_version.h>
@@ -85,6 +84,17 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
                 dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(*factoryIt);
             AuthenticatorMp authenticator = factory->create(d_allocator_p);
 
+            // Check if there's an authenticator with duplicate mechanism
+            AuthenticatorMap::const_iterator cit = d_authenticators.find(
+                authenticator->mechanism());
+            if (cit != d_authenticators.cend()) {
+                errorDescription << "Attempting to create duplicate "
+                                    "authenticator with mechanism '"
+                                 << authenticator->mechanism();
+                return rc_DUPLICATE_MECHANISM;
+            }
+
+            // Start the authenticator
             if (int status = authenticator->start(errorStream)) {
                 BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
                     << "Failed to start Authenticator '"
@@ -96,18 +106,9 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
             }
 
             // Add the authenticator into the collection
-            AuthenticatorMap::const_iterator cit = d_authenticators.find(
-                authenticator->mechanism());
-            if (cit != d_authenticators.cend()) {
-                errorDescription << "Attempting to create duplicate "
-                                    "authenticator with mechanism '"
-                                 << authenticator->mechanism();
-                return rc_DUPLICATE_MECHANISM;
-            }
             d_authenticators.emplace(
                 authenticator->mechanism(),
                 bslmf::MovableRefUtil::move(authenticator));
-            // TODO: would it cause any issue since with StringRef as key?
         }
     }
 

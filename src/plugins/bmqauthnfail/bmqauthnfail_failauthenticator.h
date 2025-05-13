@@ -72,7 +72,7 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
 
     // ACCESSORS
 
-    const bsl::string& principal() const BSLS_KEYWORD_OVERRIDE;
+    bslstl::StringRef principal() const BSLS_KEYWORD_OVERRIDE;
     const bsl::optional<bsls::Types::Int64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
@@ -82,19 +82,20 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
 // =======================
 
 class FailAuthenticator : public mqbplug::Authenticator {
+  public:
+    // PUBLIC CLASS DATA
+    static constexpr const char* k_NAME = "FailAuthenticator";
+
+  private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQAUTHNFAIL.FAILAUTHENTICATOR");
 
-  private:
     // DATA
     const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
 
     bool d_isStarted;
 
     bslma::Allocator* d_allocator_p;
-
-  private:
-    // PRIVATE ACCESSORS
 
   public:
     // NOT IMPLEMENTED
@@ -103,7 +104,8 @@ class FailAuthenticator : public mqbplug::Authenticator {
 
     // CREATORS
 
-    FailAuthenticator(bslma::Allocator* allocator);
+    FailAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
+                      bslma::Allocator*                        allocator);
 
     /// Destructor.
     ~FailAuthenticator() BSLS_KEYWORD_OVERRIDE;

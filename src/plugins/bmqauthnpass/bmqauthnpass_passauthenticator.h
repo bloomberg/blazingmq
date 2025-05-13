@@ -72,7 +72,7 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
 
     // ACCESSORS
 
-    const bsl::string& principal() const BSLS_KEYWORD_OVERRIDE;
+    bslstl::StringRef principal() const BSLS_KEYWORD_OVERRIDE;
     const bsl::optional<bsls::Types::Int64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
@@ -82,19 +82,20 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
 // =======================
 
 class PassAuthenticator : public mqbplug::Authenticator {
+  public:
+    // PUBLIC CLASS DATA
+    static constexpr const char* k_NAME = "PassAuthenticator";
+
+  private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQAUTHNPASS.PASSAUTHENTICATOR");
 
-  private:
     // DATA
     const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
 
     bool d_isStarted;
 
     bslma::Allocator* d_allocator_p;
-
-  private:
-    // PRIVATE ACCESSORS
 
   public:
     // NOT IMPLEMENTED
@@ -103,7 +104,8 @@ class PassAuthenticator : public mqbplug::Authenticator {
 
     // CREATORS
 
-    PassAuthenticator(bslma::Allocator* allocator);
+    PassAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
+                      bslma::Allocator*                        allocator);
 
     /// Destructor.
     ~PassAuthenticator() BSLS_KEYWORD_OVERRIDE;
