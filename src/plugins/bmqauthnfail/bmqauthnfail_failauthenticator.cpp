@@ -53,7 +53,7 @@ FailAuthenticationResult::~FailAuthenticationResult()
 {
 }
 
-const bsl::string& FailAuthenticationResult::principal() const
+bslstl::StringRef FailAuthenticationResult::principal() const
 {
     return d_principal;
 }
@@ -68,9 +68,10 @@ FailAuthenticationResult::lifetimeMs() const
 // class FailAuthenticator
 // -----------------------
 
-FailAuthenticator::FailAuthenticator(bslma::Allocator* allocator)
-: d_authenticatorConfig_p(
-      mqbplug::AuthenticatorUtil::findAuthenticatorConfig(name()))
+FailAuthenticator::FailAuthenticator(
+    const mqbcfg::AuthenticatorPluginConfig* config,
+    bslma::Allocator*                        allocator)
+: d_authenticatorConfig_p(config)
 , d_isStarted(false)
 , d_allocator_p(allocator)
 {
@@ -81,12 +82,12 @@ FailAuthenticator::~FailAuthenticator()
     stop();
 }
 
-inline bslstl::StringRef FailAuthenticator::name() const
+bslstl::StringRef FailAuthenticator::name() const
 {
-    return "FailAuthenticator";
+    return k_NAME;
 }
 
-inline bslstl::StringRef FailAuthenticator::mechanism() const
+bslstl::StringRef FailAuthenticator::mechanism() const
 {
     return "Basic";
 }
@@ -142,8 +143,12 @@ FailAuthenticatorPluginFactory::~FailAuthenticatorPluginFactory()
 bslma::ManagedPtr<mqbplug::Authenticator>
 FailAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
 {
+    const mqbcfg::AuthenticatorPluginConfig* config =
+        mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
+            FailAuthenticator::k_NAME);
+
     bslma::ManagedPtr<mqbplug::Authenticator> result(
-        new (*allocator) FailAuthenticator(allocator),
+        new (*allocator) FailAuthenticator(config, allocator),
         allocator);
     return result;
 }

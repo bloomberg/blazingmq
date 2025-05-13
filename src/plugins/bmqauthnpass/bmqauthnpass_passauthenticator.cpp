@@ -53,7 +53,7 @@ PassAuthenticationResult::~PassAuthenticationResult()
 {
 }
 
-const bsl::string& PassAuthenticationResult::principal() const
+bslstl::StringRef PassAuthenticationResult::principal() const
 {
     return d_principal;
 }
@@ -68,9 +68,10 @@ PassAuthenticationResult::lifetimeMs() const
 // class PassAuthenticator
 // -----------------------
 
-PassAuthenticator::PassAuthenticator(bslma::Allocator* allocator)
-: d_authenticatorConfig_p(
-      mqbplug::AuthenticatorUtil::findAuthenticatorConfig(name()))
+PassAuthenticator::PassAuthenticator(
+    const mqbcfg::AuthenticatorPluginConfig* config,
+    bslma::Allocator*                        allocator)
+: d_authenticatorConfig_p(config)
 , d_isStarted(false)
 , d_allocator_p(allocator)
 {
@@ -81,12 +82,12 @@ PassAuthenticator::~PassAuthenticator()
     stop();
 }
 
-inline bslstl::StringRef PassAuthenticator::name() const
+bslstl::StringRef PassAuthenticator::name() const
 {
-    return "PassAuthenticator";
+    return k_NAME;
 }
 
-inline bslstl::StringRef PassAuthenticator::mechanism() const
+bslstl::StringRef PassAuthenticator::mechanism() const
 {
     return "Basic";
 }
@@ -142,8 +143,12 @@ PassAuthenticatorPluginFactory::~PassAuthenticatorPluginFactory()
 bslma::ManagedPtr<mqbplug::Authenticator>
 PassAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
 {
+    const mqbcfg::AuthenticatorPluginConfig* config =
+        mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
+            PassAuthenticator::k_NAME);
+
     bslma::ManagedPtr<mqbplug::Authenticator> result(
-        new (*allocator) PassAuthenticator(allocator),
+        new (*allocator) PassAuthenticator(config, allocator),
         allocator);
     return result;
 }

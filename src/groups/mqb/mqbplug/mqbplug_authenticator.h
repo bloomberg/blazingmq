@@ -87,7 +87,7 @@ class AuthenticationResult {
     // ACCESSORS
 
     /// Return the principal.
-    virtual const bsl::string& principal() const = 0;
+    virtual bslstl::StringRef principal() const = 0;
 
     /// Return the remaining lifetime of an authenticated session.
     virtual const bsl::optional<bsls::Types::Int64>& lifetimeMs() const = 0;
@@ -110,7 +110,9 @@ class Authenticator {
     /// Return the name of the plugin.
     virtual bslstl::StringRef name() const = 0;
 
-    /// Return the authentication mechanism the Authenticator supports.
+    /// Return the authentication mechanism supported by this Authenticator.
+    /// Guaranteed to return a valid mechanism once the Authenticator is
+    /// constructed.
     virtual bslstl::StringRef mechanism() const = 0;
 
     /// Authenticate using the data provided in the specified `input`.
