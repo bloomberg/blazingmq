@@ -314,7 +314,7 @@ InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
 }
 
 mqbi::StorageResult::Enum
-InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
+InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
 {
     ItemsMapIter it = d_items.find(guid);
     if (it == d_items.end()) {
@@ -329,34 +329,36 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
     it->second.attributes().setRefCount(--refCount);
 
     if (0 == refCount) {
-        // This appKey was the last outstanding client for this message.
-        // Message can now be deleted.
+        if (asPrimary) {
+            // This appKey was the last outstanding client for this message.
+            // Message can now be deleted.
 
-        int msgLen = it->second.appData()->length();
-        d_capacityMeter.remove(1, msgLen);
-        if (queue()) {
-            queue()->queueEngine()->beforeMessageRemoved(guid);
-            queue()
-                ->stats()
-                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                    msgLen);
-        }
+            int msgLen = it->second.appData()->length();
+            d_capacityMeter.remove(1, msgLen);
+            if (queue()) {
+                queue()->queueEngine()->beforeMessageRemoved(guid);
+                queue()
+                    ->stats()
+                    ->onEvent<
+                        mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                        msgLen);
+            }
 
-        // There is not really a need to remove the guid from all virtual
-        // storages, because we can be here only if guid doesn't exist in
-        // any virtual storage apart from the one associated with the
-        // specified 'appKey' (because updated outstanding refCount is
-        // zero).  So we just delete the guid from the underlying (this)
-        // storage.
+            // There is not really a need to remove the guid from all virtual
+            // storages, because we can be here only if guid doesn't exist in
+            // any virtual storage apart from the one associated with the
+            // specified 'appKey' (because updated outstanding refCount is
+            // zero).  So we just delete the guid from the underlying (this)
+            // storage.
 
-        d_items.erase(it);
+            d_items.erase(it);
 
-        if (queue()) {
-            queue()
-                ->stats()
-                ->onEvent<
-                    mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-                    d_items.historySize());
+            if (queue()) {
+                queue()
+                    ->stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::
+                                  e_UPDATE_HISTORY>(d_items.historySize());
+            }
         }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
@@ -438,7 +440,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     // Clear out the virtual storage associated with the specified 'appKey'.
     // Note that this cannot be done while iterating over the it in the above
     // 'while' loop for obvious reasons.
-    d_virtualStorageCatalog.removeAll(appKey);
+    d_virtualStorageCatalog.removeAll(appKey, true);
 
     if (d_items.empty()) {
         d_isEmpty.storeRelaxed(1);

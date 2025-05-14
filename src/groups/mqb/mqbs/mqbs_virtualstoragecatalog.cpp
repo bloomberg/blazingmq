@@ -340,7 +340,8 @@ void VirtualStorageCatalog::removeAll()
     d_totalBytes  = 0;
 }
 
-void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
+void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey,
+                                      bool                    asPrimary)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
@@ -351,7 +352,7 @@ void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
     DataStreamIterator itData;
     bsls::Types::Int64 total = d_dataStream.size();
     if (seek(&itData, vs) < total) {
-        purgeImpl(vs, itData, numVirtualStorages());
+        purgeImpl(vs, itData, numVirtualStorages(), asPrimary);
     }
     // else, there is nothing to purge; either no messages or all are too old
 }
@@ -412,7 +413,7 @@ VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey,
             }
         }
 
-        purgeImpl(vs, itData, numVirtualStorages());
+        purgeImpl(vs, itData, numVirtualStorages(), true);
     }
     // else, there is nothing to purge; either no messages or all are too old
 
@@ -422,7 +423,8 @@ VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey,
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
                                  DataStreamIterator& itData,
-                                 unsigned int        replacingOrdinal)
+                                 unsigned int        replacingOrdinal,
+                                 bool                asPrimary)
 {
     BSLS_ASSERT_SAFE(!d_ordinals.empty());
 
@@ -437,7 +439,7 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
 
         if (vs->remove(dataStreamMessage, replacingOrdinal)) {
             // The 'data' was not already removed or confirmed.
-            result = d_storage_p->releaseRef(msgGUID);
+            result = d_storage_p->releaseRef(msgGUID, asPrimary);
         }
 
         if (result == mqbi::StorageResult::e_ZERO_REFERENCES) {
@@ -546,6 +548,7 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
 
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
+                                            bool                    asPrimary,
                                             const PurgeCallback&    onPurge,
                                             const RemoveCallback&   onRemove)
 {
@@ -602,7 +605,7 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
         }
     }
 
-    purgeImpl(removing, itData, replacingOrdinal);
+    purgeImpl(removing, itData, replacingOrdinal, asPrimary);
 
     if (d_queue_p) {
         BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
