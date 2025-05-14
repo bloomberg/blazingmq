@@ -298,6 +298,7 @@ add_subdirectory( "src/groups" )
 add_subdirectory( "src/applications" )
 add_subdirectory( "src/tutorials" )
 add_subdirectory( "src/plugins" )
+add_subdirectory( "src/integration-tests" )
 
 
 # -----------------------------------------------------------------------------

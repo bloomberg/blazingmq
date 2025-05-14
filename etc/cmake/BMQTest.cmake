@@ -49,7 +49,7 @@ function(bmq_add_test target)
         ${${pkg}_TEST_DEPENDS}
         ${${uor_name}_PCDEPS}
         ${${uor_name}_TEST_PCDEPS}
-        LABELS "all" ${target} ${pkg})
+        LABELS "unit;all" ${target} ${pkg})
     endforeach()
 
     set(import_test_deps ON)
@@ -76,7 +76,7 @@ function(bmq_add_test target)
       SOURCES ${${uor_name}_TEST_SOURCES}
       TEST_DEPS ${${uor_name}_PCDEPS}
       ${${uor_name}_TEST_PCDEPS}
-      LABELS "all" ${target})
+      LABELS "unit;all" ${target})
 
     if(${target}_TEST_TARGETS)
       bbs_import_target_dependencies(${target} ${${uor_name}_TEST_PCDEPS})
@@ -120,7 +120,7 @@ function(bmq_add_application_test target)
     SOURCES    ${${uor_name}_TEST_SOURCES}
     TEST_DEPS  ${${uor_name}_PCDEPS}
                ${${uor_name}_TEST_PCDEPS}
-    LABELS     "all" ${target})
+    LABELS     "unit;all" ${target})
 
   if (TARGET ${lib_target}.t)
     if (NOT TARGET ${target}.t)
