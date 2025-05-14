@@ -1,5 +1,11 @@
 name: Tests Manual
 
+description: |
+  This workflow is triggered manually to run integration tests on two different versions of the broker.
+  It requires two refs (branches, tags, or commit SHAs) to be specified as inputs.
+  The integration tests (ITs) are checked out from the specified branch.
+  Apart from the general ITs, the workflow runs a set of ITs with 3-node cluster which verify broker binary upgrade scenarios.
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,7 +20,7 @@ on:
         required: false
         default: ''
 
-# The ref parameter in actions/checkout is flexible and can accept:
+# The ref parameter is flexible and can accept:
 # Branch names (e.g., main)
 # Tag names (e.g., v1.2.3)
 # Full commit SHAs (e.g., a1b2c3d4)

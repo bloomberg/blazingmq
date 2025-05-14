@@ -1,5 +1,11 @@
 name: Build Ubuntu
 
+description: |
+  This is a reusable workflow to build BlazingMQ on Ubuntu. 
+  Optionally run unit tests if the target is "all.t".
+  Given a ref and a target, this workflow will build the project and will save the build results both as artifact and in cache.
+  The cache key is generated based on the ref and the target, and is returned via workflow output.
+
 on:
   workflow_call:
     inputs:
@@ -41,7 +47,7 @@ jobs:
       - name: Generate cache key
         id: get_cache_key
         # When restoring from cache fails, it searches for other keys to fall back to.
-        # It the given key is a prefix of another key, it will be used. 
+        # If the given key is a prefix of another key, it will be used. 
         # E.g. "...-all" can fallback to "...-all.t" 
         # Thus do not put the target at the end of the key.
         run: echo "cache_key=cache-${{ inputs.target }}-${{ env.sha }}" >> $GITHUB_OUTPUT
