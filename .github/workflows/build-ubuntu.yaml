@@ -10,7 +10,6 @@ on:
       target:
         description: "Build target"
         required: true
-        default: "all"
         type: string
     outputs:
       cache_key:
