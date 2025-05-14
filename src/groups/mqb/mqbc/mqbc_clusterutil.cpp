@@ -1395,11 +1395,11 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
             BALL_LOG_OUTPUT_STREAM << "Advisory applied: unregister appIds "
                                    << printRemoved << " and register appIds "
                                    << printAdded << " for ";
-            if (!uri.empty()) {
-                BALL_LOG_OUTPUT_STREAM << " uri = [" << uri << "]";
+            if (uri.empty()) {
+                BALL_LOG_OUTPUT_STREAM << "domain = [" << domainName << "]";
             }
-            if (!domainName.empty()) {
-                BALL_LOG_OUTPUT_STREAM << " domain = [" << domainName << "]";
+            else {
+                BALL_LOG_OUTPUT_STREAM << "uri = [" << uri << "]";
             }
         }
     }
