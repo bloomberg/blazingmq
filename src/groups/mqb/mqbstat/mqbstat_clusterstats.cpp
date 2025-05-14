@@ -46,6 +46,10 @@ static const char k_CLUSTER_STAT_NAME[] = "clusters";
 /// statistics)
 static const char k_CLUSTER_NODES_STAT_NAME[] = "clusterNodes";
 
+/// The default utilization value reported when we cannot
+/// compute utilization.
+const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
+
 //-------------------------
 // struct ClusterStatsIndex
 //-------------------------
@@ -182,7 +186,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
             STAT_SINGLE(value, e_PARTITION_CFG_DATA_BYTES);
         return (value == bsl::numeric_limits<bsls::Types::Int64>::min() ||
                 limit == 0)
-                   ? 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
                    : (100 * value / limit);
     }
     case Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX: {
@@ -192,7 +196,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
             STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
         return (value == bsl::numeric_limits<bsls::Types::Int64>::min() ||
                 limit == 0)
-                   ? 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
                    : (100 * value / limit);
     }
 
