@@ -182,22 +182,24 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
     case Stat::e_PARTITION_DATA_UTILIZATION_MAX: {
         const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
                                                     e_PARTITION_DATA_BYTES);
+        if (value == bsl::numeric_limits<bsls::Types::Int64>::min()) {
+            return k_UNDEFINED_UTILIZATION_VALUE;
+        }
         const bsls::Types::Int64 limit =
             STAT_SINGLE(value, e_PARTITION_CFG_DATA_BYTES);
-        return (value == bsl::numeric_limits<bsls::Types::Int64>::min() ||
-                limit == 0)
-                   ? k_UNDEFINED_UTILIZATION_VALUE
-                   : (100 * value / limit);
+        BSLS_ASSERT_SAFE(limit != 0);
+        return 100 * value / limit;
     }
     case Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX: {
         const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
                                                     e_PARTITION_JOURNAL_BYTES);
+        if (value == bsl::numeric_limits<bsls::Types::Int64>::min()) {
+            return k_UNDEFINED_UTILIZATION_VALUE;
+        }
         const bsls::Types::Int64 limit =
             STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
-        return (value == bsl::numeric_limits<bsls::Types::Int64>::min() ||
-                limit == 0)
-                   ? k_UNDEFINED_UTILIZATION_VALUE
-                   : (100 * value / limit);
+        BSLS_ASSERT_SAFE(limit != 0);
+        return 100 * value / limit;
     }
 
     default: {
