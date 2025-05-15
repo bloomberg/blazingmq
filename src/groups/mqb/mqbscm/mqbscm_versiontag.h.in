@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,13 +47,13 @@
 //  #endif
 //..
 
-#define MQB_VERSION_MAJOR 99
+#define MQB_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 // MQB release major version
 
-#define MQB_VERSION_MINOR 99
+#define MQB_VERSION_MINOR @PROJECT_VERSION_MINOR@
 // MQB release minor version
 
-#define MQB_VERSION_PATCH 99
+#define MQB_VERSION_PATCH @PROJECT_VERSION_PATCH@
 // MQB patch level
 
 #define MQB_MAKE_VERSION(major, minor) ((major) * 10000 + (minor) * 100)
