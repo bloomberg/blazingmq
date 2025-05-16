@@ -27,7 +27,6 @@
 // MQB
 #include <mqbblp_queueconsumptionmonitor.h>
 #include <mqbblp_queueengineutil.h>
-#include <mqbblp_queuestate.h>
 #include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
@@ -43,7 +42,6 @@
 
 // BDE
 #include <ball_log.h>
-#include <bdlmt_fixedthreadpool.h>
 #include <bdlmt_throttle.h>
 #include <bsl_list.h>
 #include <bsl_memory.h>
@@ -89,65 +87,11 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// appId -> AppStateSp
     typedef bsl::unordered_map<bsl::string, AppStateSp> Apps;
 
-    /// Helper VST class representing queue consumption monitor data
-    class QueueConsumptionMonitorData {
-      private:
-        // PRIVATE DATA
-
-        /// Maximum time, in seconds, before the queue is declared idle.
-        bsls::Types::Int64 d_maxIdleTime;
-
-        /// EventHandle for consumption monitor, used by event scheduler.
-        bdlmt::EventSchedulerEventHandle d_eventHandle;
-
-        /// Set to true when consumption monitor event is scheduled.
-        /// Set to false when event is executed or cancelled.
-        bsls::AtomicBool d_isScheduled;
-
-        /// The set of stale appIds.
-        bsl::unordered_set<bsl::string> d_staleAppIds;
-
-      public:
-        // CREATORS
-
-        QueueConsumptionMonitorData(bslma::Allocator* allocator = 0);
-
-        // MANIPULATORS
-
-        /// Set the maximum idle time, in seconds.
-        /// If maxIdleTime is equal to zero, consumption monitor is disabled.
-        void setMaxIdleTime(bsls::Types::Int64 maxIdleTime);
-
-        /// Return reference to modifiable event handle.
-        bdlmt::EventSchedulerEventHandle& eventHandle();
-
-        /// Return reference to modifiable isScheduled flag.
-        bsls::AtomicBool& isScheduled();
-
-        /// Return reference to modifiable set of stale appIds.
-        bsl::unordered_set<bsl::string>& staleAppIds();
-
-        /// Put the object back in construction state.
-        void reset();
-
-        // ACCESSORS
-
-        /// Return the maximum idle time value, in seconds. Zero value means
-        /// that consumption monitor is disabled.
-        bsls::Types::Int64 maxIdleTime() const;
-
-        /// Calculate the time interval for the event to be scheduled for the
-        /// given 'arrivalTimeDeltaNs' (in nanoseconds).
-        bsls::TimeInterval
-        calculateEventTime(bsls::Types::Int64 arrivalTimeDeltaNs) const;
-    };
-
   private:
     // DATA
 
     QueueState* d_queueState_p;
 
-    QueueConsumptionMonitorData d_consumptionMonitorData;
     QueueConsumptionMonitor d_consumptionMonitor;
 
     /// Map of appId to AppState
@@ -205,25 +149,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void deliverMessages(AppState* app);
 
-    /// This method is called when the message delivery occured to check
-    /// conditions for scheduling the event for consumption monitor
-    /// for the specified `app` and `success`.
-    void onMessageSent(AppState* app, bool success);
-
-    /// Handler called by EventScheduler in its thread to forward event to the
-    /// queue dispatcher thread.
-    void
-    consumptionMonitorEventSchedulerHandler(bmqt::MessageGUID oldestMsgGuid,
-                                            bsl::string       oldestMsgAppId);
-
-    /// Consumption monitor event dispatcher. It checks that message for given
-    /// 'oldestMsgGuid' and 'oldestMsgAppId' is still in the queue and if so,
-    /// it triggers `queue stuck` alarm. Then it checks if there are any
-    /// undelivered messages (for all apps, except stale ones) and reschedules
-    /// the consumption monitor event if needed.
-    void consumptionMonitorEventDispatcher(bmqt::MessageGUID oldestMsgGuid,
-                                           bsl::string       oldestMsgAppId);
-
     // PRIVATE ACCESSORS
 
     /// Set up data structures for the specified `appId`.  Return 0 on
@@ -257,16 +182,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
-    /// This method is called by `consumptionMonitorEventDispatcher()` when
-    /// alarm condition is met to log alarm data for the specified `cItApp`.
-    void logAlarm(Apps::const_iterator cItApp) const;
-
-    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
-    /// If there are un-delivered messages for the specified `appKey` and
-    /// `enableLog` is `true` it logs alarm data.  Return `arrivaTimelDelta` 
-    // (in nanoseconds) of the oldest un-delivered message if any
-    // or `-1` otherwise.
-    bsls::Types::Int64 logAlarmCb(const bsl::string& appId, bool enableLog) const;
+    /// Callback called by `d_consumptionMonitor` when alarm event occurred.
+    /// If the specified `enableLog` is true, there are un-delivered messages for the specified `appKey` and
+    /// calculated alarm time for the specified `now` is in the past, alarm is logged.
+    /// Return calculated alarm time for the oldest undelivered message or empty `bsls::TimeInterval` object
+    /// if there are no un-delivered messages.
+    bsls::TimeInterval logAlarmCb(const bsl::string& appId, const bsls::TimeInterval& now, bool enableLog) const;
 
   public:
     // TRAITS
