@@ -63,6 +63,10 @@ const int k_MAX_INSTANT_MESSAGES = 10;
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 
+/// The default utilization value reported when we cannot
+/// compute utilization.
+const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
+
 // ------------------
 // struct ClientStats
 // ------------------
@@ -214,7 +218,7 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
         const bsls::Types::Int64 limit =
             STAT_SINGLE(value, DomainQueueStats::e_CFG_MSGS);
         return limit == 0
-                   ? 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
                    : (100 *
                       STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES) /
                       limit);
@@ -230,7 +234,7 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
         const bsls::Types::Int64 limit =
             STAT_SINGLE(value, DomainQueueStats::e_CFG_BYTES);
         return limit == 0
-                   ? 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
                    : (100 *
                       STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES) /
                       limit);
