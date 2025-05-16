@@ -45,7 +45,24 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 class Session;
+struct AuthenticationContext;
 struct NegotiationContext;
+
+// =====================
+// struct ConnectionType
+// =====================
+
+struct ConnectionType {
+    // Enum representing the type of session being connected, from that
+    // side of the connection's point of view.
+    enum Enum {
+        e_UNKNOWN,
+        e_CLUSTER_PROXY,   // Reverse connection proxy -> broker
+        e_CLUSTER_MEMBER,  // Cluster node -> cluster node
+        e_CLIENT,          // Either SDK or Proxy -> Proxy or cluster node
+        e_ADMIN
+    };
+};
 
 // ==============================
 // class InitialConnectionContext
@@ -113,6 +130,10 @@ class InitialConnectionContext {
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
 
+    /// The AuthenticationContext updated upon receiving an
+    /// authentication message.
+    bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
+
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
@@ -132,6 +153,8 @@ class InitialConnectionContext {
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
     setInitialConnectionCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext& setAuthenticationContext(
+        const bsl::shared_ptr<AuthenticationContext>& value);
     InitialConnectionContext&
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
@@ -143,6 +166,8 @@ class InitialConnectionContext {
     void*                                  resultState() const;
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
     const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
+    const bsl::shared_ptr<AuthenticationContext>&
+                                               authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
 };
 

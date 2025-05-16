@@ -20,6 +20,7 @@
 // BMQ
 #include <bmqex_executionpolicy.h>
 #include <bmqex_systemexecutor.h>
+#include <bmqimp_initialconnectionchannelfactory.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_status.h>
@@ -73,7 +74,7 @@ namespace {
 // CONSTANTS
 const double             k_RECONNECT_INTERVAL_MS = 500;
 const int                k_RECONNECT_COUNT = bsl::numeric_limits<int>::max();
-const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK = 512 * 1024;
+const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK         = 512 * 1024;
 const int                k_DEFAULT_MAX_MISSED_HEARTBEATS = 10;
 const int                k_DEFAULT_HEARTBEAT_INTERVAL_MS = 1000;
 
@@ -385,7 +386,7 @@ bmqt::GenericResult::Enum Application::startChannel()
         .setAttemptInterval(attemptInterval)
         .setAutoReconnect(true);
 
-    d_negotiatedChannelFactory.connect(
+    d_initialConnectionChannelFactory.connect(
         &status,
         &d_connectHandle_mp,
         options,
@@ -550,10 +551,11 @@ Application::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
 }
 
 Application::Application(
-    const bmqt::SessionOptions&             sessionOptions,
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-    const EventQueue::EventHandlerCallback& eventHandlerCB,
-    bslma::Allocator*                       allocator)
+    const bmqt::SessionOptions&                sessionOptions,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
+    const EventQueue::EventHandlerCallback&    eventHandlerCB,
+    bslma::Allocator*                          allocator)
 : d_allocatorStatContext(bmqst::StatContextConfiguration("Allocators",
                                                          allocator),
                          allocator)
@@ -597,12 +599,15 @@ Application::Application(
                                bdlf::PlaceHolders::_2),  // handle
           allocator),
       allocator)
-, d_negotiatedChannelFactory(
-      NegotiatedChannelFactoryConfig(&d_statChannelFactory,
-                                     negotiationMessage,
-                                     sessionOptions.connectTimeout(),
-                                     d_blobSpPool_sp.get(),
-                                     allocator),
+, d_initialConnectionChannelFactory(
+      InitialConnectionChannelFactoryConfig(
+          &d_statChannelFactory,
+          authenticationMessage,
+          sessionOptions.connectTimeout(),  // TODO: different for authn?
+          negotiationMessage,
+          sessionOptions.connectTimeout(),
+          d_blobSpPool_sp.get(),
+          allocator),
       allocator)
 , d_connectHandle_mp()
 , d_brokerSession(&d_scheduler,
@@ -761,9 +766,9 @@ Application::createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     int maxMissedHeartbeats = k_DEFAULT_MAX_MISSED_HEARTBEATS;
 
-    channel->properties().load(
-        &maxMissedHeartbeats,
-        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS);
+    channel->properties().load(&maxMissedHeartbeats,
+                               InitialConnectionChannelFactory::
+                                   k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS);
 
     bsl::shared_ptr<bmqp::HeartbeatMonitor> monitor(
         new (d_allocator) bmqp::HeartbeatMonitor(maxMissedHeartbeats),
@@ -784,9 +789,9 @@ void Application::startHeartbeat(
 
     int heartbeatIntervalMs = k_DEFAULT_HEARTBEAT_INTERVAL_MS;
 
-    channel->properties().load(
-        &heartbeatIntervalMs,
-        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS);
+    channel->properties().load(&heartbeatIntervalMs,
+                               InitialConnectionChannelFactory::
+                                   k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS);
 
     bsls::TimeInterval interval;
     interval.addMilliseconds(heartbeatIntervalMs);
