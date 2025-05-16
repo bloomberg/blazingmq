@@ -236,8 +236,6 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 log_file_handler.setLevel(log_file_level)
                 logging.getLogger().setLevel(log_file_level)
 
-            failures = 0
-
             def remove_log_file_handler():
                 logging.getLogger().removeHandler(log_file_handler)
                 log_file_handler.close()
@@ -387,16 +385,13 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 tool_extra_args=tool_extra_args,
                 **extra_cluster_kw_args,
             ) as cluster:
-                failures = (
-                    0 + request.session.testsfailed
-                )  # it doesn't work without the `0 +`, why?
-
                 try:
                     with internal_use(cluster):
                         logger.debug("starting cluster")
 
                         if get_cluster_param(request, "_start_cluster", True):
                             with internal_use(cluster):
+                                leader_name = os.environ.get("BLAZINGMQ_LEADER_NAME")
                                 cluster.start(
                                     wait_leader=get_cluster_param(
                                         request, "_wait_leader", True
@@ -404,6 +399,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                                     wait_ready=get_cluster_param(
                                         request, "_wait_ready", False
                                     ),
+                                    leader_name=leader_name,
                                 )
 
                         if request.instance is not None and hasattr(
@@ -631,6 +627,65 @@ multi_node_cluster_params = [
 
 @pytest.fixture(params=multi_node_cluster_params)
 def multi_node(request):
+    yield from cluster_fixture(request, request.param)
+
+
+###############################################################################
+# multi3_node cluster
+
+
+def multi3_node_cluster_config(
+    configurator: cfg.Configurator,
+    port_allocator: Iterator[int],
+    mode: Mode,
+    reverse_proxy: bool = False,
+) -> None:
+    mode.tweak(configurator.proto.cluster)
+
+    data_centers = ["east"]
+
+    cluster = configurator.cluster(
+        name="itCluster",
+        nodes=[
+            configurator.broker(
+                name=f"{data_center}{broker}",
+                tcp_host="localhost",
+                tcp_port=next(port_allocator),
+                data_center=data_center,
+            )
+            for data_center in data_centers
+            for broker in ("1", "2", "3")
+        ],
+    )
+
+    add_test_domains(cluster)
+
+    for data_center in data_centers:
+        configurator.broker(
+            name=f"{data_center}p",
+            tcp_host="localhost",
+            tcp_port=next(port_allocator),
+            data_center=data_center,
+        ).proxy(cluster, reverse=reverse_proxy)
+
+
+multi3_node_cluster_params = [
+    pytest.param(
+        functools.partial(multi3_node_cluster_config, mode=mode),
+        id=f"multi3_node{mode.suffix}",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.multi3,
+            *mode.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+
+@pytest.fixture(params=multi3_node_cluster_params)
+def multi3_node(request):
     yield from cluster_fixture(request, request.param)
 
 
