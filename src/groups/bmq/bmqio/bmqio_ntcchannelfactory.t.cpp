@@ -32,6 +32,7 @@
 #include <bdlf_bind.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
+#include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
 #include <bsls_annotation.h>
 #include <bsls_timeutil.h>
@@ -320,6 +321,11 @@ class Tester {
     /// this is `false`.
     void setPreCreateCb(bool value);
 
+    /// Find and return a free port by opening and dropping a handle.
+    /// Note that the found port might become occupied in an unlikely event of
+    /// another application using it after the handle was dropped.
+    int findFreeEphemeralPort();
+
     /// (Re-)create the object being tested and reset the state of any
     /// supporting objects.
     void init(int line);
@@ -576,6 +582,22 @@ Tester::~Tester()
 void Tester::setPreCreateCb(bool value)
 {
     d_setPreCreateCb = value;
+}
+
+int Tester::findFreeEphemeralPort()
+{
+    const char* k_HANDLE_NAME = "listenHandle";
+    listen(L_, k_HANDLE_NAME, "127.0.0.1:0", CAT_SUCCESS);
+
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);  // LOCK
+
+    HandleInfo& info = d_handleMap[k_HANDLE_NAME];
+    int         port = info.d_listenPort;
+
+    lock.release()->unlock();
+
+    cancelHandle(L_, k_HANDLE_NAME);
+    bslmt::ThreadUtil::yield();
 }
 
 void Tester::init(int line)
@@ -1051,6 +1073,70 @@ NtcChannelFactory& Tester::object()
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
+static void test7_checkMultithreadListen()
+{
+    const int k_NUM_THREADS = 10;
+    const int k_RETRY_COUNT = 10;
+
+    bmqtst::TestHelper::printTestName("Check Multithread Listen Test");
+
+    Tester t(bmqtst::TestHelperUtil::allocator());
+
+    const int port = t.findFreeEphemeralPort();
+
+    // Set up the listener function.
+    bsl::shared_ptr<bslmt::Latch> doneLatch;
+    doneLatch.createInplace(bmqtst::TestHelperUtil::allocator(),
+                            k_NUM_THREADS);
+
+    ChannelFactory* cf = &t.object();
+    ListenOptions   options;
+    options.setEndpoint(bsl::string("127.0.0.1:") + bsl::to_string(port));
+
+    bsl::function<void()> listenerFunc =
+        [&cf, &options, k_RETRY_COUNT, doneLatch]() {
+            // Null result callback for channel factory 'listen'.
+            ChannelFactory::ResultCallback resultCb =
+                [](ChannelFactoryEvent::Enum       event,
+                   const Status&                   status,
+                   const bsl::shared_ptr<Channel>& channel) {};
+
+            for (int ix = 0; ix < k_RETRY_COUNT; ++ix) {
+                Status                                      status;
+                bslma::ManagedPtr<ChannelFactory::OpHandle> opHandle;
+
+                cf->listen(&status, &opHandle, options, resultCb);
+
+                if (status) {
+                    bslmt::ThreadUtil::microSleep(2);
+                    opHandle->cancel();
+                }
+                else {
+                    bslmt::ThreadUtil::microSleep(1);
+                }
+                bslmt::ThreadUtil::yield();
+            }
+            doneLatch->arrive();
+        };
+
+    // Create listener threads
+    bslmt::ThreadAttributes attributes;
+
+    for (int ix = 0; ix < k_NUM_THREADS; ++ix) {
+        bslmt::ThreadUtil::Handle handle;
+        attributes.setThreadName("Listener-" + bsl::to_string(ix + 1));
+
+        int rc = bslmt::ThreadUtil::create(&handle, attributes, listenerFunc);
+
+        BMQTST_ASSERT_EQ_D(L_, rc, 0);
+    }
+
+    // Wait for all threads to finish
+    int rc = doneLatch->timedWait(bsls::SystemTime::nowRealtimeClock() +
+                                  bsls::TimeInterval(2.0));
+    BMQTST_ASSERT_EQ_D(L_, rc, 0);
+}
+
 static void test6_preCreationCbTest()
 // ------------------------------------------------------------------------
 // PRE CREATION CB TEST
@@ -1297,6 +1383,7 @@ int main(int argc, char* argv[])
     case 4: test4_cancelHandleTest(); break;
     case 5: test5_visitChannelsTest(); break;
     case 6: test6_preCreationCbTest(); break;
+    case 7: test7_checkMultithreadListen(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
