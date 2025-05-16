@@ -62,23 +62,25 @@ int Authenticator::onAuthenticationRequest(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        context->d_authenticationMessage.isAuthenticateRequestValue());
-    BSLS_ASSERT_SAFE(context->d_initialConnectionContext_p->isIncoming());
-    BSLS_ASSERT_SAFE(!context->d_isReversed);  // not supported for now
+        context->authenticationMessage().isAuthenticateRequestValue());
+    BSLS_ASSERT_SAFE(context->initialConnectionContext()->isIncoming());
+    BSLS_ASSERT_SAFE(!context->isReversed());  // not supported for now
 
-    bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
-        context->d_authenticationMessage.authenticateRequest();
+    const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
+        context->authenticationMessage().authenticateRequest();
 
-    BALL_LOG_DEBUG
-        << "Received authentication message from '"
-        << context->d_initialConnectionContext_p->channel()->peerUri()
-        << "': " << authenticateRequest;
+    BALL_LOG_DEBUG << "Received authentication message from '"
+                   << context->initialConnectionContext()->channel()->peerUri()
+                   << "': " << authenticateRequest;
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
     bmqp_ctrlmsg::AuthenticateResponse& response =
         authenticationResponse.makeAuthenticateResponse();
 
     // Always succeeds for now
+    // TODO: For later implementation, plugins will perform authentication,
+    // taking the `AuthenticationContext` and updates it with the
+    // authentication result.
     response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
     response.status().code()     = 0;
     response.lifetimeMs()        = 10 * 60 * 1000;
@@ -128,8 +130,8 @@ int Authenticator::sendAuthenticationMessage(
 
     // Send response event
     bmqio::Status status;
-    context->d_initialConnectionContext_p->channel()->write(&status,
-                                                            *builder.blob());
+    context->initialConnectionContext()->channel()->write(&status,
+                                                          *builder.blob());
     if (!status) {
         errorDescription << "Failed sending AuthenticationMessage "
                          << "[status: " << status << ", message: " << message
@@ -174,7 +176,7 @@ int Authenticator::handleAuthentication(bsl::ostream& errorDescription,
     bmqu::MemOutStream errStream;
     int                rc = rc_SUCCESS;
 
-    switch (context->d_authenticationMessage.selectionId()) {
+    switch (context->authenticationMessage().selectionId()) {
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATE_REQUEST: {
         rc = onAuthenticationRequest(errStream, context);
@@ -186,7 +188,7 @@ int Authenticator::handleAuthentication(bsl::ostream& errorDescription,
     default: {
         errorDescription
             << "Invalid authentication message received (unknown type): "
-            << context->d_authenticationMessage;
+            << context->authenticationMessage();
         return rc_ERROR;  // RETURN
     }
     }

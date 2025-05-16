@@ -50,7 +50,7 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 class Session;
-struct AuthenticationContext;
+class AuthenticationContext;
 struct NegotiationContext;
 
 // =====================

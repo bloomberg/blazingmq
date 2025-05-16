@@ -20,6 +20,8 @@
 // MQB
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
+#include <mqbnet_authenticationcontext.h>
+#include <mqbnet_negotiationcontext.h>
 
 // BMQ
 #include <bmqio_channel.h>
@@ -189,8 +191,8 @@ int InitialConnectionHandler::processBlob(
 
     // Authentication or Negotiation based on the type of message received.
     if (authenticationMsg.has_value()) {
-        context->authenticationContext()->d_authenticationMessage =
-            authenticationMsg.value();
+        context->authenticationContext()->setAuthenticationMessage(
+            authenticationMsg.value());
 
         rc = d_authenticator_mp->handleAuthentication(
             errorDescription,
@@ -343,14 +345,12 @@ void InitialConnectionHandler::setupContext(
     const InitialConnectionContextSp& context)
 {
     // Create an AuthenticationContext for that connection
-    bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext;
-    authenticationContext.createInplace(d_allocator_p);
-
-    authenticationContext->d_initialConnectionContext_p = context.get();
-    authenticationContext->d_isReversed                 = false;
-    authenticationContext->d_connectionType =
-        mqbnet::ConnectionType::e_UNKNOWN;
-
+    bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
+        bsl::allocate_shared<mqbnet::AuthenticationContext>(
+            d_allocator_p,
+            context.get(),  // initialConnectionContext
+            false           // isReversed
+        );
     context->setAuthenticationContext(authenticationContext);
 
     // Create an NegotiationContext for that connection

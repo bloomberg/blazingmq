@@ -28,6 +28,9 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
+// BDE
+#include <bsls_atomic.h>
+
 namespace BloombergLP {
 namespace mqbnet {
 
@@ -35,22 +38,47 @@ namespace mqbnet {
 // class AuthenticationContext
 // ===========================
 
-// VST for an implementation of AuthenticationContext
-struct AuthenticationContext {
+/// VST for the context associated with an connection being authenticated.
+class AuthenticationContext {
+  private:
     // DATA
-    /// The associated InitialConnectionContext passed in by the caller.
-    /// Held, not owned
-    InitialConnectionContext* d_initialConnectionContext_p;
-
-    /// The authentication message received from the remote peer.
+    InitialConnectionContext*           d_initialConnectionContext_p;
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
+    bool                                d_isReversed;
+    ConnectionType::Enum                d_connectionType;
 
-    /// True if this is a "reversed" connection (on either side of the
-    /// connection).
-    bool d_isReversed;
+  private:
+    // NOT IMPLEMENTED
 
-    /// The type of the session being authenticated.
-    ConnectionType::Enum d_connectionType;
+    /// Copy constructor and assignment operator are not implemented.
+    AuthenticationContext(const AuthenticationContext&);  // = delete;
+    AuthenticationContext&
+    operator=(const AuthenticationContext&);  // = delete;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+                                   bslma::UsesBslmaAllocator)
+    // CREATORS
+    AuthenticationContext(
+        InitialConnectionContext* initialConnectionContext,
+        bool                      isReversed,
+        ConnectionType::Enum      connectionType = ConnectionType::e_UNKNOWN,
+        bslma::Allocator*         basicAllocator = 0);
+
+    // MANIPULATORS
+    AuthenticationContext&
+    setInitialConnectionContext(InitialConnectionContext* value);
+    AuthenticationContext&
+    setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
+    AuthenticationContext& setIsReversed(bool value);
+    AuthenticationContext& setConnectionType(ConnectionType::Enum value);
+
+    // ACCESSORS
+    InitialConnectionContext* initialConnectionContext() const;
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
+    bool                                       isReversed() const;
+    ConnectionType::Enum                       connectionType() const;
 };
 
 }  // close package namespace
