@@ -1,4 +1,4 @@
-// Copyright 2019-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1343,7 +1343,7 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 
             if (!success) {
                 BALL_LOG_ERROR << "Failed to unregister appIds "
-                               << printRemoved << " and register appIds "
+                               << printRemoved << " and to register appIds "
                                << printAdded << " for '" << uri
                                << "'.  Current state: " << *qinfoCit->second;
 
@@ -1370,8 +1370,8 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
                                                  allocator);
         if (!success) {
             BALL_LOG_ERROR << "Failed to unregister appIds " << printRemoved
-                           << " and register appIds " << printAdded << " for '"
-                           << uri
+                           << " and to register appIds " << printAdded
+                           << " for '" << uri
                            << "'.  Current state: " << *qinfoCit->second;
 
             return;  // RETURN
@@ -1390,9 +1390,18 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
                        << queueAdvisory << ", rc: " << rc;
     }
     else {
-        BALL_LOG_INFO << "Unregister appIds " << printRemoved
-                      << " and registered appIds " << printAdded << " for '"
-                      << uri << "'.";
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM << "Advisory applied: unregister appIds "
+                                   << printRemoved << " and register appIds "
+                                   << printAdded << " for ";
+            if (uri.empty()) {
+                BALL_LOG_OUTPUT_STREAM << "domain = [" << domainName << "]";
+            }
+            else {
+                BALL_LOG_OUTPUT_STREAM << "uri = [" << uri << "]";
+            }
+        }
     }
 }
 
@@ -1878,15 +1887,16 @@ int ClusterUtil::load(ClusterState*               state,
     BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
         &clusterData.cluster()));
 
+    /// Value for the various RC error categories
     enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_ITERATION_ERROR = -1  // An error was encountered while iterating
-                                 // through the iterator
-        ,
-        rc_MESSAGE_LOAD_ERROR = -2  // An error was encountered while
-                                    // attempting to load a message
+        /// No error
+        rc_SUCCESS = 0,
+
+        /// An error was encountered while iterating through the iterator
+        rc_ITERATION_ERROR = -1,
+
+        // An error was encountered while attempting to load a message
+        rc_MESSAGE_LOAD_ERROR = -2
     };
 
     // Point the CSL iterator to the latest snapshot record, since we only need
