@@ -17,10 +17,77 @@
 #include <mqbnet_authenticationcontext.h>
 
 #include <mqbscm_version.h>
+// MQB
+#include <mqbnet_initialconnectioncontext.h>
+
 namespace BloombergLP {
 namespace mqbnet {
 
-// NOTHING
+// ---------------------------
+// class AuthenticationContext
+// ---------------------------
 
-}  // close package namespace
-}  // close enterprise namespace
+AuthenticationContext::AuthenticationContext(
+    InitialConnectionContext* initialConnectionContext,
+    bool                      isReversed,
+    ConnectionType::Enum      connectionType,
+    bslma::Allocator*         basicAllocator)
+: d_initialConnectionContext_p(initialConnectionContext)
+, d_authenticationMessage(basicAllocator)
+, d_isReversed(isReversed)
+, d_connectionType(connectionType)
+{
+    // NOTHING
+}
+
+AuthenticationContext& AuthenticationContext::setInitialConnectionContext(
+    InitialConnectionContext* value)
+{
+    d_initialConnectionContext_p = value;
+    return *this;
+}
+
+AuthenticationContext& AuthenticationContext::setAuthenticationMessage(
+    const bmqp_ctrlmsg::AuthenticationMessage& value)
+{
+    d_authenticationMessage = value;
+    return *this;
+}
+
+AuthenticationContext& AuthenticationContext::setIsReversed(bool value)
+{
+    d_isReversed = value;
+    return *this;
+}
+
+AuthenticationContext&
+AuthenticationContext::setConnectionType(ConnectionType::Enum value)
+{
+    d_connectionType = value;
+    return *this;
+}
+
+InitialConnectionContext*
+AuthenticationContext::initialConnectionContext() const
+{
+    return d_initialConnectionContext_p;
+}
+
+const bmqp_ctrlmsg::AuthenticationMessage&
+AuthenticationContext::authenticationMessage() const
+{
+    return d_authenticationMessage;
+}
+
+bool AuthenticationContext::isReversed() const
+{
+    return d_isReversed;
+}
+
+ConnectionType::Enum AuthenticationContext::connectionType() const
+{
+    return d_connectionType;
+}
+
+}  // namespace mqbnet
+}  // namespace BloombergLP
