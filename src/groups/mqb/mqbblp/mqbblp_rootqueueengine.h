@@ -102,8 +102,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const bool d_isFanout;
 
-    /// Event scheduler currently used for message throttling.  Held, not
-    /// owned.
+    /// Event scheduler currently used for message throttling and consumption
+    /// monitor.  Held, not owned.
     bdlmt::EventScheduler* d_scheduler_p;
 
     /// Thread pool for any standalone work that can be offloaded to
@@ -182,11 +182,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
-    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
-    /// If there are un-delivered messages for the specified `appKey` and
-    /// `enableLog` is `true` it logs alarm data. Return `true` if there are
-    /// un-delivered messages and `false` otherwise.
-    bool logAlarmCb(const bsl::string& appId, bool enableLog) const;
+    /// Callback called by `d_consumptionMonitor` when alarm event occurred.
+    /// If the specified `enableLog` is true, there are un-delivered messages for the specified `appKey` and
+    /// calculated alarm time for the specified `now` is in the past, alarm is logged.
+    /// Return calculated alarm time for the oldest undelivered message or empty `bsls::TimeInterval` object
+    /// if there are no un-delivered messages.
+    bsls::TimeInterval logAlarmCb(const bsl::string& appId, const bsls::TimeInterval& now, bool enableLog) const;
 
   public:
     // TRAITS
@@ -364,11 +365,13 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Periodically invoked with the current time provided in the specified
-    /// `currentTimer`; can be used for regular status check, such as for
+    /// Called by the `mqbi::Queue::postMessage` when the message
+    /// has been posted by the specified `source` and saved in the storage.
+    /// It could be used to monitor the message delivery for
     /// ensuring messages on the queue are flowing and not accumulating.
+    ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
+    void afterPostMessage(mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `addedAppIds` have been dynamically
     /// registered.

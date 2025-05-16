@@ -63,6 +63,32 @@ static mqbconfm::Domain getDomainConfig()
     return domainCfg;
 }
 
+class QueueConsumptionMonitorTest : public QueueConsumptionMonitor {
+    // This class is a test driver for the 'QueueConsumptionMonitor' class.
+    // It is used to get access to the protected members of the class for testing
+    // purposes.
+  public:
+
+    // CREATORS
+    QueueConsumptionMonitorTest(QueueState*       queueState,
+                                 const LoggingCb&  loggingCb,
+                                 bslma::Allocator* allocator)
+    : QueueConsumptionMonitor(queueState, loggingCb, allocator)
+    {    
+        // NOTHING
+    }
+
+    // MODIFIERS
+    
+    void alarmEventDispatched() {
+        QueueConsumptionMonitor::alarmEventDispatched();
+    }
+
+    void idleEventDispatched(const bsl::string id) {
+        QueueConsumptionMonitor::idleEventDispatched(id);
+    }
+};
+
 struct Test : bmqtst::Test {
     // PUBLIC DATA
     bsl::string                    d_id;
@@ -72,7 +98,7 @@ struct Test : bmqtst::Test {
     mqbmock::Domain                d_domain;
     mqbmock::Queue                 d_queue;
     QueueState                     d_queueState;
-    QueueConsumptionMonitor        d_monitor;
+    QueueConsumptionMonitorTest    d_monitor;
     mqbs::InMemoryStorage          d_storage;
     bsl::set<bsl::string>          d_haveUndelivered;
 
@@ -81,8 +107,8 @@ struct Test : bmqtst::Test {
     ~Test() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void putMessage(const bsl::string& id = bsl::string());
-    bool loggingCb(const bsl::string& id, bool enableLog);
+    void putMessage(const bsl::string& id = bsl::string(), bool isUndelivered = true);
+    bsls::TimeInterval loggingCb(const bsl::string& id, const bsls::TimeInterval& now, bool enableLog);
 };
 
 Test::Test()
@@ -104,7 +130,8 @@ Test::Test()
             bdlf::BindUtil::bind(&Test::loggingCb,
                                  this,
                                  bdlf::PlaceHolders::_1,   // id
-                                 bdlf::PlaceHolders::_2),  // enableLog
+                                 bdlf::PlaceHolders::_2,   // now
+                                 bdlf::PlaceHolders::_3),  // enableLog
 
             bmqtst::TestHelperUtil::allocator())
 , d_storage(d_queue.uri(),
@@ -153,55 +180,76 @@ Test::~Test()
     d_domain.unregisterQueue(&d_queue);
 }
 
-void Test::putMessage(const bsl::string& id)
+void Test::putMessage(const bsl::string& id, bool isUndelivered)
 {
-    d_monitor.onMessageSent(id);
-    d_haveUndelivered.insert(id);
+    d_monitor.onMessagePosted();
+    // d_monitor.onMessageSent(id);
+    if (isUndelivered) {
+        d_haveUndelivered.insert(id);
+    }
 }
 
-bool Test::loggingCb(const bsl::string& id, const bool enableLog)
+bsls::TimeInterval Test::loggingCb(const bsl::string& id, const bsls::TimeInterval& now, bool enableLog)
 {
     BALL_LOG_SET_CATEGORY("MQBBLP.QUEUECONSUMPTIONMONITORTEST");
 
-    bool haveUndelivered = d_haveUndelivered.contains(id);
+    const bool haveUndelivered = d_haveUndelivered.contains(id);
 
     if (enableLog && haveUndelivered) {
         BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK")
             << "Test Alarm" << BMQTSK_ALARMLOG_END;
     }
 
-    return haveUndelivered;
+    bsls::TimeInterval result;
+    if (haveUndelivered) {
+        result = now;
+    }
+
+    return result;
 }
 
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+BMQTST_TEST_F(Test, calculateAlarmTime)
+// ------------------------------------------------------------------------
+// Concerns:
+//   Check that the alarm time is calculated correctly.
+//
+// Plan: Instantiate component, calculate alarm time and check the result.
+// ------------------------------------------------------------------------
+{
+    d_monitor.setMaxIdleTime(0);
+    BMQTST_ASSERT_EQ(d_monitor.calculateAlarmTime(0, bsls::TimeInterval(1, 2)),
+                     bsls::TimeInterval(1, 2));
+
+    d_monitor.setMaxIdleTime(10);
+    BMQTST_ASSERT_EQ(d_monitor.calculateAlarmTime(0, bsls::TimeInterval(1, 2)),
+                     bsls::TimeInterval(11, 2));
+
+    BMQTST_ASSERT_EQ(d_monitor.calculateAlarmTime(2000000000, bsls::TimeInterval(1, 2)),
+                     bsls::TimeInterval(9, 2));
+}
+
 BMQTST_TEST_F(Test, doNotMonitor)
 // ------------------------------------------------------------------------
 // Concerns:
 //   No change is reported if maxIdleTime is not set to non-zero value
 //
-// Plan: Instantiate component, put message in queue, and simulate a
-//   long inactivity period.
+// Plan: Instantiate component, put message in queue, and check no alarm.
 // ------------------------------------------------------------------------
 {
-    putMessage();
-
     bmqtst::ScopedLogObserver observer(ball::Severity::e_INFO,
                                        bmqtst::TestHelperUtil::allocator());
 
     d_monitor.registerSubStream(d_id);
 
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-
-    d_monitor.onTimer(0);
-
-    d_monitor.onTimer(1000000);
+    putMessage(d_id);
 
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
     BMQTST_ASSERT_EQ(observer.records().size(), 0U);
 }
@@ -218,18 +266,17 @@ BMQTST_TEST_F(Test, emptyQueue)
                                           bmqtst::TestHelperUtil::allocator());
     size_t                    expectedLogRecords = 0U;
 
-    const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
-
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
+    d_monitor.setMaxIdleTime(1);
 
     d_monitor.registerSubStream(d_id);
 
-    d_monitor.onTimer(k_MAX_IDLE_TIME);
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
-    d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
+    d_monitor.alarmEventDispatched();
+
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
@@ -240,41 +287,31 @@ BMQTST_TEST_F(Test, putAliveIdleSendAlive)
 // Concerns: State becomes IDLE after set period then returns to normal
 //   when message is processed - this is a typical, full scenario.
 //
-// Plan: Instantiate component, put message in queue, make time pass and
-// check that state flips to IDLE according to specs, check logs, make more
-// time pass and check that state remains 'idle', signal component that a
-// message was consumed, check that state flips to 'alive', make more time
-// pass, check that state remains 'alive'.
+// Plan: Instantiate component, put message in queue, simulate time pass and
+// check that state flips to IDLE according to specs, check logs, 
+// signal component that a message was consumed, check that state flips to 
+// 'alive', make more time pass, check that state remains 'alive'.
 // ------------------------------------------------------------------------
 {
     bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
     size_t                    expectedLogRecords = 0U;
 
-    const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
-
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
+    d_monitor.setMaxIdleTime(1);
 
     d_monitor.registerSubStream(d_id);
 
-    putMessage();
-
-    d_monitor.onTimer(k_MAX_IDLE_TIME);
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME - 1);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    putMessage(d_id);
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
+    d_monitor.alarmEventDispatched();
+
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_IDLE);
     BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
@@ -283,23 +320,15 @@ BMQTST_TEST_F(Test, putAliveIdleSendAlive)
         "ALARM \\[QUEUE_STUCK\\]",
         bmqtst::TestHelperUtil::allocator()));
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_IDLE);
-
     d_monitor.onMessageSent(d_id);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_IDLE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
-    d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
     BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "no longer appears to be stuck",
         bmqtst::TestHelperUtil::allocator()));
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
 }
 
 BMQTST_TEST_F(Test, putAliveIdleEmptyAlive)
@@ -311,74 +340,91 @@ BMQTST_TEST_F(Test, putAliveIdleEmptyAlive)
 // must return to 'alive'.
 // ------------------------------------------------------------------------
 {
-    const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
-
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
+    d_monitor.setMaxIdleTime(1);
 
     d_monitor.registerSubStream(d_id);
 
-    putMessage();
-
-    d_monitor.onTimer(k_MAX_IDLE_TIME);
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_IDLE);
+    putMessage(d_id);
 
-    d_haveUndelivered.erase(d_id);
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-}
+    d_monitor.alarmEventDispatched();
 
-BMQTST_TEST_F(Test, changeMaxIdleTime)
-// ------------------------------------------------------------------------
-// Concerns: setting max idle time to new value also resets monitoring.
-//
-// Plan: Instantiate component, put message in queue, make time pass and
-// check that state flips to IDLE according to specs, change max idle time,
-// check that state is back to 'alive' and things behave as if 'onTimer'
-// had never been called.
-// ------------------------------------------------------------------------
-{
-    const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
-
-    d_monitor.registerSubStream(d_id);
-
-    putMessage();
-
-    d_monitor.onTimer(0);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-
-    d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_IDLE);
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
 
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME * 2);
+    // Simulate message removed by TTL or queue perge                                      
+    d_haveUndelivered.erase(d_id);
+
+    d_monitor.idleEventDispatched(d_id);
+
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        logObserver.records().back(),
+        "no longer appears to be stuck",
+        bmqtst::TestHelperUtil::allocator()));
+}
+
+BMQTST_TEST_F(Test, changeMaxIdleTime)
+// ------------------------------------------------------------------------
+// Concerns: setting max idle time to new value also resets monitoring.
+//
+// Plan: Instantiate component, put message in queue, simulate time pass and
+// check that state flips to IDLE according to specs, change max idle time,
+// check that state is back to 'alive'.
+// ------------------------------------------------------------------------
+{
+    d_monitor.setMaxIdleTime(1);
+
+    d_monitor.registerSubStream(d_id);
+
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+
+    putMessage(d_id);
+
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
+
+    d_monitor.alarmEventDispatched();
+
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
+
+    d_monitor.setMaxIdleTime(1);
+    
+    // No change in state if the same value is set                                      
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
+                         
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
+                                          bmqtst::TestHelperUtil::allocator());
+
+    d_monitor.setMaxIdleTime(2);
+    
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
     BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 
-    d_monitor.onTimer(k_MAX_IDLE_TIME * 2);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
+    d_monitor.alarmEventDispatched();
 
-    d_monitor.onTimer(k_MAX_IDLE_TIME * 2 + k_MAX_IDLE_TIME * 2);
-    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
-    d_monitor.onTimer(k_MAX_IDLE_TIME * 2 + k_MAX_IDLE_TIME * 2 + 1);
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_IDLE);
+                     QueueConsumptionMonitor::State::e_IDLE)
+
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
 }
 
 BMQTST_TEST_F(Test, reset)
@@ -390,23 +436,27 @@ BMQTST_TEST_F(Test, reset)
 // time pass beyond idle, check that nothing was logged.
 // ------------------------------------------------------------------------
 {
-    const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
-
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
+    d_monitor.setMaxIdleTime(1);
 
     d_monitor.registerSubStream(d_id);
 
-    putMessage();
+    putMessage(d_id, false);
 
-    d_monitor.onTimer(0);
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
+
+    d_monitor.alarmEventDispatched();
+
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
-
     d_monitor.reset();
-    d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
+
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+
     BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 }
 
@@ -424,16 +474,13 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 {
     bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
-
-    const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
-
     mqbu::StorageKey key1, key2;
     key1.fromHex("ABCDEF1234");
     key2.fromHex("1234ABCDEF");
     bsl::string id1("app1");
     bsl::string id2("app2");
 
-    d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
+    d_monitor.setMaxIdleTime(1);
 
     bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
     d_storage.addVirtualStorage(errorDescription, id1, key1);
@@ -444,31 +491,42 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     d_monitor.registerSubStream(id1);
     d_monitor.registerSubStream(id2);
 
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+
     putMessage(id1);
     putMessage(id2);
 
-    d_monitor.onTimer(k_MAX_IDLE_TIME);
-    BMQTST_ASSERT_EQ(d_monitor.state(id1),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(d_monitor.state(id2),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME - 1);
-    BMQTST_ASSERT_EQ(d_monitor.state(id1),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(d_monitor.state(id2),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    d_monitor.alarmEventDispatched();
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME);
-    BMQTST_ASSERT_EQ(d_monitor.state(id1),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(d_monitor.state(id2),
-                     QueueConsumptionMonitor::State::e_ALIVE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
+    // d_monitor.onTimer(k_MAX_IDLE_TIME);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
+    //                  QueueConsumptionMonitor::State::e_ALIVE);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
+    //                  QueueConsumptionMonitor::State::e_ALIVE);
+    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+
+    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME - 1);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
+    //                  QueueConsumptionMonitor::State::e_ALIVE);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
+    //                  QueueConsumptionMonitor::State::e_ALIVE);
+    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+
+    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
+    //                  QueueConsumptionMonitor::State::e_ALIVE);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
+    //                  QueueConsumptionMonitor::State::e_ALIVE);
+    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+
+    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
     BMQTST_ASSERT_EQ(d_monitor.state(id1),
                      QueueConsumptionMonitor::State::e_IDLE);
     BMQTST_ASSERT_EQ(d_monitor.state(id2),
@@ -483,20 +541,20 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
             bmqtst::TestHelperUtil::allocator()));
     }
 
-    d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
-    BMQTST_ASSERT_EQ(d_monitor.state(id1),
-                     QueueConsumptionMonitor::State::e_IDLE);
-    BMQTST_ASSERT_EQ(d_monitor.state(id2),
-                     QueueConsumptionMonitor::State::e_IDLE);
+    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
+    //                  QueueConsumptionMonitor::State::e_IDLE);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
+    //                  QueueConsumptionMonitor::State::e_IDLE);
 
     d_monitor.onMessageSent(id1);
-    BMQTST_ASSERT_EQ(d_monitor.state(id1),
-                     QueueConsumptionMonitor::State::e_IDLE);
-    BMQTST_ASSERT_EQ(d_monitor.state(id2),
-                     QueueConsumptionMonitor::State::e_IDLE);
-    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
+    //                  QueueConsumptionMonitor::State::e_IDLE);
+    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
+    //                  QueueConsumptionMonitor::State::e_IDLE);
+    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
-    d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
+    // d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
@@ -510,7 +568,7 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
                      QueueConsumptionMonitor::State::e_IDLE);
 
     d_monitor.onMessageSent(id2);
-    d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 3);
+    // d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 3);
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
@@ -534,46 +592,68 @@ BMQTST_TEST_F(Test, usage)
 #define monitor d_monitor
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
-                                          bmqtst::TestHelperUtil::allocator());
-
+                                          bmqtst::TestHelperUtil::allocator());                                          
+    size_t                    expectedLogRecords = 0U;
+    
     monitor.setMaxIdleTime(20);
 
-    d_monitor.registerSubStream(d_id);
+    monitor.registerSubStream(d_id);
+    
+    putMessage(d_id);
+    putMessage(d_id);
 
-    putMessage();
-    putMessage();
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
 
-    bsls::Types::Int64 T = 0;
-    // at time T
-    monitor.onTimer(T);  // nothing is logged
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
-    // 15 seconds later - T + 15s
-    monitor.onTimer(T += 15);  // nothing is logged
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
-    // 15 seconds later - T + 30s
-    monitor.onTimer(T += 15);  // log ALARM
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
-    // 15 seconds later - T + 45s
-    monitor.onTimer(T += 15);  // nothing is logged
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
-    // 15 seconds later - T + 60s - consume first message, inform monitor:
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+
+    monitor.alarmEventDispatched();
+
+    // log ALARM
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        logObserver.records().back(),
+        "ALARM \\[QUEUE_STUCK\\]",
+        bmqtst::TestHelperUtil::allocator()));
+
+    // consume first message
     monitor.onMessageSent(d_id);
 
-    // 15 seconds later - T + 75s
-    monitor.onTimer(T += 15);  // log INFO: back to active
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 2u);
-    // 15 seconds later - T + 90s
-    monitor.onTimer(T += 15);  // nothing is logged
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 2u);
-    // 15 seconds later - T + 105s
-    monitor.onTimer(T += 15);  // log ALARM
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 3u);
-    // 15 seconds later - T + 120s
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
+
+    // log INFO: back to active
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        logObserver.records().back(),
+        "no longer appears to be stuck",
+        bmqtst::TestHelperUtil::allocator()));
+
+    monitor.alarmEventDispatched();
+
+    // log ALARM
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
+
+    // consume second message
+    monitor.onMessageSent(d_id);
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
     d_haveUndelivered.erase(d_id);
 
-    monitor.onTimer(T += 15);  // log INFO: back to active
-    BMQTST_ASSERT_EQ(logObserver.records().size(), 4u);
+    // log INFO: back to active
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
 
+    monitor.alarmEventDispatched();
+
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    
 #undef monitor
 }
 
