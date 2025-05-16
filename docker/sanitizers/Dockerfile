@@ -20,4 +20,6 @@ COPY CMakeLists.txt ./
 RUN docker/sanitizers/build_sanitizer.sh ${SANITIZER_NAME}
 
 # Run unit tests
-CMD [ "/blazingmq/cmake.bld/Linux/run-unittests.sh" ]
+# CMD [ "/blazingmq/cmake.bld/Linux/run-unittests.sh" ]
+CMD [ "/blazingmq/cmake.bld/Linux/run-it.sh" ]
+
