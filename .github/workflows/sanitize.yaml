@@ -33,7 +33,7 @@ jobs:
     name: ${{ inputs.mode }}
 
     runs-on: ubuntu-24.04
-    if: github.event.review.state == 'APPROVED'
+    # if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
       - name : Purge runner
