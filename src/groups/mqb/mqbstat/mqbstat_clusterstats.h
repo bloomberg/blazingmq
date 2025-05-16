@@ -101,7 +101,12 @@ class ClusterStats {
             e_PARTITION_DATA_CONTENT,
             /// Maximum observed outstanding bytes in the journal file of the
             /// partition.
-            e_PARTITION_JOURNAL_CONTENT
+            e_PARTITION_JOURNAL_CONTENT,
+            /// Maximum observed utilization of the data file of the partition.
+            e_PARTITION_DATA_UTILIZATION_MAX,
+            /// Maximum observed utilization of the journal file of the
+            /// partition.
+            e_PARTITION_JOURNAL_UTILIZATION_MAX
         };
     };
 
