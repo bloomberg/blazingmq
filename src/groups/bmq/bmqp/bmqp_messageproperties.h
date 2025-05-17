@@ -99,6 +99,8 @@ class MessageProperties_Schema {
                              bslma::Allocator*        basicAllocator);
     MessageProperties_Schema(const MessageProperties_Schema& other);
 
+    ~MessageProperties_Schema();
+
     // PUBLIC ACCESSORS
     bool loadIndex(int* index, const bsl::string& name) const;
 };
