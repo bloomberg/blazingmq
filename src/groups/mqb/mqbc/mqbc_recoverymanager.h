@@ -466,6 +466,7 @@ inline RecoveryManager::ChunkDeleter::ChunkDeleter(
 , d_counter_sp(counter)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_mfd_sp);
     BSLS_ASSERT_SAFE(d_counter_sp);
 
     ++(*d_counter_sp);
