@@ -23,6 +23,7 @@ scripts for running a cluster.
 # pyright: reportOptionalMemberAccess=false
 
 import copy
+import dataclasses
 import functools
 import itertools
 import logging
@@ -317,7 +318,14 @@ class Configurator:
             site.mkdir(str(stats_dir))
 
     def deploy_domains(self, broker: Broker, site: Site) -> None:
-        self._create_json_file(broker.clusters, site, "etc/clusters.json")
+        self._create_json_file(
+            dataclasses.replace(broker.clusters, proxy_clusters=[]),
+            site,
+            "etc/clusters.json",
+        )
+
+        for proxy in broker.clusters.proxy_clusters:
+            self._create_json_file(proxy, site, f"etc/proxyclusters/{proxy.name}.json")
 
         for cluster in broker.clusters.my_clusters:
             for storage_dir in (
