@@ -60,13 +60,15 @@ struct RecoveryUtil {
   public:
     // FUNCTIONS
 
-    /// Load corresponding file locations in the specified `journalFd` and
-    /// the specified `dataFd` for journal file and data file respectively
-    /// using the specified `fileSet`. The function return a return code
-    /// which is 0 for success and non-zero otherwise.
+    /// Load corresponding file locations in the specified `journalFd`, the
+    /// specified `dataFd`, and the optionally specified `qlistFd` for journal
+    /// file, data file, and optionallt Qlist file respectively using the
+    /// specified `fileSet`. The function return a return code which is 0 for
+    /// success and non-zero otherwise.
     static int loadFileDescriptors(mqbs::MappedFileDescriptor* journalFd,
                                    mqbs::MappedFileDescriptor* dataFd,
-                                   const mqbs::FileStoreSet&   fileSet);
+                                   const mqbs::FileStoreSet&   fileSet,
+                                   mqbs::MappedFileDescriptor* qlistFd = 0);
 
     /// Load the begin and end offsets from specified `journalFd` into the
     /// specified `journalFileBeginOffset`, specified `journalFileEndOffset`.
@@ -129,7 +131,7 @@ struct RecoveryUtil {
     /// This function operates on the record currently being pointed by the
     /// specified `journalIt`. It uses the specified `dataFd` if the
     /// record is a data record, the specified `qlistFd` if the record is
-    /// a qlist record and the specified `fsmWorkflow` value is false. It
+    /// a qlist record and the specified `qlistAware` value is true. It
     /// populates the specified `storageMsgType`, `payloadRecordBase` and
     /// `payloadRecordLen` with the appropriate values.
     static void
@@ -138,7 +140,7 @@ struct RecoveryUtil {
                          int*                              payloadRecordLen,
                          const mqbs::JournalFileIterator&  journalIt,
                          const mqbs::MappedFileDescriptor& dataFd,
-                         bool                              fsmWorkflow,
+                         bool                              qlistAware,
                          const mqbs::MappedFileDescriptor& qlistFd =
                              mqbs::MappedFileDescriptor());
 };
