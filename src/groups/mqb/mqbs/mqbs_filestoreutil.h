@@ -29,6 +29,7 @@
 
 // MQB
 
+#include "bmqu_blobobjectproxy.h"
 #include <mqbcfg_messages.h>
 #include <mqbs_datastore.h>
 #include <mqbs_fileset.h>
@@ -325,6 +326,56 @@ struct FileStoreUtil {
                              const FileStoreSet&         fileSet,
                              bool                        needQList = true,
                              bool                        needData  = true);
+
+    /// Write a message recorded loaded from `event` at `recordPosition` to the
+    /// `journal` and `dataFile` currently at `dataOffset`.  Behavior is
+    /// undefined unless there are at least `requestedJournalSpace` bytes of
+    /// space available in the `journal`.  Store the resulting values in
+    /// `journalPos` and `dataFilePos`, and optionally in `headerSize`,
+    /// `optionsSize`, `messageSize`, `queueKey`, `messageGuid`, `refCount`,
+    /// and `messagePropertiesInfo` if they are not null.  Return 0 on success,
+    /// non-zero value otherwise.
+    static int writeMessageRecordImpl(
+        bsls::Types::Uint64*         journalPos,
+        bsls::Types::Uint64*         dataFilePos,
+        const bdlbb::Blob&           event,
+        const bmqu::BlobPosition&    recordPosition,
+        const MappedFileDescriptor&  journal,
+        int                          requestedJournalSpace,
+        const MappedFileDescriptor&  dataFile,
+        bsls::Types::Uint64          dataOffset,
+        int*                         headerSize            = 0,
+        int*                         optionsSize           = 0,
+        int*                         messageSize           = 0,
+        mqbu::StorageKey*            queueKey              = 0,
+        bmqt::MessageGUID*           messageGuid           = 0,
+        unsigned int*                refCount              = 0,
+        bmqp::MessagePropertiesInfo* messagePropertiesInfo = 0);
+
+    /// Write a queue creation record loaded from `event` at `recordPosition`
+    /// for `partitionId` to the `journal`.  If `qListAware`, also write to
+    /// `qlistFile` currently at `qlistOffset`.  Behavior is undefined unless
+    /// there are at least `requestedJournalSpace` bytes of space available in
+    /// the `journal`. Store the resulting values in `journalPos` and
+    /// `qlistFilePos`, and optionally in `queueRecLength`, `quri`, `queueKey`,
+    /// and `queueOpType` if they are not null.  Return 0 on success, non-zero
+    /// value otherwise.
+    static int
+    writeQueueCreationRecordImpl(bsls::Types::Uint64*        journalPos,
+                                 bsls::Types::Uint64*        qlistFilePos,
+                                 mqbi::Storage::AppInfos*    appIdKeyPairs,
+                                 int                         partitionId,
+                                 const bdlbb::Blob&          event,
+                                 const bmqu::BlobPosition&   recordPosition,
+                                 const MappedFileDescriptor& journal,
+                                 int  requestedJournalSpace,
+                                 bool qListAware,
+                                 const MappedFileDescriptor& qlistFile,
+                                 bsls::Types::Uint64         qlistOffset,
+                                 unsigned int*      queueRecLength = 0,
+                                 bmqt::Uri*         quri           = 0,
+                                 mqbu::StorageKey*  queueKey       = 0,
+                                 QueueOpType::Enum* queueOpType    = 0);
 };
 
 // ============================================================================

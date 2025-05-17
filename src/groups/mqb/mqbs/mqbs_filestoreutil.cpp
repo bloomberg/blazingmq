@@ -1354,10 +1354,345 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
             return rc_QLIST_FILE_ITERATOR_FAILURE;  // RETURN
         }
         BSLS_ASSERT_SAFE(qit->isValid());
-        BALL_LOG_ERROR << "xxm 2";
-        BALL_LOG_ERROR << "yyan82 TODO rm qit->isValid() = " << qit->isValid()
-                       << ", qit->header().headerWords() = "
-                       << qit->header().headerWords();
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStoreUtil::writeMessageRecordImpl(
+    bsls::Types::Uint64*         journalPos,
+    bsls::Types::Uint64*         dataFilePos,
+    const bdlbb::Blob&           event,
+    const bmqu::BlobPosition&    recordPosition,
+    const MappedFileDescriptor&  journal,
+    int                          requestedJournalSpace,
+    const MappedFileDescriptor&  dataFile,
+    bsls::Types::Uint64          dataOffset,
+    int*                         headerSize,
+    int*                         optionsSize,
+    int*                         messageSize,
+    mqbu::StorageKey*            queueKey,
+    bmqt::MessageGUID*           messageGuid,
+    unsigned int*                refCount,
+    bmqp::MessagePropertiesInfo* messagePropertiesInfo)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(journalPos && *journalPos >= 0);
+    BSLS_ASSERT_SAFE(dataFilePos && *dataFilePos >= 0);
+    BSLS_ASSERT_SAFE(journal.isValid());
+    BSLS_ASSERT_SAFE(requestedJournalSpace > 0);
+    BSLS_ASSERT_SAFE(dataFile.isValid());
+    BSLS_ASSERT_SAFE(dataOffset >= 0);
+
+    enum {
+        rc_SUCCESS              = 0,
+        rc_MISSING_PAYLOAD      = -1,
+        rc_MISSING_PAYLOAD_HDR  = -2,
+        rc_INCOMPLETE_PAYLOAD   = -3,
+        rc_DATA_OFFSET_MISMATCH = -4
+    };
+
+    // Extract payload's position from blob, based on 'recordPosition'.  Per
+    // replication algo, a partition sync message starts with journal record
+    // followed by payload.  Payload contains 'DataHeader', options (if any),
+    // properties and message, and is already DWORD aligned.
+
+    bmqu::BlobPosition payloadBeginPos;
+    int                rc = bmqu::BlobUtil::findOffsetSafe(
+        &payloadBeginPos,
+        event,
+        recordPosition,
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+
+    if (0 != rc) {
+        return 10 * rc + rc_MISSING_PAYLOAD;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<DataHeader> dataHeader(
+        &event,
+        payloadBeginPos,
+        -DataHeader::k_MIN_HEADER_SIZE,
+        true,    // read
+        false);  // write
+    if (!dataHeader.isSet()) {
+        // Couldn't read DataHeader
+        return rc_MISSING_PAYLOAD_HDR;  // RETURN
+    }
+
+    // Ensure that blob has enough data as indicated by length in 'dataHeader'.
+    //
+    // TBD: find a cheaper way for this check.
+
+    const int messageSizeVal = dataHeader->messageWords() *
+                               bmqp::Protocol::k_WORD_SIZE;
+    if (messageSize) {
+        *messageSize = messageSizeVal;
+    }
+    if (headerSize) {
+        *headerSize = dataHeader->headerWords() * bmqp::Protocol::k_WORD_SIZE;
+    }
+    if (optionsSize) {
+        *optionsSize = dataHeader->optionsWords() *
+                       bmqp::Protocol::k_WORD_SIZE;
+    }
+    if (messagePropertiesInfo) {
+        *messagePropertiesInfo = bmqp::MessagePropertiesInfo(*dataHeader);
+    }
+
+    bmqu::BlobPosition payloadEndPos;
+    rc = bmqu::BlobUtil::findOffsetSafe(&payloadEndPos,
+                                        event,
+                                        payloadBeginPos,
+                                        messageSizeVal);
+    if (0 != rc) {
+        return 10 * rc + rc_INCOMPLETE_PAYLOAD;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(dataFile.fileSize() >= (*dataFilePos + messageSizeVal));
+
+    // Append payload to data file.
+
+    bmqu::BlobUtil::copyToRawBufferFromIndex(dataFile.block().base() +
+                                                 *dataFilePos,
+                                             event,
+                                             payloadBeginPos.buffer(),
+                                             payloadBeginPos.byte(),
+                                             messageSizeVal);
+    *dataFilePos += messageSizeVal;
+
+    // Keep track of journal record's offset.
+
+    bsls::Types::Uint64 recordOffset = *journalPos;
+
+    // Append message record to journal.
+
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (*journalPos + requestedJournalSpace));
+
+    bmqu::BlobUtil::copyToRawBufferFromIndex(
+        journal.block().base() + recordOffset,
+        event,
+        recordPosition.buffer(),
+        recordPosition.byte(),
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    *journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    OffsetPtr<const MessageRecord> msgRec(journal.block(), recordOffset);
+    if (queueKey) {
+        *queueKey = msgRec->queueKey();
+    }
+    if (messageGuid) {
+        *messageGuid = msgRec->messageGUID();
+    }
+    if (refCount) {
+        *refCount = msgRec->refCount();
+    }
+
+    // Check data offset in the replicated journal record sent by the primary
+    // vs data offset maintained by self.  A mismatch means that replica's and
+    // primary's storages are no longer in sync, which indicates a bug in
+    // BlazingMQ replication algorithm.
+    if (dataOffset !=
+        static_cast<bsls::Types::Uint64>(msgRec->messageOffsetDwords()) *
+            bmqp::Protocol::k_DWORD_SIZE) {
+        return rc_DATA_OFFSET_MISMATCH;  // RETURN
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStoreUtil::writeQueueCreationRecordImpl(
+    bsls::Types::Uint64*        journalPos,
+    bsls::Types::Uint64*        qlistFilePos,
+    mqbi::Storage::AppInfos*    appIdKeyPairs,
+    int                         partitionId,
+    const bdlbb::Blob&          event,
+    const bmqu::BlobPosition&   recordPosition,
+    const MappedFileDescriptor& journal,
+    int                         requestedJournalSpace,
+    bool                        qListAware,
+    const MappedFileDescriptor& qlistFile,
+    bsls::Types::Uint64         qlistOffset,
+    unsigned int*               queueRecLength,
+    bmqt::Uri*                  quri,
+    mqbu::StorageKey*           queueKey,
+    QueueOpType::Enum*          queueOpType)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(journalPos && *journalPos >= 0);
+    BSLS_ASSERT_SAFE(qlistFilePos && *qlistFilePos >= 0);
+    BSLS_ASSERT_SAFE(appIdKeyPairs);
+    BSLS_ASSERT_SAFE(partitionId >= 0);
+    BSLS_ASSERT_SAFE(journal.isValid());
+    BSLS_ASSERT_SAFE(requestedJournalSpace > 0);
+    if (qListAware) {
+        BSLS_ASSERT_SAFE(qlistFile.isValid());
+    }
+    BSLS_ASSERT_SAFE(qlistOffset >= 0);
+
+    enum {
+        rc_SUCCESS                     = 0,
+        rc_MISSING_QUEUE_RECORD        = -1,
+        rc_MISSING_QUEUE_RECORD_HEADER = -2,
+        rc_INCOMPLETE_QUEUE_RECORD     = -3,
+        rc_INVALID_QUEUE_RECORD        = -4,
+        rc_QLIST_OFFSET_MISMATCH       = -5
+    };
+
+    bmqu::BlobObjectProxy<QueueRecordHeader> queueRecHeader;
+    unsigned int                             queueRecHeaderLen = 0;
+    unsigned int                             queueRecLen       = 0;
+    if (qListAware) {
+        BSLS_ASSERT_SAFE(qlistFile.isValid());
+
+        // Extract queue record's position from blob, based on
+        // 'recordPosition'. Per replication algo, a storage message starts
+        // with journal record followed by queue record.  Queue record already
+        // contains 'QueueRecordHeader' and is already WORD aligned.
+
+        bmqu::BlobPosition queueRecBeginPos;
+        int                rc = bmqu::BlobUtil::findOffsetSafe(
+            &queueRecBeginPos,
+            event,
+            recordPosition,
+            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+        if (0 != rc) {
+            return 10 * rc + rc_MISSING_QUEUE_RECORD;  // RETURN
+        }
+
+        queueRecHeader.reset(&event,
+                             queueRecBeginPos,
+                             -QueueRecordHeader::k_MIN_HEADER_SIZE,
+                             true,    // read
+                             false);  // write
+        if (!queueRecHeader.isSet()) {
+            // Couldn't read QueueRecordHeader
+            return rc_MISSING_QUEUE_RECORD_HEADER;  // RETURN
+        }
+
+        // Ensure that blob has enough data as indicated by length
+        // in 'queueRecordHeader'.
+
+        queueRecHeaderLen = queueRecHeader->headerWords() *
+                            bmqp::Protocol::k_WORD_SIZE;
+        queueRecLen = queueRecHeader->queueRecordWords() *
+                      bmqp::Protocol::k_WORD_SIZE;
+        BSLS_ASSERT_SAFE(qlistFile.fileSize() >=
+                         (*qlistFilePos + queueRecLen));
+        if (queueRecLength) {
+            *queueRecLength = queueRecLen;
+        }
+
+        bmqu::BlobPosition queueRecEndPos;
+        rc = bmqu::BlobUtil::findOffsetSafe(&queueRecEndPos,
+                                            event,
+                                            queueRecBeginPos,
+                                            queueRecLen);
+        if (0 != rc) {
+            return 10 * rc + rc_INCOMPLETE_QUEUE_RECORD;  // RETURN
+        }
+
+        // Append payload to QLIST file.
+
+        bmqu::BlobUtil::copyToRawBufferFromIndex(qlistFile.block().base() +
+                                                     *qlistFilePos,
+                                                 event,
+                                                 queueRecBeginPos.buffer(),
+                                                 queueRecBeginPos.byte(),
+                                                 queueRecLen);
+        *qlistFilePos += queueRecLen;
+    }
+
+    // Keep track of journal record's offset.
+
+    bsls::Types::Uint64 recordOffset = *journalPos;
+
+    // Append message record to journal.
+
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (*journalPos + requestedJournalSpace));
+    bmqu::BlobUtil::copyToRawBufferFromIndex(
+        journal.block().base() + recordOffset,
+        event,
+        recordPosition.buffer(),
+        recordPosition.byte(),
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    *journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    OffsetPtr<const QueueOpRecord> queueRec(journal.block(), recordOffset);
+    if (QueueOpType::e_CREATION != queueRec->type() &&
+        QueueOpType::e_ADDITION != queueRec->type()) {
+        BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                       << "Unexpected QueueOpType: " << queueRec->type();
+        return rc_INVALID_QUEUE_RECORD;  // RETURN
+    }
+    if (queueKey) {
+        *queueKey = queueRec->queueKey();
+    }
+    if (queueOpType) {
+        *queueOpType = queueRec->type();
+    }
+
+    bslstl::StringRef uriString;
+    if (qListAware) {
+        // Check qlist offset in the replicated journal record sent
+        // by the primary vs qlist offset maintained by self.  A
+        // mismatch means that replica's and primary's storages are
+        // no longer in sync, which indicates a bug in BlazingMQ
+        // replication algorithm.
+
+        if (qlistOffset != (static_cast<bsls::Types::Uint64>(
+                                queueRec->queueUriRecordOffsetWords()) *
+                            bmqp::Protocol::k_WORD_SIZE)) {
+            return rc_QLIST_OFFSET_MISMATCH;  // RETURN
+        }
+
+        // Retrieve QueueKey & QueueUri from QueueOpRecord and
+        // QueueUriRecord respectively, and notify storage manager.
+
+        unsigned int paddedUriLen = queueRecHeader->queueUriLengthWords() *
+                                    bmqp::Protocol::k_WORD_SIZE;
+
+        BSLS_ASSERT_SAFE(0 < paddedUriLen);
+
+        const char* uriBegin = qlistFile.block().base() + qlistOffset +
+                               queueRecHeaderLen;
+        uriString.assign(uriBegin, paddedUriLen - uriBegin[paddedUriLen - 1]);
+        unsigned int appIdsAreaSize = queueRecLen - queueRecHeaderLen -
+                                      paddedUriLen -
+                                      FileStoreProtocol::k_HASH_LENGTH -
+                                      sizeof(unsigned int);  // Magic word
+        MemoryBlock appIdsBlock(qlistFile.block().base() + qlistOffset +
+                                    queueRecHeaderLen + paddedUriLen +
+                                    FileStoreProtocol::k_HASH_LENGTH,
+                                appIdsAreaSize);
+        FileStoreProtocolUtil::loadAppInfos(appIdKeyPairs,
+                                            appIdsBlock,
+                                            queueRecHeader->numAppIds());
+    }
+
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM << " Partition [" << partitionId
+                               << "]: " << "Received QueueCreationRecord of "
+                               << "type [" << queueRec->type() << "] for "
+                               << "queueKey [" << queueRec->queueKey() << "]";
+        if (qListAware) {
+            bmqt::Uri uri(uriString);
+            if (quri) {
+                *quri = uri;
+            }
+            BALL_LOG_OUTPUT_STREAM << ", queue [" << uri << "]" << ", with ["
+                                   << appIdKeyPairs->size()
+                                   << "] appId/appKey pairs ";
+            for (mqbi::Storage::AppInfos::const_iterator cit =
+                     appIdKeyPairs->cbegin();
+                 cit != appIdKeyPairs->cend();
+                 ++cit) {
+                BALL_LOG_OUTPUT_STREAM << " [" << cit->first << ", "
+                                       << cit->second << "]";
+            }
+        }
     }
 
     return rc_SUCCESS;
