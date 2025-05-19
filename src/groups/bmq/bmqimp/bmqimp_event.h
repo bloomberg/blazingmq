@@ -503,9 +503,7 @@ class Event {
 
     /// Add the specified 'correlationId' and the optionally specified
     /// 'subscriptionId' and `schema` to the context maintained by this
-    /// instance.  The behavior is undefined unless event's type() is
-    /// MESSAGEEVENT, 'messageEventMode()' is READ and the underlying raw event
-    /// is of type ACK, PUT or PUSH.
+    /// instance.
     void addContext(const bmqt::CorrelationId& correlationId,
                     unsigned int               subscriptionHandleId =
                         bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID,
