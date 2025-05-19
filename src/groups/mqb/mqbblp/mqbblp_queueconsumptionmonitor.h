@@ -246,11 +246,11 @@ class QueueConsumptionMonitor {
     void scheduleIdleEvent(SubStreamInfo*     subStreamInfo,
                            const bsl::string& id);
 
-    /// Handler method called by EventScheduler in scheduler dispatcher thread
+    /// Handler called by EventScheduler in scheduler dispatcher thread
     /// to forward alarm event to the queue dispatcher thread.
     void executeAlarmInQueueDispatcher();
 
-    /// Handler method called by EventScheduler in scheduler dispatcher thread
+    /// Handler called by EventScheduler in scheduler dispatcher thread
     /// to forward idle event to the queue dispatcher thread.
     void executeIdleInQueueDispatcher(const bsl::string id);
 
@@ -259,17 +259,14 @@ class QueueConsumptionMonitor {
 
   protected:
     /// Alarm event dispatcher, executed in queue dispatcher thread.
-    /// It checks if there are apps that meet alarm condition and trigger the
-    /// alarm for them.
-    //  If there are undelivered messages (among apps) it reschedules alarm
-    //  event.
+    /// It checks if there are substreams that meet alarm condition and trigger
+    /// the alarm for them.  If there are undelivered messages (among
+    /// substreams) it reschedules alarm event.
     void alarmEventDispatched();
 
-    /// Alarm event dispatcher, executed in queue dispatcher thread.
-    /// It checks if there are apps that meet alarm condition and trigger the
-    /// alarm for them.
-    //  If there are undelivered messages (among apps) it reschedules alarm
-    //  event.
+    /// Idle event dispatcher, executed in queue dispatcher thread.
+    /// If there are no un-delivered messages the specified `id`, it calls
+    /// onTransitionToAlive(). Otherwise, it reschedules idle event.
     void idleEventDispatched(const bsl::string id);
 
   public:

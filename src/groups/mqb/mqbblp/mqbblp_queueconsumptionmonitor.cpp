@@ -294,6 +294,7 @@ void QueueConsumptionMonitor::scheduleAlarmEvent(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(!d_alarmEventHandle);
 
     d_scheduler_p->scheduleEvent(
         &d_alarmEventHandle,
