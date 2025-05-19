@@ -292,6 +292,9 @@ void QueueManager::resetState()
 void QueueManager::observePushEvent(Event*                          queueEvent,
                                     const bmqp::EventUtilQueueInfo& info)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queueEvent);
+
     bmqt::CorrelationId correlationId;
     unsigned int        subscriptionHandleId;
 
@@ -314,7 +317,9 @@ void QueueManager::observePushEvent(Event*                          queueEvent,
 
     queueEvent->insertQueue(info.d_subscriptionId, queue);
 
-    queueEvent->addContext(correlationId, subscriptionHandleId, info.d_schema);
+    queueEvent->addContext(correlationId,
+                           subscriptionHandleId,
+                           info.d_schema_sp);
 }
 
 int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
@@ -368,7 +373,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
         const bmqp::MessagePropertiesInfo input(header);
 
         bmqp::MessageProperties::SchemaPtr* schemaHolder =
-            schemaLearner().observe(d_schemaLearner.createContext(queueId),
+            d_schemaLearner.observe(d_schemaLearner.createContext(queueId),
                                     input);
 
         bmqp::MessageProperties::SchemaPtr schema;
@@ -411,8 +416,8 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
             }
             else {
                 eventInfos->back().d_ids.push_back(
-                    bmqp::EventUtilQueueInfo(subQueueInfos[0].id(),
-                                             msgIterator.header(),
+                    bmqp::EventUtilQueueInfo(msgIterator.header(),
+                                             subQueueInfos[0].id(),
                                              msgIterator.applicationDataSize(),
                                              schema));
             }
@@ -422,8 +427,8 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
         }
         else {
             eventInfos->back().d_ids.push_back(bmqp::EventUtilQueueInfo(
-                bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                 msgIterator.header(),
+                bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                 msgIterator.applicationDataSize(),
                 schema));
 

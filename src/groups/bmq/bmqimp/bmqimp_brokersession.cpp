@@ -3616,6 +3616,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                                                event,
                                                d_bufferFactory_p,
                                                d_blobSpPool_p,
+                                               d_queueManager.schemaLearner(),
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
