@@ -1609,7 +1609,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
 void RelayQueueEngine::afterPostMessage(
     BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
 {
-    // executed by the *QUEUE DISPATCHER* thread{
+    // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(

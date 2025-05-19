@@ -138,6 +138,8 @@ void QueueEngine::afterQueuePurged(
 void QueueEngine::afterPostMessage(
     BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
 {
+    // executed by the *QUEUE DISPATCHER* thread
+
     // NOTHING
 }
 

@@ -187,7 +187,6 @@ Test::~Test()
 void Test::putMessage(const bsl::string& id, bool isUndelivered)
 {
     d_monitor.onMessagePosted();
-    // d_monitor.onMessageSent(id);
     if (isUndelivered) {
         d_haveUndelivered.insert(id);
     }
@@ -516,28 +515,6 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 
     BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
-    // d_monitor.onTimer(k_MAX_IDLE_TIME);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
-    //                  QueueConsumptionMonitor::State::e_ALIVE);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
-    //                  QueueConsumptionMonitor::State::e_ALIVE);
-    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
-
-    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME - 1);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
-    //                  QueueConsumptionMonitor::State::e_ALIVE);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
-    //                  QueueConsumptionMonitor::State::e_ALIVE);
-    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
-
-    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
-    //                  QueueConsumptionMonitor::State::e_ALIVE);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
-    //                  QueueConsumptionMonitor::State::e_ALIVE);
-    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
-
-    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
     BMQTST_ASSERT_EQ(d_monitor.state(id1),
                      QueueConsumptionMonitor::State::e_IDLE);
     BMQTST_ASSERT_EQ(d_monitor.state(id2),
@@ -545,6 +522,7 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 2);
 
+    // Check that ALARM was logged for both substreams
     for (int i = 0; i < 2; ++i) {
         BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records().rbegin()[i],
@@ -552,20 +530,9 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
             bmqtst::TestHelperUtil::allocator()));
     }
 
-    // d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
-    //                  QueueConsumptionMonitor::State::e_IDLE);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
-    //                  QueueConsumptionMonitor::State::e_IDLE);
-
+    // Consume message from first substream
     d_monitor.onMessageSent(id1);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id1),
-    //                  QueueConsumptionMonitor::State::e_IDLE);
-    // BMQTST_ASSERT_EQ(d_monitor.state(id2),
-    //                  QueueConsumptionMonitor::State::e_IDLE);
-    // BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
-    // d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
@@ -578,8 +545,9 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     BMQTST_ASSERT_EQ(d_monitor.state(id2),
                      QueueConsumptionMonitor::State::e_IDLE);
 
+    // Consume message from second substream
     d_monitor.onMessageSent(id2);
-    // d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 3);
+
     BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
     BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
