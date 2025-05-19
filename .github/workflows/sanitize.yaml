@@ -1,20 +1,23 @@
 name: Sanitize
 
 on:
+  push:
+    branches:
+      - "**"
   # pull_request_review:
   #   types: [submitted]
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: 'Sanitizer mode'
-        required: true
-        default: 'asan'
-        type: choice
-        options:
-          - asan
-          - msan
-          - tsan
-          - ubsan
+  # workflow_dispatch:
+  #   inputs:
+  #     mode:
+  #       description: 'Sanitizer mode'
+  #       required: true
+  #       default: 'asan'
+  #       type: choice
+  #       options:
+  #         - asan
+  #         - msan
+  #         - tsan
+  #         - ubsan
       # test_type:
       #   description: 'Test Type'
       #   required: true
@@ -30,8 +33,11 @@ concurrency:
 
 jobs:
   build_and_run_sanitizer:
-    name: ${{ inputs.mode }}
-
+    name: ${{ matrix.mode }}
+    strategy:
+      matrix:
+        mode: ["asan", "msan", "tsan", "ubsan"]
+      # fail-fast: false
     runs-on: ubuntu-24.04
     # if: github.event.review.state == 'APPROVED'
     steps:
@@ -47,10 +53,10 @@ jobs:
           openjdk-21-jre-headless mysql-server-core-8.0
           sudo apt-get autoremove
           sudo apt-get autoclean
-      - name: Build [${{ inputs.mode }}]
+      - name: Build [${{ matrix.mode }}]
         run: | 
           docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
-          --no-cache --build-arg SANITIZER_NAME=${{ inputs.mode }} \
-          -t sanitizer-${{ inputs.mode }} .
-      - name: UT [c++,${{ inputs.mode }}]
-        run: docker run --rm sanitizer-${{ inputs.mode }}
+          --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} \
+          -t sanitizer-${{ matrix.mode }} .
+      - name: Tests
+        run: docker run --rm sanitizer-${{ matrix.mode }}
