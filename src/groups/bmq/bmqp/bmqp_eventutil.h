@@ -61,17 +61,16 @@ class Event;
 /// `bmqp::QueueId(d_queueId, bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID)`.
 /// Otherwise, the key is `d_subscriptionId`
 struct EventUtilQueueInfo {
-    const unsigned int d_subscriptionId;
-
     const bmqp::PushHeader d_header;
+    const unsigned int     d_subscriptionId;
     const int              d_applicationDataSize;
 
-    const bmqp::MessageProperties::SchemaPtr d_schema;
+    const bmqp::MessageProperties::SchemaPtr d_schema_sp;
 
-    EventUtilQueueInfo(unsigned int            subscriptionId,
-                       const bmqp::PushHeader& header,
+    EventUtilQueueInfo(const bmqp::PushHeader& header,
+                       unsigned int            subscriptionId,
                        int                     applicationDataSize,
-                       const bmqp::MessageProperties::SchemaPtr schema);
+                       const bmqp::MessageProperties::SchemaPtr& schema);
 };
 // =========================
 // struct EventUtilEventInfo
@@ -139,6 +138,7 @@ struct EventUtil {
                                 const Event&                     event,
                                 bdlbb::BlobBufferFactory*        bufferFactory,
                                 BlobSpPool*                      blobSpPool_p,
+                                bmqp::SchemaLearner&             schemaLearner,
                                 bslma::Allocator*                allocator);
 };
 
@@ -151,14 +151,14 @@ struct EventUtil {
 // --------------------------
 
 inline EventUtilQueueInfo::EventUtilQueueInfo(
-    unsigned int                             subscriptionId,
-    const bmqp::PushHeader&                  header,
-    int                                      appDataSize,
-    const bmqp::MessageProperties::SchemaPtr schema)
-: d_subscriptionId(subscriptionId)
-, d_header(header)
+    const bmqp::PushHeader&                   header,
+    unsigned int                              subscriptionId,
+    int                                       appDataSize,
+    const bmqp::MessageProperties::SchemaPtr& schema)
+: d_header(header)
+, d_subscriptionId(subscriptionId)
 , d_applicationDataSize(appDataSize)
-, d_schema(schema)
+, d_schema_sp(schema)
 {
     // NOTHING
 }

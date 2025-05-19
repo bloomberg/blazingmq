@@ -217,6 +217,7 @@ class QueueManager {
     // both Queue id and Subscription/
     // SubQueue id,
 
+    /// Schema learner to use.  Held, not owned.
     bmqp::SchemaLearner d_schemaLearner;
 
     bslma::Allocator* d_allocator_p;
@@ -312,6 +313,8 @@ class QueueManager {
                     bool* hasMessageWithMultipleSubQueueIds,
                     const bmqp::PushMessageIterator& iterator);
 
+    /// Find the queue using the specified `info` in the internal storage
+    /// and append the queue context to the specified `queueEvent`.
     void observePushEvent(Event*                          queueEvent,
                           const bmqp::EventUtilQueueInfo& info);
 

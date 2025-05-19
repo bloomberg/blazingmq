@@ -104,8 +104,6 @@ class MessageProperties;
 ///                      `correlationId`), then they should be reset in
 ///                      `bmqa::MessageIterator.nextMessage()`.
 struct MessageImpl {
-    // FORWARD DECLARATION
-
     // PUBLIC DATA
 
     /// Pointer to the Event this message is associated with

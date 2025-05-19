@@ -215,7 +215,8 @@ class SchemaLearner {
 
     /// If the specified `input` indicates recycling, reset previously learned
     /// schema accumulated in the specified `context` and associated with the
-    /// id in `input`.  Return the address of the corresponding schema holder.
+    /// id in `input`.  Return the address of the corresponding schema holder,
+    /// or return NULL pointer if there is no valid schema presented.
     SchemaPtr* observe(Context& context, const MessagePropertiesInfo& input);
 
     /// Return `MessagePropertiesLogic` with a unique id associated with the

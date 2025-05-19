@@ -30,7 +30,7 @@ namespace bmqp {
 // ============================
 
 /// This struct keeps opaque data associated with each Schema
-struct SchemaLearner::SchemaHandle {
+struct SchemaLearner::SchemaHandle BSLS_KEYWORD_FINAL {
     LRU::const_iterator d_listIterator;
     // Iterator in the list of keys which assists in
     // selecting least recently used Context.
@@ -166,7 +166,7 @@ SchemaLearner::observe(Context& context, const MessagePropertiesInfo& input)
 
     if (input.isRecycled()) {
         contextHandle->d_schema_sp.reset();
-        // Must destroy previously learned Schema
+        // Must release reference to the previously learned Schema.
     }
 
     return &contextHandle->d_schema_sp;
