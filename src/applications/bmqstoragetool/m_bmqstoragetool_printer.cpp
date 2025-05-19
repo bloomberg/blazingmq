@@ -642,7 +642,9 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"OutstandingRatio\": \"" << ratio << "\"";
+        d_ostream << "  \"OutstandingRatio\": \"" << ratio
+                  << "\",\n  \"OutstandingMessages\": \""
+                  << outstandingMessagesCount << "\"";
     }
 
     void printMessageSummary(bsl::size_t totalMessagesCount,

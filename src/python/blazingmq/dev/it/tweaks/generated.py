@@ -152,19 +152,16 @@ class TweakFactory:
 
                 class LogDump(metaclass=TweakMetaclass):
                     class RecordBufferSize(metaclass=TweakMetaclass):
-
                         def __call__(self, value: int) -> Callable: ...
 
                     record_buffer_size = RecordBufferSize()
 
                     class RecordingLevel(metaclass=TweakMetaclass):
-
                         def __call__(self, value: str) -> Callable: ...
 
                     recording_level = RecordingLevel()
 
                     class TriggerLevel(metaclass=TweakMetaclass):
-
                         def __call__(self, value: str) -> Callable: ...
 
                     trigger_level = TriggerLevel()
@@ -721,7 +718,6 @@ class TweakFactory:
             advertise_subscriptions = AdvertiseSubscriptions()
 
             class RouteCommandTimeoutMs(metaclass=TweakMetaclass):
-
                 def __call__(self, value: int) -> Callable: ...
 
             route_command_timeout_ms = RouteCommandTimeoutMs()
@@ -1092,7 +1088,6 @@ class TweakFactory:
             max_qlist_file_size = MaxQlistFileSize()
 
             class MaxCslfileSize(metaclass=TweakMetaclass):
-
                 def __call__(self, value: int) -> Callable: ...
 
             max_cslfile_size = MaxCslfileSize()

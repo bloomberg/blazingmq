@@ -36,14 +36,9 @@ jobs:
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
-        with:
-          # TODO black no longer runs on 3.12.5. 
-          # Remove once the python version is >= 3.12.6
-          # See: https://github.com/psf/black/pull/4447
-          python-version: '3.12.4'
-      - name: black style check
+      - name: ruff style check
         run: |
-          pip3 install git+https://github.com/psf/black
-          black .
+          pip3 install ruff
+          ruff format .
           git diff -q | tee format_diff.txt
           if [ -s format_diff.txt ]; then exit 1; fi

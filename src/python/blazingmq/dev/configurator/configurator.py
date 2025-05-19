@@ -22,7 +22,6 @@ scripts for running a cluster.
 # pylint: disable=missing-function-docstring, missing-class-docstring, consider-using-f-string
 # pyright: reportOptionalMemberAccess=false
 
-
 import copy
 import functools
 import itertools
@@ -262,11 +261,16 @@ class Configurator:
         self.deploy_domains(broker, site)
 
     def deploy_programs(self, broker: Broker, site: Site) -> None:
-        site.install(str(paths.broker), "bin")
+        broker_path = str(paths.get_broker_path(broker.name))
+        site.install(broker_path, "bin")
         site.install(str(paths.tool), "bin")
         site.install(str(paths.plugins), ".")
 
-        for script, cmd in ("run", "exec"), ("debug", "gdb --args"):
+        for script, cmd in (
+            ("run", "exec"),
+            ("debug", "gdb --args"),
+            ("debug-lldb", "lldb --"),
+        ):
             site.create_file(
                 str(script),
                 RUN_SCRIPT.format(cmd=cmd, host=broker.name),
@@ -294,7 +298,7 @@ class Configurator:
                 if v is not None
             }
 
-        config = SerializerConfig(pretty_print=True)
+        config = SerializerConfig(indent=" " * 4)
         config.ignore_default_attributes = True
         serializer = JsonSerializer(
             context=XmlContext(), config=config, dict_factory=json_filter

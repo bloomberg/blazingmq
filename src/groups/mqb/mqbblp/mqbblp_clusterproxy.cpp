@@ -172,7 +172,8 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
 
     if (supportShutdownV2) {
         d_queueHelper.requestToStopPushing();
-
+        // 'checkUnconfirmedV2' serves as synchronization.
+        // It makes sure stopPushing() gets executed before the return.
         bsls::TimeInterval whenToStop(
             bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
         whenToStop.addMilliseconds(d_clusterData.clusterConfig()
@@ -788,7 +789,6 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     default: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
                        << "Received unknown event: " << event;
-        BSLS_ASSERT_SAFE(false && "Unknown event received");
         return;  // RETURN
     };
     }
@@ -810,12 +810,12 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
 
     if (!activeNode) {
         // Not connected to any node, can't deliver the request.
-        ball::Severity::Level severity = ball::Severity::ERROR;
+        ball::Severity::Level severity = ball::Severity::e_ERROR;
         if (d_activeNodeLookupEventHandle) {
             // If the cluster is being established, since it's lazily created,
             // it is expected that the first request will fail to send, just
             // silence the error.
-            severity = ball::Severity::INFO;
+            severity = ball::Severity::e_INFO;
         }
         BALL_LOG_STREAM(severity)
             << "#CLUSTER_SEND_FAILURE " << description()
@@ -1398,8 +1398,8 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
         onPushEvent(*(event.asPushEvent()));

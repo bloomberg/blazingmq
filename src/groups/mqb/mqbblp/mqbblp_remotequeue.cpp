@@ -109,6 +109,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // TTL is not applicable at proxy
 
     // Create the associated storage.
+    // 'mqbs::DataStore::k_INVALID_PARTITION_ID' indicates the case of Proxy.
     bsl::shared_ptr<mqbi::Storage> storageSp;
     storageSp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
                        d_state_p->uri(),
@@ -158,6 +159,11 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
+
+    // Make the storage be aware of the queue to notify Apps about ordinal
+    // change upon 'VirtualStorageCatalog::addVirtualStorage' /
+    // 'VirtualStorageCatalog::removeVirtualStorage'.
+    storageSp->setQueue(d_state_p->queue());
 
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
@@ -356,14 +362,9 @@ void RemoteQueue::pushMessage(
     bool                                 isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
-
-    mqbi::StorageMessageAttributes attributes(0ULL,  // Timestamp; unused
-                                              1,     // RefCount
-                                              messagePropertiesInfo,
-                                              compressionAlgorithmType);
-    mqbi::StorageResult::Enum      result  = mqbi::StorageResult::e_SUCCESS;
-    mqbi::Storage*                 storage = d_state_p->storage();
-    int                            msgSize = 0;
+    mqbi::StorageResult::Enum result  = mqbi::StorageResult::e_SUCCESS;
+    mqbi::Storage*            storage = d_state_p->storage();
+    int                       msgSize = 0;
 
     if (d_state_p->domain()->cluster()->isRemote()) {
         // In a proxy, 'appData' will always be non-null, irrespective of the
@@ -374,6 +375,13 @@ void RemoteQueue::pushMessage(
     else {
         if (d_state_p->isAtMostOnce()) {
             BSLS_ASSERT_SAFE(appData);
+            msgSize = appData->length();
+            mqbi::StorageMessageAttributes attributes(
+                0ULL,  // Timestamp; unused
+                1,     // RefCount
+                static_cast<unsigned int>(msgSize),
+                messagePropertiesInfo,
+                compressionAlgorithmType);
 
             result = storage->put(&attributes, msgGUID, appData, options);
 
@@ -422,7 +430,6 @@ void RemoteQueue::pushMessage(
     }
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos;
-    StorageKeys                        storageKeys;
 
     // Retrieve subQueueInfos from 'options'
     // Need to look up subQueueIds by subscriptionIds.
@@ -442,6 +449,12 @@ void RemoteQueue::pushMessage(
     BSLS_ASSERT_SAFE(d_state_p->hasMultipleSubStreams() ||
                      subQueueInfos.size() == 1);
 
+    mqbi::StorageMessageAttributes attributes(
+        0ULL,  // Timestamp; unused
+        1,     // RefCount
+        static_cast<unsigned int>(msgSize),
+        messagePropertiesInfo,
+        compressionAlgorithmType);
     d_queueEngine_mp->push(&attributes,
                            msgGUID,
                            appData,
@@ -533,7 +546,9 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
         if (domainCfg.mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
-                domainCfg.mode().fanout().appIDs());
+                domainCfg.mode().fanout().publishAppIdMetrics()
+                    ? domainCfg.mode().fanout().appIDs()
+                    : bsl::vector<bsl::string>(d_allocator_p));
         }
     }
 
@@ -785,9 +800,8 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(
-            d_state_p->queue()->dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
         const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
@@ -1205,8 +1219,8 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
 
         ball::Severity::Level severity = (ackResult ==
                                                   bmqt::AckResult::e_SUCCESS
-                                              ? ball::Severity::DEBUG
-                                              : ball::Severity::INFO);
+                                              ? ball::Severity::e_DEBUG
+                                              : ball::Severity::e_INFO);
 
         if (d_throttledFailedAckMessages.requestPermission()) {
             BALL_LOG_STREAM(severity)

@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jul 17 12:44:45 2024
+// Generated on Wed Apr  2 14:55:18 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
 
 #ifdef COMPILING_BMQEX_FUTURE_H

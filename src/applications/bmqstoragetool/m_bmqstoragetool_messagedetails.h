@@ -102,14 +102,13 @@ struct QueueDetails {
 
     bool operator==(const QueueDetails& other) const
     {
-        bool result = d_recordsNumber == other.d_recordsNumber &&
-                      d_messageRecordsNumber == other.d_messageRecordsNumber &&
-                      d_confirmRecordsNumber == other.d_confirmRecordsNumber &&
-                      d_deleteRecordsNumber == other.d_deleteRecordsNumber &&
-                      d_queueOpRecordsNumber == other.d_queueOpRecordsNumber &&
-                      d_appDetailsMap == other.d_appDetailsMap &&
-                      d_queueUri == other.d_queueUri;
-        return result;
+        return d_recordsNumber == other.d_recordsNumber &&
+               d_messageRecordsNumber == other.d_messageRecordsNumber &&
+               d_confirmRecordsNumber == other.d_confirmRecordsNumber &&
+               d_deleteRecordsNumber == other.d_deleteRecordsNumber &&
+               d_queueOpRecordsNumber == other.d_queueOpRecordsNumber &&
+               d_appDetailsMap == other.d_appDetailsMap &&
+               d_queueUri == other.d_queueUri;
     }
 };
 

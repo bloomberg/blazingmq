@@ -52,16 +52,16 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::OFF,
+    bmqtst::ScopedLogObserver observer(ball::Severity::e_OFF,
                                        bmqtst::TestHelperUtil::allocator());
 
-    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::OFF);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::e_OFF);
     BMQTST_ASSERT(!observer.isEnabled());
     BMQTST_ASSERT(observer.records().empty());
 
-    observer.setSeverityThreshold(ball::Severity::WARN);
+    observer.setSeverityThreshold(ball::Severity::e_WARN);
 
-    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::WARN);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::e_WARN);
     BMQTST_ASSERT(observer.isEnabled());
     BMQTST_ASSERT(observer.records().empty());
 }
@@ -91,25 +91,25 @@ static void test2_publish()
     ball::Context context1(bmqtst::TestHelperUtil::allocator());
     ball::Context context2(bmqtst::TestHelperUtil::allocator());
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver observer(ball::Severity::e_ERROR,
                                        bmqtst::TestHelperUtil::allocator());
 
-    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::e_ERROR);
     BMQTST_ASSERT(observer.isEnabled());
     BMQTST_ASSERT(observer.records().empty());
 
-    record1.fixedFields().setSeverity(ball::Severity::ERROR);
+    record1.fixedFields().setSeverity(ball::Severity::e_ERROR);
     observer.publish(record1, context1);
 
-    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::e_ERROR);
     BMQTST_ASSERT(observer.isEnabled());
     BMQTST_ASSERT(observer.records().size() == 1);
     BMQTST_ASSERT(observer.records()[0] == record1);
 
-    record2.fixedFields().setSeverity(ball::Severity::WARN);
+    record2.fixedFields().setSeverity(ball::Severity::e_WARN);
     observer.publish(record2, context2);
 
-    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::e_ERROR);
     BMQTST_ASSERT(observer.isEnabled());
     BMQTST_ASSERT(observer.records().size() == 1);
     BMQTST_ASSERT(observer.records()[0] == record1);
@@ -192,7 +192,7 @@ static void test4_usageExample()
 
     BALL_LOG_SET_CATEGORY("TEST");
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver observer(ball::Severity::e_ERROR,
                                        bmqtst::TestHelperUtil::allocator());
 
     BALL_LOG_ERROR << "MySampleError";

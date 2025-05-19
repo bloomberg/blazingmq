@@ -616,22 +616,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
         // partitionId for that queue.  Then self got promoted to leader,
         // initiated the sync and ended up here.
 
-        const bmqt::Uri        queueUri(queueInfo.uri());
-        const mqbu::StorageKey receivedKey(
-            mqbu::StorageKey::BinaryRepresentation(),
-            queueInfo.key().data());
-
-        AppInfos appIdInfos(d_allocator_p);
-
-        mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                          queueInfo,
-                                          d_allocator_p);
-
-        registerQueueInfo(queueUri,
-                          queueInfo.partitionId(),
-                          receivedKey,
-                          appIdInfos,
-                          true);  // Force update?
+        registerQueueInfo(queueInfo, true);  // Force update?
         // Note that we don't inform the storage manager or the partition about
         // this queue, because writes to the partition are issued only by the
         // primary of that partition, and self may or may not be the primary.
@@ -949,6 +934,25 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
 }
 
 // PRIVATE MANIPULATORS
+//   (virtual: mqbc::ElectorInfoObserver)
+void ClusterStateManager::onClusterLeader(
+    mqbnet::ClusterNode*                node,
+    mqbc::ElectorInfoLeaderStatus::Enum status)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    if (!node) {
+        BSLS_ASSERT_SAFE(mqbc::ElectorInfoLeaderStatus::e_UNDEFINED == status);
+
+        d_isFirstLeaderAdvisory = true;
+    }
+}
+
+// PRIVATE MANIPULATORS
 //   (virtual: mqbc::ClusterStateObserver)
 void ClusterStateManager::onPartitionPrimaryAssignment(
     int                                partitionId,
@@ -1171,11 +1175,9 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
                                           status);
 }
 
-void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
-                                            int              partitionId,
-                                            const mqbu::StorageKey& queueKey,
-                                            const AppInfos&         appIdInfos,
-                                            bool forceUpdate)
+void ClusterStateManager::registerQueueInfo(
+    const bmqp_ctrlmsg::QueueInfo& advisory,
+    bool                           forceUpdate)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1184,10 +1186,7 @@ void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
 
     mqbc::ClusterUtil::registerQueueInfo(d_state_p,
                                          d_cluster_p,
-                                         uri,
-                                         partitionId,
-                                         queueKey,
-                                         appIdInfos,
+                                         advisory,
                                          forceUpdate);
 }
 
@@ -1258,40 +1257,26 @@ void ClusterStateManager::sendClusterState(
                                         partitions);
 }
 
-void ClusterStateManager::registerAppId(const bsl::string&  appId,
-                                        const mqbi::Domain* domain)
+void ClusterStateManager::updateAppIds(const bsl::vector<bsl::string>& added,
+                                       const bsl::vector<bsl::string>& removed,
+                                       const bsl::string& domainName,
+                                       const bsl::string& uri)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(!domainName.empty());
 
-    mqbc::ClusterUtil::registerAppId(d_clusterData_p,
-                                     d_clusterStateLedger_mp.get(),
-                                     *d_state_p,
-                                     appId,
-                                     domain,
-                                     d_allocator_p);
-}
-
-void ClusterStateManager::unregisterAppId(const bsl::string&  appId,
-                                          const mqbi::Domain* domain)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(domain);
-
-    mqbc::ClusterUtil::unregisterAppId(d_clusterData_p,
-                                       d_clusterStateLedger_mp.get(),
-                                       *d_state_p,
-                                       appId,
-                                       domain,
-                                       d_allocator_p);
+    mqbc::ClusterUtil::updateAppIds(d_clusterData_p,
+                                    d_clusterStateLedger_mp.get(),
+                                    *d_state_p,
+                                    added,
+                                    removed,
+                                    domainName,
+                                    uri,
+                                    d_allocator_p);
 }
 
 void ClusterStateManager::initiateLeaderSync(bool wait)
@@ -1551,23 +1536,43 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             return;  // RETURN
         }
 
-        if (d_clusterData_p->electorInfo().leaderMessageSequence() >
-            leaderMsgSeq) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_cluster_p->description()
-                << ": got queueAssignmentAdvisory: " << queueAdvisory
-                << " from current leader: " << source->nodeDescription()
-                << ", with smaller leader message sequence: " << leaderMsgSeq
-                << ". Current value: "
-                << d_clusterData_p->electorInfo().leaderMessageSequence()
-                << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
+        const bmqp_ctrlmsg::LeaderMessageSequence& selfLMS =
+            d_clusterData_p->electorInfo().leaderMessageSequence();
+        if (selfLMS > leaderMsgSeq) {
+            if (selfLMS.electorTerm() == leaderMsgSeq.electorTerm() &&
+                selfLMS.sequenceNumber() ==
+                    leaderMsgSeq.sequenceNumber() + 1) {
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                    << d_cluster_p->description()
+                    << ": got queueAssignmentAdvisory: " << queueAdvisory
+                    << " from current leader: " << source->nodeDescription()
+                    << ", with smaller leader message sequence: "
+                    << leaderMsgSeq << ". Current value: " << selfLMS
+                    << ". However, this is likely due to a known bug where "
+                       "the CSL advisory commit bumps up leader message "
+                       "sequence by one before we apply that advisory. "
+                       "Therefore, **not** ignoring this advisory."
+                    << BMQTSK_ALARMLOG_END;
+            }
+            else {
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                    << d_cluster_p->description()
+                    << ": got queueAssignmentAdvisory: " << queueAdvisory
+                    << " from current leader: " << source->nodeDescription()
+                    << ", with smaller leader message sequence: "
+                    << leaderMsgSeq << ". Current value: " << selfLMS
+                    << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
+                return;  // RETURN
+            }
+        }
+        else {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(
+                leaderMsgSeq);
         }
 
-        // Leader status and sequence number are updated unconditionally.  It
-        // may have been updated by one of the callers of this routine, but
-        // there is no harm is setting these values again.
-        d_clusterData_p->electorInfo().setLeaderMessageSequence(leaderMsgSeq);
+        // Leader status is updated unconditionally.  It may have been updated
+        // by one of the callers of this routine, but there is no harm is
+        // setting this value again.
         d_clusterData_p->electorInfo().setLeaderStatus(
             mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
     }
@@ -1673,17 +1678,8 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                 d_state_p->queueKeys().erase(assigned->key());
                 // no need to update d_state_p->domainStates() entry
                 // , queue was already known and registered
-                AppInfos appIdInfos(d_allocator_p);
-
-                mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                                  queueInfo,
-                                                  d_allocator_p);
-
                 BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
-                    uri,
-                    queueKey,
-                    queueInfo.partitionId(),
-                    appIdInfos);
+                    queueInfo);
                 BSLS_ASSERT_SAFE(rc == false);
             }
             else {
@@ -1693,16 +1689,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             }
         }
         else {
-            AppInfos appIdInfos(d_allocator_p);
-
-            mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                              queueInfo,
-                                              d_allocator_p);
-
-            d_state_p->assignQueue(uri,
-                                   queueKey,
-                                   queueInfo.partitionId(),
-                                   appIdInfos);
+            d_state_p->assignQueue(queueInfo);
         }
 
         BALL_LOG_INFO << d_cluster_p->description()

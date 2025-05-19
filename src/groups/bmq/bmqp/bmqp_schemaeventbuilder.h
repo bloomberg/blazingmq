@@ -112,8 +112,8 @@ class SchemaEventBuilder {
     mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
     /// Error stream used to report errors when building a blob.
-    /// This stream is a field to prevent reallocations of the internal stream
-    /// buffer on multiple `SchemaEventBuilder::setMessage` calls.
+    /// This stream is a field to prevent construction of temporary stream
+    /// objects on multiple `SchemaEventBuilder::setMessage` calls.
     bmqu::MemOutStream d_errorStream;
 
     /// Encoding type for encoding the message
@@ -259,7 +259,7 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_errorStream.isEmpty())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_DEBUG << d_errorStream.str();
-        d_errorStream.clear();
+        d_errorStream.reset();
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {

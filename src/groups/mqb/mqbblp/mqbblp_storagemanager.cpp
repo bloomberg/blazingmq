@@ -1059,7 +1059,6 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                                      &d_storagesLock,
                                      d_fileStores[partitionId].get(),
                                      &d_allocators,
-                                     processorForPartition(partitionId),
                                      uri,
                                      queueKey,
                                      d_clusterData_p->identity().description(),
@@ -1082,9 +1081,9 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
+        .callback()
+        .set(
             bdlf::BindUtil::bind(&mqbc::StorageUtil::unregisterQueueDispatched,
-                                 bdlf::PlaceHolders::_1,  // processor
                                  d_fileStores[partitionId].get(),
                                  &d_storages[partitionId],
                                  &d_storagesLock,
@@ -1148,7 +1147,8 @@ void StorageManager::registerQueueReplica(int                     partitionId,
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(
+        .callback()
+        .set(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::registerQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -1192,7 +1192,8 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(
+        .callback()
+        .set(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::unregisterQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -1236,7 +1237,8 @@ void StorageManager::updateQueueReplica(int                     partitionId,
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(
+        .callback()
+        .set(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::updateQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -1274,15 +1276,14 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
-                                 &d_storages[partitionId],
-                                 &d_storagesLock,
-                                 bdlf::PlaceHolders::_1,  // processor
-                                 d_clusterData_p->identity().description(),
-                                 partitionId,
-                                 uri,
-                                 queue));
+        .callback()
+        .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
+                                  &d_storages[partitionId],
+                                  &d_storagesLock,
+                                  d_clusterData_p->identity().description(),
+                                  partitionId,
+                                  uri,
+                                  queue));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
     ;
@@ -1301,7 +1302,6 @@ void StorageManager::setQueueRaw(mqbi::Queue*     queue,
     mqbc::StorageUtil::setQueueDispatched(
         &d_storages[partitionId],
         &d_storagesLock,
-        processorForPartition(partitionId),
         d_clusterData_p->identity().description(),
         partitionId,
         uri,
@@ -2177,8 +2177,7 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
 
     return mqbc::StorageUtil::isStorageEmpty(&d_storagesLock,
                                              d_storages[partitionId],
-                                             uri,
-                                             partitionId);
+                                             uri);
 }
 
 }  // close package namespace

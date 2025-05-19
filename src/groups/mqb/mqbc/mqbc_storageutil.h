@@ -98,8 +98,7 @@ struct StorageUtil {
 
   private:
     // TYPES
-    typedef mqbi::StorageManager::AppInfos      AppInfos;
-    typedef mqbi::StorageManager::AppInfosCIter AppInfosCIter;
+    typedef mqbi::StorageManager::AppInfos AppInfos;
 
     typedef mqbi::StorageManager::AppIds         AppIds;
     typedef mqbi::StorageManager::AppIdsIter     AppIdsIter;
@@ -180,7 +179,7 @@ struct StorageUtil {
     /// Load into the specified `result` the list of elements present in
     /// `baseSet` which are not present in `subtractionSet`.
     static void
-    loadDifference(bsl::unordered_set<bsl::string>*       result,
+    loadDifference(bsl::vector<bsl::string>*              result,
                    const bsl::unordered_set<bsl::string>& baseSet,
                    const bsl::unordered_set<bsl::string>& subtractionSet);
 
@@ -197,24 +196,21 @@ struct StorageUtil {
                                     const AppInfos& newAppInfos);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static void
-    registerQueueDispatched(const mqbi::Dispatcher::ProcessorHandle& processor,
-                            mqbs::FileStore*                         fs,
-                            mqbs::ReplicatedStorage*                 storage,
-                            const bsl::string& clusterDescription,
-                            int                partitionId,
-                            const AppInfos&    appIdKeyPairs);
+    static void registerQueueDispatched(mqbs::FileStore*         fs,
+                                        mqbs::ReplicatedStorage* storage,
+                                        const bsl::string& clusterDescription,
+                                        int                partitionId,
+                                        const AppInfos&    appIdKeyPairs);
 
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    static void updateQueuePrimaryDispatched(
-        const mqbi::Dispatcher::ProcessorHandle& processor,
-        mqbs::ReplicatedStorage*                 storage,
-        bslmt::Mutex*                            storagesLock,
-        mqbs::FileStore*                         fs,
-        const bsl::string&                       clusterDescription,
-        int                                      partitionId,
-        const AppInfos&                          appIdKeyPairs,
-        bool                                     isFanout);
+    static void
+    updateQueuePrimaryDispatched(mqbs::ReplicatedStorage* storage,
+                                 bslmt::Mutex*            storagesLock,
+                                 mqbs::FileStore*         fs,
+                                 const bsl::string&       clusterDescription,
+                                 int                      partitionId,
+                                 const AppInfos&          appIdKeyPairs,
+                                 bool                     isFanout);
 
     /// StorageManager's storages lock must be locked before calling this
     /// method.
@@ -392,20 +388,18 @@ struct StorageUtil {
     /// into the specified `removedEntries` the list of entries which are
     /// present in `existingEntries` but not in `newEntries`.
     static void loadAddedAndRemovedEntries(
-        bsl::unordered_set<bsl::string>*       addedEntries,
-        bsl::unordered_set<bsl::string>*       removedEntries,
+        bsl::vector<bsl::string>*              addedEntries,
+        bsl::vector<bsl::string>*              removedEntries,
         const bsl::unordered_set<bsl::string>& existingEntries,
         const bsl::unordered_set<bsl::string>& newEntries);
 
-    /// Return true if the queue having specified `uri` and assigned to the
-    /// specified `partitionId` has no messages in the specified
-    /// `storageMap`, false in any other case.  If the optionally specified
-    /// `storagesLock` is specified, lock it.  Behavior is undefined unless
-    /// this routine is invoked from cluster dispatcher thread.
+    /// Return true if the queue having specified `uri` has no messages in the
+    /// specified `storageMap`, false in any other case.  If the optionally
+    /// specified `storagesLock` is specified, lock it.  Behavior is undefined
+    /// unless this routine is invoked from cluster dispatcher thread.
     static bool isStorageEmpty(bslmt::Mutex*       storagesLock,
                                const StorageSpMap& storageMap,
-                               const bmqt::Uri&    uri,
-                               int                 partitionId);
+                               const bmqt::Uri&    uri);
 
     /// Callback scheduled by the Storage Manager to run every minute which
     /// monitors storage (disk space, archive clean up, etc), using the
@@ -627,31 +621,27 @@ struct StorageUtil {
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    static void
-    registerQueue(const mqbi::Cluster*                     cluster,
-                  mqbi::Dispatcher*                        dispatcher,
-                  StorageSpMap*                            storageMap,
-                  bslmt::Mutex*                            storagesLock,
-                  mqbs::FileStore*                         fs,
-                  bmqma::CountingAllocatorStore*           allocators,
-                  const mqbi::Dispatcher::ProcessorHandle& processor,
-                  const bmqt::Uri&                         uri,
-                  const mqbu::StorageKey&                  queueKey,
-                  const bsl::string&                       clusterDescription,
-                  int                                      partitionId,
-                  const AppInfos&                          appIdKeyPairs,
-                  mqbi::Domain*                            domain);
+    static void registerQueue(const mqbi::Cluster*           cluster,
+                              mqbi::Dispatcher*              dispatcher,
+                              StorageSpMap*                  storageMap,
+                              bslmt::Mutex*                  storagesLock,
+                              mqbs::FileStore*               fs,
+                              bmqma::CountingAllocatorStore* allocators,
+                              const bmqt::Uri&               uri,
+                              const mqbu::StorageKey&        queueKey,
+                              const bsl::string& clusterDescription,
+                              int                partitionId,
+                              const AppInfos&    appIdKeyPairs,
+                              mqbi::Domain*      domain);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static void unregisterQueueDispatched(
-        const mqbi::Dispatcher::ProcessorHandle& processor,
-        mqbs::FileStore*                         fs,
-        StorageSpMap*                            storageMap,
-        bslmt::Mutex*                            storagesLock,
-        const ClusterData*                       clusterData,
-        int                                      partitionId,
-        const PartitionInfo&                     pinfo,
-        const bmqt::Uri&                         uri);
+    static void unregisterQueueDispatched(mqbs::FileStore*     fs,
+                                          StorageSpMap*        storageMap,
+                                          bslmt::Mutex*        storagesLock,
+                                          const ClusterData*   clusterData,
+                                          int                  partitionId,
+                                          const PartitionInfo& pinfo,
+                                          const bmqt::Uri&     uri);
 
     /// Configure the fanout queue having specified `uri` and `queueKey`,
     /// assigned to the specified `partitionId` to have the specified
@@ -713,14 +703,12 @@ struct StorageUtil {
 
     /// Executed by queue-dispatcher thread with the specified
     /// `processorId`.
-    static void
-    setQueueDispatched(StorageSpMap*                            storageMap,
-                       bslmt::Mutex*                            storagesLock,
-                       const mqbi::Dispatcher::ProcessorHandle& processor,
-                       const bsl::string& clusterDescription,
-                       int                partitionId,
-                       const bmqt::Uri&   uri,
-                       mqbi::Queue*       queue);
+    static void setQueueDispatched(StorageSpMap*      storageMap,
+                                   bslmt::Mutex*      storagesLock,
+                                   const bsl::string& clusterDescription,
+                                   int                partitionId,
+                                   const bmqt::Uri&   uri,
+                                   mqbi::Queue*       queue);
 
     static int makeStorage(bsl::ostream&                   errorDescription,
                            bsl::shared_ptr<mqbi::Storage>* out,

@@ -2550,7 +2550,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << ". CRC32-C of payload in DATA file: " << checksum
                         << ". Payload offset in DATA file: " << appDataOffset
                         << BMQTSK_ALARMLOG_END;
-                    continue;  // CONTINUE
                 }
             }
 
@@ -7297,8 +7296,8 @@ void FileStore::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_UNDEFINED:
     case mqbi::DispatcherEventType::e_PUT:
@@ -7552,6 +7551,7 @@ void FileStore::loadMessageAttributesRaw(
 
     *buffer = mqbi::StorageMessageAttributes(rec->header().timestamp(),
                                              rec->refCount(),
+                                             record.d_appDataUnpaddedLen,
                                              record.d_messagePropertiesInfo,
                                              rec->compressionAlgorithmType(),
                                              record.d_hasReceipt,

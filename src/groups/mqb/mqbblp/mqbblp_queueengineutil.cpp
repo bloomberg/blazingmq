@@ -606,12 +606,12 @@ void QueueEngineUtil_ReleaseHandleProctor::invokeCallback()
             // represents 'mqbblp::ClusterNodeSession').
 
             d_queueState_p->queue()->dispatcher()->execute(
-                mqbi::Dispatcher::ProcessorFunctor(),
+                mqbi::Dispatcher::VoidFunctor(),
                 mqbi::DispatcherClientType::e_SESSION,
                 bdlf::BindUtil::bind(&queueHandleHolderDummy, d_handleSp));
 
             d_queueState_p->queue()->dispatcher()->execute(
-                mqbi::Dispatcher::ProcessorFunctor(),
+                mqbi::Dispatcher::VoidFunctor(),
                 mqbi::DispatcherClientType::e_CLUSTER,
                 bdlf::BindUtil::bind(&queueHandleHolderDummy, d_handleSp));
         }
@@ -649,6 +649,7 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
       &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
       this,
       bdlf::PlaceHolders::_1))
+, d_revCounter(0)
 {
     BSLS_ASSERT_SAFE(queue);
 }
@@ -672,12 +673,15 @@ bool QueueEngineUtil_AppsDeliveryContext::reset(
     d_numApps  = 0;
     d_numStops = 0;
 
+    ++d_revCounter;
+
     return result;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
     QueueEngineUtil_AppState& app,
-    unsigned int              ordinal)
+    unsigned int              ordinal,
+    bool                      putAsideReturnValue)
 {
     BSLS_ASSERT_SAFE(d_currentMessage->hasReceipt());
 
@@ -727,8 +731,11 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     if (result == Routers::e_SUCCESS) {
         // RootQueueEngine makes stat reports
+
+        return true;  // RETURN
     }
-    else if (result == Routers::e_NO_CAPACITY_ALL) {
+
+    if (result == Routers::e_NO_CAPACITY_ALL) {
         // All subscriptions of thes App are at capacity
         // Do not grow the 'd_putAsideList'
         // Instead, wait for 'onHandleUsable' event and then catch up
@@ -738,24 +745,21 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
         // Early return.
         // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
-        // (d_numApps == 0).
+        // (d_numApps == d_numStops).
 
         ++d_numStops;
 
         return false;  // RETURN
     }
-    else {
-        BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
-                         result == Routers::e_NO_CAPACITY);
 
-        // This app does not have capacity to deliver.  Still, move on and
-        // consider (evaluate) subsequent messages for the 'app'.
-        app.putAside(d_currentMessage->guid());
-    }
+    BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
+                     result == Routers::e_NO_CAPACITY);
 
-    // Still making progress (result != Routers::e_NO_CAPACITY_ALL)
+    // This app does not have capacity to deliver.  Still, move on and
+    // consider (evaluate) subsequent messages for the 'app'.
+    app.putAside(d_currentMessage->guid());
 
-    return (result == Routers::e_SUCCESS);
+    return putAsideReturnValue;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
@@ -789,24 +793,18 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
     BSLS_ASSERT_SAFE(d_currentMessage);
 
     if (!d_consumers.empty()) {
-        const mqbi::StorageMessageAttributes& attributes =
-            d_currentMessage->attributes();
         for (Consumers::const_iterator it = d_consumers.begin();
              it != d_consumers.end();
              ++it) {
             BSLS_ASSERT_SAFE(!it->second.empty());
 
             if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-                it->first->deliverMessageNoTrack(d_currentMessage->appData(),
-                                                 d_currentMessage->guid(),
-                                                 attributes,
+                it->first->deliverMessageNoTrack(*d_currentMessage,
                                                  "",  // msgGroupId,
                                                  it->second);
             }
             else {
-                it->first->deliverMessage(d_currentMessage->appData(),
-                                          d_currentMessage->guid(),
-                                          attributes,
+                it->first->deliverMessage(*d_currentMessage,
                                           "",  // msgGroupId,
                                           it->second,
                                           false);
@@ -837,6 +835,11 @@ bsls::Types::Int64 QueueEngineUtil_AppsDeliveryContext::timeDelta()
         d_timeDelta = getMessageQueueTime(d_currentMessage->attributes());
     }
     return d_timeDelta.value();
+}
+
+int QueueEngineUtil_AppsDeliveryContext::revCounter() const
+{
+    return d_revCounter;
 }
 
 // -------------------------
@@ -915,6 +918,11 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
     }
 
     size_t numMessages = processDeliveryLists(delay, reader);
+    // `reader` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    reader->clearCache();
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_redeliveryList.size())) {
         // We only attempt to deliver new messages if we successfully
@@ -956,7 +964,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
                          result == Routers::e_NO_CAPACITY ||
                          result == Routers::e_NO_SUBSCRIPTION)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-                d_putAsideList.add(start->guid());
+
+                putAside(start->guid());
                 // Do not block other Subscriptions. Continue.
             }
             else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -972,6 +981,11 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
 
         start->advance();
     }
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    start->clearCache();
     return numMessages;
 }
 
@@ -1055,9 +1069,7 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
         1,
         bmqp::SubQueueInfo(visitor.d_downstreamSubscriptionId,
                            message->appMessageView(ordinal()).d_rdaInfo));
-    visitor.d_handle->deliverMessage(message->appData(),
-                                     message->guid(),
-                                     message->attributes(),
+    visitor.d_handle->deliverMessage(*message,
                                      "",  // msgGroupId
                                      subQueueInfos,
                                      isOutOfOrder);
@@ -1087,9 +1099,7 @@ bool QueueEngineUtil_AppState::visitBroadcast(
     BSLS_ASSERT_SAFE(handle);
     // TBD: groupId: send 'options' as well...
     handle->deliverMessageNoTrack(
-        message->appData(),
-        message->guid(),
-        message->attributes(),
+        *message,
         "",  // msgGroupId
         bmqp::Protocol::SubQueueInfosArray(
             1,

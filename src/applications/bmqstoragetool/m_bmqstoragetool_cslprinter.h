@@ -50,7 +50,7 @@ class CslPrinter {
   public:
     // CREATORS
 
-    virtual ~CslPrinter() {}
+    virtual ~CslPrinter();
 
     // ACCESSORS
 

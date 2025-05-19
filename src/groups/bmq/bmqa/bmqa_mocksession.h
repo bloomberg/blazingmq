@@ -314,7 +314,7 @@
 ///     BMQA_EXPECT_CALL(mockSession, post(builder.messageEvent()))
 ///         .returning(0);
 ///
-///     // Use the builder to build a mesage event and pack it for the queue
+///     // Use the builder to build a message event and pack it for the queue
 ///     // that has been opened.  If you try to pack the message for an
 ///     // invalid or closed queue, packing the message will fail. This has
 ///     // been elided for brevity.

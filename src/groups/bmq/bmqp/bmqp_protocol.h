@@ -338,6 +338,10 @@ bool operator==(const SubQueueInfo& lhs, const SubQueueInfo& rhs);
 struct Protocol {
     // TYPES
 
+    struct eStopRequestVersion {
+        enum Enum { e_V1 = 1, e_V2 = 2 };
+    };
+
     /// A constant used to declare the length of static part of the array of
     /// subQueueIds (or AppKeys).
     static const size_t k_SUBID_ARRAY_STATIC_LEN = 16;

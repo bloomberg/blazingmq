@@ -142,16 +142,10 @@ bool VirtualStorage::remove(mqbi::DataStreamMessage* dataStreamMessage,
     return wasPending;
 }
 
-void VirtualStorage::onGC(const mqbi::DataStreamMessage& dataStreamMessage)
+void VirtualStorage::onGC(int size)
 {
-    if (!dataStreamMessage.d_apps.empty()) {
-        const mqbi::AppMessage& appMessage = dataStreamMessage.app(ordinal());
-
-        if (!appMessage.isPending()) {
-            d_removedBytes -= dataStreamMessage.d_size;
-            --d_numRemoved;
-        }
-    }
+    d_removedBytes -= size;
+    --d_numRemoved;
 }
 
 void VirtualStorage::resetStats()
@@ -165,9 +159,11 @@ void VirtualStorage::replaceOrdinal(unsigned int replacingOrdinal)
     d_ordinal = replacingOrdinal;
 }
 
-void VirtualStorage::setNumRemoved(bsls::Types::Int64 numRemoved)
+void VirtualStorage::setNumRemoved(bsls::Types::Int64 numMessages,
+                                   bsls::Types::Int64 bytes)
 {
-    d_numRemoved = numRemoved;
+    d_numRemoved   = numMessages;
+    d_removedBytes = bytes;
 }
 
 bool VirtualStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
@@ -185,10 +181,8 @@ unsigned int VirtualStorage::ordinal() const
 // ----------------------------
 
 // PRIVATE MANIPULATORS
-void StorageIterator::clear()
+void StorageIterator::clearCache()
 {
-    // Clear previous state, if any.  This is required so that new state can be
-    // loaded in 'appData', 'options' or 'attributes' routines.
     d_appData_sp.reset();
     d_options_sp.reset();
     d_attributes.reset();
@@ -239,14 +233,14 @@ bool StorageIterator::advance()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    clear();
+    clearCache();
     ++d_iterator;
     return !atEnd();
 }
 
 void StorageIterator::reset(const bmqt::MessageGUID& where)
 {
-    clear();
+    clearCache();
 
     d_iterator = d_owner_p->begin(where);
 }

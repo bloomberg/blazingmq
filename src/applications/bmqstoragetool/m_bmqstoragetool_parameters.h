@@ -58,6 +58,7 @@ class CommandLineArguments {
     // PUBLIC DATA
 
     /// Record types constants
+    static const char* k_ALL_TYPE;
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
     static const char* k_JOURNALOP_TYPE;

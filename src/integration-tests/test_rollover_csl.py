@@ -16,6 +16,7 @@
 """
 Testing rollover of CSL file.
 """
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,

@@ -106,6 +106,15 @@ const bsl::string& QueueHandle::Subscription::appId() const
     return d_downstream->d_appId;
 }
 
+// ----------------------------------
+// struct QueueHandle::ConfirmFunctor
+// ----------------------------------
+
+QueueHandle::ConfirmFunctor::~ConfirmFunctor()
+{
+    // NOTHING
+}
+
 // -----------------
 // class QueueHandle
 // -----------------
@@ -408,17 +417,14 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM>(
                 msgSize);
 
-        // Report CONFIRM time only at first hop
         // Note that we update metric per entire queue and also per `appId`
-        if (d_clientContext_sp->isFirstHop()) {
-            d_domainStats_p->onEvent<
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME>(
+        d_domainStats_p
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME>(
                 timeDelta);
-            d_domainStats_p->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
-                timeDelta,
-                appId);
-        }
+        d_domainStats_p->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+            timeDelta,
+            appId);
     }
 
     return resourceUsageStateChange;
@@ -481,7 +487,6 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
 
 void QueueHandle::deliverMessageImpl(
     const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const int                                 msgSize,
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
@@ -499,7 +504,7 @@ void QueueHandle::deliverMessageImpl(
                      subQueueInfos.size() <= d_subscriptions.size());
 
     d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUSH>(
-        msgSize);
+        attributes.appDataLen());
 
     // Create an event to dispatch delivery of the message to the client
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
@@ -766,9 +771,17 @@ void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // A more generic approach would be to maintain a queue of CONFIRMs per
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
-    QueueHandle::ConfirmFunctor f(this, msgGUID, downstreamSubQueueId);
+    mqbi::DispatcherEvent* queueEvent = d_queue_sp->dispatcher()->getEvent(
+        mqbi::DispatcherClientType::e_QUEUE);
 
-    d_queue_sp->dispatcher()->execute(f, d_queue_sp.get());
+    (*queueEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
+
+    queueEvent->callback().createInplace<QueueHandle::ConfirmFunctor>(
+        this,
+        msgGUID,
+        downstreamSubQueueId);
+
+    d_queue_sp->dispatcher()->dispatchEvent(queueEvent, d_queue_sp.get());
 }
 
 void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
@@ -786,9 +799,7 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
 }
 
 void QueueHandle::deliverMessageNoTrack(
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const bmqt::MessageGUID&                  msgGUID,
-    const mqbi::StorageMessageAttributes&     attributes,
+    const mqbi::StorageIterator&              iter,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
 {
@@ -797,20 +808,16 @@ void QueueHandle::deliverMessageNoTrack(
         d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
-
-    deliverMessageImpl(message,
-                       message->length(),
-                       msgGUID,
-                       attributes,
+    deliverMessageImpl(iter.appData(),
+                       iter.guid(),
+                       iter.attributes(),
                        msgGroupId,
                        subQueueInfos,
                        false);
 }
 
 void QueueHandle::deliverMessage(
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const bmqt::MessageGUID&                  msgGUID,
-    const mqbi::StorageMessageAttributes&     attributes,
+    const mqbi::StorageIterator&              iter,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
@@ -823,7 +830,7 @@ void QueueHandle::deliverMessage(
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
 
-    const int                          msgSize = message->length();
+    const unsigned int msgSize = iter.attributes().appDataLen();
     bmqp::Protocol::SubQueueInfosArray targetSubscriptions;
     bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
     for (size_t i = 0; i < subscriptions.size(); ++i) {
@@ -840,7 +847,7 @@ void QueueHandle::deliverMessage(
 
         bsl::pair<mqbi::QueueHandle::UnconfirmedMessageInfoMap::iterator, bool>
             rc = messages->insert(bsl::make_pair(
-                msgGUID,
+                iter.guid(),
                 mqbi::UnconfirmedMessageInfo(msgSize, now, subscriptionId)));
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc.second == false)) {
@@ -861,7 +868,7 @@ void QueueHandle::deliverMessage(
             // (delivered, non-delivered, skipped).
             if (d_throttledDroppedPutMessages.requestPermission()) {
                 BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                              << "' skipping duplicate PUSH " << msgGUID;
+                              << "' skipping duplicate PUSH " << iter.guid();
             }
             continue;  // CONTINUE
         }
@@ -920,10 +927,9 @@ void QueueHandle::deliverMessage(
     }
 
     deliverMessageImpl(isClientClusterMember() ? bsl::shared_ptr<bdlbb::Blob>()
-                                               : message,
-                       msgSize,
-                       msgGUID,
-                       attributes,
+                                               : iter.appData(),
+                       iter.guid(),
+                       iter.attributes(),
                        msgGroupId,
                        targetSubscriptions,
                        isOutOfOrder);

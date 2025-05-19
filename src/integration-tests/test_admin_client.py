@@ -127,7 +127,10 @@ def expect_same_structure(
             assert entry == expected, (path, "expected:", expected, "actual:", entry)
 
 
-def test_breathing(single_node: Cluster) -> None:
+def test_breathing(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     Test: basic admin session usage.
     - Send 'HELP' admin command and check its expected output.
@@ -197,9 +200,9 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     domain_fanout = domain_urls.domain_fanout
 
     domains = {domain.name: domain for domain in single_node.configurator.domains}
-    domains[domain_fanout].definition.parameters.mode.fanout.publish_app_id_metrics = (
-        True
-    )
+    domains[
+        domain_fanout
+    ].definition.parameters.mode.fanout.publish_app_id_metrics = True
     single_node.deploy_domains()
 
     # Preconditions
@@ -266,7 +269,10 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     admin.stop()
 
 
-def test_admin_encoding(single_node: Cluster) -> None:
+def test_admin_encoding(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     Test: admin commands output format.
     Preconditions:

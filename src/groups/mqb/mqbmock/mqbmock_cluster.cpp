@@ -105,6 +105,7 @@ void Cluster::_initializeClusterDefinition(
     partitionCfg.maxDataFileSize()     = 5 * k_GiB;
     partitionCfg.maxJournalFileSize()  = 256 * k_MiB;
     partitionCfg.maxQlistFileSize()    = 16 * k_KiB;
+    partitionCfg.maxCSLFileSize()      = 16 * k_KiB;
     partitionCfg.preallocate()         = false;
     partitionCfg.maxArchivedFileSets() = 0;
     partitionCfg.prefaultPages()       = true;
@@ -221,10 +222,10 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isStarted(false)
 , d_clusterDefinition(allocator)
 , d_channels(allocator)
-, d_negotiator_mp()
+, d_initialConnectionHandler_mp()
 , d_transportManager(&d_scheduler,
                      bufferFactory,
-                     d_negotiator_mp,
+                     d_initialConnectionHandler_mp,
                      0,  // mqbstat::StatController*
                      allocator)
 , d_netCluster_mp(0)

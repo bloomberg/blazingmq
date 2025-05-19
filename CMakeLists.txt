@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.19 )
+cmake_minimum_required( VERSION 3.23 )
 
 project( BMQ LANGUAGES C CXX )
     # o We need the above line because, per CMake 'project' command
@@ -25,6 +25,8 @@ setup_package_provider()
 # -----------------------------------------------------------------------------
 
 enable_testing()
+# Configure tests to be part of the 'all' target
+add_custom_target(all.t ALL)
 
 set( CMAKE_POSITION_INDEPENDENT_CODE ON )
 
@@ -39,6 +41,8 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang" )
           "-Wno-conversion"
           "-Wno-undef"                  # BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
           "-Wno-float-equal"            # operator== in generated classes
+          "-Wno-documentation-unknown-command"
+                                        # Don't warn about @bbref{}
   )
 
 
@@ -284,6 +288,9 @@ if(DOXYGEN_FOUND)
   add_dependencies(docs internaldocs)
 endif()
 
+add_library(bmqbrkr_plugins INTERFACE)
+add_library(blazingmq::bmqbrkr_plugins ALIAS bmqbrkr_plugins)
+
 # -----------------------------------------------------------------------------
 #                                   PROJECTS
 # -----------------------------------------------------------------------------
@@ -291,3 +298,33 @@ add_subdirectory( "src/groups" )
 add_subdirectory( "src/applications" )
 add_subdirectory( "src/tutorials" )
 add_subdirectory( "src/plugins" )
+add_subdirectory( "src/integration-tests" )
+
+
+# -----------------------------------------------------------------------------
+#                                   PLUGINS
+# -----------------------------------------------------------------------------
+
+# Install all the headers for mqb + bmq 
+install(TARGETS bmqbrkr_plugins
+        EXPORT BmqbrkrPluginsTargets
+        FILE_SET HEADERS
+          COMPONENT bmqbrkr_plugins
+)
+install(EXPORT BmqbrkrPluginsTargets NAMESPACE blazingmq:: DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins" COMPONENT bmqbrkr_plugins)
+
+bbs_read_metadata(GROUP mqb SOURCE_DIR src/groups/mqb)
+bbs_read_metadata(GROUP bmq SOURCE_DIR src/groups/bmq)
+set(bmqbrkr_plugins_deps)
+list(APPEND bmqbrkr_plugins_deps ${mqb_DEPENDS} ${bmq_DEPENDS})
+list(REMOVE_DUPLICATES bmqbrkr_plugins_deps)
+list(REMOVE_ITEM bmqbrkr_plugins_deps bmq) # don't need this dependency
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/cmake/BmqbrkrPluginsConfig.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/BmqbrkrPluginsConfig.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BmqbrkrPluginsConfig.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins
+        COMPONENT bmqbrkr_plugins)
+

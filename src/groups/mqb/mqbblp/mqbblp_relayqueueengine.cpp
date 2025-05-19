@@ -246,9 +246,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         d_queueState_p->queue()));
     BSLS_ASSERT_SAFE(context);
 
-    // Attempt to deliver all data in the storage.  Otherwise, broadcast
-    // can get dropped if the incoming configure response removes consumers.
-
+    // Force re-delivery
     deliverMessages();
 
     // RelayQueueEngine now assumes that configureQueue request cannot fail.
@@ -601,22 +599,28 @@ void RelayQueueEngine::deliverMessages()
 
                 d_storageIter_mp->removeCurrentElement();
             }
-            else if (element->app().isLastPush(d_storageIter_mp->guid())) {
+            else if (element->app().isLastPush(
+                         d_storageIter_mp->guid(),
+                         d_appsDeliveryContext.revCounter())) {
                 // This `app` has already seen this message.
+
+                BMQ_LOGTHROTTLE_INFO()
+                    << "Remote queue: " << d_queueState_p->uri()
+                    << " (id: " << d_queueState_p->id() << ", App '"
+                    << app->appId()
+                    << "') discarding a duplicate PUSH for guid "
+                    << d_storageIter_mp->guid();
+
                 d_storageIter_mp->removeCurrentElement();
             }
             else {
-                element->app().setLastPush(d_storageIter_mp->guid());
+                element->app().setLastPush(d_storageIter_mp->guid(),
+                                           d_appsDeliveryContext.revCounter());
 
-                if (d_appsDeliveryContext.processApp(*app, i)) {
+                if (d_appsDeliveryContext.processApp(*app, i, true)) {
                     // The current element has made it either to delivery or
                     // putAside and it can be removed
                     d_storageIter_mp->removeCurrentElement();
-                }
-                else {
-                    // The current element has made it to resumePoint and it
-                    // cannot be removed.
-                    element->app().setLastPush(bmqt::MessageGUID());
                 }
             }
         }
@@ -1310,18 +1314,43 @@ void RelayQueueEngine::releaseHandleImpl(
 
     proctor->addRef();
 
-    // Send a close queue request upstream.
-    d_queueState_p->domain()->cluster()->configureQueue(
-        d_queueState_p->queue(),
-        effectiveHandleParam,
-        upstreamSubQueueId,
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(&RelayQueueEngine::onHandleReleased,
-                                           d_self.acquireWeak()),
-            bdlf::PlaceHolders::_1,  // Status
-            handle,
+    mqbi::Cluster* cluster = d_queueState_p->domain()->cluster();
+
+    BSLS_ASSERT_SAFE(cluster);
+
+    if (cluster->isShutdownLogicOn()) {
+        // Application first calls 'Cluster::initiateShutdown' (which may set
+        // 'd_supportShutdownV2'), followed by 'TransportManager::closeClients'
+        // which may result in 'QueueHandle::drop' leading to this call.
+
+        BMQ_LOGTHROTTLE_INFO()
+            << "Shutting down and skipping close queue [: "
+            << d_queueState_p->uri() << "], queueId: " << d_queueState_p->id()
+            << ", handle parameters: " << effectiveHandleParam;
+
+        bmqp_ctrlmsg::Status status;
+        status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+        status.message()  = "Shutting down.";
+
+        onHandleReleasedDispatched(status,
+                                   handle,
+                                   effectiveHandleParam,
+                                   proctor);
+    }
+    else {
+        // Send a close queue request upstream.
+        d_queueState_p->domain()->cluster()->configureQueue(
+            d_queueState_p->queue(),
             effectiveHandleParam,
-            proctor));
+            upstreamSubQueueId,
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                                     &RelayQueueEngine::onHandleReleased,
+                                     d_self.acquireWeak()),
+                                 bdlf::PlaceHolders::_1,  // Status
+                                 handle,
+                                 effectiveHandleParam,
+                                 proctor));
+    }
 }
 
 void RelayQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
@@ -1503,7 +1532,20 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
         d_queueState_p->queue()));
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
+        d_storageIter_mp->removeAllElements();
+
         d_storageIter_mp->advance();
+    }
+    else {
+        PushStreamIterator del(storage(),
+                               &d_pushStream,
+                               d_pushStream.d_stream.find(msgGUID));
+
+        if (!del.atEnd()) {
+            del.removeAllElements();
+
+            del.advance();
+        }
     }
 }
 
@@ -1911,8 +1953,7 @@ void RelayQueueEngine::storePush(
     const bmqt::MessageGUID&                  msgGUID,
     const bsl::shared_ptr<bdlbb::Blob>&       appData,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-
-    bool isOutOfOrder)
+    bool                                      isOutOfOrder)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         // Save the message along with the subIds in the storage.  Note that

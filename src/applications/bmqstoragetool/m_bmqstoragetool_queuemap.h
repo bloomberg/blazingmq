@@ -37,11 +37,13 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+/// Map of queue key -> queue info.
 typedef bsl::unordered_map<mqbu::StorageKey, bmqp_ctrlmsg::QueueInfo>
     QueueKeyToInfoMap;
-// Map of queue key -> queue info.
+/// Map of queue uri -> queue key.
 typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
-// Map of queue uri -> queue key.
+/// Collection of queue infos.
+typedef bsl::vector<bmqp_ctrlmsg::QueueInfo> QueueInfos;
 
 // ==============
 // class QueueMap
@@ -84,7 +86,7 @@ class QueueMap {
     bsl::optional<mqbu::StorageKey> findKeyByUri(const bsl::string& uri) const;
 
     /// Return all queues info
-    bsl::vector<bmqp_ctrlmsg::QueueInfo> queueInfos() const;
+    QueueInfos queueInfos() const;
 };
 
 }  // close package namespace

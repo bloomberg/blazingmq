@@ -20,6 +20,7 @@ python3 check_license.py [--path PATH]
 optional arguments:
   --path PATH to the directory containing sources to check
 """
+
 import argparse
 import glob
 from pathlib import Path
@@ -52,7 +53,7 @@ def check_license(fpath: str, expressions: List[re.Pattern]) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog=f"python3 -m {check_license.__name__}",
+        prog="python3 check_license.py",
         description="License checker",
     )
 

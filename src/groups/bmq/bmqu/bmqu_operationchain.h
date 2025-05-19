@@ -191,12 +191,16 @@
 #endif
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Tue Oct 15 17:39:53 2024
+// Generated on Wed Apr  2 14:49:45 2025
 // Command line: sim_cpp11_features.pl bmqu_operationchain.h
-#define COMPILING_BMQU_OPERATIONCHAIN_H
-#include <bmqu_operationchain_cpp03.h>
-#undef COMPILING_BMQU_OPERATIONCHAIN_H
+
+# define COMPILING_BMQU_OPERATIONCHAIN_H
+# include <bmqu_operationchain_cpp03.h>
+# undef COMPILING_BMQU_OPERATIONCHAIN_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {

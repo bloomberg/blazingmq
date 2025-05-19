@@ -55,6 +55,7 @@ def contains(path: pathlib.Path, filenames: typing.List[str]) -> bool:
             return all([proc.outputs_substr(filename) for filename in sorted(filenames)])
 ```
 """
+
 import abc
 from contextlib import ExitStack, suppress
 import inspect
@@ -207,6 +208,8 @@ class Process:
             bufsize=0,
             universal_newlines=False,
         )
+
+        self._internal_logger.info(f"Current pid = {self._process.pid}")
 
         self._queue = queue.Queue()
 

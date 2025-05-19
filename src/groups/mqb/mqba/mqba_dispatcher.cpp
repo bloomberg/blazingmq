@@ -91,7 +91,8 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
 
     event->object()
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(f));
+        .callback()
+        .set(f);
 
     // submit the event
     int rc = d_processorPool_p->enqueueEvent(event, d_processorHandle);
@@ -183,8 +184,9 @@ void Dispatcher_ClientExecutor::post(const bsl::function<void()>& f) const
 
     event->object()
         .setType(mqbi::DispatcherEventType::e_CALLBACK)
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(f))
-        .setDestination(const_cast<mqbi::DispatcherClient*>(d_client_p));
+        .setDestination(const_cast<mqbi::DispatcherClient*>(d_client_p))
+        .callback()
+        .set(f);
 
     // submit the event
     int rc = processorPool()->enqueueEvent(event, processorHandle());
@@ -230,6 +232,39 @@ Dispatcher::DispatcherContext::DispatcherContext(
               allocator)
 {
     // NOTHING
+}
+
+// ------------------------------------
+// class Dispatcher::OnNewClientFunctor
+// ------------------------------------
+
+Dispatcher::OnNewClientFunctor::OnNewClientFunctor(
+    Dispatcher*                      owner_p,
+    mqbi::DispatcherClientType::Enum type,
+    int                              processorId)
+: d_owner_p(owner_p)
+, d_type(type)
+, d_processorId(processorId)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_owner_p);
+}
+
+// ACCESSORS
+void Dispatcher::OnNewClientFunctor::operator()() const
+{
+    // executed by the *DISPATCHER* thread
+
+    // Resize the 'd_flushList' vector for that specified 'processorId', if
+    // needed, to ensure it has enough space to hold all clients associated to
+    // that processorId.
+    DispatcherContext& context = *(d_owner_p->d_contexts[d_type]);
+
+    int count = context.d_loadBalancer.clientsCountForProcessor(d_processorId);
+    if (static_cast<int>(context.d_flushList[d_processorId].capacity()) <
+        count) {
+        context.d_flushList[d_processorId].reserve(count);
+    }
 }
 
 // ----------------
@@ -372,10 +407,10 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             // whole purpose of the 'e_DISPATCHER' event type.
             flushClients(type, processorId);
 
-            if (realEvent->callback()) {
+            if (!realEvent->callback().empty()) {
                 // A callback may not have been set if all we wanted was to
                 // execute the 'finalizeCallback' of the event.
-                realEvent->callback()(processorId);
+                realEvent->callback()();
             }
         }
         else {
@@ -404,7 +439,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             const mqbi::DispatcherDispatcherEvent* realEvent =
                 event->object().asDispatcherEvent();
 
-            if (realEvent->finalizeCallback()) {
+            if (!realEvent->finalizeCallback().empty()) {
                 BALL_LOG_TRACE << "Calling finalizeCallback on queue "
                                << processorId << " of " << type
                                << " dispatcher: " << event->object();
@@ -428,23 +463,6 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
             .setAddedToFlushList(false);
     }
     context.d_flushList[processorId].clear();
-}
-
-void Dispatcher::onNewClient(mqbi::DispatcherClientType::Enum type,
-                             int                              processorId)
-{
-    // executed by the *DISPATCHER* thread
-
-    // Resize the 'd_flushList' vector for that specified 'processorId', if
-    // needed, to ensure it has enough space to hold all clients associated to
-    // that processorId.
-    DispatcherContext& context = *(d_contexts[type]);
-
-    int count = context.d_loadBalancer.clientsCountForProcessor(processorId);
-    if (static_cast<int>(context.d_flushList[processorId].capacity()) <
-        count) {
-        context.d_flushList[processorId].reserve(count);
-    }
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
@@ -504,17 +522,15 @@ int Dispatcher::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
-    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                     "bmqDispSession"),
-                mqbi::DispatcherClientType::e_SESSION);
-        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                     "bmqDispQueue"),
-                mqbi::DispatcherClientType::e_QUEUE);
-        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
-                                     "bmqDispCluster"),
-                mqbi::DispatcherClientType::e_CLUSTER);
-    }
+    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                                 "bmqDispSession"),
+            mqbi::DispatcherClientType::e_SESSION);
+    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                                 "bmqDispQueue"),
+            mqbi::DispatcherClientType::e_QUEUE);
+    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+                                 "bmqDispCluster"),
+            mqbi::DispatcherClientType::e_CLUSTER);
 
     d_isStarted = true;
 
@@ -595,12 +611,14 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             &context.d_processorPool_mp->getUnmanagedEvent()->object();
         (*event)
             .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-            .setCallback(
-                bdlf::BindUtil::bind(&Dispatcher::onNewClient,
-                                     this,
-                                     type,
-                                     bdlf::PlaceHolders::_1))  // processor
-            .setDestination(client);                           // not needed
+            .setDestination(client);  // TODO: not needed?
+
+        // Build callback functor in-place.
+        // The destructor for functor is called in `reset`.
+        event->callback().createInplace<OnNewClientFunctor>(this,
+                                                            type,
+                                                            processor);
+
         context.d_processorPool_mp->enqueueEvent(event, processor);
         return processor;  // RETURN
     }  // break;
@@ -650,8 +668,8 @@ void Dispatcher::unregisterClient(mqbi::DispatcherClient* client)
         mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
 }
 
-void Dispatcher::execute(const mqbi::Dispatcher::ProcessorFunctor& functor,
-                         mqbi::DispatcherClientType::Enum          type,
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         mqbi::DispatcherClientType::Enum     type,
                          const mqbi::Dispatcher::VoidFunctor& doneCallback)
 {
     // PRECONDITIONS
@@ -691,9 +709,9 @@ void Dispatcher::execute(const mqbi::Dispatcher::ProcessorFunctor& functor,
         if (processorPool[i] != 0) {
             mqbi::DispatcherEvent* qEvent =
                 &processorPool[i]->getUnmanagedEvent()->object();
-            qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER)
-                .setCallback(functor)
-                .setFinalizeCallback(doneCallback);
+            qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
+            qEvent->callback().set(functor);
+            qEvent->finalizeCallback().set(doneCallback);
             processorPool[i]->enqueueEventOnAllQueues(qEvent);
         }
     }

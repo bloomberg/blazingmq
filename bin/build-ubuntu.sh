@@ -1,28 +1,12 @@
 #!/usr/bin/env bash
 
 # This script builds BlazingMQ and all of its dependencies.
-#
-# Before running this script, install following prerequisites, if not present
-# yet, by copy-and-pasting the commands between `<<PREREQUISITES` and
-# `PREREQUISITES` below:
-                                                    # shellcheck disable=SC2188
-<<PREREQUISITES
-sudo apt update && sudo apt -y install ca-certificates
-sudo apt install -y --no-install-recommends \
-    autoconf \
-    automake \
-    build-essential \
-    gdb \
-    cmake \
-    ninja-build \
-    pkg-config \
-    bison \
-    libfl-dev \
-    libbenchmark-dev \
-    libgmock-dev \
-    libtool \
-    libz-dev
-PREREQUISITES
+
+echo -e "Before running this script, install the following prerequisites, if not present yet," \
+        "by executing the following commands:\n"                                               \
+        "sudo apt update && sudo apt -y install ca-certificates\n"                             \
+        "sudo apt install -y --no-install-recommends"                                          \
+        "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev"
 
 # :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
 print_usage_and_exit_with_error() {
@@ -81,10 +65,10 @@ mkdir -p "${DIR_INSTALL}"
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.13.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.18.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"

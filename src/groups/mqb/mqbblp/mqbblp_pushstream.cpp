@@ -64,10 +64,8 @@ PushStream::PushStream(
 // ----------------------------
 
 // PRIVATE MANIPULATORS
-void PushStreamIterator::clear()
+void PushStreamIterator::clearCache()
 {
-    // Clear previous state, if any.  This is required so that new state can be
-    // loaded in 'appData', 'options' or 'attributes' routines.
     d_appData_sp.reset();
     d_options_sp.reset();
     d_attributes.reset();
@@ -138,13 +136,26 @@ void PushStreamIterator::removeCurrentElement()
     }
 }
 
+void PushStreamIterator::removeAllElements()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!atEnd());
+
+    d_currentElement = d_iterator->second.front();
+    d_currentOrdinal = 0;
+
+    while (d_currentElement) {
+        removeCurrentElement();
+    }
+}
+
 // MANIPULATORS
 bool PushStreamIterator::advance()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    clear();
+    clearCache();
 
     if (d_iterator->second.numElements() == 0) {
         d_iterator = d_owner_p->d_stream.erase(d_iterator);
@@ -160,7 +171,7 @@ bool PushStreamIterator::advance()
 
 void PushStreamIterator::reset(const bmqt::MessageGUID& where)
 {
-    clear();
+    clearCache();
 
     if (where.isUnset()) {
         // Reset iterator to beginning
@@ -254,11 +265,12 @@ VirtualPushStreamIterator::VirtualPushStreamIterator(
 {
     d_itApp = owner->d_apps.find(upstreamSubQueueId);
 
-    BSLS_ASSERT_SAFE(d_itApp != owner->d_apps.end());
+    if (d_itApp != owner->d_apps.end()) {
+        d_currentElement = d_itApp->second.d_elements.front();
 
-    d_currentElement = d_itApp->second.d_elements.front();
-
-    BSLS_ASSERT_SAFE(d_currentElement->app().d_app == d_itApp->second.d_app);
+        BSLS_ASSERT_SAFE(d_currentElement->app().d_app ==
+                         d_itApp->second.d_app);
+    }
 }
 
 VirtualPushStreamIterator::~VirtualPushStreamIterator()
@@ -284,7 +296,7 @@ bool VirtualPushStreamIterator::advance()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    clear();
+    clearCache();
 
     PushStream::Element* del = d_currentElement;
 

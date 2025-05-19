@@ -331,7 +331,11 @@ class TestAppSubscriptions:
     @tweak.domain.subscriptions(
         [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
     )
-    def test_app_subscription_broadcast(self, cluster: Cluster):
+    def test_app_subscription_broadcast(
+        self,
+        cluster: Cluster,
+        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    ):
         """
         Configure the boadcast queue to evaluate application subscription
         negatively.

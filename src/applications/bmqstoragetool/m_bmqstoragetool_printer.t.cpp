@@ -368,9 +368,9 @@ static void test3_humanReadableRecordsTest()
                        << "    Epoch           : 100\n"
                        << "    JournalOpType   : SYNCPOINT\n"
                        << "    SyncPointType   : REGULAR\n"
-                       << "    SyncPtPrimaryLeaseId: 25\n"
+                       << "    SyncPtPrimaryLeaseId: 121\n"
                        << "    SyncPtSequenceNumber: 1234567\n"
-                       << "    PrimaryNodeId   : 121\n"
+                       << "    PrimaryNodeId   : 25\n"
                        << "    DataFileOffsetDwords: 8800\n\n";
 
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
@@ -1138,9 +1138,9 @@ static void test11_jsonPrettyRecordsTest()
                 << "      \"Epoch\": \"100\",\n"
                 << "      \"JournalOpType\": \"SYNCPOINT\",\n"
                 << "      \"SyncPointType\": \"REGULAR\",\n"
-                << "      \"SyncPtPrimaryLeaseId\": \"25\",\n"
+                << "      \"SyncPtPrimaryLeaseId\": \"121\",\n"
                 << "      \"SyncPtSequenceNumber\": \"1234567\",\n"
-                << "      \"PrimaryNodeId\": \"121\",\n"
+                << "      \"PrimaryNodeId\": \"25\",\n"
                 << "      \"DataFileOffsetDwords\": \"8800\"\n"
                 << "    }\n"
                 << "  ]\n"
@@ -1422,7 +1422,8 @@ static void test15_jsonPrettyOutstandingTest()
 
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"OutstandingRatio\": \"35\"\n"
+                       << "  \"OutstandingRatio\": \"35\",\n"
+                       << "  \"OutstandingMessages\": \"7\"\n"
                        << "}\n";
     }
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2022,9 +2023,9 @@ static void test19_jsonLineRecordsTest()
                            << "\"Epoch\": \"100\", "
                            << "\"JournalOpType\": \"SYNCPOINT\", "
                            << "\"SyncPointType\": \"REGULAR\", "
-                           << "\"SyncPtPrimaryLeaseId\": \"25\", "
+                           << "\"SyncPtPrimaryLeaseId\": \"121\", "
                            << "\"SyncPtSequenceNumber\": \"1234567\", "
-                           << "\"PrimaryNodeId\": \"121\", "
+                           << "\"PrimaryNodeId\": \"25\", "
                            << "\"DataFileOffsetDwords\": \"8800\"" << "}\n"
                            << "  ]\n"
                            << "}\n";
@@ -2305,7 +2306,8 @@ static void test23_jsonLineOutstandingTest()
 
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"OutstandingRatio\": \"35\"\n"
+                       << "  \"OutstandingRatio\": \"35\",\n"
+                       << "  \"OutstandingMessages\": \"7\"\n"
                        << "}\n";
     }
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());

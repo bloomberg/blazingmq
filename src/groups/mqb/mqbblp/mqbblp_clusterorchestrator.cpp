@@ -289,6 +289,8 @@ void ClusterOrchestrator::registerQueueInfo(const bmqt::Uri& uri,
                                             const AppInfos&         appIdInfos,
                                             bool forceUpdate)
 {
+    // TODO_CSL: Legacy only.  Remove.
+
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
@@ -296,11 +298,22 @@ void ClusterOrchestrator::registerQueueInfo(const bmqt::Uri& uri,
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
     BSLS_ASSERT_SAFE(uri.isCanonical());
 
-    d_stateManager_mp->registerQueueInfo(uri,
-                                         partitionId,
-                                         queueKey,
-                                         appIdInfos,
-                                         forceUpdate);
+    bmqp_ctrlmsg::QueueInfo advisory(d_allocator_p);
+
+    advisory.uri()         = uri.canonical();
+    advisory.partitionId() = partitionId;
+    queueKey.loadBinary(&advisory.key());
+
+    advisory.appIds().resize(appIdInfos.size());
+    int i = 0;
+    for (AppInfos::const_iterator cit = appIdInfos.cbegin();
+         cit != appIdInfos.cend();
+         ++cit, ++i) {
+        advisory.appIds()[i].appId() = cit->first;
+        cit->second.loadBinary(&advisory.appIds()[i].appKey());
+    }
+
+    d_stateManager_mp->registerQueueInfo(advisory, forceUpdate);
 }
 
 void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
@@ -871,7 +884,8 @@ void ClusterOrchestrator::processStopRequest(
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
 
     // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    if (stopRequest.version() == 1 && stopRequest.clusterName() != name) {
+    if (stopRequest.version() == bmqp::Protocol::eStopRequestVersion::e_V1 &&
+        stopRequest.clusterName() != name) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": invalid cluster name in the StopRequest from "
@@ -1933,26 +1947,20 @@ void ClusterOrchestrator::validateClusterStateLedger()
     d_stateManager_mp->validateClusterStateLedger();
 }
 
-void ClusterOrchestrator::registerAppId(bsl::string         appId,
-                                        const mqbi::Domain& domain)
+void ClusterOrchestrator::updateAppIds(
+    const bsl::shared_ptr<const bsl::vector<bsl::string> >& added,
+    const bsl::shared_ptr<const bsl::vector<bsl::string> >& removed,
+    const bsl::string&                                      domainName)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    d_stateManager_mp->registerAppId(appId, &domain);
-}
-
-void ClusterOrchestrator::unregisterAppId(bsl::string         appId,
-                                          const mqbi::Domain& domain)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->unregisterAppId(appId, &domain);
+    d_stateManager_mp->updateAppIds(*added,
+                                    *removed,
+                                    domainName,
+                                    "");  // for all queues
 }
 
 void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,

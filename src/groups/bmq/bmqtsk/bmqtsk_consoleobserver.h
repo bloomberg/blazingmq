@@ -65,7 +65,7 @@
 //..
 //  bmqtsk::ConsoleObserver consoleObserver(allocator);
 //
-//  consoleObserver.setSeverityThreshold(ball::Severity::INFO)
+//  consoleObserver.setSeverityThreshold(ball::Severity::e_INFO)
 //                 .setLogFromat("%d (%t) %s %F:%l %m\n");
 //..
 //
@@ -221,7 +221,7 @@ class ConsoleObserver : public ball::ObserverAdapter {
 
     /// Set the severity threshold to the specified `value`: any log which
     /// severity is greater than or equal to `value` will be printed to
-    /// stdout.  Use `ball::Severity::OFF` to completely disable this
+    /// stdout.  Use `ball::Severity::e_OFF` to completely disable this
     /// observer.  Return a reference to this object offering modification
     /// access.
     ConsoleObserver& setSeverityThreshold(ball::Severity::Level value);
@@ -254,7 +254,7 @@ class ConsoleObserver : public ball::ObserverAdapter {
 
     /// Return whether this observer is enabled or not.  Note that this is
     /// just a convenience shortcut for comparing the `severityThreshold`
-    /// with a value of `ball::Severity::OFF`.
+    /// with a value of `ball::Severity::e_OFF`.
     bool isEnabled() const;
 };
 
@@ -288,7 +288,7 @@ inline ball::Severity::Level ConsoleObserver::severityThreshold() const
 
 inline bool ConsoleObserver::isEnabled() const
 {
-    return d_severityThreshold != ball::Severity::OFF;
+    return d_severityThreshold != ball::Severity::e_OFF;
 }
 
 }  // close package namespace

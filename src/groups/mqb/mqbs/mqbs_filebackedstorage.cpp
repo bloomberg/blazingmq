@@ -294,7 +294,11 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        const bsl::shared_ptr<bdlbb::Blob>& options,
                        mqbi::DataStreamMessage**           out)
 {
-    const int msgSize = appData->length();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(appData);
+    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+
+    const int msgSize = attributes->appDataLen();
 
     // Store the specified message in the 'physical' as well as *all*
     // virtual storages.
@@ -585,13 +589,15 @@ mqbi::StorageResult::Enum
 FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 {
     mqbi::StorageResult::Enum rc;
+    const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
 
     if (!appKey.isNull()) {
         rc = d_virtualStorageCatalog.purge(
             appKey,
             bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
                                  this,
-                                 false,
+                                 timestamp,
                                  bdlf::PlaceHolders::_1,
                                  bdlf::PlaceHolders::_2));
         if (d_handles.empty()) {
@@ -599,7 +605,11 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
         }
     }
     else {
-        rc = writeQueuePurgeRecord();
+        // writeQueuePurgeRecord
+        rc = writePurgeRecordImpl(timestamp,
+                                  mqbu::StorageKey::k_NULL_KEY,
+                                  DataStoreRecordHandle());
+
         if (mqbi::StorageResult::e_SUCCESS == rc) {
             purgeCommon(mqbu::StorageKey::k_NULL_KEY);
 
@@ -621,18 +631,29 @@ bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStorageCatalog::PurgeCallback cb;
+    VirtualStorageCatalog::PurgeCallback  onPurge;
+    VirtualStorageCatalog::RemoveCallback onRemove;
 
     if (asPrimary) {
-        cb = bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
-                                  this,
-                                  true,
-                                  bdlf::PlaceHolders::_1,
-                                  bdlf::PlaceHolders::_2);
+        const bsls::Types::Uint64 timestamp =
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc());
+
+        onPurge = bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
+                                       this,
+                                       timestamp,
+                                       bdlf::PlaceHolders::_1,
+                                       bdlf::PlaceHolders::_2);
+        onRemove = bdlf::BindUtil::bind(
+            &FileBackedStorage::writeAppDeletionRecord,
+            this,
+            timestamp,
+            bdlf::PlaceHolders::_1);
     }
 
     mqbi::StorageResult::Enum rc =
-        d_virtualStorageCatalog.removeVirtualStorage(appKey, cb);
+        d_virtualStorageCatalog.removeVirtualStorage(appKey,
+                                                     onPurge,
+                                                     onRemove);
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
@@ -641,20 +662,11 @@ bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
     return mqbi::StorageResult::e_SUCCESS == rc;
 }
 
-mqbi::StorageResult::Enum FileBackedStorage::writeQueuePurgeRecord()
-{
-    return writePurgeRecordImpl(false,
-                                mqbu::StorageKey::k_NULL_KEY,
-                                DataStoreRecordHandle());
-}
-
 mqbi::StorageResult::Enum
-FileBackedStorage::writePurgeRecordImpl(bool                        alsoDelete,
+FileBackedStorage::writePurgeRecordImpl(bsls::Types::Uint64         timestamp,
                                         const mqbu::StorageKey&     appKey,
                                         const DataStoreRecordHandle start)
 {
-    const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
-        bdlt::CurrentTime::utc());
     DataStoreRecordHandle handle;
     int                   rc = d_store_p->writeQueuePurgeRecord(&handle,
                                               d_queueKey,
@@ -668,30 +680,13 @@ FileBackedStorage::writePurgeRecordImpl(bool                        alsoDelete,
 
     d_queueOpRecordHandles.push_back(handle);
 
-    if (alsoDelete) {
-        // Write QueueDeletionRecord to data store for removed appIds.
-        //
-        // TODO_CSL Do not write this record when we logically delete the
-        // QLIST file
-
-        rc = d_store_p->writeQueueDeletionRecord(&handle,
-                                                 d_queueKey,
-                                                 appKey,
-                                                 timestamp);
-        if (0 != rc) {
-            return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
-        }
-
-        d_queueOpRecordHandles.push_back(handle);
-    }
-
     flushStorage();
 
     return mqbi::StorageResult::e_SUCCESS;
 }
 
 mqbi::StorageResult::Enum FileBackedStorage::writeAppPurgeRecord(
-    bool                                             alsoDelete,
+    const bsls::Types::Uint64                        timestamp,
     const mqbu::StorageKey&                          appKey,
     const VirtualStorageCatalog::DataStreamIterator& first)
 {
@@ -704,7 +699,31 @@ mqbi::StorageResult::Enum FileBackedStorage::writeAppPurgeRecord(
     BSLS_ASSERT(!handles.empty());
     start = handles[0];
 
-    return writePurgeRecordImpl(alsoDelete, appKey, start);
+    return writePurgeRecordImpl(timestamp, appKey, start);
+}
+
+mqbi::StorageResult::Enum
+FileBackedStorage::writeAppDeletionRecord(const bsls::Types::Uint64 timestamp,
+                                          const mqbu::StorageKey&   appKey)
+{
+    // Write QueueDeletionRecord to data store for removed appIds.
+    //
+    // TODO_CSL Do not write this record when we logically delete the
+    // QLIST file
+    DataStoreRecordHandle handle;
+    int writeResult = d_store_p->writeQueueDeletionRecord(&handle,
+                                                          d_queueKey,
+                                                          appKey,
+                                                          timestamp);
+    if (0 != writeResult) {
+        return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
+    }
+
+    d_queueOpRecordHandles.push_back(handle);
+
+    flushStorage();
+
+    return mqbi::StorageResult::e_SUCCESS;
 }
 
 void FileBackedStorage::flushStorage()

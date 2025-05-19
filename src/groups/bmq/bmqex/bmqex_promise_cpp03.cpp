@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Thu Oct 17 16:05:31 2024
+// Generated on Wed Apr  2 15:03:38 2025
 // Command line: sim_cpp11_features.pl bmqex_promise.cpp
 
 #define INCLUDED_BMQEX_PROMISE_CPP03  // Disable inclusion
@@ -29,6 +29,3 @@
 // No C++03 Expansion
 
 #endif  // defined(COMPILING_BMQEX_PROMISE_CPP)
-
-// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
-// SOURCE-SHA: 8dbfd92723c9bbcf70d3bf432a3cfb80c635ac188627e1aa7d3afa37287fe6ee

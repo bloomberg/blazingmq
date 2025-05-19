@@ -61,12 +61,10 @@ void printQueueInfo(bsl::ostream&     ostream,
                     unsigned int      queuesLimit,
                     bslma::Allocator* allocator)
 {
-    const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
-        queueMap.queueInfos();
+    const QueueInfos& queueInfos = queueMap.queueInfos();
     if (!queueInfos.empty()) {
         ostream << ",\n";
-        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
-            queueInfos.cend();
+        QueueInfos::const_iterator itEnd = queueInfos.cend();
         if (queueInfos.size() > queuesLimit) {
             ostream << "    \"First" << queuesLimit << "Queues\": [";
             itEnd = queueInfos.cbegin() + queuesLimit;
@@ -74,8 +72,7 @@ void printQueueInfo(bsl::ostream&     ostream,
         else {
             ostream << "    \"Queues\": [";
         }
-        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-            queueInfos.cbegin();
+        QueueInfos::const_iterator it = queueInfos.cbegin();
         for (; it != itEnd; ++it) {
             if (it != queueInfos.cbegin()) {
                 ostream << ",";
@@ -93,6 +90,14 @@ void printQueueInfo(bsl::ostream&     ostream,
 
 }  // close unnamed namespace
 
+// ================
+// class CslPrinter
+// ================
+CslPrinter::~CslPrinter()
+{
+    // NOTHING
+}
+
 // =============================
 // class HumanReadableCslPrinter
 // =============================
@@ -106,7 +111,8 @@ class HumanReadableCslPrinter : public CslPrinter {
 
   public:
     // CREATORS
-    HumanReadableCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+    explicit HumanReadableCslPrinter(bsl::ostream&     os,
+                                     bslma::Allocator* allocator = 0)
     : d_ostream(os)
     , d_allocator_p(allocator)
     {
@@ -152,8 +158,6 @@ class HumanReadableCslPrinter : public CslPrinter {
         CslRecordPrinter<bmqu::AlignedPrinter> printer(d_ostream,
                                                        d_allocator_p);
         printer.printRecordDetails(recordStream.str(), header, recordId);
-
-        // d_ostream << '\n';
     }
 
     void
@@ -162,8 +166,9 @@ class HumanReadableCslPrinter : public CslPrinter {
         if (!offsets.empty()) {
             d_ostream << "\nThe following " << offsets.size()
                       << " offset(s) not found:\n";
-            OffsetsVec::const_iterator it = offsets.cbegin();
-            for (; it != offsets.cend(); ++it) {
+            for (OffsetsVec::const_iterator it = offsets.cbegin();
+                 it != offsets.cend();
+                 ++it) {
                 d_ostream << *it << '\n';
             }
         }
@@ -334,7 +339,7 @@ class JsonCslPrinter : public CslPrinter {
   public:
     // CREATORS
 
-    JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+    explicit JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator = 0)
     : d_ostream(os)
     , d_allocator_p(allocator)
     , d_braceOpen(false)
@@ -364,8 +369,7 @@ class JsonCslPrinter : public CslPrinter {
             if (it != offsets.cbegin()) {
                 d_ostream << ",";
             }
-            d_ostream << "\n    "
-                      << "\"" << *it << "\"";
+            d_ostream << "\n    " << *it;
         }
         d_ostream << "\n  ]";
     }
@@ -381,9 +385,9 @@ class JsonCslPrinter : public CslPrinter {
                 d_ostream << ',';
             }
 
-            d_ostream << "\n    {\"leaseId\": "
-                      << "\"" << it->leaseId() << "\", \"sequenceNumber\": "
-                      << "\"" << it->sequenceNumber() << "\"}";
+            d_ostream << "\n    {\"leaseId\": " << it->leaseId()
+                      << ", \"sequenceNumber\": " << it->sequenceNumber()
+                      << "}";
         }
         d_ostream << "\n  ]";
     }
@@ -394,14 +398,13 @@ class JsonCslPrinter : public CslPrinter {
                     processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"SnapshotRecords\": "
-                  << "\"" << recordCount.d_snapshotCount << "\",\n";
-        d_ostream << "  \"UpdateRecords\": "
-                  << "\"" << recordCount.d_updateCount << "\",\n";
-        d_ostream << "  \"CommitRecords\": "
-                  << "\"" << recordCount.d_commitCount << "\",\n";
-        d_ostream << "  \"AckRecords\": "
-                  << "\"" << recordCount.d_ackCount << "\"";
+        d_ostream << "  \"SnapshotRecords\": " << recordCount.d_snapshotCount
+                  << ",\n";
+        d_ostream << "  \"UpdateRecords\": " << recordCount.d_updateCount
+                  << ",\n";
+        d_ostream << "  \"CommitRecords\": " << recordCount.d_commitCount
+                  << ",\n";
+        d_ostream << "  \"AckRecords\": " << recordCount.d_ackCount;
     }
 };
 
@@ -563,6 +566,9 @@ bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
     else if (mode == Parameters::e_JSON_LINE) {
         printer.load(new (*allocator) JsonLineCslPrinter(stream, allocator),
                      allocator);
+    }
+    else {
+        BSLS_ASSERT(false && "Unknown printer mode");
     }
     return printer;
 }

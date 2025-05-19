@@ -78,7 +78,9 @@ class BrokerStats {
     static BrokerStats s_instance;
 
     // DATA
-    bmqst::StatContext* d_statContext_p;  // StatContext
+
+    /// StatContext
+    bmqst::StatContext* d_statContext_p;
 
     // PRIVATE TYPES
 

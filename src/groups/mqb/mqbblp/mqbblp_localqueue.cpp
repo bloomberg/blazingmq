@@ -188,7 +188,9 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (isReconfigure) {
         if (domainCfg.mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
-                domainCfg.mode().fanout().appIDs());
+                domainCfg.mode().fanout().publishAppIdMetrics()
+                    ? domainCfg.mode().fanout().appIDs()
+                    : bsl::vector<bsl::string>(d_allocator_p));
         }
     }
 
@@ -334,9 +336,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(
-            d_state_p->queue()->dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
         BALL_LOG_INFO << "Skipping dispatcher event [" << event << "] "
@@ -459,6 +460,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             mqbi::StorageMessageAttributes attributes(
                 timestamp,
                 refCount,
+                static_cast<unsigned int>(appData->length()),
                 translation,
                 putHeader.compressionAlgorithmType(),
                 !d_haveStrongConsistency,

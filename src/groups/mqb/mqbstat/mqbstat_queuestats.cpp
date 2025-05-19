@@ -63,6 +63,10 @@ const int k_MAX_INSTANT_MESSAGES = 10;
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 
+/// The default utilization value reported when we cannot
+/// compute utilization.
+const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
+
 // ------------------
 // struct ClientStats
 // ------------------
@@ -118,8 +122,10 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
         MQBSTAT_CASE(e_NB_CONSUMER, "queue_consumers_count")
         MQBSTAT_CASE(e_MESSAGES_CURRENT, "queue_msgs_current")
         MQBSTAT_CASE(e_MESSAGES_MAX, "queue_content_msgs")
+        MQBSTAT_CASE(e_MESSAGES_UTILIZATION_MAX, "queue_msgs_utilization_max")
         MQBSTAT_CASE(e_BYTES_CURRENT, "queue_bytes_current")
         MQBSTAT_CASE(e_BYTES_MAX, "queue_content_bytes")
+        MQBSTAT_CASE(e_BYTES_UTILIZATION_MAX, "queue_bytes_utilization_max")
         MQBSTAT_CASE(e_PUT_MESSAGES_DELTA, "queue_put_msgs")
         MQBSTAT_CASE(e_PUT_BYTES_DELTA, "queue_put_bytes")
         MQBSTAT_CASE(e_PUT_MESSAGES_ABS, "queue_put_msgs_abs")
@@ -207,11 +213,31 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
     case QueueStatsDomain::Stat::e_MESSAGES_MAX: {
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES);
     }
+    case QueueStatsDomain::Stat::e_MESSAGES_UTILIZATION_MAX: {
+        // Calculate max queue messages utilization, in percents.
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, DomainQueueStats::e_CFG_MSGS);
+        return limit == 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
+                   : (100 *
+                      STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES) /
+                      limit);
+    }
     case QueueStatsDomain::Stat::e_BYTES_CURRENT: {
         return STAT_SINGLE(value, DomainQueueStats::e_STAT_BYTES);
     }
     case QueueStatsDomain::Stat::e_BYTES_MAX: {
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES);
+    }
+    case QueueStatsDomain::Stat::e_BYTES_UTILIZATION_MAX: {
+        // Calculate max queue bytes utilization, in percents.
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, DomainQueueStats::e_CFG_BYTES);
+        return limit == 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
+                   : (100 *
+                      STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES) /
+                      limit);
     }
     case QueueStatsDomain::Stat::e_PUT_BYTES_ABS: {
         return STAT_SINGLE(value, DomainQueueStats::e_STAT_PUT);
@@ -423,9 +449,7 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
     if (d_subContextsLookup.empty()) {
-        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-            << "[THROTTLED] No built sub contexts for domain: "
-            << d_statContext_mp->name() << ", appId: " << appId;
+        // Not an error if the domain is not configured for Apps stats.
         return;  // RETURN
     }
 

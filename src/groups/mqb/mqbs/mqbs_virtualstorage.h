@@ -172,16 +172,17 @@ class VirtualStorage {
     bool remove(mqbi::DataStreamMessage* dataStreamMessage,
                 unsigned int             replacingOrdinal);
 
-    /// Observe removal of this App from the specified 'dataStreamMessage' by
-    /// GC and update bytes and messages counts if needed.
-    void onGC(const mqbi::DataStreamMessage& dataStreamMessage);
+    /// Update bytes by the specified 'size' and messages counts by `1` for
+    /// this App as the result of garbage-collecting the message.
+    void onGC(int size);
 
     /// Reset bytes and messages counts as in the case of purging all Apps.
     void resetStats();
 
     void replaceOrdinal(unsigned int replacingOrdinal);
 
-    void setNumRemoved(bsls::Types::Int64 numRemoved);
+    void setNumRemoved(bsls::Types::Int64 numRemoved,
+                       bsls::Types::Int64 bytes);
 };
 
 // =====================
@@ -223,12 +224,6 @@ class StorageIterator : public mqbi::StorageIterator {
     StorageIterator& operator=(const StorageIterator&);  // = delete
 
   private:
-    // PRIVATE MANIPULATORS
-
-    /// Clear previous state, if any.  This is required so that new state
-    /// can be loaded in `appData`, `options` or `attributes` routines.
-    void clear();
-
     // PRIVATE ACCESSORS
 
     /// Load the internal state of this iterator instance with the
@@ -253,6 +248,13 @@ class StorageIterator : public mqbi::StorageIterator {
     ~StorageIterator() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
+
+    /// Clear any cached data associated with this iterator, if any.
+    /// The cache might be initialized within `appData`, `options` or
+    /// `attributes` routines.
+    /// TODO: refactor iterators to remove cached data.
+    void clearCache() BSLS_KEYWORD_OVERRIDE;
+
     bool advance() BSLS_KEYWORD_OVERRIDE;
 
     /// If the specified 'where' is unset, reset the iterator to point to the

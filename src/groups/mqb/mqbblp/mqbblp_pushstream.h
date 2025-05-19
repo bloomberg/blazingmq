@@ -121,19 +121,21 @@ struct PushStream {
     struct App {
         Elements                                   d_elements;
         bsl::shared_ptr<RelayQueueEngine_AppState> d_app;
-        /// Replica deduplicates PUSH for the same App in the same batch.
-        bmqt::MessageGUID d_lastGUID;
+        /// Replica deduplicates PUSH for the same App in the same iteration
+        /// (genCount).
+        bsl::pair<bmqt::MessageGUID, int> d_lastGUID;
 
         App(const bsl::shared_ptr<RelayQueueEngine_AppState>& app);
         void add(Element* element);
         void remove(Element* element);
 
-        /// Return 'true' if the specified `guid` is the same as in the last
-        /// `setLastPush` call.
-        bool isLastPush(const bmqt::MessageGUID& guid);
+        /// Return 'true' if the specified `guid` and `genCount` are the same
+        /// as in the last `setLastPush` call.
+        bool isLastPush(const bmqt::MessageGUID& guid, int genCount);
 
-        /// Cache the specified `guid` for subsequent checks by `isLastPush`.
-        void setLastPush(const bmqt::MessageGUID& guid);
+        /// Cache the specified `guid` and the specified `genCount` for
+        /// subsequent checks by `isLastPush`.
+        void setLastPush(const bmqt::MessageGUID& guid, int genCount);
 
         const Element* last() const;
     };
@@ -142,6 +144,7 @@ struct PushStream {
                                  Elements,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
                                                   Stream;
+
     typedef Stream::iterator                      iterator;
     typedef bsl::unordered_map<unsigned int, App> Apps;
 
@@ -274,12 +277,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
     PushStreamIterator& operator=(const PushStreamIterator&);  // = delete
 
   protected:
-    // PRIVATE MANIPULATORS
-
-    /// Clear previous state, if any.  This is required so that new state
-    /// can be loaded in `appData`, `options` or `attributes` routines.
-    void clear();
-
     // PRIVATE ACCESSORS
 
     /// Load the internal state of this iterator instance with the
@@ -307,6 +304,11 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// The behavior is undefined unless `atEnd` returns `false`.
     void removeCurrentElement();
 
+    /// Remove all elements (`mqbi::AppMessage`, `upstreamSubQueueId` pairs)
+    /// from the current PUSH GUID.
+    /// The behavior is undefined unless `atEnd` returns `false`.
+    void removeAllElements();
+
     /// Return the number of elements (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pairs) for the current PUSH GUID.
     /// The behavior is undefined unless `atEnd` returns `false`.
@@ -318,6 +320,12 @@ class PushStreamIterator : public mqbi::StorageIterator {
     virtual PushStream::Element* element(unsigned int appOrdinal) const;
 
     // MANIPULATORS
+    /// Clear any cached data associated with this iterator, if any.
+    /// The cache might be initialized within `appData`, `options` or
+    /// `attributes` routines.
+    /// TODO: refactor iterators to remove cached data.
+    void clearCache() BSLS_KEYWORD_OVERRIDE;
+
     bool advance() BSLS_KEYWORD_OVERRIDE;
 
     /// If the specified `atEnd` is `true`, reset the iterator to point to the
@@ -621,14 +629,16 @@ inline void PushStream::App::remove(Element* element)
     d_elements.remove(element, e_APP);
 }
 
-inline bool PushStream::App::isLastPush(const bmqt::MessageGUID& lastGUID)
+inline bool PushStream::App::isLastPush(const bmqt::MessageGUID& lastGUID,
+                                        int                      genCount)
 {
-    return d_lastGUID == lastGUID;
+    return d_lastGUID.second == genCount && d_lastGUID.first == lastGUID;
 }
 
-inline void PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID)
+inline void PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID,
+                                         int                      genCount)
 {
-    d_lastGUID = lastGUID;
+    d_lastGUID = bsl::make_pair(lastGUID, genCount);
 }
 
 inline const PushStream::Element* PushStream::App::last() const

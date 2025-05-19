@@ -258,6 +258,11 @@ class ClusterActiveNodeManager {
     // Pointer to the currently active node
     // and its context.
 
+    /// If true, remove the data center requirement when selecting active
+    /// node.  Set to true when the cluster does not have any nodes in the
+    /// current machine's data center.
+    bool d_ignoreDataCenter;
+
     bool d_useExtendedSelection;
     // If true, drop the same data center
     // requirement when selecting active
@@ -327,7 +332,7 @@ class ClusterActiveNodeManager {
 
     // ACCESSORS
 
-    /// Return the currently active node, or a null pointer if there are no
+    /// Return the currently active node, or a null pointer if there is no
     /// node currently active.
     ClusterNode* activeNode() const;
 

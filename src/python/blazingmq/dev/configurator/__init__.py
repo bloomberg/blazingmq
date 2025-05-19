@@ -22,7 +22,6 @@ scripts for running a cluster.
 # pylint: disable=missing-function-docstring, missing-class-docstring, consider-using-f-string
 # pyright: reportOptionalMemberAccess=false
 
-
 import copy
 import functools
 import itertools
@@ -226,6 +225,19 @@ class AbstractCluster:
             node.domains[domain.name] = domain
 
         return domain
+
+    def remove_domain(self, name: str) -> None:
+        """
+        Remove a domain from the Cluster's map and all the domain's maps.
+
+        The domain must exist in `Cluster.domains`. It can be missing from the
+        broker's domain maps.
+        """
+
+        del self.domains[name]
+
+        for node in self.nodes.values():
+            node.domains.pop(name, None)
 
 
 class Cluster(AbstractCluster):

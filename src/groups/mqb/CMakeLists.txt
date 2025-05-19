@@ -18,6 +18,13 @@ set_property(SOURCE "mqba/mqba_application.cpp"
 set(MQB_PRIVATE_PACKAGES mqba mqbblp mqbc mqbcmd mqbconfm mqbi mqbmock mqbnet mqbs mqbsi mqbsl mqbu)
 target_bmq_style_uor( mqb PRIVATE_PACKAGES ${MQB_PRIVATE_PACKAGES})
 
+# Extras package containing the plugin headers
+bbs_read_metadata(GROUP mqb SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+target_sources(bmqbrkr_plugins PUBLIC FILE_SET HEADERS
+  FILES "${mqb_INCLUDE_FILES}"
+  BASE_DIRS "${mqb_INCLUDE_DIRS}"
+)
+
 # Additional system required libraries:
 #  o dlopen()/dlsym() require to link with '-ldl' on Linux
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

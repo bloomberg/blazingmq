@@ -360,7 +360,13 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_cfg_msgs", Stat::e_CFG_MSGS, false},
                     {"queue_cfg_bytes", Stat::e_CFG_BYTES, false},
                     {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
+                    {"queue_msgs_utilization_max",
+                     Stat::e_MESSAGES_UTILIZATION_MAX,
+                     false},
                     {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
+                    {"queue_bytes_utilization_max",
+                     Stat::e_BYTES_UTILIZATION_MAX,
+                     false},
                     {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
                     {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
                     {"queue_reject_msgs", Stat::e_REJECT_DELTA, true},
@@ -724,8 +730,12 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
             const bsl::string rollover_time = prefix + "rollover_time";
             const bsl::string journal_outstanding_bytes =
                 prefix + "journal_outstanding_bytes";
+            const bsl::string journal_utilization = prefix +
+                                                    "journal_utilization_max";
             const bsl::string data_outstanding_bytes =
                 prefix + "data_outstanding_bytes";
+            const bsl::string data_utilization = prefix +
+                                                 "data_utilization_max";
 
             const DatapointDef defs[] = {
                 {rollover_time.c_str(),
@@ -734,8 +744,15 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                 {journal_outstanding_bytes.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT,
                  false},
+                {journal_utilization.c_str(),
+                 mqbstat::ClusterStats::Stat::
+                     e_PARTITION_JOURNAL_UTILIZATION_MAX,
+                 false},
                 {data_outstanding_bytes.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT,
+                 false},
+                {data_utilization.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_UTILIZATION_MAX,
                  false}};
 
             Tagger tagger;

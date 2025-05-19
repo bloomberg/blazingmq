@@ -104,7 +104,7 @@ bool StorageUtil::loadDifference(mqbi::Storage::AppInfos*       result,
 }
 
 void StorageUtil::loadDifference(
-    bsl::unordered_set<bsl::string>*       result,
+    bsl::vector<bsl::string>*              result,
     const bsl::unordered_set<bsl::string>& baseSet,
     const bsl::unordered_set<bsl::string>& subtractionSet)
 {
@@ -113,7 +113,7 @@ void StorageUtil::loadDifference(
          cit != baseSet.cend();
          ++cit) {
         if (subtractionSet.end() == subtractionSet.find(*cit)) {
-            result->emplace(*cit);
+            result->push_back(*cit);
         }
     }
 }
@@ -139,8 +139,8 @@ bool StorageUtil::loadAddedAndRemovedEntries(
 }
 
 void StorageUtil::loadAddedAndRemovedEntries(
-    bsl::unordered_set<bsl::string>*       addedEntries,
-    bsl::unordered_set<bsl::string>*       removedEntries,
+    bsl::vector<bsl::string>*              addedEntries,
+    bsl::vector<bsl::string>*              removedEntries,
     const bsl::unordered_set<bsl::string>& existingEntries,
     const bsl::unordered_set<bsl::string>& newEntries)
 {
@@ -198,12 +198,11 @@ bool StorageUtil::loadUpdatedAppInfos(AppInfos*       addedAppInfos,
 }
 
 void StorageUtil::registerQueueDispatched(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    mqbs::FileStore*                                                fs,
-    mqbs::ReplicatedStorage*                                        storage,
-    const bsl::string& clusterDescription,
-    int                partitionId,
-    const AppInfos&    appIdKeyPairs)
+    mqbs::FileStore*         fs,
+    mqbs::ReplicatedStorage* storage,
+    const bsl::string&       clusterDescription,
+    int                      partitionId,
+    const AppInfos&          appIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -258,14 +257,13 @@ void StorageUtil::registerQueueDispatched(
 }
 
 void StorageUtil::updateQueuePrimaryDispatched(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    mqbs::ReplicatedStorage*                                        storage,
-    bslmt::Mutex*      storagesLock,
-    mqbs::FileStore*   fs,
-    const bsl::string& clusterDescription,
-    int                partitionId,
-    const AppInfos&    appIdKeyPairs,
-    bool               isFanout)
+    mqbs::ReplicatedStorage* storage,
+    bslmt::Mutex*            storagesLock,
+    mqbs::FileStore*         fs,
+    const bsl::string&       clusterDescription,
+    int                      partitionId,
+    const AppInfos&          appIdKeyPairs,
+    bool                     isFanout)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -375,7 +373,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
     }
 
     if (!removedIdKeyPairs.empty()) {
-        for (AppInfosCIter cit = removedIdKeyPairs.begin();
+        for (AppInfos::const_iterator cit = removedIdKeyPairs.begin();
              cit != removedIdKeyPairs.end();
              ++cit) {
             rc = removeVirtualStorageInternal(storage,
@@ -446,7 +444,7 @@ int StorageUtil::addVirtualStoragesInternal(
     if (isFanout) {
         // Register appKeys with with the underlying physical 'storage'.
 
-        for (AppInfosCIter cit = appIdKeyPairs.begin();
+        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
              cit != appIdKeyPairs.end();
              ++cit) {
             if (0 != (rc = storage->addVirtualStorage(errorDesc,
@@ -797,14 +795,12 @@ int StorageUtil::processReplicationCommand(
 // FUNCTIONS
 bool StorageUtil::isStorageEmpty(bslmt::Mutex*       storagesLock,
                                  const StorageSpMap& storageMap,
-                                 const bmqt::Uri&    uri,
-                                 int                 partitionId)
+                                 const bmqt::Uri&    uri)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(uri.isValid());
-    BSLS_ASSERT_SAFE(0 <= partitionId);
 
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
@@ -1521,7 +1517,7 @@ void StorageUtil::recoveredQueuesCb(
                         << "encountered a duplicate AppId while processing "
                         << "recovered queue [" << uri << "], " << "queueKey ["
                         << qit->first << "]. AppId [" << *(appIdsIrc.first)
-                        << "]. AppKey [" << cit->second << "]."
+                        << "]. AppKey [" << cit->first << "]."
                         << BMQTSK_ALARMLOG_END;
                     mqbu::ExitUtil::terminate(
                         mqbu::ExitCode::e_RECOVERY_FAILURE);
@@ -2306,20 +2302,18 @@ StorageUtil::generateAppKey(bsl::unordered_set<mqbu::StorageKey>* appKeys,
     return appKey;
 }
 
-void StorageUtil::registerQueue(
-    const mqbi::Cluster*                     cluster,
-    mqbi::Dispatcher*                        dispatcher,
-    StorageSpMap*                            storageMap,
-    bslmt::Mutex*                            storagesLock,
-    mqbs::FileStore*                         fs,
-    bmqma::CountingAllocatorStore*           allocators,
-    const mqbi::Dispatcher::ProcessorHandle& processor,
-    const bmqt::Uri&                         uri,
-    const mqbu::StorageKey&                  queueKey,
-    const bsl::string&                       clusterDescription,
-    int                                      partitionId,
-    const AppInfos&                          appIdKeyPairs,
-    mqbi::Domain*                            domain)
+void StorageUtil::registerQueue(const mqbi::Cluster*           cluster,
+                                mqbi::Dispatcher*              dispatcher,
+                                StorageSpMap*                  storageMap,
+                                bslmt::Mutex*                  storagesLock,
+                                mqbs::FileStore*               fs,
+                                bmqma::CountingAllocatorStore* allocators,
+                                const bmqt::Uri&               uri,
+                                const mqbu::StorageKey&        queueKey,
+                                const bsl::string& clusterDescription,
+                                int                partitionId,
+                                const AppInfos&    appIdKeyPairs,
+                                mqbi::Domain*      domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -2336,6 +2330,8 @@ void StorageUtil::registerQueue(
         partitionId <
             cluster->clusterConfig()->partitionConfig().numPartitions());
     BSLS_ASSERT_SAFE(domain);
+
+    const int processor = fs->processorId();
 
     // StorageMgr is either aware of the queue (the 'uri') or it isn't.  If it
     // is already aware, either this queue was registered earlier or it was
@@ -2394,10 +2390,6 @@ void StorageUtil::registerQueue(
     BSLS_ASSERT_SAFE(storageDef.config().isInMemoryValue() ||
                      storageDef.config().isFileBackedValue());
 
-    BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
-                  << "]: Registering queue '" << uri << "', queueKey: '"
-                  << queueKey << "' to storage.";
-
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
     StorageSpMapIter it = storageMap->find(uri);
@@ -2431,7 +2423,6 @@ void StorageUtil::registerQueue(
                 .setType(mqbi::DispatcherEventType::e_DISPATCHER)
                 .setCallback(bdlf::BindUtil::bind(
                     updateQueuePrimaryDispatched,
-                    bdlf::PlaceHolders::_1,  // processor
                     storageSp.get(),
                     storagesLock,
                     fs,
@@ -2483,7 +2474,7 @@ void StorageUtil::registerQueue(
     AppInfos           appIdKeyPairsToUse;
     if (queueMode.isFanoutValue()) {
         if (cluster->isCSLModeEnabled() || !appIdKeyPairs.empty()) {
-            for (AppInfosCIter citer = appIdKeyPairs.begin();
+            for (AppInfos::const_iterator citer = appIdKeyPairs.begin();
                  citer != appIdKeyPairs.end();
                  ++citer) {
                 int rc = storageSp->addVirtualStorage(errorDesc,
@@ -2571,7 +2562,6 @@ void StorageUtil::registerQueue(
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(bdlf::BindUtil::bind(&registerQueueDispatched,
-                                          bdlf::PlaceHolders::_1,  // processor
                                           fs,
                                           storageSp.get(),
                                           clusterDescription,
@@ -2581,15 +2571,13 @@ void StorageUtil::registerQueue(
     fs->dispatchEvent(queueEvent);
 }
 
-void StorageUtil::unregisterQueueDispatched(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    mqbs::FileStore*                                                fs,
-    StorageSpMap*                                                   storageMap,
-    bslmt::Mutex*        storagesLock,
-    const ClusterData*   clusterData,
-    int                  partitionId,
-    const PartitionInfo& pinfo,
-    const bmqt::Uri&     uri)
+void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
+                                            StorageSpMap*        storageMap,
+                                            bslmt::Mutex*        storagesLock,
+                                            const ClusterData*   clusterData,
+                                            int                  partitionId,
+                                            const PartitionInfo& pinfo,
+                                            const bmqt::Uri&     uri)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2953,7 +2941,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     const mqbu::StorageKey& appKey,
     bool                    isCSLMode)
 {
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'processorId'
+    // executed by *QUEUE_DISPATCHER* thread associated with `partitionId`
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs);
@@ -3177,14 +3165,12 @@ void StorageUtil::updateQueueReplicaDispatched(
     }
 }
 
-void StorageUtil::setQueueDispatched(
-    StorageSpMap*                storageMap,
-    bslmt::Mutex*                storagesLock,
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    const bsl::string& clusterDescription,
-    int                partitionId,
-    const bmqt::Uri&   uri,
-    mqbi::Queue*       queue)
+void StorageUtil::setQueueDispatched(StorageSpMap*      storageMap,
+                                     bslmt::Mutex*      storagesLock,
+                                     const bsl::string& clusterDescription,
+                                     int                partitionId,
+                                     const bmqt::Uri&   uri,
+                                     mqbi::Queue*       queue)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
