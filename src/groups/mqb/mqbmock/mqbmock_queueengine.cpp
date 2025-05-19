@@ -135,7 +135,8 @@ void QueueEngine::afterQueuePurged(
     // NOTHING
 }
 
-void QueueEngine::afterPostMessage(BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+void QueueEngine::afterPostMessage(
+    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
 {
     // NOTHING
 }

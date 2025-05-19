@@ -139,7 +139,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(numMessages > 0)) {
         d_consumptionMonitor.onMessageSent(app->appId());
-    } 
+    }
 
     if (app->isReadyForDelivery()) {
         // If the 'app' has caught up with the queue data stream, need to
@@ -259,13 +259,13 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                                  bslma::Allocator*       allocator)
 : d_queueState_p(queueState)
 , d_consumptionMonitor(
-    queueState,
-    bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
-                         this,
-                         bdlf::PlaceHolders::_1,   // id
-                         bdlf::PlaceHolders::_2,   // now
-                         bdlf::PlaceHolders::_3),  // enableLog
-    allocator)
+      queueState,
+      bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
+                           this,
+                           bdlf::PlaceHolders::_1,   // id
+                           bdlf::PlaceHolders::_2,   // now
+                           bdlf::PlaceHolders::_3),  // enableLog
+      allocator)
 , d_apps(allocator)
 , d_hasAppSubscriptions(false)
 , d_isFanout(domainConfig.mode().isFanoutValue())
@@ -1465,7 +1465,7 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
         // iterators will be recreated with the correct 'rdaInfo' received from
         // primary, if a new consumer connects to the replica/proxy.
         const int      maxDeliveryAttempts = config().maxDeliveryAttempts();
-        const bool     domainIsUnlimited = (maxDeliveryAttempts == 0);
+        const bool     domainIsUnlimited   = (maxDeliveryAttempts == 0);
         bmqp::RdaInfo& rda = message->appMessageState(app.ordinal()).d_rdaInfo;
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(domainIsUnlimited !=
@@ -1596,7 +1596,8 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
     iter->second->clear();
 }
 
-void RootQueueEngine::afterPostMessage(BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+void RootQueueEngine::afterPostMessage(
+    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1732,7 +1733,9 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     return stream;
 }
 
-bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string& appId, const bsls::TimeInterval& now, bool enableLog) const
+bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string&        appId,
+                                               const bsls::TimeInterval& now,
+                                               bool enableLog) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1746,10 +1749,7 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string& appId, const b
     // Get AppState by appKey.
     Apps::const_iterator cItApp = d_apps.find(appId);
     BSLS_ASSERT_SAFE(cItApp != d_apps.end());
-    // if (cItApp == d_apps.end()) {
-    //     BALL_LOG_WARN << "No app found for appId: " << appId;
-    //     return alarmTime;  // RETURN
-    // }
+
     const AppStateSp& app = cItApp->second;
 
     // Check if there are un-delivered messages
@@ -1757,18 +1757,17 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string& appId, const b
 
     if (!headIt) {
         // No un-delivered messages, do nothing.
-        BALL_LOG_WARN << "No un-delivered messages for appId: " << appId;
         return alarmTime;  // RETURN
     }
 
     // Get the arrival time delta of the oldest un-delivered message.
     bsls::Types::Int64 arrivaTimelDelta = 0;
-    mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta, headIt->attributes());
+    mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta,
+                                            headIt->attributes());
     // Calculate alarm time
     alarmTime = d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
     // If the alarm time is in the future, don't log the alarm.
     if (alarmTime > now) {
-        BALL_LOG_WARN << "alarm time is in the future for appId: " << appId << ", alarmTime: " << alarmTime << "now: " << now;
         return alarmTime;  // RETURN
     }
 
@@ -1776,7 +1775,7 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string& appId, const b
         // There are un-delivered messages, but log is disabled.
         return alarmTime;  // RETURN
     }
-    
+
     // Logging alarm info
     bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
 
@@ -1872,7 +1871,6 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string& appId, const b
 
     return alarmTime;
 }
-
 
 void RootQueueEngine::afterAppIdRegistered(
     const mqbi::Storage::AppInfos& addedAppIds)
@@ -2001,7 +1999,7 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
                       << ", key: " << appKey << ", ordinal: " << appOrdinal
                       << "]";
 
-        d_consumptionMonitor.registerSubStream(appId);                      
+        d_consumptionMonitor.registerSubStream(appId);
     }
 
     iter->second->authorize(appKey, appOrdinal);
@@ -2078,15 +2076,15 @@ RootQueueEngine::head(const AppStateSp app) const
     }
     else if (!app->resumePoint().isUnset()) {
         d_queueState_p->storage()->getIterator(&out,
-                                                   app->appKey(),
-                                                   app->resumePoint());
+                                               app->appKey(),
+                                               app->resumePoint());
     }
     else if (!d_storageIter_mp->atEnd()) {
         d_queueState_p->storage()->getIterator(&out,
                                                app->appKey(),
                                                d_storageIter_mp->guid());
     }
-    
+
     return out;
 }
 

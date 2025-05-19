@@ -183,11 +183,14 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
     /// Callback called by `d_consumptionMonitor` when alarm event occurred.
-    /// If the specified `enableLog` is true, there are un-delivered messages for the specified `appKey` and
-    /// calculated alarm time for the specified `now` is in the past, alarm is logged.
-    /// Return calculated alarm time for the oldest undelivered message or empty `bsls::TimeInterval` object
-    /// if there are no un-delivered messages.
-    bsls::TimeInterval logAlarmCb(const bsl::string& appId, const bsls::TimeInterval& now, bool enableLog) const;
+    /// If the specified `enableLog` is true, there are un-delivered messages
+    /// for the specified `appKey` and calculated alarm time for the specified
+    /// `now` is in the past, alarm is logged. Return calculated alarm time for
+    /// the oldest undelivered message or empty `bsls::TimeInterval` object if
+    /// there are no un-delivered messages.
+    bsls::TimeInterval logAlarmCb(const bsl::string&        appId,
+                                  const bsls::TimeInterval& now,
+                                  bool                      enableLog) const;
 
   public:
     // TRAITS
