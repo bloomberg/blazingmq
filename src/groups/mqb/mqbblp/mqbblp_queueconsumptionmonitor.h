@@ -28,18 +28,20 @@
 /// disabled by setting the maximum idle time to zero.
 ///
 /// Once in monitoring mode, the component is operated by a series of calls to
-/// `onMessagePosted` when message is posted and `onMessageSent` when it is delivered.
-///  When `onMessagePosted` is called, it schedules alarm event to be executed
+/// `onMessagePosted` when message is posted and `onMessageSent` when it is
+/// delivered.
+/// When `onMessagePosted` is called, it schedules alarm event to be executed
 /// in the maximum idle time (if it was not already scheduled).  When
-/// alarm event is executed, it calls for each substream `logAlarmCb` callback, 
-/// which checks if there are undelivered messages. If the oldest undelivered message
-/// alartm time in the past, alarm is logged and monitor puts this substream in 'idle' state.
-/// Then monitor calculates the earliest alarm time for all substreams and reschedules
-/// the alarm event if alarm time is in the future.
-/// When `onMessageSent` is called for corresponding substream, if substream is in
-/// 'idle' state, it is put back to 'alive' state and an INFO record is written to the
-/// log.  When queue becomes empty for corresponding substream (e.g. by messages TTL),
-//  it is put back to 'alive' state and an INFO record is written to the log.
+/// alarm event is executed, it calls for each substream `logAlarmCb` callback,
+/// which checks if there are un-delivered messages. If the oldest undelivered
+/// message alartm time in the past, alarm is logged and monitor puts this
+/// substream in 'idle' state. Then monitor calculates the earliest alarm time
+/// for all substreams and reschedules the alarm event if alarm time is in the
+/// future. When `onMessageSent` is called for corresponding substream, if
+/// substream is in 'idle' state, it is put back to 'alive' state and an INFO
+/// record is written to the log. When queue becomes empty for corresponding
+/// substream (e.g. by queue purging or messages garbage collected due to TTL),
+/// it is put back to 'alive' state and an INFO record is written to the log.
 ///
 /// The `maxIdleTime` represents the minimum time before an alarm will be
 /// emitted would the queue be stale.
@@ -66,7 +68,8 @@
 /// // notify second message posted
 /// monitor.onMessagePosted(id);
 ///
-/// bslmt::ThreadUtil::microSleep(21 * bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND); // sleep for 21 seconds
+/// bslmt::ThreadUtil::microSleep(21 *
+/// bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND); // sleep for 21 seconds
 ///
 /// // log ALARM
 ///
@@ -75,7 +78,8 @@
 ///
 /// // log INFO: back to active
 ///
-/// bslmt::ThreadUtil::microSleep(21 * bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND); // sleep for 21 seconds
+/// bslmt::ThreadUtil::microSleep(21 *
+/// bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND); // sleep for 21 seconds
 ///
 /// // log ALARM
 ///
@@ -156,18 +160,21 @@ class QueueConsumptionMonitor {
         /// but is otherwise unspecified.
         static const char* toAscii(State::Enum value);
     };
-    
+
     /// Callback function to log alarm info.
-    /// If the specified `enableLog` is true, there are un-delivered messages for the specified `id` and
-    /// calculated alarm time for the specified `now` is in the past, alarm is logged.
-    /// Return calculated alarm time for the oldest undelivered message or empty `bsls::TimeInterval` object
-    /// if there are no un-delivered messages.
-    typedef bsl::function<bsls::TimeInterval(const bsl::string& id, const bsls::TimeInterval& now, bool enableLog)>
+    /// If the specified `enableLog` is true, there are un-delivered messages
+    /// for the specified `id` and calculated alarm time for the specified
+    /// `now` is in the past, alarm is logged. Return calculated alarm time for
+    /// the oldest undelivered message or empty `bsls::TimeInterval` object if
+    /// there are no un-delivered messages.
+    typedef bsl::function<bsls::TimeInterval(const bsl::string&        id,
+                                             const bsls::TimeInterval& now,
+                                             bool enableLog)>
         LoggingCb;
 
   private:
     // PRIVATE TYPES
-    
+
     /// Struct representing the context for each sub stream of the queue.
     struct SubStreamInfo {
         // CREATORS
@@ -232,32 +239,37 @@ class QueueConsumptionMonitor {
     void onTransitionToAlive(SubStreamInfo*     subStreamInfo,
                              const bsl::string& id);
 
-     /// Schedule the alarm event for the specified `alarmTime`.                              
+    /// Schedule the alarm event for the specified `alarmTime`.
     void scheduleAlarmEvent(const bsls::TimeInterval& alarmTime);
 
     /// Schedule the idle event for the specified `subStreamInfo` and `id`.
-    void scheduleIdleEvent(SubStreamInfo* subStreamInfo, const bsl::string& id);
-    
-    /// Handler method called by EventScheduler in scheduler dispatcher thread to forward alarm event to the
-    /// queue dispatcher thread.
+    void scheduleIdleEvent(SubStreamInfo*     subStreamInfo,
+                           const bsl::string& id);
+
+    /// Handler method called by EventScheduler in scheduler dispatcher thread
+    /// to forward alarm event to the queue dispatcher thread.
     void executeAlarmInQueueDispatcher();
 
-    /// Handler method called by EventScheduler in scheduler dispatcher thread to forward idle event to the
-    /// queue dispatcher thread.
+    /// Handler method called by EventScheduler in scheduler dispatcher thread
+    /// to forward idle event to the queue dispatcher thread.
     void executeIdleInQueueDispatcher(const bsl::string id);
 
     /// Cancel all idle events (for all substreams) if they were scheduled.
     void cancelIdleEvents();
 
-  protected:    
+  protected:
     /// Alarm event dispatcher, executed in queue dispatcher thread.
-    /// It checks if there are apps that meet alarm condition and trigger the alarm for them.
-    //  If there are undelivered messages (among apps) it reschedules alarm event.
+    /// It checks if there are apps that meet alarm condition and trigger the
+    /// alarm for them.
+    //  If there are undelivered messages (among apps) it reschedules alarm
+    //  event.
     void alarmEventDispatched();
 
     /// Alarm event dispatcher, executed in queue dispatcher thread.
-    /// It checks if there are apps that meet alarm condition and trigger the alarm for them.
-    //  If there are undelivered messages (among apps) it reschedules alarm event.
+    /// It checks if there are apps that meet alarm condition and trigger the
+    /// alarm for them.
+    //  If there are undelivered messages (among apps) it reschedules alarm
+    //  event.
     void idleEventDispatched(const bsl::string id);
 
   public:
@@ -286,8 +298,8 @@ class QueueConsumptionMonitor {
     /// `value`, and resets it (see `reset`).  Setting `maxIdleTime` to zero
     /// is permitted, in which case the monitoring is disabled.  This
     /// function may be called more than once.  Each time it is called, the
-    /// component behaves as if `onMessagePosted` and `onMessageSent` had never been
-    /// called.  If this causes substreams to return to `alive` state,
+    /// component behaves as if `onMessagePosted` and `onMessageSent` had never
+    /// been called.  If this causes substreams to return to `alive` state,
     /// nothing is logged.  Return a reference offering modifiable access to
     /// this object.
     QueueConsumptionMonitor& setMaxIdleTime(bsls::Types::Int64 value);
@@ -303,7 +315,7 @@ class QueueConsumptionMonitor {
     void reset();
 
     /// Notify the monitor that message were posted
-    /// (for any substream).  It is used to schedule the event 
+    /// (for any substream).  It is used to schedule the event
     /// (if it was not scheduled yet) to monitor the delivery.
     void onMessagePosted();
 
@@ -323,8 +335,10 @@ class QueueConsumptionMonitor {
     /// Calculate the time interval for the alarm event to be scheduled for the
     /// specified 'arrivalTimeDeltaNs' (in nanoseconds) and `now` as follows:
     /// alarmTime = now - arrivalTimeDeltaNs + maxIdleTime.
-    bsls::TimeInterval calculateAlarmTime(bsls::Types::Int64 arrivalTimeDeltaNs, const bsls::TimeInterval& now) const;  
-    
+    bsls::TimeInterval
+    calculateAlarmTime(bsls::Types::Int64        arrivalTimeDeltaNs,
+                       const bsls::TimeInterval& now) const;
+
     /// Return `true` if the alarm event is scheduled, and `false` otherwise.
     bool isAlarmScheduled() const;
 };

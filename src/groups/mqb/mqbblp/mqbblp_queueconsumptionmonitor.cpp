@@ -46,10 +46,10 @@
 namespace BloombergLP {
 namespace mqbblp {
 
-namespace  {
+namespace {
 /// The period of the idle polling timer, in seconds.
 static const bsls::Types::Int64 k_IDLE_TIMER_PERIOD_SEC = 30;
-} // close unnamed namespace
+}  // close unnamed namespace
 
 // -------------------------------------
 // struct QueueConsumptionMonitor::State
@@ -123,7 +123,6 @@ QueueConsumptionMonitor::~QueueConsumptionMonitor()
     reset();
 }
 
-
 // MANIPULATORS
 QueueConsumptionMonitor&
 QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
@@ -134,15 +133,13 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(value >= 0);
 
-    // BALL_LOG_WARN << "QueueConsumptionMonitor::setMaxIdleTime() called: " << value;
-
     if (value == d_maxIdleTimeSec) {
         // No change
         return *this;  // RETURN
     }
 
     d_maxIdleTimeSec = value;
-    
+
     cancelIdleEvents();
 
     for (SubStreamInfoMapIter iter = d_subStreamInfos.begin(),
@@ -150,7 +147,7 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
          iter != last;
          ++iter) {
         iter->second = SubStreamInfo();
-    }    
+    }
 
     // If alarm event was already scheduled
     if (d_alarmEventHandle) {
@@ -159,16 +156,21 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
         if (value == 0) {
             d_scheduler_p->cancelEventAndWait(&d_alarmEventHandle);
             d_alarmEventHandle.release();
-        } else {
-            // TODO: need to reschedule the event at the new maxIdleTime from the previously scheduled event.
-            // But there is no way to get execution time of the previously scheduled event, because
-            // d_scheduler_p is also used by throttleEventHandle and EventScheduler::nextPendingEventTime()
-            // returns the closest event time for all handles. So, just reschedule the event to be executed
-            //  in 'now + new maxIdleTime' time.
-            d_scheduler_p->rescheduleEvent(d_alarmEventHandle, calculateAlarmTime(0, d_scheduler_p->now()));
-        }            
+        }
+        else {
+            // TODO: need to reschedule the event at the new maxIdleTime from
+            // the previously scheduled event. But there is no way to get
+            // execution time of the previously scheduled event, because
+            // d_scheduler_p is also used by throttleEventHandle and
+            // EventScheduler::nextPendingEventTime() returns the closest event
+            // time for all handles. So, just reschedule the event to be
+            // executed in 'now + new maxIdleTime' time.
+            d_scheduler_p->rescheduleEvent(
+                d_alarmEventHandle,
+                calculateAlarmTime(0, d_scheduler_p->now()));
+        }
     }
-    
+
     return *this;
 }
 
@@ -201,12 +203,9 @@ void QueueConsumptionMonitor::reset()
     // Should always be called from the queue thread, but will be invoked from
     // the cluster thread once upon queue creation.
 
-    // BALL_LOG_WARN << "QueueConsumptionMonitor::reset() called";
-
-    d_maxIdleTimeSec  = 0;
+    d_maxIdleTimeSec = 0;
 
     if (d_alarmEventHandle) {
-        // BALL_LOG_WARN << "QueueConsumptionMonitor::reset() cancelEvent";
         d_scheduler_p->cancelEventAndWait(&d_alarmEventHandle);
         d_alarmEventHandle.release();
     }
@@ -220,24 +219,16 @@ void QueueConsumptionMonitor::onMessagePosted()
 {
     // executed by the *QUEUE DISPATCHER* thread
 
-    // BALL_LOG_WARN << "QueueConsumptionMonitor::onMessagePosted() called";
-
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
     if (d_alarmEventHandle || d_maxIdleTimeSec == 0) {
-        // BALL_LOG_WARN << "QueueConsumptionMonitor::onMessagePosted() return: " << d_maxIdleTimeSec << ", " << d_alarmEventHandle;
         // Event is already scheduled or monitoring is disabled.
         return;  // RETURN
     }
 
     // Schedule the event to be executed in 'now + maxIdleTime' time.
-    // const bsls::TimeInterval alarmTime = calculateAlarmTime(0, d_scheduler_p->now());
-
-    // BALL_LOG_WARN << "QueueConsumptionMonitor::onMessagePosted() schedule for "
-    //               << alarmTime << " (now: " << d_scheduler_p->now() << ")";
-
     scheduleAlarmEvent(calculateAlarmTime(0, d_scheduler_p->now()));
 }
 
@@ -260,7 +251,8 @@ void QueueConsumptionMonitor::onMessageSent(const bsl::string& id)
         // substream was in idle state
         onTransitionToAlive(&info, id);
         if (!d_alarmEventHandle) {
-            // Schedule alarm event to check if there are other un-delivered messages.
+            // Schedule alarm event to check if there are other un-delivered
+            // messages.
             scheduleAlarmEvent(calculateAlarmTime(0, d_scheduler_p->now()));
         }
     }
@@ -294,7 +286,8 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
     BALL_LOG_INFO << "Queue '" << uri << "' no longer appears to be stuck.";
 }
 
-void QueueConsumptionMonitor::scheduleAlarmEvent(const bsls::TimeInterval& alarmTime)
+void QueueConsumptionMonitor::scheduleAlarmEvent(
+    const bsls::TimeInterval& alarmTime)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -305,10 +298,13 @@ void QueueConsumptionMonitor::scheduleAlarmEvent(const bsls::TimeInterval& alarm
     d_scheduler_p->scheduleEvent(
         &d_alarmEventHandle,
         alarmTime,
-        bdlf::BindUtil::bind(&QueueConsumptionMonitor::executeAlarmInQueueDispatcher, this));
+        bdlf::BindUtil::bind(
+            &QueueConsumptionMonitor::executeAlarmInQueueDispatcher,
+            this));
 }
 
-void QueueConsumptionMonitor::scheduleIdleEvent(SubStreamInfo* subStreamInfo, const bsl::string& id)
+void QueueConsumptionMonitor::scheduleIdleEvent(SubStreamInfo* subStreamInfo,
+                                                const bsl::string& id)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -323,9 +319,11 @@ void QueueConsumptionMonitor::scheduleIdleEvent(SubStreamInfo* subStreamInfo, co
     d_scheduler_p->scheduleEvent(
         &subStreamInfo->d_idleEventHandle,
         idleime,
-        bdlf::BindUtil::bind(&QueueConsumptionMonitor::executeIdleInQueueDispatcher, this, id));
+        bdlf::BindUtil::bind(
+            &QueueConsumptionMonitor::executeIdleInQueueDispatcher,
+            this,
+            id));
 }
-
 
 void QueueConsumptionMonitor::executeAlarmInQueueDispatcher()
 {
@@ -336,13 +334,13 @@ void QueueConsumptionMonitor::executeAlarmInQueueDispatcher()
 
     // Forward event to the queue dispatcher thread
     d_queueState_p->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(
-            &QueueConsumptionMonitor::alarmEventDispatched,
-            this),
+        bdlf::BindUtil::bind(&QueueConsumptionMonitor::alarmEventDispatched,
+                             this),
         d_queueState_p->queue());
 }
 
-void QueueConsumptionMonitor::executeIdleInQueueDispatcher(const bsl::string id)
+void QueueConsumptionMonitor::executeIdleInQueueDispatcher(
+    const bsl::string id)
 {
     // executed by the *SCHEDULER DISPATCHER* thread
 
@@ -351,9 +349,9 @@ void QueueConsumptionMonitor::executeIdleInQueueDispatcher(const bsl::string id)
 
     // Forward event to the queue dispatcher thread
     d_queueState_p->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(
-            &QueueConsumptionMonitor::idleEventDispatched,
-            this, id),
+        bdlf::BindUtil::bind(&QueueConsumptionMonitor::idleEventDispatched,
+                             this,
+                             id),
         d_queueState_p->queue());
 }
 
@@ -372,7 +370,7 @@ void QueueConsumptionMonitor::cancelIdleEvents()
             d_scheduler_p->cancelEventAndWait(&info.d_idleEventHandle);
             info.d_idleEventHandle.release();
         }
-    }    
+    }
 }
 
 void QueueConsumptionMonitor::alarmEventDispatched()
@@ -382,62 +380,61 @@ void QueueConsumptionMonitor::alarmEventDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
-    BSLS_ASSERT_SAFE(d_maxIdleTimeSec > 0);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0)) {
+        // monitoring is disabled
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
 
     if (d_alarmEventHandle) {
         d_alarmEventHandle.release();
     }
 
-    // BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() called";
-
     // Iterate all substreams and check alarms.
     bsls::TimeInterval now = d_scheduler_p->now();
     bsls::TimeInterval minAlarmTime;
-    minAlarmTime.addMicroseconds(bsl::numeric_limits<bsls::Types::Int64>::max());
+    minAlarmTime.addMicroseconds(
+        bsl::numeric_limits<bsls::Types::Int64>::max());
     for (SubStreamInfoMapIter iter = d_subStreamInfos.begin(),
                               last = d_subStreamInfos.end();
          iter != last;
          ++iter) {
-        SubStreamInfo&          info   = iter->second;
-        const bsl::string&      id     = iter->first;
-        
+        SubStreamInfo&     info = iter->second;
+        const bsl::string& id   = iter->first;
+
         // Call alarm callback to log alarm if condition is met.
-        const bsls::TimeInterval alarmTime = d_loggingCb(id, now, info.d_state == State::e_ALIVE);
+        const bsls::TimeInterval alarmTime =
+            d_loggingCb(id, now, info.d_state == State::e_ALIVE);
 
         if (alarmTime == bsls::TimeInterval()) {
-            // No undelivered messages.
+            // No un-delivered messages.
             if (info.d_state == State::e_IDLE) {
                 onTransitionToAlive(&info, id);
             }
-            // BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() alarmTime == 0";
             continue;  // CONTINUE
-        } else if (alarmTime <= now) {
-            // Alarm time is in the past, alarm is logged, mark substream as idle.
+        }
+        else if (alarmTime <= now) {
+            // Alarm time is in the past, alarm is logged, mark substream as
+            // idle.
             if (info.d_state == State::e_ALIVE) {
                 info.d_state = State::e_IDLE;
-                // schedule polling event to check if there are un-delivered messages.
+                // schedule polling event to check if queue becomes empty due
+                // to GC or purge events.
                 scheduleIdleEvent(&info, id);
             }
-            // BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() alarmTime <= now: "
-            //               << alarmTime << " <= " << now;
             continue;  // CONTINUE
         }
 
         // Remember the earliest alarm time.
         minAlarmTime = bsl::min(minAlarmTime, alarmTime);
-        // BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() minAlarmTime: " << minAlarmTime;
-        // if (alarmTime < minAlarmTime) {
-        //     minAlarmTime = alarmTime;
-        // }                
     }
 
-    // If minAlarmTime is set, reschedule the event for the earliest alarm time.
-    if (minAlarmTime.totalMicroseconds() != bsl::numeric_limits<bsls::Types::Int64>::max()) {
-        BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() rescheduled for minAlarmTime: " << minAlarmTime;
-
+    // If minAlarmTime is set, reschedule the event for the earliest alarm
+    // time.
+    if (minAlarmTime.totalMicroseconds() !=
+        bsl::numeric_limits<bsls::Types::Int64>::max()) {
         scheduleAlarmEvent(minAlarmTime);
-    } else {
-        // BALL_LOG_WARN << "QueueConsumptionMonitor::alarmEventDispatched() minAlarmTime not set, no schedule";
     }
 }
 
@@ -449,6 +446,12 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string id)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0)) {
+        // monitoring is disabled
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
+
     SubStreamInfo& info = subStreamInfo(id);
 
     if (info.d_idleEventHandle) {
@@ -457,16 +460,21 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string id)
 
     if (info.d_state == State::e_ALIVE) {
         // substream already in alive state
-        return; // RETURN
-    }        
+        return;  // RETURN
+    }
 
-    // Call alarm logging callback (with disabled log) to check if there are still un-delivered messages.
-    const bsls::TimeInterval alarmTime = d_loggingCb(id, d_scheduler_p->now(), false);
+    // Call alarm logging callback (with disabled log) to check if there are
+    // still un-delivered messages.
+    const bsls::TimeInterval alarmTime = d_loggingCb(id,
+                                                     d_scheduler_p->now(),
+                                                     false);
 
     if (alarmTime == bsls::TimeInterval()) {
-        // No un-delivered messages, e.g. queue was purged on messages are garbage collected by TTL.
+        // No un-delivered messages, e.g. queue was purged or messages are
+        // garbage collected by TTL.
         onTransitionToAlive(&info, id);
-    } else {
+    }
+    else {
         // There are still un-delivered messages, reschedule the event.
         scheduleIdleEvent(&info, id);
     }
@@ -475,7 +483,8 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string id)
 // ACCESSORS
 
 bsls::TimeInterval QueueConsumptionMonitor::calculateAlarmTime(
-    bsls::Types::Int64 arrivalTimeDeltaNs, const bsls::TimeInterval& now) const
+    bsls::Types::Int64        arrivalTimeDeltaNs,
+    const bsls::TimeInterval& now) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(arrivalTimeDeltaNs >= 0);
@@ -493,7 +502,7 @@ bsls::TimeInterval QueueConsumptionMonitor::calculateAlarmTime(
 bool QueueConsumptionMonitor::isAlarmScheduled() const
 {
     return d_alarmEventHandle ? true : false;
-}  
+}
 
 }  // close package namespace
 }  // close enterprise namespace
