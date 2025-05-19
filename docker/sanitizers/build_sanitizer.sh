@@ -51,6 +51,8 @@ apt-get install -qy --no-install-recommends \
 
 # Create Python venv
 python3 -m venv venv
+source venv/bin/activate
+pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
@@ -297,5 +299,7 @@ mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
 # 'run-it.sh' runs instrumented integration tests.
 CMD="cd $(realpath ${DIR_SRC_BMQ}) && "
 CMD+="source ./venv/bin/activate && "
-CMD+="${DIR_BUILD_BMQ}/run-env.sh ./src/integration-tests/run-tests 'fsm_mode and single and strong_consistency' -v"
+CMD+="BLAZINGMQ_TOOL=${DIR_BUILD_BMQ}/src/applications/bmqtool/bmqtool.tsk "
+CMD+="BLAZINGMQ_BROKER=${DIR_BUILD_BMQ}/src/applications/bmqbrkr/bmqbrkr.tsk "
+CMD+="${DIR_BUILD_BMQ}/run-env.sh ./src/integration-tests/run-tests -v"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-it.sh"
