@@ -30,6 +30,18 @@ fi
 
 SANITIZER_NAME="${1}"
 
+# Set some initial constants
+PARALLELISM=8
+
+DIR_ROOT="${PWD}"
+DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
+DIR_EXTERNAL="${DIR_ROOT}/deps"
+DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
+DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
+
+DIR_SRC_BMQ="${DIR_ROOT}"
+DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
 apt-get update && \
@@ -72,18 +84,6 @@ LLVM_TAG="llvmorg-18.1.8"
 ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
 ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
 ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
-
-# Set some initial constants
-PARALLELISM=8
-
-DIR_ROOT="${PWD}"
-DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
-DIR_EXTERNAL="${DIR_ROOT}/deps"
-DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
-DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
-
-DIR_SRC_BMQ="${DIR_ROOT}"
-DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
 
 # Parse sanitizers config
 cfgquery() {
