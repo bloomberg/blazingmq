@@ -63,6 +63,10 @@ const int k_MAX_INSTANT_MESSAGES = 10;
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 
+/// The default utilization value reported when we cannot
+/// compute utilization.
+const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
+
 // ------------------
 // struct ClientStats
 // ------------------
@@ -211,8 +215,13 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
     }
     case QueueStatsDomain::Stat::e_MESSAGES_UTILIZATION_MAX: {
         // Calculate max queue messages utilization, in percents.
-        return 100 * STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES) /
-               STAT_SINGLE(value, DomainQueueStats::e_CFG_MSGS);
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, DomainQueueStats::e_CFG_MSGS);
+        return limit == 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
+                   : (100 *
+                      STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES) /
+                      limit);
     }
     case QueueStatsDomain::Stat::e_BYTES_CURRENT: {
         return STAT_SINGLE(value, DomainQueueStats::e_STAT_BYTES);
@@ -222,8 +231,13 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
     }
     case QueueStatsDomain::Stat::e_BYTES_UTILIZATION_MAX: {
         // Calculate max queue bytes utilization, in percents.
-        return 100 * STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES) /
-               STAT_SINGLE(value, DomainQueueStats::e_CFG_BYTES);
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, DomainQueueStats::e_CFG_BYTES);
+        return limit == 0
+                   ? k_UNDEFINED_UTILIZATION_VALUE
+                   : (100 *
+                      STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES) /
+                      limit);
     }
     case QueueStatsDomain::Stat::e_PUT_BYTES_ABS: {
         return STAT_SINGLE(value, DomainQueueStats::e_STAT_PUT);

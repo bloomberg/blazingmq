@@ -76,8 +76,10 @@ struct ConversionUtils {
 
         populateMetric(&values, ctx, Stat::e_MESSAGES_CURRENT);
         populateMetric(&values, ctx, Stat::e_MESSAGES_MAX);
+        populateMetric(&values, ctx, Stat::e_MESSAGES_UTILIZATION_MAX);
         populateMetric(&values, ctx, Stat::e_BYTES_CURRENT);
         populateMetric(&values, ctx, Stat::e_BYTES_MAX);
+        populateMetric(&values, ctx, Stat::e_BYTES_UTILIZATION_MAX);
 
         populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_DELTA);
         populateMetric(&values, ctx, Stat::e_PUT_BYTES_DELTA);
