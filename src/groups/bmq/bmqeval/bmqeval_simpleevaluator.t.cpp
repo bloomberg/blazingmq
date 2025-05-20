@@ -474,13 +474,26 @@ static void test3_evaluation()
 
         // logical operators
         {"!b_true", false},
+        {"!!b_true", true},
+        {"!~b_true", true},
+        {"~!b_true", true},
+        {"~~b_true", true},
         {"~b_true", false},
         {"b_true && i64_42 == 42", true},
         {"b_true || i64_42 != 42", true},
         // precedence
         {"!(i64_42 == 42)", false},
+        {"!!(i64_42 == 42)", true},
         {"b_false && b_false || b_true", true},
         {"b_false && (b_false || b_true)", false},
+        {"!b_false && b_false", false},
+        {"!b_false && b_true", true},
+        {"!(b_false && b_false)", true},
+        {"!(b_false && b_true)", true},
+        {"!b_false || b_false", true},
+        {"!b_false || b_true", true},
+        {"!(b_false || b_false)", true},
+        {"!(b_false || b_true)", false},
 
         // type mismatch yields 'runtimeErrorResult' (see above)
         {"s_foo == 42", runtimeErrorResult},
