@@ -9,9 +9,9 @@
     Epoch           : 1730210423
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 1
     SyncPtSequenceNumber: 1
-    PrimaryNodeId   : 1
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 5
 
 ==============================
@@ -25,9 +25,9 @@
     Epoch           : 1730210466
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 1
     SyncPtSequenceNumber: 3
-    PrimaryNodeId   : 1
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 5
 
 ==============================
@@ -41,9 +41,9 @@
     Epoch           : 1730210484
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 1
     SyncPtSequenceNumber: 5
-    PrimaryNodeId   : 1
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 8
 
 ==============================
@@ -57,9 +57,9 @@
     Epoch           : 1730210542
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 1
     SyncPtSequenceNumber: 8
-    PrimaryNodeId   : 1
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 8
 
 ==============================
@@ -73,9 +73,9 @@
     Epoch           : 1730210569
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 1
     SyncPtSequenceNumber: 9
-    PrimaryNodeId   : 1
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 8
 
 ==============================
@@ -89,9 +89,9 @@
     Epoch           : 1730210574
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 2
     SyncPtSequenceNumber: 1
-    PrimaryNodeId   : 2
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 8
 
 ==============================
@@ -105,9 +105,9 @@
     Epoch           : 1730210603
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 2
     SyncPtSequenceNumber: 3
-    PrimaryNodeId   : 2
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 11
 
 ==============================
@@ -121,9 +121,9 @@
     Epoch           : 1730210611
     JournalOpType   : SYNCPOINT
     SyncPointType   : REGULAR
-    SyncPtPrimaryLeaseId: 0
+    SyncPtPrimaryLeaseId: 2
     SyncPtSequenceNumber: 4
-    PrimaryNodeId   : 2
+    PrimaryNodeId   : 0
     DataFileOffsetDwords: 11
 
 8 journalOp record(s) found.

@@ -260,6 +260,7 @@ jobs:
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
 
   integration_tests_storagetool_ubuntu:
+    name: IT [Storage tool]
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -272,6 +273,9 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
+
+      - name: Build Storage tool
+        run: cmake --build build/blazingmq --parallel 8 --target bmqstoragetool
 
       - name: Run Integration Tests
         run: |
