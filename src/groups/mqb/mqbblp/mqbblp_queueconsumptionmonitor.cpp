@@ -97,6 +97,11 @@ QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo()
     // NOTHING
 }
 
+QueueConsumptionMonitor::SubStreamInfo::~SubStreamInfo()
+{
+    BSLS_ASSERT_SAFE(!d_idleEventHandle);
+}
+
 // -----------------------------
 // class QueueConsumptionMonitor
 // -----------------------------
