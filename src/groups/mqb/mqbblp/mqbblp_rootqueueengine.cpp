@@ -261,9 +261,10 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
       queueState,
       bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
                            this,
-                           bdlf::PlaceHolders::_1,   // id
-                           bdlf::PlaceHolders::_2,   // now
-                           bdlf::PlaceHolders::_3),  // enableLog
+                           bdlf::PlaceHolders::_1,   // alarmTime_p
+                           bdlf::PlaceHolders::_2,   // id
+                           bdlf::PlaceHolders::_3,   // now
+                           bdlf::PlaceHolders::_4),  // enableLog
       allocator)
 , d_apps(allocator)
 , d_hasAppSubscriptions(false)
@@ -1732,18 +1733,16 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     return stream;
 }
 
-bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string&        appId,
-                                               const bsls::TimeInterval& now,
-                                               bool enableLog) const
+bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
+                                 const bsl::string&        appId,
+                                 const bsls::TimeInterval& now,
+                                 bool                      enableLog) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
-
-    // Default (empty) alarm time, it means there are no un-delivered messages.
-    bsls::TimeInterval alarmTime;
 
     // Get AppState by appKey.
     Apps::const_iterator cItApp = d_apps.find(appId);
@@ -1756,7 +1755,12 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string&        appId,
 
     if (!headIt) {
         // No un-delivered messages, do nothing.
-        return alarmTime;  // RETURN
+        return false;  // RETURN
+    }
+
+    if (!enableLog) {
+        // There are un-delivered messages, but log is disabled.
+        return true;  // RETURN
     }
 
     // Get the arrival time delta of the oldest un-delivered message.
@@ -1764,15 +1768,14 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string&        appId,
     mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta,
                                             headIt->attributes());
     // Calculate alarm time
-    alarmTime = d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
+    const bsls::TimeInterval alarmTime =
+        d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
+    if (alarmTime_p) {
+        *alarmTime_p = alarmTime;
+    }
     // If the alarm time is in the future, don't log the alarm.
     if (alarmTime > now) {
-        return alarmTime;  // RETURN
-    }
-
-    if (!enableLog) {
-        // There are un-delivered messages, but log is disabled.
-        return alarmTime;  // RETURN
+        return true;  // RETURN
     }
 
     // Logging alarm info
@@ -1868,7 +1871,7 @@ bsls::TimeInterval RootQueueEngine::logAlarmCb(const bsl::string&        appId,
 
     BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
 
-    return alarmTime;
+    return true;
 }
 
 void RootQueueEngine::afterAppIdRegistered(

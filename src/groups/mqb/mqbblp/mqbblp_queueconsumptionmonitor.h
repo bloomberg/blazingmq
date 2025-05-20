@@ -162,14 +162,18 @@ class QueueConsumptionMonitor {
     };
 
     /// Callback function to log alarm info.
-    /// If the specified `enableLog` is true, there are un-delivered messages
-    /// for the specified `id` and calculated alarm time for the specified
-    /// `now` is in the past, alarm is logged. Return calculated alarm time for
-    /// the oldest undelivered message or empty `bsls::TimeInterval` object if
-    /// there are no un-delivered messages.
-    typedef bsl::function<bsls::TimeInterval(const bsl::string&        id,
-                                             const bsls::TimeInterval& now,
-                                             bool enableLog)>
+    /// Return `true` if there are un-delivered messages for the specified
+    /// `id`, `false` otherwise.  If the specified `enableLog` is true, there
+    /// are un-delivered messages for the specified `id` and calculated alarm
+    /// time for the specified `now` is in the past, alarm is logged. Set in
+    /// the specified `alarmTime_p` calculated alarm time for the oldest
+    /// undelivered message.
+    /// If `enableLog` is false, `alarmTime_p` is not set and alarm is not
+    /// logged.
+    typedef bsl::function<bool(bsls::TimeInterval*       alarmTime_p,
+                               const bsl::string&        id,
+                               const bsls::TimeInterval& now,
+                               bool                      enableLog)>
         LoggingCb;
 
   private:
