@@ -1,6 +1,6 @@
 /* Based on an example by Krzysztof Narkiewicz
 (https://github.com/ezaquarii/bison-flex-cpp-example,
-<krzysztof.narkiewicz@ezaquarii.com>, {BOSS  144538})
+<krzysztof.narkiewicz@ezaquarii.com>)
 */
 
 %{
