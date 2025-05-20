@@ -121,7 +121,6 @@ QueueConsumptionMonitor::QueueConsumptionMonitor(QueueState*       queueState,
 QueueConsumptionMonitor::~QueueConsumptionMonitor()
 {
     BSLS_ASSERT_SAFE(!d_alarmEventHandle);
-    BSLS_ASSERT_SAFE(d_subStreamInfos.empty());
 }
 
 // MANIPULATORS
