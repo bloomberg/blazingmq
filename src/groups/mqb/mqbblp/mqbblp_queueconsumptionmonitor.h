@@ -184,7 +184,7 @@ class QueueConsumptionMonitor {
         // CREATORS
 
         SubStreamInfo();
-        
+
         ~SubStreamInfo();
 
         // PUBLIC DATA
