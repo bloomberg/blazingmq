@@ -28,6 +28,7 @@
 // MQB
 #include <mqbblp_clustercatalog.h>
 #include <mqbnet_authenticationcontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqio_status.h>
@@ -57,25 +58,25 @@ const int k_AUTHENTICATION_READTIMEOUT = 3 * 60;  // 3 minutes
 // -------------------
 
 int Authenticator::onAuthenticationRequest(
-    bsl::ostream&                  errorDescription,
-    const AuthenticationContextSp& context)
+    bsl::ostream&                              errorDescription,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
+    AuthenticationContextSp*                   context)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        context->authenticationMessage().isAuthenticateRequestValue());
-    BSLS_ASSERT_SAFE(context->initialConnectionContext()->isIncoming());
-    BSLS_ASSERT_SAFE(!context->isReversed());  // not supported for now
-
-    const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
-        context->authenticationMessage().authenticateRequest();
-
-    BALL_LOG_DEBUG << "Received authentication message from '"
-                   << context->initialConnectionContext()->channel()->peerUri()
-                   << "': " << authenticateRequest;
+    BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticateRequestValue());
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
     bmqp_ctrlmsg::AuthenticateResponse& response =
         authenticationResponse.makeAuthenticateResponse();
+
+    // Create an AuthenticationContext for that connection
+    bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
+        bsl::allocate_shared<mqbnet::AuthenticationContext>(
+            d_allocator_p,
+            authenticationMsg,       // authenticationMessage
+            false,                   // isReversed
+            State::e_AUTHENTICATING  // state
+        );
 
     // Always succeeds for now
     // TODO: For later implementation, plugins will perform authentication,
@@ -85,16 +86,23 @@ int Authenticator::onAuthenticationRequest(
     response.status().code()     = 0;
     response.lifetimeMs()        = 10 * 60 * 1000;
 
+    authenticationContext->state().testAndSwap(
+        mqbnet::AuthenticationContext::State::e_AUTHENTICATING,
+        mqbnet::AuthenticationContext::State::e_AUTHENTICATED);
+
     int rc = sendAuthenticationMessage(errorDescription,
                                        authenticationResponse,
-                                       context);
+                                       authenticationContext);
+
+    *context = authenticationContext;
 
     return rc;
 }
 
 int Authenticator::onAuthenticationResponse(
-    bsl::ostream&                  errorDescription,
-    const AuthenticationContextSp& context)
+    bsl::ostream&                              errorDescription,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
+    AuthenticationContextSp*                   context)
 {
     BALL_LOG_ERROR << "Not Implemented";
 
@@ -163,9 +171,11 @@ Authenticator::~Authenticator()
     // NOTHING: (required because of inheritance)
 }
 
-int Authenticator::handleAuthentication(bsl::ostream& errorDescription,
-                                        bool*         isContinueRead,
-                                        const AuthenticationContextSp& context)
+int Authenticator::handleAuthentication(
+    bsl::ostream&                              errorDescription,
+    AuthenticationContextSp*                   context,
+    bool*                                      isContinueRead,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -176,19 +186,19 @@ int Authenticator::handleAuthentication(bsl::ostream& errorDescription,
     bmqu::MemOutStream errStream;
     int                rc = rc_SUCCESS;
 
-    switch (context->authenticationMessage().selectionId()) {
+    switch (authenticationMsg.selectionId()) {
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATE_REQUEST: {
-        rc = onAuthenticationRequest(errStream, context);
+        rc = onAuthenticationRequest(errStream, authenticationMsg, context);
     } break;  // BREAK
     case bmqp_ctrlmsg::AuthenticationMessage::
         SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        rc = onAuthenticationResponse(errStream, context);
+        rc = onAuthenticationResponse(errStream, authenticationMsg, context);
     } break;  // BREAK
     default: {
         errorDescription
             << "Invalid authentication message received (unknown type): "
-            << context->authenticationMessage();
+            << authenticationMsg;
         return rc_ERROR;  // RETURN
     }
     }

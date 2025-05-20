@@ -37,6 +37,7 @@
 #include <bdlb_scopeexit.h>
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_memory.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
@@ -191,13 +192,22 @@ int InitialConnectionHandler::processBlob(
 
     // Authentication or Negotiation based on the type of message received.
     if (authenticationMsg.has_value()) {
-        context->authenticationContext()->setAuthenticationMessage(
-            authenticationMsg.value());
+        BALL_LOG_DEBUG << "Received authentication message from '"
+                       << context->channel()->peerUri()
+                       << "': " << authenticationMsg.value();
+
+        bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext;
 
         rc = d_authenticator_mp->handleAuthentication(
             errorDescription,
+            &authenticationContext,
             isContinueRead,
-            context->authenticationContext());
+            authenticationMsg.value());
+
+        if (rc == rc_SUCCESS) {
+            authenticationContext->setInitialConnectionContext(context.get());
+            context->setAuthenticationContext(authenticationContext);
+        }
     }
     else if (negotiationMsg.has_value()) {
         context->negotiationContext()->d_negotiationMessage =
@@ -344,15 +354,6 @@ InitialConnectionHandler::~InitialConnectionHandler()
 void InitialConnectionHandler::setupContext(
     const InitialConnectionContextSp& context)
 {
-    // Create an AuthenticationContext for that connection
-    bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
-        bsl::allocate_shared<mqbnet::AuthenticationContext>(
-            d_allocator_p,
-            context.get(),  // initialConnectionContext
-            false           // isReversed
-        );
-    context->setAuthenticationContext(authenticationContext);
-
     // Create an NegotiationContext for that connection
     bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext;
     negotiationContext.createInplace(d_allocator_p);

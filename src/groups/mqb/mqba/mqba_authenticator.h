@@ -78,6 +78,8 @@ class Authenticator : public mqbnet::Authenticator {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
+    typedef mqbnet::AuthenticationContext::State State;
+
   private:
     typedef bsl::shared_ptr<mqbnet::AuthenticationContext>
         AuthenticationContextSp;
@@ -100,22 +102,29 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Invoked when received a `AuthenticationRequest` authentication message
-    /// with the specified `context`.  The behavior of this function is
-    /// undefined unless `d_authenticationMessage` in the `context` is an
-    /// `AuthenticateRequest` and this request is incoming or reversed
-    /// connection.  Returns 0 on success, or return a non-zero code and
-    /// populate the specified `errorDescription` with a description of the
-    /// error on failure.
-    int onAuthenticationRequest(bsl::ostream& errorDescription,
-                                const AuthenticationContextSp& context);
+    /// Handles an incoming `AuthenticationRequest` message by authenticating
+    /// using the specified `AuthenticationMessage`.  On success, creates an
+    /// `AuthenticationContext` and stores it in `context`. The behavior of
+    /// this function is undefined unless `authenticationMsg` is an
+    /// `AuthenticationRequest`.
+    /// Returns 0 on success; otherwise, returns a non-zero error code and
+    /// populates `errorDescription` with details of the failure.
+    int onAuthenticationRequest(
+        bsl::ostream&                              errorDescription,
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
+        AuthenticationContextSp*                   context);
 
-    /// Invoked when received a `AuthenticationResponse` authentication message
-    /// with the specified `context`.  Returns 0 on success, or return a
-    /// non-zero code and populate the specified `errorDescription` with
-    /// a description of the error on failure.
-    int onAuthenticationResponse(bsl::ostream& errorDescription,
-                                 const AuthenticationContextSp& context);
+    /// Handles an incoming `AuthenticationResponse` message by authenticating
+    /// using the specified `AuthenticationMessage`.  On success, creates an
+    /// `AuthenticationContext` and stores it in `context`. The behavior of
+    /// this function is undefined unless `authenticationMsg` is an
+    /// `AuthenticationResponse`.
+    /// Returns 0 on success; otherwise, returns a non-zero error code and
+    /// populates `errorDescription` with details of the failure.
+    int onAuthenticationResponse(
+        bsl::ostream&                              errorDescription,
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
+        AuthenticationContextSp*                   context);
 
     /// Send the specified `message` to the peer associated with the
     /// specified `context` and return 0 on success, or return a non-zero
@@ -152,13 +161,22 @@ class Authenticator : public mqbnet::Authenticator {
     // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
 
-    int handleAuthentication(bsl::ostream&                  errorDescription,
-                             bool*                          isContinueRead,
-                             const AuthenticationContextSp& context)
-        BSLS_KEYWORD_OVERRIDE;
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// `authenticationMsg`.  Set `isContinueRead` to true if we want to
+    /// continue reading instead of finishing authentication.  Create an
+    /// AuthenticationContext and store into `context`.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
+    int handleAuthentication(bsl::ostream&            errorDescription,
+                             AuthenticationContextSp* context,
+                             bool*                    isContinueRead,
+                             const bmqp_ctrlmsg::AuthenticationMessage&
+                                 authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound authentication message or reverse connection request
     /// with the specified `context`.
+    /// Return 0 on success, or a non-zero error code and populate the
+    /// specified `errorDescription` with a description of the error otherwise.
     int authenticationOutboundOrReverse(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };

@@ -40,10 +40,18 @@ namespace mqbnet {
 
 /// VST for the context associated with an connection being authenticated.
 class AuthenticationContext {
+  public:
+    // TYPES
+    enum State {
+        e_AUTHENTICATING = 0,
+        e_AUTHENTICATED,
+    };
+
   private:
     // DATA
     InitialConnectionContext*           d_initialConnectionContext_p;
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
+    bsls::AtomicInt                     d_state;
     bool                                d_isReversed;
     ConnectionType::Enum                d_connectionType;
 
@@ -61,10 +69,10 @@ class AuthenticationContext {
                                    bslma::UsesBslmaAllocator)
     // CREATORS
     AuthenticationContext(
-        InitialConnectionContext* initialConnectionContext,
-        bool                      isReversed,
-        ConnectionType::Enum      connectionType = ConnectionType::e_UNKNOWN,
-        bslma::Allocator*         basicAllocator = 0);
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+        bool                                       isReversed,
+        State                                      state,
+        ConnectionType::Enum connectionType = ConnectionType::e_UNKNOWN);
 
     // MANIPULATORS
     AuthenticationContext&
@@ -73,6 +81,8 @@ class AuthenticationContext {
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
     AuthenticationContext& setIsReversed(bool value);
     AuthenticationContext& setConnectionType(ConnectionType::Enum value);
+
+    bsls::AtomicInt& state();
 
     // ACCESSORS
     InitialConnectionContext* initialConnectionContext() const;

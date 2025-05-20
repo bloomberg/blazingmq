@@ -20,6 +20,9 @@
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
 
+// BDE
+#include <bsls_atomic.h>
+
 namespace BloombergLP {
 namespace mqbnet {
 
@@ -28,12 +31,13 @@ namespace mqbnet {
 // ---------------------------
 
 AuthenticationContext::AuthenticationContext(
-    InitialConnectionContext* initialConnectionContext,
-    bool                      isReversed,
-    ConnectionType::Enum      connectionType,
-    bslma::Allocator*         basicAllocator)
-: d_initialConnectionContext_p(initialConnectionContext)
-, d_authenticationMessage(basicAllocator)
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    bool                                       isReversed,
+    State                                      state,
+    ConnectionType::Enum                       connectionType)
+: d_initialConnectionContext_p(nullptr)
+, d_authenticationMessage(authenticationMessage)
+, d_state(state)
 , d_isReversed(isReversed)
 , d_connectionType(connectionType)
 {
@@ -52,6 +56,11 @@ AuthenticationContext& AuthenticationContext::setAuthenticationMessage(
 {
     d_authenticationMessage = value;
     return *this;
+}
+
+bsls::AtomicInt& AuthenticationContext::state()
+{
+    return d_state;
 }
 
 AuthenticationContext& AuthenticationContext::setIsReversed(bool value)
