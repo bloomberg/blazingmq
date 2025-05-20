@@ -369,7 +369,7 @@ void QueueConsumptionMonitor::cancelIdleEvents()
                               last = d_subStreamInfos.end();
          iter != last;
          ++iter) {
-        SubStreamInfo info = iter->second;
+        SubStreamInfo& info = iter->second;
         if (info.d_idleEventHandle) {
             // Cancel the event if it was scheduled.
             d_scheduler_p->cancelEventAndWait(&info.d_idleEventHandle);
