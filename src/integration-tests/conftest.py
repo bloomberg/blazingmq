@@ -23,6 +23,7 @@ import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
+from blazingmq.dev.it.fixtures import multi_node
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
