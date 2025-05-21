@@ -199,40 +199,6 @@ Example:
 ./bmqstoragetool.tsk --csl-file=<path> --details
 ```
 
-Scenarios of BMQStorageTool usage for CSL file
-==============================================
-
-Output summary for CSL file
----------------------------
-Example:
-```bash
-bmqstoragetool --csl-file=<path> --summary
-bmqstoragetool --csl-file=<path> --summary --summary-queues-limit=100
-```
-
-Output records from the beginning of CSL file 
----------------------------------------------
-Example:
-```bash
-bmqstoragetool --csl-file=<path> --csl-from-begin
-```
-NOTE: by default search is done from the latest snapshot.
-
-Search and otput only desired record types in CSL file
-------------------------------------------------------
-Example:
-```bash
-bmqstoragetool --csl-file=<path> --csl-record-type=snapshot --csl-record-type=update
-```
-NOTE: `snapshot`, `update`, `commit` and `ack ` are supported. Without this option all record types are selected.
-
-Search and otput records details in CSL file
---------------------------------------------
-Example:
-```bash
-bmqstoragetool --csl-file=<path> --details
-```
-
 Applying search filters to above scenarios
 ==========================================
 

@@ -391,6 +391,7 @@ bool SearchShortResult::processQueueOpRecord(const mqbs::QueueOpRecord& record,
                                                recordIndex,
                                                recordOffset,
                                                allocator());
+
     printer()->printQueueOpRecord(details);
     d_printedQueueOpCount++;
     return false;
@@ -556,6 +557,7 @@ bool SearchDetailResult::processQueueOpRecord(
                                                recordIndex,
                                                recordOffset,
                                                d_allocator_p);
+
     if (queueInfo.has_value()) {
         details.d_queueUri = queueInfo->uri();
         if (!findQueueAppIdByAppKey(&details.d_appId,
@@ -581,6 +583,7 @@ bool SearchDetailResult::processJournalOpRecord(
                                                  recordIndex,
                                                  recordOffset,
                                                  d_allocator_p);
+
     d_printer->printJournalOpRecord(details);
 
     d_printedJournalOpCount++;

@@ -637,7 +637,7 @@ class JsonPrinter : public Printer {
 
     void printOutstandingRatio(
         int                    ratio,
-        BSLS_ANNOTATION_UNUSED bsl::size_t outstandingMessagesCount,
+        bsl::size_t            outstandingMessagesCount,
         BSLS_ANNOTATION_UNUSED bsl::size_t totalMessagesCount) const
         BSLS_KEYWORD_OVERRIDE
     {
@@ -883,7 +883,6 @@ class JsonLinePrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-
         d_ostream << "  \"DataFileDetails\": \n";
         m_bmqstoragetool::printDataFileMeta<
             bmqu::JsonPrinter<true, true, 2, 4>,
