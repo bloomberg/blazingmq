@@ -15,7 +15,7 @@
 
 from pathlib import Path
 import pytest
-import blazingmq.dev.paths as paths
+from blazingmq.dev import paths
 
 
 @pytest.fixture
@@ -56,8 +56,8 @@ def csl_file() -> Path:
 
 
 def _load_expected_result_file(file_path) -> bytes:
-    with open(file_path, "r") as f:
-        return f.read().encode()
+    with open(file_path, "r", encoding="utf8") as file:
+        return file.read().encode()
 
 
 @pytest.fixture
