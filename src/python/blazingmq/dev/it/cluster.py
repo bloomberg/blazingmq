@@ -229,7 +229,7 @@ class Cluster(contextlib.AbstractContextManager):
                     process.stop()
                 except Exception as error:
                     self._logger.error(
-                        f"Exception raised while stopping process: {error}"
+                        "Exception raised while stopping process: %s", error
                     )
                 if process.name in self._processes:
                     del self._processes[process.name]
@@ -341,7 +341,6 @@ class Cluster(contextlib.AbstractContextManager):
 
     def destroy(self):
         """Free the resources owned by this cluster."""
-        pass
         # self._esx.close()
 
     # TODO: fold following three in start_broker

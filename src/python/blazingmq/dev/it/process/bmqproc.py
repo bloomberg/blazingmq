@@ -15,7 +15,6 @@
 
 from blazingmq.dev.it.process.proc import Process
 
-import blazingmq.dev.it.logging
 
 import logging
 import re

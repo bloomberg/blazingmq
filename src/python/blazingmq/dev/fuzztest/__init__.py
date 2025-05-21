@@ -22,7 +22,6 @@ o 'fuzz': launch fuzzing session with the given 'host':'port' of a BlazingMQ
           provided, fuzz only the request with the given name.
 """
 
-import logging
 from enum import IntEnum
 from typing import List, Optional
 

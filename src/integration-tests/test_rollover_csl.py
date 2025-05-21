@@ -27,7 +27,6 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 )
 from blazingmq.dev.it.util import wait_until
 import glob
-import time
 
 pytestmark = order(4)
 
