@@ -22,8 +22,6 @@ PURPOSE: Provide a BMQ client.
 Provide a subclass of 'ito.proc.Process' that wraps 'bmqtool.tsk'.
 """
 
-from contextlib import ExitStack
-
 from collections import namedtuple
 import json
 import re
@@ -50,8 +48,6 @@ blocktimeout = 15
 
 class ITError(Exception):
     """Base class for exceptions specific to integration tests."""
-
-    pass
 
 
 def _build_command(
@@ -138,7 +134,7 @@ class Client(BMQProcess):
         Send a command to the client and return immediately.  This function
         returns nothing.
         """
-        self._logger.info(f"send: command = {command}")
+        self._logger.info("send: command = %s", command)
         self.write_stdin(command + "\n").flush_stdin()
 
     def start_session(self, block=None, succeed=None, no_except=None, **kw):
@@ -372,7 +368,7 @@ class Client(BMQProcess):
 
                 msgs.append(Message(m[1], m[2], m[3], m[4]))
 
-            self._logger.info(f"list -> {len(msgs)} message(s)")
+            self._logger.info("list -> %s message(s)", len(msgs))
 
             return msgs
 
@@ -451,7 +447,7 @@ class Client(BMQProcess):
         with internal_use(self):
             if self.outputs_regex("EVENT received:.*STATE_RESTORED", timeout=timeout):
                 return True
-        self._logger.info(f"TIMEOUT: timed out after {timeout}s while {action}")
+        self._logger.info("TIMEOUT: timed out after %ss while %s", timeout, action)
         return False
 
     def wait_connection_lost(self, timeout=blocktimeout):
@@ -460,7 +456,7 @@ class Client(BMQProcess):
         with internal_use(self):
             if self.outputs_regex("EVENT received:.*CONNECTION_LOST", timeout=timeout):
                 return True
-        self._logger.info(f"TIMEOUT: timed out after {timeout}s while {action}")
+        self._logger.info("TIMEOUT: timed out after %ss while %s", timeout, action)
         return False
 
     def open_priority_queues(self, count, start=0, uri_priority=URI_PRIORITY, **kw):
@@ -602,7 +598,7 @@ class Client(BMQProcess):
             error_code = self._parse_command_result(
                 command, result, succeed, no_except, timeout
             )
-            self._logger.info(f"{command} -> {error_code}")
+            self._logger.info("%s -> %s", command, error_code)
 
         return CommandResult(error_code, extra_matches)
 

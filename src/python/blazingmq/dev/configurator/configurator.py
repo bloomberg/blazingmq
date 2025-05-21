@@ -27,9 +27,8 @@ import functools
 import itertools
 import logging
 from dataclasses import dataclass, field
-from decimal import Decimal
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.serializers import JsonSerializer
