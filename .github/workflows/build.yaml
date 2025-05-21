@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - storagetool-it
+      - main
   pull_request:
     branches:
       - main
