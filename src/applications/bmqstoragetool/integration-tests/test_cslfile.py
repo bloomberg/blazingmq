@@ -15,7 +15,6 @@
 
 import subprocess
 import re
-import pytest
 import json
 
 
@@ -25,12 +24,16 @@ def test_short_result(storagetool, csl_file, expected_csl_short_result):
      - checks that storage tool can process CSL file and output short result.
      - checks that storage tool can process CSL file from the beginning.
     """
-    res = subprocess.run([storagetool, "--csl-file", csl_file], capture_output=True)
+    res = subprocess.run(
+        [storagetool, "--csl-file", csl_file], capture_output=True, check=True
+    )
     assert res.returncode == 0
     assert res.stdout == expected_csl_short_result
 
     res = subprocess.run(
-        [storagetool, "--csl-file", csl_file, "--csl-from-begin"], capture_output=True
+        [storagetool, "--csl-file", csl_file, "--csl-from-begin"],
+        capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"2 snapshot record", res.stdout) is not None
@@ -45,6 +48,7 @@ def test_short_json(storagetool, csl_file):
         res = subprocess.run(
             [storagetool, "--csl-file", csl_file, f"--print-mode=json-{mode}"],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
@@ -59,7 +63,9 @@ def test_detail_result(storagetool, csl_file, expected_csl_detail_result):
      - checks that storage tool can process CSL file and output detail result.
     """
     res = subprocess.run(
-        [storagetool, "--csl-file", csl_file, "--details"], capture_output=True
+        [storagetool, "--csl-file", csl_file, "--details"],
+        capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_csl_detail_result
@@ -80,6 +86,7 @@ def test_detail_json(storagetool, csl_file):
                 f"--print-mode=json-{mode}",
             ],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
@@ -94,7 +101,9 @@ def test_summary_result(storagetool, csl_file, expected_csl_summary_result):
      - checks that storage tool can process CSL file and output summary result.
     """
     res = subprocess.run(
-        [storagetool, "--csl-file", csl_file, "--summary"], capture_output=True
+        [storagetool, "--csl-file", csl_file, "--summary"],
+        capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_csl_summary_result
@@ -115,6 +124,7 @@ def test_summary_json(storagetool, csl_file):
                 f"--print-mode=json-{mode}",
             ],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
@@ -143,6 +153,7 @@ def test_search_range(storagetool, csl_file):
             "--timestamp-lt=1730210574",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"1 update record", res.stdout) is not None
@@ -160,6 +171,7 @@ def test_search_range(storagetool, csl_file):
             "--offset-lt=388",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"1 update record", res.stdout) is not None
@@ -177,6 +189,7 @@ def test_search_range(storagetool, csl_file):
             "--offset-lt=388",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"1 update record", res.stdout) is not None
@@ -193,6 +206,7 @@ def test_search_offset(storagetool, csl_file):
     res = subprocess.run(
         [storagetool, "--csl-file", csl_file, "--csl-from-begin", "--offset=316"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"1 commit record", res.stdout) is not None
@@ -202,6 +216,7 @@ def test_search_offset(storagetool, csl_file):
     res = subprocess.run(
         [storagetool, "--csl-file", csl_file, "--csl-from-begin", "--offset=317"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"No update record", res.stdout) is not None
@@ -219,6 +234,7 @@ def test_search_seqnum(storagetool, csl_file):
     res = subprocess.run(
         [storagetool, "--csl-file", csl_file, "--csl-from-begin", "--seqnum=1-4"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"1 commit record", res.stdout) is not None
@@ -228,6 +244,7 @@ def test_search_seqnum(storagetool, csl_file):
     res = subprocess.run(
         [storagetool, "--csl-file", csl_file, "--csl-from-begin", "--seqnum=1-7"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"No update record", res.stdout) is not None

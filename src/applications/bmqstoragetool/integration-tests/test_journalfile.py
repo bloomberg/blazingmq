@@ -15,7 +15,6 @@
 
 import subprocess
 import re
-import pytest
 import json
 
 
@@ -26,7 +25,7 @@ def test_short_result(storagetool, journal_file, expected_short_result):
      - checks GUID searching.
     """
     res = subprocess.run(
-        [storagetool, "--journal-file", journal_file], capture_output=True
+        [storagetool, "--journal-file", journal_file], capture_output=True, check=True
     )
     assert res.returncode == 0
     assert res.stdout == expected_short_result
@@ -40,6 +39,7 @@ def test_short_result(storagetool, journal_file, expected_short_result):
             "40000000000215B2967EEDFA1085BA02",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"40000000000215B2967EEDFA1085BA02", res.stdout) is not None
@@ -55,6 +55,7 @@ def test_short_json(storagetool, journal_file):
         res = subprocess.run(
             [storagetool, "--journal-file", journal_file, f"--print-mode=json-{mode}"],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
@@ -70,7 +71,9 @@ def test_detail_result(storagetool, journal_file, csl_file, expected_detail_resu
      - checks that storage tool can process journal and csl files and output details with queue names.
     """
     res = subprocess.run(
-        [storagetool, "--journal-file", journal_file, "--details"], capture_output=True
+        [storagetool, "--journal-file", journal_file, "--details"],
+        capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_detail_result
@@ -85,6 +88,7 @@ def test_detail_result(storagetool, journal_file, csl_file, expected_detail_resu
             "--details",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert (
@@ -113,6 +117,7 @@ def test_detail_json(storagetool, journal_file, csl_file):
                 f"--print-mode=json-{mode}",
             ],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
@@ -138,6 +143,7 @@ def test_payload_dump(
             "--dump-payload",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_payload_dump
@@ -145,6 +151,7 @@ def test_payload_dump(
     res = subprocess.run(
         [storagetool, "--journal-path", journal_path, "--dump-payload"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_payload_dump
@@ -158,6 +165,7 @@ def test_payload_dump(
             "--dump-limit=5",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"First 5 bytes of payload:", res.stdout) is not None
@@ -177,6 +185,7 @@ def test_summary_result(storagetool, journal_path, csl_file, expected_summary_re
             "--summary",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_summary_result
@@ -200,6 +209,7 @@ def test_summary_result_with_queue_info(
             "1",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_summary_result_with_queue_info
@@ -210,7 +220,6 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
     This test checks that storage tool can process journal file and output summary result in JSON (pretty and line) format.
     """
     for mode in ["pretty", "line"]:
-
         res = subprocess.run(
             [
                 storagetool,
@@ -224,6 +233,7 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
                 f"--print-mode=json-{mode}",
             ],
             capture_output=True,
+            check=True,
         )
 
         assert res.returncode == 0
@@ -250,6 +260,7 @@ def test_confirmed_outstanding_result(storagetool, journal_file):
     res = subprocess.run(
         [storagetool, "--journal-file", journal_file, "--confirmed"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"400000000002B471F5B3AC11AA7D7DAB", res.stdout) is not None
@@ -258,6 +269,7 @@ def test_confirmed_outstanding_result(storagetool, journal_file):
     res = subprocess.run(
         [storagetool, "--journal-file", journal_file, "--outstanding"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert re.search(b"40000000000215B2967EEDFA1085BA02", res.stdout) is not None
@@ -271,6 +283,7 @@ def test_queueop_result(storagetool, journal_file, expected_queueop_result):
     res = subprocess.run(
         [storagetool, "--journal-file", journal_file, "-r=queue-op"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_queueop_result
@@ -283,6 +296,7 @@ def test_journalop_result(storagetool, journal_file, expected_journalop_result):
     res = subprocess.run(
         [storagetool, "--journal-file", journal_file, "-r=journal-op"],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_journalop_result
@@ -303,6 +317,7 @@ def test_queueop_journalop_json(storagetool, journal_file):
                 f"--print-mode=json-{mode}",
             ],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
@@ -327,6 +342,7 @@ def test_queueop_journalop_summary_result(
             "--summary",
         ],
         capture_output=True,
+        check=True,
     )
     assert res.returncode == 0
     assert res.stdout == expected_queueop_journalop_summary_result
@@ -348,6 +364,7 @@ def test_queueop_journalop_summary_json(storagetool, journal_file):
                 f"--print-mode=json-{mode}",
             ],
             capture_output=True,
+            check=True,
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)

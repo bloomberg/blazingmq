@@ -21,7 +21,7 @@ def test_breathing(storagetool):
     """
     This test checks that storage tool could be run without arguments and print error.
     """
-    res = subprocess.run([storagetool], capture_output=True)
+    res = subprocess.run([storagetool], capture_output=True, check=False)
     assert res.returncode == 255
     assert (
         re.search(b"Neither journal path nor journal file is specified", res.stderr)
@@ -34,7 +34,7 @@ def test_print_help(storagetool):
     This test checks that storage tool could print help info.
     """
 
-    res = subprocess.run([storagetool, "-h"], capture_output=True)
+    res = subprocess.run([storagetool, "-h"], capture_output=True, check=False)
     assert res.returncode == 255
     assert re.search(r"--help\s+print usage", res.stderr.decode()) is not None
 
@@ -43,7 +43,7 @@ def test_wrong_argument(storagetool):
     """
     This test checks that storage tool prints error message if wrong argument passed.
     """
-    res = subprocess.run([storagetool, "--foo"], capture_output=True)
+    res = subprocess.run([storagetool, "--foo"], capture_output=True, check=False)
     assert res.returncode == 255
     assert (
         re.search(
