@@ -274,6 +274,10 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
+
       - name: Build Storage tool
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
