@@ -2125,7 +2125,7 @@ static void test11_initiateShutdown()
         100000000);  // 100 ms
     bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    const unsigned int             subscriptionId =
+    const unsigned int         subscriptionId =
         bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
     const unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
 
@@ -2147,7 +2147,7 @@ static void test11_initiateShutdown()
         mqbi::StorageMessageAttributes d_messageAttributes;
 
         // CREATORS
-        MockStorageIterator(bslma::Allocator* allocator = 0)
+        MockStorageIterator(BSLA_UNUSED bslma::Allocator* allocator = 0)
         : d_guid(bmqp::MessageGUIDGenerator::testGUID())
         , d_appMessage(bmqp::RdaInfo())
         , d_appData()
@@ -2186,14 +2186,14 @@ static void test11_initiateShutdown()
             return d_guid;
         }
 
-        const mqbi::AppMessage&
-        appMessageView(unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE
+        const mqbi::AppMessage& appMessageView(
+            BSLA_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE
         {
             return d_appMessage;
         }
 
-        mqbi::AppMessage&
-        appMessageState(unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE
+        mqbi::AppMessage& appMessageState(BSLA_UNUSED unsigned int appOrdinal)
+            BSLS_KEYWORD_OVERRIDE
         {
             return d_appMessage;
         }
@@ -2376,11 +2376,11 @@ static void test11_initiateShutdown()
 
     PV("Confirm multiple messsages while shutting down");
     {
-        const int       NUM_MESSAGES = 5;
+        const int                      NUM_MESSAGES = 5;
         TestBench                      tb(client(e_FirstHop),
                      isAtMostOnce,
                      bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt callbackCounter(0);
+        bsls::AtomicInt                callbackCounter(0);
         bsl::vector<bmqt::MessageGUID> guids(
             bmqtst::TestHelperUtil::allocator());
         guids.reserve(NUM_MESSAGES);
