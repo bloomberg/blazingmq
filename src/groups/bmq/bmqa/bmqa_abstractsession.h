@@ -240,7 +240,7 @@ class AbstractSession {
                    const bmqt::QueueOptions& options = bmqt::QueueOptions(),
                    const bsls::TimeInterval& timeout = bsls::TimeInterval());
 
-    /// DEPRECATED: Use the 'configureQueueSync(QueueId *queueId...)
+    /// DEPRECATED: Use the `configureQueueSync(QueueId *queueId...)`
     ///             instead.  This method will be marked as
     ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
     ///             libbmq.
@@ -293,7 +293,7 @@ class AbstractSession {
     //         EventHandler thread(s) (or if a SessionEventHandler was not
     //         specified, from the thread invoking 'nextEvent').
 
-    /// DEPRECATED: Use the 'closeQueueSync(QueueId *queueId...) instead.
+    /// DEPRECATED: Use the `closeQueueSync(QueueId *queueId...)` instead.
     ///             This method will be marked as
     ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
     ///             libbmq.

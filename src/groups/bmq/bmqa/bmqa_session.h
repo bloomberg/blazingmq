@@ -799,7 +799,7 @@ class Session : public AbstractSession {
     /// operation is cheap, and `MessageEventBuilder` can be obtained on
     /// demand and kept on the stack.
     ///
-    /// DEPRECATED: Use the 'loadMessageEventBuilder instead.  This
+    /// DEPRECATED: Use the `loadMessageEventBuilder` instead.  This
     ///             method will be marked as `BSLS_ANNOTATION_DEPRECATED` in
     ///             future release of libbmq.
     virtual MessageEventBuilder createMessageEventBuilder();
@@ -934,7 +934,7 @@ class Session : public AbstractSession {
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
-    /// DEPRECATED: Use the 'configureQueueSync(QueueId *queueId...)
+    /// DEPRECATED: Use the `configureQueueSync(QueueId *queueId...)`
     ///             instead.  This method will be marked as
     ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
     ///             libbmq.
@@ -998,7 +998,7 @@ class Session : public AbstractSession {
                              const bsls::TimeInterval&     timeout =
                                  bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;
 
-    /// DEPRECATED: Use the 'closeQueueSync(QueueId *queueId...) instead.
+    /// DEPRECATED: Use the `closeQueueSync(QueueId *queueId...)` instead.
     ///             This method will be marked as
     ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
     ///             libbmq.
@@ -1027,7 +1027,7 @@ class Session : public AbstractSession {
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
-    /// DEPRECATED: Use the 'closeQueue(QueueId *queueId...) instead.  This
+    /// DEPRECATED: Use the `closeQueue(QueueId *queueId...)` instead.  This
     ///             method will be marked as `BSLS_ANNOTATION_DEPRECATED` in
     ///             future release of libbmq.
     virtual int
