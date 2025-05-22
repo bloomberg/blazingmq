@@ -1280,7 +1280,8 @@ void ClientSession::processDisconnect(
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
-    // operation execution time.
+    // operation execution time, but we don't use it directly, so it's marked
+    // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1369,7 +1370,8 @@ void ClientSession::openQueueCb(
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
-    // operation execution time.
+    // operation execution time, but we don't use it directly, so it's marked
+    // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1449,7 +1451,8 @@ void ClientSession::closeQueueCb(
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
-    // operation execution time.
+    // operation execution time, but we don't use it directly, so it's marked
+    // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
