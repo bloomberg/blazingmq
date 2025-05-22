@@ -57,7 +57,7 @@
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_string.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_types.h>

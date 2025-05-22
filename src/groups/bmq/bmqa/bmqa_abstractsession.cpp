@@ -18,8 +18,8 @@
 
 #include <bmqscm_version.h>
 // BDE
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -38,8 +38,7 @@ AbstractSession::~AbstractSession()
 
 /// Session management
 ///------------------
-int AbstractSession::start(
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+int AbstractSession::start(BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -47,8 +46,7 @@ int AbstractSession::start(
     return -1;
 }
 
-int AbstractSession::startAsync(
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+int AbstractSession::startAsync(BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -75,21 +73,21 @@ void AbstractSession::finalizeStop()
 }
 
 void AbstractSession::loadMessageEventBuilder(
-    BSLS_ANNOTATION_UNUSED MessageEventBuilder* builder)
+    BSLA_UNUSED MessageEventBuilder* builder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
 }
 
 void AbstractSession::loadConfirmEventBuilder(
-    BSLS_ANNOTATION_UNUSED ConfirmEventBuilder* builder)
+    BSLA_UNUSED ConfirmEventBuilder* builder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
 }
 
 void AbstractSession::loadMessageProperties(
-    BSLS_ANNOTATION_UNUSED MessageProperties* buffer)
+    BSLA_UNUSED MessageProperties* buffer)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -97,8 +95,8 @@ void AbstractSession::loadMessageProperties(
 
 /// Queue management
 ///----------------
-int AbstractSession::getQueueId(BSLS_ANNOTATION_UNUSED QueueId* queueId,
-                                BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri)
+int AbstractSession::getQueueId(BSLA_UNUSED QueueId* queueId,
+                                BSLA_UNUSED const bmqt::Uri& uri)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -107,8 +105,8 @@ int AbstractSession::getQueueId(BSLS_ANNOTATION_UNUSED QueueId* queueId,
 }
 
 int AbstractSession::getQueueId(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::CorrelationId& correlationId)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::CorrelationId& correlationId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -116,12 +114,11 @@ int AbstractSession::getQueueId(
     return -1;
 }
 
-int AbstractSession::openQueue(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 flags,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+int AbstractSession::openQueue(BSLA_UNUSED QueueId* queueId,
+                               BSLA_UNUSED const bmqt::Uri& uri,
+                               BSLA_UNUSED bsls::Types::Uint64 flags,
+                               BSLA_UNUSED const bmqt::QueueOptions& options,
+                               BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -129,12 +126,12 @@ int AbstractSession::openQueue(
     return -1;
 }
 
-OpenQueueStatus AbstractSession::openQueueSync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 flags,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+OpenQueueStatus
+AbstractSession::openQueueSync(BSLA_UNUSED QueueId* queueId,
+                               BSLA_UNUSED const bmqt::Uri& uri,
+                               BSLA_UNUSED bsls::Types::Uint64 flags,
+                               BSLA_UNUSED const bmqt::QueueOptions& options,
+                               BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -145,11 +142,11 @@ OpenQueueStatus AbstractSession::openQueueSync(
 }
 
 int AbstractSession::openQueueAsync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 flags,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED bsls::Types::Uint64 flags,
+    BSLA_UNUSED const bmqt::QueueOptions& options,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -158,21 +155,21 @@ int AbstractSession::openQueueAsync(
 }
 
 void AbstractSession::openQueueAsync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64      flags,
-    BSLS_ANNOTATION_UNUSED const OpenQueueCallback& callback,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED bsls::Types::Uint64      flags,
+    BSLA_UNUSED const OpenQueueCallback& callback,
+    BSLA_UNUSED const bmqt::QueueOptions& options,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
 }
 
 int AbstractSession::configureQueue(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::QueueOptions& options,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -181,9 +178,9 @@ int AbstractSession::configureQueue(
 }
 
 ConfigureQueueStatus AbstractSession::configureQueueSync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::QueueOptions& options,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 
 {
     // PRECONDITIONS
@@ -196,9 +193,9 @@ ConfigureQueueStatus AbstractSession::configureQueueSync(
 }
 
 int AbstractSession::configureQueueAsync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::QueueOptions& options,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -207,18 +204,17 @@ int AbstractSession::configureQueueAsync(
 }
 
 void AbstractSession::configureQueueAsync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions&     options,
-    BSLS_ANNOTATION_UNUSED const ConfigureQueueCallback& callback,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bmqt::QueueOptions&     options,
+    BSLA_UNUSED const ConfigureQueueCallback& callback,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
 }
 
-int AbstractSession::closeQueue(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+int AbstractSession::closeQueue(BSLA_UNUSED QueueId* queueId,
+                                BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -226,9 +222,9 @@ int AbstractSession::closeQueue(
     return -1;
 }
 
-CloseQueueStatus AbstractSession::closeQueueSync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+CloseQueueStatus
+AbstractSession::closeQueueSync(BSLA_UNUSED QueueId* queueId,
+                                BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -239,8 +235,8 @@ CloseQueueStatus AbstractSession::closeQueueSync(
 }
 
 int AbstractSession::closeQueueAsync(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId* queueId,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -249,9 +245,9 @@ int AbstractSession::closeQueueAsync(
 }
 
 void AbstractSession::closeQueueAsync(
-    BSLS_ANNOTATION_UNUSED QueueId*                  queueId,
-    BSLS_ANNOTATION_UNUSED const CloseQueueCallback& callback,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+    BSLA_UNUSED QueueId*                  queueId,
+    BSLA_UNUSED const CloseQueueCallback& callback,
+    BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -259,8 +255,7 @@ void AbstractSession::closeQueueAsync(
 
 /// Queue manipulation
 ///------------------
-Event AbstractSession::nextEvent(
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+Event AbstractSession::nextEvent(BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -268,7 +263,15 @@ Event AbstractSession::nextEvent(
     return Event();
 }
 
-int AbstractSession::post(BSLS_ANNOTATION_UNUSED const MessageEvent& event)
+int AbstractSession::post(BSLA_UNUSED const MessageEvent& event)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
+
+    return -1;
+}
+
+int AbstractSession::confirmMessage(BSLA_UNUSED const Message& message)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -277,7 +280,7 @@ int AbstractSession::post(BSLS_ANNOTATION_UNUSED const MessageEvent& event)
 }
 
 int AbstractSession::confirmMessage(
-    BSLS_ANNOTATION_UNUSED const Message& message)
+    BSLA_UNUSED const MessageConfirmationCookie& cookie)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -285,17 +288,7 @@ int AbstractSession::confirmMessage(
     return -1;
 }
 
-int AbstractSession::confirmMessage(
-    BSLS_ANNOTATION_UNUSED const MessageConfirmationCookie& cookie)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
-
-    return -1;
-}
-
-int AbstractSession::confirmMessages(
-    BSLS_ANNOTATION_UNUSED ConfirmEventBuilder* builder)
+int AbstractSession::confirmMessages(BSLA_UNUSED ConfirmEventBuilder* builder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -306,7 +299,7 @@ int AbstractSession::confirmMessages(
 /// Debugging related
 ///-----------------
 int AbstractSession::configureMessageDumping(
-    BSLS_ANNOTATION_UNUSED const bslstl::StringRef& command)
+    BSLA_UNUSED const bslstl::StringRef& command)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");

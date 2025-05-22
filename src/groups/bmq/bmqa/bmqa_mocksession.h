@@ -708,9 +708,9 @@ struct MockSessionUtil {
 
     /// DEPRECATED: Use the `createOpenQueueStatus(...)`,
     ///            `createConfigureQueueStatus(...)`, or
-    ///            `createCloseQueueStatus(...)` methods instead.  This
-    ///            method will be marked as `BSLS_ANNOTATION_DEPRECATED` in
-    ///            future release of libbmq.
+    ///            `createCloseQueueStatus(...)` methods instead.  This method
+    ///            will be marked as `BSLA_DEPRECATED` in future release of
+    ///            libbmq.
     static Event
     createQueueSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
                             QueueId*                     queueId,
@@ -1319,9 +1319,8 @@ class MockSession : public AbstractSession {
         BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `openQueueSync(QueueId *queueId...)` instead.
-    ///             This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    ///             This method will be marked as `BSLA_DEPRECATED` in future
+    ///             release of libbmq.
     int openQueue(QueueId*                  queueId,
                   const bmqt::Uri&          uri,
                   bsls::Types::Uint64       flags,
@@ -1346,9 +1345,8 @@ class MockSession : public AbstractSession {
         BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `openQueueAsync(...)` with callback flavor
-    ///             instead.  This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    ///             instead.  This method will be marked as `BSLA_DEPRECATED`
+    ///             in future release of libbmq.
     int
     openQueueAsync(QueueId*                  queueId,
                    const bmqt::Uri&          uri,
@@ -1382,10 +1380,9 @@ class MockSession : public AbstractSession {
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
-    /// DEPRECATED: Use the `configureQueueSync(QueueId *queueId...)`
-    ///             instead.  This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    /// DEPRECATED: Use the `configureQueueSync(QueueId *queueId...)` instead.
+    ///             This method will be marked as `BSLA_DEPRECATED` in future
+    ///             release of libbmq.
     int
     configureQueue(QueueId*                  queueId,
                    const bmqt::QueueOptions& options = bmqt::QueueOptions(),
@@ -1402,9 +1399,8 @@ class MockSession : public AbstractSession {
         BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `configureQueueAsync(...)` with callback flavor
-    ///             instead.  This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    ///             instead.  This method will be marked as `BSLA_DEPRECATED`
+    ///             in future release of libbmq.
     int configureQueueAsync(
         QueueId*                  queueId,
         const bmqt::QueueOptions& options = bmqt::QueueOptions(),
@@ -1426,9 +1422,8 @@ class MockSession : public AbstractSession {
                                  bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `closeQueueSync(QueueId *queueId...)` instead.
-    ///             This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    ///             This method will be marked as `BSLA_DEPRECATED` in future
+    ///             release of libbmq.
     int closeQueue(QueueId*                  queueId,
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
@@ -1444,9 +1439,8 @@ class MockSession : public AbstractSession {
         BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `closeQueueAsync(...)` with callback flavor
-    ///             instead.  This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    ///             instead.  This method will be marked as `BSLA_DEPRECATED`
+    ///             in future release of libbmq.
     int closeQueueAsync(QueueId*                  queueId,
                         const bsls::TimeInterval& timeout =
                             bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;

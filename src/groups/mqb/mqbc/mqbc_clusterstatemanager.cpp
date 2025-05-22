@@ -34,7 +34,7 @@
 #include <bdlf_placeholder.h>
 #include <bmqp_protocol.h>
 #include <bsl_vector.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -109,7 +109,7 @@ void ClusterStateManager::do_abort(const ClusterFSMArgsSp& args)
 }
 
 void ClusterStateManager::do_startWatchDog(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -123,7 +123,7 @@ void ClusterStateManager::do_startWatchDog(
 }
 
 void ClusterStateManager::do_stopWatchDog(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -137,7 +137,7 @@ void ClusterStateManager::do_stopWatchDog(
 }
 
 void ClusterStateManager::do_triggerWatchDog(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -256,7 +256,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
 }
 
 void ClusterStateManager::do_initializeQueueKeyInfoMap(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -268,7 +268,7 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
 }
 
 void ClusterStateManager::do_sendFollowerLSNRequests(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -372,7 +372,7 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
 }
 
 void ClusterStateManager::do_findHighestLSN(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -965,7 +965,7 @@ void ClusterStateManager::do_reapplySelectFollower(
 }
 
 void ClusterStateManager::do_cleanupLSNs(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -976,7 +976,7 @@ void ClusterStateManager::do_cleanupLSNs(
 }
 
 void ClusterStateManager::do_cancelRequests(
-    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1586,7 +1586,7 @@ void ClusterStateManager::updateAppIds(const bsl::vector<bsl::string>& added,
                                     d_allocator_p);
 }
 
-void ClusterStateManager::initiateLeaderSync(BSLS_ANNOTATION_UNUSED bool wait)
+void ClusterStateManager::initiateLeaderSync(BSLA_UNUSED bool wait)
 {
     // While this method could be invoked by ClusterOrchestrator as part of
     // pre-CSL workflow, we can do a no-op here because the Cluster FSM logic
@@ -1596,16 +1596,16 @@ void ClusterStateManager::initiateLeaderSync(BSLS_ANNOTATION_UNUSED bool wait)
 }
 
 void ClusterStateManager::processLeaderSyncStateQuery(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processLeaderSyncDataQuery(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
@@ -1765,42 +1765,42 @@ void ClusterStateManager::processQueueAssignmentRequest(
 }
 
 void ClusterStateManager::processQueueAssignmentAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source,
-    BSLS_ANNOTATION_UNUSED bool                 delayed)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source,
+    BSLA_UNUSED bool                 delayed)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processQueueUnassignedAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processQueueUnAssignmentAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source,
-    BSLS_ANNOTATION_UNUSED bool                 delayed)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source,
+    BSLA_UNUSED bool                 delayed)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processPartitionPrimaryAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processLeaderAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");

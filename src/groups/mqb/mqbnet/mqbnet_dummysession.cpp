@@ -19,7 +19,7 @@
 #include <mqbscm_version.h>
 // BDE
 #include <bsl_iostream.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -49,17 +49,16 @@ DummySession::~DummySession()
     BALL_LOG_INFO << d_description << ": destroyed";
 }
 
-void DummySession::tearDown(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<void>& handle,
-    BSLS_ANNOTATION_UNUSED bool                         isBrokerShutdown)
+void DummySession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& handle,
+                            BSLA_UNUSED bool isBrokerShutdown)
 {
     // NOTHING
 }
 
 void DummySession::initiateShutdown(
-    BSLS_ANNOTATION_UNUSED const ShutdownCb& callback,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout,
-    BSLS_ANNOTATION_UNUSED bool                      supportShutdownV2)
+    BSLA_UNUSED const ShutdownCb& callback,
+    BSLA_UNUSED const bsls::TimeInterval& timeout,
+    BSLA_UNUSED bool                      supportShutdownV2)
 {
     // NOTHING
 }
@@ -69,9 +68,8 @@ void DummySession::invalidate()
     // NOTHING
 }
 
-void DummySession::processEvent(
-    BSLS_ANNOTATION_UNUSED const bmqp::Event& event,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+void DummySession::processEvent(BSLA_UNUSED const bmqp::Event& event,
+                                BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false &&
                     "'processEvent' should never be called on a DummySession");

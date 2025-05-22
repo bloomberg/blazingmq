@@ -212,45 +212,45 @@ ClusterStateObserver::~ClusterStateObserver()
 }
 
 void ClusterStateObserver::onPartitionPrimaryAssignment(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* primary,
-    BSLS_ANNOTATION_UNUSED unsigned int         leaseId,
-    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value status,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* oldPrimary,
-    BSLS_ANNOTATION_UNUSED unsigned int         oldLeaseId)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primary,
+    BSLA_UNUSED unsigned int         leaseId,
+    BSLA_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value status,
+    BSLA_UNUSED mqbnet::ClusterNode* oldPrimary,
+    BSLA_UNUSED unsigned int         oldLeaseId)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueAssigned(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
+    BSLA_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUnassigned(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
+    BSLA_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUpdated(
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const bsl::string& domain,
-    BSLS_ANNOTATION_UNUSED const AppInfos&    addedAppIds,
-    BSLS_ANNOTATION_UNUSED const AppInfos&    removedAppIds)
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const bsl::string& domain,
+    BSLA_UNUSED const AppInfos&    addedAppIds,
+    BSLA_UNUSED const AppInfos&    removedAppIds)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onPartitionOrphanThreshold(
-    BSLS_ANNOTATION_UNUSED size_t partitionId)
+    BSLA_UNUSED size_t partitionId)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onNodeUnavailableThreshold(
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* node)
+    BSLA_UNUSED mqbnet::ClusterNode* node)
 {
     // NOTHING
 }

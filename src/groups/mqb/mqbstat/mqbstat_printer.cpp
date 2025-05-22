@@ -143,7 +143,7 @@ Printer::Printer(const mqbcfg::StatsConfig& config,
     }
 }
 
-int Printer::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+int Printer::start(BSLA_UNUSED bsl::ostream& errorDescription)
 {
     // Setup the print of stats if configured for it
     if (!isEnabled()) {

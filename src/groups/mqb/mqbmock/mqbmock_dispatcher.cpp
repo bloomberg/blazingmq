@@ -21,8 +21,8 @@
 #include <bdlb_print.h>
 #include <bdlb_string.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace mqbmock {
@@ -51,15 +51,14 @@ Dispatcher::~Dispatcher()
 Dispatcher::ProcessorHandle Dispatcher::registerClient(
     mqbi::DispatcherClient*          client,
     mqbi::DispatcherClientType::Enum type,
-    BSLS_ANNOTATION_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
+    BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     client->dispatcherClientData().setDispatcher(this).setClientType(type);
 
     return Dispatcher::k_INVALID_PROCESSOR_HANDLE;
 }
 
-void Dispatcher::unregisterClient(
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClient* client)
+void Dispatcher::unregisterClient(BSLA_UNUSED mqbi::DispatcherClient* client)
 {
     // NOTHING
 }
@@ -72,8 +71,8 @@ Dispatcher::getEvent(const mqbi::DispatcherClient* client)
     return iter->second;
 }
 
-mqbi::DispatcherEvent* Dispatcher::getEvent(
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type)
+mqbi::DispatcherEvent*
+Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
 {
     return 0;
 }
@@ -85,32 +84,29 @@ void Dispatcher::dispatchEvent(mqbi::DispatcherEvent*  event,
 }
 
 void Dispatcher::dispatchEvent(
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherEvent* event,
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type,
-    BSLS_ANNOTATION_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
+    BSLA_UNUSED mqbi::DispatcherEvent* event,
+    BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
+    BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     // NOTHING
 }
 
-void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClient* client,
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherEventType::Enum type)
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         BSLA_UNUSED mqbi::DispatcherClient* client,
+                         BSLA_UNUSED mqbi::DispatcherEventType::Enum type)
 {
     functor();
 }
 
-void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClientData& client)
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         BSLA_UNUSED const mqbi::DispatcherClientData& client)
 {
     functor();
 }
 
-void Dispatcher::execute(
-    const mqbi::Dispatcher::VoidFunctor& functor,
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type,
-    const mqbi::Dispatcher::VoidFunctor&                    doneCallback)
+void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                         BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
+                         const mqbi::Dispatcher::VoidFunctor& doneCallback)
 {
     if (functor) {
         functor();
@@ -121,15 +117,14 @@ void Dispatcher::execute(
     }
 }
 
-void Dispatcher::synchronize(
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClient* client)
+void Dispatcher::synchronize(BSLA_UNUSED mqbi::DispatcherClient* client)
 {
     // NOTHING
 }
 
 void Dispatcher::synchronize(
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type,
-    BSLS_ANNOTATION_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
+    BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
+    BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     // NOTHING
 }
@@ -145,32 +140,32 @@ Dispatcher& Dispatcher::_setInDispatcherThread(bool value)
 // ACCESSORS
 //   (virtual: mqbi::Dispatcher)
 int Dispatcher::numProcessors(
-    BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type) const
+    BSLA_UNUSED mqbi::DispatcherClientType::Enum type) const
 {
     return 1;  // placeholder value for number of processors
 }
 
 bool Dispatcher::inDispatcherThread(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClient* client) const
+    BSLA_UNUSED const mqbi::DispatcherClient* client) const
 {
     return d_inDispatcherThread;
 }
 
 bool Dispatcher::inDispatcherThread(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClientData* data) const
+    BSLA_UNUSED const mqbi::DispatcherClientData* data) const
 {
     return d_inDispatcherThread;
 }
 
-bmqex::Executor Dispatcher::executor(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClient* client) const
+bmqex::Executor
+Dispatcher::executor(BSLA_UNUSED const mqbi::DispatcherClient* client) const
 {
     BSLS_ASSERT(false && "Not yet implemented");
     return bmqex::Executor();
 }
 
 bmqex::Executor Dispatcher::clientExecutor(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClient* client) const
+    BSLA_UNUSED const mqbi::DispatcherClient* client) const
 {
     BSLS_ASSERT(false && "Not yet implemented");
     return bmqex::Executor();

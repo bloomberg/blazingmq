@@ -25,8 +25,8 @@
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslmf_assert.h>
-#include <bsls_annotation.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
@@ -108,8 +108,7 @@ struct ClusterStateLedgerTestImp
     }
 
     // ACCESSORS
-    void setCommitCb(BSLS_ANNOTATION_UNUSED const CommitCb& value)
-        BSLS_KEYWORD_OVERRIDE
+    void setCommitCb(BSLA_UNUSED const CommitCb& value) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }

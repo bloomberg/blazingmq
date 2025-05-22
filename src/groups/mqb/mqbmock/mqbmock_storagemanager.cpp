@@ -19,7 +19,7 @@
 #include <mqbscm_version.h>
 
 // BDE
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbmock {
@@ -40,8 +40,7 @@ StorageManager::~StorageManager()
 }
 
 // MANIPULATORS
-int StorageManager::start(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+int StorageManager::start(BSLA_UNUSED bsl::ostream& errorDescription)
 {
     return 0;
 }
@@ -52,202 +51,201 @@ void StorageManager::stop()
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
-    BSLS_ANNOTATION_UNUSED const mqbc::ClusterState& clusterState)
+    BSLA_UNUSED const mqbc::ClusterState& clusterState)
 {
 }
 
 void StorageManager::registerQueue(
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED int                     partitionId,
-    BSLS_ANNOTATION_UNUSED const AppInfos&         appIdKeyPairs,
-    BSLS_ANNOTATION_UNUSED mqbi::Domain* domain)
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const mqbu::StorageKey& queueKey,
+    BSLA_UNUSED int                     partitionId,
+    BSLA_UNUSED const AppInfos&         appIdKeyPairs,
+    BSLA_UNUSED mqbi::Domain* domain)
 {
     // NOTHING
 }
 
-void StorageManager::unregisterQueue(
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED int              partitionId)
+void StorageManager::unregisterQueue(BSLA_UNUSED const bmqt::Uri& uri,
+                                     BSLA_UNUSED int              partitionId)
 {
     // NOTHING
 }
 
 int StorageManager::updateQueuePrimary(
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED int                     partitionId,
-    BSLS_ANNOTATION_UNUSED const AppInfos&         addedIdKeyPairs,
-    BSLS_ANNOTATION_UNUSED const AppInfos&         removedIdKeyPairs)
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const mqbu::StorageKey& queueKey,
+    BSLA_UNUSED int                     partitionId,
+    BSLA_UNUSED const AppInfos&         addedIdKeyPairs,
+    BSLA_UNUSED const AppInfos&         removedIdKeyPairs)
 {
     return 0;
 }
 
 void StorageManager::registerQueueReplica(
-    BSLS_ANNOTATION_UNUSED int   partitionId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED mqbi::Domain* domain,
-    BSLS_ANNOTATION_UNUSED bool          allowDuplicate)
+    BSLA_UNUSED int   partitionId,
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const mqbu::StorageKey& queueKey,
+    BSLA_UNUSED mqbi::Domain* domain,
+    BSLA_UNUSED bool          allowDuplicate)
 {
     // NOTHING
 }
 
 void StorageManager::unregisterQueueReplica(
-    BSLS_ANNOTATION_UNUSED int   partitionId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
+    BSLA_UNUSED int   partitionId,
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const mqbu::StorageKey& queueKey,
+    BSLA_UNUSED const mqbu::StorageKey& appKey)
 {
     // NOTHING
 }
 
 void StorageManager::updateQueueReplica(
-    BSLS_ANNOTATION_UNUSED int   partitionId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED const AppInfos&         appIdKeyPairs,
-    BSLS_ANNOTATION_UNUSED mqbi::Domain* domain,
-    BSLS_ANNOTATION_UNUSED bool          allowDuplicate)
+    BSLA_UNUSED int   partitionId,
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const mqbu::StorageKey& queueKey,
+    BSLA_UNUSED const AppInfos&         appIdKeyPairs,
+    BSLA_UNUSED mqbi::Domain* domain,
+    BSLA_UNUSED bool          allowDuplicate)
 {
     // NOTHING
 }
 
-void StorageManager::setQueue(BSLS_ANNOTATION_UNUSED mqbi::Queue* queue,
-                              BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-                              BSLS_ANNOTATION_UNUSED int partitionId)
+void StorageManager::setQueue(BSLA_UNUSED mqbi::Queue* queue,
+                              BSLA_UNUSED const bmqt::Uri& uri,
+                              BSLA_UNUSED int              partitionId)
 {
     // NOTHING
 }
 
-void StorageManager::setQueueRaw(BSLS_ANNOTATION_UNUSED mqbi::Queue* queue,
-                                 BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-                                 BSLS_ANNOTATION_UNUSED int partitionId)
+void StorageManager::setQueueRaw(BSLA_UNUSED mqbi::Queue* queue,
+                                 BSLA_UNUSED const bmqt::Uri& uri,
+                                 BSLA_UNUSED int              partitionId)
 {
     // NOTHING
 }
 
 void StorageManager::setPrimaryForPartition(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLS_ANNOTATION_UNUSED unsigned int         primaryLeaseId)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primaryNode,
+    BSLA_UNUSED unsigned int         primaryLeaseId)
 {
     // NOTHING
 }
 
 void StorageManager::clearPrimaryForPartition(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* primary)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* primary)
 {
     // NOTHING
 }
 
 void StorageManager::setPrimaryStatusForPartition(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
 {
     // NOTHING
 }
 
 void StorageManager::processPrimaryStateRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processReplicaStateRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processReplicaDataRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 int StorageManager::makeStorage(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    BSLS_ANNOTATION_UNUSED bsl::shared_ptr<mqbi::Storage>* out,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED int                     partitionId,
-    BSLS_ANNOTATION_UNUSED const bsls::Types::Int64 messageTtl,
-    BSLS_ANNOTATION_UNUSED const int                maxDeliveryAttempts,
-    BSLS_ANNOTATION_UNUSED const mqbconfm::StorageDefinition& storageDef)
+    BSLA_UNUSED bsl::ostream& errorDescription,
+    BSLA_UNUSED bsl::shared_ptr<mqbi::Storage>* out,
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const mqbu::StorageKey& queueKey,
+    BSLA_UNUSED int                     partitionId,
+    BSLA_UNUSED const bsls::Types::Int64 messageTtl,
+    BSLA_UNUSED const int                maxDeliveryAttempts,
+    BSLA_UNUSED const mqbconfm::StorageDefinition& storageDef)
 {
     return 0;
 }
 
 void StorageManager::processStorageEvent(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherStorageEvent& event)
+    BSLA_UNUSED const mqbi::DispatcherStorageEvent& event)
 {
     // NOTHING
 }
 
 void StorageManager::processStorageSyncRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processPartitionSyncStateRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processPartitionSyncDataRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processPartitionSyncDataRequestStatus(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processRecoveryEvent(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherRecoveryEvent& event)
+    BSLA_UNUSED const mqbi::DispatcherRecoveryEvent& event)
 {
     // NOTHING
 }
 
 void StorageManager::processReceiptEvent(
-    BSLS_ANNOTATION_UNUSED const bmqp::Event& event,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp::Event& event,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::bufferPrimaryStatusAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processPrimaryStatusAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
 
 void StorageManager::processReplicaStatusAdvisory(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source,
-    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::NodeStatus::Value status)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED mqbnet::ClusterNode* source,
+    BSLA_UNUSED bmqp_ctrlmsg::NodeStatus::Value status)
 {
     // NOTHING
 }
@@ -258,15 +256,15 @@ void StorageManager::processShutdownEvent()
 }
 
 void StorageManager::applyForEachQueue(
-    BSLS_ANNOTATION_UNUSED int                 partitionId,
-    BSLS_ANNOTATION_UNUSED const QueueFunctor& functor) const
+    BSLA_UNUSED int                 partitionId,
+    BSLA_UNUSED const QueueFunctor& functor) const
 {
     // NOTHING
 }
 
 int StorageManager::processCommand(
-    BSLS_ANNOTATION_UNUSED mqbcmd::StorageResult* result,
-    BSLS_ANNOTATION_UNUSED const mqbcmd::StorageCommand& command)
+    BSLA_UNUSED mqbcmd::StorageResult* result,
+    BSLA_UNUSED const mqbcmd::StorageCommand& command)
 {
     return 0;
 }
@@ -277,34 +275,33 @@ void StorageManager::gcUnrecognizedDomainQueues()
 }
 
 int StorageManager::purgeQueueOnDomain(
-    BSLS_ANNOTATION_UNUSED mqbcmd::StorageResult* result,
-    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+    BSLA_UNUSED mqbcmd::StorageResult* result,
+    BSLA_UNUSED const bsl::string& domainName)
 {
     return 0;
 }
 
 // ACCESSORS
-mqbi::Dispatcher::ProcessorHandle StorageManager::processorForPartition(
-    BSLS_ANNOTATION_UNUSED int partitionId) const
+mqbi::Dispatcher::ProcessorHandle
+StorageManager::processorForPartition(BSLA_UNUSED int partitionId) const
 {
     return mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE;
 }
 
-bool StorageManager::isStorageEmpty(
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED int              partitionId) const
+bool StorageManager::isStorageEmpty(BSLA_UNUSED const bmqt::Uri& uri,
+                                    BSLA_UNUSED int partitionId) const
 {
     return true;
 }
 
 const mqbs::FileStore&
-StorageManager::fileStore(BSLS_ANNOTATION_UNUSED int partitionId) const
+StorageManager::fileStore(BSLA_UNUSED int partitionId) const
 {
     BSLS_ASSERT_INVOKE_NORETURN("Unimplemented");
 }
 
 bslma::ManagedPtr<mqbi::StorageManagerIterator>
-StorageManager::getIterator(BSLS_ANNOTATION_UNUSED int partitionId) const
+StorageManager::getIterator(BSLA_UNUSED int partitionId) const
 {
     return bslma::ManagedPtr<mqbi::StorageManagerIterator>();
 }

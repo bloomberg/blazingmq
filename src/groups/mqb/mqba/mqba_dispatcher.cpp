@@ -30,9 +30,9 @@
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_semaphore.h>
-#include <bsls_annotation.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
 
@@ -356,12 +356,12 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     return rc_SUCCESS;
 }
 
-Dispatcher::ProcessorPool::Queue* Dispatcher::queueCreator(
-    mqbi::DispatcherClientType::Enum             type,
-    const mqbcfg::DispatcherProcessorParameters& config,
-    BSLS_ANNOTATION_UNUSED ProcessorPool::QueueCreatorRet* ret,
-    int                                                    processorId,
-    bslma::Allocator*                                      allocator)
+Dispatcher::ProcessorPool::Queue*
+Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
+                         const mqbcfg::DispatcherProcessorParameters& config,
+                         BSLA_UNUSED ProcessorPool::QueueCreatorRet* ret,
+                         int               processorId,
+                         bslma::Allocator* allocator)
 {
     bmqu::MemOutStream os;
     os << "ProcessorQueue " << processorId << " for '" << type << "'";
@@ -387,7 +387,7 @@ Dispatcher::ProcessorPool::Queue* Dispatcher::queueCreator(
 
 void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                               int                              processorId,
-                              BSLS_ANNOTATION_UNUSED void*     context,
+                              BSLA_UNUSED void*                context,
                               const ProcessorPool::Event*      event)
 {
     switch (event->type()) {

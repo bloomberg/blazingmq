@@ -25,8 +25,8 @@
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace bmqsys {
@@ -119,7 +119,7 @@ StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
 
 StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
     const bmqsys::StatMonitorSnapshotRecorder& other,
-    BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+    BSLA_UNUSED bslma::Allocator* allocator)
 : d_impl_sp(other.d_impl_sp)
 {
     // NOTHING

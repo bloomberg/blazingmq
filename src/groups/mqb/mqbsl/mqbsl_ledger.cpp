@@ -38,8 +38,8 @@
 #include <bsl_string.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslmf_allocatorargt.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

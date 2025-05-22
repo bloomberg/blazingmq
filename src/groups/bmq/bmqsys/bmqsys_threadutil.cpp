@@ -25,9 +25,9 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_platform.h>
 
