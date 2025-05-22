@@ -261,8 +261,10 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
       queueState,
       bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
                            this,
-                           bdlf::PlaceHolders::_1,   // appKey
-                           bdlf::PlaceHolders::_2),  // enableLog
+                           bdlf::PlaceHolders::_1,   // alarmTime_p
+                           bdlf::PlaceHolders::_2,   // id
+                           bdlf::PlaceHolders::_3,   // now
+                           bdlf::PlaceHolders::_4),  // enableLog
       allocator)
 , d_apps(allocator)
 , d_hasAppSubscriptions(false)
@@ -403,9 +405,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     }
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
-        d_consumptionMonitor.setMaxIdleTime(
-            config().maxIdleTime() *
-            bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
+        d_consumptionMonitor.setMaxIdleTime(config().maxIdleTime());
     }
 
     return rc_SUCCESS;
@@ -1465,7 +1465,7 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
         // iterators will be recreated with the correct 'rdaInfo' received from
         // primary, if a new consumer connects to the replica/proxy.
         const int      maxDeliveryAttempts = config().maxDeliveryAttempts();
-        const bool     domainIsUnlimited = (maxDeliveryAttempts == 0);
+        const bool     domainIsUnlimited   = (maxDeliveryAttempts == 0);
         bmqp::RdaInfo& rda = message->appMessageState(app.ordinal()).d_rdaInfo;
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(domainIsUnlimited !=
@@ -1596,7 +1596,8 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
     iter->second->clear();
 }
 
-void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
+void RootQueueEngine::afterPostMessage(
+    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1604,7 +1605,7 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    d_consumptionMonitor.onTimer(currentTimer);
+    d_consumptionMonitor.onMessagePosted();
 }
 
 bsl::ostream&
@@ -1732,8 +1733,10 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     return stream;
 }
 
-bool RootQueueEngine::logAlarmCb(const bsl::string& appId,
-                                 bool               enableLog) const
+bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
+                                 const bsl::string&        appId,
+                                 const bsls::TimeInterval& now,
+                                 bool                      enableLog) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1743,10 +1746,8 @@ bool RootQueueEngine::logAlarmCb(const bsl::string& appId,
 
     // Get AppState by appKey.
     Apps::const_iterator cItApp = d_apps.find(appId);
-    if (cItApp == d_apps.end()) {
-        BALL_LOG_WARN << "No app found for appId: " << appId;
-        return false;  // RETURN
-    }
+    BSLS_ASSERT_SAFE(cItApp != d_apps.end());
+
     const AppStateSp& app = cItApp->second;
 
     // Check if there are un-delivered messages
@@ -1756,8 +1757,24 @@ bool RootQueueEngine::logAlarmCb(const bsl::string& appId,
         // No un-delivered messages, do nothing.
         return false;  // RETURN
     }
+
     if (!enableLog) {
         // There are un-delivered messages, but log is disabled.
+        return true;  // RETURN
+    }
+
+    // Get the arrival time delta of the oldest un-delivered message.
+    bsls::Types::Int64 arrivaTimelDelta = 0;
+    mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta,
+                                            headIt->attributes());
+    // Calculate alarm time
+    const bsls::TimeInterval alarmTime =
+        d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
+    if (alarmTime_p) {
+        *alarmTime_p = alarmTime;
+    }
+    // If the alarm time is in the future, don't log the alarm.
+    if (alarmTime > now) {
         return true;  // RETURN
     }
 
@@ -2058,6 +2075,11 @@ RootQueueEngine::head(const AppStateSp app) const
         d_queueState_p->storage()->getIterator(&out,
                                                app->appKey(),
                                                app->putAsideList().first());
+    }
+    else if (!app->resumePoint().isUnset()) {
+        d_queueState_p->storage()->getIterator(&out,
+                                               app->appKey(),
+                                               app->resumePoint());
     }
     else if (!d_storageIter_mp->atEnd()) {
         d_queueState_p->storage()->getIterator(&out,
