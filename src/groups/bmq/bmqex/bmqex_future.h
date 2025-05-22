@@ -150,7 +150,7 @@
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Apr  2 14:55:18 2025
+// Generated on Thu May 22 13:07:14 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
 
 # define COMPILING_BMQEX_FUTURE_H
@@ -955,7 +955,7 @@ class FutureSharedState {
     /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 
     /// Atomically initialize the stored value as if by direct-non-list-
     /// initializing an object of type `R` with 'bsl::forward<ARGS>(
@@ -1665,7 +1665,7 @@ inline void FutureSharedState<R>::setValue(bslmf::MovableRef<R> value)
     emplaceValue(bslmf::MovableRefUtil::move(value));
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 template <class R>
 template <class... ARGS>
 inline void FutureSharedState<R>::emplaceValue(ARGS&&... args)
@@ -1902,6 +1902,6 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+#endif // End C++11 code
 
 #endif

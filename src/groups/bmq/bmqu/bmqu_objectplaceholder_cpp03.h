@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Apr  2 14:55:02 2025
+// Generated on Thu May 22 13:07:08 2025
 // Command line: sim_cpp11_features.pl bmqu_objectplaceholder.h
 
 #ifdef COMPILING_BMQU_OBJECTPLACEHOLDER_H
@@ -185,8 +185,7 @@ class ObjectPlaceHolder {
 #define BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT 9
 #endif
 #ifndef BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A
-#define BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A                               \
-    BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT
+#define BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT
 #endif
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 0
@@ -197,139 +196,136 @@ class ObjectPlaceHolder {
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 1
     template <class TYPE, class ARGS_1>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 1
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 2
-    template <class TYPE, class ARGS_1, class ARGS_2>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 2
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 3
-    template <class TYPE, class ARGS_1, class ARGS_2, class ARGS_3>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 3
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 4
-    template <class TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 4
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 5
-    template <class TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 5
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 6
-    template <class TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 6
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 7
-    template <class TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 7
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 8
-    template <class TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7,
-              class ARGS_8>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7,
+                          class ARGS_8>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 8
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 9
-    template <class TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7,
-              class ARGS_8,
-              class ARGS_9>
+    template <class TYPE, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7,
+                          class ARGS_8,
+                          class ARGS_9>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9);
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
+                             BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9);
 #endif  // BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_A >= 9
 
 #else
-    // The generated code below is a workaround for the absence of perfect
-    // forwarding in some compilers.
+// The generated code below is a workaround for the absence of perfect
+// forwarding in some compilers.
 
     template <class TYPE, class... ARGS>
     void createObject(bslma::Allocator* allocator,
-                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
 // }}} END GENERATED CODE
 #endif
 
@@ -523,8 +519,7 @@ inline ObjectPlaceHolder<SIZE>::~ObjectPlaceHolder()
 #define BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT 9
 #endif
 #ifndef BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B
-#define BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B                               \
-    BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT
+#define BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT
 #endif
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 0
@@ -538,7 +533,8 @@ inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator)
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(object, allocator);
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator);
 
     objectGuard.release();
 }
@@ -547,10 +543,8 @@ inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator)
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 1
 template <size_t SIZE>
 template <class TYPE, class ARGS_1>
-inline void
-ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
-                                      BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1)
-                                          args_1)
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -558,10 +552,10 @@ ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1));
 
     objectGuard.release();
 }
@@ -569,11 +563,11 @@ ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 2
 template <size_t SIZE>
-template <class TYPE, class ARGS_1, class ARGS_2>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -581,11 +575,12 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2));
 
     objectGuard.release();
 }
@@ -593,12 +588,13 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 3
 template <size_t SIZE>
-template <class TYPE, class ARGS_1, class ARGS_2, class ARGS_3>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -606,12 +602,14 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3));
 
     objectGuard.release();
 }
@@ -619,13 +617,15 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 4
 template <size_t SIZE>
-template <class TYPE, class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -633,13 +633,16 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4));
 
     objectGuard.release();
 }
@@ -647,19 +650,17 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 5
 template <size_t SIZE>
-template <class TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -667,14 +668,18 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5));
 
     objectGuard.release();
 }
@@ -682,21 +687,19 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 6
 template <size_t SIZE>
-template <class TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -704,15 +707,20 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6));
 
     objectGuard.release();
 }
@@ -720,23 +728,21 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 7
 template <size_t SIZE>
-template <class TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6,
+                      class ARGS_7>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -744,16 +750,22 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_7, args_7));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_7,
+                                          args_7));
 
     objectGuard.release();
 }
@@ -761,25 +773,23 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 8
 template <size_t SIZE>
-template <class TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6,
+                      class ARGS_7,
+                      class ARGS_8>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -787,17 +797,24 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_7, args_7),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_8, args_8));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_7,
+                                          args_7),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_8,
+                                          args_8));
 
     objectGuard.release();
 }
@@ -805,27 +822,25 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 #if BMQU_OBJECTPLACEHOLDER_VARIADIC_LIMIT_B >= 9
 template <size_t SIZE>
-template <class TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8,
-          class ARGS_9>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
+template <class TYPE, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6,
+                      class ARGS_7,
+                      class ARGS_8,
+                      class ARGS_9>
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -833,18 +848,26 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_7, args_7),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_8, args_8),
-        BSLS_COMPILERFEATURES_FORWARD(ARGS_9, args_9));
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_7,
+                                          args_7),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_8,
+                                          args_8),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_9,
+                                          args_9));
 
     objectGuard.release();
 }
@@ -856,9 +879,8 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
 
 template <size_t SIZE>
 template <class TYPE, class... ARGS>
-inline void ObjectPlaceHolder<SIZE>::createObject(
-    bslma::Allocator* allocator,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
+inline void ObjectPlaceHolder<SIZE>::createObject(bslma::Allocator* allocator,
+                               BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
 {
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_state == e_EMPTY);
@@ -866,10 +888,10 @@ inline void ObjectPlaceHolder<SIZE>::createObject(
     TYPE*       object = allocateObject<TYPE>(allocator);
     ObjectGuard objectGuard(this);
 
-    bslma::ConstructionUtil::construct<TYPE>(
-        object,
-        allocator,
-        BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+    bslma::ConstructionUtil::construct<TYPE>(object,
+                                             allocator,
+                                           BSLS_COMPILERFEATURES_FORWARD(ARGS,
+                                           args)...);
 
     objectGuard.release();
 }
@@ -934,8 +956,9 @@ ObjectPlaceHolder<SIZE>::objectAddress() const BSLS_KEYWORD_NOEXCEPT
 }  // close package namespace
 }  // close enterprise namespace
 
-#else  // if ! defined(DEFINED_BMQU_OBJECTPLACEHOLDER_H)
-#error Not valid except when included from bmqu_objectplaceholder.h
-#endif  // ! defined(COMPILING_BMQU_OBJECTPLACEHOLDER_H)
+#else // if ! defined(DEFINED_BMQU_OBJECTPLACEHOLDER_H)
+# error Not valid except when included from bmqu_objectplaceholder.h
+#endif // ! defined(COMPILING_BMQU_OBJECTPLACEHOLDER_H)
 
-#endif  // ! defined(INCLUDED_BMQU_OBJECTPLACEHOLDER_CPP03)
+#endif // ! defined(INCLUDED_BMQU_OBJECTPLACEHOLDER_CPP03)
+

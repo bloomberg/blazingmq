@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Apr  2 14:55:18 2025
+// Generated on Thu May 22 13:07:14 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
 
 #ifdef COMPILING_BMQEX_FUTURE_H
@@ -856,20 +856,26 @@ class FutureSharedState {
 #endif  // BMQEX_FUTURE_VARIADIC_LIMIT_A >= 1
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_A >= 2
-    template <class ARGS_1, class ARGS_2>
+    template <class ARGS_1,
+              class ARGS_2>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2);
 #endif  // BMQEX_FUTURE_VARIADIC_LIMIT_A >= 2
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_A >= 3
-    template <class ARGS_1, class ARGS_2, class ARGS_3>
+    template <class ARGS_1,
+              class ARGS_2,
+              class ARGS_3>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3);
 #endif  // BMQEX_FUTURE_VARIADIC_LIMIT_A >= 3
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_A >= 4
-    template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+    template <class ARGS_1,
+              class ARGS_2,
+              class ARGS_3,
+              class ARGS_4>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -962,8 +968,8 @@ class FutureSharedState {
 #endif  // BMQEX_FUTURE_VARIADIC_LIMIT_A >= 9
 
 #else
-    // The generated code below is a workaround for the absence of perfect
-    // forwarding in some compilers.
+// The generated code below is a workaround for the absence of perfect
+// forwarding in some compilers.
 
     template <class... ARGS>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
@@ -1672,7 +1678,8 @@ inline void FutureSharedState<R>::setValue(bslmf::MovableRef<R> value)
 #endif
 #if BMQEX_FUTURE_VARIADIC_LIMIT_B >= 0
 template <class R>
-inline void FutureSharedState<R>::emplaceValue()
+inline void FutureSharedState<R>::emplaceValue(
+                               )
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1696,9 +1703,8 @@ inline void FutureSharedState<R>::emplaceValue()
 #if BMQEX_FUTURE_VARIADIC_LIMIT_B >= 1
 template <class R>
 template <class ARGS_1>
-inline void
-FutureSharedState<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1)
-                                       args_1)
+inline void FutureSharedState<R>::emplaceValue(
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1722,10 +1728,11 @@ FutureSharedState<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1)
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_B >= 2
 template <class R>
-template <class ARGS_1, class ARGS_2>
+template <class ARGS_1,
+          class ARGS_2>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1750,11 +1757,13 @@ inline void FutureSharedState<R>::emplaceValue(
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_B >= 3
 template <class R>
-template <class ARGS_1, class ARGS_2, class ARGS_3>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1780,12 +1789,15 @@ inline void FutureSharedState<R>::emplaceValue(
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_B >= 4
 template <class R>
-template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1812,13 +1824,17 @@ inline void FutureSharedState<R>::emplaceValue(
 
 #if BMQEX_FUTURE_VARIADIC_LIMIT_B >= 5
 template <class R>
-template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4, class ARGS_5>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4,
+          class ARGS_5>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1853,12 +1869,12 @@ template <class ARGS_1,
           class ARGS_5,
           class ARGS_6>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1895,13 +1911,13 @@ template <class ARGS_1,
           class ARGS_6,
           class ARGS_7>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1940,14 +1956,14 @@ template <class ARGS_1,
           class ARGS_7,
           class ARGS_8>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -1988,15 +2004,15 @@ template <class ARGS_1,
           class ARGS_8,
           class ARGS_9>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -2032,7 +2048,7 @@ inline void FutureSharedState<R>::emplaceValue(
 template <class R>
 template <class... ARGS>
 inline void FutureSharedState<R>::emplaceValue(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
+                               BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
 {
     typedef bsls::ObjectBuffer<ValueType> Buffer;
 
@@ -2266,8 +2282,9 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 
 }  // close enterprise namespace
 
-#else  // if ! defined(DEFINED_BMQEX_FUTURE_H)
-#error Not valid except when included from bmqex_future.h
-#endif  // ! defined(COMPILING_BMQEX_FUTURE_H)
+#else // if ! defined(DEFINED_BMQEX_FUTURE_H)
+# error Not valid except when included from bmqex_future.h
+#endif // ! defined(COMPILING_BMQEX_FUTURE_H)
 
-#endif  // ! defined(INCLUDED_BMQEX_FUTURE_CPP03)
+#endif // ! defined(INCLUDED_BMQEX_FUTURE_CPP03)
+

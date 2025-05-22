@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Apr  2 14:49:45 2025
+// Generated on Thu May 22 13:07:08 2025
 // Command line: sim_cpp11_features.pl bmqu_operationchain.h
 
 #ifdef COMPILING_BMQU_OPERATIONCHAIN_H
@@ -163,20 +163,26 @@ class OperationChain_CompletionCallbackWrapper {
 #endif  // BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 1
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 2
-    template <class ARGS_1, class ARGS_2>
+    template <class ARGS_1,
+              class ARGS_2>
     void operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2) const;
 #endif  // BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 2
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 3
-    template <class ARGS_1, class ARGS_2, class ARGS_3>
+    template <class ARGS_1,
+              class ARGS_2,
+              class ARGS_3>
     void operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3) const;
 #endif  // BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 3
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 4
-    template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+    template <class ARGS_1,
+              class ARGS_2,
+              class ARGS_3,
+              class ARGS_4>
     void operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -269,8 +275,8 @@ class OperationChain_CompletionCallbackWrapper {
 #endif  // BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 9
 
 #else
-    // The generated code below is a workaround for the absence of perfect
-    // forwarding in some compilers.
+// The generated code below is a workaround for the absence of perfect
+// forwarding in some compilers.
 
     template <class... ARGS>
     void operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args) const;
@@ -784,11 +790,12 @@ inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
 #endif
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_B >= 0
 template <class CO_CALLBACK>
-inline void
-OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()() const
+inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
+    ) const
 {
     try {
-        bslmf::Util::moveIfSupported((*d_coCallback_p))();
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            );
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -820,15 +827,16 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_B >= 2
 template <class CO_CALLBACK>
-template <class ARGS_1, class ARGS_2>
+template <class ARGS_1,
+          class ARGS_2>
 inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -841,17 +849,19 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_B >= 3
 template <class CO_CALLBACK>
-template <class ARGS_1, class ARGS_2, class ARGS_3>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3>
 inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -864,7 +874,10 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_B >= 4
 template <class CO_CALLBACK>
-template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4>
 inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
@@ -872,11 +885,11 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3),
-                               bslmf::Util::forward<ARGS_4>(args_4));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3),
+            bslmf::Util::forward<ARGS_4>(args_4));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -889,7 +902,11 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
 
 #if BMQU_OPERATIONCHAIN_VARIADIC_LIMIT_B >= 5
 template <class CO_CALLBACK>
-template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4, class ARGS_5>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4,
+          class ARGS_5>
 inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
@@ -898,12 +915,12 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3),
-                               bslmf::Util::forward<ARGS_4>(args_4),
-                               bslmf::Util::forward<ARGS_5>(args_5));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3),
+            bslmf::Util::forward<ARGS_4>(args_4),
+            bslmf::Util::forward<ARGS_5>(args_5));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -931,13 +948,13 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3),
-                               bslmf::Util::forward<ARGS_4>(args_4),
-                               bslmf::Util::forward<ARGS_5>(args_5),
-                               bslmf::Util::forward<ARGS_6>(args_6));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3),
+            bslmf::Util::forward<ARGS_4>(args_4),
+            bslmf::Util::forward<ARGS_5>(args_5),
+            bslmf::Util::forward<ARGS_6>(args_6));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -967,14 +984,14 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3),
-                               bslmf::Util::forward<ARGS_4>(args_4),
-                               bslmf::Util::forward<ARGS_5>(args_5),
-                               bslmf::Util::forward<ARGS_6>(args_6),
-                               bslmf::Util::forward<ARGS_7>(args_7));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3),
+            bslmf::Util::forward<ARGS_4>(args_4),
+            bslmf::Util::forward<ARGS_5>(args_5),
+            bslmf::Util::forward<ARGS_6>(args_6),
+            bslmf::Util::forward<ARGS_7>(args_7));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -1006,15 +1023,15 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3),
-                               bslmf::Util::forward<ARGS_4>(args_4),
-                               bslmf::Util::forward<ARGS_5>(args_5),
-                               bslmf::Util::forward<ARGS_6>(args_6),
-                               bslmf::Util::forward<ARGS_7>(args_7),
-                               bslmf::Util::forward<ARGS_8>(args_8));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3),
+            bslmf::Util::forward<ARGS_4>(args_4),
+            bslmf::Util::forward<ARGS_5>(args_5),
+            bslmf::Util::forward<ARGS_6>(args_6),
+            bslmf::Util::forward<ARGS_7>(args_7),
+            bslmf::Util::forward<ARGS_8>(args_8));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -1048,16 +1065,16 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
     BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9) const
 {
     try {
-        bslmf::Util::moveIfSupported(
-            (*d_coCallback_p))(bslmf::Util::forward<ARGS_1>(args_1),
-                               bslmf::Util::forward<ARGS_2>(args_2),
-                               bslmf::Util::forward<ARGS_3>(args_3),
-                               bslmf::Util::forward<ARGS_4>(args_4),
-                               bslmf::Util::forward<ARGS_5>(args_5),
-                               bslmf::Util::forward<ARGS_6>(args_6),
-                               bslmf::Util::forward<ARGS_7>(args_7),
-                               bslmf::Util::forward<ARGS_8>(args_8),
-                               bslmf::Util::forward<ARGS_9>(args_9));
+        bslmf::Util::moveIfSupported((*d_coCallback_p))(
+            bslmf::Util::forward<ARGS_1>(args_1),
+            bslmf::Util::forward<ARGS_2>(args_2),
+            bslmf::Util::forward<ARGS_3>(args_3),
+            bslmf::Util::forward<ARGS_4>(args_4),
+            bslmf::Util::forward<ARGS_5>(args_5),
+            bslmf::Util::forward<ARGS_6>(args_6),
+            bslmf::Util::forward<ARGS_7>(args_7),
+            bslmf::Util::forward<ARGS_8>(args_8),
+            bslmf::Util::forward<ARGS_9>(args_9));
     }
     catch (...) {
         d_chain_p->onOperationCompleted(d_jobHandle);
@@ -1283,8 +1300,9 @@ inline void bmqu::swap(OperationChainLink& lhs,
 
 }  // close enterprise namespace
 
-#else  // if ! defined(DEFINED_BMQU_OPERATIONCHAIN_H)
-#error Not valid except when included from bmqu_operationchain.h
-#endif  // ! defined(COMPILING_BMQU_OPERATIONCHAIN_H)
+#else // if ! defined(DEFINED_BMQU_OPERATIONCHAIN_H)
+# error Not valid except when included from bmqu_operationchain.h
+#endif // ! defined(COMPILING_BMQU_OPERATIONCHAIN_H)
 
-#endif  // ! defined(INCLUDED_BMQU_OPERATIONCHAIN_CPP03)
+#endif // ! defined(INCLUDED_BMQU_OPERATIONCHAIN_CPP03)
+

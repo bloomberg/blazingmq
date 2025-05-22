@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Apr  2 14:55:13 2025
+// Generated on Thu May 22 13:07:14 2025
 // Command line: sim_cpp11_features.pl bmqex_bindutil.h
 
 #ifdef COMPILING_BMQEX_BINDUTIL_H
@@ -60,57 +60,49 @@ namespace bmqex {
 
 template <class FUNCTION
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 0
-          ,
-          class ARGS_0 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_0 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 0
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 1
-          ,
-          class ARGS_1 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_1 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 1
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 2
-          ,
-          class ARGS_2 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_2 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 2
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 3
-          ,
-          class ARGS_3 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_3 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 3
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 4
-          ,
-          class ARGS_4 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_4 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 4
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 5
-          ,
-          class ARGS_5 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_5 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 5
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 6
-          ,
-          class ARGS_6 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_6 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 6
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 7
-          ,
-          class ARGS_7 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_7 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 7
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 8
-          ,
-          class ARGS_8 = BSLS_COMPILERFEATURES_NILT
+        , class ARGS_8 = BSLS_COMPILERFEATURES_NILT
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 8
-          ,
-          class = BSLS_COMPILERFEATURES_NILT>
+        , class = BSLS_COMPILERFEATURES_NILT>
 struct BindUtil_DummyNullaryFunction;
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 0
 template <class FUNCTION>
 struct BindUtil_DummyNullaryFunction<FUNCTION> {
+
     typedef typename bsl::invoke_result<FUNCTION>::type ResultType;
+
 
     ResultType operator()() const;
 };
@@ -119,193 +111,205 @@ struct BindUtil_DummyNullaryFunction<FUNCTION> {
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 1
 template <class FUNCTION, class ARGS_1>
 struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1> {
+
     typedef typename bsl::invoke_result<FUNCTION, ARGS_1>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 1
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 2
-template <class FUNCTION, class ARGS_1, class ARGS_2>
-struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1, ARGS_2> {
-    typedef
-        typename bsl::invoke_result<FUNCTION, ARGS_1, ARGS_2>::type ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 2
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 3
-template <class FUNCTION, class ARGS_1, class ARGS_2, class ARGS_3>
-struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1, ARGS_2, ARGS_3> {
-    typedef typename bsl::invoke_result<FUNCTION, ARGS_1, ARGS_2, ARGS_3>::type
-        ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 3
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 4
-template <class FUNCTION,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4>
-struct BindUtil_DummyNullaryFunction<FUNCTION,
-                                     ARGS_1,
-                                     ARGS_2,
-                                     ARGS_3,
-                                     ARGS_4> {
-    typedef
-        typename bsl::invoke_result<FUNCTION, ARGS_1, ARGS_2, ARGS_3, ARGS_4>::
-            type ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3,
+                                               ARGS_4> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3,
+                                                  ARGS_4>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 4
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 5
-template <class FUNCTION,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5>
-struct BindUtil_DummyNullaryFunction<FUNCTION,
-                                     ARGS_1,
-                                     ARGS_2,
-                                     ARGS_3,
-                                     ARGS_4,
-                                     ARGS_5> {
-    typedef typename bsl::
-        invoke_result<FUNCTION, ARGS_1, ARGS_2, ARGS_3, ARGS_4, ARGS_5>::type
-            ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3,
+                                               ARGS_4,
+                                               ARGS_5> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3,
+                                                  ARGS_4,
+                                                  ARGS_5>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 5
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 6
-template <class FUNCTION,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6>
-struct BindUtil_DummyNullaryFunction<FUNCTION,
-                                     ARGS_1,
-                                     ARGS_2,
-                                     ARGS_3,
-                                     ARGS_4,
-                                     ARGS_5,
-                                     ARGS_6> {
-    typedef typename bsl::invoke_result<FUNCTION,
-                                        ARGS_1,
-                                        ARGS_2,
-                                        ARGS_3,
-                                        ARGS_4,
-                                        ARGS_5,
-                                        ARGS_6>::type ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3,
+                                               ARGS_4,
+                                               ARGS_5,
+                                               ARGS_6> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3,
+                                                  ARGS_4,
+                                                  ARGS_5,
+                                                  ARGS_6>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 6
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 7
-template <class FUNCTION,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7>
-struct BindUtil_DummyNullaryFunction<FUNCTION,
-                                     ARGS_1,
-                                     ARGS_2,
-                                     ARGS_3,
-                                     ARGS_4,
-                                     ARGS_5,
-                                     ARGS_6,
-                                     ARGS_7> {
-    typedef typename bsl::invoke_result<FUNCTION,
-                                        ARGS_1,
-                                        ARGS_2,
-                                        ARGS_3,
-                                        ARGS_4,
-                                        ARGS_5,
-                                        ARGS_6,
-                                        ARGS_7>::type ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3,
+                                               ARGS_4,
+                                               ARGS_5,
+                                               ARGS_6,
+                                               ARGS_7> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3,
+                                                  ARGS_4,
+                                                  ARGS_5,
+                                                  ARGS_6,
+                                                  ARGS_7>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 7
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 8
-template <class FUNCTION,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8>
-struct BindUtil_DummyNullaryFunction<FUNCTION,
-                                     ARGS_1,
-                                     ARGS_2,
-                                     ARGS_3,
-                                     ARGS_4,
-                                     ARGS_5,
-                                     ARGS_6,
-                                     ARGS_7,
-                                     ARGS_8> {
-    typedef typename bsl::invoke_result<FUNCTION,
-                                        ARGS_1,
-                                        ARGS_2,
-                                        ARGS_3,
-                                        ARGS_4,
-                                        ARGS_5,
-                                        ARGS_6,
-                                        ARGS_7,
-                                        ARGS_8>::type ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7,
+                          class ARGS_8>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3,
+                                               ARGS_4,
+                                               ARGS_5,
+                                               ARGS_6,
+                                               ARGS_7,
+                                               ARGS_8> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3,
+                                                  ARGS_4,
+                                                  ARGS_5,
+                                                  ARGS_6,
+                                                  ARGS_7,
+                                                  ARGS_8>::type ResultType;
+
 
     ResultType operator()() const;
 };
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 8
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_A >= 9
-template <class FUNCTION,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8,
-          class ARGS_9>
-struct BindUtil_DummyNullaryFunction<FUNCTION,
-                                     ARGS_1,
-                                     ARGS_2,
-                                     ARGS_3,
-                                     ARGS_4,
-                                     ARGS_5,
-                                     ARGS_6,
-                                     ARGS_7,
-                                     ARGS_8,
-                                     ARGS_9> {
-    typedef typename bsl::invoke_result<FUNCTION,
-                                        ARGS_1,
-                                        ARGS_2,
-                                        ARGS_3,
-                                        ARGS_4,
-                                        ARGS_5,
-                                        ARGS_6,
-                                        ARGS_7,
-                                        ARGS_8,
-                                        ARGS_9>::type ResultType;
+template <class FUNCTION, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7,
+                          class ARGS_8,
+                          class ARGS_9>
+struct BindUtil_DummyNullaryFunction<FUNCTION, ARGS_1,
+                                               ARGS_2,
+                                               ARGS_3,
+                                               ARGS_4,
+                                               ARGS_5,
+                                               ARGS_6,
+                                               ARGS_7,
+                                               ARGS_8,
+                                               ARGS_9> {
+
+    typedef typename bsl::invoke_result<FUNCTION, ARGS_1,
+                                                  ARGS_2,
+                                                  ARGS_3,
+                                                  ARGS_4,
+                                                  ARGS_5,
+                                                  ARGS_6,
+                                                  ARGS_7,
+                                                  ARGS_8,
+                                                  ARGS_9>::type ResultType;
+
 
     ResultType operator()() const;
 };
@@ -317,7 +321,9 @@ struct BindUtil_DummyNullaryFunction<FUNCTION,
 
 template <class FUNCTION, class... ARGS>
 struct BindUtil_DummyNullaryFunction {
+
     typedef typename bsl::invoke_result<FUNCTION, ARGS...>::type ResultType;
+
 
     ResultType operator()() const;
 };
@@ -407,8 +413,9 @@ class BindUtil_BindWrapper {
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
-                                      typename bsl::decay<ARG1>::type> >::Type
-    operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1) const;
+                                      typename bsl::decay<ARG1>::type> >::
+        Type
+        operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1) const;
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 0
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 1
@@ -424,7 +431,8 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 1
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 2
-    template <class ARG1, class ARGS_1, class ARGS_2>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -438,7 +446,9 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 2
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 3
-    template <class ARG1, class ARGS_1, class ARGS_2, class ARGS_3>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -454,11 +464,10 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 3
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 4
-    template <class ARG1,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -476,12 +485,11 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 4
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 5
-    template <class ARG1,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -501,13 +509,12 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 5
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 6
-    template <class ARG1,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -529,14 +536,13 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 6
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 7
-    template <class ARG1,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -560,15 +566,14 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 7
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 8
-    template <class ARG1,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7,
-              class ARGS_8>
+    template <class ARG1, class ARGS_1,
+                          class ARGS_2,
+                          class ARGS_3,
+                          class ARGS_4,
+                          class ARGS_5,
+                          class ARGS_6,
+                          class ARGS_7,
+                          class ARGS_8>
     typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
@@ -594,8 +599,8 @@ class BindUtil_BindWrapper {
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_B >= 8
 
 #else
-    // The generated code below is a workaround for the absence of perfect
-    // forwarding in some compilers.
+// The generated code below is a workaround for the absence of perfect
+// forwarding in some compilers.
 
     template <class ARG1, class... ARGS>
     typename ExecutionUtil::ExecuteResult<
@@ -722,18 +727,19 @@ inline typename ExecutionUtil::ExecuteResult<
     BindUtil_DummyNullaryFunction<FUNCTION,
                                   typename bsl::decay<ARG1>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
         BindUtil_DummyNullaryFunction<FUNCTION,
-                                      typename bsl::decay<ARG1>::type> >::Type
-        ResultType;
+                                      typename bsl::decay<ARG1>::type> >::
+        Type ResultType;
 
-    return ExecutionUtil::execute(
-        d_policy,
-        bdlf::BindUtil::bindR<ResultType>(d_function.object(),
-                                          bslmf::Util::forward<ARG1>(arg1)));
+    return ExecutionUtil::execute(d_policy,
+                                  bdlf::BindUtil::bindR<ResultType>(
+                                      d_function.object(),
+                                      bslmf::Util::forward<ARG1>(arg1)));
 }
 #endif  // BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 0
 
@@ -746,8 +752,9 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARG1>::type,
                                   typename bsl::decay<ARGS_1>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                               BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -766,7 +773,8 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 2
 template <class POLICY, class FUNCTION>
-template <class ARG1, class ARGS_1, class ARGS_2>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -774,9 +782,10 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_1>::type,
                                   typename bsl::decay<ARGS_2>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -797,7 +806,9 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 3
 template <class POLICY, class FUNCTION>
-template <class ARG1, class ARGS_1, class ARGS_2, class ARGS_3>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -806,10 +817,11 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_2>::type,
                                   typename bsl::decay<ARGS_3>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -832,7 +844,10 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 4
 template <class POLICY, class FUNCTION>
-template <class ARG1, class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -842,11 +857,12 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_3>::type,
                                   typename bsl::decay<ARGS_4>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -871,12 +887,11 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 5
 template <class POLICY, class FUNCTION>
-template <class ARG1,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -887,12 +902,13 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_4>::type,
                                   typename bsl::decay<ARGS_5>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -919,13 +935,12 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 6
 template <class POLICY, class FUNCTION>
-template <class ARG1,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -937,13 +952,14 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_5>::type,
                                   typename bsl::decay<ARGS_6>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -972,14 +988,13 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 7
 template <class POLICY, class FUNCTION>
-template <class ARG1,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6,
+                      class ARGS_7>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -992,14 +1007,15 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_6>::type,
                                   typename bsl::decay<ARGS_7>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -1030,15 +1046,14 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
 
 #if BMQEX_BINDUTIL_VARIADIC_LIMIT_C >= 8
 template <class POLICY, class FUNCTION>
-template <class ARG1,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8>
+template <class ARG1, class ARGS_1,
+                      class ARGS_2,
+                      class ARGS_3,
+                      class ARGS_4,
+                      class ARGS_5,
+                      class ARGS_6,
+                      class ARGS_7,
+                      class ARGS_8>
 inline typename ExecutionUtil::ExecuteResult<
     POLICY,
     BindUtil_DummyNullaryFunction<FUNCTION,
@@ -1052,15 +1067,16 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS_7>::type,
                                   typename bsl::decay<ARGS_8>::type> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -1102,8 +1118,9 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARG1>::type,
                                   typename bsl::decay<ARGS>::type...> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args) const
+                                  BSLS_COMPILERFEATURES_FORWARD_REF(ARG1) arg1,
+                                BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args
+                                ) const
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -1142,8 +1159,9 @@ BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
 }  // close package namespace
 }  // close enterprise namespace
 
-#else  // if ! defined(DEFINED_BMQEX_BINDUTIL_H)
-#error Not valid except when included from bmqex_bindutil.h
-#endif  // ! defined(COMPILING_BMQEX_BINDUTIL_H)
+#else // if ! defined(DEFINED_BMQEX_BINDUTIL_H)
+# error Not valid except when included from bmqex_bindutil.h
+#endif // ! defined(COMPILING_BMQEX_BINDUTIL_H)
 
-#endif  // ! defined(INCLUDED_BMQEX_BINDUTIL_CPP03)
+#endif // ! defined(INCLUDED_BMQEX_BINDUTIL_CPP03)
+

@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Wed Apr  2 15:03:57 2025
+// Generated on Thu May 22 13:07:13 2025
 // Command line: sim_cpp11_features.pl bmqex_bindutil.cpp
 
 #define INCLUDED_BMQEX_BINDUTIL_CPP03  // Disable inclusion
@@ -28,4 +28,5 @@
 
 // No C++03 Expansion
 
-#endif  // defined(COMPILING_BMQEX_BINDUTIL_CPP)
+#endif // defined(COMPILING_BMQEX_BINDUTIL_CPP)
+
