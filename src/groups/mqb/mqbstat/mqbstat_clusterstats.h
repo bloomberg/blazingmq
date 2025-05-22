@@ -39,6 +39,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -417,14 +418,14 @@ inline bmqst::StatContext* ClusterNodeStats::statContext()
 
 template <>
 inline void ClusterNodeStats::onEvent<ClusterNodeStats::EventType::e_ACK>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_ACK, 1);
 }
 
 template <>
 inline void ClusterNodeStats::onEvent<ClusterNodeStats::EventType::e_CONFIRM>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_CONFIRM, 1);
 }

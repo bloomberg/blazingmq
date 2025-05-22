@@ -452,8 +452,8 @@ struct TestSession BSLS_CPP11_FINAL {
     ~TestSession();
 
     // ACCESSORS
-    bmqimp::BrokerSession&    session();
-    bmqio::TestChannel&       channel();
+    bmqimp::BrokerSession&          session();
+    bmqio::TestChannel&             channel();
     bslma::Allocator*               allocator();
     bmqp::BlobPoolUtil::BlobSpPool& blobSpPool();
 
@@ -1165,9 +1165,8 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
     }
 }
 
-void TestSession::reopenQueue(
-    bsl::shared_ptr<bmqimp::Queue> queue,
-    BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
+void TestSession::reopenQueue(bsl::shared_ptr<bmqimp::Queue> queue,
+                              BSLA_UNUSED const bsls::TimeInterval& timeout)
 {
     BMQTST_ASSERT(queue);
 
@@ -1616,7 +1615,7 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
 
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
-    int                          currentStep = e_OPEN_OPENING;
+    int currentStep = e_OPEN_OPENING;
 
     while (currentStep <= step) {
         switch (currentStep) {
@@ -1774,7 +1773,7 @@ TestSession::arriveAtStepWithoutCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
-    int                          currentStep = e_OPEN_OPENING;
+    int currentStep = e_OPEN_OPENING;
 
     while (currentStep <= step) {
         switch (currentStep) {
@@ -1913,7 +1912,7 @@ void TestSession::arriveAtLateResponseStepReader(
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
-    int                          currentStep = e_LATE_OPEN_OPENING;
+    int currentStep = e_LATE_OPEN_OPENING;
 
     while (currentStep <= step) {
         switch (currentStep) {
@@ -2112,7 +2111,7 @@ void TestSession::arriveAtLateResponseStepWriter(
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
-    int                          currentStep = e_LATE_OPEN_OPENING;
+    int currentStep = e_LATE_OPEN_OPENING;
 
     while (currentStep <= step) {
         switch (currentStep) {
@@ -2857,7 +2856,7 @@ static void test1_breathingTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqt::SessionOptions           sessionOptions;
+    bmqt::SessionOptions sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
@@ -2917,9 +2916,9 @@ static void test2_basicAccessorsTest()
 {
     bmqtst::TestHelper::printTestName("BASIC ACCESSORS");
 
-    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
-    const bmqp::QueueId            k_QUEUE_ID(0, 0);
-    const bmqt::CorrelationId      corrId(bmqt::CorrelationId::autoValue());
+    bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    const bmqp::QueueId       k_QUEUE_ID(0, 0);
+    const bmqt::CorrelationId corrId(bmqt::CorrelationId::autoValue());
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
@@ -2927,7 +2926,7 @@ static void test2_basicAccessorsTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqt::SessionOptions           sessionOptions;
+    bmqt::SessionOptions sessionOptions;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
@@ -2978,11 +2977,11 @@ static void test3_nullChannelTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqt::SessionOptions           sessionOptions;
-    bsls::AtomicInt                eventCounter(0);
-    bsls::AtomicInt                startCounter(0);
-    bsls::AtomicInt                stopCounter(0);
-    bslmt::TimedSemaphore          eventSemaphore;
+    bmqt::SessionOptions  sessionOptions;
+    bsls::AtomicInt       eventCounter(0);
+    bsls::AtomicInt       startCounter(0);
+    bsls::AtomicInt       stopCounter(0);
+    bslmt::TimedSemaphore eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
@@ -3077,7 +3076,7 @@ static void test4_createEventTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqt::SessionOptions           sessionOptions;
+    bmqt::SessionOptions sessionOptions;
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
     bmqimp::BrokerSession::StateFunctor      emptyStateCb;
@@ -3096,8 +3095,8 @@ static void test4_createEventTest()
 
 static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
 {
-    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
-    const bsls::TimeInterval&      timeout = bsls::TimeInterval();
+    bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    const bsls::TimeInterval& timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
@@ -3346,12 +3345,12 @@ static void test6_setChannelTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqt::SessionOptions           sessionOptions;
-    bsls::AtomicInt                eventCounter(0);
-    bsls::AtomicInt                startCounter(0);
-    bsls::AtomicInt                stopCounter(0);
-    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
-    bslmt::TimedSemaphore          eventSemaphore;
+    bmqt::SessionOptions  sessionOptions;
+    bsls::AtomicInt       eventCounter(0);
+    bsls::AtomicInt       startCounter(0);
+    bsls::AtomicInt       stopCounter(0);
+    bmqio::TestChannel    testChannel(bmqtst::TestHelperUtil::allocator());
+    bslmt::TimedSemaphore eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
@@ -4639,14 +4638,14 @@ static void test20_queueOpen_LateConfigureQueueResponse()
 {
     bmqtst::TestHelper::printTestName("QUEUE LATE CONFIGURE RESPONSE TEST");
 
-    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
-    const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
-    bmqt::SessionOptions         sessionOptions;
+    bmqt::Uri                uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    const bsls::TimeInterval timeout = bsls::TimeInterval(15);
+    bmqt::SessionOptions     sessionOptions;
     bmqp_ctrlmsg::ControlMessage responseMessage(
         bmqtst::TestHelperUtil::allocator());
-    bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
-    TestClock                    testClock(scheduler);
+    TestClock             testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
@@ -5802,7 +5801,7 @@ static void test25_sessionFsmTable()
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqt::SessionOptions           sessionOptions;
+    bmqt::SessionOptions sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     bmqimp::EventQueue::EventHandlerCallback            emptyEventHandler;
@@ -6735,11 +6734,11 @@ static void test33_queueNackTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::PutEventBuilder          eventBuilder(blobSpPool.get(),
+    bmqp::PutEventBuilder     eventBuilder(blobSpPool.get(),
                                        bmqtst::TestHelperUtil::allocator());
-    const bmqt::CorrelationId      corrId(243);
-    bmqt::MessageGUID     guid = bmqp::MessageGUIDGenerator::testGUID();
-    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+    const bmqt::CorrelationId corrId(243);
+    bmqt::MessageGUID         guid = bmqp::MessageGUIDGenerator::testGUID();
+    bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
@@ -7270,9 +7269,9 @@ static void test36_closingAfterConfigTimeout()
     bmqt::SessionOptions         sessionOptions;
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
-    bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
-    TestClock                    testClock(scheduler);
+    TestClock             testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
@@ -7836,8 +7835,8 @@ static void test40_syncCalledFromEventHandler()
     bmqtst::TestHelper::printTestName(
         "SYNC API CALLED FROM EVENT HANDLER TEST");
 
-    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
-    const bsls::TimeInterval&      timeout = bsls::TimeInterval();
+    bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    const bsls::TimeInterval& timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
@@ -8281,11 +8280,11 @@ static void test44_hostHealthMonitoringMultipleQueues()
     bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
         monitor,
         bmqtst::TestHelperUtil::allocator());
-    const bsls::TimeInterval                  timeout = bsls::TimeInterval(15);
-    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+    const bsls::TimeInterval timeout = bsls::TimeInterval(15);
+    bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
-    TestClock             testClock(scheduler);
-    bmqt::SessionOptions  sessionOptions;
+    TestClock                testClock(scheduler);
+    bmqt::SessionOptions     sessionOptions;
     sessionOptions.setNumProcessingThreads(1)
         .setConfigureQueueTimeout(timeout)
         .setHostHealthMonitor(monitor_sp);

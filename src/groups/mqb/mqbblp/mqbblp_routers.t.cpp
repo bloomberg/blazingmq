@@ -35,7 +35,7 @@
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 

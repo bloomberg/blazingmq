@@ -48,7 +48,7 @@ struct InitialConnectionHandlerTestImp
 };
 
 void InitialConnectionHandlerTestImp::handleInitialConnection(
-    BSLS_ANNOTATION_UNUSED const InitialConnectionContextSp& context)
+    BSLA_UNUSED const InitialConnectionContextSp& context)
 {
     markDone();
 }

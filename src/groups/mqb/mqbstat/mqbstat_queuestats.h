@@ -43,6 +43,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -531,7 +532,7 @@ inline bmqst::StatContext* QueueStatsDomain::statContext()
 
 template <>
 inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_ACK>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_ACK, 1);
@@ -547,7 +548,7 @@ inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_ACK_TIME>(
 
 template <>
 inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_NACK>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     // For NACK, we don't care about the bytes value
@@ -556,7 +557,7 @@ inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_NACK>(
 
 template <>
 inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CONFIRM>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     // For CONFIRM, we don't care about the bytes value
@@ -575,7 +576,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CONFIRM_TIME>(
 
 template <>
 inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_REJECT>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     // For REJECT, we don't care about the bytes value
@@ -646,7 +647,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_GC_MESSAGE>(
 
 template <>
 inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_PURGE>(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+    BSLA_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     // NOTE: Setting the value like that will cause weird results if using

@@ -39,13 +39,13 @@ namespace m_bmqstoragetool {
 namespace {
 
 // Ledger config stubs
-int onRolloverCallback(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& oldLogId,
-                       BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& newLogId)
+int onRolloverCallback(BSLA_UNUSED const mqbu::StorageKey& oldLogId,
+                       BSLA_UNUSED const mqbu::StorageKey& newLogId)
 {
     return 0;  // RETURN
 }
 
-int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+int cleanupCallback(BSLA_UNUSED const bsl::string& logPath)
 {
     return 0;  // RETURN
 }

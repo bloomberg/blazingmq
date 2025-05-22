@@ -30,11 +30,11 @@
 #include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_numeric.h>
+#include <bsla_annotations.h>
 #include <bslma_testallocator.h>
 #include <bslmf_issame.h>
 #include <bslmt_semaphore.h>
 #include <bslmt_threadattributes.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_keyword.h>
@@ -205,7 +205,7 @@ struct ThrowOnCall {
     typedef void ResultType;
 
     // ACCESSORS
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     void operator()() const { throw ExceptionType(); }
 };
 

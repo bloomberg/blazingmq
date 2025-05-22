@@ -27,10 +27,10 @@
 #include <bsl_memory.h>  // bsl::allocator_arg
 #include <bsl_numeric.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_testallocator.h>
 #include <bslmt_semaphore.h>
 #include <bslmt_threadattributes.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_keyword.h>
 
@@ -183,11 +183,11 @@ struct ThrowOnCopy {
         // NOTHING
     }
 
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     ThrowOnCopy(const ThrowOnCopy&) { throw ExceptionType(); }
 
     // MANIPULATORS
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     ThrowOnCopy& operator=(const ThrowOnCopy&) { throw ExceptionType(); }
 
     // ACCESSORS
@@ -256,13 +256,13 @@ class ThrowingExecutor {
   public:
     // MANIPULATORS
     template <class FUNCTION>
-    BSLS_ANNOTATION_NORETURN void post(FUNCTION) const
+    BSLA_NORETURN void post(FUNCTION) const
     {
         throw ExceptionType();
     }
 
     template <class FUNCTION>
-    BSLS_ANNOTATION_NORETURN void dispatch(FUNCTION) const
+    BSLA_NORETURN void dispatch(FUNCTION) const
     {
         throw ExceptionType();
     }

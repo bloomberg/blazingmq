@@ -34,8 +34,8 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -369,10 +369,10 @@ NegotiatedChannelFactory::~NegotiatedChannelFactory()
 
 // MANIPULATORS
 void NegotiatedChannelFactory::listen(
-    BSLS_ANNOTATION_UNUSED bmqio::Status* status,
-    BSLS_ANNOTATION_UNUSED bslma::ManagedPtr<OpHandle>* handle,
-    BSLS_ANNOTATION_UNUSED const bmqio::ListenOptions& options,
-    BSLS_ANNOTATION_UNUSED const ResultCallback&       cb)
+    BSLA_UNUSED bmqio::Status* status,
+    BSLA_UNUSED bslma::ManagedPtr<OpHandle>* handle,
+    BSLA_UNUSED const bmqio::ListenOptions& options,
+    BSLA_UNUSED const ResultCallback&       cb)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "SDK should not be listening");

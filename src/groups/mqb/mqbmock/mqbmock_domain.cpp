@@ -27,7 +27,7 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbmock {
@@ -68,33 +68,31 @@ Domain::~Domain()
 }
 
 // MANIPULATORS
-int Domain::configure(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-                      const mqbconfm::Domain&              config)
+int Domain::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+                      const mqbconfm::Domain&   config)
 {
     d_config = config;
 
     return 0;
 }
 
-void Domain::teardown(
-    BSLS_ANNOTATION_UNUSED const mqbi::Domain::TeardownCb& teardownCb)
+void Domain::teardown(BSLA_UNUSED const mqbi::Domain::TeardownCb& teardownCb)
 {
     // NOTHING
 }
 
 void Domain::teardownRemove(
-    BSLS_ANNOTATION_UNUSED const mqbi::Domain::TeardownCb& teardownCb)
+    BSLA_UNUSED const mqbi::Domain::TeardownCb& teardownCb)
 {
     // NOTHING
 }
 
 void Domain::openQueue(
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
-    BSLS_ANNOTATION_UNUSED const
-        bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::QueueHandleParameters&
-                                 handleParameters,
-    BSLS_ANNOTATION_UNUSED const mqbi::Domain::OpenQueueCallback& callback)
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+                      clientContext,
+    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+    BSLA_UNUSED const mqbi::Domain::OpenQueueCallback& callback)
 {
     // NOTHING
 }
@@ -134,7 +132,7 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     d_queues.erase(it);
 }
 
-void Domain::unregisterAppId(BSLS_ANNOTATION_UNUSED const bsl::string& appId)
+void Domain::unregisterAppId(BSLA_UNUSED const bsl::string& appId)
 {
     // NOTHING
 }
@@ -221,7 +219,7 @@ mqbi::Cluster* Domain::cluster() const
 }
 
 void Domain::loadRoutingConfiguration(
-    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::RoutingConfiguration* config) const
+    BSLA_UNUSED bmqp_ctrlmsg::RoutingConfiguration* config) const
 {
     // NOTHING
 }
@@ -262,9 +260,8 @@ void DomainFactory::qualifyDomain(const bslstl::StringRef& name,
     callback(success, name);
 }
 
-void DomainFactory::createDomain(
-    BSLS_ANNOTATION_UNUSED const bsl::string& name,
-    const CreateDomainCb&                     callback)
+void DomainFactory::createDomain(BSLA_UNUSED const bsl::string& name,
+                                 const CreateDomainCb&          callback)
 {
     bmqp_ctrlmsg::Status success(d_allocator_p);
     success.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
@@ -272,7 +269,7 @@ void DomainFactory::createDomain(
 }
 
 mqbi::Domain*
-DomainFactory::getDomain(BSLS_ANNOTATION_UNUSED const bsl::string& name) const
+DomainFactory::getDomain(BSLA_UNUSED const bsl::string& name) const
 {
     return &d_domain;
 }

@@ -76,7 +76,7 @@ const unsigned int k_REQUESTED_JOURNAL_SPACE =
 }  // close unnamed namespace
 
 void RecoveryManager::ChunkDeleter::operator()(
-    BSLS_ANNOTATION_UNUSED const void* ptr) const
+    BSLA_UNUSED const void* ptr) const
 {
     // executed by *ANY* thread
     // PRECONDITIONS
@@ -141,8 +141,7 @@ RecoveryManager::~RecoveryManager()
 }
 
 // MANIPULATORS
-int RecoveryManager::start(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+int RecoveryManager::start(BSLA_UNUSED bsl::ostream& errorDescription)
 {
     // NOTHING
     return 0;

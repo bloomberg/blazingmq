@@ -291,7 +291,7 @@ static void appendMessages1(bmqp::EventHeader*        eh,
                             bdlbb::Blob*              blob,
                             const bsl::vector<Data1>& data,
                             bdlbb::BlobBufferFactory* bufferFactory,
-                            BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+                            BSLA_UNUSED bslma::Allocator* allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(eh);
@@ -717,7 +717,7 @@ void breathingTestHelper(
                              bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob expectedCompressedBlob(bufferFactory_p,
                                        bmqtst::TestHelperUtil::allocator());
-    int                expectedBlobLength = 0;
+    int         expectedBlobLength = 0;
     bmqu::BlobPosition expectedHeaderPos;
     bmqu::BlobPosition expectedPayloadPos;
     bmqu::BlobPosition retrievedPayloadPos;
@@ -1002,12 +1002,12 @@ static void test2_iteratorReset()
                              bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob               expectedCompressedBlob(&bufferFactory,
                                        bmqtst::TestHelperUtil::allocator());
-    int                expectedBlobLength = 0;
-    bmqu::BlobPosition headerPosition;
-    bmqu::BlobPosition payloadPosition;
-    const int          queueId = 123;
-    bmqt::MessageGUID  guid;
-    bmqp::EventHeader  eventHeader;
+    int                       expectedBlobLength = 0;
+    bmqu::BlobPosition        headerPosition;
+    bmqu::BlobPosition        payloadPosition;
+    const int                 queueId = 123;
+    bmqt::MessageGUID         guid;
+    bmqp::EventHeader         eventHeader;
     bdlbb::Blob               payloadBlob(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob               appDataBlob(bmqtst::TestHelperUtil::allocator());
 
@@ -1144,9 +1144,9 @@ static void test5_iteratePushEventHavingMultipleMessages()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    const size_t                   k_NUM_MSGS = 1000;
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader eventHeader;
+    const size_t      k_NUM_MSGS = 1000;
 
     populateBlob(&eventBlob,
                  &eventHeader,
@@ -1256,9 +1256,9 @@ static void test6_iteratePushEventHavingZeroLengthMessages()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    const size_t                   k_NUM_MSGS = 1000;
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader eventHeader;
+    const size_t      k_NUM_MSGS = 1000;
 
     populateBlob(&eventBlob,
                  &eventHeader,
@@ -1396,13 +1396,13 @@ static void test7_extractOptions()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data1>             data(bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    int                            qid;
-    bool                           hasSubQueueInfo   = false;
-    bool                           useOldSubQueueIds = false;
-    bool                           hasMsgGroupId     = false;
-    int                            payloadLength     = 0;
+    bsl::vector<Data1> data(bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader  eventHeader;
+    int                qid;
+    bool               hasSubQueueInfo   = false;
+    bool               useOldSubQueueIds = false;
+    bool               hasMsgGroupId     = false;
+    int                payloadLength     = 0;
 
     // Msg1: One SubQueueId
     qid               = 1;

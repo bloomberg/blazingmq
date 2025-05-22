@@ -73,7 +73,7 @@ namespace {
 // CONSTANTS
 const double             k_RECONNECT_INTERVAL_MS = 500;
 const int                k_RECONNECT_COUNT = bsl::numeric_limits<int>::max();
-const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK = 512 * 1024;
+const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK         = 512 * 1024;
 const int                k_DEFAULT_MAX_MISSED_HEARTBEATS = 10;
 const int                k_DEFAULT_HEARTBEAT_INTERVAL_MS = 1000;
 
@@ -297,8 +297,8 @@ void Application::channelStateCallback(
 }
 
 bslma::ManagedPtr<bmqst::StatContext> Application::channelStatContextCreator(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
-    const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>&       handle)
+    BSLA_UNUSED const bsl::shared_ptr<bmqio::Channel>&      channel,
+    const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle)
 {
     // The SDK only connects
     BSLS_ASSERT_SAFE(handle->options().is<bmqio::ConnectOptions>());

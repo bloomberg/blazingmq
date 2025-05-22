@@ -18,7 +18,7 @@
 
 #include <mqbscm_version.h>
 // BDE
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbnet {
@@ -32,18 +32,17 @@ ClusterObserver::~ClusterObserver()
     // NOTHING
 }
 
-void ClusterObserver::onNodeStateChange(
-    BSLS_ANNOTATION_UNUSED ClusterNode* node,
-    BSLS_ANNOTATION_UNUSED bool         isAvailable)
+void ClusterObserver::onNodeStateChange(BSLA_UNUSED ClusterNode* node,
+                                        BSLA_UNUSED bool         isAvailable)
 {
     // NOTHING: void impl to not require interface clients to define it if they
     //          don't care about this notification
 }
 
 void ClusterObserver::onProxyConnectionUp(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
-    BSLS_ANNOTATION_UNUSED const bsl::string& description)
+    BSLA_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
+    BSLA_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
+    BSLA_UNUSED const bsl::string& description)
 {
     // NOTHING: void impl to not require interface clients to define it if they
     //          don't care about this notification

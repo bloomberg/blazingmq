@@ -43,10 +43,10 @@
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_objectbuffer.h>
 #include <bsls_types.h>
@@ -691,15 +691,15 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
 
 // PRIVATE ACCESSORS
 template <class TYPE>
-inline int MessageProperties::getPropertyValueSize(
-    BSLS_ANNOTATION_UNUSED const TYPE& value) const
+inline int
+MessageProperties::getPropertyValueSize(BSLA_UNUSED const TYPE& value) const
 {
     return static_cast<int>(sizeof(TYPE));
 }
 
 template <>
-inline int MessageProperties::getPropertyValueSize(
-    BSLS_ANNOTATION_UNUSED const bool& value) const
+inline int
+MessageProperties::getPropertyValueSize(BSLA_UNUSED const bool& value) const
 {
     // Partial specialization for type 'bool', to return 1.  sizeof(bool)
     // should be one on all platforms, but just in case.

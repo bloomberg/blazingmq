@@ -49,10 +49,10 @@
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
 #include <bsl_unordered_map.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
-#include <bsls_annotation.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {

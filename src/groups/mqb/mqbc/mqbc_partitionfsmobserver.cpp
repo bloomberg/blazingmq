@@ -18,7 +18,7 @@
 
 #include <mqbscm_version.h>
 // BDE
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbc {
@@ -33,22 +33,22 @@ PartitionFSMObserver::~PartitionFSMObserver()
 }
 
 void PartitionFSMObserver::onTransitionToPrimaryHealed(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED PartitionStateTableState::Enum oldState)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED PartitionStateTableState::Enum oldState)
 {
     // NOTHING
 }
 
 void PartitionFSMObserver::onTransitionToReplicaHealed(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED PartitionStateTableState::Enum oldState)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED PartitionStateTableState::Enum oldState)
 {
     // NOTHING
 }
 
 void PartitionFSMObserver::onTransitionToUnknown(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED PartitionStateTableState::Enum oldState)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED PartitionStateTableState::Enum oldState)
 {
     // NOTHING
 }
