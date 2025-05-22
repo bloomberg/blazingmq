@@ -21,7 +21,6 @@ response is logged.
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
-    multi_node,
     Cluster,
 )
 from blazingmq.dev.it.process.admin import AdminClient

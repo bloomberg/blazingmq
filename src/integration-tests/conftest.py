@@ -31,13 +31,6 @@ from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
 
 # pylint: disable=unused-import
-from blazingmq.dev.it.fixtures import (
-    cartesian_product_cluster,
-    single_node,
-    multi_node,
-    cluster,
-    cartesian_product_cluster,
-)
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)

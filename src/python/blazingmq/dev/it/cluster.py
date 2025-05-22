@@ -321,7 +321,6 @@ class Cluster(contextlib.AbstractContextManager):
 
     def destroy(self):
         """Free the resources owned by this cluster."""
-        pass
         # self._esx.close()
 
     # TODO: fold following three in start_broker
