@@ -69,8 +69,8 @@
 #include <bsl_list.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslmt_latch.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
@@ -3508,8 +3508,7 @@ void Cluster::onNodeHighWatermark(mqbnet::ClusterNode* node)
         << node->nodeDescription() << BMQTSK_ALARMLOG_END;
 }
 
-void Cluster::onNodeLowWatermark(
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* node)
+void Cluster::onNodeLowWatermark(BSLA_UNUSED mqbnet::ClusterNode* node)
 {
     // executed by the *IO* thread
 

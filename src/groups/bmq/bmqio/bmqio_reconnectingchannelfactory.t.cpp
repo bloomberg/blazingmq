@@ -31,9 +31,9 @@
 #include <bsl_ctime.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 #include <bsls_objectbuffer.h>
 #include <bsls_types.h>
 

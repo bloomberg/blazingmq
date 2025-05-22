@@ -53,8 +53,8 @@
 #include <bsl_list.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslmt_lockguard.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_systemclocktype.h>
@@ -894,7 +894,7 @@ void ClusterProxy::processPeerStopRequest(
 }
 
 void ClusterProxy::finishStopSequence(
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* clusterNode)
+    BSLA_UNUSED mqbnet::ClusterNode* clusterNode)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1139,7 +1139,7 @@ ClusterProxy::~ClusterProxy()
 
 // MANIPULATORS
 //   (virtual: mqbi::Cluster)
-int ClusterProxy::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+int ClusterProxy::start(BSLA_UNUSED bsl::ostream& errorDescription)
 {
     dispatcher()->execute(bdlf::BindUtil::bind(&ClusterProxy::startDispatched,
                                                this),
@@ -1201,7 +1201,7 @@ void ClusterProxy::stop()
 }
 
 void ClusterProxy::registerStateObserver(
-    BSLS_ANNOTATION_UNUSED mqbc::ClusterStateObserver* observer)
+    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
 {
     // executed by *ANY* thread
 
@@ -1212,7 +1212,7 @@ void ClusterProxy::registerStateObserver(
 }
 
 void ClusterProxy::unregisterStateObserver(
-    BSLS_ANNOTATION_UNUSED mqbc::ClusterStateObserver* observer)
+    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
 {
     // executed by *ANY* thread
 
@@ -1294,9 +1294,9 @@ void ClusterProxy::onQueueHandleDestroyed(mqbi::Queue*     queue,
 }
 
 void ClusterProxy::onDomainReconfigured(
-    BSLS_ANNOTATION_UNUSED const mqbi::Domain& domain,
-    BSLS_ANNOTATION_UNUSED const mqbconfm::Domain& oldDefn,
-    BSLS_ANNOTATION_UNUSED const mqbconfm::Domain& newDefn)
+    BSLA_UNUSED const mqbi::Domain& domain,
+    BSLA_UNUSED const mqbconfm::Domain& oldDefn,
+    BSLA_UNUSED const mqbconfm::Domain& newDefn)
 {
     // NOTHING
     //
@@ -1343,8 +1343,8 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
 }
 
 void ClusterProxy::purgeAndGCQueueOnDomain(
-    mqbcmd::ClusterResult*       result,
-    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+    mqbcmd::ClusterResult* result,
+    BSLA_UNUSED const bsl::string& domainName)
 {
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   os(&localAllocator);

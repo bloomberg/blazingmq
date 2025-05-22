@@ -172,6 +172,7 @@
 #include <bsl_memory.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_allocatorargt.h>
@@ -180,7 +181,6 @@
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_keyword.h>
@@ -1578,8 +1578,7 @@ inline void MultiQueueThreadPoolUtil::resetResetterImp(T* object)
 }
 
 template <typename T>
-inline void
-MultiQueueThreadPoolUtil::noOpResetterImp(BSLS_ANNOTATION_UNUSED T* object)
+inline void MultiQueueThreadPoolUtil::noOpResetterImp(BSLA_UNUSED T* object)
 {
     // NOTHING
 }

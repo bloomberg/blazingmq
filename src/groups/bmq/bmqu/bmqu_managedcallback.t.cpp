@@ -23,6 +23,7 @@
 #include <bsl_string.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bsls_timeutil.h>
 
 // BMQ
@@ -74,15 +75,15 @@ struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
 
-void complexFunction(size_t*                calls,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg1,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg2,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg3,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg4,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg5,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg6,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg7,
-                     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 arg8)
+void complexFunction(size_t*     calls,
+                     BSLA_UNUSED bsls::Types::Uint64 arg1,
+                     BSLA_UNUSED bsls::Types::Uint64 arg2,
+                     BSLA_UNUSED bsls::Types::Uint64 arg3,
+                     BSLA_UNUSED bsls::Types::Uint64 arg4,
+                     BSLA_UNUSED bsls::Types::Uint64 arg5,
+                     BSLA_UNUSED bsls::Types::Uint64 arg6,
+                     BSLA_UNUSED bsls::Types::Uint64 arg7,
+                     BSLA_UNUSED bsls::Types::Uint64 arg8)
 {
     ++(*calls);
 }

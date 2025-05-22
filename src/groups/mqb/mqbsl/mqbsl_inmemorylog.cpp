@@ -19,8 +19,8 @@
 #include <mqbscm_version.h>
 // BDE
 #include <bdlbb_blobutil.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -232,7 +232,7 @@ mqbsi::Log::Offset InMemoryLog::write(const bdlbb::Blob&       entry,
     return write(entry, section.start(), length);
 }
 
-int InMemoryLog::flush(BSLS_ANNOTATION_UNUSED Offset offset)
+int InMemoryLog::flush(BSLA_UNUSED Offset offset)
 {
     return LogOpResult::e_SUCCESS;
 }
@@ -270,9 +270,9 @@ int InMemoryLog::read(bdlbb::Blob* entry, int length, Offset offset) const
     return LogOpResult::e_SUCCESS;
 }
 
-int InMemoryLog::alias(BSLS_ANNOTATION_UNUSED void** entry,
-                       BSLS_ANNOTATION_UNUSED int    length,
-                       BSLS_ANNOTATION_UNUSED Offset offset) const
+int InMemoryLog::alias(BSLA_UNUSED void** entry,
+                       BSLA_UNUSED int    length,
+                       BSLA_UNUSED Offset offset) const
 {
     return LogOpResult::e_UNSUPPORTED_OPERATION;
 }

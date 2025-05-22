@@ -66,8 +66,8 @@
 #include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslmt_semaphore.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_timeinterval.h>
@@ -314,9 +314,8 @@ AdminSession::~AdminSession()
 
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
-void AdminSession::processEvent(
-    const bmqp::Event&     event,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+void AdminSession::processEvent(const bmqp::Event& event,
+                                BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by the *IO* thread
 

@@ -22,10 +22,10 @@
 
 // BDE
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -44,8 +44,7 @@ QueueId::QueueId(bslma::Allocator* allocator)
     d_impl_sp->setCorrelationId(bmqt::CorrelationId::autoValue());
 }
 
-QueueId::QueueId(const QueueId&         other,
-                 BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+QueueId::QueueId(const QueueId& other, BSLA_UNUSED bslma::Allocator* allocator)
 : d_impl_sp(other.d_impl_sp)
 {
     // NOTHING

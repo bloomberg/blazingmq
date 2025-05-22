@@ -19,11 +19,11 @@
 #include <bmqscm_version.h>
 // BDE
 #include <bsl_limits.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslmt_once.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace bmqt {
