@@ -265,7 +265,9 @@ class TestGracefulShutdown:
         self.kill_wait_unconfirmed(replica, domain_urls)
 
     @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
-    def test_give_up_unconfirmed(self, multi_node: Cluster, domain_urls: tc.DomainUrls):  # pylint: disable=unused-argument
+    def test_give_up_unconfirmed(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):  # pylint: disable=unused-argument
         uriWrite = domain_urls.uri_fanout
         uriRead = domain_urls.uri_fanout_foo
 

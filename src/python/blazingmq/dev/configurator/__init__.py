@@ -24,19 +24,15 @@ scripts for running a cluster.
 
 import copy
 import functools
-import itertools
-import logging
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Set, Union
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from blazingmq.dev.configurator import Configurator
 
-from blazingmq.dev.configurator.site import Site
-from blazingmq.dev.paths import required_paths as paths
 from blazingmq.schemas import mqbcfg, mqbconf
 
 __all__ = [

@@ -50,8 +50,6 @@ blocktimeout = 15
 class ITError(Exception):
     """Base class for exceptions specific to integration tests."""
 
-    pass
-
 
 def _build_command(
     seed: str, opts: Dict[str, Optional[Callable]], kw: Dict[str, Any]
