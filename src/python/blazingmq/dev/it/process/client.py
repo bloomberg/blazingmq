@@ -22,7 +22,6 @@ PURPOSE: Provide a BMQ client.
 Provide a subclass of 'ito.proc.Process' that wraps 'bmqtool.tsk'.
 """
 
-
 from collections import namedtuple
 import json
 import re

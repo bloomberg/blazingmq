@@ -19,7 +19,6 @@ This suite of test cases verifies the admin command
 "DOMAINS REMOVE <domain> [FINALIZE]" work as expected
 """
 
-
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import Cluster
 from blazingmq.dev.it.process.admin import AdminClient
