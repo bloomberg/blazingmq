@@ -786,7 +786,7 @@ class Cluster(contextlib.AbstractContextManager):
         return None
 
     def _start_broker(
-        self, broker: cfg.Broker, nodes: List[Broker], cluster_name: Union[str, None]
+        self, broker: cfg.Broker, brokers: List[Broker], cluster_name: Union[str, None]
     ):
         if broker.name in self._processes:
             raise RuntimeError(
@@ -804,7 +804,7 @@ class Cluster(contextlib.AbstractContextManager):
         process.start()
 
         self._processes[broker.name] = process
-        nodes.append(process)
+        brokers.append(process)
 
         process.wait_until_started()
 
