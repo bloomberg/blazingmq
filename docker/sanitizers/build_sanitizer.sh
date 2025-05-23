@@ -30,18 +30,6 @@ fi
 
 SANITIZER_NAME="${1}"
 
-# Set some initial constants
-PARALLELISM=8
-
-DIR_ROOT="${PWD}"
-DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
-DIR_EXTERNAL="${DIR_ROOT}/deps"
-DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
-DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
-
-DIR_SRC_BMQ="${DIR_ROOT}"
-DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
-
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
 apt-get update && \
@@ -61,11 +49,6 @@ apt-get install -qy --no-install-recommends \
     python3.12-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Create Python venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
-
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
         | gpg --dearmor - \
@@ -84,6 +67,23 @@ LLVM_TAG="llvmorg-18.1.8"
 ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
 ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
 ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
+
+# Set some initial constants
+PARALLELISM=8
+
+DIR_ROOT="${PWD}"
+DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
+DIR_EXTERNAL="${DIR_ROOT}/deps"
+DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
+DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
+
+DIR_SRC_BMQ="${DIR_ROOT}"
+DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
+# Create Python venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
 
 # Parse sanitizers config
 cfgquery() {
@@ -252,7 +252,7 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
     -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
-      --target bmqbrkr bmqtool -v --clean-first
+      --target all -v --clean-first
 
 # Create testing script
 envcfgquery() {
@@ -278,7 +278,6 @@ mkscript() {
     local outfile=${2}
 
     echo '#!/usr/bin/env bash' > "${outfile}"
-    echo 'source venv/bin/activate' >> "${outfile}"
     echo "${cmd}" >> "${outfile}"
     chmod +x "${outfile}"
 }
@@ -294,7 +293,6 @@ mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
 CMD+="./run-env.sh ctest --output-on-failure"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
-
 
 # 'run-it.sh' runs instrumented integration tests.
 CMD="cd $(realpath ${DIR_SRC_BMQ}) && "

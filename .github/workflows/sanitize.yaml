@@ -4,28 +4,8 @@ on:
   push:
     branches:
       - "**"
-  # pull_request_review:
-  #   types: [submitted]
-  # workflow_dispatch:
-  #   inputs:
-  #     mode:
-  #       description: 'Sanitizer mode'
-  #       required: true
-  #       default: 'asan'
-  #       type: choice
-  #       options:
-  #         - asan
-  #         - msan
-  #         - tsan
-  #         - ubsan
-      # test_type:
-      #   description: 'Test Type'
-      #   required: true
-      #   default: 'unit'
-      #   type: choice
-      #   options:
-      #     - unit
-      #     - integration
+  pull_request_review:
+    types: [submitted]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -58,5 +38,5 @@ jobs:
           docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
           --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} \
           -t sanitizer-${{ matrix.mode }} .
-      - name: Tests
+      - name: UT [c++,${{ matrix.mode }}]
         run: docker run --rm sanitizer-${{ matrix.mode }}
