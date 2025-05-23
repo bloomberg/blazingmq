@@ -68,7 +68,7 @@ Where:
        --csl-from-begin
           force to iterate CSL file from the beginning. By default: iterate from the latest snapshot
        --print-mode           <print mode>
-          can be one of the following {<human>|json-prety|json-line} (default: human)
+          can be one of the following {<human>|json-pretty|json-line} (default: human)
        --guid                 <guid>
           message guid
        --seqnum               <seqnum>

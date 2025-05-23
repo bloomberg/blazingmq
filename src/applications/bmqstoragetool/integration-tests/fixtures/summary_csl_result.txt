@@ -1,0 +1,13 @@
+
+1 snapshot record(s) found.
+
+No update record(s) found.
+
+1 commit record(s) found.
+
+No ack record(s) found.
+
+1 Queues found:
+[ uri = "bmq://bmq.test.persistent.priority/my-first-queue" key = [ 26DACDC974 ]
+ partitionId = 0 appIds = [ ] ]
+

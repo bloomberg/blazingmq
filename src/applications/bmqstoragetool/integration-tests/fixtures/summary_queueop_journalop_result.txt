@@ -1,0 +1,45 @@
+
+Total number of queueOp records: 1
+    Number of 'purge' operations     : 0
+    Number of 'creation' operations  : 1
+    Number of 'deletion' operations  : 0
+    Number of 'addition' operations  : 0
+
+Number of journalOp records: 8
+Total number of records: 9
+
+Details of journal file:
+    BlazingMQ File Header  : 
+    Protocol Version  : 1
+    Bitness           : 64
+    FileType          : JOURNAL
+    HeaderWords       : 8
+    PartitionId       : 0
+
+    Journal File Header    : 
+    HeaderWords                           : 3
+    RecordWords                           : 15
+    First SyncPointRecord offset words    : 0
+    First SyncPointRecord type            :  ** NA ** 
+    First SyncPointRecord primaryNodeId   :  ** NA ** 
+    First SyncPointRecord primaryLeaseId  :  ** NA ** 
+    First SyncPointRecord sequenceNumber  :  ** NA ** 
+    First SyncPointRecord dataFileOffset  :  ** NA ** 
+    First SyncPointRecord timestamp       :  ** NA ** 
+    First SyncPointRecord epoch           :  ** NA ** 
+
+    Journal SyncPoint      : 
+    Last Valid Record Offset           : 764
+    Record Type                        : JOURNAL_OP
+    Record Timestamp                   : 29OCT2024_14:03:31.000000
+    Record Epoch                       : 1730210611
+    Last Valid SyncPoint Offset        : 764
+    SyncPoint Timestamp                : 29OCT2024_14:03:31.000000
+    SyncPoint Epoch                    : 1730210611
+    SyncPoint SeqNum                   : 4
+    SyncPoint Primary NodeId           : 0
+    SyncPoint Primary LeaseId          : 2
+    SyncPoint DataFileOffset (DWORDS)  : 11
+    SyncPoint QlistFileOffset (WORDS)  : 32
+
+

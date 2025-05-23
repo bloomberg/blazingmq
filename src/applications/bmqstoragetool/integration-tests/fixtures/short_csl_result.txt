@@ -1,0 +1,7 @@
+[ recordType = SNAPSHOT electorTerm = 1 sequenceNumber = 1 timestamp = 1730210574 ][ logId = 87EDF15DC0 offset = 388 ]
+[ recordType = COMMIT electorTerm = 1 sequenceNumber = 2 timestamp = 1730210574 ][ logId = 87EDF15DC0 offset = 540 ]
+1 snapshot record(s) found.
+No update record(s) found.
+1 commit record(s) found.
+No ack record(s) found.
+
