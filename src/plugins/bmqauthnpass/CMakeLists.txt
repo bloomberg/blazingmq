@@ -15,6 +15,6 @@ if(APPLE)
   )
 elseif(UNIX)
   set_target_properties(bmqauthnpass PROPERTIES
-    LINK_FLAGS "-Wl,--unresolved-symbols=ignore-in-shared-libs"
+    LINK_FLAGS "-Wl,--allow-shlib-undefined"
   )
 endif()
