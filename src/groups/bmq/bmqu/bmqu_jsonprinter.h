@@ -29,7 +29,7 @@
 ///-----
 // First, specify field names for printer:
 //..
-//  bsl::vector<const char*> fields;
+//  bsl::vector<bsl::string>& fields;
 //  fields.push_back("Queue URI");
 //  fields.push_back("QueueKey");
 //  fields.push_back("Number of AppIds");
@@ -90,7 +90,7 @@ class JsonPrinter {
   private:
     // DATA
     bsl::ostream&                   d_ostream;
-    const bsl::vector<const char*>* d_fields_p;
+    const bsl::vector<bsl::string>& d_fields;
     unsigned int                    d_counter;
 
     // NOT IMPLEMENTED
@@ -104,7 +104,7 @@ class JsonPrinter {
     /// object with the specified `fields` with the optionally specified
     /// `indent`.  Behavior is undefined unless `indent` >= 0 and at least one
     /// field is present in the `fields`.
-    JsonPrinter(bsl::ostream& stream, const bsl::vector<const char*>* fields);
+    JsonPrinter(bsl::ostream& stream, const bsl::vector<bsl::string>& fields);
 
     ~JsonPrinter();
 
@@ -128,12 +128,12 @@ class JsonPrinter {
 template <bool pretty, bool braceNeeded, int braceIndent, int fieldIndent>
 inline JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::JsonPrinter(
     bsl::ostream&                   stream,
-    const bsl::vector<const char*>* fields)
+    const bsl::vector<bsl::string>& fields)
 : d_ostream(stream)
-, d_fields_p(fields)
+, d_fields(fields)
 , d_counter(0)
 {
-    BSLS_ASSERT_SAFE(0 < d_fields_p->size());
+    BSLS_ASSERT_SAFE(!d_fields.empty());
     if (braceNeeded) {
         if (braceIndent > 0) {
             d_ostream << bsl::setw(braceIndent) << ' ';
@@ -166,7 +166,7 @@ inline JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>&
 JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::operator<<(
     const TYPE& value)
 {
-    BSLS_ASSERT_SAFE(d_counter < d_fields_p->size());
+    BSLS_ASSERT_SAFE(d_counter < d_fields.size());
 
     if (d_counter != 0) {
         d_ostream << ',' << (pretty ? '\n' : ' ');
@@ -177,7 +177,7 @@ JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::operator<<(
     }
 
     const bool quotes = addQuotes(value);
-    d_ostream << '\"' << (*d_fields_p)[d_counter] << "\": ";
+    d_ostream << '\"' << d_fields[d_counter] << "\": ";
     if (quotes) {
         d_ostream << '\"';
     }
