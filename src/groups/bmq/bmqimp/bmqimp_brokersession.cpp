@@ -3621,7 +3621,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BALL_LOG_ERROR << "Unable to flatten PUSH event" << " [rc: " << rc
+            BALL_LOG_ERROR << "Unable to flatten PUSH event [rc: " << rc
                            << ", length: " << event.blob()->length()
                            << ", eventMessageCount: " << eventMessageCount
                            << "]" << bsl::endl
