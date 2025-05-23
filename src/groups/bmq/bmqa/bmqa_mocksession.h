@@ -1380,7 +1380,7 @@ class MockSession : public AbstractSession {
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
-    /// DEPRECATED: Use the 'configureQueueSync(QueueId *queueId...)
+    /// DEPRECATED: Use the `configureQueueSync(QueueId *queueId...)`
     ///             instead.  This method will be marked as `BSLA_DEPRECATED`
     ///             in future release of libbmq.
     int
