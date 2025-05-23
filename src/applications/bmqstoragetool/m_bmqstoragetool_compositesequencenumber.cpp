@@ -74,12 +74,12 @@ CompositeSequenceNumber::fromString(bool*              success,
             uLong     = bsl::stoul(firstPart, &posFirst);
             seqNumber = bsl::stoul(secondPart, &posSecond);
         }
-        catch (const bsl::invalid_argument& e) {
+        catch (const bsl::invalid_argument&) {
             errorDescription
                 << "Invalid input: non-numeric values encountered.";
             break;  // BREAK
         }
-        catch (const bsl::out_of_range& e) {
+        catch (const bsl::out_of_range&) {
             errorDescription << "Invalid input: number out of range.";
             break;  // BREAK
         }
