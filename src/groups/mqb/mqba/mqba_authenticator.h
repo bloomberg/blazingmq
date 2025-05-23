@@ -35,6 +35,7 @@
 #include <mqbconfm_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqio_channel.h>
@@ -84,6 +85,9 @@ class Authenticator : public mqbnet::Authenticator {
     typedef bsl::shared_ptr<mqbnet::AuthenticationContext>
         AuthenticationContextSp;
 
+    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
+        InitialConnectionContextSp;
+
   private:
     // DATA
 
@@ -102,29 +106,29 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Handles an incoming `AuthenticationRequest` message by authenticating
-    /// using the specified `AuthenticationMessage`.  On success, creates an
-    /// `AuthenticationContext` and stores it in `context`. The behavior of
-    /// this function is undefined unless `authenticationMsg` is an
-    /// `AuthenticationRequest`.
-    /// Returns 0 on success; otherwise, returns a non-zero error code and
-    /// populates `errorDescription` with details of the failure.
+    /// Handle an incoming `AuthenticationRequest` message by authenticating
+    /// using the specified `AuthenticationMessage` and `context`.  On success,
+    /// create an `AuthenticationContext` and stores it in `context`.  The
+    /// behavior of this function is undefined unless `authenticationMsg` is an
+    /// `AuthenticationRequest` and this is an incoming connection.
+    /// Return 0 on success; otherwise, return a non-zero error code and
+    /// populate `errorDescription` with details of the failure.
     int onAuthenticationRequest(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-        AuthenticationContextSp*                   context);
+        const InitialConnectionContextSp&          context);
 
-    /// Handles an incoming `AuthenticationResponse` message by authenticating
-    /// using the specified `AuthenticationMessage`.  On success, creates an
-    /// `AuthenticationContext` and stores it in `context`. The behavior of
-    /// this function is undefined unless `authenticationMsg` is an
+    /// Handle an incoming `AuthenticationResponse` message by authenticating
+    /// using the specified `AuthenticationMessage` and `context`.  On success,
+    /// create an `AuthenticationContext` and stores it in `context`. The
+    /// behavior of this function is undefined unless `authenticationMsg` is an
     /// `AuthenticationResponse`.
-    /// Returns 0 on success; otherwise, returns a non-zero error code and
-    /// populates `errorDescription` with details of the failure.
+    /// Return 0 on success; otherwise, return a non-zero error code and
+    /// populate `errorDescription` with details of the failure.
     int onAuthenticationResponse(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-        AuthenticationContextSp*                   context);
+        const InitialConnectionContextSp&          context);
 
     /// Send the specified `message` to the peer associated with the
     /// specified `context` and return 0 on success, or return a non-zero
@@ -161,15 +165,15 @@ class Authenticator : public mqbnet::Authenticator {
     // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
 
-    /// Authenticate the connection based on the type of AuthenticationMessage
-    /// `authenticationMsg`.  Set `isContinueRead` to true if we want to
-    /// continue reading instead of finishing authentication.  Create an
-    /// AuthenticationContext and store into `context`.
+    /// Authenticate the connection using the specified `authenticationMsg`
+    /// and `context`.  An `AuthenticationContext` will be created and stored
+    /// into `context`.  Set `isContinueRead` to true if further reading
+    /// should continue, or false if authentication is complete.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
-    int handleAuthentication(bsl::ostream&            errorDescription,
-                             AuthenticationContextSp* context,
-                             bool*                    isContinueRead,
+    int handleAuthentication(bsl::ostream& errorDescription,
+                             bool*         isContinueRead,
+                             const InitialConnectionContextSp& context,
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 

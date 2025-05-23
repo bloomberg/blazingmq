@@ -60,10 +60,15 @@ const int k_AUTHENTICATION_READTIMEOUT = 3 * 60;  // 3 minutes
 int Authenticator::onAuthenticationRequest(
     bsl::ostream&                              errorDescription,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    AuthenticationContextSp*                   context)
+    const InitialConnectionContextSp&          context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticateRequestValue());
+    BSLS_ASSERT_SAFE(context->isIncoming());
+
+    BALL_LOG_DEBUG << "Received authentication message from '"
+                   << context->channel()->peerUri()
+                   << "': " << authenticationMsg;
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
     bmqp_ctrlmsg::AuthenticateResponse& response =
@@ -73,10 +78,13 @@ int Authenticator::onAuthenticationRequest(
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
         bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
+            context.get(),           // initialConnectionContext
             authenticationMsg,       // authenticationMessage
             false,                   // isReversed
             State::e_AUTHENTICATING  // state
         );
+
+    context->setAuthenticationContext(authenticationContext);
 
     // Always succeeds for now
     // TODO: For later implementation, plugins will perform authentication,
@@ -94,15 +102,13 @@ int Authenticator::onAuthenticationRequest(
                                        authenticationResponse,
                                        authenticationContext);
 
-    *context = authenticationContext;
-
     return rc;
 }
 
 int Authenticator::onAuthenticationResponse(
     bsl::ostream&                              errorDescription,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    AuthenticationContextSp*                   context)
+    const InitialConnectionContextSp&          context)
 {
     BALL_LOG_ERROR << "Not Implemented";
 
@@ -173,8 +179,8 @@ Authenticator::~Authenticator()
 
 int Authenticator::handleAuthentication(
     bsl::ostream&                              errorDescription,
-    AuthenticationContextSp*                   context,
     bool*                                      isContinueRead,
+    const InitialConnectionContextSp&          context,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     enum RcEnum {

@@ -25,8 +25,11 @@
 /// (re)authenticates a connection with a BlazingMQ client or another bmqbrkr.
 
 // MQB
-#include <bmqp_ctrlmsg_messages.h>
 #include <mqbnet_authenticationcontext.h>
+#include <mqbnet_initialconnectioncontext.h>
+
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -50,16 +53,16 @@ class Authenticator {
 
     // MANIPULATORS
 
-    /// Authenticate the connection based on the type of AuthenticationMessage
-    /// `authenticationMsg`.  Set `isContinueRead` to true if we want to
-    /// continue reading instead of finishing authentication.  Create an
-    /// AuthenticationContext and store into `context`.
+    /// Authenticate the connection using the specified `authenticationMsg`
+    /// and `context`.  An `AuthenticationContext` will be created and stored
+    /// into `context`.  Set `isContinueRead` to true if further reading
+    /// should continue, or false if authentication is complete.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleAuthentication(
-        bsl::ostream&                              errorDescription,
-        bsl::shared_ptr<AuthenticationContext>*    context,
-        bool*                                      isContinueRead,
+        bsl::ostream&                                    errorDescription,
+        bool*                                            isContinueRead,
+        const bsl::shared_ptr<InitialConnectionContext>& context,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 
     /// Send out outbound authentication message or reverse connection request

@@ -69,6 +69,7 @@ class AuthenticationContext {
                                    bslma::UsesBslmaAllocator)
     // CREATORS
     AuthenticationContext(
+        InitialConnectionContext*                  initialConnectionContext,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
         bool                                       isReversed,
         State                                      state,

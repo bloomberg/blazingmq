@@ -192,22 +192,11 @@ int InitialConnectionHandler::processBlob(
 
     // Authentication or Negotiation based on the type of message received.
     if (authenticationMsg.has_value()) {
-        BALL_LOG_DEBUG << "Received authentication message from '"
-                       << context->channel()->peerUri()
-                       << "': " << authenticationMsg.value();
-
-        bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext;
-
         rc = d_authenticator_mp->handleAuthentication(
             errorDescription,
-            &authenticationContext,
             isContinueRead,
+            context,
             authenticationMsg.value());
-
-        if (rc == rc_SUCCESS) {
-            authenticationContext->setInitialConnectionContext(context.get());
-            context->setAuthenticationContext(authenticationContext);
-        }
     }
     else if (negotiationMsg.has_value()) {
         context->negotiationContext()->d_negotiationMessage =

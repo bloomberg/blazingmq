@@ -31,11 +31,12 @@ namespace mqbnet {
 // ---------------------------
 
 AuthenticationContext::AuthenticationContext(
+    InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
     bool                                       isReversed,
     State                                      state,
     ConnectionType::Enum                       connectionType)
-: d_initialConnectionContext_p(nullptr)
+: d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
 , d_state(state)
 , d_isReversed(isReversed)
