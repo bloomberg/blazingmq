@@ -82,8 +82,14 @@ DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
 
 # Create Python venv
 python3 -m venv venv
-source venv/bin/activate
-pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
+if [ -f "venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source venv/bin/activate
+    pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
+else
+  echo "Virtual environment not found."
+  exit 1
+fi
 
 # Parse sanitizers config
 cfgquery() {
@@ -295,7 +301,7 @@ CMD+="./run-env.sh ctest --output-on-failure"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
 
 # 'run-it.sh' runs instrumented integration tests.
-CMD="cd $(realpath ${DIR_SRC_BMQ}) && "
+CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
 CMD+="source ./venv/bin/activate && "
 CMD+="BLAZINGMQ_BUILD_DIR=${DIR_BUILD_BMQ} "
 CMD+="BLAZINGMQ_IT_PRESET=\"fsm_mode and strong_consistency\" "
