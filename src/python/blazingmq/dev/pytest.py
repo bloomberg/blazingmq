@@ -19,7 +19,7 @@ Provide various pytest utilities.
 
 import functools
 import os
-from typing import Callable, List
+from typing import Callable
 
 import pytest
 
