@@ -44,9 +44,9 @@
 #include <bdlt_datetime.h>
 #include <bdlt_epochutil.h>
 #include <bsl_algorithm.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -397,7 +397,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 }
 
 void StorageInspector::processCommand(
-    BSLS_ANNOTATION_UNUSED const CloseStorageCommand& command)
+    BSLA_UNUSED const CloseStorageCommand& command)
 {
     if (!d_isOpen) {
         BALL_LOG_ERROR << "No storage is open";
@@ -425,7 +425,7 @@ void StorageInspector::processCommand(
 }
 
 void StorageInspector::processCommand(
-    BSLS_ANNOTATION_UNUSED const MetadataCommand& command)
+    BSLA_UNUSED const MetadataCommand& command)
 {
     bool x;
 
@@ -546,7 +546,7 @@ void StorageInspector::processCommand(
 }
 
 void StorageInspector::processCommand(
-    BSLS_ANNOTATION_UNUSED const ListQueuesCommand& command)
+    BSLA_UNUSED const ListQueuesCommand& command)
 {
     if (!d_qlistFd.isValid()) {
         BALL_LOG_INFO << "Qlist file is not open.";

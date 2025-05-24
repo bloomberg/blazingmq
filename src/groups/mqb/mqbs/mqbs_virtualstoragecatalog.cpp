@@ -27,8 +27,8 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

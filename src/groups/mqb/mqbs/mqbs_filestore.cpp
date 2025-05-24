@@ -78,8 +78,8 @@
 #include <bsl_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
-#include <bsls_annotation.h>
 #include <bsls_timeinterval.h>
 
 // SYS
@@ -3798,8 +3798,7 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
     }
 }
 
-void FileStore::issueSyncPointDispatched(
-    BSLS_ANNOTATION_UNUSED int partitionId)
+void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 

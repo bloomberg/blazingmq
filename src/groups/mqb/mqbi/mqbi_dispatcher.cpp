@@ -26,8 +26,8 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace mqbi {

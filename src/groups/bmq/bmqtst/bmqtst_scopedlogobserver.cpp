@@ -21,8 +21,8 @@
 #include <ball_loggermanager.h>
 #include <bdlpcre_regex.h>
 #include <bsl_memory.h>
+#include <bsla_annotations.h>
 #include <bslalg_numericformatterutil.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -100,9 +100,8 @@ ScopedLogObserver::setSeverityThreshold(ball::Severity::Level value)
     return *this;
 }
 
-void ScopedLogObserver::publish(
-    const ball::Record&          record,
-    BSLS_ANNOTATION_UNUSED const ball::Context& context)
+void ScopedLogObserver::publish(const ball::Record& record,
+                                BSLA_UNUSED const ball::Context& context)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {

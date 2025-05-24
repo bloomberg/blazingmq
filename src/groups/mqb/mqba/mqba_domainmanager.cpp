@@ -47,10 +47,10 @@
 #include <bdlf_placeholder.h>
 #include <bsl_cstddef.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>

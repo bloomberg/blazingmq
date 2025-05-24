@@ -195,9 +195,9 @@
 #include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_semaphore.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 
@@ -218,7 +218,7 @@ const int k_NAGLE_PACKET_SIZE = 1024 * 1024;  // 1MB
 /// drained up to the event.
 void sessionHolderDummy(
     const mqba::ClientSession::ShutdownCb& shutdownCallback,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<void>& session)
+    BSLA_UNUSED const bsl::shared_ptr<void>& session)
 {
     if (shutdownCallback) {
         shutdownCallback();
@@ -1361,7 +1361,7 @@ void ClientSession::processOpenQueue(
 
 void ClientSession::openQueueCb(
     const bmqp_ctrlmsg::Status& status,
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle*       handle,
+    BSLA_UNUSED mqbi::QueueHandle*                  handle,
     const bmqp_ctrlmsg::OpenQueueResponse&          openQueueResponse,
     const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
     const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
@@ -2706,9 +2706,8 @@ ClientSession::~ClientSession()
 
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
-void ClientSession::processEvent(
-    const bmqp::Event&     event,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+void ClientSession::processEvent(const bmqp::Event& event,
+                                 BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by the *IO* thread
 

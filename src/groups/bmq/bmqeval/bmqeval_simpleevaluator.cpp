@@ -19,6 +19,9 @@
 #include <bmqeval_simpleevaluatorparser.hpp>
 #include <bmqeval_simpleevaluatorscanner.h>
 
+// BDE
+#include <bsla_annotations.h>
+
 namespace BloombergLP {
 namespace bmqeval {
 
@@ -211,7 +214,7 @@ SimpleEvaluator::IntegerLiteral::evaluate(EvaluationContext& context) const
 // -------------------------------------
 
 bdld::Datum SimpleEvaluator::BooleanLiteral::evaluate(
-    BSLS_ANNOTATION_UNUSED EvaluationContext& context) const
+    BSLA_UNUSED EvaluationContext& context) const
 {
     return bdld::Datum::createBoolean(d_value);
 }

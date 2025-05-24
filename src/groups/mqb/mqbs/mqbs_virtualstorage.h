@@ -49,10 +49,10 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 

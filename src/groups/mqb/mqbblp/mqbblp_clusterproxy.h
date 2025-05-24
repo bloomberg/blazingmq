@@ -277,8 +277,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     void onActiveNodeDown(const mqbnet::ClusterNode* node);
 
     void onNodeUpDispatched(
-        mqbnet::ClusterNode*         node,
-        BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
+        mqbnet::ClusterNode* node,
+        BSLA_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
 
     /// Executed by the dispatcher thread when the specified `node` becomes
     /// unavailable.

@@ -31,11 +31,11 @@
 #include <bsl_limits.h>
 #include <bsl_map.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmt_threadattributes.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>
@@ -75,8 +75,7 @@ queueCreator(MQTP::QueueCreatorRet*            ret,
     return new (*allocator) MQTP::Queue(fixedQueueSize, allocator);
 }
 
-static void
-eventCb(BSLS_ANNOTATION_UNUSED int queueId, void* context, MQTP::Event* event)
+static void eventCb(BSLA_UNUSED int queueId, void* context, MQTP::Event* event)
 {
     if (event->type() == MQTP::Event::BMQC_USER) {
         bsl::vector<int>* vec = reinterpret_cast<bsl::vector<int>*>(context);
