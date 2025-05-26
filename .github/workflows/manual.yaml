@@ -52,7 +52,7 @@ jobs:
       matrix:
         mode: ["legacy_mode", "fsm_mode"]
         cluster: ["multi3"]
-        consistency: ["strong_consistency"]
+        consistency: ["eventual_consistency", "strong_consistency"]
       fail-fast: false
     runs-on: ubuntu-latest
     needs:
