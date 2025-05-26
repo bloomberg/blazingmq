@@ -290,8 +290,8 @@ class SessionOptions {
     setTraceOptions(const bsl::shared_ptr<bmqpi::DTContext>& dtContext,
                     const bsl::shared_ptr<bmqpi::DTTracer>&  dtTracer);
 
-    /// DEPRECATED: Use 'configureEventQueue(int lowWatermark,
-    ///                                      int highWatermark)'
+    /// DEPRECATED: Use `configureEventQueue(int lowWatermark,
+    ///                                      int highWatermark)`
     ///             instead.  This method will be marked as
     ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
     ///             libbmq.

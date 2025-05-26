@@ -46,6 +46,10 @@ static const char k_CLUSTER_STAT_NAME[] = "clusters";
 /// statistics)
 static const char k_CLUSTER_NODES_STAT_NAME[] = "clusterNodes";
 
+/// The default utilization value reported when we cannot
+/// compute utilization.
+const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
+
 //-------------------------
 // struct ClusterStatsIndex
 //-------------------------
@@ -174,6 +178,28 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                                     e_PARTITION_JOURNAL_BYTES);
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
+    }
+    case Stat::e_PARTITION_DATA_UTILIZATION_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_PARTITION_DATA_BYTES);
+        if (value == bsl::numeric_limits<bsls::Types::Int64>::min()) {
+            return k_UNDEFINED_UTILIZATION_VALUE;
+        }
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, e_PARTITION_CFG_DATA_BYTES);
+        BSLS_ASSERT_SAFE(limit != 0);
+        return 100 * value / limit;
+    }
+    case Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_PARTITION_JOURNAL_BYTES);
+        if (value == bsl::numeric_limits<bsls::Types::Int64>::min()) {
+            return k_UNDEFINED_UTILIZATION_VALUE;
+        }
+        const bsls::Types::Int64 limit =
+            STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
+        BSLS_ASSERT_SAFE(limit != 0);
+        return 100 * value / limit;
     }
 
     default: {
@@ -316,6 +342,14 @@ ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
     d_statContext_mp->setValue(
         ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
         journalBytes);
+    bsl::vector<bsl::shared_ptr<bmqst::StatContext> >::const_iterator it =
+        d_partitionsStatContexts.cbegin();
+    for (; it != d_partitionsStatContexts.cend(); ++it) {
+        (*it)->setValue(ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
+                        dataBytes);
+        (*it)->setValue(ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
+                        journalBytes);
+    }
     return *this;
 }
 

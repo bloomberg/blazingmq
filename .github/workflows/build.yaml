@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - 'integration/**'
   pull_request:
     branches:
       - main
+      - 'integration/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

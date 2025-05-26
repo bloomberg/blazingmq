@@ -67,13 +67,23 @@ def main() -> None:
         print(f"No cores found in directory: {args.cores_dir}")
 
     for core_path in fpaths:
-        cmd = f"gdb -q -batch -ex bt {args.bin_path} {core_path}"
-        print(f"#CORE: {core_path}")
-        print(f"#COMMAND: {cmd}")
+        cmd = [
+            "gdb",
+            "-q",
+            "-batch",
+            "-ex",
+            "bt full",
+            args.bin_path,
+            core_path,
+        ]
 
-        subprocess.run(cmd.split(), check=True)
+        print(f"::group::{core_path}", flush=True)
+        print(f"#CORE: {core_path}", flush=True)
+        print("#COMMAND: " + " ".join(cmd), flush=True)
 
-        print("")
+        subprocess.run(cmd, check=True)
+
+        print("::endgroup::", flush=True)
 
 
 if __name__ == "__main__":

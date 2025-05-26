@@ -771,9 +771,10 @@ void ClientSession::tearDownAllQueuesDone(const bsl::shared_ptr<void>& session)
 }
 
 void ClientSession::onHandleConfigured(
-    const bmqp_ctrlmsg::Status&           status,
-    const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    const bmqp_ctrlmsg::ControlMessage&   streamParamsCtrlMsg)
+    const bmqp_ctrlmsg::Status&                     status,
+    const bmqp_ctrlmsg::StreamParameters&           streamParameters,
+    const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *ANY* thread
 
@@ -782,19 +783,29 @@ void ClientSession::onHandleConfigured(
                              this,
                              status,
                              streamParameters,
-                             streamParamsCtrlMsg),
+                             streamParamsCtrlMsg,
+                             opLogger),
         this);
 }
 
 void ClientSession::onHandleConfiguredDispatched(
-    const bmqp_ctrlmsg::Status&           status,
-    const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    const bmqp_ctrlmsg::ControlMessage&   streamParamsCtrlMsg)
+    const bmqp_ctrlmsg::Status&                     status,
+    const bmqp_ctrlmsg::StreamParameters&           streamParameters,
+    const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
+    // Want to keep `opLogger` until the end of this scope to log the current
+    // operation execution time.
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    if (isDisconnected()) {
+        // The client is disconnected or the channel is down
+        return;  // RETURN
+    }
 
     const unsigned int qId =
         streamParamsCtrlMsg.choice().isConfigureQueueStreamValue()
@@ -804,22 +815,11 @@ void ClientSession::onHandleConfiguredDispatched(
     ClientSessionState::QueueStateMap::iterator queueStateIter =
         d_queueSessionManager.queues().find(qId);
 
-    d_currentOpDescription << "Configure queue [qId=" << qId;
-
-    if (queueStateIter != d_queueSessionManager.queues().end()) {
-        if (queueStateIter->second.d_handle_p) {
-            d_currentOpDescription
-                << ", uri='"
-                << queueStateIter->second.d_handle_p->queue()->uri() << "'";
-        }
-    }
-
-    d_currentOpDescription << "]";
-
-    if (isDisconnected()) {
-        // The client is disconnected or the channel is down
-        logOperationTime(d_currentOpDescription);
-        return;  // RETURN
+    if (opLogger && queueStateIter != d_queueSessionManager.queues().end() &&
+        queueStateIter->second.d_handle_p) {
+        opLogger->operation()
+            << " [queueId: " << qId << ", queue: '"
+            << queueStateIter->second.d_handle_p->queue()->uri() << "']";
     }
 
     // Send success/error response to client
@@ -882,8 +882,6 @@ void ClientSession::onHandleConfiguredDispatched(
                       << "ENCODING_FAILED, rc: " << rc
                       << ", request: " << streamParamsCtrlMsg
                       << "]: " << response;
-
-        logOperationTime(d_currentOpDescription);
         return;  // RETURN
     }
 
@@ -893,8 +891,6 @@ void ClientSession::onHandleConfiguredDispatched(
 
     // Send the response
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
-
-    logOperationTime(d_currentOpDescription);
 }
 
 void ClientSession::initiateShutdownDispatched(
@@ -907,6 +903,13 @@ void ClientSession::initiateShutdownDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
     BSLS_ASSERT_SAFE(callback);
+
+    bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
+        bsl::allocate_shared<bmqsys::OperationLogger>(d_state.d_allocator_p);
+    opLogger->start() << description() << ": shutdown";
+
+    // Want to keep `opLogger` until the end of this scope to log the current
+    // operation execution time.
 
     BALL_LOG_INFO << description()
                   << ": initiateShutdownDispatched. Timeout: " << timeout;
@@ -1193,31 +1196,9 @@ void ClientSession::closeChannel()
     channel()->close(status);
 }
 
-void ClientSession::logOperationTime(bmqu::MemOutStream& opDescription)
-{
-    if (d_beginTimestamp) {
-        BALL_LOG_INFO_BLOCK
-        {
-            const bsls::Types::Int64 elapsed =
-                bmqsys::Time::highResolutionTimer() - d_beginTimestamp;
-            BALL_LOG_OUTPUT_STREAM
-                << description() << ": " << opDescription.str()
-                << " took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
-                << " (" << elapsed << " nanoseconds)";
-        }
-        d_beginTimestamp = 0;
-    }
-    else {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_WARN << "d_beginTimestamp was not initialized for operation: "
-                      << opDescription.str();
-    }
-
-    opDescription.reset();
-}
-
 void ClientSession::processDisconnectAllQueues(
-    const bmqp_ctrlmsg::ControlMessage& controlMessage)
+    const bmqp_ctrlmsg::ControlMessage&             controlMessage,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1268,11 +1249,13 @@ void ClientSession::processDisconnectAllQueues(
             bmqu::WeakMemFnUtil::weakMemFn(
                 &ClientSession::processDisconnectAllQueuesDone,
                 d_self.acquireWeak()),
-            controlMessage));
+            controlMessage,
+            opLogger));
 }
 
 void ClientSession::processDisconnectAllQueuesDone(
-    const bmqp_ctrlmsg::ControlMessage& controlMessage)
+    const bmqp_ctrlmsg::ControlMessage&             controlMessage,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by ONE of the *QUEUE* dispatcher threads
 
@@ -1285,14 +1268,19 @@ void ClientSession::processDisconnectAllQueuesDone(
         bdlf::BindUtil::bind(
             bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::processDisconnect,
                                            d_self.acquireWeak()),
-            controlMessage),
+            controlMessage,
+            opLogger),
         this);
 }
 
 void ClientSession::processDisconnect(
-    const bmqp_ctrlmsg::ControlMessage& controlMessage)
+    const bmqp_ctrlmsg::ControlMessage&             controlMessage,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
+
+    // Want to keep `opLogger` until the end of this scope to log the current
+    // operation execution time.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1346,7 +1334,8 @@ void ClientSession::processDisconnect(
 }
 
 void ClientSession::processOpenQueue(
-    const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg)
+    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1360,7 +1349,8 @@ void ClientSession::processOpenQueue(
                              bdlf::PlaceHolders::_1,  // status
                              bdlf::PlaceHolders::_2,  // handle
                              bdlf::PlaceHolders::_3,  // response
-                             handleParamsCtrlMsg),
+                             handleParamsCtrlMsg,
+                             opLogger),
         bdlf::BindUtil::bind(&ClientSession::sendErrorResponse,
                              this,
                              bdlf::PlaceHolders::_1,  // failureCategory
@@ -1371,11 +1361,15 @@ void ClientSession::processOpenQueue(
 
 void ClientSession::openQueueCb(
     const bmqp_ctrlmsg::Status& status,
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    const bmqp_ctrlmsg::OpenQueueResponse&    openQueueResponse,
-    const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg)
+    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle*       handle,
+    const bmqp_ctrlmsg::OpenQueueResponse&          openQueueResponse,
+    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
+
+    // Want to keep `opLogger` until the end of this scope to log the current
+    // operation execution time.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1421,15 +1415,11 @@ void ClientSession::openQueueCb(
 
     // Send the response
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
-
-    const bsl::string& queueUri =
-        handleParamsCtrlMsg.choice().openQueue().handleParameters().uri();
-    d_currentOpDescription << "Open queue '" << queueUri << "'";
-    logOperationTime(d_currentOpDescription);
 }
 
 void ClientSession::processCloseQueue(
-    const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg)
+    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1441,7 +1431,8 @@ void ClientSession::processCloseQueue(
         bdlf::BindUtil::bind(&ClientSession::closeQueueCb,
                              this,
                              bdlf::PlaceHolders::_1,  // handle
-                             handleParamsCtrlMsg),
+                             handleParamsCtrlMsg,
+                             opLogger),
         bdlf::BindUtil::bind(&ClientSession::sendErrorResponse,
                              this,
                              bdlf::PlaceHolders::_1,  // failureCategory
@@ -1451,10 +1442,14 @@ void ClientSession::processCloseQueue(
 }
 
 void ClientSession::closeQueueCb(
-    const bsl::shared_ptr<mqbi::QueueHandle>& handle,
-    const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg)
+    const bsl::shared_ptr<mqbi::QueueHandle>&       handle,
+    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
+
+    // Want to keep `opLogger` until the end of this scope to log the current
+    // operation execution time.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1504,15 +1499,11 @@ void ClientSession::closeQueueCb(
         bdlf::BindUtil::bind(&finalizeClosedHandle, description(), handle),
         handle->queue(),
         mqbi::DispatcherEventType::e_DISPATCHER);
-
-    const bsl::string& queueUri =
-        handleParamsCtrlMsg.choice().closeQueue().handleParameters().uri();
-    d_currentOpDescription << "Close queue '" << queueUri << "'";
-    logOperationTime(d_currentOpDescription);
 }
 
 void ClientSession::processConfigureStream(
-    const bmqp_ctrlmsg::ControlMessage& streamParamsCtrlMsg)
+    const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
+    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1609,7 +1600,8 @@ void ClientSession::processConfigureStream(
                                            d_self.acquireWeak()),
             bdlf::PlaceHolders::_1,  // status
             bdlf::PlaceHolders::_2,  // streamParams
-            streamParamsCtrlMsg));
+            streamParamsCtrlMsg,
+            opLogger));
 }
 
 void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
@@ -2670,8 +2662,6 @@ ClientSession::ClientSession(
 , d_periodicUnconfirmedCheckHandler()
 , d_shutdownChain(allocator)
 , d_shutdownCallback()
-, d_beginTimestamp(0)
-, d_currentOpDescription(256, allocator)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
@@ -2712,9 +2702,6 @@ ClientSession::~ClientSession()
 
     // Unregister from the dispatcher
     dispatcher()->unregisterClient(this);
-
-    d_currentOpDescription << "Close session";
-    logOperationTime(d_currentOpDescription);
 }
 
 // MANIPULATORS
@@ -2770,38 +2757,62 @@ void ClientSession::processEvent(
                 return;  // RETURN
             }
 
-            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+            bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
+                bsl::allocate_shared<bmqsys::OperationLogger>(
+                    d_state.d_allocator_p);
+            opLogger->start() << description() << ": disconnect";
 
             d_isDisconnecting = true;
             eventCallback     = bdlf::BindUtil::bind(
                 &ClientSession::processDisconnectAllQueues,
                 this,
-                controlMessage);
+                controlMessage,
+                opLogger);
         } break;
         case MsgChoice::SELECTION_ID_OPEN_QUEUE: {
-            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+            const bsl::string& queueUri =
+                controlMessage.choice().openQueue().handleParameters().uri();
+
+            bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
+                bsl::allocate_shared<bmqsys::OperationLogger>(
+                    d_state.d_allocator_p);
+            opLogger->start() << description() << ": open queue [queue: '"
+                              << queueUri << "']";
 
             eventCallback = bdlf::BindUtil::bind(
                 &ClientSession::processOpenQueue,
                 this,
-                controlMessage);
+                controlMessage,
+                opLogger);
         } break;
         case MsgChoice::SELECTION_ID_CLOSE_QUEUE: {
-            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+            const bsl::string& queueUri =
+                controlMessage.choice().closeQueue().handleParameters().uri();
+
+            bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
+                bsl::allocate_shared<bmqsys::OperationLogger>(
+                    d_state.d_allocator_p);
+            opLogger->start() << description() << ": close queue [queue: '"
+                              << queueUri << "']";
 
             eventCallback = bdlf::BindUtil::bind(
                 &ClientSession::processCloseQueue,
                 this,
-                controlMessage);
+                controlMessage,
+                opLogger);
         } break;
         case MsgChoice::SELECTION_ID_CONFIGURE_QUEUE_STREAM:
         case MsgChoice::SELECTION_ID_CONFIGURE_STREAM: {
-            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
+            bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
+                bsl::allocate_shared<bmqsys::OperationLogger>(
+                    d_state.d_allocator_p);
+            opLogger->start() << description() << ": configure queue";
 
             eventCallback = bdlf::BindUtil::bind(
                 &ClientSession::processConfigureStream,
                 this,
-                controlMessage);
+                controlMessage,
+                opLogger);
         } break;
         case MsgChoice::SELECTION_ID_DISCONNECT_RESPONSE:
         case MsgChoice::SELECTION_ID_OPEN_QUEUE_RESPONSE:
@@ -2919,10 +2930,6 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                                      bool supportShutdownV2)
 {
     // executed by the *ANY* thread
-
-    d_beginTimestamp = bmqsys::Time::highResolutionTimer();
-
-    BALL_LOG_INFO << description() << ": initiateShutdown";
 
     // The 'd_self.acquire()' return 'shared_ptr<ClientSession>' but that does
     // not relate to the 'shared_ptr<mqbnet::Session>' acquired by

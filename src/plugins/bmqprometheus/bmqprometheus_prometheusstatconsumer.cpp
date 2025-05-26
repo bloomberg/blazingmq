@@ -730,8 +730,12 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
             const bsl::string rollover_time = prefix + "rollover_time";
             const bsl::string journal_outstanding_bytes =
                 prefix + "journal_outstanding_bytes";
+            const bsl::string journal_utilization = prefix +
+                                                    "journal_utilization_max";
             const bsl::string data_outstanding_bytes =
                 prefix + "data_outstanding_bytes";
+            const bsl::string data_utilization = prefix +
+                                                 "data_utilization_max";
 
             const DatapointDef defs[] = {
                 {rollover_time.c_str(),
@@ -740,8 +744,15 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                 {journal_outstanding_bytes.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT,
                  false},
+                {journal_utilization.c_str(),
+                 mqbstat::ClusterStats::Stat::
+                     e_PARTITION_JOURNAL_UTILIZATION_MAX,
+                 false},
                 {data_outstanding_bytes.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT,
+                 false},
+                {data_utilization.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_UTILIZATION_MAX,
                  false}};
 
             Tagger tagger;
