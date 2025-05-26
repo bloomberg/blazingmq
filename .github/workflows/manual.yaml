@@ -202,10 +202,13 @@ jobs:
           BLAZINGMQ_BROKER: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_TOOL: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqtool/bmqtool.tsk"
 
+          # Brokers to use repo1:
           BLAZINGMQ_BROKER_EAST1: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+          BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Brokers to use repo2:
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
-          BLAZINGMQ_BROKER_WEST2: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
         run: |
           go install github.com/kevwan/tproxy@latest
           export GOPATH=$HOME/go
