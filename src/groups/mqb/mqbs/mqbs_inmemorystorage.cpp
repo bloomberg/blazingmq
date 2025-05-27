@@ -337,14 +337,14 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
             // This appKey was the last outstanding client for this message.
             // Message can now be deleted.
 
-        int msgLen = it->second.appData()->length();
-        d_capacityMeter.remove(1, msgLen);
-        if (queue()) {
-            queue()->queueEngine()->beforeMessageRemoved(guid);
-        }
-        d_queueStats_sp
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                msgLen);
+            int msgLen = it->second.appData()->length();
+            d_capacityMeter.remove(1, msgLen);
+            if (queue()) {
+                queue()->queueEngine()->beforeMessageRemoved(guid);
+            }
+            d_queueStats_sp
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
 
             // There is not really a need to remove the guid from all virtual
             // storages, because we can be here only if guid doesn't exist in
@@ -355,9 +355,10 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
 
             d_items.erase(it);
 
-        d_queueStats_sp
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_queueStats_sp->onEvent<
+                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
+        }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
     }

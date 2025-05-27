@@ -294,10 +294,22 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID)
 {
-    // Remove all Apps states at once.
-    if (0 == d_dataStream.erase(msgGUID)) {
+    const mqbs::VirtualStorage::DataStream::const_iterator it = d_dataStream.find(msgGUID);
+    if (it == d_dataStream.end()) {
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
+
+    const mqbi::DataStreamMessage &appStates = it->second;
+    for (size_t i = 0; i < appStates.d_apps.size(); i++) {
+        const mqbi::AppMessage &appMessage = appStates.d_apps[i];
+        if (appMessage.isPending()) {
+            d_ordinals[i]->setNumRemoved(d_ordinals[i]->numRemoved() + 1,
+                                         d_ordinals[i]->removedBytes() + appStates.d_size);
+        }
+    }
+
+    // Remove all Apps states at once.
+    d_dataStream.erase(it);
 
     return mqbi::StorageResult::e_SUCCESS;
 }
