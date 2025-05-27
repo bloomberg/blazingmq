@@ -1418,7 +1418,7 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
     BSLS_ASSERT_SAFE(primarySyncCtx.primarySyncInProgress());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << "For Partition [" << partitionId
+                  << ": For Partition [" << partitionId
                   << "], primary sync returned with status: " << status
                   << ".  Resetting primary sync peer from "
                   << (primarySyncCtx.syncPeer()
@@ -2255,7 +2255,7 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
             journalOpRec->syncPointType()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")
                 << d_clusterData_p->identity().description()
-                << ": For partition [" << partitionId << "]"
+                << ": For Partition [" << partitionId << "]"
                 << ", received a syncPoint record of UNDEFINED type (expected "
                 << "type REGULAR/ROLLOVER), in storage message with sequence "
                 << "number (" << syncPointRecHeader->primaryLeaseId() << ", "
