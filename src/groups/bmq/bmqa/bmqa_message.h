@@ -81,6 +81,10 @@ namespace bmqimp {
 class Event;
 }
 
+namespace bmqp {
+class MessageProperties_Schema;
+}
+
 namespace bmqa {
 
 // FORWARD DECLARATION
@@ -116,6 +120,8 @@ struct MessageImpl {
 
     /// SubscriptionHandle this message is associated with
     bmqt::SubscriptionHandle d_subscriptionHandle;
+
+    bsl::shared_ptr<const bmqp::MessageProperties_Schema> d_schema_sp;
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
     /// Optional GroupId this message is associated with
