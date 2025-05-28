@@ -65,7 +65,9 @@ def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
 
-    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, DEFAULT_TIMEOUT)
+    assert wait_until(
+        lambda: len(consumer.list(uri_priority, block=True)) == 2, DEFAULT_TIMEOUT
+    )
 
 
 @start_cluster(start=True, wait_leader=True, wait_ready=True)
@@ -87,15 +89,21 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
     number_posted = 0
+
     def post_message():
         nonlocal number_posted
         number_posted += 1
-        producer.post(uri_priority, payload=[f"msg{number_posted}"], wait_ack=True, succeed=True)
+        producer.post(
+            uri_priority, payload=[f"msg{number_posted}"], wait_ack=True, succeed=True
+        )
 
     def assert_posted():
         nonlocal number_posted
         consumer.wait_push_event()
-        assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == number_posted, DEFAULT_TIMEOUT)
+        assert wait_until(
+            lambda: len(consumer.list(uri_priority, block=True)) == number_posted,
+            DEFAULT_TIMEOUT,
+        )
 
     # Post and receive initial message
     post_message()
