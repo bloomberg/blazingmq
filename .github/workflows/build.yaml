@@ -26,6 +26,8 @@ jobs:
     with:
       ref: ${{ github.sha }}
       target: "bmqbrkr bmqtool all.it"
+      save_build_as_artifacts: true
+      run_unit_tests: false
 
   unit_tests_cxx:
     name: "UT [c++]"
@@ -34,6 +36,8 @@ jobs:
     with:
       ref: ${{ github.sha }}
       target: "all.t"
+      save_build_as_artifacts: false
+      run_unit_tests: true
 
   unit_tests_python:
     name: UT [python]

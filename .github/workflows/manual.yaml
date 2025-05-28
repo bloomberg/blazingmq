@@ -37,6 +37,8 @@ jobs:
     with:
       ref: ${{ github.event.inputs.ref1 }}
       target: "bmqbrkr bmqtool"
+      save_build_as_artifacts: true
+      run_unit_tests: false
   
   build2:
     name: "Build ref ${{ github.event.inputs.ref2 }}"
@@ -45,6 +47,8 @@ jobs:
     with:
       ref: ${{ github.event.inputs.ref2 }}
       target: "bmqbrkr bmqtool"
+      save_build_as_artifacts: true
+      run_unit_tests: false
 
   integration_tests_ubuntu_upgrade_version:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]

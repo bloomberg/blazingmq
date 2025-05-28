@@ -17,6 +17,16 @@ on:
         description: "Build target"
         required: true
         type: string
+      save_build_as_artifacts:
+        description: "Whether to save the build as artifacts"
+        required: true
+        type: boolean
+        default: true
+      run_unit_tests:
+        description: "Whether to run unit tests"
+        required: true
+        type: boolean
+        default: false
     outputs:
       cache_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -40,6 +50,8 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
       
+      # Since input.ref can be a branch, tag or commit SHA,
+      # we need to get the commit SHA to use it in the cache key.
       - name: Get commit SHA
         id: get_sha
         run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
@@ -54,19 +66,21 @@ jobs:
 
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
-        if: inputs.target != 'all.t' # For unit tests we don't cache build
+        if: inputs.save_build_as_artifacts == 'true'
         with:
           path: |
             build/blazingmq
             deps
           key: ${{ steps.get_cache_key.outputs.cache_key }}
-        
+
+      # The following steps restore cached deps
+      # If the cache is not hit, it will build and install the dependencies
+      # If the cache is hit, building deps is skipped, only make install is run
       - uses: actions/cache/restore@v4
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
-
       - name: Set up dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         run: |
@@ -84,12 +98,12 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
-
       - name: Install cached non packaged dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         working-directory: deps
         run: ../docker/build_deps.sh
 
+      # Build BlazingMQ
       - name: Build BlazingMQ
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
         env:
@@ -112,13 +126,20 @@ jobs:
           find . -name "*.a" -type f -delete
 
       - name: Run UT [c++]
-        if: inputs.target == 'all.t'
+        if: inputs.target == 'all.t' && inputs.run_unit_tests == 'true'
         run: |
           cd ${{ github.workspace }}/build/blazingmq
           ctest --output-on-failure -L \^unit\$
 
+      - name: Fail if requrested to run UTs, they were not built
+        if: inputs.target != 'all.t' && inputs.run_unit_tests == 'true'
+        run: |
+          echo "Unit tests were requested to run, but the target is not 'all.t'."
+          echo "Please set the target to 'all.t' to build unit tests."
+          exit 1
+
       - uses: actions/upload-artifact@v4
-        if: inputs.target != 'all.t'
+        if: inputs.save_build_as_artifacts == 'true'
         with:
           path: |
             build/blazingmq
