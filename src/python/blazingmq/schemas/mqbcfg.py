@@ -338,73 +338,6 @@ class ExportMode(Enum):
 
 
 @dataclass
-class GenericKeyValue:
-    """
-    key...: configuration key/name value.: configuration value.
-    """
-
-    key: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    value: Optional["GenericKeyValue.Value"] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-
-    @dataclass
-    class Value:
-        bool_val: Optional[bool] = field(
-            default=None,
-            metadata={
-                "name": "boolVal",
-                "type": "Element",
-                "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            },
-        )
-        int_val: Optional[int] = field(
-            default=None,
-            metadata={
-                "name": "intVal",
-                "type": "Element",
-                "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            },
-        )
-        long_val: Optional[int] = field(
-            default=None,
-            metadata={
-                "name": "longVal",
-                "type": "Element",
-                "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            },
-        )
-        double_val: Optional[float] = field(
-            default=None,
-            metadata={
-                "name": "doubleVal",
-                "type": "Element",
-                "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            },
-        )
-        string_val: Optional[str] = field(
-            default=None,
-            metadata={
-                "name": "stringVal",
-                "type": "Element",
-                "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            },
-        )
-
-
-@dataclass
 class Heartbeat:
     """The following parameters define, for the various connection types, after how
     many missed heartbeats the connection should be proactively resetted.
@@ -596,6 +529,50 @@ class MessageThrottleConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+
+
+@dataclass
+class PluginConfigValue:
+    bool_val: Optional[bool] = field(
+        default=None,
+        metadata={
+            "name": "boolVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    int_val: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "intVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    long_val: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "longVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    double_val: Optional[float] = field(
+        default=None,
+        metadata={
+            "name": "doubleVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    string_val: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "stringVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
     )
 
@@ -1126,33 +1103,6 @@ class VirtualClusterInformation:
 
 
 @dataclass
-class AuthenticatorPluginConfig:
-    """The configuration for an authenticator plugin.
-
-    name....:
-    The name of the authenticator plugin.
-    configs.:
-    Plugin-specific configurations.
-    """
-
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    configs: List[GenericKeyValue] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-        },
-    )
-
-
-@dataclass
 class ClusterNodeConnection:
     """Choice of all the various transport mode available to establish connectivity
     with a node.
@@ -1425,6 +1375,32 @@ class PartitionConfig:
 
 
 @dataclass
+class PluginConfigKeyValue:
+    """The key-value pair used for plugin configurations.
+
+    key...: configuration key/name
+    value.: configuration value
+    """
+
+    key: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    value: Optional[PluginConfigValue] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
 class StatPluginConfigPrometheus:
     mode: ExportMode = field(
         default=ExportMode.E_PULL,
@@ -1563,32 +1539,26 @@ class TcpInterfaceConfig:
 
 
 @dataclass
-class AuthenticatorConfig:
-    """Top level type for the broker's authentication configurations.
+class AuthenticatorPluginConfig:
+    """The configuration for an authenticator plugin.
 
-    plugins...........:
-    Configurations for authenticator plugins. A config should be present
-    for each authenticator plugin enabled on the broker.
-    fallbackPrincipal.:
-    Principal to assign to a client in case the client does not support
-    authentication or has not been configured to authenticate. When set,
-    authentication is effectively optional. When not set, authentication
-    is required and clients which cannot or do not authenticate will be
-    rejected.
+    name....:
+    The name of the authenticator plugin.
+    configs.:
+    Plugin-specific configurations.
     """
 
-    plugins: List[AuthenticatorPluginConfig] = field(
-        default_factory=list,
+    name: Optional[str] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
+            "required": True,
         },
     )
-    fallback_principal: Optional[str] = field(
-        default=None,
+    configs: List[PluginConfigKeyValue] = field(
+        default_factory=list,
         metadata={
-            "name": "fallbackPrincipal",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
@@ -1825,6 +1795,39 @@ class TaskConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+
+
+@dataclass
+class AuthenticatorConfig:
+    """Top level type for the broker's authentication configurations.
+
+    plugins...........:
+    Configurations for authenticator plugins. A config should be present
+    for each authenticator plugin enabled on the broker.
+    fallbackPrincipal.:
+    Principal to assign to a client in case the client does not support
+    authentication or has not been configured to authenticate. When set,
+    authentication is effectively optional. When not set, authentication
+    is required and clients which cannot or do not authenticate will be
+    rejected.
+    """
+
+    plugins: List[AuthenticatorPluginConfig] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "min_occurs": 1,
+        },
+    )
+    fallback_principal: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "fallbackPrincipal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
     )
 

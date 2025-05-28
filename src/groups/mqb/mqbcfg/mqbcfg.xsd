@@ -342,31 +342,34 @@
     </annotation>
     <sequence>
       <element name='name'    type='string'/>
-      <element name='configs' type='tns:GenericKeyValue' minOccurs='0' maxOccurs='unbounded'/>
+      <element name='configs' type='tns:PluginConfigKeyValue' minOccurs='0' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
-  <complexType name="GenericKeyValue">
+  <complexType name="PluginConfigKeyValue">
     <annotation>
       <documentation>
+        The key-value pair used for plugin configurations.
+
         key...: configuration key/name
         value.: configuration value
       </documentation>
     </annotation>
     <sequence>
       <element name='key' type='string'/>
-      <element name='value'>
-        <complexType>
-          <choice>
-            <element name='boolVal'   type='boolean'/>
-            <element name='intVal'    type='int'/>
-            <element name='longVal'   type='long'/>
-            <element name='doubleVal' type='double'/>
-            <element name='stringVal' type='string'/>
-          </choice>
-        </complexType>
+      <element name='value' type="tns:PluginConfigValue">
       </element>
     </sequence>
+  </complexType>
+
+  <complexType name="PluginConfigValue">
+    <choice>
+      <element name='boolVal'   type='boolean'/>
+      <element name='intVal'    type='int'/>
+      <element name='longVal'   type='long'/>
+      <element name='doubleVal' type='double'/>
+      <element name='stringVal' type='string'/>
+    </choice>
   </complexType>
 
   <!-- ========================================================================
