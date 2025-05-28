@@ -93,9 +93,9 @@ bslstl::StringRef PassAuthenticator::mechanism() const
 }
 
 int PassAuthenticator::authenticate(
-    bsl::ostream&                                   errorDescription,
+    BSLS_ANNOTATION_UNUSED bsl::ostream&            errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    const mqbplug::AuthenticationData&              input) const
+    BSLS_ANNOTATION_UNUSED const mqbplug::AuthenticationData& input) const
 {
     *result = bsl::allocate_shared<PassAuthenticationResult>(d_allocator_p,
                                                              "",
