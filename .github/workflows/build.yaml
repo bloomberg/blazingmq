@@ -199,11 +199,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The following steps restore cached deps
+      # If the cache is not hit, it will build and install the dependencies
+      # If the cache is hit, building deps is skipped, only make install is run
       - uses: actions/cache/restore@v4
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
-
       - name: Set up plugins dependencies
         run: |
           sudo apt-get update
@@ -221,7 +223,6 @@ jobs:
             libz-dev \
             autoconf \
             libtool
-
       - name: Install cached non packaged dependencies
         working-directory: deps
         run: ../docker/build_deps.sh
