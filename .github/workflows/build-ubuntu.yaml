@@ -66,7 +66,7 @@ jobs:
 
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
-        if: inputs.save_build_as_artifacts == 'true'
+        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         with:
           path: |
             build/blazingmq
@@ -77,12 +77,12 @@ jobs:
       # If the cache is not hit, it will build and install the dependencies
       # If the cache is hit, building deps is skipped, only make install is run
       - uses: actions/cache/restore@v4
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
       - name: Set up dependencies
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         run: |
           sudo apt-get update
           sudo apt-get install -qy build-essential \
@@ -99,13 +99,13 @@ jobs:
             libgmock-dev \
             libz-dev
       - name: Install cached non packaged dependencies
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         working-directory: deps
         run: ../docker/build_deps.sh
 
       # Build BlazingMQ
       - name: Build BlazingMQ
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
@@ -120,26 +120,26 @@ jobs:
           cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
 
       - name: Clean-up build directories before caching
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
 
       - name: Run UT [c++]
-        if: inputs.target == 'all.t' && inputs.run_unit_tests == 'true'
+        if: inputs.target == 'all.t' && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
           cd ${{ github.workspace }}/build/blazingmq
           ctest --output-on-failure -L \^unit\$
 
       - name: Fail if requrested to run UTs, they were not built
-        if: inputs.target != 'all.t' && inputs.run_unit_tests == 'true'
+        if: inputs.target != 'all.t' && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
           echo "Unit tests were requested to run, but the target is not 'all.t'."
           echo "Please set the target to 'all.t' to build unit tests."
           exit 1
 
       - uses: actions/upload-artifact@v4
-        if: inputs.save_build_as_artifacts == 'true'
+        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         with:
           path: |
             build/blazingmq
@@ -148,7 +148,7 @@ jobs:
           retention-days: 1
 
       - name: Build Cache Save
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         uses: actions/cache/save@v4
         with:
           path: |
