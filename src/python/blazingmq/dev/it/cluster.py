@@ -25,6 +25,7 @@ import signal
 from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
 import os
+import time
 
 from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.proc
@@ -287,7 +288,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.wait_status(wait_leader, wait_ready)
 
-    def stop_nodes(self):
+    def stop_nodes(self, retries=4):
         """Stop the nodes in the cluster.
 
         NOTE: this method does *not* stop the proxies.
@@ -301,7 +302,18 @@ class Cluster(contextlib.AbstractContextManager):
                 node.stop()
 
         for node in self.nodes():
-            if node.is_alive():
+            is_alive = True
+            for attempt in range(retries):
+                if node.is_alive():
+                    # Empirical experiements show that usually wait time is 6 seconds
+                    # So it takes 2 retry attampts to stop a node
+                    delay = pow(2, attempt + 1)
+                    time.sleep(delay)
+                else:
+                    is_alive = False
+                    break
+
+            if is_alive:
                 error = f"node {node.name} refused to stop"
                 self._error(error)
 

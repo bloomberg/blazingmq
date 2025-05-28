@@ -28,6 +28,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from blazingmq.dev.it.util import wait_until
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
+DEFAULT_TIMEOUT = 2
 
 
 def update_and_redeploy(cluster: Cluster):
@@ -64,7 +65,7 @@ def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
 
-    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
+    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, DEFAULT_TIMEOUT)
 
 
 @start_cluster(start=True, wait_leader=True, wait_ready=True)
@@ -76,11 +77,29 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
 
     uri_priority = domain_urls.uri_priority
 
-    # Start a producer and post a message.
+    # Start a producer and consumer
     proxies = multi3_node.proxy_cycle()
     producer = next(proxies).create_client("producer")
+    consumer = next(proxies).create_client("consumer")
+
+    # Open queue
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
-    producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    number_posted = 0
+    def post_message():
+        nonlocal number_posted
+        number_posted += 1
+        producer.post(uri_priority, payload=[f"msg{number_posted}"], wait_ack=True, succeed=True)
+
+    def assert_posted():
+        nonlocal number_posted
+        consumer.wait_push_event()
+        assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == number_posted, DEFAULT_TIMEOUT)
+
+    # Post and receive initial message
+    post_message()
+    assert_posted()
 
     for broker in multi3_node.configurator.brokers.values():
         # Stop all nodes
@@ -92,9 +111,10 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
         # Restart all nodes to apply binary update
         multi3_node.start_nodes(wait_leader=True, wait_ready=True)
 
-    producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
+        # Post and receive message after each redeploy
+        post_message()
+        assert_posted()
 
-    consumer = next(proxies).create_client("consumer")
-    consumer.open(uri_priority, flags=["read"], succeed=True)
-    consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
+    # Post and receive final message after all nodes have been redeployed
+    post_message()
+    assert_posted()
