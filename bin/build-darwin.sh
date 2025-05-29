@@ -164,7 +164,7 @@ CMAKE_OPTIONS=(\
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib/pkgconfig:${BREW_PKG_CONFIG_PATH}" \
 cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
-make -C "${DIR_BUILD}/blazingmq" -j 16
+cmake --build "${DIR_BUILD}/blazingmq" --parallel 16 --target bmqbrkr bmqtool all.it bmqauthnpass bmqauthnfail
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
 echo to run the broker: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/run"

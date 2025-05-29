@@ -49,7 +49,7 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u opt_64_cpp17)"
+    eval "$(bbs_build_env -u opt_64_cpp17_pic)"
 }
 
 build_bde() {
@@ -68,7 +68,7 @@ build_ntf() {
         --without-usage-examples     \
         --without-applications       \
         --without-warnings-as-errors \
-        --ufid opt_64_cpp17
+        --ufid opt_64_cpp17_pic
     make -j8
     make install
     popd

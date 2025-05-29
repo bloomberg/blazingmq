@@ -760,6 +760,498 @@ const char* ExportMode::toString(ExportMode::Value value)
     return 0;
 }
 
+// --------------------------
+// class GenericKeyValueValue
+// --------------------------
+
+// CONSTANTS
+
+const char GenericKeyValueValue::CLASS_NAME[] = "GenericKeyValueValue";
+
+const bdlat_SelectionInfo GenericKeyValueValue::SELECTION_INFO_ARRAY[] = {
+    {SELECTION_ID_BOOL_VAL,
+     "boolVal",
+     sizeof("boolVal") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {SELECTION_ID_INT_VAL,
+     "intVal",
+     sizeof("intVal") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {SELECTION_ID_LONG_VAL,
+     "longVal",
+     sizeof("longVal") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {SELECTION_ID_DOUBLE_VAL,
+     "doubleVal",
+     sizeof("doubleVal") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_STRING_VAL,
+     "stringVal",
+     sizeof("stringVal") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_SelectionInfo*
+GenericKeyValueValue::lookupSelectionInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 5; ++i) {
+        const bdlat_SelectionInfo& selectionInfo =
+            GenericKeyValueValue::SELECTION_INFO_ARRAY[i];
+
+        if (nameLength == selectionInfo.d_nameLength &&
+            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
+            return &selectionInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_SelectionInfo* GenericKeyValueValue::lookupSelectionInfo(int id)
+{
+    switch (id) {
+    case SELECTION_ID_BOOL_VAL:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_BOOL_VAL];
+    case SELECTION_ID_INT_VAL:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_INT_VAL];
+    case SELECTION_ID_LONG_VAL:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_LONG_VAL];
+    case SELECTION_ID_DOUBLE_VAL:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_DOUBLE_VAL];
+    case SELECTION_ID_STRING_VAL:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_STRING_VAL];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+GenericKeyValueValue::GenericKeyValueValue(
+    const GenericKeyValueValue& original,
+    bslma::Allocator*           basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL: {
+        new (d_boolVal.buffer()) bool(original.d_boolVal.object());
+    } break;
+    case SELECTION_ID_INT_VAL: {
+        new (d_intVal.buffer()) int(original.d_intVal.object());
+    } break;
+    case SELECTION_ID_LONG_VAL: {
+        new (d_longVal.buffer())
+            bsls::Types::Int64(original.d_longVal.object());
+    } break;
+    case SELECTION_ID_DOUBLE_VAL: {
+        new (d_doubleVal.buffer()) double(original.d_doubleVal.object());
+    } break;
+    case SELECTION_ID_STRING_VAL: {
+        new (d_stringVal.buffer())
+            bsl::string(original.d_stringVal.object(), d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+GenericKeyValueValue::GenericKeyValueValue(GenericKeyValueValue&& original)
+    noexcept : d_selectionId(original.d_selectionId),
+               d_allocator_p(original.d_allocator_p)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL: {
+        new (d_boolVal.buffer()) bool(bsl::move(original.d_boolVal.object()));
+    } break;
+    case SELECTION_ID_INT_VAL: {
+        new (d_intVal.buffer()) int(bsl::move(original.d_intVal.object()));
+    } break;
+    case SELECTION_ID_LONG_VAL: {
+        new (d_longVal.buffer())
+            bsls::Types::Int64(bsl::move(original.d_longVal.object()));
+    } break;
+    case SELECTION_ID_DOUBLE_VAL: {
+        new (d_doubleVal.buffer()) double(
+            bsl::move(original.d_doubleVal.object()));
+    } break;
+    case SELECTION_ID_STRING_VAL: {
+        new (d_stringVal.buffer())
+            bsl::string(bsl::move(original.d_stringVal.object()),
+                        d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+GenericKeyValueValue::GenericKeyValueValue(GenericKeyValueValue&& original,
+                                           bslma::Allocator* basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL: {
+        new (d_boolVal.buffer()) bool(bsl::move(original.d_boolVal.object()));
+    } break;
+    case SELECTION_ID_INT_VAL: {
+        new (d_intVal.buffer()) int(bsl::move(original.d_intVal.object()));
+    } break;
+    case SELECTION_ID_LONG_VAL: {
+        new (d_longVal.buffer())
+            bsls::Types::Int64(bsl::move(original.d_longVal.object()));
+    } break;
+    case SELECTION_ID_DOUBLE_VAL: {
+        new (d_doubleVal.buffer()) double(
+            bsl::move(original.d_doubleVal.object()));
+    } break;
+    case SELECTION_ID_STRING_VAL: {
+        new (d_stringVal.buffer())
+            bsl::string(bsl::move(original.d_stringVal.object()),
+                        d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+#endif
+
+// MANIPULATORS
+
+GenericKeyValueValue&
+GenericKeyValueValue::operator=(const GenericKeyValueValue& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_BOOL_VAL: {
+            makeBoolVal(rhs.d_boolVal.object());
+        } break;
+        case SELECTION_ID_INT_VAL: {
+            makeIntVal(rhs.d_intVal.object());
+        } break;
+        case SELECTION_ID_LONG_VAL: {
+            makeLongVal(rhs.d_longVal.object());
+        } break;
+        case SELECTION_ID_DOUBLE_VAL: {
+            makeDoubleVal(rhs.d_doubleVal.object());
+        } break;
+        case SELECTION_ID_STRING_VAL: {
+            makeStringVal(rhs.d_stringVal.object());
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+GenericKeyValueValue&
+GenericKeyValueValue::operator=(GenericKeyValueValue&& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_BOOL_VAL: {
+            makeBoolVal(bsl::move(rhs.d_boolVal.object()));
+        } break;
+        case SELECTION_ID_INT_VAL: {
+            makeIntVal(bsl::move(rhs.d_intVal.object()));
+        } break;
+        case SELECTION_ID_LONG_VAL: {
+            makeLongVal(bsl::move(rhs.d_longVal.object()));
+        } break;
+        case SELECTION_ID_DOUBLE_VAL: {
+            makeDoubleVal(bsl::move(rhs.d_doubleVal.object()));
+        } break;
+        case SELECTION_ID_STRING_VAL: {
+            makeStringVal(bsl::move(rhs.d_stringVal.object()));
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+#endif
+
+void GenericKeyValueValue::reset()
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL: {
+        // no destruction required
+    } break;
+    case SELECTION_ID_INT_VAL: {
+        // no destruction required
+    } break;
+    case SELECTION_ID_LONG_VAL: {
+        // no destruction required
+    } break;
+    case SELECTION_ID_DOUBLE_VAL: {
+        // no destruction required
+    } break;
+    case SELECTION_ID_STRING_VAL: {
+        typedef bsl::string Type;
+        d_stringVal.object().~Type();
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+
+    d_selectionId = SELECTION_ID_UNDEFINED;
+}
+
+int GenericKeyValueValue::makeSelection(int selectionId)
+{
+    switch (selectionId) {
+    case SELECTION_ID_BOOL_VAL: {
+        makeBoolVal();
+    } break;
+    case SELECTION_ID_INT_VAL: {
+        makeIntVal();
+    } break;
+    case SELECTION_ID_LONG_VAL: {
+        makeLongVal();
+    } break;
+    case SELECTION_ID_DOUBLE_VAL: {
+        makeDoubleVal();
+    } break;
+    case SELECTION_ID_STRING_VAL: {
+        makeStringVal();
+    } break;
+    case SELECTION_ID_UNDEFINED: {
+        reset();
+    } break;
+    default: return -1;
+    }
+    return 0;
+}
+
+int GenericKeyValueValue::makeSelection(const char* name, int nameLength)
+{
+    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
+                                                                   nameLength);
+    if (0 == selectionInfo) {
+        return -1;
+    }
+
+    return makeSelection(selectionInfo->d_id);
+}
+
+bool& GenericKeyValueValue::makeBoolVal()
+{
+    if (SELECTION_ID_BOOL_VAL == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_boolVal.object());
+    }
+    else {
+        reset();
+        new (d_boolVal.buffer()) bool();
+        d_selectionId = SELECTION_ID_BOOL_VAL;
+    }
+
+    return d_boolVal.object();
+}
+
+bool& GenericKeyValueValue::makeBoolVal(bool value)
+{
+    if (SELECTION_ID_BOOL_VAL == d_selectionId) {
+        d_boolVal.object() = value;
+    }
+    else {
+        reset();
+        new (d_boolVal.buffer()) bool(value);
+        d_selectionId = SELECTION_ID_BOOL_VAL;
+    }
+
+    return d_boolVal.object();
+}
+
+int& GenericKeyValueValue::makeIntVal()
+{
+    if (SELECTION_ID_INT_VAL == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_intVal.object());
+    }
+    else {
+        reset();
+        new (d_intVal.buffer()) int();
+        d_selectionId = SELECTION_ID_INT_VAL;
+    }
+
+    return d_intVal.object();
+}
+
+int& GenericKeyValueValue::makeIntVal(int value)
+{
+    if (SELECTION_ID_INT_VAL == d_selectionId) {
+        d_intVal.object() = value;
+    }
+    else {
+        reset();
+        new (d_intVal.buffer()) int(value);
+        d_selectionId = SELECTION_ID_INT_VAL;
+    }
+
+    return d_intVal.object();
+}
+
+bsls::Types::Int64& GenericKeyValueValue::makeLongVal()
+{
+    if (SELECTION_ID_LONG_VAL == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_longVal.object());
+    }
+    else {
+        reset();
+        new (d_longVal.buffer()) bsls::Types::Int64();
+        d_selectionId = SELECTION_ID_LONG_VAL;
+    }
+
+    return d_longVal.object();
+}
+
+bsls::Types::Int64& GenericKeyValueValue::makeLongVal(bsls::Types::Int64 value)
+{
+    if (SELECTION_ID_LONG_VAL == d_selectionId) {
+        d_longVal.object() = value;
+    }
+    else {
+        reset();
+        new (d_longVal.buffer()) bsls::Types::Int64(value);
+        d_selectionId = SELECTION_ID_LONG_VAL;
+    }
+
+    return d_longVal.object();
+}
+
+double& GenericKeyValueValue::makeDoubleVal()
+{
+    if (SELECTION_ID_DOUBLE_VAL == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_doubleVal.object());
+    }
+    else {
+        reset();
+        new (d_doubleVal.buffer()) double();
+        d_selectionId = SELECTION_ID_DOUBLE_VAL;
+    }
+
+    return d_doubleVal.object();
+}
+
+double& GenericKeyValueValue::makeDoubleVal(double value)
+{
+    if (SELECTION_ID_DOUBLE_VAL == d_selectionId) {
+        d_doubleVal.object() = value;
+    }
+    else {
+        reset();
+        new (d_doubleVal.buffer()) double(value);
+        d_selectionId = SELECTION_ID_DOUBLE_VAL;
+    }
+
+    return d_doubleVal.object();
+}
+
+bsl::string& GenericKeyValueValue::makeStringVal()
+{
+    if (SELECTION_ID_STRING_VAL == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_stringVal.object());
+    }
+    else {
+        reset();
+        new (d_stringVal.buffer()) bsl::string(d_allocator_p);
+        d_selectionId = SELECTION_ID_STRING_VAL;
+    }
+
+    return d_stringVal.object();
+}
+
+bsl::string& GenericKeyValueValue::makeStringVal(const bsl::string& value)
+{
+    if (SELECTION_ID_STRING_VAL == d_selectionId) {
+        d_stringVal.object() = value;
+    }
+    else {
+        reset();
+        new (d_stringVal.buffer()) bsl::string(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_STRING_VAL;
+    }
+
+    return d_stringVal.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+bsl::string& GenericKeyValueValue::makeStringVal(bsl::string&& value)
+{
+    if (SELECTION_ID_STRING_VAL == d_selectionId) {
+        d_stringVal.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_stringVal.buffer())
+            bsl::string(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_STRING_VAL;
+    }
+
+    return d_stringVal.object();
+}
+#endif
+
+// ACCESSORS
+
+bsl::ostream& GenericKeyValueValue::print(bsl::ostream& stream,
+                                          int           level,
+                                          int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL: {
+        printer.printAttribute("boolVal", d_boolVal.object());
+    } break;
+    case SELECTION_ID_INT_VAL: {
+        printer.printAttribute("intVal", d_intVal.object());
+    } break;
+    case SELECTION_ID_LONG_VAL: {
+        printer.printAttribute("longVal", d_longVal.object());
+    } break;
+    case SELECTION_ID_DOUBLE_VAL: {
+        printer.printAttribute("doubleVal", d_doubleVal.object());
+    } break;
+    case SELECTION_ID_STRING_VAL: {
+        printer.printAttribute("stringVal", d_stringVal.object());
+    } break;
+    default: stream << "SELECTION UNDEFINED\n";
+    }
+    printer.end();
+    return stream;
+}
+
+const char* GenericKeyValueValue::selectionName() const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_BOOL_VAL].name();
+    case SELECTION_ID_INT_VAL:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_INT_VAL].name();
+    case SELECTION_ID_LONG_VAL:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_LONG_VAL].name();
+    case SELECTION_ID_DOUBLE_VAL:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_DOUBLE_VAL].name();
+    case SELECTION_ID_STRING_VAL:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_STRING_VAL].name();
+    default:
+        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+        return "(* UNDEFINED *)";
+    }
+}
+
 // ---------------
 // class Heartbeat
 // ---------------
@@ -3015,6 +3507,134 @@ bsl::ostream& DispatcherProcessorConfig::print(bsl::ostream& stream,
     return stream;
 }
 
+// ---------------------
+// class GenericKeyValue
+// ---------------------
+
+// CONSTANTS
+
+const char GenericKeyValue::CLASS_NAME[] = "GenericKeyValue";
+
+const bdlat_AttributeInfo GenericKeyValue::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_KEY,
+     "key",
+     sizeof("key") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_VALUE,
+     "value",
+     sizeof("value") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+GenericKeyValue::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            GenericKeyValue::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* GenericKeyValue::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_KEY: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY];
+    case ATTRIBUTE_ID_VALUE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VALUE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+GenericKeyValue::GenericKeyValue(bslma::Allocator* basicAllocator)
+: d_key(basicAllocator)
+, d_value(basicAllocator)
+{
+}
+
+GenericKeyValue::GenericKeyValue(const GenericKeyValue& original,
+                                 bslma::Allocator*      basicAllocator)
+: d_key(original.d_key, basicAllocator)
+, d_value(original.d_value, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+GenericKeyValue::GenericKeyValue(GenericKeyValue&& original) noexcept
+: d_key(bsl::move(original.d_key)),
+  d_value(bsl::move(original.d_value))
+{
+}
+
+GenericKeyValue::GenericKeyValue(GenericKeyValue&& original,
+                                 bslma::Allocator* basicAllocator)
+: d_key(bsl::move(original.d_key), basicAllocator)
+, d_value(bsl::move(original.d_value), basicAllocator)
+{
+}
+#endif
+
+GenericKeyValue::~GenericKeyValue()
+{
+}
+
+// MANIPULATORS
+
+GenericKeyValue& GenericKeyValue::operator=(const GenericKeyValue& rhs)
+{
+    if (this != &rhs) {
+        d_key   = rhs.d_key;
+        d_value = rhs.d_value;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+GenericKeyValue& GenericKeyValue::operator=(GenericKeyValue&& rhs)
+{
+    if (this != &rhs) {
+        d_key   = bsl::move(rhs.d_key);
+        d_value = bsl::move(rhs.d_value);
+    }
+
+    return *this;
+}
+#endif
+
+void GenericKeyValue::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_key);
+    bdlat_ValueTypeFunctions::reset(&d_value);
+}
+
+// ACCESSORS
+
+bsl::ostream& GenericKeyValue::print(bsl::ostream& stream,
+                                     int           level,
+                                     int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("key", this->key());
+    printer.printAttribute("value", this->value());
+    printer.end();
+    return stream;
+}
+
 // -------------------
 // class LogController
 // -------------------
@@ -3995,6 +4615,143 @@ bsl::ostream& TcpInterfaceConfig::print(bsl::ostream& stream,
     return stream;
 }
 
+// -------------------------------
+// class AuthenticatorPluginConfig
+// -------------------------------
+
+// CONSTANTS
+
+const char AuthenticatorPluginConfig::CLASS_NAME[] =
+    "AuthenticatorPluginConfig";
+
+const bdlat_AttributeInfo AuthenticatorPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_NAME,
+     "name",
+     sizeof("name") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_CONFIGS,
+     "configs",
+     sizeof("configs") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthenticatorPluginConfig::lookupAttributeInfo(const char* name,
+                                               int         nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthenticatorPluginConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo*
+AuthenticatorPluginConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
+    case ATTRIBUTE_ID_CONFIGS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticatorPluginConfig::AuthenticatorPluginConfig(
+    bslma::Allocator* basicAllocator)
+: d_configs(basicAllocator)
+, d_name(basicAllocator)
+{
+}
+
+AuthenticatorPluginConfig::AuthenticatorPluginConfig(
+    const AuthenticatorPluginConfig& original,
+    bslma::Allocator*                basicAllocator)
+: d_configs(original.d_configs, basicAllocator)
+, d_name(original.d_name, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticatorPluginConfig::AuthenticatorPluginConfig(
+    AuthenticatorPluginConfig&& original) noexcept
+: d_configs(bsl::move(original.d_configs)),
+  d_name(bsl::move(original.d_name))
+{
+}
+
+AuthenticatorPluginConfig::AuthenticatorPluginConfig(
+    AuthenticatorPluginConfig&& original,
+    bslma::Allocator*           basicAllocator)
+: d_configs(bsl::move(original.d_configs), basicAllocator)
+, d_name(bsl::move(original.d_name), basicAllocator)
+{
+}
+#endif
+
+AuthenticatorPluginConfig::~AuthenticatorPluginConfig()
+{
+}
+
+// MANIPULATORS
+
+AuthenticatorPluginConfig&
+AuthenticatorPluginConfig::operator=(const AuthenticatorPluginConfig& rhs)
+{
+    if (this != &rhs) {
+        d_name    = rhs.d_name;
+        d_configs = rhs.d_configs;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticatorPluginConfig&
+AuthenticatorPluginConfig::operator=(AuthenticatorPluginConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_name    = bsl::move(rhs.d_name);
+        d_configs = bsl::move(rhs.d_configs);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticatorPluginConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_name);
+    bdlat_ValueTypeFunctions::reset(&d_configs);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthenticatorPluginConfig::print(bsl::ostream& stream,
+                                               int           level,
+                                               int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("name", this->name());
+    printer.printAttribute("configs", this->configs());
+    printer.end();
+    return stream;
+}
+
 // -----------------
 // class ClusterNode
 // -----------------
@@ -4755,6 +5512,136 @@ TaskConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
+// -------------------------
+// class AuthenticatorConfig
+// -------------------------
+
+// CONSTANTS
+
+const char AuthenticatorConfig::CLASS_NAME[] = "AuthenticatorConfig";
+
+const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_PLUGINS,
+     "plugins",
+     sizeof("plugins") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_FALLBACK_PRINCIPAL,
+     "fallbackPrincipal",
+     sizeof("fallbackPrincipal") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthenticatorConfig::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_PLUGINS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS];
+    case ATTRIBUTE_ID_FALLBACK_PRINCIPAL:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FALLBACK_PRINCIPAL];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticatorConfig::AuthenticatorConfig(bslma::Allocator* basicAllocator)
+: d_plugins(basicAllocator)
+, d_fallbackPrincipal(basicAllocator)
+{
+}
+
+AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
+                                         bslma::Allocator* basicAllocator)
+: d_plugins(original.d_plugins, basicAllocator)
+, d_fallbackPrincipal(original.d_fallbackPrincipal, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original)
+    noexcept : d_plugins(bsl::move(original.d_plugins)),
+               d_fallbackPrincipal(bsl::move(original.d_fallbackPrincipal))
+{
+}
+
+AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original,
+                                         bslma::Allocator*     basicAllocator)
+: d_plugins(bsl::move(original.d_plugins), basicAllocator)
+, d_fallbackPrincipal(bsl::move(original.d_fallbackPrincipal), basicAllocator)
+{
+}
+#endif
+
+AuthenticatorConfig::~AuthenticatorConfig()
+{
+}
+
+// MANIPULATORS
+
+AuthenticatorConfig&
+AuthenticatorConfig::operator=(const AuthenticatorConfig& rhs)
+{
+    if (this != &rhs) {
+        d_plugins           = rhs.d_plugins;
+        d_fallbackPrincipal = rhs.d_fallbackPrincipal;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticatorConfig& AuthenticatorConfig::operator=(AuthenticatorConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_plugins           = bsl::move(rhs.d_plugins);
+        d_fallbackPrincipal = bsl::move(rhs.d_fallbackPrincipal);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticatorConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_plugins);
+    bdlat_ValueTypeFunctions::reset(&d_fallbackPrincipal);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthenticatorConfig::print(bsl::ostream& stream,
+                                         int           level,
+                                         int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("plugins", this->plugins());
+    printer.printAttribute("fallbackPrincipal", this->fallbackPrincipal());
+    printer.end();
+    return stream;
+}
+
 // -----------------------
 // class ClusterDefinition
 // -----------------------
@@ -5428,14 +6315,19 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "routeCommandTimeoutMs",
      sizeof("routeCommandTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_AUTHENTICATION,
+     "authentication",
+     sizeof("authentication") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 19; ++i) {
+    for (int i = 0; i < 20; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5489,6 +6381,8 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS];
     case ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS];
+    case ATTRIBUTE_ID_AUTHENTICATION:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION];
     default: return 0;
     }
 }
@@ -5509,6 +6403,7 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_messagePropertiesV2()
 , d_dispatcherConfig()
 , d_bmqconfConfig()
+, d_authentication(basicAllocator)
 , d_brokerVersion()
 , d_configVersion()
 , d_logsObserverMaxSize()
@@ -5533,6 +6428,7 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_messagePropertiesV2(original.d_messagePropertiesV2)
 , d_dispatcherConfig(original.d_dispatcherConfig)
 , d_bmqconfConfig(original.d_bmqconfConfig)
+, d_authentication(original.d_authentication, basicAllocator)
 , d_brokerVersion(original.d_brokerVersion)
 , d_configVersion(original.d_configVersion)
 , d_logsObserverMaxSize(original.d_logsObserverMaxSize)
@@ -5558,6 +6454,7 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_messagePropertiesV2(bsl::move(original.d_messagePropertiesV2)),
   d_dispatcherConfig(bsl::move(original.d_dispatcherConfig)),
   d_bmqconfConfig(bsl::move(original.d_bmqconfConfig)),
+  d_authentication(bsl::move(original.d_authentication)),
   d_brokerVersion(bsl::move(original.d_brokerVersion)),
   d_configVersion(bsl::move(original.d_configVersion)),
   d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize)),
@@ -5583,6 +6480,7 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_messagePropertiesV2(bsl::move(original.d_messagePropertiesV2))
 , d_dispatcherConfig(bsl::move(original.d_dispatcherConfig))
 , d_bmqconfConfig(bsl::move(original.d_bmqconfConfig))
+, d_authentication(bsl::move(original.d_authentication), basicAllocator)
 , d_brokerVersion(bsl::move(original.d_brokerVersion))
 , d_configVersion(bsl::move(original.d_configVersion))
 , d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize))
@@ -5622,6 +6520,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_configureStream        = rhs.d_configureStream;
         d_advertiseSubscriptions = rhs.d_advertiseSubscriptions;
         d_routeCommandTimeoutMs  = rhs.d_routeCommandTimeoutMs;
+        d_authentication         = rhs.d_authentication;
     }
 
     return *this;
@@ -5651,6 +6550,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_configureStream        = bsl::move(rhs.d_configureStream);
         d_advertiseSubscriptions = bsl::move(rhs.d_advertiseSubscriptions);
         d_routeCommandTimeoutMs  = bsl::move(rhs.d_routeCommandTimeoutMs);
+        d_authentication         = bsl::move(rhs.d_authentication);
     }
 
     return *this;
@@ -5678,6 +6578,7 @@ void AppConfig::reset()
     d_configureStream        = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
     d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
     d_routeCommandTimeoutMs  = DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS;
+    bdlat_ValueTypeFunctions::reset(&d_authentication);
 }
 
 // ACCESSORS
@@ -5709,6 +6610,7 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
                            this->advertiseSubscriptions());
     printer.printAttribute("routeCommandTimeoutMs",
                            this->routeCommandTimeoutMs());
+    printer.printAttribute("authentication", this->authentication());
     printer.end();
     return stream;
 }
