@@ -26,7 +26,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
-      target: "bmqbrkr bmqtool bmqstoragetool all.it"
+      target: "bmqbrkr bmqtool bmqstoragetool all.it bmqauthnpass bmqauthnfail"
       save_build_as_artifacts: true
       run_unit_tests: false
 
