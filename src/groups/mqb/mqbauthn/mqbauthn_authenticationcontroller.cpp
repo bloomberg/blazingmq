@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbauthn_authenticationcontroller.cpp                          -*-C++-*-
+#include <ball_log.h>
 #include <mqbauthn_authenticationcontroller.h>
 
 #include <mqbscm_version.h>
@@ -139,6 +140,10 @@ int AuthenticationController::authenticate(
     AuthenticatorMap::const_iterator cit = d_authenticators.find(mechanism);
     if (cit != d_authenticators.cend()) {
         const AuthenticatorMp& authenticator = cit->second;
+        BALL_LOG_DEBUG << "AuthenticationController: "
+                       << "authenticating with mechanism '" << mechanism << "'"
+                       << " (authenticator: '" << authenticator->name()
+                       << "')";
         rc = authenticator->authenticate(errorStream, result, input);
         if (rc != rc_SUCCESS) {
             errorDescription << "AuthenticationController: failed to "
