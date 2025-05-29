@@ -551,14 +551,14 @@ class TCPSessionFactory {
     /// provided by a call to the specified `resultCallback`; or return a
     /// non-zero code on error, in which case `resultCallback` will never be
     /// invoked.  The optionally specified `negotiationUserData` will be
-    /// passed in to the `negotiate` method of the Negotiator (through the
-    /// InitialConnectionContext).  The optionally specified
-    /// `resultState` will be used to set the initial value of the
-    /// corresponding member of the `InitialConnectionContext` that will
-    /// be created for negotiation of this session; so that it can be retrieved
-    /// in the `negotiationComplete` callback method.  The optionally specified
-    /// `shouldAutoReconnect` will be used to determine if the factory should
-    /// attempt to reconnect upon loss of connection.
+    /// passed in to the `handleInitialConnection` method of the
+    /// InitialConnectionHandler (through the InitialConnectionContext).  The
+    /// optionally specified `resultState` will be used to set the initial
+    /// value of the corresponding member of the `InitialConnectionContext`
+    /// that will be created for negotiation of this session; so that it can be
+    /// retrieved in the `negotiationComplete` callback method.  The optionally
+    /// specified `shouldAutoReconnect` will be used to determine if the
+    /// factory should attempt to reconnect upon loss of connection.
     int connect(const bslstl::StringRef& endpoint,
                 const ResultCallback&    resultCallback,
                 bslma::ManagedPtr<void>* negotiationUserData = 0,

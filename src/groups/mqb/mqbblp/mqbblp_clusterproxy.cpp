@@ -773,6 +773,11 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
             .setBlob(blobSp);
         dispatcher()->dispatchEvent(dispEvent, this);
     } break;
+    case bmqp::EventType::e_AUTHENTICATION: {
+        // TODO
+        BALL_LOG_ERROR << "Received Authentication Event but reauthentication "
+                          "logic is not implemented yet.";
+    } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     case bmqp::EventType::e_CLUSTER_STATE:
     case bmqp::EventType::e_ELECTOR:
