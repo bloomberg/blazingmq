@@ -29,7 +29,8 @@
 ///
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
-/// TODO
+/// This component is owned by `InitialConnectionHandler`, and its functions
+/// are called only from there.  It is not thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>
@@ -44,7 +45,6 @@
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>

@@ -17,15 +17,20 @@
 #ifndef INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 #define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
-//@PURPOSE: Provide a context for an initial connection handler.
-//
-//@CLASSES:
-//  mqbnet::InitialConnectionContext: VST for the context associated to
-//  an initial connection
-//
-//@DESCRIPTION: 'InitialConnectionContext' provides the context
-// associated to an initial connection being established
-//
+/// @file mqbnet_initialconnectioncontext.h
+/// @brief VST for the context associated to an initial connection.
+///
+/// @bbref{mqbnet::InitialConnectionContext} is a
+/// value-semantic type holding the context associated with a session being
+/// negotiated.  It allows bi-directional generic communication between the
+/// application layer and the transport layer: for example, a user data
+/// information can be passed in at application layer, kept and carried over in
+/// the transport layer and retrieved in the negotiator concrete
+/// implementation.  Similarly, a 'cookie' can be passed in from application
+/// layer, to the result callback notification in the transport layer (usefull
+/// for 'listen-like' established connection where the entry point doesn't
+/// allow to bind specific user data, which then can be retrieved at
+/// application layer during negotiation).
 
 // BDE
 #include <bsl_functional.h>
@@ -45,7 +50,24 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 class Session;
+class AuthenticationContext;
 struct NegotiationContext;
+
+// =====================
+// struct ConnectionType
+// =====================
+
+struct ConnectionType {
+    // Enum representing the type of session being negotiated, from that
+    // side of the connection's point of view.
+    enum Enum {
+        e_UNKNOWN,
+        e_CLUSTER_PROXY,   // Proxy (me) -> broker (outgoing)
+        e_CLUSTER_MEMBER,  // Cluster node -> cluster node (both)
+        e_CLIENT,          // Client or proxy -> me (incoming)
+        e_ADMIN            // Admin client -> me (incoming)
+    };
+};
 
 // ==============================
 // class InitialConnectionContext
@@ -116,6 +138,10 @@ class InitialConnectionContext {
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
 
+    /// The AuthenticationContext updated upon receiving an
+    /// authentication message.
+    bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
+
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
@@ -137,16 +163,20 @@ class InitialConnectionContext {
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
     setCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext& setAuthenticationContext(
+        const bsl::shared_ptr<AuthenticationContext>& value);
     InitialConnectionContext&
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
     // ACCESSORS
 
     /// Return the value of the corresponding field.
-    bool                                       isIncoming() const;
-    void*                                      userData() const;
-    void*                                      resultState() const;
-    const bsl::shared_ptr<bmqio::Channel>&     channel() const;
+    bool                                   isIncoming() const;
+    void*                                  userData() const;
+    void*                                  resultState() const;
+    const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    const bsl::shared_ptr<AuthenticationContext>&
+                                               authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
 
     void complete(int                                     rc,
