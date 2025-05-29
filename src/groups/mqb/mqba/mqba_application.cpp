@@ -18,6 +18,7 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqba_authenticator.h>
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
@@ -319,6 +320,11 @@ int Application::start(bsl::ostream& errorDescription)
     }
 
     // Start the transport manager
+    bslma::ManagedPtr<mqbnet::Authenticator> authenticatorMp(
+        new (*d_allocator_p)
+            Authenticator(&d_blobSpPool, d_allocators.get("Authenticator")),
+        d_allocator_p);
+
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
         SessionNegotiator(&d_bufferFactory,
                           d_dispatcher_mp.get(),
@@ -342,6 +348,7 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
         initialConnectionHandlerMp(
             new (*d_allocator_p) InitialConnectionHandler(
+                authenticatorMp,
                 negotiatorMp,
                 d_allocators.get("InitialConnectionHandler")),
             d_allocator_p);
