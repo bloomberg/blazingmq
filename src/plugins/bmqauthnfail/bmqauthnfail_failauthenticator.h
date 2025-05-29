@@ -29,7 +29,6 @@
 //  the input provided.
 
 // MQB
-#include <bslstl_stringview.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 
@@ -135,9 +134,9 @@ class FailAuthenticator : public mqbplug::Authenticator {
 
     // MANIPULATORS
 
-    /// Start the Authenticator and return 0 on success, or return a non-zero
-    /// value and populate the specified `errorDescription` with the
-    /// description of any failure encountered.
+    /// Start the Authenticator and return 0 on success, or return a
+    /// non-zero value and populate the specified `errorDescription` with
+    /// the description of any failure encountered.
     int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the Authenticator.
