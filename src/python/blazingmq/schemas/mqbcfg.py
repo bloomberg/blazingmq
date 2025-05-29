@@ -534,6 +534,50 @@ class MessageThrottleConfig:
 
 
 @dataclass
+class PluginConfigValue:
+    bool_val: Optional[bool] = field(
+        default=None,
+        metadata={
+            "name": "boolVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    int_val: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "intVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    long_val: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "longVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    double_val: Optional[float] = field(
+        default=None,
+        metadata={
+            "name": "doubleVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    string_val: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "stringVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class Plugins:
     libraries: List[str] = field(
         default_factory=list,
@@ -1331,6 +1375,32 @@ class PartitionConfig:
 
 
 @dataclass
+class PluginConfigKeyValue:
+    """The key-value pair used for plugin configurations.
+
+    key...: configuration key/name
+    value.: configuration value
+    """
+
+    key: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    value: Optional[PluginConfigValue] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
 class StatPluginConfigPrometheus:
     mode: ExportMode = field(
         default=ExportMode.E_PULL,
@@ -1460,6 +1530,33 @@ class TcpInterfaceConfig:
         },
     )
     listeners: List[TcpInterfaceListener] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
+class AuthenticatorPluginConfig:
+    """The configuration for an authenticator plugin.
+
+    name....:
+    The name of the authenticator plugin.
+    configs.:
+    Plugin-specific configurations.
+    """
+
+    name: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    configs: List[PluginConfigKeyValue] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1703,6 +1800,39 @@ class TaskConfig:
 
 
 @dataclass
+class AuthenticatorConfig:
+    """Top level type for the broker's authentication configurations.
+
+    plugins...........:
+    Configurations for authenticator plugins. A config should be present
+    for each authenticator plugin enabled on the broker.
+    fallbackPrincipal.:
+    Principal to assign to a client in case the client does not support
+    authentication or has not been configured to authenticate. When set,
+    authentication is effectively optional. When not set, authentication
+    is required and clients which cannot or do not authenticate will be
+    rejected.
+    """
+
+    plugins: List[AuthenticatorPluginConfig] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "min_occurs": 1,
+        },
+    )
+    fallback_principal: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "fallbackPrincipal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class ClusterDefinition:
     """Type representing the configuration for a cluster.
 
@@ -1907,6 +2037,7 @@ class AppConfig:
     configureStream......: send new ConfigureStream instead of old ConfigureQueue
     advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
     routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
+    authentication.......: configuration for authentication
     """
 
     broker_instance_name: Optional[str] = field(
@@ -2073,6 +2204,14 @@ class AppConfig:
         default=3000,
         metadata={
             "name": "routeCommandTimeoutMs",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    authentication: Optional[AuthenticatorConfig] = field(
+        default=None,
+        metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,

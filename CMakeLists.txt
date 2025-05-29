@@ -123,6 +123,8 @@ if (NOT DEFINED INSTALL_TARGETS)
   set(BMQ_TARGET_E_BMQBRKR_NEEDED      YES)
   set(BMQ_TARGET_TUTORIAL_NEEDED       YES)
   set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
+  set(BMQ_TARGET_AUTHNPASS_NEEDED      YES)
+  set(BMQ_TARGET_AUTHNFAIL_NEEDED      YES)
 else()
   bbproject_check_install_target("bmqbrkr"         installBMQBRKR)
   bbproject_check_install_target("BMQBRKR_NIGHTLY" installNightly)
@@ -144,6 +146,8 @@ else()
   set(BMQ_TARGET_MQB_NEEDED            NO)
   set(BMQ_TARGET_TUTORIAL_NEEDED       NO)
   set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
+  set(BMQ_TARGET_AUTHNPASS_NEEDED      NO)
+  set(BMQ_TARGET_AUTHNFAIL_NEEDED      NO)
 
   bbproject_check_install_target("bmq"            installBMQ)
   bbproject_check_install_target("mqb"            installMQB)
@@ -151,6 +155,8 @@ else()
   bbproject_check_install_target("bmqtool"        installBMQTOOL)
   bbproject_check_install_target("bmqstoragetool" installBMQSTORAGETOOL)
   bbproject_check_install_target("prometheus"     installPROMETHEUS)
+  bbproject_check_install_target("authnpass"      installAUTHNPASS)
+  bbproject_check_install_target("authnfail"      installAUTHNFAIL)
 
   if (installBMQ)
     set(BMQ_TARGET_BMQ_NEEDED YES)
@@ -188,6 +194,18 @@ else()
     set(BMQ_TARGET_BMQ_NEEDED        YES)
     set(BMQ_TARGET_MQB_NEEDED        YES)
     set(BMQ_TARGET_PROMETHEUS_NEEDED YES)
+  endif()
+
+  if (installAUTHNPASS)
+    set(BMQ_TARGET_BMQ_NEEDED       YES)
+    set(BMQ_TARGET_MQB_NEEDED       YES)
+    set(BMQ_TARGET_AUTHNPASS_NEEDED YES)
+  endif()
+
+  if (installAUTHNFAIL)
+    set(BMQ_TARGET_BMQ_NEEDED       YES)
+    set(BMQ_TARGET_MQB_NEEDED       YES)
+    set(BMQ_TARGET_AUTHNFAIL_NEEDED YES)
   endif()
 endif()
 
@@ -305,7 +323,7 @@ add_subdirectory( "src/integration-tests" )
 #                                   PLUGINS
 # -----------------------------------------------------------------------------
 
-# Install all the headers for mqb + bmq 
+# Install all the headers for mqb + bmq
 install(TARGETS bmqbrkr_plugins
         EXPORT BmqbrkrPluginsTargets
         FILE_SET HEADERS
