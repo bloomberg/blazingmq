@@ -87,7 +87,7 @@
         configureStream......: send new ConfigureStream instead of old ConfigureQueue
         advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
         routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
-        tlsConfig............: optional configuation for TLS
+        tlsConfig............: optional configuration for TLS
       </documentation>
     </annotation>
     <sequence>
