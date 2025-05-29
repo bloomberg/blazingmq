@@ -28,6 +28,7 @@
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsla_unused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -93,9 +94,9 @@ bslstl::StringRef FailAuthenticator::mechanism() const
 }
 
 int FailAuthenticator::authenticate(
-    BSLS_ANNOTATION_UNUSED bsl::ostream&            errorDescription,
+    BSLA_UNUSED bsl::ostream&                       errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    BSLS_ANNOTATION_UNUSED const mqbplug::AuthenticationData& input) const
+    BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
     *result = bsl::allocate_shared<FailAuthenticationResult>(d_allocator_p,
                                                              "",
