@@ -71,6 +71,9 @@ namespace mqbcfg {
 class ElectorConfig;
 }
 namespace mqbcfg {
+class GenericKeyValueValue;
+}
+namespace mqbcfg {
 class Heartbeat;
 }
 namespace mqbcfg {
@@ -116,6 +119,9 @@ namespace mqbcfg {
 class DispatcherProcessorConfig;
 }
 namespace mqbcfg {
+class GenericKeyValue;
+}
+namespace mqbcfg {
 class LogController;
 }
 namespace mqbcfg {
@@ -126,6 +132,9 @@ class StatPluginConfigPrometheus;
 }
 namespace mqbcfg {
 class TcpInterfaceConfig;
+}
+namespace mqbcfg {
+class AuthenticatorPluginConfig;
 }
 namespace mqbcfg {
 class ClusterNode;
@@ -144,6 +153,9 @@ class StatPluginConfig;
 }
 namespace mqbcfg {
 class TaskConfig;
+}
+namespace mqbcfg {
+class AuthenticatorConfig;
 }
 namespace mqbcfg {
 class ClusterDefinition;
@@ -1435,6 +1447,322 @@ struct ExportMode {
 // TRAITS
 
 BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode)
+
+namespace mqbcfg {
+
+// ==========================
+// class GenericKeyValueValue
+// ==========================
+
+class GenericKeyValueValue {
+    // INSTANCE DATA
+    union {
+        bsls::ObjectBuffer<bool>               d_boolVal;
+        bsls::ObjectBuffer<int>                d_intVal;
+        bsls::ObjectBuffer<bsls::Types::Int64> d_longVal;
+        bsls::ObjectBuffer<double>             d_doubleVal;
+        bsls::ObjectBuffer<bsl::string>        d_stringVal;
+    };
+
+    int               d_selectionId;
+    bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const GenericKeyValueValue& rhs) const;
+
+  public:
+    // TYPES
+
+    enum {
+        SELECTION_ID_UNDEFINED  = -1,
+        SELECTION_ID_BOOL_VAL   = 0,
+        SELECTION_ID_INT_VAL    = 1,
+        SELECTION_ID_LONG_VAL   = 2,
+        SELECTION_ID_DOUBLE_VAL = 3,
+        SELECTION_ID_STRING_VAL = 4
+    };
+
+    enum { NUM_SELECTIONS = 5 };
+
+    enum {
+        SELECTION_INDEX_BOOL_VAL   = 0,
+        SELECTION_INDEX_INT_VAL    = 1,
+        SELECTION_INDEX_LONG_VAL   = 2,
+        SELECTION_INDEX_DOUBLE_VAL = 3,
+        SELECTION_INDEX_STRING_VAL = 4
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
+    // Return selection information for the selection indicated by the
+    // specified 'id' if the selection exists, and 0 otherwise.
+
+    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+                                                          int nameLength);
+    // Return selection information for the selection indicated by the
+    // specified 'name' of the specified 'nameLength' if the selection
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit GenericKeyValueValue(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'GenericKeyValueValue' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    GenericKeyValueValue(const GenericKeyValueValue& original,
+                         bslma::Allocator*           basicAllocator = 0);
+    // Create an object of type 'GenericKeyValueValue' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    GenericKeyValueValue(GenericKeyValueValue&& original) noexcept;
+    // Create an object of type 'GenericKeyValueValue' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    GenericKeyValueValue(GenericKeyValueValue&& original,
+                         bslma::Allocator*      basicAllocator);
+    // Create an object of type 'GenericKeyValueValue' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~GenericKeyValueValue();
+    // Destroy this object.
+
+    // MANIPULATORS
+    GenericKeyValueValue& operator=(const GenericKeyValueValue& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    GenericKeyValueValue& operator=(GenericKeyValueValue&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon default
+    // construction).
+
+    int makeSelection(int selectionId);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'selectionId'.  Return 0 on success, and
+    // non-zero value otherwise (i.e., the selection is not found).
+
+    int makeSelection(const char* name, int nameLength);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'name' of the specified 'nameLength'.
+    // Return 0 on success, and non-zero value otherwise (i.e., the
+    // selection is not found).
+
+    bool& makeBoolVal();
+    bool& makeBoolVal(bool value);
+    // Set the value of this object to be a "BoolVal" value.  Optionally
+    // specify the 'value' of the "BoolVal".  If 'value' is not specified,
+    // the default "BoolVal" value is used.
+
+    int& makeIntVal();
+    int& makeIntVal(int value);
+    // Set the value of this object to be a "IntVal" value.  Optionally
+    // specify the 'value' of the "IntVal".  If 'value' is not specified,
+    // the default "IntVal" value is used.
+
+    bsls::Types::Int64& makeLongVal();
+    bsls::Types::Int64& makeLongVal(bsls::Types::Int64 value);
+    // Set the value of this object to be a "LongVal" value.  Optionally
+    // specify the 'value' of the "LongVal".  If 'value' is not specified,
+    // the default "LongVal" value is used.
+
+    double& makeDoubleVal();
+    double& makeDoubleVal(double value);
+    // Set the value of this object to be a "DoubleVal" value.  Optionally
+    // specify the 'value' of the "DoubleVal".  If 'value' is not
+    // specified, the default "DoubleVal" value is used.
+
+    bsl::string& makeStringVal();
+    bsl::string& makeStringVal(const bsl::string& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    bsl::string& makeStringVal(bsl::string&& value);
+#endif
+    // Set the value of this object to be a "StringVal" value.  Optionally
+    // specify the 'value' of the "StringVal".  If 'value' is not
+    // specified, the default "StringVal" value is used.
+
+    template <typename t_MANIPULATOR>
+    int manipulateSelection(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' on the address of the modifiable
+    // selection, supplying 'manipulator' with the corresponding selection
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if this object has a defined selection,
+    // and -1 otherwise.
+
+    bool& boolVal();
+    // Return a reference to the modifiable "BoolVal" selection of this
+    // object if "BoolVal" is the current selection.  The behavior is
+    // undefined unless "BoolVal" is the selection of this object.
+
+    int& intVal();
+    // Return a reference to the modifiable "IntVal" selection of this
+    // object if "IntVal" is the current selection.  The behavior is
+    // undefined unless "IntVal" is the selection of this object.
+
+    bsls::Types::Int64& longVal();
+    // Return a reference to the modifiable "LongVal" selection of this
+    // object if "LongVal" is the current selection.  The behavior is
+    // undefined unless "LongVal" is the selection of this object.
+
+    double& doubleVal();
+    // Return a reference to the modifiable "DoubleVal" selection of this
+    // object if "DoubleVal" is the current selection.  The behavior is
+    // undefined unless "DoubleVal" is the selection of this object.
+
+    bsl::string& stringVal();
+    // Return a reference to the modifiable "StringVal" selection of this
+    // object if "StringVal" is the current selection.  The behavior is
+    // undefined unless "StringVal" is the selection of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    int selectionId() const;
+    // Return the id of the current selection if the selection is defined,
+    // and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessSelection(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' on the non-modifiable selection,
+    // supplying 'accessor' with the corresponding selection information
+    // structure.  Return the value returned from the invocation of
+    // 'accessor' if this object has a defined selection, and -1 otherwise.
+
+    const bool& boolVal() const;
+    // Return a reference to the non-modifiable "BoolVal" selection of this
+    // object if "BoolVal" is the current selection.  The behavior is
+    // undefined unless "BoolVal" is the selection of this object.
+
+    const int& intVal() const;
+    // Return a reference to the non-modifiable "IntVal" selection of this
+    // object if "IntVal" is the current selection.  The behavior is
+    // undefined unless "IntVal" is the selection of this object.
+
+    const bsls::Types::Int64& longVal() const;
+    // Return a reference to the non-modifiable "LongVal" selection of this
+    // object if "LongVal" is the current selection.  The behavior is
+    // undefined unless "LongVal" is the selection of this object.
+
+    const double& doubleVal() const;
+    // Return a reference to the non-modifiable "DoubleVal" selection of
+    // this object if "DoubleVal" is the current selection.  The behavior
+    // is undefined unless "DoubleVal" is the selection of this object.
+
+    const bsl::string& stringVal() const;
+    // Return a reference to the non-modifiable "StringVal" selection of
+    // this object if "StringVal" is the current selection.  The behavior
+    // is undefined unless "StringVal" is the selection of this object.
+
+    bool isBoolValValue() const;
+    // Return 'true' if the value of this object is a "BoolVal" value, and
+    // return 'false' otherwise.
+
+    bool isIntValValue() const;
+    // Return 'true' if the value of this object is a "IntVal" value, and
+    // return 'false' otherwise.
+
+    bool isLongValValue() const;
+    // Return 'true' if the value of this object is a "LongVal" value, and
+    // return 'false' otherwise.
+
+    bool isDoubleValValue() const;
+    // Return 'true' if the value of this object is a "DoubleVal" value,
+    // and return 'false' otherwise.
+
+    bool isStringValValue() const;
+    // Return 'true' if the value of this object is a "StringVal" value,
+    // and return 'false' otherwise.
+
+    bool isUndefinedValue() const;
+    // Return 'true' if the value of this object is undefined, and 'false'
+    // otherwise.
+
+    const char* selectionName() const;
+    // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const GenericKeyValueValue& lhs,
+                           const GenericKeyValueValue& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'GenericKeyValueValue' objects
+    // have the same value if either the selections in both objects have
+    // the same ids and the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const GenericKeyValueValue& lhs,
+                           const GenericKeyValueValue& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&               stream,
+                                    const GenericKeyValueValue& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&           hashAlg,
+                           const GenericKeyValueValue& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'GenericKeyValueValue'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::GenericKeyValueValue)
 
 namespace mqbcfg {
 
@@ -5128,6 +5456,227 @@ BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
+// =====================
+// class GenericKeyValue
+// =====================
+
+class GenericKeyValue {
+    // key...: configuration key/name value.: configuration value
+
+    // INSTANCE DATA
+    bsl::string          d_key;
+    GenericKeyValueValue d_value;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_KEY = 0, ATTRIBUTE_ID_VALUE = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_KEY = 0, ATTRIBUTE_INDEX_VALUE = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit GenericKeyValue(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'GenericKeyValue' having the default value.
+    //  Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    GenericKeyValue(const GenericKeyValue& original,
+                    bslma::Allocator*      basicAllocator = 0);
+    // Create an object of type 'GenericKeyValue' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    GenericKeyValue(GenericKeyValue&& original) noexcept;
+    // Create an object of type 'GenericKeyValue' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    GenericKeyValue(GenericKeyValue&& original,
+                    bslma::Allocator* basicAllocator);
+    // Create an object of type 'GenericKeyValue' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~GenericKeyValue();
+    // Destroy this object.
+
+    // MANIPULATORS
+    GenericKeyValue& operator=(const GenericKeyValue& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    GenericKeyValue& operator=(GenericKeyValue&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& key();
+    // Return a reference to the modifiable "Key" attribute of this object.
+
+    GenericKeyValueValue& value();
+    // Return a reference to the modifiable "Value" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& key() const;
+    // Return a reference offering non-modifiable access to the "Key"
+    // attribute of this object.
+
+    const GenericKeyValueValue& value() const;
+    // Return a reference offering non-modifiable access to the "Value"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const GenericKeyValue& lhs,
+                           const GenericKeyValue& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.key() == rhs.key() && lhs.value() == rhs.value();
+    }
+
+    friend bool operator!=(const GenericKeyValue& lhs,
+                           const GenericKeyValue& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&          stream,
+                                    const GenericKeyValue& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&      hashAlg,
+                           const GenericKeyValue& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'GenericKeyValue'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.key());
+        hashAppend(hashAlg, object.value());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::GenericKeyValue)
+
+namespace mqbcfg {
+
 // ===================
 // class LogController
 // ===================
@@ -6387,6 +6936,231 @@ class TcpInterfaceConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceConfig)
+
+namespace mqbcfg {
+
+// ===============================
+// class AuthenticatorPluginConfig
+// ===============================
+
+class AuthenticatorPluginConfig {
+    // The configuration for an authenticator plugin.
+    // name....: The name of the authenticator plugin.  configs.:
+    // Plugin-specific configurations.
+
+    // INSTANCE DATA
+    bsl::vector<GenericKeyValue> d_configs;
+    bsl::string                  d_name;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_CONFIGS = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_CONFIGS = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit AuthenticatorPluginConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AuthenticatorPluginConfig' having the
+    // default value.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
+
+    AuthenticatorPluginConfig(const AuthenticatorPluginConfig& original,
+                              bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AuthenticatorPluginConfig' having the
+    // value of the specified 'original' object.  Use the optionally
+    // specified 'basicAllocator' to supply memory.  If 'basicAllocator' is
+    // 0, the currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticatorPluginConfig(AuthenticatorPluginConfig&& original) noexcept;
+    // Create an object of type 'AuthenticatorPluginConfig' having the
+    // value of the specified 'original' object.  After performing this
+    // action, the 'original' object will be left in a valid, but
+    // unspecified state.
+
+    AuthenticatorPluginConfig(AuthenticatorPluginConfig&& original,
+                              bslma::Allocator*           basicAllocator);
+    // Create an object of type 'AuthenticatorPluginConfig' having the
+    // value of the specified 'original' object.  After performing this
+    // action, the 'original' object will be left in a valid, but
+    // unspecified state.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
+#endif
+
+    ~AuthenticatorPluginConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    AuthenticatorPluginConfig& operator=(const AuthenticatorPluginConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticatorPluginConfig& operator=(AuthenticatorPluginConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& name();
+    // Return a reference to the modifiable "Name" attribute of this
+    // object.
+
+    bsl::vector<GenericKeyValue>& configs();
+    // Return a reference to the modifiable "Configs" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& name() const;
+    // Return a reference offering non-modifiable access to the "Name"
+    // attribute of this object.
+
+    const bsl::vector<GenericKeyValue>& configs() const;
+    // Return a reference offering non-modifiable access to the "Configs"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const AuthenticatorPluginConfig& lhs,
+                           const AuthenticatorPluginConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.name() == rhs.name() && lhs.configs() == rhs.configs();
+    }
+
+    friend bool operator!=(const AuthenticatorPluginConfig& lhs,
+                           const AuthenticatorPluginConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                    stream,
+                                    const AuthenticatorPluginConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&                hashAlg,
+                           const AuthenticatorPluginConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'AuthenticatorPluginConfig'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.name());
+        hashAppend(hashAlg, object.configs());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::AuthenticatorPluginConfig)
 
 namespace mqbcfg {
 
@@ -7841,6 +8615,239 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
 
 namespace mqbcfg {
 
+// =========================
+// class AuthenticatorConfig
+// =========================
+
+class AuthenticatorConfig {
+    // Top level type for the broker's authentication configurations.
+    // plugins...........: Configurations for authenticator plugins.  A config
+    // should be present for each authenticator plugin enabled on the broker.
+    // fallbackPrincipal.: Principal to assign to a client in case the client
+    // does not support authentication or has not been configured to
+    // authenticate.  When set, authentication is effectively optional.  When
+    // not set, authentication is required and clients which cannot or do not
+    // authenticate will be rejected.
+
+    // INSTANCE DATA
+    bsl::vector<AuthenticatorPluginConfig> d_plugins;
+    bdlb::NullableValue<bsl::string>       d_fallbackPrincipal;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_PLUGINS = 0, ATTRIBUTE_ID_FALLBACK_PRINCIPAL = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum {
+        ATTRIBUTE_INDEX_PLUGINS            = 0,
+        ATTRIBUTE_INDEX_FALLBACK_PRINCIPAL = 1
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit AuthenticatorConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AuthenticatorConfig' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    AuthenticatorConfig(const AuthenticatorConfig& original,
+                        bslma::Allocator*          basicAllocator = 0);
+    // Create an object of type 'AuthenticatorConfig' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticatorConfig(AuthenticatorConfig&& original) noexcept;
+    // Create an object of type 'AuthenticatorConfig' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    AuthenticatorConfig(AuthenticatorConfig&& original,
+                        bslma::Allocator*     basicAllocator);
+    // Create an object of type 'AuthenticatorConfig' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~AuthenticatorConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    AuthenticatorConfig& operator=(const AuthenticatorConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticatorConfig& operator=(AuthenticatorConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::vector<AuthenticatorPluginConfig>& plugins();
+    // Return a reference to the modifiable "Plugins" attribute of this
+    // object.
+
+    bdlb::NullableValue<bsl::string>& fallbackPrincipal();
+    // Return a reference to the modifiable "FallbackPrincipal" attribute
+    // of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::vector<AuthenticatorPluginConfig>& plugins() const;
+    // Return a reference offering non-modifiable access to the "Plugins"
+    // attribute of this object.
+
+    const bdlb::NullableValue<bsl::string>& fallbackPrincipal() const;
+    // Return a reference offering non-modifiable access to the
+    // "FallbackPrincipal" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const AuthenticatorConfig& lhs,
+                           const AuthenticatorConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.plugins() == rhs.plugins() &&
+               lhs.fallbackPrincipal() == rhs.fallbackPrincipal();
+    }
+
+    friend bool operator!=(const AuthenticatorConfig& lhs,
+                           const AuthenticatorConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&              stream,
+                                    const AuthenticatorConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&          hashAlg,
+                           const AuthenticatorConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'AuthenticatorConfig'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.plugins());
+        hashAppend(hashAlg, object.fallbackPrincipal());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::AuthenticatorConfig)
+
+namespace mqbcfg {
+
 // =======================
 // class ClusterDefinition
 // =======================
@@ -8689,7 +9696,8 @@ class AppConfig {
     // configureStream......: send new ConfigureStream instead of old
     // ConfigureQueue advertiseSubscriptions.: temporarily control use of
     // ConfigureStream in SDK routeCommandTimeoutMs: maximum amount of time to
-    // wait for a routed command's response
+    // wait for a routed command's response authentication.......:
+    // configuration for authentication
 
     // INSTANCE DATA
     bsl::string         d_brokerInstanceName;
@@ -8704,6 +9712,7 @@ class AppConfig {
     MessagePropertiesV2 d_messagePropertiesV2;
     DispatcherConfig    d_dispatcherConfig;
     BmqconfConfig       d_bmqconfConfig;
+    AuthenticatorConfig d_authentication;
     int                 d_brokerVersion;
     int                 d_configVersion;
     int                 d_logsObserverMaxSize;
@@ -8739,10 +9748,11 @@ class AppConfig {
         ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2    = 15,
         ATTRIBUTE_ID_CONFIGURE_STREAM         = 16,
         ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS  = 17,
-        ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 18
+        ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 18,
+        ATTRIBUTE_ID_AUTHENTICATION           = 19
     };
 
-    enum { NUM_ATTRIBUTES = 19 };
+    enum { NUM_ATTRIBUTES = 20 };
 
     enum {
         ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME     = 0,
@@ -8763,7 +9773,8 @@ class AppConfig {
         ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2    = 15,
         ATTRIBUTE_INDEX_CONFIGURE_STREAM         = 16,
         ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS  = 17,
-        ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 18
+        ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 18,
+        ATTRIBUTE_INDEX_AUTHENTICATION           = 19
     };
 
     // CONSTANTS
@@ -8944,6 +9955,10 @@ class AppConfig {
     // Return a reference to the modifiable "RouteCommandTimeoutMs"
     // attribute of this object.
 
+    AuthenticatorConfig& authentication();
+    // Return a reference to the modifiable "Authentication" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -9058,6 +10073,10 @@ class AppConfig {
     int routeCommandTimeoutMs() const;
     // Return the value of the "RouteCommandTimeoutMs" attribute of this
     // object.
+
+    const AuthenticatorConfig& authentication() const;
+    // Return a reference offering non-modifiable access to the
+    // "Authentication" attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const AppConfig& lhs, const AppConfig& rhs)
@@ -9591,9 +10610,9 @@ class Configuration {
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::Configuration)
 
-// ============================================================================
+//=============================================================================
 //                          INLINE DEFINITIONS
-// ============================================================================
+//=============================================================================
 
 namespace mqbcfg {
 
@@ -10831,6 +11850,224 @@ inline bsl::ostream& ExportMode::print(bsl::ostream&     stream,
                                        ExportMode::Value value)
 {
     return stream << toString(value);
+}
+
+// --------------------------
+// class GenericKeyValueValue
+// --------------------------
+
+// CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void GenericKeyValueValue::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef GenericKeyValueValue Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_BOOL_VAL:
+        hashAppend(hashAlgorithm, this->boolVal());
+        break;
+    case Class::SELECTION_ID_INT_VAL:
+        hashAppend(hashAlgorithm, this->intVal());
+        break;
+    case Class::SELECTION_ID_LONG_VAL:
+        hashAppend(hashAlgorithm, this->longVal());
+        break;
+    case Class::SELECTION_ID_DOUBLE_VAL:
+        hashAppend(hashAlgorithm, this->doubleVal());
+        break;
+    case Class::SELECTION_ID_STRING_VAL:
+        hashAppend(hashAlgorithm, this->stringVal());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool
+GenericKeyValueValue::isEqualTo(const GenericKeyValueValue& rhs) const
+{
+    typedef GenericKeyValueValue Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_BOOL_VAL:
+            return this->boolVal() == rhs.boolVal();
+        case Class::SELECTION_ID_INT_VAL:
+            return this->intVal() == rhs.intVal();
+        case Class::SELECTION_ID_LONG_VAL:
+            return this->longVal() == rhs.longVal();
+        case Class::SELECTION_ID_DOUBLE_VAL:
+            return this->doubleVal() == rhs.doubleVal();
+        case Class::SELECTION_ID_STRING_VAL:
+            return this->stringVal() == rhs.stringVal();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
+// CREATORS
+inline GenericKeyValueValue::GenericKeyValueValue(
+    bslma::Allocator* basicAllocator)
+: d_selectionId(SELECTION_ID_UNDEFINED)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+}
+
+inline GenericKeyValueValue::~GenericKeyValueValue()
+{
+    reset();
+}
+
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int GenericKeyValueValue::manipulateSelection(t_MANIPULATOR& manipulator)
+{
+    switch (d_selectionId) {
+    case GenericKeyValueValue::SELECTION_ID_BOOL_VAL:
+        return manipulator(&d_boolVal.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_BOOL_VAL]);
+    case GenericKeyValueValue::SELECTION_ID_INT_VAL:
+        return manipulator(&d_intVal.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_INT_VAL]);
+    case GenericKeyValueValue::SELECTION_ID_LONG_VAL:
+        return manipulator(&d_longVal.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_LONG_VAL]);
+    case GenericKeyValueValue::SELECTION_ID_DOUBLE_VAL:
+        return manipulator(&d_doubleVal.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_DOUBLE_VAL]);
+    case GenericKeyValueValue::SELECTION_ID_STRING_VAL:
+        return manipulator(&d_stringVal.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_STRING_VAL]);
+    default:
+        BSLS_ASSERT(GenericKeyValueValue::SELECTION_ID_UNDEFINED ==
+                    d_selectionId);
+        return -1;
+    }
+}
+
+inline bool& GenericKeyValueValue::boolVal()
+{
+    BSLS_ASSERT(SELECTION_ID_BOOL_VAL == d_selectionId);
+    return d_boolVal.object();
+}
+
+inline int& GenericKeyValueValue::intVal()
+{
+    BSLS_ASSERT(SELECTION_ID_INT_VAL == d_selectionId);
+    return d_intVal.object();
+}
+
+inline bsls::Types::Int64& GenericKeyValueValue::longVal()
+{
+    BSLS_ASSERT(SELECTION_ID_LONG_VAL == d_selectionId);
+    return d_longVal.object();
+}
+
+inline double& GenericKeyValueValue::doubleVal()
+{
+    BSLS_ASSERT(SELECTION_ID_DOUBLE_VAL == d_selectionId);
+    return d_doubleVal.object();
+}
+
+inline bsl::string& GenericKeyValueValue::stringVal()
+{
+    BSLS_ASSERT(SELECTION_ID_STRING_VAL == d_selectionId);
+    return d_stringVal.object();
+}
+
+// ACCESSORS
+inline int GenericKeyValueValue::selectionId() const
+{
+    return d_selectionId;
+}
+
+template <typename t_ACCESSOR>
+int GenericKeyValueValue::accessSelection(t_ACCESSOR& accessor) const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_BOOL_VAL:
+        return accessor(d_boolVal.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_BOOL_VAL]);
+    case SELECTION_ID_INT_VAL:
+        return accessor(d_intVal.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_INT_VAL]);
+    case SELECTION_ID_LONG_VAL:
+        return accessor(d_longVal.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_LONG_VAL]);
+    case SELECTION_ID_DOUBLE_VAL:
+        return accessor(d_doubleVal.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_DOUBLE_VAL]);
+    case SELECTION_ID_STRING_VAL:
+        return accessor(d_stringVal.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_STRING_VAL]);
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    }
+}
+
+inline const bool& GenericKeyValueValue::boolVal() const
+{
+    BSLS_ASSERT(SELECTION_ID_BOOL_VAL == d_selectionId);
+    return d_boolVal.object();
+}
+
+inline const int& GenericKeyValueValue::intVal() const
+{
+    BSLS_ASSERT(SELECTION_ID_INT_VAL == d_selectionId);
+    return d_intVal.object();
+}
+
+inline const bsls::Types::Int64& GenericKeyValueValue::longVal() const
+{
+    BSLS_ASSERT(SELECTION_ID_LONG_VAL == d_selectionId);
+    return d_longVal.object();
+}
+
+inline const double& GenericKeyValueValue::doubleVal() const
+{
+    BSLS_ASSERT(SELECTION_ID_DOUBLE_VAL == d_selectionId);
+    return d_doubleVal.object();
+}
+
+inline const bsl::string& GenericKeyValueValue::stringVal() const
+{
+    BSLS_ASSERT(SELECTION_ID_STRING_VAL == d_selectionId);
+    return d_stringVal.object();
+}
+
+inline bool GenericKeyValueValue::isBoolValValue() const
+{
+    return SELECTION_ID_BOOL_VAL == d_selectionId;
+}
+
+inline bool GenericKeyValueValue::isIntValValue() const
+{
+    return SELECTION_ID_INT_VAL == d_selectionId;
+}
+
+inline bool GenericKeyValueValue::isLongValValue() const
+{
+    return SELECTION_ID_LONG_VAL == d_selectionId;
+}
+
+inline bool GenericKeyValueValue::isDoubleValValue() const
+{
+    return SELECTION_ID_DOUBLE_VAL == d_selectionId;
+}
+
+inline bool GenericKeyValueValue::isStringValValue() const
+{
+    return SELECTION_ID_STRING_VAL == d_selectionId;
+}
+
+inline bool GenericKeyValueValue::isUndefinedValue() const
+{
+    return SELECTION_ID_UNDEFINED == d_selectionId;
 }
 
 // ---------------
@@ -13921,6 +15158,134 @@ DispatcherProcessorConfig::processorConfig() const
     return d_processorConfig;
 }
 
+// ---------------------
+// class GenericKeyValue
+// ---------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int GenericKeyValue::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_value, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VALUE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int GenericKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_KEY: {
+        return manipulator(&d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    }
+    case ATTRIBUTE_ID_VALUE: {
+        return manipulator(&d_value,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VALUE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int GenericKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                         const char*    name,
+                                         int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& GenericKeyValue::key()
+{
+    return d_key;
+}
+
+inline GenericKeyValueValue& GenericKeyValue::value()
+{
+    return d_value;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int GenericKeyValue::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_value, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VALUE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int GenericKeyValue::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_KEY: {
+        return accessor(d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    }
+    case ATTRIBUTE_ID_VALUE: {
+        return accessor(d_value, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VALUE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int GenericKeyValue::accessAttribute(t_ACCESSOR& accessor,
+                                     const char* name,
+                                     int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& GenericKeyValue::key() const
+{
+    return d_key;
+}
+
+inline const GenericKeyValueValue& GenericKeyValue::value() const
+{
+    return d_value;
+}
+
 // -------------------
 // class LogController
 // -------------------
@@ -15447,6 +16812,140 @@ TcpInterfaceConfig::listeners() const
     return d_listeners;
 }
 
+// -------------------------------
+// class AuthenticatorPluginConfig
+// -------------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int AuthenticatorPluginConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_configs,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticatorPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                   int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: {
+        return manipulator(&d_name,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_CONFIGS: {
+        return manipulator(&d_configs,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticatorPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                   const char*    name,
+                                                   int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& AuthenticatorPluginConfig::name()
+{
+    return d_name;
+}
+
+inline bsl::vector<GenericKeyValue>& AuthenticatorPluginConfig::configs()
+{
+    return d_configs;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int AuthenticatorPluginConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_configs, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int AuthenticatorPluginConfig::accessAttribute(t_ACCESSOR& accessor,
+                                               int         id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: {
+        return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_CONFIGS: {
+        return accessor(d_configs,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int AuthenticatorPluginConfig::accessAttribute(t_ACCESSOR& accessor,
+                                               const char* name,
+                                               int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& AuthenticatorPluginConfig::name() const
+{
+    return d_name;
+}
+
+inline const bsl::vector<GenericKeyValue>&
+AuthenticatorPluginConfig::configs() const
+{
+    return d_configs;
+}
+
 // -----------------
 // class ClusterNode
 // -----------------
@@ -16660,6 +18159,147 @@ inline const LogController& TaskConfig::logController() const
     return d_logController;
 }
 
+// -------------------------
+// class AuthenticatorConfig
+// -------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int AuthenticatorConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_plugins,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_fallbackPrincipal,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FALLBACK_PRINCIPAL]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticatorConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                             int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_PLUGINS: {
+        return manipulator(&d_plugins,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    }
+    case ATTRIBUTE_ID_FALLBACK_PRINCIPAL: {
+        return manipulator(
+            &d_fallbackPrincipal,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FALLBACK_PRINCIPAL]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticatorConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                             const char*    name,
+                                             int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::vector<AuthenticatorPluginConfig>& AuthenticatorConfig::plugins()
+{
+    return d_plugins;
+}
+
+inline bdlb::NullableValue<bsl::string>&
+AuthenticatorConfig::fallbackPrincipal()
+{
+    return d_fallbackPrincipal;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int AuthenticatorConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_plugins, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_fallbackPrincipal,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FALLBACK_PRINCIPAL]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int AuthenticatorConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_PLUGINS: {
+        return accessor(d_plugins,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    }
+    case ATTRIBUTE_ID_FALLBACK_PRINCIPAL: {
+        return accessor(
+            d_fallbackPrincipal,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FALLBACK_PRINCIPAL]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int AuthenticatorConfig::accessAttribute(t_ACCESSOR& accessor,
+                                         const char* name,
+                                         int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::vector<AuthenticatorPluginConfig>&
+AuthenticatorConfig::plugins() const
+{
+    return d_plugins;
+}
+
+inline const bdlb::NullableValue<bsl::string>&
+AuthenticatorConfig::fallbackPrincipal() const
+{
+    return d_fallbackPrincipal;
+}
+
 // -----------------------
 // class ClusterDefinition
 // -----------------------
@@ -17504,6 +19144,7 @@ void AppConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->configureStream());
     hashAppend(hashAlgorithm, this->advertiseSubscriptions());
     hashAppend(hashAlgorithm, this->routeCommandTimeoutMs());
+    hashAppend(hashAlgorithm, this->authentication());
 }
 
 inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
@@ -17526,7 +19167,8 @@ inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
            this->messagePropertiesV2() == rhs.messagePropertiesV2() &&
            this->configureStream() == rhs.configureStream() &&
            this->advertiseSubscriptions() == rhs.advertiseSubscriptions() &&
-           this->routeCommandTimeoutMs() == rhs.routeCommandTimeoutMs();
+           this->routeCommandTimeoutMs() == rhs.routeCommandTimeoutMs() &&
+           this->authentication() == rhs.authentication();
 }
 
 // CLASS METHODS
@@ -17656,6 +19298,12 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_authentication,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -17754,6 +19402,11 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_routeCommandTimeoutMs,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS]);
+    }
+    case ATTRIBUTE_ID_AUTHENTICATION: {
+        return manipulator(
+            &d_authentication,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION]);
     }
     default: return NOT_FOUND;
     }
@@ -17868,6 +19521,11 @@ inline bool& AppConfig::advertiseSubscriptions()
 inline int& AppConfig::routeCommandTimeoutMs()
 {
     return d_routeCommandTimeoutMs;
+}
+
+inline AuthenticatorConfig& AppConfig::authentication()
+{
+    return d_authentication;
 }
 
 // ACCESSORS
@@ -17992,6 +19650,12 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_authentication,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -18086,6 +19750,10 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_routeCommandTimeoutMs,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS]);
+    }
+    case ATTRIBUTE_ID_AUTHENTICATION: {
+        return accessor(d_authentication,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION]);
     }
     default: return NOT_FOUND;
     }
@@ -18200,6 +19868,11 @@ inline bool AppConfig::advertiseSubscriptions() const
 inline int AppConfig::routeCommandTimeoutMs() const
 {
     return d_routeCommandTimeoutMs;
+}
+
+inline const AuthenticatorConfig& AppConfig::authentication() const
+{
+    return d_authentication;
 }
 
 // ------------------------
