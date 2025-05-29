@@ -83,7 +83,7 @@ class AuthenticationData BSLS_KEYWORD_FINAL {
 class AuthenticationResult {
   public:
     // CREATORS
-    virtual ~AuthenticationResult() = 0;
+    virtual ~AuthenticationResult();
 
     // ACCESSORS
 
