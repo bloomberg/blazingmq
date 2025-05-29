@@ -1064,13 +1064,13 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         // negotiation; therefore a failed to negotiate channel (like
         // during intrusion testing) would trigger this trace.
         BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_threadName
+                      << "TCPSessionFactory '" << d_config.name()
                       << "': OnClose channel for an unknown channel '"
                       << channel.get() << "', " << d_nbActiveChannels
                       << " active channels, status: " << status;
     }
     else {
-        BALL_LOG_INFO << "TCPSessionFactory '" << d_threadName
+        BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
                       << "': OnClose channel [session: '"
                       << channelInfo->d_session_sp->description()
                       << "', channel: '" << channel.get() << "', "
