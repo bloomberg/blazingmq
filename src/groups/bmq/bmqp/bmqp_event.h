@@ -102,9 +102,9 @@ class Event {
     // PRIVATE ACCESSORS
 
     /// Load into the specified `message`, the decoded message contained in
-    /// this event.  The behavior is undefined unless `isControlEvent()` or
-    /// 'isElectorEvent() returns true.  Return 0 on success, and a non-zero
-    /// return code on error.
+    /// this event.  The behavior is undefined unless `isControlEvent()`,
+    /// `isElectorEvent()`, or `isAuthenticationEvent()` returns true.  Return
+    /// 0 on success, and a non-zero return code on error.
     template <class TYPE>
     int loadSchemaEvent(TYPE* message) const;
 
@@ -165,6 +165,8 @@ class Event {
     /// `isValid()` returns true.
     EventType::Enum type() const;
 
+    /// Return true if this event is of the corresponding type.  The
+    /// behavior is undefined unless `isValid()` returns true.
     bool isControlEvent() const;
     bool isPutEvent() const;
     bool isConfirmEvent() const;
@@ -178,10 +180,8 @@ class Event {
     bool isHeartbeatReqEvent() const;
     bool isHeartbeatRspEvent() const;
     bool isRejectEvent() const;
-
-    /// Return true if this event is of the corresponding type.  The
-    /// behavior is undefined unless `isValid()` returns true.
     bool isReceiptEvent() const;
+    bool isAuthenticationEvent() const;
 
     /// Load into the specified `message`, the decoded message contained in
     /// this event.  The behavior is undefined unless `isControlEvent()`
@@ -196,6 +196,13 @@ class Event {
     /// error.
     template <class TYPE>
     int loadElectorEvent(TYPE* message) const;
+
+    /// Load into the specified `message`, the decoded message contained in
+    /// this event.  The behavior is undefined unless `isAuthenticationEvent()`
+    /// returns true.  Return 0 on success, and a non-zero return code on
+    /// error.
+    template <class TYPE>
+    int loadAuthenticationEvent(TYPE* message) const;
 
     void loadAckMessageIterator(AckMessageIterator* iterator) const;
     void loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const;
@@ -315,7 +322,8 @@ template <class TYPE>
 int Event::loadSchemaEvent(TYPE* message) const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isControlEvent() || isElectorEvent());
+    BSLS_ASSERT_SAFE(isControlEvent() || isElectorEvent() ||
+                     isAuthenticationEvent());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -540,6 +548,14 @@ inline bool Event::isReceiptEvent() const
     return d_header->type() == EventType::e_REPLICATION_RECEIPT;
 }
 
+inline bool Event::isAuthenticationEvent() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isValid());
+
+    return d_header->type() == EventType::e_AUTHENTICATION;
+}
+
 template <class TYPE>
 int Event::loadControlEvent(TYPE* message) const
 {
@@ -554,6 +570,15 @@ int Event::loadElectorEvent(TYPE* message) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isElectorEvent());
+
+    return loadSchemaEvent(message);
+}
+
+template <class TYPE>
+int Event::loadAuthenticationEvent(TYPE* message) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isAuthenticationEvent());
 
     return loadSchemaEvent(message);
 }
