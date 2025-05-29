@@ -64,7 +64,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqstoragetool all.it
+          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqstoragetool all.it bmqauthnpass bmqauthnfail
 
       - name: Clean-up build directories before caching
         run: |
