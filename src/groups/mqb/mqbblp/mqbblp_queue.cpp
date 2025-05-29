@@ -363,6 +363,8 @@ void Queue::convertToLocalDispatched()
         return;  // RETURN
     }
 
+    BALL_LOG_ERROR << "Converting to local";
+
     remoteQueue->iteratePendingMessages(
         bdlf::BindUtil::bind(&LocalQueue::postMessage,
                              d_localQueue_mp.get(),
@@ -390,6 +392,8 @@ void Queue::convertToLocalDispatched()
     // Now that the queue is local, nudge its delivery to cover for this case.
 
     d_localQueue_mp->queueEngine()->afterNewMessage(bmqt::MessageGUID(), 0);
+
+    exit(0);
 }
 
 void Queue::updateStats()
