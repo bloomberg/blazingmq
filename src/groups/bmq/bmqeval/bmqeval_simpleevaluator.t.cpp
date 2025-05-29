@@ -43,39 +43,43 @@ class MockPropertiesReader : public PropertiesReader {
     bsl::unordered_map<bsl::string, bdld::Datum> d_map;
 
     // CREATORS
-    MockPropertiesReader(bslma::Allocator* allocator)
-    : d_map(allocator)
-    {
-        d_map["b_true"]  = bdld::Datum::createBoolean(true);
-        d_map["b_false"] = bdld::Datum::createBoolean(false);
-        d_map["i_0"]     = bdld::Datum::createInteger(0);
-        d_map["i_1"]     = bdld::Datum::createInteger(1);
-        d_map["i_2"]     = bdld::Datum::createInteger(2);
-        d_map["i_3"]     = bdld::Datum::createInteger(3);
-        d_map["i_42"]    = bdld::Datum::createInteger(42);
-        d_map["i64_42"]  = bdld::Datum::createInteger64(42, allocator);
-        d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
-        d_map["exists"]  = bdld::Datum::createInteger(42);
-    }
-    // Destroy this object.
+    MockPropertiesReader(bslma::Allocator* allocator);
 
     // MANIPULATORS
 
     /// Return a `bdld::Datum` object with value for the specified `name`.
     /// The `bslma::Allocator*` argument is unused.
     bdld::Datum get(const bsl::string& name,
-                    bslma::Allocator*) BSLS_KEYWORD_OVERRIDE
-    {
-        bsl::unordered_map<bsl::string, bdld::Datum>::const_iterator iter =
-            d_map.find(name);
-
-        if (iter == d_map.end()) {
-            return bdld::Datum::createError(-1);  // RETURN
-        }
-
-        return iter->second;
-    }
+                    bslma::Allocator*) BSLS_KEYWORD_OVERRIDE;
 };
+
+MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
+: d_map(allocator)
+{
+    d_map["b_true"]  = bdld::Datum::createBoolean(true);
+    d_map["b_false"] = bdld::Datum::createBoolean(false);
+    d_map["i_0"]     = bdld::Datum::createInteger(0);
+    d_map["i_1"]     = bdld::Datum::createInteger(1);
+    d_map["i_2"]     = bdld::Datum::createInteger(2);
+    d_map["i_3"]     = bdld::Datum::createInteger(3);
+    d_map["i_42"]    = bdld::Datum::createInteger(42);
+    d_map["i64_42"]  = bdld::Datum::createInteger64(42, allocator);
+    d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
+    d_map["exists"]  = bdld::Datum::createInteger(42);
+}
+
+bdld::Datum MockPropertiesReader::get(const bsl::string& name,
+                                      bslma::Allocator*)
+{
+    bsl::unordered_map<bsl::string, bdld::Datum>::const_iterator iter =
+        d_map.find(name);
+
+    if (iter == d_map.end()) {
+        return bdld::Datum::createError(-1);  // RETURN
+    }
+
+    return iter->second;
+}
 
 #ifdef BSLS_PLATFORM_OS_LINUX
 static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
@@ -219,7 +223,7 @@ static void test1_compilationErrors()
         {
             CompilationContext compilationContext(
                 bmqtst::TestHelperUtil::allocator());
-            SimpleEvaluator    evaluator;
+            SimpleEvaluator evaluator;
 
             evaluator.compile(parameters->expression, compilationContext);
             PV(compilationContext.lastErrorMessage());
@@ -470,13 +474,26 @@ static void test3_evaluation()
 
         // logical operators
         {"!b_true", false},
+        {"!!b_true", true},
+        {"!~b_true", true},
+        {"~!b_true", true},
+        {"~~b_true", true},
         {"~b_true", false},
         {"b_true && i64_42 == 42", true},
         {"b_true || i64_42 != 42", true},
         // precedence
         {"!(i64_42 == 42)", false},
+        {"!!(i64_42 == 42)", true},
         {"b_false && b_false || b_true", true},
         {"b_false && (b_false || b_true)", false},
+        {"!b_false && b_false", false},
+        {"!b_false && b_true", true},
+        {"!(b_false && b_false)", true},
+        {"!(b_false && b_true)", true},
+        {"!b_false || b_false", true},
+        {"!b_false || b_true", true},
+        {"!(b_false || b_false)", true},
+        {"!(b_false || b_true)", false},
 
         // type mismatch yields 'runtimeErrorResult' (see above)
         {"s_foo == 42", runtimeErrorResult},
@@ -545,7 +562,7 @@ static void test3_evaluation()
 
         CompilationContext compilationContext(
             bmqtst::TestHelperUtil::allocator());
-        SimpleEvaluator    evaluator;
+        SimpleEvaluator evaluator;
 
         BMQTST_ASSERT(!evaluator.isValid());
 
