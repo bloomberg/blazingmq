@@ -24,6 +24,7 @@
 #include <mqba_domainmanager.h>
 #include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
+#include <mqbauthn_authenticationcontroller.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_relayqueueengine.h>
 #include <mqbcfg_brokerconfig.h>
@@ -166,6 +167,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 , d_allocatorsStatContext_p(allocatorsStatContext)
 , d_pluginManager_mp()
 , d_statController_mp()
+, d_authenticationController_mp()
 , d_configProvider_mp()
 , d_dispatcher_mp()
 , d_transportManager_mp()
@@ -254,7 +256,8 @@ int Application::start(bsl::ostream& errorDescription)
         rc_TRANSPORTMANAGER_LISTEN            = -9,
         rc_CLUSTER_REVERSECONNECTIONS_FAILURE = -10,
         rc_ADMIN_POOL_START_FAILURE           = -11,
-        rc_PLUGINMANAGER                      = -12
+        rc_PLUGINMANAGER                      = -12,
+        rc_AUTHENTICATIONCONTROLLER           = -13
     };
 
     int rc = rc_SUCCESS;
@@ -294,6 +297,17 @@ int Application::start(bsl::ostream& errorDescription)
     rc = d_statController_mp->start(errorDescription);
     if (rc != 0) {
         return (rc * 100) + rc_STATCONTROLLER;  // RETURN
+    }
+
+    // Start the AuthenticationController
+    d_authenticationController_mp.load(
+        new (*d_allocator_p) mqbauthn::AuthenticationController(
+            d_pluginManager_mp.get(),
+            d_allocators.get("AuthenticationController")),
+        d_allocator_p);
+    rc = d_authenticationController_mp->start(errorDescription);
+    if (rc != 0) {
+        return (rc * 100) + rc_AUTHENTICATIONCONTROLLER;  // RETURN
     }
 
     // Start the config provider
@@ -534,6 +548,7 @@ void Application::stop()
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
     STOP_OBJ(d_statController_mp, "StatController");
+    STOP_OBJ(d_authenticationController_mp, "AuthenticationController");
     STOP_OBJ(d_pluginManager_mp, "PluginManager");
 
     // and now DESTROY everything
@@ -543,6 +558,7 @@ void Application::stop()
     DESTROY_OBJ(d_dispatcher_mp, "Dispatcher");
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
     DESTROY_OBJ(d_statController_mp, "StatController");
+    DESTROY_OBJ(d_authenticationController_mp, "AuthenticationController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
 
     BALL_LOG_INFO << "BMQbrkr stopped";
