@@ -33,6 +33,7 @@
 #include <bmqio_connectoptions.h>
 #include <bmqio_listenoptions.h>
 #include <bmqio_ntcchannel.h>
+#include <bmqu_atomicvalidator.h>
 
 // NTF
 #include <ntca_interfaceconfig.h>
@@ -100,13 +101,6 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// This typedef defines an iterator over a catalog of channels.
     typedef bdlcc::ObjectCatalogIter<ChannelEntry> ChannelIterator;
 
-    enum State {
-        e_STATE_DEFAULT,
-        e_STATE_STARTED,
-        e_STATE_STOPPING,
-        e_STATE_STOPPED
-    };
-
     // INSTANCE DATA
     bsl::shared_ptr<ntci::Interface> d_interface_sp;
     ListenerCatalog                  d_listeners;
@@ -114,9 +108,9 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     bdlmt::Signaler<CreateFnType>    d_createSignaler;
     bdlmt::Signaler<LimitFnType>     d_limitSignaler;
     bool                             d_owned;
-    bslmt::Mutex                     d_stateMutex;
-    bslmt::Condition                 d_stateCondition;
-    State                            d_state;
+    bmqu::AtomicValidator            d_validator;
+    bmqu::AtomicValidator            d_resourceMonitor;
+    bsls::AtomicBool                 d_isInterfaceStarted;
     bslma::Allocator*                d_allocator_p;
 
   private:
