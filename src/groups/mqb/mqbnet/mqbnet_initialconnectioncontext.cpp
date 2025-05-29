@@ -18,6 +18,12 @@
 
 #include <mqbscm_version.h>
 
+// BMQ
+#include <bmqio_channel.h>
+
+// BDE
+#include <bsl_memory.h>
+
 namespace BloombergLP {
 namespace mqbnet {
 
@@ -68,6 +74,13 @@ InitialConnectionContext& InitialConnectionContext::setCompleteCb(
     return *this;
 }
 
+InitialConnectionContext& InitialConnectionContext::setAuthenticationContext(
+    const bsl::shared_ptr<AuthenticationContext>& value)
+{
+    d_authenticationCtxSp = value;
+    return *this;
+}
+
 InitialConnectionContext& InitialConnectionContext::setNegotiationContext(
     const bsl::shared_ptr<NegotiationContext>& value)
 {
@@ -109,6 +122,12 @@ void InitialConnectionContext::complete(
     BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
 
     d_initialConnectionCompleteCb(rc, error, session, channel(), this);
+}
+
+const bsl::shared_ptr<AuthenticationContext>&
+InitialConnectionContext::authenticationContext() const
+{
+    return d_authenticationCtxSp;
 }
 
 const bsl::shared_ptr<NegotiationContext>&

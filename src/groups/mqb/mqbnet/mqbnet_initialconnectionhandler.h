@@ -17,12 +17,12 @@
 #ifndef INCLUDED_MQBNET_INITIALCONNECTIONHANDLER
 #define INCLUDED_MQBNET_INITIALCONNECTIONHANDLER
 
-//@PURPOSE:
-//
-//@CLASSES:
-//
-//@DESCRIPTION: Read from IO and commands authenticator and negotiator.
-// A session would be created at the end upon success.
+/// @file mqbnet_initialconnectionhandler.h
+/// @brief Provide a handler for initial connection.
+///
+/// @bbref{mqbnet::InitialConnectionHandler} reads from IO (if this is an
+/// incoming connection) and commands authenticator and negotiator.  A session
+/// would be created at the end upon success.
 
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
