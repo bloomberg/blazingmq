@@ -27,6 +27,7 @@
 
 // MQB
 #include <mqba_commandrouter.h>
+#include <mqbauthn_authenticationcontroller.h>
 #include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
@@ -97,18 +98,20 @@ class Application {
 
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<mqbplug::PluginManager>   PluginManagerMp;
-    typedef bslma::ManagedPtr<mqbblp::ClusterCatalog>   ClusterCatalogMp;
-    typedef bslma::ManagedPtr<ConfigProvider>           ConfigProviderMp;
-    typedef bslma::ManagedPtr<Dispatcher>               DispatcherMp;
-    typedef bslma::ManagedPtr<DomainManager>            DomainManagerMp;
-    typedef bslma::ManagedPtr<mqbstat::StatController>  StatControllerMp;
+    typedef bslma::ManagedPtr<mqbplug::PluginManager>  PluginManagerMp;
+    typedef bslma::ManagedPtr<mqbblp::ClusterCatalog>  ClusterCatalogMp;
+    typedef bslma::ManagedPtr<ConfigProvider>          ConfigProviderMp;
+    typedef bslma::ManagedPtr<Dispatcher>              DispatcherMp;
+    typedef bslma::ManagedPtr<DomainManager>           DomainManagerMp;
+    typedef bslma::ManagedPtr<mqbstat::StatController> StatControllerMp;
+    typedef bslma::ManagedPtr<mqbauthn::AuthenticationController>
+        AuthenticationControllerMp;
     typedef bslma::ManagedPtr<mqbnet::TransportManager> TransportManagerMp;
     typedef bdlcc::SharedObjectPool<
         bdlbb::Blob,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
+                                                           BlobSpPool;
     typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > Sessions;
 
     // Data members
@@ -143,6 +146,9 @@ class Application {
 
     /// Statistics controller component.
     StatControllerMp d_statController_mp;
+
+    /// Authentication controller component.
+    AuthenticationControllerMp d_authenticationController_mp;
 
     ConfigProviderMp d_configProvider_mp;
 
