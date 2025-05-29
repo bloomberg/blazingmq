@@ -24,6 +24,8 @@ import shutil
 import signal
 from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
+import os
+import time
 
 from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.proc
@@ -150,7 +152,7 @@ class Cluster(contextlib.AbstractContextManager):
         See also: 'wait_status' for more information on the 'ready' flags.
         """
 
-        need_preset_leader = leader_name is not None
+        need_preset_leader = bool(leader_name)
 
         with internal_use(self):
             for broker in self.config.configurator.brokers.values():
@@ -286,7 +288,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.wait_status(wait_leader, wait_ready)
 
-    def stop_nodes(self):
+    def stop_nodes(self, retries=4):
         """Stop the nodes in the cluster.
 
         NOTE: this method does *not* stop the proxies.
@@ -300,7 +302,18 @@ class Cluster(contextlib.AbstractContextManager):
                 node.stop()
 
         for node in self.nodes():
-            if node.is_alive():
+            is_alive = True
+            for attempt in range(retries):
+                if node.is_alive():
+                    # Empirical experiements show that usually wait time is 6 seconds
+                    # So it takes 2 retry attampts to stop a node
+                    delay = pow(2, attempt + 1)
+                    time.sleep(delay)
+                else:
+                    is_alive = False
+                    break
+
+            if is_alive:
                 error = f"node {node.name} refused to stop"
                 self._error(error)
 
@@ -679,11 +692,44 @@ class Cluster(contextlib.AbstractContextManager):
             ]
         )
 
-    def deploy_domains(self):
+    def update_all_brokers_binary(self, new_version: str):
+        """Update all brokers to the specified version."""
+
         for broker in self.configurator.brokers.values():
-            self.configurator.deploy_domains(
-                broker, LocalSite(self.work_dir / broker.name)
+            self.update_broker_binary(broker, new_version)
+
+    def update_broker_binary(self, broker: cfg.Broker, new_version: str):
+        """Update the specified broker to the specified version."""
+
+        broker_path_var = f"BLAZINGMQ_BROKER_{broker.name.upper()}"
+        newversion_path_var = f"BLAZINGMQ_BROKER_{new_version.upper()}"
+
+        if newversion_path_var in os.environ:
+            new_path = os.environ[newversion_path_var]
+            os.environ[broker_path_var] = new_path
+            self.deploy_broker_local(broker)
+
+            self._logger.debug(f"Updated {broker_path_var} to {new_path}")
+        else:
+            self._logger.warning(
+                f"Skipped updating binary for broker {broker.name.upper()}. {newversion_path_var} is undefined"
             )
+
+    def get_broker_local_site(self, broker: cfg.Broker):
+        """Return the local site for the specified broker."""
+
+        return LocalSite(self.work_dir / broker.name)
+
+    def deploy_broker_local(self, broker: cfg.Broker):
+        """Deploy the specified broker to the local site."""
+
+        self.configurator.deploy_programs(broker, self.get_broker_local_site(broker))
+
+    def deploy_domains(self):
+        """Deploy the domains for all brokers in the cluster."""
+
+        for broker in self.configurator.brokers.values():
+            self.configurator.deploy_domains(broker, self.get_broker_local_site(broker))
 
     def reconfigure_domain(
         self,
