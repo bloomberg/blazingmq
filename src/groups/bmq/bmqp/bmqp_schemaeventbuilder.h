@@ -222,6 +222,7 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     BSLS_ASSERT_SAFE(d_blob_sp->length() == 0);  // Ensure the blob is empty
     BSLS_ASSERT_SAFE(d_encodingType != EncodingType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(type == EventType::e_CONTROL ||
+                     type == EventType::e_AUTHENTICATION ||
                      (type == EventType::e_ELECTOR &&
                       d_encodingType == EncodingType::e_BER));
     // Currently, we only support BER encoding for elector messages
