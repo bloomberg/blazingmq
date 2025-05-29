@@ -1595,6 +1595,11 @@ void TCPSessionFactory::stop()
     // session in
     //       the 'd_channels' map: calling 'stop' on the channel factory
     //       will invoke the 'onClose' for every sessions.
+
+    // STOP
+    d_resolutionContext.stop();
+    d_resolutionContext.join();
+
     if (d_tlsChannelFactoryPipeline_mp) {
         d_tlsChannelFactoryPipeline_mp->stop();
     }
@@ -1602,10 +1607,6 @@ void TCPSessionFactory::stop()
     if (d_channelFactoryPipeline_mp) {
         d_channelFactoryPipeline_mp->stop();
     }
-
-    // STOP
-    d_resolutionContext.stop();
-    d_resolutionContext.join();
 
     // Wait for all sessions to have been destroyed
     d_mutex.lock();
@@ -1633,7 +1634,7 @@ void TCPSessionFactory::stop()
     d_mutex.unlock();
 
     // DESTROY
-    // We destroy the channel factories here for symmetry since it's
+    // We destroy the channel factories here for symmetry since they're
     // created in 'start'.
     d_tlsChannelFactoryPipeline_mp.reset();
     d_channelFactoryPipeline_mp.reset();
