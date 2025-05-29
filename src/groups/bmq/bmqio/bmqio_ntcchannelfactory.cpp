@@ -242,6 +242,8 @@ void NtcChannelFactory::processUpgrade(
     }
 
     // Note: the `upgradable` object is the channel's underlying stream socket.
+    // This signaler is the only way that we can communicate to observers what
+    // the status of the upgrade is.
     d_upgradeSignaler(channel, upgradable, upgradeEvent);
 
     callback(event, status, channel);
