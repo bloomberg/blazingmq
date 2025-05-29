@@ -501,12 +501,12 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `mqbi::Queue::postMessage` when the message
-    /// has been posted by the specified `source` and saved in the storage.
+    /// has been posted and saved in the storage.
     /// It could be used to monitor the message delivery for
     /// ensuring messages on the queue are flowing and not accumulating.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void afterPostMessage(mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+    void afterPostMessage() BSLS_KEYWORD_OVERRIDE;
 
     /// Called after creation of a new storage for the specified
     /// `appIdKeyPair`.

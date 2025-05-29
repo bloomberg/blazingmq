@@ -193,13 +193,13 @@ class QueueEngine : public mqbi::QueueEngine {
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the `mqbi::Queue::postMessage` when the message
-    /// has been posted by the specified `source` and saved in the storage.
-    /// It could be used to monitor the message delivery for
-    /// ensuring messages on the queue are flowing and not accumulating.
+    /// Notify this queue engine that a message has been posted and
+    /// saved in the storage.
+    /// See also: `mqbblp::LocalQueue::postMessage`,
+    ///           `mqbblp::RemoteQueue::postMessage`
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void afterPostMessage(mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+    void afterPostMessage() BSLS_KEYWORD_OVERRIDE;
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all application subscriptions and exclude applications with

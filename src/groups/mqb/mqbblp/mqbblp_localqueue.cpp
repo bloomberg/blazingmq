@@ -515,7 +515,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
                 appData->length());
 
-        d_queueEngine_mp->afterPostMessage(source);
+        d_queueEngine_mp->afterPostMessage();
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

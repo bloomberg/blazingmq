@@ -1606,8 +1606,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
     }
 }
 
-void RelayQueueEngine::afterPostMessage(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+void RelayQueueEngine::afterPostMessage()
 {
     // executed by the *QUEUE DISPATCHER* thread
 

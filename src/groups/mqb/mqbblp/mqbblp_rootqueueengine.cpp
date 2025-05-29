@@ -1596,8 +1596,7 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
     iter->second->clear();
 }
 
-void RootQueueEngine::afterPostMessage(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+void RootQueueEngine::afterPostMessage()
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1758,11 +1757,6 @@ bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
         return false;  // RETURN
     }
 
-    if (!enableLog) {
-        // There are un-delivered messages, but log is disabled.
-        return true;  // RETURN
-    }
-
     // Get the arrival time delta of the oldest un-delivered message.
     bsls::Types::Int64 arrivaTimelDelta = 0;
     mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta,
@@ -1775,6 +1769,11 @@ bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
     }
     // If the alarm time is in the future, don't log the alarm.
     if (alarmTime > now) {
+        return true;  // RETURN
+    }
+
+    if (!enableLog) {
+        // Alarm condition is met, but log is disabled.
         return true;  // RETURN
     }
 
