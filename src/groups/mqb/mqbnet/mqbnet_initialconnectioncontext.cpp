@@ -121,6 +121,12 @@ InitialConnectionContext::authenticationContext() const
     return d_authenticationCtxSp;
 }
 
+const bsl::shared_ptr<AuthenticationContext>&
+InitialConnectionContext::authenticationContext() const
+{
+    return d_authenticationCtxSp;
+}
+
 const bsl::shared_ptr<NegotiationContext>&
 InitialConnectionContext::negotiationContext() const
 {
