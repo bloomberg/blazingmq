@@ -321,12 +321,10 @@ static void test5_humanReadableSummaryTest()
         << "4 commit record(s) found.\n\n"
         << "5 ack record(s) found.\n\n"
         << "2 Queues found:\n"
-        << "[ uri = \"bmq://bmq.test.persistent.priority/second-queue\" key = "
-           "[ 62 ]\n"
-        << " partitionId = 3 appIds = [ ] ]\n"
-        << "[ uri = \"bmq://bmq.test.persistent.priority/first-queue\" key = "
-           "[ 61 ]\n"
-        << " partitionId = 2 appIds = [ ] ]\n";
+        << "[ uri = \"bmq://bmq.test.persistent.priority/second-queue\"  key "
+           "= [ 62 ] partitionId = 3 appIds = [ ] ]\n"
+        << "[ uri = \"bmq://bmq.test.persistent.priority/first-queue\"  key = "
+           "[ 61 ] partitionId = 2 appIds = [ ] ]\n";
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }

@@ -475,7 +475,10 @@ struct EventType {
         e_HEARTBEAT_REQ       = 11,
         e_HEARTBEAT_RSP       = 12,
         e_REJECT              = 13,
-        e_REPLICATION_RECEIPT = 14
+        e_REPLICATION_RECEIPT = 14,
+
+        // Authentication event
+        e_AUTHENTICATION = 15,
     };
 
     // CONSTANTS
