@@ -617,8 +617,8 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
     const SOURCE_TYPE& value,
     TimeType           timePoint)
 {
-    bsl::pair<gc_iterator, bool> result = d_impl.insert(
-        Value(value, d_timeout ? timePoint + d_timeout : 0));
+    TimeType                     time = d_timeout ? timePoint + d_timeout : 0;
+    bsl::pair<gc_iterator, bool> result = d_impl.insert(Value(value, time));
     // No need to keep track of element's timePoint if the map is not
     // maintaining any history (i.e., if d_timeout == 0).
 
@@ -635,6 +635,21 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
         }
         it->d_next = d_impl.end();
     }
+    else {
+        if (!it->d_isLive) {
+            // Corner case of (re)inserting undetected duplicate
+            // Erase and reinsert
+            d_impl.erase(it);
+            --d_historySize;
+
+            result = d_impl.insert(Value(value, time));
+
+            it = result.first;
+
+            BSLS_ASSERT_SAFE(result.second);
+        }
+    }
+    BSLS_ASSERT_SAFE(it->d_isLive);
 
     return bsl::pair<iterator, bool>(iterator(it), result.second);
 }
