@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;e1e12761ac381cc0cf28ffde32c90b53f479663f</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;605a97e1f9cd34bb38d4aeb0c2ba4955b3db92a4</span>
    </div>
   </td>
  </tr>
@@ -121,11 +121,11 @@ $(document).ready(function(){initNavTree('bmqt__messageguid_8h_source.html','');
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="preprocessor">#include &lt;bsl_cstring.h&gt;</span>  <span class="comment">// for bsl::memset, bsl::memcmp</span></div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span> </div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="preprocessor">#include &lt;bsl_iosfwd.h&gt;</span></div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="preprocessor">#include &lt;bslh_hash.h&gt;</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="preprocessor">#include &lt;bslmf_isbitwiseequalitycomparable.h&gt;</span></div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">#include &lt;bslmf_istriviallycopyable.h&gt;</span></div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">#include &lt;bslmf_nestedtraitdeclaration.h&gt;</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="preprocessor">#include &lt;bsls_annotation.h&gt;</span></div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="preprocessor">#include &lt;bsla_annotations.h&gt;</span></div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="preprocessor">#include &lt;bslh_hash.h&gt;</span></div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">#include &lt;bslmf_isbitwiseequalitycomparable.h&gt;</span></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">#include &lt;bslmf_istriviallycopyable.h&gt;</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="preprocessor">#include &lt;bslmf_nestedtraitdeclaration.h&gt;</span></div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="preprocessor">#include &lt;bsls_types.h&gt;</span></div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
@@ -327,105 +327,104 @@ $(document).ready(function(){initNavTree('bmqt__messageguid_8h_source.html','');
 </div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span> </div>
 <div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment">// MANIPULATORS</span></div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="keyword">inline</span> <span class="keywordtype">void</span></div>
-<div class="foldopen" id="foldopen00336" data-start="{" data-end="}">
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a6538ac3954d73f292ccf44994b054bd5">  336</a></span><a class="code hl_function" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a6538ac3954d73f292ccf44994b054bd5">MessageGUIDHashAlgo::operator()</a>(<span class="keyword">const</span> <span class="keywordtype">void</span>*                   data,</div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>                                BSLS_ANNOTATION_UNUSED <span class="keywordtype">size_t</span> numBytes)</div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>{</div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    <span class="comment">// Implementation note: the implementation is based on Jon Maiga&#39;s research</span></div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>    <span class="comment">// on different bit mixers and their qualities (look for `mxm`):</span></div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>    <span class="comment">// https://jonkagstrom.com/bit-mixer-construction/index.html</span></div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span> </div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    <span class="comment">// Typically, bit mixers are used as the last step of computing more</span></div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>    <span class="comment">// general hashes.  But it&#39;s more than enough to use it on its own for</span></div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>    <span class="comment">// our specific use case here.</span></div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span> </div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    <span class="comment">// Performance evaluation, hash quality and avalanche effect are here:</span></div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    <span class="comment">// https://github.com/bloomberg/blazingmq/pull/348</span></div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span> </div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    <span class="keyword">struct </span>LocalFuncs {</div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>        <span class="keyword">inline</span> <span class="keyword">static</span> bsls::Types::Uint64 mix(bsls::Types::Uint64 x)</div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>        {</div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>            x *= 0xbf58476d1ce4e5b9ULL;</div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>            x ^= x &gt;&gt; 56;</div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>            x *= 0x94d049bb133111ebULL;</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>            <span class="keywordflow">return</span> x;</div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>        }</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span> </div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>        <span class="keyword">inline</span> <span class="keyword">static</span> bsls::Types::Uint64 combine(bsls::Types::Uint64 lhs,</div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>                                                  bsls::Types::Uint64 rhs)</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>        {</div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>            lhs ^= rhs + 0x517cc1b727220a95 + (lhs &lt;&lt; 6) + (lhs &gt;&gt; 2);</div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>            <span class="keywordflow">return</span> lhs;</div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>        }</div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>    };</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span> </div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>    <span class="comment">// `data` buffer might not be aligned to 8 bytes, so recasting the pointer</span></div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>    <span class="comment">// might lead to UB</span></div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    bsls::Types::Uint64 parts[2];</div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>    bsl::memcpy(parts, data, <a class="code hl_enumvalue" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html#abb13179ac32dc248e856c509f945624da24ce4dad88f724c5a5624e5237cd9a4b">bmqt::MessageGUID::e_SIZE_BINARY</a>);</div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span> </div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>    parts[0] = LocalFuncs::mix(parts[0]);</div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    parts[1] = LocalFuncs::mix(parts[1]);</div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    d_result = LocalFuncs::combine(parts[0], parts[1]);</div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>}</div>
+<div class="foldopen" id="foldopen00335" data-start="{" data-end="}">
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a6538ac3954d73f292ccf44994b054bd5">  335</a></span><span class="keyword">inline</span> <span class="keywordtype">void</span> <a class="code hl_function" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a6538ac3954d73f292ccf44994b054bd5">MessageGUIDHashAlgo::operator()</a>(<span class="keyword">const</span> <span class="keywordtype">void</span>*        data,</div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>                                            BSLA_UNUSED <span class="keywordtype">size_t</span> numBytes)</div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>{</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    <span class="comment">// Implementation note: the implementation is based on Jon Maiga&#39;s research</span></div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    <span class="comment">// on different bit mixers and their qualities (look for `mxm`):</span></div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>    <span class="comment">// https://jonkagstrom.com/bit-mixer-construction/index.html</span></div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span> </div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>    <span class="comment">// Typically, bit mixers are used as the last step of computing more</span></div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    <span class="comment">// general hashes.  But it&#39;s more than enough to use it on its own for</span></div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>    <span class="comment">// our specific use case here.</span></div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span> </div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>    <span class="comment">// Performance evaluation, hash quality and avalanche effect are here:</span></div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    <span class="comment">// https://github.com/bloomberg/blazingmq/pull/348</span></div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span> </div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    <span class="keyword">struct </span>LocalFuncs {</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>        <span class="keyword">inline</span> <span class="keyword">static</span> bsls::Types::Uint64 mix(bsls::Types::Uint64 x)</div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>        {</div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>            x *= 0xbf58476d1ce4e5b9ULL;</div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>            x ^= x &gt;&gt; 56;</div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>            x *= 0x94d049bb133111ebULL;</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>            <span class="keywordflow">return</span> x;</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>        }</div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span> </div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>        <span class="keyword">inline</span> <span class="keyword">static</span> bsls::Types::Uint64 combine(bsls::Types::Uint64 lhs,</div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>                                                  bsls::Types::Uint64 rhs)</div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>        {</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>            lhs ^= rhs + 0x517cc1b727220a95 + (lhs &lt;&lt; 6) + (lhs &gt;&gt; 2);</div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>            <span class="keywordflow">return</span> lhs;</div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>        }</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>    };</div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span> </div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>    <span class="comment">// `data` buffer might not be aligned to 8 bytes, so recasting the pointer</span></div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>    <span class="comment">// might lead to UB</span></div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>    bsls::Types::Uint64 parts[2];</div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    bsl::memcpy(parts, data, <a class="code hl_enumvalue" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html#abb13179ac32dc248e856c509f945624da24ce4dad88f724c5a5624e5237cd9a4b">bmqt::MessageGUID::e_SIZE_BINARY</a>);</div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span> </div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>    parts[0] = LocalFuncs::mix(parts[0]);</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>    parts[1] = LocalFuncs::mix(parts[1]);</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    d_result = LocalFuncs::combine(parts[0], parts[1]);</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>}</div>
 </div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span> </div>
-<div class="foldopen" id="foldopen00379" data-start="{" data-end="}">
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a853b14a07e4d3db7e7c3e70ed04e9d9c">  379</a></span><span class="keyword">inline</span> <a class="code hl_typedef" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#aa7bc4ffa07d9eb292f692828d13a3592">MessageGUIDHashAlgo::result_type</a> <a class="code hl_function" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a853b14a07e4d3db7e7c3e70ed04e9d9c">MessageGUIDHashAlgo::computeHash</a>()</div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>{</div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>    <span class="keywordflow">return</span> d_result;</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>}</div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span> </div>
+<div class="foldopen" id="foldopen00378" data-start="{" data-end="}">
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a853b14a07e4d3db7e7c3e70ed04e9d9c">  378</a></span><span class="keyword">inline</span> <a class="code hl_typedef" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#aa7bc4ffa07d9eb292f692828d13a3592">MessageGUIDHashAlgo::result_type</a> <a class="code hl_function" href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a853b14a07e4d3db7e7c3e70ed04e9d9c">MessageGUIDHashAlgo::computeHash</a>()</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>{</div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>    <span class="keywordflow">return</span> d_result;</div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>}</div>
 </div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span> </div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>}  <span class="comment">// close package namespace</span></div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span> </div>
-<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span><span class="comment">// -----------------</span></div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span><span class="comment">// class MessageGUID</span></div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span><span class="comment">// -----------------</span></div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span> </div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span><span class="comment">// FREE OPERATORS</span></div>
-<div class="foldopen" id="foldopen00391" data-start="{" data-end="}">
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a66d32058d78dc9ca2c4306f7f853644f">  391</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">bmqt::operator==</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; lhs,</div>
-<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>                             <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>{</div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>    <span class="keywordflow">return</span> 0 ==</div>
-<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>           bsl::memcmp(lhs.d_buffer, rhs.d_buffer, MessageGUID::e_SIZE_BINARY);</div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>}</div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span> </div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span> </div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span><span class="comment">// -----------------</span></div>
+<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span><span class="comment">// class MessageGUID</span></div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span><span class="comment">// -----------------</span></div>
+<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span> </div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span><span class="comment">// FREE OPERATORS</span></div>
+<div class="foldopen" id="foldopen00390" data-start="{" data-end="}">
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a66d32058d78dc9ca2c4306f7f853644f">  390</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">bmqt::operator==</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; lhs,</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>                             <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
+<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>{</div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>    <span class="keywordflow">return</span> 0 ==</div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>           bsl::memcmp(lhs.d_buffer, rhs.d_buffer, MessageGUID::e_SIZE_BINARY);</div>
+<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>}</div>
 </div>
-<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span> </div>
-<div class="foldopen" id="foldopen00398" data-start="{" data-end="}">
-<div class="line"><a id="l00398" name="l00398"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#ad3df9bd2e86b954ff5aaf530411fceef">  398</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">bmqt::operator!=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; lhs,</div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>                             <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>{</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>    <span class="keywordflow">return</span> !(lhs == rhs);</div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>}</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span> </div>
+<div class="foldopen" id="foldopen00397" data-start="{" data-end="}">
+<div class="line"><a id="l00397" name="l00397"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#ad3df9bd2e86b954ff5aaf530411fceef">  397</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">bmqt::operator!=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; lhs,</div>
+<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>                             <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>{</div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>    <span class="keywordflow">return</span> !(lhs == rhs);</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>}</div>
 </div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span> </div>
-<div class="foldopen" id="foldopen00404" data-start="{" data-end="}">
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#acd51bbcb4f443020803cdb2ed1c7d2cf">  404</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#ad02821c241b0c68b972bb61dbf4ee260">bmqt::operator&lt;</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; lhs,</div>
-<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>                            <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
-<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>{</div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>    <a class="code hl_struct" href="structBloombergLP_1_1bmqt_1_1MessageGUIDLess.html">MessageGUIDLess</a> less;</div>
-<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>    <span class="keywordflow">return</span> less(lhs, rhs);</div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>}</div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span> </div>
+<div class="foldopen" id="foldopen00403" data-start="{" data-end="}">
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#acd51bbcb4f443020803cdb2ed1c7d2cf">  403</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#ad02821c241b0c68b972bb61dbf4ee260">bmqt::operator&lt;</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; lhs,</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>                            <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>{</div>
+<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>    <a class="code hl_struct" href="structBloombergLP_1_1bmqt_1_1MessageGUIDLess.html">MessageGUIDLess</a> less;</div>
+<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>    <span class="keywordflow">return</span> less(lhs, rhs);</div>
+<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>}</div>
 </div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span> </div>
-<div class="foldopen" id="foldopen00411" data-start="{" data-end="}">
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a5c0af881c4987573e9527455a792c3e3">  411</a></span><span class="keyword">inline</span> bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;            stream,</div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>                                      <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>{</div>
-<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    <span class="keywordflow">return</span> rhs.<a class="code hl_function" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html#a77f0fbd9ed5fbf056dd6411317ba6c20">print</a>(stream, 0, -1);</div>
-<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>}</div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span> </div>
+<div class="foldopen" id="foldopen00410" data-start="{" data-end="}">
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a5c0af881c4987573e9527455a792c3e3">  410</a></span><span class="keyword">inline</span> bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;            stream,</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>                                      <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; rhs)</div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>{</div>
+<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>    <span class="keywordflow">return</span> rhs.<a class="code hl_function" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html#a77f0fbd9ed5fbf056dd6411317ba6c20">print</a>(stream, 0, -1);</div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>}</div>
 </div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span> </div>
-<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>}  <span class="comment">// close enterprise namespace</span></div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span> </div>
-<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span> </div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span> </div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html">BloombergLP::bmqt::MessageGUIDHashAlgo</a></div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:257</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html_a37ee03e76d767440a3d782103307cdb5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a37ee03e76d767440a3d782103307cdb5">BloombergLP::bmqt::MessageGUIDHashAlgo::MessageGUIDHashAlgo</a></div><div class="ttdeci">MessageGUIDHashAlgo()</div><div class="ttdoc">Constructor.</div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:329</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html_a6538ac3954d73f292ccf44994b054bd5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a6538ac3954d73f292ccf44994b054bd5">BloombergLP::bmqt::MessageGUIDHashAlgo::operator()</a></div><div class="ttdeci">void operator()(const void *data, size_t numBytes)</div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:336</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html_a853b14a07e4d3db7e7c3e70ed04e9d9c"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a853b14a07e4d3db7e7c3e70ed04e9d9c">BloombergLP::bmqt::MessageGUIDHashAlgo::computeHash</a></div><div class="ttdeci">result_type computeHash()</div><div class="ttdoc">Compute and return the hash for the GUID.</div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:379</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html_a6538ac3954d73f292ccf44994b054bd5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a6538ac3954d73f292ccf44994b054bd5">BloombergLP::bmqt::MessageGUIDHashAlgo::operator()</a></div><div class="ttdeci">void operator()(const void *data, size_t numBytes)</div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:335</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html_a853b14a07e4d3db7e7c3e70ed04e9d9c"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#a853b14a07e4d3db7e7c3e70ed04e9d9c">BloombergLP::bmqt::MessageGUIDHashAlgo::computeHash</a></div><div class="ttdeci">result_type computeHash()</div><div class="ttdoc">Compute and return the hash for the GUID.</div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:378</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo_html_aa7bc4ffa07d9eb292f692828d13a3592"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUIDHashAlgo.html#aa7bc4ffa07d9eb292f692828d13a3592">BloombergLP::bmqt::MessageGUIDHashAlgo::result_type</a></div><div class="ttdeci">bsls::Types::Uint64 result_type</div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:264</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUID_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">BloombergLP::bmqt::MessageGUID</a></div><div class="ttdef"><b>Definition</b> bmqt_messageguid.h:95</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1MessageGUID_html_a0f6b0a3e18dee1f27e22b83c3dfa3d00"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1MessageGUID.html#a0f6b0a3e18dee1f27e22b83c3dfa3d00">BloombergLP::bmqt::MessageGUID::fromHex</a></div><div class="ttdeci">MessageGUID &amp; fromHex(const char *buffer)</div></div>

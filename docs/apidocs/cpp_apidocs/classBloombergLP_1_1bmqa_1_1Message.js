@@ -1,8 +1,8 @@
 var classBloombergLP_1_1bmqa_1_1Message =
 [
     [ "Message", "classBloombergLP_1_1bmqa_1_1Message.html#a53271dae3e68a11c0fc8a9a7f4f7095c", null ],
-    [ "setData", "classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7", null ],
-    [ "setData", "classBloombergLP_1_1bmqa_1_1Message.html#a0c5269cc87400b555e92d6bfa243fb2e", null ],
+    [ "setData", "classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec", null ],
+    [ "setData", "classBloombergLP_1_1bmqa_1_1Message.html#aef051951ededa98d3f6d90edb00c5a20", null ],
     [ "setDataRef", "classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd", null ],
     [ "setDataRef", "classBloombergLP_1_1bmqa_1_1Message.html#a363c28a0c52064cc9797fee8ed247779", null ],
     [ "setPropertiesRef", "classBloombergLP_1_1bmqa_1_1Message.html#a9eec8033a233c526bb6141579c275c1b", null ],

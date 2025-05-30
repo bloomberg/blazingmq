@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;e1e12761ac381cc0cf28ffde32c90b53f479663f</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;605a97e1f9cd34bb38d4aeb0c2ba4955b3db92a4</span>
    </div>
   </td>
  </tr>
@@ -131,8 +131,8 @@ $(document).ready(function(){initNavTree('bmqa__message_8h_source.html',''); ini
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="preprocessor">#include &lt;bsl_iosfwd.h&gt;</span></div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="preprocessor">#include &lt;bsl_memory.h&gt;</span></div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="preprocessor">#include &lt;bslma_allocator.h&gt;</span></div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#include &lt;bsls_annotation.h&gt;</span></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="preprocessor">#include &lt;bsla_annotations.h&gt;</span></div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#include &lt;bslma_allocator.h&gt;</span></div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span> </div>
@@ -226,177 +226,177 @@ $(document).ready(function(){initNavTree('bmqa__message_8h_source.html',''); ini
 <div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span> </div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    <span class="comment">// MANIPULATORS</span></div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7">setData</a>(<span class="keyword">const</span> bdlbb::Blob* data) BSLS_ANNOTATION_DEPRECATED;</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span> </div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7">setData</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* data,</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>                     <span class="keywordtype">size_t</span>      length) BSLS_ANNOTATION_DEPRECATED;</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span> </div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">  231</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(<span class="keyword">const</span> bdlbb::Blob* data);</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span> </div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a363c28a0c52064cc9797fee8ed247779">  240</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a363c28a0c52064cc9797fee8ed247779">setDataRef</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* data, <span class="keywordtype">size_t</span> length);</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span> </div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a9eec8033a233c526bb6141579c275c1b">  248</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a9eec8033a233c526bb6141579c275c1b">setPropertiesRef</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">MessageProperties</a>* properties);</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span> </div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a458a0883fc77eea73d3a3f31dbd88994">  255</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a458a0883fc77eea73d3a3f31dbd88994">clearPropertiesRef</a>();</div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span> </div>
-<div class="line"><a id="l00258" name="l00258"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae29aa7736797c3d248f11785b4a5b9dc">  258</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae29aa7736797c3d248f11785b4a5b9dc">setCorrelationId</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a817ae8399824f913f4c4200bd6bd5d4e">correlationId</a>);</div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span> </div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp;</div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae76df432af15b5c624fb86039e5c2544">  264</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae76df432af15b5c624fb86039e5c2544">setCompressionAlgorithmType</a>(<a class="code hl_enumeration" href="structBloombergLP_1_1bmqt_1_1CompressionAlgorithmType.html#aa16c640afbb996d4f92dedba59e1575b">bmqt::CompressionAlgorithmType::Enum</a> value);</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span> </div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span><span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; setGroupId(<span class="keyword">const</span> bsl::string&amp; groupId);</div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span> </div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; clearGroupId();</div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span> </div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    <span class="comment">// ACCESSORS</span></div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span> </div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a96f4973b9796cc807c778f35212d5765">  286</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a96f4973b9796cc807c778f35212d5765">isValid</a>() <span class="keyword">const</span>;  <span class="comment">// TBD:BSLS_ANNOTATION_DEPRECATED</span></div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span> </div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>    <span class="keyword">operator</span> bool() <span class="keyword">const</span>;  <span class="comment">// TBD:BSLS_ANNOTATION_DEPRECATED</span></div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span> </div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a89d51c813c01e30bd61c73e7c20ce493">  297</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a89d51c813c01e30bd61c73e7c20ce493">clone</a>(bslma::Allocator* basicAllocator = 0) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span> </div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#aa12649670a954e3ab42fe4f98e500c11">  302</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">bmqa::QueueId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#aa12649670a954e3ab42fe4f98e500c11">queueId</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span> </div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a817ae8399824f913f4c4200bd6bd5d4e">  317</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a817ae8399824f913f4c4200bd6bd5d4e">correlationId</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span> </div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a267f3f2047da43cb2d38584bf50045a6">  323</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">bmqt::SubscriptionHandle</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a267f3f2047da43cb2d38584bf50045a6">subscriptionHandle</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span> </div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ad0a2a9ed6ea0cb40f51f661b2523a5a9">  328</a></span>    <a class="code hl_enumeration" href="structBloombergLP_1_1bmqt_1_1CompressionAlgorithmType.html#aa16c640afbb996d4f92dedba59e1575b">bmqt::CompressionAlgorithmType::Enum</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ad0a2a9ed6ea0cb40f51f661b2523a5a9">compressionAlgorithmType</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span> </div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    <span class="keyword">const</span> bsl::string&amp; groupId() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span> </div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#acfb34e22c3c329bb115e4df08dc204cd">  340</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#acfb34e22c3c329bb115e4df08dc204cd">messageGUID</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span> </div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#aef3fb6c68d812108b098f39bce7f4ae9">  345</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html">MessageConfirmationCookie</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#aef3fb6c68d812108b098f39bce7f4ae9">confirmationCookie</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span> </div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae1e4e9728ceeae244c37a106893f6121">  350</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae1e4e9728ceeae244c37a106893f6121">ackStatus</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span> </div>
-<div class="line"><a id="l00358" name="l00358"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a566651ed95a9e82ac1d286626cb1ea5d">  358</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a566651ed95a9e82ac1d286626cb1ea5d">getData</a>(bdlbb::Blob* blob) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span> </div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae6b36d708dacd65a75e1d885009cf6c8">  365</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae6b36d708dacd65a75e1d885009cf6c8">dataSize</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span> </div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a65d9baad8ec080293075ddaaa687e45f">  370</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a65d9baad8ec080293075ddaaa687e45f">hasProperties</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span> </div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span><span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    <span class="keywordtype">bool</span> hasGroupId() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span> </div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae2012cfab817c05b304e06b49337adde">  388</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae2012cfab817c05b304e06b49337adde">loadProperties</a>(<a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">MessageProperties</a>* buffer) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span> </div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>    bsl::ostream&amp;</div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">  400</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>};</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    BSLA_DEPRECATED_MESSAGE(<span class="stringliteral">&quot;Use `setDataRef() instead.&quot;</span>)</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec">setData</a>(const bdlbb::Blob* data);</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span> </div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    BSLA_DEPRECATED_MESSAGE(&quot;Use `<a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>() instead.&quot;)</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec">setData</a>(const <span class="keywordtype">char</span>* data, <span class="keywordtype">size_t</span> length);</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">  232</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(const bdlbb::Blob* data);</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span> </div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a363c28a0c52064cc9797fee8ed247779">  241</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(const <span class="keywordtype">char</span>* data, <span class="keywordtype">size_t</span> length);</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span> </div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a9eec8033a233c526bb6141579c275c1b">  249</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a9eec8033a233c526bb6141579c275c1b">setPropertiesRef</a>(const <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">MessageProperties</a>* properties);</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span> </div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a458a0883fc77eea73d3a3f31dbd88994">  256</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a458a0883fc77eea73d3a3f31dbd88994">clearPropertiesRef</a>();</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span> </div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae29aa7736797c3d248f11785b4a5b9dc">  259</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae29aa7736797c3d248f11785b4a5b9dc">setCorrelationId</a>(const bmqt::CorrelationId&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a817ae8399824f913f4c4200bd6bd5d4e">correlationId</a>);</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span> </div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp;</div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae76df432af15b5c624fb86039e5c2544">  265</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae76df432af15b5c624fb86039e5c2544">setCompressionAlgorithmType</a>(bmqt::CompressionAlgorithmType::Enum value);</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span> </div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span><span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; setGroupId(<span class="keyword">const</span> bsl::string&amp; groupId);</div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span> </div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; clearGroupId();</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span> </div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span> </div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a96f4973b9796cc807c778f35212d5765">  287</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a96f4973b9796cc807c778f35212d5765">isValid</a>() <span class="keyword">const</span>;  <span class="comment">// TBD:BSLA_DEPRECATED</span></div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span> </div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    <span class="keyword">operator</span> bool() <span class="keyword">const</span>;  <span class="comment">// TBD:BSLA_DEPRECATED</span></div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span> </div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a89d51c813c01e30bd61c73e7c20ce493">  298</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a89d51c813c01e30bd61c73e7c20ce493">clone</a>(bslma::Allocator* basicAllocator = 0) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span> </div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#aa12649670a954e3ab42fe4f98e500c11">  303</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">bmqa::QueueId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#aa12649670a954e3ab42fe4f98e500c11">queueId</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span> </div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a817ae8399824f913f4c4200bd6bd5d4e">  318</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a817ae8399824f913f4c4200bd6bd5d4e">correlationId</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span> </div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a267f3f2047da43cb2d38584bf50045a6">  324</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">bmqt::SubscriptionHandle</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a267f3f2047da43cb2d38584bf50045a6">subscriptionHandle</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span> </div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ad0a2a9ed6ea0cb40f51f661b2523a5a9">  329</a></span>    <a class="code hl_enumeration" href="structBloombergLP_1_1bmqt_1_1CompressionAlgorithmType.html#aa16c640afbb996d4f92dedba59e1575b">bmqt::CompressionAlgorithmType::Enum</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ad0a2a9ed6ea0cb40f51f661b2523a5a9">compressionAlgorithmType</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span> </div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span><span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>    <span class="keyword">const</span> bsl::string&amp; groupId() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span> </div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#acfb34e22c3c329bb115e4df08dc204cd">  341</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#acfb34e22c3c329bb115e4df08dc204cd">messageGUID</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span> </div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#aef3fb6c68d812108b098f39bce7f4ae9">  346</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html">MessageConfirmationCookie</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#aef3fb6c68d812108b098f39bce7f4ae9">confirmationCookie</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span> </div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae1e4e9728ceeae244c37a106893f6121">  351</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae1e4e9728ceeae244c37a106893f6121">ackStatus</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span> </div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a566651ed95a9e82ac1d286626cb1ea5d">  359</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a566651ed95a9e82ac1d286626cb1ea5d">getData</a>(bdlbb::Blob* blob) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span> </div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae6b36d708dacd65a75e1d885009cf6c8">  366</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae6b36d708dacd65a75e1d885009cf6c8">dataSize</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span> </div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a65d9baad8ec080293075ddaaa687e45f">  371</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a65d9baad8ec080293075ddaaa687e45f">hasProperties</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span> </div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span><span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>    <span class="keywordtype">bool</span> hasGroupId() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span> </div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#ae2012cfab817c05b304e06b49337adde">  389</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ae2012cfab817c05b304e06b49337adde">loadProperties</a>(<a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">MessageProperties</a>* buffer) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span> </div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>    bsl::ostream&amp;</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">  401</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>};</div>
 </div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span> </div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span><span class="comment">// FREE OPERATORS</span></div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span> </div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; rhs);</div>
-<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span> </div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span><span class="comment">// ============================================================================</span></div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span><span class="comment">//                             INLINE DEFINITIONS</span></div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="comment">// ============================================================================</span></div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span> </div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span><span class="comment">// -------------</span></div>
-<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span><span class="comment">// class Message</span></div>
-<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span><span class="comment">// -------------</span></div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span> </div>
-<div class="foldopen" id="foldopen00417" data-start="{" data-end="}">
-<div class="line"><a id="l00417" name="l00417"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7">  417</a></span><span class="keyword">inline</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7">Message::setData</a>(<span class="keyword">const</span> bdlbb::Blob* data)</div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>{</div>
-<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(data);</div>
-<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>}</div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span> </div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span> </div>
+<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; rhs);</div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span> </div>
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span><span class="comment">// ============================================================================</span></div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span><span class="comment">// ============================================================================</span></div>
+<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span> </div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span><span class="comment">// -------------</span></div>
+<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span><span class="comment">// class Message</span></div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="comment">// -------------</span></div>
+<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span> </div>
+<div class="foldopen" id="foldopen00418" data-start="{" data-end="}">
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec">  418</a></span><span class="keyword">inline</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec">Message::setData</a>(<span class="keyword">const</span> bdlbb::Blob* data)</div>
+<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>{</div>
+<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(data);</div>
+<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span>}</div>
 </div>
-<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span> </div>
-<div class="foldopen" id="foldopen00422" data-start="{" data-end="}">
-<div class="line"><a id="l00422" name="l00422"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a0c5269cc87400b555e92d6bfa243fb2e">  422</a></span><span class="keyword">inline</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7">Message::setData</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* data, <span class="keywordtype">size_t</span> length)</div>
-<div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span>{</div>
-<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(data, length);</div>
-<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>}</div>
+<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span> </div>
+<div class="foldopen" id="foldopen00423" data-start="{" data-end="}">
+<div class="line"><a id="l00423" name="l00423"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#aef051951ededa98d3f6d90edb00c5a20">  423</a></span><span class="keyword">inline</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec">Message::setData</a>(<span class="keyword">const</span> <span class="keywordtype">char</span>* data, <span class="keywordtype">size_t</span> length)</div>
+<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>{</div>
+<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#ac8656c868bb0c69fa910c2905a4cddcd">setDataRef</a>(data, length);</div>
+<div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span>}</div>
 </div>
-<div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span> </div>
-<div class="foldopen" id="foldopen00427" data-start="{" data-end="}">
-<div class="line"><a id="l00427" name="l00427"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a6a0349b20443b22fe866a21a51b1cec1">  427</a></span><span class="keyword">inline</span> Message::operator bool()<span class="keyword"> const</span></div>
-<div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>    <span class="keywordflow">return</span> isInitialized();</div>
-<div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>}</div>
+<div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span> </div>
+<div class="foldopen" id="foldopen00428" data-start="{" data-end="}">
+<div class="line"><a id="l00428" name="l00428"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Message.html#a6a0349b20443b22fe866a21a51b1cec1">  428</a></span><span class="keyword">inline</span> Message::operator bool()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>    <span class="keywordflow">return</span> isInitialized();</div>
+<div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span>}</div>
 </div>
-<div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span> </div>
-<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span><span class="comment">// -------------------------------</span></div>
-<div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span><span class="comment">// class MessageConfirmationCookie</span></div>
-<div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span><span class="comment">// -------------------------------</span></div>
-<div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span> </div>
-<div class="foldopen" id="foldopen00436" data-start="{" data-end="}">
-<div class="line"><a id="l00436" name="l00436"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">  436</a></span><span class="keyword">inline</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">MessageConfirmationCookie::MessageConfirmationCookie</a>()</div>
-<div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span>: d_queueId()</div>
-<div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>, d_guid()</div>
-<div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span>{</div>
-<div class="line"><a id="l00440" name="l00440"></a><span class="lineno">  440</span>    <span class="comment">// NOTHING</span></div>
-<div class="line"><a id="l00441" name="l00441"></a><span class="lineno">  441</span>}</div>
+<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span> </div>
+<div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span><span class="comment">// -------------------------------</span></div>
+<div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span><span class="comment">// class MessageConfirmationCookie</span></div>
+<div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span><span class="comment">// -------------------------------</span></div>
+<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span> </div>
+<div class="foldopen" id="foldopen00437" data-start="{" data-end="}">
+<div class="line"><a id="l00437" name="l00437"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">  437</a></span><span class="keyword">inline</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">MessageConfirmationCookie::MessageConfirmationCookie</a>()</div>
+<div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>: d_queueId()</div>
+<div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span>, d_guid()</div>
+<div class="line"><a id="l00440" name="l00440"></a><span class="lineno">  440</span>{</div>
+<div class="line"><a id="l00441" name="l00441"></a><span class="lineno">  441</span>    <span class="comment">// NOTHING</span></div>
+<div class="line"><a id="l00442" name="l00442"></a><span class="lineno">  442</span>}</div>
 </div>
-<div class="line"><a id="l00442" name="l00442"></a><span class="lineno">  442</span> </div>
-<div class="foldopen" id="foldopen00443" data-start="{" data-end="}">
-<div class="line"><a id="l00443" name="l00443"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9371b8c637318338f1b361ab4cdcb08d">  443</a></span><span class="keyword">inline</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">MessageConfirmationCookie::MessageConfirmationCookie</a>(</div>
-<div class="line"><a id="l00444" name="l00444"></a><span class="lineno">  444</span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">bmqa::QueueId</a>&amp;     queueId,</div>
-<div class="line"><a id="l00445" name="l00445"></a><span class="lineno">  445</span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; messageGUID)</div>
-<div class="line"><a id="l00446" name="l00446"></a><span class="lineno">  446</span>: d_queueId(queueId)</div>
-<div class="line"><a id="l00447" name="l00447"></a><span class="lineno">  447</span>, d_guid(messageGUID)</div>
-<div class="line"><a id="l00448" name="l00448"></a><span class="lineno">  448</span>{</div>
-<div class="line"><a id="l00449" name="l00449"></a><span class="lineno">  449</span>    <span class="comment">// NOTHING</span></div>
-<div class="line"><a id="l00450" name="l00450"></a><span class="lineno">  450</span>}</div>
+<div class="line"><a id="l00443" name="l00443"></a><span class="lineno">  443</span> </div>
+<div class="foldopen" id="foldopen00444" data-start="{" data-end="}">
+<div class="line"><a id="l00444" name="l00444"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9371b8c637318338f1b361ab4cdcb08d">  444</a></span><span class="keyword">inline</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">MessageConfirmationCookie::MessageConfirmationCookie</a>(</div>
+<div class="line"><a id="l00445" name="l00445"></a><span class="lineno">  445</span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">bmqa::QueueId</a>&amp;     queueId,</div>
+<div class="line"><a id="l00446" name="l00446"></a><span class="lineno">  446</span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; messageGUID)</div>
+<div class="line"><a id="l00447" name="l00447"></a><span class="lineno">  447</span>: d_queueId(queueId)</div>
+<div class="line"><a id="l00448" name="l00448"></a><span class="lineno">  448</span>, d_guid(messageGUID)</div>
+<div class="line"><a id="l00449" name="l00449"></a><span class="lineno">  449</span>{</div>
+<div class="line"><a id="l00450" name="l00450"></a><span class="lineno">  450</span>    <span class="comment">// NOTHING</span></div>
+<div class="line"><a id="l00451" name="l00451"></a><span class="lineno">  451</span>}</div>
 </div>
-<div class="line"><a id="l00451" name="l00451"></a><span class="lineno">  451</span> </div>
-<div class="line"><a id="l00452" name="l00452"></a><span class="lineno">  452</span><span class="comment">// ACCESSORS</span></div>
-<div class="foldopen" id="foldopen00453" data-start="{" data-end="}">
-<div class="line"><a id="l00453" name="l00453"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9a4b4133733f6a8b4ab5a00524042891">  453</a></span><span class="keyword">inline</span> <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9a4b4133733f6a8b4ab5a00524042891">MessageConfirmationCookie::queueId</a>()<span class="keyword"> const</span></div>
-<div class="line"><a id="l00454" name="l00454"></a><span class="lineno">  454</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l00455" name="l00455"></a><span class="lineno">  455</span>    <span class="keywordflow">return</span> d_queueId;</div>
-<div class="line"><a id="l00456" name="l00456"></a><span class="lineno">  456</span>}</div>
+<div class="line"><a id="l00452" name="l00452"></a><span class="lineno">  452</span> </div>
+<div class="line"><a id="l00453" name="l00453"></a><span class="lineno">  453</span><span class="comment">// ACCESSORS</span></div>
+<div class="foldopen" id="foldopen00454" data-start="{" data-end="}">
+<div class="line"><a id="l00454" name="l00454"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9a4b4133733f6a8b4ab5a00524042891">  454</a></span><span class="keyword">inline</span> <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9a4b4133733f6a8b4ab5a00524042891">MessageConfirmationCookie::queueId</a>()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00455" name="l00455"></a><span class="lineno">  455</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l00456" name="l00456"></a><span class="lineno">  456</span>    <span class="keywordflow">return</span> d_queueId;</div>
+<div class="line"><a id="l00457" name="l00457"></a><span class="lineno">  457</span>}</div>
 </div>
-<div class="line"><a id="l00457" name="l00457"></a><span class="lineno">  457</span> </div>
-<div class="foldopen" id="foldopen00458" data-start="{" data-end="}">
-<div class="line"><a id="l00458" name="l00458"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a7036a9b0f43b69b09bee2a28ceaca1e5">  458</a></span><span class="keyword">inline</span> <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a7036a9b0f43b69b09bee2a28ceaca1e5">MessageConfirmationCookie::messageGUID</a>()<span class="keyword"> const</span></div>
-<div class="line"><a id="l00459" name="l00459"></a><span class="lineno">  459</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l00460" name="l00460"></a><span class="lineno">  460</span>    <span class="keywordflow">return</span> d_guid;</div>
-<div class="line"><a id="l00461" name="l00461"></a><span class="lineno">  461</span>}</div>
+<div class="line"><a id="l00458" name="l00458"></a><span class="lineno">  458</span> </div>
+<div class="foldopen" id="foldopen00459" data-start="{" data-end="}">
+<div class="line"><a id="l00459" name="l00459"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a7036a9b0f43b69b09bee2a28ceaca1e5">  459</a></span><span class="keyword">inline</span> <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1MessageGUID.html">bmqt::MessageGUID</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a7036a9b0f43b69b09bee2a28ceaca1e5">MessageConfirmationCookie::messageGUID</a>()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00460" name="l00460"></a><span class="lineno">  460</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l00461" name="l00461"></a><span class="lineno">  461</span>    <span class="keywordflow">return</span> d_guid;</div>
+<div class="line"><a id="l00462" name="l00462"></a><span class="lineno">  462</span>}</div>
 </div>
-<div class="line"><a id="l00462" name="l00462"></a><span class="lineno">  462</span>}  <span class="comment">// close package namespace</span></div>
-<div class="line"><a id="l00463" name="l00463"></a><span class="lineno">  463</span> </div>
-<div class="line"><a id="l00464" name="l00464"></a><span class="lineno">  464</span><span class="comment">// -------------</span></div>
-<div class="line"><a id="l00465" name="l00465"></a><span class="lineno">  465</span><span class="comment">// class Message</span></div>
-<div class="line"><a id="l00466" name="l00466"></a><span class="lineno">  466</span><span class="comment">// -------------</span></div>
-<div class="line"><a id="l00467" name="l00467"></a><span class="lineno">  467</span> </div>
-<div class="line"><a id="l00468" name="l00468"></a><span class="lineno">  468</span><span class="comment">// FREE OPERATORS</span></div>
-<div class="foldopen" id="foldopen00469" data-start="{" data-end="}">
-<div class="line"><a id="l00469" name="l00469"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#ab868f5bd332369b3d9b8128d694502a2">  469</a></span><span class="keyword">inline</span> bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">bmqa::operator&lt;&lt;</a>(bsl::ostream&amp;        stream,</div>
-<div class="line"><a id="l00470" name="l00470"></a><span class="lineno">  470</span>                                      <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">bmqa::Message</a>&amp; rhs)</div>
-<div class="line"><a id="l00471" name="l00471"></a><span class="lineno">  471</span>{</div>
-<div class="line"><a id="l00472" name="l00472"></a><span class="lineno">  472</span>    <span class="keywordflow">return</span> rhs.<a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">print</a>(stream, 0, -1);</div>
-<div class="line"><a id="l00473" name="l00473"></a><span class="lineno">  473</span>}</div>
+<div class="line"><a id="l00463" name="l00463"></a><span class="lineno">  463</span>}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a id="l00464" name="l00464"></a><span class="lineno">  464</span> </div>
+<div class="line"><a id="l00465" name="l00465"></a><span class="lineno">  465</span><span class="comment">// -------------</span></div>
+<div class="line"><a id="l00466" name="l00466"></a><span class="lineno">  466</span><span class="comment">// class Message</span></div>
+<div class="line"><a id="l00467" name="l00467"></a><span class="lineno">  467</span><span class="comment">// -------------</span></div>
+<div class="line"><a id="l00468" name="l00468"></a><span class="lineno">  468</span> </div>
+<div class="line"><a id="l00469" name="l00469"></a><span class="lineno">  469</span><span class="comment">// FREE OPERATORS</span></div>
+<div class="foldopen" id="foldopen00470" data-start="{" data-end="}">
+<div class="line"><a id="l00470" name="l00470"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#ab868f5bd332369b3d9b8128d694502a2">  470</a></span><span class="keyword">inline</span> bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">bmqa::operator&lt;&lt;</a>(bsl::ostream&amp;        stream,</div>
+<div class="line"><a id="l00471" name="l00471"></a><span class="lineno">  471</span>                                      <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1Message.html">bmqa::Message</a>&amp; rhs)</div>
+<div class="line"><a id="l00472" name="l00472"></a><span class="lineno">  472</span>{</div>
+<div class="line"><a id="l00473" name="l00473"></a><span class="lineno">  473</span>    <span class="keywordflow">return</span> rhs.<a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">print</a>(stream, 0, -1);</div>
+<div class="line"><a id="l00474" name="l00474"></a><span class="lineno">  474</span>}</div>
 </div>
-<div class="line"><a id="l00474" name="l00474"></a><span class="lineno">  474</span> </div>
-<div class="line"><a id="l00475" name="l00475"></a><span class="lineno">  475</span>}  <span class="comment">// close enterprise namespace</span></div>
-<div class="line"><a id="l00476" name="l00476"></a><span class="lineno">  476</span> </div>
-<div class="line"><a id="l00477" name="l00477"></a><span class="lineno">  477</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00475" name="l00475"></a><span class="lineno">  475</span> </div>
+<div class="line"><a id="l00476" name="l00476"></a><span class="lineno">  476</span>}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a id="l00477" name="l00477"></a><span class="lineno">  477</span> </div>
+<div class="line"><a id="l00478" name="l00478"></a><span class="lineno">  478</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="abmqa__queueid_8h_html"><div class="ttname"><a href="bmqa__queueid_8h.html">bmqa_queueid.h</a></div><div class="ttdoc">Provide a value-semantic efficient identifier for a queue.</div></div>
 <div class="ttc" id="abmqt__compressionalgorithmtype_8h_html"><div class="ttname"><a href="bmqt__compressionalgorithmtype_8h.html">bmqt_compressionalgorithmtype.h</a></div><div class="ttdoc">Provide an enumeration for different compression algorithm types.</div></div>
 <div class="ttc" id="abmqt__correlationid_8h_html"><div class="ttname"><a href="bmqt__correlationid_8h.html">bmqt_correlationid.h</a></div><div class="ttdoc">Provide a value-semantic type usable as an efficient identifier.</div></div>
 <div class="ttc" id="abmqt__messageguid_8h_html"><div class="ttname"><a href="bmqt__messageguid_8h.html">bmqt_messageguid.h</a></div><div class="ttdoc">Provide a value-semantic global unique identifier for BlazingMQ messages.</div></div>
 <div class="ttc" id="abmqt__subscription_8h_html"><div class="ttname"><a href="bmqt__subscription_8h.html">bmqt_subscription.h</a></div><div class="ttdoc">Provide a value-semantic types for subscription related API.</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html">BloombergLP::bmqa::MessageConfirmationCookie</a></div><div class="ttdoc">Cookie for async message confirmation.</div><div class="ttdef"><b>Definition</b> bmqa_message.h:131</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html_a7036a9b0f43b69b09bee2a28ceaca1e5"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a7036a9b0f43b69b09bee2a28ceaca1e5">BloombergLP::bmqa::MessageConfirmationCookie::messageGUID</a></div><div class="ttdeci">const bmqt::MessageGUID &amp; messageGUID() const</div><div class="ttdef"><b>Definition</b> bmqa_message.h:458</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html_a8eb8bcb91077eed852d54445c491797d"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">BloombergLP::bmqa::MessageConfirmationCookie::MessageConfirmationCookie</a></div><div class="ttdeci">MessageConfirmationCookie()</div><div class="ttdoc">Create an unset instance of this class.</div><div class="ttdef"><b>Definition</b> bmqa_message.h:436</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html_a9a4b4133733f6a8b4ab5a00524042891"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9a4b4133733f6a8b4ab5a00524042891">BloombergLP::bmqa::MessageConfirmationCookie::queueId</a></div><div class="ttdeci">const QueueId &amp; queueId() const</div><div class="ttdef"><b>Definition</b> bmqa_message.h:453</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html_a7036a9b0f43b69b09bee2a28ceaca1e5"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a7036a9b0f43b69b09bee2a28ceaca1e5">BloombergLP::bmqa::MessageConfirmationCookie::messageGUID</a></div><div class="ttdeci">const bmqt::MessageGUID &amp; messageGUID() const</div><div class="ttdef"><b>Definition</b> bmqa_message.h:459</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html_a8eb8bcb91077eed852d54445c491797d"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a8eb8bcb91077eed852d54445c491797d">BloombergLP::bmqa::MessageConfirmationCookie::MessageConfirmationCookie</a></div><div class="ttdeci">MessageConfirmationCookie()</div><div class="ttdoc">Create an unset instance of this class.</div><div class="ttdef"><b>Definition</b> bmqa_message.h:437</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html_a9a4b4133733f6a8b4ab5a00524042891"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html#a9a4b4133733f6a8b4ab5a00524042891">BloombergLP::bmqa::MessageConfirmationCookie::queueId</a></div><div class="ttdeci">const QueueId &amp; queueId() const</div><div class="ttdef"><b>Definition</b> bmqa_message.h:454</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageProperties_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">BloombergLP::bmqa::MessageProperties</a></div><div class="ttdoc">Provide a VST representing message properties.</div><div class="ttdef"><b>Definition</b> bmqa_messageproperties.h:92</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html">BloombergLP::bmqa::Message</a></div><div class="ttdoc">A message sent/received to/from the BlazingMQ broker.</div><div class="ttdef"><b>Definition</b> bmqa_message.h:170</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a20bb2576c7fb2a53d366aed138519908"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a20bb2576c7fb2a53d366aed138519908">BloombergLP::bmqa::Message::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a243f90b97f389a3f29846141a14405c7"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7">BloombergLP::bmqa::Message::setData</a></div><div class="ttdeci">Message &amp; setData(const bdlbb::Blob *data) BSLS_ANNOTATION_DEPRECATED</div><div class="ttdef"><b>Definition</b> bmqa_message.h:417</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a267f3f2047da43cb2d38584bf50045a6"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a267f3f2047da43cb2d38584bf50045a6">BloombergLP::bmqa::Message::subscriptionHandle</a></div><div class="ttdeci">const bmqt::SubscriptionHandle &amp; subscriptionHandle() const</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a363c28a0c52064cc9797fee8ed247779"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a363c28a0c52064cc9797fee8ed247779">BloombergLP::bmqa::Message::setDataRef</a></div><div class="ttdeci">Message &amp; setDataRef(const char *data, size_t length)</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a3c34e17de1dd556ceee93bc3403210ec"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a3c34e17de1dd556ceee93bc3403210ec">BloombergLP::bmqa::Message::setData</a></div><div class="ttdeci">Message &amp; setData(const bdlbb::Blob *data)</div><div class="ttdef"><b>Definition</b> bmqa_message.h:418</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a458a0883fc77eea73d3a3f31dbd88994"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a458a0883fc77eea73d3a3f31dbd88994">BloombergLP::bmqa::Message::clearPropertiesRef</a></div><div class="ttdeci">Message &amp; clearPropertiesRef()</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a53271dae3e68a11c0fc8a9a7f4f7095c"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a53271dae3e68a11c0fc8a9a7f4f7095c">BloombergLP::bmqa::Message::Message</a></div><div class="ttdeci">Message()</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html_a566651ed95a9e82ac1d286626cb1ea5d"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html#a566651ed95a9e82ac1d286626cb1ea5d">BloombergLP::bmqa::Message::getData</a></div><div class="ttdeci">int getData(bdlbb::Blob *blob) const</div></div>
