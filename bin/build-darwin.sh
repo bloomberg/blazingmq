@@ -48,11 +48,7 @@ if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
-    pushd "${DIR_THIRDPARTY}/ntf-core"
-    git fetch --tags --force --depth 1
-    git reset --hard 2.5.4
-    popd
+    git clone --depth 1 --branch 2.5.4 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 
