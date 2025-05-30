@@ -547,8 +547,8 @@ bool SearchDetailResult::processDeletionRecord(
 
 bool SearchDetailResult::processQueueOpRecord(
     const mqbs::QueueOpRecord& record,
-    BSLA_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLA_UNUSED bsls::Types::Uint64 recordOffset)
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
     bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
         d_queueMap.findInfoByKey(record.queueKey());
@@ -576,8 +576,8 @@ bool SearchDetailResult::processQueueOpRecord(
 
 bool SearchDetailResult::processJournalOpRecord(
     const mqbs::JournalOpRecord& record,
-    BSLA_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLA_UNUSED bsls::Types::Uint64 recordOffset)
+    bsls::Types::Uint64          recordIndex,
+    bsls::Types::Uint64          recordOffset)
 {
     RecordDetails<mqbs::JournalOpRecord> details(record,
                                                  recordIndex,
