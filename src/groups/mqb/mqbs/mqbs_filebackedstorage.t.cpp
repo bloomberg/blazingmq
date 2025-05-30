@@ -48,6 +48,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -174,7 +175,7 @@ class MockDataStore : public mqbs::DataStore {
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
     mqbs::DataStoreConfig      d_config;
     mqbi::DispatcherClientData d_dispatcherClientData;
