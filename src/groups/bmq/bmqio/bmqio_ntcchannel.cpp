@@ -927,6 +927,8 @@ void NtcChannel::processClose(const bmqio::Status& status)
         return;
     }
 
+    BALL_LOG_ERROR << "NtcChannel::processClose";
+
     BMQIO_NTCCHANNEL_LOG_CLOSED(this, d_streamSocket_sp, status);
 
     d_state = e_STATE_CLOSED;
