@@ -27,7 +27,6 @@ settings.json
 .pytest_cache/
 .cache/
 .venv/
-venv/
 
 # integration test logs
 *.log
