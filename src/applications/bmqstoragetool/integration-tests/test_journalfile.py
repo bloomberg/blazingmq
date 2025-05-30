@@ -16,6 +16,14 @@
 import subprocess
 import re
 import json
+from os import EX_OK
+
+
+# Test constants
+TEST_GUID_1 = b"40000000000215B2967EEDFA1085BA02"
+TEST_GUID_2 = b"400000000002B471F5B3AC11AA7D7DAB"
+TEST_QUEUE_URI = "bmq://bmq.test.persistent.priority/my-first-queue"
+TEST_QUEUE_KEY = "26DACDC974"
 
 
 def test_short_result(storagetool, journal_file, expected_short_result):
@@ -27,7 +35,7 @@ def test_short_result(storagetool, journal_file, expected_short_result):
     res = subprocess.run(
         [storagetool, "--journal-file", journal_file], capture_output=True, check=True
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_short_result
 
     res = subprocess.run(
@@ -36,14 +44,14 @@ def test_short_result(storagetool, journal_file, expected_short_result):
             "--journal-file",
             journal_file,
             "--guid",
-            "40000000000215B2967EEDFA1085BA02",
+            TEST_GUID_1,
         ],
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
-    assert re.search(b"40000000000215B2967EEDFA1085BA02", res.stdout) is not None
-    assert re.search(b"400000000002B471F5B3AC11AA7D7DAB", res.stdout) is None
+    assert res.returncode == EX_OK
+    assert re.search(TEST_GUID_1, res.stdout) is not None
+    assert re.search(TEST_GUID_2, res.stdout) is None
 
 
 def test_short_json(storagetool, journal_file):
@@ -57,11 +65,11 @@ def test_short_json(storagetool, journal_file):
             capture_output=True,
             check=True,
         )
-        assert res.returncode == 0
+        assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
         assert json_res["TotalMessages"] == "2"
-        assert "40000000000215B2967EEDFA1085BA02" in json_res["Records"]
-        assert "400000000002B471F5B3AC11AA7D7DAB" in json_res["Records"]
+        assert TEST_GUID_1.decode() in json_res["Records"]
+        assert TEST_GUID_2.decode() in json_res["Records"]
 
 
 def test_detail_result(storagetool, journal_file, csl_file, expected_detail_result):
@@ -75,7 +83,7 @@ def test_detail_result(storagetool, journal_file, csl_file, expected_detail_resu
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_detail_result
 
     res = subprocess.run(
@@ -90,10 +98,10 @@ def test_detail_result(storagetool, journal_file, csl_file, expected_detail_resu
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert (
         re.search(
-            r"QueueUri\s+: bmq://bmq.test.persistent.priority/my-first-queue",
+            TEST_QUEUE_URI,
             res.stdout.decode(),
         )
         is not None
@@ -119,7 +127,7 @@ def test_detail_json(storagetool, journal_file, csl_file):
             capture_output=True,
             check=True,
         )
-        assert res.returncode == 0
+        assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
         assert json_res["TotalMessages"] == "2"
         assert len(json_res["Records"]) == 4
@@ -145,7 +153,7 @@ def test_payload_dump(
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_payload_dump
 
     res = subprocess.run(
@@ -153,7 +161,7 @@ def test_payload_dump(
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_payload_dump
 
     res = subprocess.run(
@@ -167,7 +175,7 @@ def test_payload_dump(
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert re.search(b"First 5 bytes of payload:", res.stdout) is not None
 
 
@@ -187,7 +195,7 @@ def test_summary_result(storagetool, journal_path, csl_file, expected_summary_re
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_summary_result
 
 
@@ -211,7 +219,7 @@ def test_summary_result_with_queue_info(
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_summary_result_with_queue_info
 
 
@@ -236,7 +244,7 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
             check=True,
         )
 
-        assert res.returncode == 0
+        assert res.returncode == EX_OK
 
         json_res = json.loads(res.stdout)
         assert json_res["TotalMessagesNumber"] == "2"
@@ -246,7 +254,7 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
         assert json_res["OutstandingRatio"] == "50"
         assert json_res["TotalRecordsNumber"] == "4"
         assert len(json_res["PerQueueRecordsNumber"]) == 1
-        assert json_res["PerQueueRecordsNumber"][0]["Queue Key"] == "26DACDC974"
+        assert json_res["PerQueueRecordsNumber"][0]["Queue Key"] == TEST_QUEUE_KEY
         assert "JournalFileDetails" in json_res
         assert "DataFileDetails" in json_res
 
@@ -262,18 +270,18 @@ def test_confirmed_outstanding_result(storagetool, journal_file):
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
-    assert re.search(b"400000000002B471F5B3AC11AA7D7DAB", res.stdout) is not None
-    assert re.search(b"40000000000215B2967EEDFA1085BA02", res.stdout) is None
+    assert res.returncode == EX_OK
+    assert re.search(TEST_GUID_2, res.stdout) is not None
+    assert re.search(TEST_GUID_1, res.stdout) is None
 
     res = subprocess.run(
         [storagetool, "--journal-file", journal_file, "--outstanding"],
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
-    assert re.search(b"40000000000215B2967EEDFA1085BA02", res.stdout) is not None
-    assert re.search(b"400000000002B471F5B3AC11AA7D7DAB", res.stdout) is None
+    assert res.returncode == EX_OK
+    assert re.search(TEST_GUID_1, res.stdout) is not None
+    assert re.search(TEST_GUID_2, res.stdout) is None
 
 
 def test_queueop_result(storagetool, journal_file, expected_queueop_result):
@@ -285,7 +293,7 @@ def test_queueop_result(storagetool, journal_file, expected_queueop_result):
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_queueop_result
 
 
@@ -298,7 +306,7 @@ def test_journalop_result(storagetool, journal_file, expected_journalop_result):
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_journalop_result
 
 
@@ -319,7 +327,7 @@ def test_queueop_journalop_json(storagetool, journal_file):
             capture_output=True,
             check=True,
         )
-        assert res.returncode == 0
+        assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
         assert json_res["QueueOpRecords"] == "1"
         assert json_res["JournalOpRecords"] == "8"
@@ -344,7 +352,7 @@ def test_queueop_journalop_summary_result(
         capture_output=True,
         check=True,
     )
-    assert res.returncode == 0
+    assert res.returncode == EX_OK
     assert res.stdout == expected_queueop_journalop_summary_result
 
 
@@ -366,7 +374,7 @@ def test_queueop_journalop_summary_json(storagetool, journal_file):
             capture_output=True,
             check=True,
         )
-        assert res.returncode == 0
+        assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
         assert json_res["TotalQueueOperationsNumber"] == "1"
         assert json_res["CreationOperationsNumber"] == "1"

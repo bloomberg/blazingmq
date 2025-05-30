@@ -27,7 +27,7 @@ def storagetool() -> Path:
 def journal_file() -> Path:
     return (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_journal"
+        / "src/applications/bmqstoragetool/integration-tests/data/test.bmq_journal"
     )
 
 
@@ -35,7 +35,7 @@ def journal_file() -> Path:
 def journal_path() -> Path:
     return (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.*"
+        / "src/applications/bmqstoragetool/integration-tests/data/test.*"
     )
 
 
@@ -43,7 +43,7 @@ def journal_path() -> Path:
 def data_file() -> Path:
     return (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_data"
+        / "src/applications/bmqstoragetool/integration-tests/data/test.bmq_data"
     )
 
 
@@ -51,7 +51,7 @@ def data_file() -> Path:
 def csl_file() -> Path:
     return (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_csl"
+        / "src/applications/bmqstoragetool/integration-tests/data/test.bmq_csl"
     )
 
 
@@ -64,7 +64,7 @@ def _load_expected_result_file(file_path) -> bytes:
 def expected_short_result() -> bytes:
     short_res_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/short_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/short_result.txt"
     )
     return _load_expected_result_file(short_res_file)
 
@@ -73,7 +73,7 @@ def expected_short_result() -> bytes:
 def expected_csl_short_result() -> bytes:
     short_res_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/short_csl_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/short_csl_result.txt"
     )
     return _load_expected_result_file(short_res_file)
 
@@ -82,7 +82,7 @@ def expected_csl_short_result() -> bytes:
 def expected_detail_result() -> bytes:
     details_res_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/detail_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/detail_result.txt"
     )
     return _load_expected_result_file(details_res_file)
 
@@ -91,7 +91,7 @@ def expected_detail_result() -> bytes:
 def expected_csl_detail_result() -> bytes:
     details_res_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/detail_csl_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/detail_csl_result.txt"
     )
     return _load_expected_result_file(details_res_file)
 
@@ -100,7 +100,7 @@ def expected_csl_detail_result() -> bytes:
 def expected_payload_dump() -> bytes:
     payload_dump_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/payload_dump.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/payload_dump.txt"
     )
     return _load_expected_result_file(payload_dump_file)
 
@@ -109,7 +109,7 @@ def expected_payload_dump() -> bytes:
 def expected_summary_result() -> bytes:
     summary_result_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/summary_result.txt"
     )
     return _load_expected_result_file(summary_result_file)
 
@@ -118,7 +118,7 @@ def expected_summary_result() -> bytes:
 def expected_csl_summary_result() -> bytes:
     summary_result_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_csl_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/summary_csl_result.txt"
     )
     return _load_expected_result_file(summary_result_file)
 
@@ -127,7 +127,7 @@ def expected_csl_summary_result() -> bytes:
 def expected_summary_result_with_queue_info() -> bytes:
     summary_result_with_queue_info_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_result_with_queue_info.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/summary_result_with_queue_info.txt"
     )
     return _load_expected_result_file(summary_result_with_queue_info_file)
 
@@ -136,7 +136,7 @@ def expected_summary_result_with_queue_info() -> bytes:
 def expected_queueop_result() -> bytes:
     queueop_result_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/queueop_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/queueop_result.txt"
     )
     return _load_expected_result_file(queueop_result_file)
 
@@ -145,7 +145,7 @@ def expected_queueop_result() -> bytes:
 def expected_journalop_result() -> bytes:
     journalop_result_file = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/journalop_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/journalop_result.txt"
     )
     return _load_expected_result_file(journalop_result_file)
 
@@ -154,6 +154,6 @@ def expected_journalop_result() -> bytes:
 def expected_queueop_journalop_summary_result() -> bytes:
     summary_queueop_journalop_result = (
         paths.required_paths.repository
-        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_queueop_journalop_result.txt"
+        / "src/applications/bmqstoragetool/integration-tests/data/summary_queueop_journalop_result.txt"
     )
     return _load_expected_result_file(summary_queueop_journalop_result)

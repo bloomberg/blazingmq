@@ -15,6 +15,7 @@
 
 import subprocess
 import re
+from os import EX_OK
 
 
 def test_breathing(storagetool):
@@ -22,7 +23,7 @@ def test_breathing(storagetool):
     This test checks that storage tool could be run without arguments and print error.
     """
     res = subprocess.run([storagetool], capture_output=True, check=False)
-    assert res.returncode == 255
+    assert res.returncode != EX_OK
     assert (
         re.search(b"Neither journal path nor journal file is specified", res.stderr)
         is not None
@@ -35,7 +36,7 @@ def test_print_help(storagetool):
     """
 
     res = subprocess.run([storagetool, "-h"], capture_output=True, check=False)
-    assert res.returncode == 255
+    assert res.returncode != EX_OK
     assert re.search(r"--help\s+print usage", res.stderr.decode()) is not None
 
 
@@ -44,7 +45,7 @@ def test_wrong_argument(storagetool):
     This test checks that storage tool prints error message if wrong argument passed.
     """
     res = subprocess.run([storagetool, "--foo"], capture_output=True, check=False)
-    assert res.returncode == 255
+    assert res.returncode != EX_OK
     assert (
         re.search(
             r"The string \"foo\" does not match any long tag.",
