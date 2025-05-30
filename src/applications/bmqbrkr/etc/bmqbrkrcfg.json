@@ -108,8 +108,7 @@
         "tlsConfig": {
             "certificateAuthority": "/blazingmq/certs/ca-cert",
             "certificate": "/blazingmq/certs/broker_host_cert.pem",
-            "key": "/blazingmq/certs/broker_private_key.pem",
-            "version": ""
+            "key": "/blazingmq/certs/broker_private_key.pem"
         }
     }
 }
