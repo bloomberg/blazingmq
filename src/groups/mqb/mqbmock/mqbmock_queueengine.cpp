@@ -135,8 +135,7 @@ void QueueEngine::afterQueuePurged(
     // NOTHING
 }
 
-void QueueEngine::onTimer(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 currentTimer)
+void QueueEngine::afterPostMessage()
 {
     // executed by the *QUEUE DISPATCHER* thread
 

@@ -1606,8 +1606,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
     }
 }
 
-void RelayQueueEngine::onTimer(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 currentTimer)
+void RelayQueueEngine::afterPostMessage()
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1642,8 +1641,8 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
 
     mqbcmd::RelayQueueEngine& relayQueueEngine = out->makeRelay();
 
-    int                          numSubStreams = 0;
-    mqbi::Storage::AppInfos      appIdKeyPairs;
+    int                     numSubStreams = 0;
+    mqbi::Storage::AppInfos appIdKeyPairs;
 
     numSubStreams = storage()->numVirtualStorages();
     storage()->loadVirtualStorageDetails(&appIdKeyPairs);
