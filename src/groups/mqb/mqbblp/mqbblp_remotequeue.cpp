@@ -904,33 +904,6 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     translation.applyTo(&putHeader);
 
     // Relay the PUT message via clusterProxy/cluster
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!bmqt::QueueFlagsUtil::isWriter(
-            source->handleParameters().flags()))) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-        // Either queue was not opened in the WRITE mode (which should have
-        // been caught in the SDK) or client is posting a message after closing
-        // or reconfiguring the queue (which may not be caught in the SDK).
-
-        if (d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_WARN
-                << "[THROTTLED] #CLIENT_IMPROPER_BEHAVIOR "
-                << "Failed PUT message for queue [" << d_state_p->uri()
-                << "] from client [" << source->client()->description()
-                << "]. Queue not opened in WRITE mode by the client.";
-        }
-
-        // Note that a NACK is not sent in this case.  This is a case of client
-        // violating the contract, by attempting to post a message after
-        // closing/reconfiguring the queue.  Since this is out of contract, its
-        // ok not to send the NACK.  If it is still desired to send a NACK, it
-        // will need some enqueuing b/w client and queue dispatcher threads to
-        // ensure that despite NACKs being sent, closeQueue response is still
-        // the last event to be sent to the client for the given queue.
-
-        return;  // RETURN
-    }
-
     SubStreamContext& ctx = d_producerState;
 
     if (ctx.d_state == SubStreamContext::e_NONE) {
@@ -944,6 +917,31 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
 
     if (ctx.d_state == SubStreamContext::e_CLOSED) {
         isInvalid = true;
+
+        if (d_throttledFailedPutMessages.requestPermission()) {
+            BALL_LOG_WARN << "[THROTTLED] Failed PUT message for queue ["
+                          << d_state_p->uri()
+                          << "]. Upstream is already closed.";
+        }
+    }
+    else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                 !bmqt::QueueFlagsUtil::isWriter(
+                     source->handleParameters().flags()))) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        // Either queue was not opened in the WRITE mode (which should have
+        // been caught in the SDK) or client is posting a message after closing
+        // or reconfiguring the queue (which may not be caught in the SDK).
+
+        isInvalid = true;
+
+        if (d_throttledFailedPutMessages.requestPermission()) {
+            BALL_LOG_WARN
+                << "[THROTTLED] #CLIENT_IMPROPER_BEHAVIOR "
+                << "Failed PUT message for queue [" << d_state_p->uri()
+                << "] from client [" << source->client()->description()
+                << "]. Queue not opened in WRITE mode by the client.";
+        }
     }
     else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                  d_pendingMessages.find(putHeader.messageGUID()) !=
