@@ -272,6 +272,13 @@ class Parameters {
     // A name of a property to put auto-incremented values
     // in batch-posting mode.
 
+    /// A path to the FILE, containing concatenation of known certificates
+    /// the client can use to reference as its certificate store.
+    bsl::string d_tlsAuthority;
+
+    /// A string with a comma-separated list of supported TLS versions.
+    bsl::string d_tlsVersions;
+
   public:
     // CREATORS
 
@@ -307,6 +314,8 @@ class Parameters {
     setMessageProperties(const bsl::vector<MessageProperty>& value);
     Parameters& setSubscriptions(const bsl::vector<Subscription>& value);
     Parameters& setAutoIncrementedField(const bsl::string& value);
+    Parameters& setTlsAuthority(const bsl::string& value);
+    Parameters& setTlsVersions(const bsl::string& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -365,6 +374,8 @@ class Parameters {
     const bsl::vector<MessageProperty>& messageProperties() const;
     const bsl::vector<Subscription>&    subscriptions() const;
     const bsl::string&                  autoIncrementedField() const;
+    const bsl::string&                  tlsAuthority() const;
+    const bsl::string&                  tlsVersions() const;
 };
 
 // FREE OPERATORS
@@ -574,6 +585,18 @@ Parameters::setAutoIncrementedField(const bsl::string& value)
     return *this;
 }
 
+inline Parameters& Parameters::setTlsAuthority(const bsl::string& value)
+{
+    d_tlsAuthority = value;
+    return *this;
+}
+
+inline Parameters& Parameters::setTlsVersions(const bsl::string& value)
+{
+    d_tlsVersions = value;
+    return *this;
+}
+
 // ACCESSORS
 inline ParametersMode::Value Parameters::mode() const
 {
@@ -719,6 +742,16 @@ inline const bsl::vector<Subscription>& Parameters::subscriptions() const
 inline const bsl::string& Parameters::autoIncrementedField() const
 {
     return d_autoIncrementedField;
+}
+
+inline const bsl::string& Parameters::tlsAuthority() const
+{
+    return d_tlsAuthority;
+}
+
+inline const bsl::string& Parameters::tlsVersions() const
+{
+    return d_tlsVersions;
 }
 
 }  // close package namespace
