@@ -1,6 +1,10 @@
 # integration tests
 # -----------------
 
+if(NOT BMQ_TARGET_IT_NEEDED)
+  return()
+endif()
+
 # Find Python 3 installed on the system.
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
