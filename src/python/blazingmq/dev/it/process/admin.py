@@ -156,3 +156,17 @@ class AdminClient:
         if self._channel is not None:
             self._channel.close()
             self._channel = None
+
+
+if __name__ == "__main__":
+    client = AdminClient()
+    client.connect("localhost", 30114)
+
+    while True:
+        cmd = input("Enter admin command:")
+        if len(cmd) == 0:
+            break
+        res = client.send_admin(cmd)
+        print(res)
+
+    client.stop()
