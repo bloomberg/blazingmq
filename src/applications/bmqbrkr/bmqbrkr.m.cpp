@@ -293,9 +293,8 @@ static int getConfig(bsl::ostream&      errorDescription,
                          << "generated config file (first 1024 characters):\n"
                          << taskEnv->d_configJson.substr(
                                 0,
-                                bsl::min(1024,
-                                         static_cast<int>(
-                                             taskEnv->d_configJson.length())));
+                                bsl::min(bsl::string::size_type(1024),
+                                         taskEnv->d_configJson.length()));
         return rc_DECODE_FAILED;  // RETURN
     }
 
