@@ -3945,7 +3945,8 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
     if (itNode == d_nodes.end()) {
         // no prior history about this node
         d_nodes.insert(
-            bsl::make_pair(nodeId, NodeContext(d_blobSpPool_p, recordKey)));
+            bsl::make_pair(nodeId,
+                           NodeContext(d_blobSpPool_sp.get(), recordKey)));
         from = d_unreceipted.begin();
     }
     else if (itNode->second.d_key < recordKey) {
@@ -5205,7 +5206,7 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
 
         bdlbb::BlobBuffer optionsBlobBuffer(optionsBufferSp, optionsSize);
 
-        *options = d_blobSpPool_p->getObject();
+        *options = d_blobSpPool_sp->getObject();
         (*options)->appendDataBuffer(optionsBlobBuffer);
     }
 
@@ -5216,7 +5217,7 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
     bdlbb::BlobBuffer appDataBlobBuffer(appDataBufferSp,
                                         record.d_appDataUnpaddedLen);
 
-    *appData = d_blobSpPool_p->getObject();
+    *appData = d_blobSpPool_sp->getObject();
     (*appData)->appendDataBuffer(appDataBlobBuffer);
 }
 
@@ -5236,7 +5237,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
                      mqbi::Dispatcher*       dispatcher,
                      mqbnet::Cluster*        cluster,
                      mqbstat::ClusterStats*  clusterStats,
-                     BlobSpPool*             blobSpPool,
+                     BlobSpPoolSp            blobSpPool_sp,
                      StateSpPool*            statePool,
                      bdlmt::FixedThreadPool* miscWorkThreadPool,
                      bool                    isCSLModeEnabled,
@@ -5250,7 +5251,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_partitionDescription(allocator)
 , d_dispatcherClientData()
 , d_clusterStats_p(clusterStats)
-, d_blobSpPool_p(blobSpPool)
+, d_blobSpPool_sp(blobSpPool_sp)
 , d_statePool_p(statePool)
 , d_aliasedBufferDeleterSpPool(1024, d_allocators.get("AliasedBufferDeleters"))
 , d_isOpen(false)
@@ -5280,7 +5281,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
                         bmqp::EventType::e_STORAGE,
-                        d_blobSpPool_p,
+                        d_blobSpPool_sp.get(),
                         allocator)
 {
     // PRECONDITIONS
@@ -6576,9 +6577,9 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         if (itNode == d_nodes.end()) {
             // no prior history about this node
             itNode = d_nodes
-                         .insert(
-                             bsl::make_pair(nodeId,
-                                            NodeContext(d_blobSpPool_p, key)))
+                         .insert(bsl::make_pair(
+                             nodeId,
+                             NodeContext(d_blobSpPool_sp.get(), key)))
                          .first;
         }
         nodeContext = &itNode->second;
@@ -6608,7 +6609,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         // The pointer `nodeContext->d_blob_sp` might be in a write queue, so
         // it's not safe to modify or replace the blob under this pointer.
         // Instead, we get another shared pointer to another blob.
-        nodeContext->d_blob_sp = d_blobSpPool_p->getObject();
+        nodeContext->d_blob_sp = d_blobSpPool_sp->getObject();
         bmqp::ProtocolUtil::buildReceipt(nodeContext->d_blob_sp.get(),
                                          d_config.partitionId(),
                                          primaryLeaseId,

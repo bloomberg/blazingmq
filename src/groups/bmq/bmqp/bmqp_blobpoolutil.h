@@ -55,6 +55,8 @@ struct BlobPoolUtil {
     static BlobSpPoolSp
     createBlobPool(bdlbb::BlobBufferFactory* blobBufferFactory_p,
                    bslma::Allocator*         allocator = 0);
+
+    static BlobSpPoolSp createBlobPool(bslma::Allocator* allocator = 0);
 };
 
 }  // close package namespace
