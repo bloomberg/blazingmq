@@ -46,6 +46,7 @@ apt-get install -qy --no-install-recommends \
     bison \
     libfl-dev \
     pkg-config \
+    python3.12-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
@@ -78,6 +79,17 @@ DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
 
 DIR_SRC_BMQ="${DIR_ROOT}"
 DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
+# Create Python venv
+python3 -m venv venv
+if [ -f "venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source venv/bin/activate
+    pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
+else
+  echo "Virtual environment not found."
+  exit 1
+fi
 
 # Parse sanitizers config
 cfgquery() {
@@ -246,7 +258,7 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
     -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
-      --target all.t -v --clean-first
+      --target all -v --clean-first
 
 # Create testing script
 envcfgquery() {
@@ -287,3 +299,11 @@ mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
 CMD+="./run-env.sh ctest --output-on-failure"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
+
+# 'run-it.sh' runs instrumented integration tests.
+CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
+CMD+="source ./venv/bin/activate && "
+CMD+="BLAZINGMQ_BUILD_DIR=${DIR_BUILD_BMQ} "
+CMD+="BLAZINGMQ_IT_PRESET=\"fsm_mode and strong_consistency\" "
+CMD+="${DIR_BUILD_BMQ}/run-env.sh ./src/integration-tests/run-tests -v \$@"
+mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-it.sh"
