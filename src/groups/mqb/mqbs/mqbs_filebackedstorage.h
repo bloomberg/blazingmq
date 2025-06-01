@@ -169,6 +169,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     bmqt::Uri d_queueUri;
 
+    /// Statistics of the queue associated to this storage.
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
+
     VirtualStorageCatalog d_virtualStorageCatalog;
 
     bsls::Types::Int64 d_ttlSeconds;
@@ -209,9 +212,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     AutoConfirms d_autoConfirms;
     // Auto CONFIRMs waiting for 'put' or 'processMessageRecord'
-
-    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
-    // Statistics of the queue associated to this storage.
 
   private:
     // NOT IMPLEMENTED
