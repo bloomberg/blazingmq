@@ -637,8 +637,8 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
     }
     else {
         if (!it->d_isLive) {
-            // Corner case of (re)inserting undetected duplicate
-            // Erase and reinsert
+            // This is previously erase key that still exists in history.
+            // Erase and reinsert.
             d_impl.erase(it);
             --d_historySize;
 

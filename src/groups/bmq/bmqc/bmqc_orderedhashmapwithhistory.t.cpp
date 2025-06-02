@@ -338,12 +338,12 @@ static void test7_gcThenInsert()
     // HISTORY
     //
     // Concerns:
-    //   The same GUID gets inserted after 'erase' (as an undetected duplicate)
+    //   The same key gets inserted after 'erase'.
     //
     // Plan:
-    //   Insert a GUID
-    //   Erase.
-    //   Insert the GUID.
+    //   Insert an element.
+    //   Erase the element.
+    //   Insert the same key again.
     //
     // Testing:
     //   insert, erase, insert
