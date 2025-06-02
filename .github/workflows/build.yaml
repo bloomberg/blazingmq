@@ -175,13 +175,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
+          name: ${{needs.build_ubuntu.outputs.cache_key }}
 
       - name: Run Storage Tool integration tests
         run: |
