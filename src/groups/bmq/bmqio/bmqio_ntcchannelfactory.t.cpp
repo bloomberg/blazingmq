@@ -32,8 +32,8 @@
 #include <bdlf_bind.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
+#include <bsla_annotations.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
@@ -71,9 +71,9 @@ using namespace bmqio;
 
 /// Return `true` if the specified `messageSubstring` is a substring of the
 /// message of the specified `record`.
-static bool ballFilter(const bsl::string&           messageSubstring,
-                       const ball::Record&          record,
-                       BSLS_ANNOTATION_UNUSED const ball::Context& context)
+static bool ballFilter(const bsl::string&  messageSubstring,
+                       const ball::Record& record,
+                       BSLA_UNUSED const ball::Context& context)
 {
     return !bdlb::StringRefUtil::strstr(record.fixedFields().messageRef(),
                                         messageSubstring)

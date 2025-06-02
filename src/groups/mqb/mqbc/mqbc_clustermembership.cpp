@@ -28,7 +28,7 @@
 #include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -45,7 +45,7 @@ ClusterMembershipObserver::~ClusterMembershipObserver()
 }
 
 void ClusterMembershipObserver::onSelfNodeStatus(
-    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::NodeStatus::Value value)
+    BSLA_UNUSED bmqp_ctrlmsg::NodeStatus::Value value)
 {
     // NOTHING
 }

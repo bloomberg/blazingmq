@@ -34,9 +34,9 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bsl_deque.h>
+#include <bsla_annotations.h>
 #include <bslmt_barrier.h>
 #include <bslmt_readerwritermutex.h>
-#include <bsls_annotation.h>
 #include <bsls_atomic.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
@@ -196,8 +196,8 @@ struct Iterator<bmqp::PushEventBuilder> : bmqp::PushMessageIterator {
 
 template <>
 struct Iterator<bmqp::AckEventBuilder> : bmqp::AckMessageIterator {
-    Iterator(BSLS_ANNOTATION_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
-             BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+    Iterator(BSLA_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
+             BSLA_UNUSED bslma::Allocator* allocator)
     {
         // NOTHING
     }
@@ -210,8 +210,8 @@ struct Iterator<bmqp::AckEventBuilder> : bmqp::AckMessageIterator {
 
 template <>
 struct Iterator<bmqp::ConfirmEventBuilder> : bmqp::ConfirmMessageIterator {
-    Iterator(BSLS_ANNOTATION_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
-             BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+    Iterator(BSLA_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
+             BSLA_UNUSED bslma::Allocator* allocator)
     {
         // NOTHING
     }
@@ -224,8 +224,8 @@ struct Iterator<bmqp::ConfirmEventBuilder> : bmqp::ConfirmMessageIterator {
 
 template <>
 struct Iterator<bmqp::RejectEventBuilder> : bmqp::RejectMessageIterator {
-    Iterator(BSLS_ANNOTATION_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
-             BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+    Iterator(BSLA_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
+             BSLA_UNUSED bslma::Allocator* allocator)
     {
         // NOTHING
     }
@@ -241,8 +241,8 @@ struct Iterator<PseudoBuilder> {
     const bdlbb::Blob* d_blob;
     int                d_next;
 
-    Iterator(BSLS_ANNOTATION_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
-             BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+    Iterator(BSLA_UNUSED bdlbb::BlobBufferFactory* bufferFactory,
+             BSLA_UNUSED bslma::Allocator* allocator)
     : d_blob(0)
     , d_next(0)
     {

@@ -121,6 +121,7 @@
 #include <bsl_exception.h>
 #include <bsl_functional.h>  // bsl::reference_wrapper
 #include <bsl_memory.h>
+#include <bsla_annotations.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_constructionutil.h>
@@ -136,7 +137,6 @@
 #include <bslmt_condition.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>
 #include <bsls_keyword.h>
@@ -196,7 +196,7 @@ class Future_Exception {
         // ACCESSORS
 
         /// Throw a copy of the contained exception object.
-        BSLS_ANNOTATION_NORETURN virtual void emit() const = 0;
+        BSLA_NORETURN virtual void emit() const = 0;
     };
 
     /// Provides an implementation of the `TargetBase` interface containing
@@ -227,7 +227,7 @@ class Future_Exception {
         // ACCESSORS
 
         /// Implements `TargetBase::emit`.
-        BSLS_ANNOTATION_NORETURN void emit() const BSLS_KEYWORD_OVERRIDE;
+        BSLA_NORETURN void emit() const BSLS_KEYWORD_OVERRIDE;
     };
 
   private:
@@ -273,7 +273,7 @@ class Future_Exception {
   public:
     // ACCESSORS
 #ifdef BSLS_PLATFORM_CMP_CLANG
-    BSLS_ANNOTATION_NORETURN void emit() const;
+    BSLA_NORETURN void emit() const;
 #else
     void emit() const;
 #endif
@@ -1127,8 +1127,7 @@ inline Future_Exception::Target<EXCEPTION>::Target(
 
 // ACCESSORS
 template <class EXCEPTION>
-BSLS_ANNOTATION_NORETURN inline void
-Future_Exception::Target<EXCEPTION>::emit() const
+BSLA_NORETURN inline void Future_Exception::Target<EXCEPTION>::emit() const
 {
     throw d_exception.object();
 }

@@ -245,9 +245,9 @@ struct EventHandler : public bmqa::SessionEventHandler {
         return result;
     }
 
-    void incrementAsserts(BSLS_ANNOTATION_UNUSED const char* desc,
-                          BSLS_ANNOTATION_UNUSED const char* file,
-                          BSLS_ANNOTATION_UNUSED int         line)
+    void incrementAsserts(BSLA_UNUSED const char* desc,
+                          BSLA_UNUSED const char* file,
+                          BSLA_UNUSED int         line)
     {
         ++d_assertsInvoked;
     }
@@ -997,11 +997,11 @@ static void test6_runThrough()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqt::CorrelationId            corrId(1);
-    bmqa::QueueId                  queueId(corrId);
-    bsl::string                    input = "bmq://my.domain/queue";
-    bmqt::Uri                      uri(bmqtst::TestHelperUtil::allocator());
-    bsl::string                    error;
+    bmqt::CorrelationId corrId(1);
+    bmqa::QueueId       queueId(corrId);
+    bsl::string         input = "bmq://my.domain/queue";
+    bmqt::Uri           uri(bmqtst::TestHelperUtil::allocator());
+    bsl::string         error;
     bmqt::UriParser::parse(&uri, &error, input);
 
     // Test events and results to be emitted

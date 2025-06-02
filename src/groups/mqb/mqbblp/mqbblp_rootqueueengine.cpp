@@ -58,8 +58,8 @@
 #include <bsl_iostream.h>
 #include <bsl_iterator.h>
 #include <bsl_limits.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 
@@ -1277,8 +1277,8 @@ void RootQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
 }
 
 void RootQueueEngine::afterNewMessage(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+    BSLA_UNUSED mqbi::QueueHandle* source)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -2007,9 +2007,9 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
 }
 
 void RootQueueEngine::unregisterStorage(
-    const bsl::string&           appId,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+    const bsl::string& appId,
+    BSLA_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_UNUSED unsigned int            appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 

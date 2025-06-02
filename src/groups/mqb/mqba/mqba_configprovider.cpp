@@ -38,10 +38,10 @@
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutexassert.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -119,8 +119,7 @@ ConfigProvider::~ConfigProvider()
     stop();
 }
 
-int ConfigProvider::start(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+int ConfigProvider::start(BSLA_UNUSED bsl::ostream& errorDescription)
 {
     BALL_LOG_INFO << "Starting ConfigProvider";
 

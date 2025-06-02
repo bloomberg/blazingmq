@@ -48,8 +48,8 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_types.h>
 
@@ -540,8 +540,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 }
 
 void LocalQueue::onPushMessage(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& blob)
+    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     BSLS_ASSERT_OPT(false &&
                     "onPushMessage should not be called on LocalQueue");

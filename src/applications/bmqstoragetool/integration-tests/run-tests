@@ -1,0 +1,18 @@
+#! /usr/bin/env bash
+
+# DESCRIPTION
+# ===========
+# This script runs bmqstoragetool integration tests.
+
+# USAGE
+# =====
+#   ./run-tests
+
+set -e
+
+repo_dir=$(realpath "$0")
+repo_dir=${repo_dir%/src/*}
+
+export PYTHONPATH=$repo_dir/src/python:$PYTHONPATH
+
+python3 -m pytest "$@"

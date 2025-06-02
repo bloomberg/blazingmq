@@ -43,9 +43,9 @@
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmf_removecv.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_keyword.h>
 #include <bsls_types.h>
@@ -451,7 +451,7 @@ inline bool operator!=(const OrderedHashMapWithHistory_Iterator<VALUE1>& lhs,
 }
 
 template <class VALUE>
-inline void clean(BSLS_ANNOTATION_UNUSED VALUE& value)
+inline void clean(BSLA_UNUSED VALUE& value)
 {
     // NOTHING
 }

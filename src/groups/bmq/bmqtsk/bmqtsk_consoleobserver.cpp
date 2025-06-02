@@ -31,8 +31,8 @@
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslmt_mutexassert.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 // SYSTEM
@@ -259,9 +259,8 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
     return *this;
 }
 
-void ConsoleObserver::publish(
-    const ball::Record&          record,
-    BSLS_ANNOTATION_UNUSED const ball::Context& context)
+void ConsoleObserver::publish(const ball::Record& record,
+                              BSLA_UNUSED const ball::Context& context)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {

@@ -49,7 +49,7 @@
 #include <bdlt_epochutil.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_spinlock.h>
 
@@ -836,8 +836,7 @@ static void produce(bmqa::Session* session, QueueManager* queueManager)
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
-int main(BSLS_ANNOTATION_UNUSED int         argc,
-         BSLS_ANNOTATION_UNUSED const char* argv[])
+int main(BSLA_UNUSED int argc, BSLA_UNUSED const char* argv[])
 {
     // Set up logging with output to the console and verbosity set to
     // INFO-level.  This way we will get logs from the BlazingMQ SDK.

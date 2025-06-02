@@ -19,7 +19,7 @@
 #include <mqbscm_version.h>
 // BDE
 #include <bsl_iostream.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbmock {
@@ -29,7 +29,7 @@ namespace mqbmock {
 // -----------------
 
 // CREATORS
-QueueEngine::QueueEngine(BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
+QueueEngine::QueueEngine(BSLA_UNUSED bslma::Allocator* allocator)
 {
     // NOTHING
 }
@@ -40,97 +40,86 @@ QueueEngine::~QueueEngine()
 }
 
 // MANIPULATORS
-int QueueEngine::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    BSLS_ANNOTATION_UNUSED bool          isReconfigure)
+int QueueEngine::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+                           BSLA_UNUSED bool          isReconfigure)
 {
     return 0;
 }
 
-void QueueEngine::resetState(BSLS_ANNOTATION_UNUSED bool keepConfirming)
+void QueueEngine::resetState(BSLA_UNUSED bool keepConfirming)
 {
     // NOTHING
 }
 
 int QueueEngine::rebuildInternalState(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+    BSLA_UNUSED bsl::ostream& errorDescription)
 {
     return 0;
 }
 
 mqbi::QueueHandle* QueueEngine::getHandle(
-    BSLS_ANNOTATION_UNUSED const
-        bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
-    BSLS_ANNOTATION_UNUSED const        bmqp_ctrlmsg::QueueHandleParameters&
-                                        handleParameters,
-    BSLS_ANNOTATION_UNUSED unsigned int upstreamSubQueueId,
-    BSLS_ANNOTATION_UNUSED const        mqbi::QueueHandle::GetHandleCallback&
-                                        callback)
+    BSLA_UNUSED const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+                      clientContext,
+    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+    BSLA_UNUSED unsigned int                               upstreamSubQueueId,
+    BSLA_UNUSED const mqbi::QueueHandle::GetHandleCallback& callback)
 {
     return 0;
 }
 
 void QueueEngine::configureHandle(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    BSLS_ANNOTATION_UNUSED const              bmqp_ctrlmsg::StreamParameters&
-                                              streamParameters,
-    BSLS_ANNOTATION_UNUSED const mqbi::QueueHandle::HandleConfiguredCallback&
-                                 configuredCb)
+    BSLA_UNUSED mqbi::QueueHandle* handle,
+    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters,
+    BSLA_UNUSED const mqbi::QueueHandle::HandleConfiguredCallback&
+                      configuredCb)
 {
     // NOTHING
 }
 
 void QueueEngine::releaseHandle(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::QueueHandleParameters&
-                                 handleParameters,
-    BSLS_ANNOTATION_UNUSED bool  isFinal,
-    BSLS_ANNOTATION_UNUSED const mqbi::QueueHandle::HandleReleasedCallback&
-                                 releasedCb)
+    BSLA_UNUSED mqbi::QueueHandle* handle,
+    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+    BSLA_UNUSED bool                                       isFinal,
+    BSLA_UNUSED const mqbi::QueueHandle::HandleReleasedCallback& releasedCb)
 {
     // NOTHING
 }
 
-void QueueEngine::onHandleUsable(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    BSLS_ANNOTATION_UNUSED unsigned int       upstreamSubQueueId)
+void QueueEngine::onHandleUsable(BSLA_UNUSED mqbi::QueueHandle* handle,
+                                 BSLA_UNUSED unsigned int upstreamSubQueueId)
 {
     // NOTHING
 }
 
-void QueueEngine::afterNewMessage(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+void QueueEngine::afterNewMessage(BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+                                  BSLA_UNUSED mqbi::QueueHandle* source)
 {
     // NOTHING
 }
 
-int QueueEngine::onConfirmMessage(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED unsigned int             subQueueId)
+int QueueEngine::onConfirmMessage(BSLA_UNUSED mqbi::QueueHandle* handle,
+                                  BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+                                  BSLA_UNUSED unsigned int subQueueId)
 {
     return 0;
 }
 
-int QueueEngine::onRejectMessage(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED unsigned int             subQueueId)
+int QueueEngine::onRejectMessage(BSLA_UNUSED mqbi::QueueHandle* handle,
+                                 BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+                                 BSLA_UNUSED unsigned int subQueueId)
 {
     // TODO: Implement
     return 0;
 }
 
 void QueueEngine::beforeMessageRemoved(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID)
+    BSLA_UNUSED const bmqt::MessageGUID& msgGUID)
 {
     // NOTHING
 }
 
-void QueueEngine::afterQueuePurged(
-    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
+void QueueEngine::afterQueuePurged(BSLA_UNUSED const bsl::string& appId,
+                                   BSLA_UNUSED const mqbu::StorageKey& appKey)
 {
     // NOTHING
 }
@@ -143,10 +132,10 @@ void QueueEngine::afterPostMessage()
 }
 
 mqbi::StorageResult::Enum QueueEngine::evaluateAppSubscriptions(
-    BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLS_ANNOTATION_UNUSED const bmqp::MessagePropertiesInfo& mpi,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 timestamp)
+    BSLA_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_UNUSED const bmqp::MessagePropertiesInfo& mpi,
+    BSLA_UNUSED bsls::Types::Uint64 timestamp)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -160,8 +149,7 @@ unsigned int QueueEngine::messageReferenceCount() const
     return 0;
 }
 
-void QueueEngine::loadInternals(
-    BSLS_ANNOTATION_UNUSED mqbcmd::QueueEngine* out) const
+void QueueEngine::loadInternals(BSLA_UNUSED mqbcmd::QueueEngine* out) const
 {
     // NOTHING
 }

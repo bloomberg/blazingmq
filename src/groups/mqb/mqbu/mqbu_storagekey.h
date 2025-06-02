@@ -38,11 +38,11 @@
 #include <bsl_ostream.h>
 
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslh_hash.h>
 #include <bslmf_isbitwiseequalitycomparable.h>
 #include <bslmf_istriviallycopyable.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_annotation.h>
 #include <bsls_platform.h>
 #include <bsls_types.h>
 
@@ -381,9 +381,8 @@ inline StorageKeyHashAlgo::StorageKeyHashAlgo()
 }
 
 // MANIPULATORS
-inline void
-StorageKeyHashAlgo::operator()(const void*                   data,
-                               BSLS_ANNOTATION_UNUSED size_t numBytes)
+inline void StorageKeyHashAlgo::operator()(const void*        data,
+                                           BSLA_UNUSED size_t numBytes)
 {
     // 10K Keys
     // --------

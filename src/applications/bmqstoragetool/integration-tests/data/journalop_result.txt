@@ -1,0 +1,130 @@
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 0
+    Offset          : 44
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 1
+    Timestamp       : 29OCT2024_14:00:23.000000
+    Epoch           : 1730210423
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 1
+    SyncPtSequenceNumber: 1
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 5
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 2
+    Offset          : 164
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 3
+    Timestamp       : 29OCT2024_14:01:06.000000
+    Epoch           : 1730210466
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 1
+    SyncPtSequenceNumber: 3
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 5
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 4
+    Offset          : 284
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 5
+    Timestamp       : 29OCT2024_14:01:24.000000
+    Epoch           : 1730210484
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 1
+    SyncPtSequenceNumber: 5
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 8
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 7
+    Offset          : 464
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 8
+    Timestamp       : 29OCT2024_14:02:22.000000
+    Epoch           : 1730210542
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 1
+    SyncPtSequenceNumber: 8
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 8
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 8
+    Offset          : 524
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 9
+    Timestamp       : 29OCT2024_14:02:49.000000
+    Epoch           : 1730210569
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 1
+    SyncPtSequenceNumber: 9
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 8
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 9
+    Offset          : 584
+    PrimaryLeaseId  : 2
+    SequenceNumber  : 1
+    Timestamp       : 29OCT2024_14:02:54.000000
+    Epoch           : 1730210574
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 2
+    SyncPtSequenceNumber: 1
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 8
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 11
+    Offset          : 704
+    PrimaryLeaseId  : 2
+    SequenceNumber  : 3
+    Timestamp       : 29OCT2024_14:03:23.000000
+    Epoch           : 1730210603
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 2
+    SyncPtSequenceNumber: 3
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 11
+
+==============================
+
+    RecordType      : JOURNAL_OP
+    Index           : 12
+    Offset          : 764
+    PrimaryLeaseId  : 2
+    SequenceNumber  : 4
+    Timestamp       : 29OCT2024_14:03:31.000000
+    Epoch           : 1730210611
+    JournalOpType   : SYNCPOINT
+    SyncPointType   : REGULAR
+    SyncPtPrimaryLeaseId: 2
+    SyncPtSequenceNumber: 4
+    PrimaryNodeId   : 0
+    DataFileOffsetDwords: 11
+
+8 journalOp record(s) found.
+
