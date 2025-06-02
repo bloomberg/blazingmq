@@ -179,6 +179,11 @@ jobs:
         with:
           name: ${{needs.build_ubuntu.outputs.cache_key }}
 
+        # Set execution permissions for all .tsk
+        # which were lost when the artifact was created
+      - name: Chmod all .tsk        
+        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
+
       - name: Run Storage Tool integration tests
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
