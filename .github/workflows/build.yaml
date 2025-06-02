@@ -25,7 +25,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
-      target: "bmqbrkr bmqtool all.it"
+      target: "bmqbrkr bmqtool bmqstoragetool all.it"
       save_build_as_artifacts: true
       run_unit_tests: false
 
@@ -167,6 +167,27 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
+
+  integration_tests_storagetool_ubuntu:
+    name: IT [Storage tool]
+    runs-on: ubuntu-latest
+    needs: build_ubuntu
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache/@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
+
+      - name: Run Storage Tool integration tests
+        run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          cd ${{ github.workspace }}/src/applications/bmqstoragetool/integration-tests
+          ./run-tests
 
   build_macosx:
     name: Build [macosx_${{ matrix.arch }}]

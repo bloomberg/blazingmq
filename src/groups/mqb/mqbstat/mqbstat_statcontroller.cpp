@@ -114,7 +114,7 @@ StatController::StatContextDetails::StatContextDetails(
 
 StatController::StatContextDetails::StatContextDetails(
     const StatContextDetails& rhs,
-    BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator_p)
+    BSLA_UNUSED bslma::Allocator* allocator_p)
 : d_statContext_sp(rhs.d_statContext_sp)
 , d_managed(rhs.d_managed)
 {
@@ -259,7 +259,7 @@ void StatController::captureStatsAndSemaphorePost(
         result->makeStats() = os.str();
     } break;  // BREAK
 
-    case mqbcmd::EncodingFormat::JSON_COMPACT: BSLS_ANNOTATION_FALLTHROUGH;
+    case mqbcmd::EncodingFormat::JSON_COMPACT: BSLA_FALLTHROUGH;
     case mqbcmd::EncodingFormat::JSON_PRETTY: {
         // Make an unscheduled snapshot, but do not notify stats consumers
         // since it's not necessary.  We typically use this code path to get

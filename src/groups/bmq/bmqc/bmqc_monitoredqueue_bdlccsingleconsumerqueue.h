@@ -33,8 +33,8 @@
 // BDE
 #include <bdlcc_singleconsumerqueue.h>
 #include <bsl_limits.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 
@@ -99,7 +99,7 @@ MonitoredQueueTraits<bdlcc::SingleConsumerQueue<ELEMENT> >::isPushBackDisabled(
 template <typename ELEMENT>
 inline int
 MonitoredQueueTraits<bdlcc::SingleConsumerQueue<ELEMENT> >::capacity(
-    BSLS_ANNOTATION_UNUSED const QueueType& queue)
+    BSLA_UNUSED const QueueType& queue)
 {
     return bsl::numeric_limits<int>::max();
 }

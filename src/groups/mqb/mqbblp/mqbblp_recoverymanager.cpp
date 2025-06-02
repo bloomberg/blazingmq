@@ -61,11 +61,11 @@
 #include <bsl_cstdlib.h>  // for bsl::rand()
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
 #include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
@@ -227,7 +227,7 @@ void RecoveryManager_PrimarySyncContext::clear()
 
 // ACCESSORS
 void RecoveryManager_ChunkDeleter::operator()(
-    BSLS_ANNOTATION_UNUSED const void* ptr) const
+    BSLA_UNUSED const void* ptr) const
 {
     // executed by *ANY* thread
 

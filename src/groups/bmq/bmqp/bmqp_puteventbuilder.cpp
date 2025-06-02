@@ -32,9 +32,9 @@
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bsl_cstring.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 
 namespace BloombergLP {
@@ -337,7 +337,7 @@ bmqt::EventBuilderResult::Enum PutEventBuilder::packMessage(int queueId)
     // properties and padding, if any).
     bsl::shared_ptr<bdlbb::Blob> bufferBlob_sp = d_blobSpPool_p->getObject();
     bsl::shared_ptr<bdlbb::Blob> resultBlob_sp = d_blobSpPool_p->getObject();
-    const bdlbb::Blob* payloadBlob = d_blobPayload_p;
+    const bdlbb::Blob*           payloadBlob   = d_blobPayload_p;
 
     if (d_properties_p && 0 != d_properties_p->numProperties()) {
         // Note that '0 != d_properties_p->numProperties()' check is required

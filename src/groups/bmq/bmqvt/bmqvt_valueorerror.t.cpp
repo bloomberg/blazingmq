@@ -19,10 +19,13 @@
 // BMQ
 #include <bmqu_memoutstream.h>
 
+// BDE
+#include <bsl_cstdlib.h>
+#include <bsla_annotations.h>
+#include <bslma_constructionutil.h>
+
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bsl_cstdlib.h>
-#include <bslma_constructionutil.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -204,15 +207,13 @@ bool operator==(const CustomAllocErrorType& lhs,
 }
 
 template <typename T, typename V>
-T makeObjectCase(const V&               value,
-                 BSLS_ANNOTATION_UNUSED bsl::true_type uses_allocator)
+T makeObjectCase(const V& value, BSLA_UNUSED bsl::true_type uses_allocator)
 {
     return T(value, bmqtst::TestHelperUtil::allocator());
 }
 
 template <typename T, typename V>
-T makeObjectCase(const V&               value,
-                 BSLS_ANNOTATION_UNUSED bsl::false_type uses_allocator)
+T makeObjectCase(const V& value, BSLA_UNUSED bsl::false_type uses_allocator)
 {
     return T(value);
 }
@@ -225,13 +226,13 @@ T makeObject(const V& value)
 }
 
 template <typename T>
-T makeObjectCase(BSLS_ANNOTATION_UNUSED bsl::true_type uses_allocator)
+T makeObjectCase(BSLA_UNUSED bsl::true_type uses_allocator)
 {
     return T(bmqtst::TestHelperUtil::allocator());
 }
 
 template <typename T>
-T makeObjectCase(BSLS_ANNOTATION_UNUSED bsl::false_type uses_allocator)
+T makeObjectCase(BSLA_UNUSED bsl::false_type uses_allocator)
 {
     return T();
 }

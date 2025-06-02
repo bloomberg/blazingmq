@@ -46,8 +46,8 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace mqbs {
@@ -233,12 +233,11 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
     return d_store_p->hasReceipt(handles[0]);
 }
 
-int FileBackedStorage::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    const mqbconfm::Storage&             config,
-    const mqbconfm::Limits&              limits,
-    const bsls::Types::Int64             messageTtl,
-    int                                  maxDeliveryAttempts)
+int FileBackedStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+                                 const mqbconfm::Storage&  config,
+                                 const mqbconfm::Limits&   limits,
+                                 const bsls::Types::Int64  messageTtl,
+                                 int                       maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())

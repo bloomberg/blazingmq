@@ -48,8 +48,8 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_types.h>
 
@@ -421,14 +421,18 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
                 << "] from client [" << source->client()->description()
                 << "]. Queue not opened in WRITE mode by the client.";);
 
-        // Note that a NACK is not sent in this case.  This is a case of client
-        // violating the contract, by attempting to post a message after
-        // closing/reconfiguring the queue.  Since this is out of contract, its
-        // ok not to send the NACK.  If it is still desired to send a NACK, it
-        // will need some enqueuing b/w client and queue dispatcher threads to
-        // ensure that despite NACKs being sent, closeQueue response is still
-        // the last event to be sent to the client for the given queue.
+        bmqp::AckMessage ackMessage;
+        ackMessage
+            .setStatus(bmqp::ProtocolUtil::ackResultToCode(
+                bmqt::AckResult::e_REFUSED))
+            .setMessageGUID(putHeader.messageGUID());
+        // CorrelationId & QueueId are left unset as those fields will
+        // be filled downstream.
 
+        source->onAckMessage(ackMessage);
+
+        d_state_p->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
         return;  // RETURN
     }
 
@@ -534,8 +538,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 }
 
 void LocalQueue::onPushMessage(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& blob)
+    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     BSLS_ASSERT_OPT(false &&
                     "onPushMessage should not be called on LocalQueue");

@@ -43,7 +43,7 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 using namespace BloombergLP;
 
@@ -130,8 +130,7 @@ static void produce(bmqa::Session* session)
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
-int main(BSLS_ANNOTATION_UNUSED int         argc,
-         BSLS_ANNOTATION_UNUSED const char* argv[])
+int main(BSLA_UNUSED int argc, BSLA_UNUSED const char* argv[])
 {
     // Start the session with the BlazingMQ broker
     bmqa::Session session;

@@ -18,6 +18,7 @@
 
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsla_annotations.h>
 
 #include <bmqio_testchannel.h>
 #include <bmqio_testchannelfactory.h>
@@ -59,7 +60,7 @@ testResolveFn(bsl::string*                  domainName,
 
 static void testResultCallback(bsl::deque<bsl::shared_ptr<Channel> >* store,
                                ChannelFactoryEvent::Enum              event,
-                               BSLS_ANNOTATION_UNUSED const Status&   status,
+                               BSLA_UNUSED const Status&              status,
                                const bsl::shared_ptr<Channel>&        channel)
 {
     BMQTST_ASSERT_EQ(event, ChannelFactoryEvent::e_CHANNEL_UP);

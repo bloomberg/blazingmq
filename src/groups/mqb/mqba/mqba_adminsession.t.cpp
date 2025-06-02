@@ -42,7 +42,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>

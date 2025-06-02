@@ -25,9 +25,9 @@
 #include <ball_severity.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_timeutil.h>
 
@@ -65,8 +65,8 @@ AlarmLog::~AlarmLog()
     // NOTHING (required because of virtual class)
 }
 
-void AlarmLog::publish(const ball::Record&          record,
-                       BSLS_ANNOTATION_UNUSED const ball::Context& context)
+void AlarmLog::publish(const ball::Record& record,
+                       BSLA_UNUSED const ball::Context& context)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             (record.fixedFields().severity() > ball::Severity::e_ERROR) ||

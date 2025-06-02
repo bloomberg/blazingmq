@@ -46,9 +46,9 @@
 #include <bsl_cstddef.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
@@ -444,9 +444,9 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     stream << "\n";
 }
 
-void printOption(bsl::ostream&                stream,
-                 BSLS_ANNOTATION_UNUSED const bmqp::OptionsView* ov,
-                 const bmqp::OptionsView::const_iterator&        cit)
+void printOption(bsl::ostream&     stream,
+                 BSLA_UNUSED const bmqp::OptionsView*     ov,
+                 const bmqp::OptionsView::const_iterator& cit)
 {
     switch (*cit) {
     case bmqp::OptionType::e_SUB_QUEUE_IDS_OLD: {

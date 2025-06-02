@@ -39,9 +39,9 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_keyword.h>
 #include <bsls_types.h>
@@ -72,13 +72,13 @@ struct AdvisoryType {
 };
 
 // FUNCTIONS
-int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+int cleanupCallback(BSLA_UNUSED const bsl::string& logPath)
 {
     return 0;
 }
 
-int onRolloverCallback(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& oldLogId,
-                       BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& newLogId)
+int onRolloverCallback(BSLA_UNUSED const mqbu::StorageKey& oldLogId,
+                       BSLA_UNUSED const mqbu::StorageKey& newLogId)
 {
     return 0;
 }

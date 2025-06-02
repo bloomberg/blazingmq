@@ -59,10 +59,10 @@
 #include <bsl_iostream.h>
 #include <bsl_numeric.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
-#include <bsls_annotation.h>
 #include <bsls_timeinterval.h>
 
 // SYS
@@ -929,7 +929,7 @@ void StorageManager::processPartitionSyncDataRequestDispatched(
 }
 
 void StorageManager::processPartitionSyncDataRequestStatusDispatched(
-    BSLS_ANNOTATION_UNUSED int          partitionId,
+    BSLA_UNUSED int                     partitionId,
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
 {
@@ -1526,7 +1526,7 @@ void StorageManager::stop()
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
-    BSLS_ANNOTATION_UNUSED const mqbc::ClusterState& clusterState)
+    BSLA_UNUSED const mqbc::ClusterState& clusterState)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1611,8 +1611,8 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
 }
 
 void StorageManager::setPrimaryStatusForPartition(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
+    BSLA_UNUSED int partitionId,
+    BSLA_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
 {
     // executed by cluster *DISPATCHER* thread
 
@@ -1624,22 +1624,22 @@ void StorageManager::setPrimaryStatusForPartition(
 }
 
 void StorageManager::processPrimaryStateRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
 void StorageManager::processReplicaStateRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
 void StorageManager::processReplicaDataRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
@@ -2027,8 +2027,8 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
 }
 
 void StorageManager::bufferPrimaryStatusAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by *ANY* thread
 

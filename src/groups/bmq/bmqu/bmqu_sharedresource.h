@@ -250,10 +250,10 @@ class SharedResource_Deleter : public bdlma::Deleter<void> {
     /// specified in the C++ standard.
     void assign(const DELETER& deleter) BSLS_KEYWORD_NOEXCEPT;
 
+    /// Delete the specified `resource` by applying the stored `deleter`, as
+    /// `deleter(static_cast<RESOURCE*>(resource))`.
     void
     deleteObject(void* resource) BSLS_KEYWORD_NOEXCEPT BSLS_KEYWORD_OVERRIDE;
-    // Delete the specified 'resource' by applying the stored 'deleter', as
-    // 'deleter(static_cast<RESOURCE*>(resource))'.
 };
 
 // ==========================
@@ -390,25 +390,26 @@ class SharedResource {
     // CREATORS
     explicit SharedResource(bslma::Allocator* basicAllocator = 0)
         BSLS_KEYWORD_NOEXCEPT;
+
+    /// IMPLICIT
+    /// Create a `SharedResource` object managing no resource.  Optionally
+    /// specify a `basicAllocator` used to supply memory.  If
+    /// `basicAllocator` is 0, the currently installed default allocator is
+    /// used.
+    ///
+    /// Note that the supplied allocator shall remain valid until this
+    /// object is destroyed, and all shared/weak pointers obtained from this
+    /// object release ownership.
+    ///
+    /// Note also that the `nullptr_t` overload is identical in
+    /// behavior to the first one and is provided for convenience reasons,
+    /// as it might be useful when emplacing instances of this class into
+    /// containers.
+    ///
+    /// `DELETER` must be noexcept-DefaultConstructible as specified in the
+    ///  C++ standard.
     SharedResource(bsl::nullptr_t,
                    bslma::Allocator* basicAllocator = 0) BSLS_KEYWORD_NOEXCEPT;
-    // IMPLICIT
-    // Create a 'SharedResource' object managing no resource.  Optionally
-    // specify a 'basicAllocator' used to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-    //
-    // Note that the supplied allocator shall remain valid until this
-    // object is destroyed, and all shared/weak pointers obtained from this
-    // object release ownership.
-    //
-    // Note also that that the 'nullptr_t' overload is identical in
-    // behavior to the first one and is provided for convenience reasons,
-    // as it might be useful when emplacing instances of this class into
-    // containers.
-    //
-    // 'DELETER' must be noexcept-DefaultConstructible as specified in the
-    //  C++ standard.
 
     /// Create a `SharedResource` object managing the specified `resource`.
     /// Optionally specify a `deleter` used to free the resource upon

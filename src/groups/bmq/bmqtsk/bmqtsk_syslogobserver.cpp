@@ -23,6 +23,7 @@
 // BDE
 #include <ball_record.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsla_annotations.h>
 
 extern "C" {
 #include <syslog.h>
@@ -65,9 +66,8 @@ void SyslogObserver::disableLogging()
     closelog();
 }
 
-void SyslogObserver::publish(
-    const ball::Record&          record,
-    BSLS_ANNOTATION_UNUSED const ball::Context& context)
+void SyslogObserver::publish(const ball::Record& record,
+                             BSLA_UNUSED const ball::Context& context)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {

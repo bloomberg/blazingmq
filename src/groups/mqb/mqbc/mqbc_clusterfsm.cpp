@@ -18,7 +18,7 @@
 
 #include <mqbscm_version.h>
 // BDE
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbc {
@@ -148,10 +148,10 @@ void ClusterFSM::applyEvent(ClusterFSMArgsSp& eventsQueue)
 
             break;  // BREAK
         }
-        case State::e_FOL_HEALING: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_LDR_HEALING_STG1: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_LDR_HEALING_STG2: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_STOPPED: BSLS_ANNOTATION_FALLTHROUGH;
+        case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
+        case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
+        case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;
+        case State::e_STOPPED: BSLA_FALLTHROUGH;
         default: {
             break;  // BREAK
         }

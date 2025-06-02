@@ -30,8 +30,8 @@
 #include <bsl_algorithm.h>
 #include <bsl_iostream.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -96,12 +96,11 @@ InMemoryStorage::~InMemoryStorage()
 
 // MANIPULATORS
 //   (virtual mqbi::Storage)
-int InMemoryStorage::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    const mqbconfm::Storage&             config,
-    const mqbconfm::Limits&              limits,
-    const bsls::Types::Int64             messageTtl,
-    const int                            maxDeliveryAttempts)
+int InMemoryStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+                               const mqbconfm::Storage&  config,
+                               const mqbconfm::Limits&   limits,
+                               const bsls::Types::Int64  messageTtl,
+                               const int                 maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -288,8 +287,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 mqbi::StorageResult::Enum
 InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
                          const mqbu::StorageKey&  appKey,
-                         BSLS_ANNOTATION_UNUSED bsls::Types::Int64 timestamp,
-                         BSLS_ANNOTATION_UNUSED bool               onReject)
+                         BSLA_UNUSED bsls::Types::Int64 timestamp,
+                         BSLA_UNUSED bool               onReject)
 {
     ItemsMapIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {
@@ -587,10 +586,10 @@ InMemoryStorage::get(mqbi::StorageMessageAttributes* attributes,
 // MANIPULATORS
 //   (virtual mqbs::ReplicatedStorage)
 void InMemoryStorage::processMessageRecord(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID&     guid,
-    BSLS_ANNOTATION_UNUSED unsigned int                 msgLen,
-    BSLS_ANNOTATION_UNUSED unsigned int                 refCount,
-    BSLS_ANNOTATION_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_UNUSED const bmqt::MessageGUID&     guid,
+    BSLA_UNUSED unsigned int                 msgLen,
+    BSLA_UNUSED unsigned int                 refCount,
+    BSLA_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -598,10 +597,10 @@ void InMemoryStorage::processMessageRecord(
 }
 
 void InMemoryStorage::processConfirmRecord(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& guid,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    BSLS_ANNOTATION_UNUSED ConfirmReason::Enum          reason,
-    BSLS_ANNOTATION_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_UNUSED const bmqt::MessageGUID& guid,
+    BSLA_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_UNUSED ConfirmReason::Enum          reason,
+    BSLA_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -609,7 +608,7 @@ void InMemoryStorage::processConfirmRecord(
 }
 
 void InMemoryStorage::processDeletionRecord(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& guid)
+    BSLA_UNUSED const bmqt::MessageGUID& guid)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -628,8 +627,7 @@ void InMemoryStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-void InMemoryStorage::purge(
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
+void InMemoryStorage::purge(BSLA_UNUSED const mqbu::StorageKey& appKey)
 {
     // Replicated in-memory storage is not yet supported.
 

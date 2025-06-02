@@ -50,11 +50,11 @@
 #include <bdlbb_blobutil.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_condition.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
-#include <bsls_annotation.h>
 #include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 
@@ -229,8 +229,7 @@ static void consume(bmqa::Session* session)
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
-int main(BSLS_ANNOTATION_UNUSED int         argc,
-         BSLS_ANNOTATION_UNUSED const char* argv[])
+int main(BSLA_UNUSED int argc, BSLA_UNUSED const char* argv[])
 {
     // Start a session with the message broker.  This makes the SDK connect to
     // the local broker by default, unless the 'Session' is created with an

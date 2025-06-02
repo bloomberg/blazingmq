@@ -27,7 +27,7 @@
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_types.h>
 
 #include <bmqtst_testhelper.h>

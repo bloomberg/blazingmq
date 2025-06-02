@@ -43,7 +43,7 @@
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>  // size_t
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 
@@ -1972,22 +1972,22 @@ void ClusterStateManager::processLeaderSyncDataQuery(
 }
 
 void ClusterStateManager::processFollowerLSNRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
 void ClusterStateManager::processFollowerClusterStateRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
 void ClusterStateManager::processRegistrationRequest(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
+    BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
@@ -2159,7 +2159,7 @@ void ClusterStateManager::processShutdownEvent()
 }
 
 void ClusterStateManager::onNodeUnavailable(
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* node)
+    BSLA_UNUSED mqbnet::ClusterNode* node)
 {
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }

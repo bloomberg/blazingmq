@@ -59,9 +59,9 @@
 #include <bsl_stdexcept.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_semaphore.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_assertimputil.h>
 #include <bsls_objectbuffer.h>
@@ -146,7 +146,7 @@ static void appShutdownSignal(int signal)
 /// just *before* it is being torn down, so we have the guarantee in here
 /// that all the objects hierarchy leading to the fileObserver are in valid
 /// state.
-BSLS_ANNOTATION_NORETURN
+BSLA_NORETURN
 static void bmqAssertHandler(const char* comment, const char* file, int line)
 {
     // The following code is copied verbatim from 'printError' in
@@ -455,9 +455,8 @@ static void shutdownTask(TaskEnvironment* taskEnv)
 /// `taskEnv`.  Return 0 on success, or a non-zero error code and populate
 /// the specified `errorDescription` with a description of the error
 /// otherwise.
-static int
-initializeApplication(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-                      TaskEnvironment*                     taskEnv)
+static int initializeApplication(BSLA_UNUSED bsl::ostream& errorDescription,
+                                 TaskEnvironment*          taskEnv)
 {
     // Dump the generated config file
     BALL_LOG_INFO << "Configuration: " << '\n' << taskEnv->d_configJson;

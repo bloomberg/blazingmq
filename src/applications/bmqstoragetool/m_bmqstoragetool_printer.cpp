@@ -473,10 +473,12 @@ class HumanReadablePrinter : public Printer {
         d_ostream << "Total number of records: " << totalRecordsCount << "\n";
 
         // Print information per Queue:
-        d_ostream << "Number of records per Queue:\n";
-        printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
-                                                queueDetailsMap,
-                                                d_allocator_p);
+        if (!queueDetailsMap.empty()) {
+            d_ostream << "Number of records per Queue:\n";
+            printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
+                                                    queueDetailsMap,
+                                                    d_allocator_p);
+        }
     }
 
     void printJournalFileMeta(const mqbs::JournalFileIterator* journalFile_p)
@@ -488,7 +490,6 @@ class HumanReadablePrinter : public Printer {
             d_ostream,
             journalFile_p,
             d_allocator_p);
-        printDelimeter<bmqu::AlignedPrinter>(d_ostream);
     }
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
@@ -635,10 +636,9 @@ class JsonPrinter : public Printer {
     }
 
     void printOutstandingRatio(
-        int                    ratio,
-        bsl::size_t            outstandingMessagesCount,
-        BSLS_ANNOTATION_UNUSED bsl::size_t totalMessagesCount) const
-        BSLS_KEYWORD_OVERRIDE
+        int         ratio,
+        bsl::size_t outstandingMessagesCount,
+        BSLA_UNUSED bsl::size_t totalMessagesCount) const BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
         d_ostream << "  \"OutstandingRatio\": \"" << ratio

@@ -45,8 +45,8 @@
 #include <bsl_sstream.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
@@ -244,8 +244,8 @@ void LogControllerConfig::clearCategoriesProperties()
 // -------------------
 
 void LogController::afterFileRotation(
-    BSLS_ANNOTATION_UNUSED int   status,
-    BSLS_ANNOTATION_UNUSED const bsl::string& rotatedFileName)
+    BSLA_UNUSED int   status,
+    BSLA_UNUSED const bsl::string& rotatedFileName)
 {
     updateLastLogSymlink();
 }
@@ -282,8 +282,8 @@ void LogController::updateLastLogSymlink()
     }
 }
 
-int LogController::processInfoCommand(BSLS_ANNOTATION_UNUSED bsl::istream& cmd,
-                                      bsl::ostream&                        os)
+int LogController::processInfoCommand(BSLA_UNUSED bsl::istream& cmd,
+                                      bsl::ostream&             os)
 {
     // Gather some information
     ball::Severity::Level verbosity = static_cast<ball::Severity::Level>(
