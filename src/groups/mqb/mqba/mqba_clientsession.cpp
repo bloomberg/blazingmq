@@ -3151,9 +3151,6 @@ void ClientSession::processClusterMessage(
         // This is StopRequest from Proxy
         // Assume StopRequest V2
 
-        const bmqp_ctrlmsg::StopRequest& request =
-            message.choice().clusterMessage().choice().stopRequest();
-
         // Deconfigure all queues.  Do NOT wait for unconfirmed
 
         BALL_LOG_INFO << description() << ": processing StopRequest.";
