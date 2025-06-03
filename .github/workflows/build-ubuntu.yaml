@@ -135,7 +135,7 @@ jobs:
         if: contains(inputs.target, 'all.t') == false && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
           echo "Unit tests were requested to run, but the target is not 'all.t'."
-          echo "Please set the target to 'all.t' to build unit tests."
+          echo "Please set the target to include 'all.t' to build unit tests."
           exit 1
 
       - uses: actions/upload-artifact@v4
