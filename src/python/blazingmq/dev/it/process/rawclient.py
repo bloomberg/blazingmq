@@ -23,6 +23,7 @@ PURPOSE: Provide a BMQ raw client.
 import socket
 import json
 from typing import Optional, Tuple, Union
+import base64
 
 from blazingmq.schemas import broker
 
@@ -80,7 +81,35 @@ class RawClient:
 
         return event_size + event_desc
 
-    def _send_raw(self, message: bytes) -> None:
+    @staticmethod
+    def _wrap_authentication_event(payload: Union[str, dict]) -> bytes:
+        """
+        Wraps the specified 'payload' with EventHeader and adds padding to the
+        end. Returns the raw bytes authentication message.
+
+        See also: bmqp::EventHeader
+        """
+
+        if isinstance(payload, str):
+            payload_str = payload
+        else:
+            payload_str = json.dumps(payload)
+
+        padding_len = 4 - len(payload_str) % 4
+        padding = bytes([padding_len] * padding_len)
+
+        event_type = broker.EventType.AUTHENTICATION
+        type_specific = broker.TypeSpecific.ENCODING_JSON
+
+        auth_header_bytes = 8
+        auth_event_size = (auth_header_bytes + len(payload_str) + padding_len).to_bytes(
+            4, "big"
+        )
+        auth_event_desc = bytes([0x40 + event_type, 0x02, type_specific, 0x00])
+
+        return auth_event_size + auth_event_desc + payload_str.encode("ascii") + padding
+
+    def _send_raw(self, message: bytes) -> Tuple[bytes, bytes]:
         """
         Send the specified raw "message" over the channel to the broker.
         Return the received byte response.
@@ -171,7 +200,8 @@ class RawClient:
     def open_channel(self, host: str, port: int) -> None:
         """
         Open a new channel to the broker using the specified 'host' / 'port'.
-        This method is used to establish a connection for sending negotiation requests.
+        This method is used to establish a connection for sending
+        authentication and negotiation requests.
         """
         assert self._channel is None
 
@@ -198,6 +228,25 @@ class RawClient:
 
         print(f"Unknown encoding type: {type_specific}")
         raise ValueError("Unknown encoding in response")
+
+    def send_authentication_request(self, auth_mechanism: str, auth_data: str) -> dict:
+        """
+        Send an authentication request to the broker with the specified
+        authentication mechanism 'auth_mechanism' and authentication data 'auth_data'.
+        """
+        assert self._channel is not None
+
+        auth_request = broker.AUTHENTICATE_REQUEST_SCHEMA
+        auth_request["authenticateRequest"]["mechanism"] = auth_mechanism
+        auth_request["authenticateRequest"]["data"] = base64.b64encode(
+            auth_data.encode("utf-8")  # or "ascii" if you know it's ASCII
+        ).decode("ascii")
+
+        self._send_raw(self._wrap_authentication_event(auth_request))
+        response_header, response_body = self._receive_event()
+
+        response = self.decode_event_bytes(response_header, response_body)
+        return response
 
     def send_negotiation_request(self) -> dict:
         """
