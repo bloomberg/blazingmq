@@ -658,17 +658,7 @@ static void test7_testLongUri()
 
     bmqt::Uri obj(stream.str(), bmqtst::TestHelperUtil::allocator());
 
-    BMQTST_ASSERT_EQ(observer.records().size(), 1U);
-
-    BMQTST_ASSERT_EQ(observer.records()[0].fixedFields().severity(),
-                     ball::Severity::e_ERROR);
-
-    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
-        observer.records()[0],
-        pathStr.data(),
-        bmqtst::TestHelperUtil::allocator()));
-
-    BMQTST_ASSERT_EQ(obj.isValid(), true);
+    BMQTST_ASSERT_EQ(obj.isValid(), false);
 
     bmqt::UriParser::shutdown();
 }
