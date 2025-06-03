@@ -38,6 +38,7 @@
 #include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bsls_keyword.h>
@@ -54,7 +55,7 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    bslma::Allocator*                 d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
