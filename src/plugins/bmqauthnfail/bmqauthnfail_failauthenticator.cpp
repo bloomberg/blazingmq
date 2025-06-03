@@ -94,10 +94,18 @@ bslstl::StringRef FailAuthenticator::mechanism() const
 }
 
 int FailAuthenticator::authenticate(
-    BSLA_UNUSED bsl::ostream&                       errorDescription,
+    bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
+    BALL_LOG_INFO << "FailAuthenticator: "
+                  << "authentication failed for mechanism '" << mechanism()
+                  << "' unconditionally.";
+
+    errorDescription << "FailAuthenticator: "
+                     << "authentication failed for mechanism '" << mechanism()
+                     << "' unconditionally.";
+
     *result = bsl::allocate_shared<FailAuthenticationResult>(d_allocator_p,
                                                              "",
                                                              600 * 1000);
