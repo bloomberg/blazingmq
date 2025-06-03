@@ -43,6 +43,13 @@ AuthenticationContext::AuthenticationContext(
     // NOTHING
 }
 
+AuthenticationContext& AuthenticationContext::setAuthenticationResult(
+    const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
+{
+    d_authenticationResultSp = value;
+    return *this;
+}
+
 AuthenticationContext& AuthenticationContext::setInitialConnectionContext(
     InitialConnectionContext* value)
 {
@@ -67,6 +74,12 @@ AuthenticationContext::setConnectionType(ConnectionType::Enum value)
 {
     d_connectionType = value;
     return *this;
+}
+
+const bsl::shared_ptr<mqbplug::AuthenticationResult>&
+AuthenticationContext::authenticationResult() const
+{
+    return d_authenticationResultSp;
 }
 
 InitialConnectionContext*

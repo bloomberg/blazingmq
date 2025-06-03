@@ -43,9 +43,25 @@ using namespace bsl;
 /// A test implementation of the `mqbnet::InitialConnectionHandler` protocol
 struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
+    int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
+
+    void stop() BSLS_KEYWORD_OVERRIDE;
+
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
+
+int InitialConnectionHandlerTestImp::start(
+    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+{
+    markDone();
+    return 0;
+}
+
+void InitialConnectionHandlerTestImp::stop()
+{
+    markDone();
+}
 
 void InitialConnectionHandlerTestImp::handleInitialConnection(
     BSLA_UNUSED const InitialConnectionContextSp& context)
