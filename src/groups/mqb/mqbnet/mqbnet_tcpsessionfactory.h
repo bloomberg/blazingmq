@@ -78,8 +78,8 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-
 #include <mqbcfg_messages.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
 
@@ -179,6 +179,9 @@ class TCPSessionFactory {
     struct ChannelInfo {
         bmqio::Channel* d_channel_p;
         // The channel
+
+        // The context of authentication
+        bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
 
         bsl::shared_ptr<Session> d_session_sp;
         // The session tied to the channel
