@@ -126,13 +126,13 @@ jobs:
           find . -name "*.a" -type f -delete
 
       - name: Run UT [c++]
-        if: inputs.target == 'all.t' && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
+        if: contains(inputs.target, 'all.t') && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
           cd ${{ github.workspace }}/build/blazingmq
           ctest --output-on-failure -L \^unit\$
 
       - name: Fail if requrested to run UTs, they were not built
-        if: inputs.target != 'all.t' && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
+        if: contains(inputs.target, 'all.t') == false && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
           echo "Unit tests were requested to run, but the target is not 'all.t'."
           echo "Please set the target to 'all.t' to build unit tests."
