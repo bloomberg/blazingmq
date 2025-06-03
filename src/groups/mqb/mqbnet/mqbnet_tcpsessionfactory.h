@@ -78,8 +78,8 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-
 #include <mqbcfg_messages.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
 
@@ -182,6 +182,9 @@ class TCPSessionFactory {
         /// The channel
         bsl::shared_ptr<bmqio::Channel> d_channel_sp;
 
+        // The context of authentication
+        bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
+
         /// The session tied to the channel
         bsl::shared_ptr<Session> d_session_sp;
 
@@ -191,6 +194,8 @@ class TCPSessionFactory {
         bmqp::HeartbeatMonitor d_monitor;
 
         /// @param channel_sp The channel
+        /// @param authenticationContext The authentication context associated
+        /// with this channel.
         /// @param session The session associated with this channel.
         /// @param eventProcessor The event processor of Events received on
         /// this channel.
@@ -199,9 +204,11 @@ class TCPSessionFactory {
         /// @param initialMissedHeartbeatCounter The initial missed heartbeats
         /// for this channel.
         explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-                             const bsl::shared_ptr<Session>&        session,
-                             SessionEventProcessor* eventProcessor,
-                             int                    maxMissedHeartbeats,
+                             const bsl::shared_ptr<AuthenticationContext>&
+                                 authenticationContext,
+                             const bsl::shared_ptr<Session>& session,
+                             SessionEventProcessor*          eventProcessor,
+                             int maxMissedHeartbeats,
                              int initialMissedHeartbeatCounter);
     };
 
