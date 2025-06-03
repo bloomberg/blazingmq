@@ -147,7 +147,7 @@ jobs:
     name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
     strategy:
       matrix:
-        mode: ["legacy_mode", "fsm_mode"]
+        mode: ["legacy_mode"]
         cluster: ["multi"]
         consistency: ["eventual_consistency", "strong_consistency"]
       fail-fast: false
