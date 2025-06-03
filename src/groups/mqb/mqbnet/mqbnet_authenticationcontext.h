@@ -49,6 +49,10 @@ class AuthenticationContext {
 
   private:
     // DATA
+
+    /// The authentication result to be used for re-authentication.
+    bsl::shared_ptr<mqbplug::AuthenticationResult> d_authenticationResultSp;
+
     InitialConnectionContext*           d_initialConnectionContext_p;
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
     bsls::AtomicInt                     d_state;
@@ -74,6 +78,8 @@ class AuthenticationContext {
         ConnectionType::Enum connectionType = ConnectionType::e_UNKNOWN);
 
     // MANIPULATORS
+    AuthenticationContext& setAuthenticationResult(
+        const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
     AuthenticationContext&
     setInitialConnectionContext(InitialConnectionContext* value);
     AuthenticationContext&
@@ -83,6 +89,8 @@ class AuthenticationContext {
     bsls::AtomicInt& state();
 
     // ACCESSORS
+    const bsl::shared_ptr<mqbplug::AuthenticationResult>&
+                              authenticationResult() const;
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
     ConnectionType::Enum                       connectionType() const;

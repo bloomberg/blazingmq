@@ -370,8 +370,9 @@ int TransportManager::start(bsl::ostream& errorDescription)
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS       = 0,
-        rc_TCP_INTERFACE = -1
+        rc_SUCCESS                    = 0,
+        rc_TCP_INTERFACE              = -1,
+        rc_INITIAL_CONNECTION_HANDLER = -2
     };
 
     BALL_LOG_INFO << "Starting TransportManager";
@@ -390,6 +391,12 @@ int TransportManager::start(bsl::ostream& errorDescription)
         if (rc != 0) {
             return (rc * 10) + rc_TCP_INTERFACE;  // RETURN
         }
+    }
+
+    // Start the InitialConnectionHandler
+    rc = d_initialConnectionHandler_mp->start(errorDescription);
+    if (rc != 0) {
+        return (rc * 10) + rc_INITIAL_CONNECTION_HANDLER;  // RETURN
     }
 
     d_state = e_STARTING;
@@ -459,6 +466,11 @@ void TransportManager::stop()
     BSLS_ASSERT_SAFE(e_STOPPING == d_state || e_STARTING == d_state);
 
     d_state = e_STOPPED;
+
+    // Stop InitialConnectionHandler
+    if (d_initialConnectionHandler_mp) {
+        d_initialConnectionHandler_mp->stop();
+    }
 
     // Stop interfaces
     if (d_tcpSessionFactory_mp) {

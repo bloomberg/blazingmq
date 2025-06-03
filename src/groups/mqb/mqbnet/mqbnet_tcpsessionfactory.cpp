@@ -586,6 +586,7 @@ void TCPSessionFactory::negotiationComplete(
 
         info.createInplace(d_allocator_p,
                            channel,
+                           initialConnectionContext_p->authenticationContext(),
                            monitoredSession,
                            initialConnectionContext_p->negotiationContext()
                                ->d_eventProcessor_p,
@@ -1552,12 +1553,14 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 // ------------------------------------
 
 TCPSessionFactory::ChannelInfo::ChannelInfo(
-    const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-    const bsl::shared_ptr<Session>&        monitoredSession,
-    SessionEventProcessor*                 eventProcessor,
-    int                                    maxMissedHeartbeats,
-    int                                    initialMissedHeartbeatCounter)
+    const bsl::shared_ptr<bmqio::Channel>&        channel_sp,
+    const bsl::shared_ptr<AuthenticationContext>& authenticationContext,
+    const bsl::shared_ptr<Session>&               monitoredSession,
+    SessionEventProcessor*                        eventProcessor,
+    int                                           maxMissedHeartbeats,
+    int initialMissedHeartbeatCounter)
 : d_channel_sp(channel_sp)
+, d_authenticationCtx_sp(authenticationContext)
 , d_session_sp(monitoredSession)
 , d_eventProcessor_p(eventProcessor)
 , d_monitor(maxMissedHeartbeats, initialMissedHeartbeatCounter)

@@ -53,10 +53,17 @@ class Authenticator {
 
     // MANIPULATORS
 
-    /// Authenticate the connection using the specified `authenticationMsg`
-    /// and `context`.  An `AuthenticationContext` will be created and stored
-    /// into `context`.  Set `isContinueRead` to true if further reading
-    /// should continue, or false if authentication is complete.
+    /// Start the Authenticator.  Return 0 on success, or a non-zero error
+    /// code and populate the specified `errorDescription` with a description
+    /// of the error otherwise.
+    virtual int start(bsl::ostream& errorDescription) = 0;
+
+    /// Stop the Authenticator.
+    virtual void stop() = 0;
+
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// in the specified `context`.  Set `isContinueRead` to true if we want to
+    /// continue reading instead of finishing authentication.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleAuthentication(

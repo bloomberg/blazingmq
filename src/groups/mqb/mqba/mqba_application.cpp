@@ -335,8 +335,9 @@ int Application::start(bsl::ostream& errorDescription)
 
     // Start the transport manager
     bslma::ManagedPtr<mqbnet::Authenticator> authenticatorMp(
-        new (*d_allocator_p)
-            Authenticator(&d_blobSpPool, d_allocators.get("Authenticator")),
+        new (*d_allocator_p) Authenticator(d_authenticationController_mp.get(),
+                                           &d_blobSpPool,
+                                           d_allocators.get("Authenticator")),
         d_allocator_p);
 
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
@@ -541,8 +542,8 @@ void Application::stop()
     STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
-    STOP_OBJ(d_statController_mp, "StatController");
     STOP_OBJ(d_authenticationController_mp, "AuthenticationController");
+    STOP_OBJ(d_statController_mp, "StatController");
     STOP_OBJ(d_pluginManager_mp, "PluginManager");
 
     // and now DESTROY everything
@@ -551,8 +552,8 @@ void Application::stop()
     DESTROY_OBJ(d_transportManager_mp, "TransportManager");
     DESTROY_OBJ(d_dispatcher_mp, "Dispatcher");
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
-    DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_authenticationController_mp, "AuthenticationController");
+    DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
 
     bsls::TimeInterval elapsedTime = bdlt::CurrentTime::now() - startTime;
