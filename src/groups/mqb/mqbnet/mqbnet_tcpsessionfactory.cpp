@@ -1509,6 +1509,7 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
     int                                    initialMissedHeartbeatCounter,
     const bsl::shared_ptr<Session>&        monitoredSession)
 : d_channel_p(channel.get())
+, d_authenticationCtx_sp(context.authenticationContext())
 , d_session_sp(monitoredSession)
 , d_eventProcessor_p(context.negotiationContext()->d_eventProcessor_p)
 , d_monitor(context.negotiationContext()->d_maxMissedHeartbeat,

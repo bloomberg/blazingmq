@@ -70,6 +70,14 @@ InitialConnectionContext& InitialConnectionContext::setCompleteCb(
     return *this;
 }
 
+InitialConnectionContext&
+InitialConnectionContext::setAuthenticationEncodingType(
+    bmqp::EncodingType::Enum value)
+{
+    d_authenticationEncodingType = value;
+    return *this;
+}
+
 InitialConnectionContext& InitialConnectionContext::setAuthenticationContext(
     const bsl::shared_ptr<AuthenticationContext>& value)
 {
@@ -119,6 +127,12 @@ const bsl::shared_ptr<AuthenticationContext>&
 InitialConnectionContext::authenticationContext() const
 {
     return d_authenticationCtxSp;
+}
+
+bmqp::EncodingType::Enum
+InitialConnectionContext::authenticationEncodingType() const
+{
+    return d_authenticationEncodingType;
 }
 
 const bsl::shared_ptr<NegotiationContext>&
