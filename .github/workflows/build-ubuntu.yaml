@@ -10,7 +10,7 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "Ref to build"
+        description: "Branch name, tag, or commit SHA to build"
         required: true
         type: string
       target:
