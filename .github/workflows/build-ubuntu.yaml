@@ -23,7 +23,7 @@ on:
         type: boolean
         default: true
       run_unit_tests:
-        description: "Whether to run unit tests"
+        description: "Whether to run unit tests.  Can only be set to true if `all.t` is one of the build targets"
         required: true
         type: boolean
         default: false
