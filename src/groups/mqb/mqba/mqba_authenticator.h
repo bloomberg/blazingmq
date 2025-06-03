@@ -32,6 +32,7 @@
 /// are called only from there.  It is not thread safe.
 
 // MQB
+#include <mqbauthn_authenticationcontroller.h>
 #include <mqbconfm_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
@@ -45,6 +46,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
+#include <bdlmt_threadpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
@@ -91,10 +93,15 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // DATA
 
-    /// Allocator to use.
-    bslma::Allocator* d_allocator_p;
+    /// Authentication Controller.
+    mqbauthn::AuthenticationController* d_authnController_p;
+
+    bdlmt::ThreadPool d_threadPool;
 
     BlobSpPool* d_blobSpPool_p;
+
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -137,7 +144,14 @@ class Authenticator : public mqbnet::Authenticator {
     int sendAuthenticationMessage(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& message,
-        const AuthenticationContextSp&             context);
+        const InitialConnectionContextSp&          context);
+
+    /// Authenticate using a plugin based on the mechanism specified in the
+    /// `AuthenticateRequest` message.  If the authentication fails, reset
+    /// `AuthenticationContext` and close the channel.  Send an
+    /// `AuthenticationResponse` message back to the peer with the status of
+    /// the authentication.
+    void authenticate(const InitialConnectionContextSp& context);
 
   public:
     // TRAITS
@@ -146,11 +160,11 @@ class Authenticator : public mqbnet::Authenticator {
   public:
     // CREATORS
 
-    /// Create a new `Authenticator` using the specified
-    /// `bufferFactory`, `dispatcher`, `statContext`, `scheduler` and
-    /// `blobSpPool` to inject in the negotiated sessions.  Use the
-    /// specified `allocator` for all memory allocations.
-    Authenticator(BlobSpPool* blobSpPool, bslma::Allocator* allocator);
+    /// Create a new `Authenticator` using the specified `authnController` and
+    /// `blobSpPool`. Use the specified `allocator` for all memory allocations.
+    Authenticator(mqbauthn::AuthenticationController* authnController,
+                  BlobSpPool*                         blobSpPool,
+                  bslma::Allocator*                   allocator);
 
     /// Destructor
     ~Authenticator() BSLS_KEYWORD_OVERRIDE;
@@ -158,10 +172,20 @@ class Authenticator : public mqbnet::Authenticator {
     // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
 
-    /// Authenticate the connection using the specified `authenticationMsg`
-    /// and `context`.  An `AuthenticationContext` will be created and stored
-    /// into `context`.  Set `isContinueRead` to true if further reading
-    /// should continue, or false if authentication is complete.
+    /// Start the authenticator.  Return 0 on success, or a non-zero error
+    /// code and populate the specified `errorDescription` with a description
+    /// of the error otherwise.
+    /// This method will block until the thread pool is started.
+    int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the authenticator.  This method will block until the thread pool
+    /// is stopped.
+    void stop() BSLS_KEYWORD_OVERRIDE;
+
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// `authenticationMsg`.  Set `isContinueRead` to true if we want to
+    /// continue reading instead of finishing authentication.  Create an
+    /// AuthenticationContext and store into `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int handleAuthentication(bsl::ostream& errorDescription,
