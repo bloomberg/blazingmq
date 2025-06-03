@@ -14,7 +14,7 @@ on:
         required: true
         type: string
       target:
-        description: "Build target"
+        description: "Build targets, space-delimited"
         required: true
         type: string
       save_build_as_artifacts:
