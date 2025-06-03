@@ -78,8 +78,8 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-
 #include <mqbcfg_messages.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
 
@@ -180,6 +180,9 @@ class TCPSessionFactory {
         bmqio::Channel* d_channel_p;
         // The channel
 
+        // The context of authentication
+        bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
+
         bsl::shared_ptr<Session> d_session_sp;
         // The session tied to the channel
 
@@ -189,10 +192,11 @@ class TCPSessionFactory {
 
         bmqp::HeartbeatMonitor d_monitor;
 
-        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel,
-                             const InitialConnectionContext&        context,
-                             int initialMissedHeartbeatCounter,
-                             const bsl::shared_ptr<Session>& monitoredSession);
+        explicit ChannelInfo(
+            const bsl::shared_ptr<bmqio::Channel>&           channel,
+            const bsl::shared_ptr<InitialConnectionContext>& context,
+            int                             initialMissedHeartbeatCounter,
+            const bsl::shared_ptr<Session>& monitoredSession);
     };
 
     /// This class provides mechanism to store a map of port stat contexts.

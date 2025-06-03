@@ -554,7 +554,7 @@ void TCPSessionFactory::negotiationComplete(
 
         info.createInplace(d_allocator_p,
                            channel,
-                           *initialConnectionContext,
+                           initialConnectionContext,
                            d_initialMissedHeartbeatCounter,
                            monitoredSession);
         // See comments in 'calculateInitialMissedHbCounter'.
@@ -1499,14 +1499,15 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 // ------------------------------------
 
 TCPSessionFactory::ChannelInfo::ChannelInfo(
-    const bsl::shared_ptr<bmqio::Channel>& channel,
-    const InitialConnectionContext&        context,
-    int                                    initialMissedHeartbeatCounter,
-    const bsl::shared_ptr<Session>&        monitoredSession)
+    const bsl::shared_ptr<bmqio::Channel>&           channel,
+    const bsl::shared_ptr<InitialConnectionContext>& context,
+    int                             initialMissedHeartbeatCounter,
+    const bsl::shared_ptr<Session>& monitoredSession)
 : d_channel_p(channel.get())
+, d_authenticationCtx_sp(context->authenticationContext())
 , d_session_sp(monitoredSession)
-, d_eventProcessor_p(context.negotiationContext()->d_eventProcessor_p)
-, d_monitor(context.negotiationContext()->d_maxMissedHeartbeat,
+, d_eventProcessor_p(context->negotiationContext()->d_eventProcessor_p)
+, d_monitor(context->negotiationContext()->d_maxMissedHeartbeat,
             initialMissedHeartbeatCounter)
 {
     if (!d_eventProcessor_p) {

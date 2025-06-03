@@ -51,6 +51,7 @@
 #include <bdlbb_blob.h>
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_optional.h>
+#include <bslstl_variant.h>
 
 namespace BloombergLP {
 
@@ -118,10 +119,12 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// populate the specified `errorDescription` with a description of the
     /// error.
     int decodeInitialConnectionMessage(
-        bsl::ostream&                                       errorDescription,
-        const bdlbb::Blob&                                  blob,
-        bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
-        bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg);
+        bsl::ostream& errorDescription,
+        bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                                   bmqp_ctrlmsg::NegotiationMessage> >*
+                                          message,
+        const bdlbb::Blob&                blob,
+        const InitialConnectionContextSp& context);
 
     /// Schedule a read for the initial connection of the session of the
     /// specified `context`.  Return a non-zero code on error and
@@ -130,9 +133,9 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     int scheduleRead(bsl::ostream&                     errorDescription,
                      const InitialConnectionContextSp& context);
 
-    /// Call the `InitialConnectionCompleteCb` with the specified `context`,
-    /// return code `rc`, and `error` string to indicate the completion of
-    /// negotiation.
+    /// Call the `InitialConnectionCompleteCb` with the specified
+    /// `context`, return code `rc`, and `error` string to indicate the
+    /// completion of negotiation.
     static void complete(const InitialConnectionContextSp&       context,
                          const int                               rc,
                          const bsl::string&                      error,
@@ -155,17 +158,26 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
 
     // MANIPULATORS
 
+    /// Start the InitialConnectionHandler.  Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
+    int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the InitialConnectionHandler.
+    void stop() BSLS_KEYWORD_OVERRIDE;
+
     /// Method invoked by the client of this object to negotiate a session.
     /// The specified `context` is an in-out member holding the initial
-    /// connection context to use, including an `InitialConnectionCompleteCb`,
-    /// which must be called with the result, whether success or failure, of
-    /// the initial connection.
-    /// The InitialConnectionHandler concrete implementation can modify some of
+    /// connection context to use, including an
+    /// `InitialConnectionCompleteCb`, which must be called with the
+    /// result, whether success or failure, of the initial connection. The
+    /// InitialConnectionHandler concrete implementation can modify some of
     /// the members during the initial connection (i.e., between the
     /// `handleInitialConnection()` method and the invocation of the
     /// `InitialConnectionCompleteCb` method.  Note that if no initial
-    /// connection is needed, the `InitialConnectionCompleteCb` may be invoked
-    /// directly from inside the call to `handleInitialConnection()`.
+    /// connection is needed, the `InitialConnectionCompleteCb` may be
+    /// invoked directly from inside the call to
+    /// `handleInitialConnection()`.
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
