@@ -145,6 +145,7 @@ class Tester {
 
   public:
     // TRAITS
+    BSLA_MAYBE_UNUSED
     BSLMF_NESTED_TRAIT_DECLARATION(Tester, bslma::UsesBslmaAllocator)
 
     // CREATORS
