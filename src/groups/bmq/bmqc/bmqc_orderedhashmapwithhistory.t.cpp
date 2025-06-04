@@ -332,6 +332,37 @@ static void test6_eraseThenGc()
     obj.gc(now, BATCH_SIZE);
 }
 
+static void test7_gcThenInsert()
+{
+    // ------------------------------------------------------------------------
+    // HISTORY
+    //
+    // Concerns:
+    //   The same key gets inserted after 'erase'.
+    //
+    // Plan:
+    //   Insert an element.
+    //   Erase the element.
+    //   Insert the same key again.
+    //
+    // Testing:
+    //   insert, erase, insert
+    // ------------------------------------------------------------------------
+
+    bmqtst::TestHelper::printTestName("INSERT_AFTER_GC");
+
+    int             timeout = 1;
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
+
+    // insert 1 item
+    setup(obj, 1, timeout);
+
+    // 'erase' ('confirm') the item
+    obj.erase(obj.find(0));
+
+    setup(obj, 1, timeout);
+}
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -348,6 +379,7 @@ int main(int argc, char* argv[])
     case 4: test4_gc(); break;
     case 5: test5_insertAfterEnd(); break;
     case 6: test6_eraseThenGc(); break;
+    case 7: test7_gcThenInsert(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
