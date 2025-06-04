@@ -52,18 +52,16 @@ jobs:
       
       # Since input.ref can be a branch, tag or commit SHA,
       # we need to get the commit SHA to use it in the cache key.
-      - name: Get commit SHA
-        id: get_sha
-        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_ENV
-
-      - name: Generate cache key
+      - name: Generate cache key from commit SHA
         id: get_cache_key
+        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         # When restoring from cache fails, it searches for other keys to fall back to.
         # If the given key is a prefix of another key, it will be used. 
         # E.g. "...-all" can fallback to "...-all.t" 
         # Thus do not put the target at the end of the key.
-        run: echo "cache_key=cache-${{ inputs.target }}-${{ env.sha }}" >> $GITHUB_OUTPUT
-
+        run: |
+            COMMIT_SHA=$(git rev-parse HEAD)
+            echo "cache_key=cache-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
@@ -148,7 +146,9 @@ jobs:
           retention-days: 1
 
       - name: Build Cache Save
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        # Type of "save_build_as_artifacts" variable is boolean, thus no quotes
+        # Type of "cache-hit" variable is string, thus using quotes
+        if: inputs.save_build_as_artifacts == true && steps.build-cache-restore-step.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
