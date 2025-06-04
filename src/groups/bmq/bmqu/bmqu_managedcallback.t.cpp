@@ -181,6 +181,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
 
   public:
     // TRAITS
+    BSLA_MAYBE_UNUSED
     BSLMF_NESTED_TRAIT_DECLARATION(ManagedCallbackBuffer,
                                    bslma::UsesBslmaAllocator)
 
