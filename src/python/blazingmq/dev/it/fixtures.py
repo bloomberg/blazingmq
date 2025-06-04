@@ -631,10 +631,10 @@ def multi_node(request):
 
 
 ###############################################################################
-# multi3_node cluster
+# multi7_node cluster
 
 
-def multi3_node_cluster_config(
+def multi7_node_cluster_config(
     configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
@@ -642,7 +642,13 @@ def multi3_node_cluster_config(
 ) -> None:
     mode.tweak(configurator.proto.cluster)
 
-    data_centers = ["east"]
+    # Create a cluster with 7 nodes in 4 data centers
+    data_centers = {
+        "east": 2,
+        "west": 2,
+        "north": 2,
+        "south": 1,
+    }
 
     cluster = configurator.cluster(
         name="itCluster",
@@ -653,8 +659,8 @@ def multi3_node_cluster_config(
                 tcp_port=next(port_allocator),
                 data_center=data_center,
             )
-            for data_center in data_centers
-            for broker in ("1", "2", "3")
+            for data_center, num_brokers in data_centers.items()
+            for broker in range(1, num_brokers + 1)
         ],
     )
 
@@ -669,14 +675,14 @@ def multi3_node_cluster_config(
         ).proxy(cluster, reverse=reverse_proxy)
 
 
-multi3_node_cluster_params = [
+multi7_node_cluster_params = [
     pytest.param(
-        functools.partial(multi3_node_cluster_config, mode=mode),
-        id=f"multi3_node{mode.suffix}",
+        functools.partial(multi7_node_cluster_config, mode=mode),
+        id=f"multi7_node{mode.suffix}",
         marks=[
             pytest.mark.integrationtest,
             pytest.mark.pr_integrationtest,
-            pytest.mark.multi3,
+            pytest.mark.multi7,
             *mode.marks,
         ],
     )
@@ -684,8 +690,8 @@ multi3_node_cluster_params = [
 ]
 
 
-@pytest.fixture(params=multi3_node_cluster_params)
-def multi3_node(request):
+@pytest.fixture(params=multi7_node_cluster_params)
+def multi7_node(request):
     yield from cluster_fixture(request, request.param)
 
 

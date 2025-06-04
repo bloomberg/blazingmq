@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         mode: ["legacy_mode"]
-        cluster: ["multi3"]
+        cluster: ["multi7"]
         consistency: ["eventual_consistency", "strong_consistency"]
       fail-fast: false
     runs-on: ubuntu-latest

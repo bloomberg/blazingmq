@@ -22,7 +22,7 @@ functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    multi3_node,
+    multi7_node,
     start_cluster,
 )
 from blazingmq.dev.it.util import wait_until
@@ -46,18 +46,18 @@ def update_and_redeploy(cluster: Cluster):
 
 
 @start_cluster(start=True, wait_leader=True, wait_ready=True)
-def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
+def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test start, stop, update broker version for all nodes and restart."""
 
     uri_priority = domain_urls.uri_priority
 
     # Start a producer and post a message.
-    proxies = multi3_node.proxy_cycle()
+    proxies = multi7_node.proxy_cycle()
     producer = next(proxies).create_client("producer")
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
-    update_and_redeploy(multi3_node)
+    update_and_redeploy(multi7_node)
 
     producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
 
@@ -71,7 +71,7 @@ def test_redeploy_basic(multi3_node: Cluster, domain_urls: tc.DomainUrls):
 
 
 @start_cluster(start=True, wait_leader=True, wait_ready=True)
-def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
+def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test to upgrade binaries of cluster nodes one by one.
     Every time a node is upgraded, all the nodes are restarted.
@@ -80,7 +80,7 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     uri_priority = domain_urls.uri_priority
 
     # Start a producer and consumer
-    proxies = multi3_node.proxy_cycle()
+    proxies = multi7_node.proxy_cycle()
     producer = next(proxies).create_client("producer")
     consumer = next(proxies).create_client("consumer")
 
@@ -109,15 +109,15 @@ def test_redeploy_one_by_one(multi3_node: Cluster, domain_urls: tc.DomainUrls):
     post_message()
     assert_posted()
 
-    for broker in multi3_node.configurator.brokers.values():
+    for broker in multi7_node.configurator.brokers.values():
         # Stop all nodes
-        multi3_node.stop_nodes()
+        multi7_node.stop_nodes()
 
         # Update binary for the given broker
-        multi3_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
+        multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
 
         # Restart all nodes to apply binary update
-        multi3_node.start_nodes(wait_leader=True, wait_ready=True)
+        multi7_node.start_nodes(wait_leader=True, wait_ready=True)
 
         # Post and receive message after each redeploy
         post_message()
