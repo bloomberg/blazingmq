@@ -232,6 +232,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
 
     // ACCESSORS
 
+    BSLA_MAYBE_UNUSED
     inline bool empty() const { return d_empty; }
 
     inline void operator()() const
