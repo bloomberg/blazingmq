@@ -1615,28 +1615,28 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
 
     const bmqp::AckMessage&  ackMessage    = event.ackMessage();
     int                      correlationId = ackMessage.correlationId();
-    const mqbi::QueueHandle* handle        = 0;
-    const QueueState*        context       = 0;
+    const mqbi::QueueHandle* handle_p      = 0;
+    const QueueState*        context_p     = 0;
     QueueStateMapCIter queueStateCiter = d_queueSessionManager.queues().find(
         ackMessage.queueId());
 
     if (queueStateCiter != d_queueSessionManager.queues().end()) {
-        context = &queueStateCiter->second;
-        handle  = context->d_handle_p;
+        context_p = &queueStateCiter->second;
+        handle_p  = context_p->d_handle_p;
     }
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!handle)) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!handle_p)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_INFO
             << description()
             << ": Dropping received ACK (due to the client ungraceful"
-            << "disconnect) for the queue, [queueId: " << ackMessage.queueId()
+            << " disconnect) for the queue, [queueId: " << ackMessage.queueId()
             << ", GUID: " << ackMessage.messageGUID()
             << ", status: " << ackMessage.status() << "]";
         return;  // RETURN
     }
 
-    const mqbi::Queue* queue = handle->queue();
+    const mqbi::Queue* queue_p = handle_p->queue();
 
     if (handleRequesterContext()->isFirstHop()) {
         ClientSessionState::UnackedMessageInfoMap::const_iterator cit =
@@ -1646,7 +1646,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
             // Calculate time delta between PUT and ACK
             const bsls::Types::Int64 timeDelta =
                 bmqsys::Time::highResolutionTimer() - cit->second.d_timeStamp;
-            queue->stats()
+            queue_p->stats()
                 ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
                     timeDelta);
 
@@ -1682,7 +1682,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
         }
     }
     // If we have at-most-once delivery we shouldn't be receiving any acks.
-    if (queue->isAtMostOnce()) {
+    if (queue_p->isAtMostOnce()) {
         BALL_LOG_WARN
             << "#CLIENT_UNEXPECTED_ACK " << description()
             << ": Received unexpected ack for at-most-once queue, [queueId: "
@@ -1694,7 +1694,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
     sendAck(bmqp::ProtocolUtil::ackResultFromCode(ackMessage.status()),
             correlationId,
             ackMessage.messageGUID(),
-            context,
+            context_p,
             ackMessage.queueId(),
             false,  // isSelfGenerated
             "onAckEvent");
@@ -1981,15 +1981,15 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
     ClientSessionState::QueueStateMap::const_iterator citer =
         d_queueSessionManager.queues().find(event.queueId());
 
-    const mqbi::QueueHandle* handle  = 0;
-    const QueueState*        context = 0;
+    const mqbi::QueueHandle* handle_p  = 0;
+    const QueueState*        context_p = 0;
 
     if (citer != d_queueSessionManager.queues().end()) {
-        context = &citer->second;
-        handle  = context->d_handle_p;
+        context_p = &citer->second;
+        handle_p  = context_p->d_handle_p;
     }
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!handle)) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!handle_p)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // This is likely due to the client ungracefully went down while there
         // were in flight push event being delivered; no need to log anything,
@@ -2004,7 +2004,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
         // subQueueInfos.
         for (size_t i = 0; i < event.subQueueInfos().size(); ++i) {
             BALL_LOG_TRACE << description() << ": PUSH'ing message "
-                           << "[queue: '" << handle->queue()->uri() << "'"
+                           << "[queue: '" << handle_p->queue()->uri() << "'"
                            << ", subQueueInfo: " << event.subQueueInfos()[i]
                            << ", GUID: " << event.guid() << "]:\n"
                            << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
@@ -2084,18 +2084,18 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
              i < event.subQueueInfos().size();
              ++i) {
             StreamsMap::const_iterator subQueueCiter =
-                context->d_subQueueInfosMap.findBySubscriptionIdSafe(
+                context_p->d_subQueueInfosMap.findBySubscriptionIdSafe(
                     event.subQueueInfos()[i].id());
 
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                    subQueueCiter == context->d_subQueueInfosMap.end())) {
+                    subQueueCiter == context_p->d_subQueueInfosMap.end())) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
                 // subStream of the queue not found
                 BALL_LOG_ERROR
                     << "#CLIENT_INVALID_PUSH " << description()
                     << ": PUSH for an unknown subStream of the queue [queue: '"
-                    << handle->queue()->uri()
+                    << handle_p->queue()->uri()
                     << "', subQueueInfo: " << event.subQueueInfos()[i]
                     << ", GUID: " << event.guid() << "]:\n"
                     << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
@@ -2127,7 +2127,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
             BMQTSK_ALARMLOG_ALARM("CLIENT_INVALID_PUSH")
                 << description() << ": error '" << convertingRc
                 << "' converting to old format [queue: '"
-                << handle->queue()->uri() << "', GUID: " << event.guid()
+                << handle_p->queue()->uri() << "', GUID: " << event.guid()
                 << ", compressionAlgorithmType: "
                 << event.compressionAlgorithmType()
                 << "] Message was dumped in file at location [" << filepath
@@ -2137,7 +2137,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
             BMQTSK_ALARMLOG_ALARM("CLIENT_INVALID_PUSH")
                 << description() << ": error '" << convertingRc
                 << "' converting to old format [queue: '"
-                << handle->queue()->uri() << "', GUID: " << event.guid()
+                << handle_p->queue()->uri() << "', GUID: " << event.guid()
                 << ", compressionAlgorithmType: "
                 << event.compressionAlgorithmType()
                 << "] Attempt to dump message in a file failed with error "
