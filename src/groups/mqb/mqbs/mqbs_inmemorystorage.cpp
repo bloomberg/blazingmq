@@ -440,6 +440,10 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     // Clear out the virtual storage associated with the specified 'appKey'.
     // Note that this cannot be done while iterating over the it in the above
     // 'while' loop for obvious reasons.
+
+    // `InMemoryStorage::removeAll` is called in primary by
+    // `StorageUtil::purgeQueueDispatched`, in broadcast mode, and in proxy.
+    // All of which are supposed to remove items.
     d_virtualStorageCatalog.removeAll(appKey, true);
 
     if (d_items.empty()) {

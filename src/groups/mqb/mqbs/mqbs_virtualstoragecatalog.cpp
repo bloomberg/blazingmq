@@ -413,6 +413,12 @@ VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey,
             }
         }
 
+        // The caller is `FileBackedStorage::removeAll` where we do want to
+        // `FileBackedStorage::writeAppPurgeRecord`.
+        // The caller of which is `StorageUtil::purgeQueueDispatched`.
+        // Note that `InMemoryStorage` does not call
+        // `VirtualStorageCatalog::purge`.
+
         purgeImpl(vs, itData, numVirtualStorages(), true);
     }
     // else, there is nothing to purge; either no messages or all are too old

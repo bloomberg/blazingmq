@@ -340,7 +340,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// `asPrimary` is `true`, delete the message data and record the event in
     /// the storage.
     /// Return one of the return codes from:
-    /// * e_SUCCESS          : success
     /// * e_GUID_NOT_FOUND      : 'msgGUID' was not found
     /// * e_INVALID_OPERATION   : the value is invalid (already zero)
     /// * e_ZERO_REFERENCES     : message refCount has become zero
