@@ -35,6 +35,7 @@ jobs:
     needs: get_dependencies
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
+      name: "build1"
       ref: ${{ github.event.inputs.ref1 }}
       target: "bmqbrkr bmqtool"
       save_build_as_artifacts: true
@@ -45,6 +46,7 @@ jobs:
     needs: get_dependencies
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
+      name: "build2"
       ref: ${{ github.event.inputs.ref2 }}
       target: "bmqbrkr bmqtool"
       save_build_as_artifacts: true
@@ -89,11 +91,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: ./repo1
-          name: ${{needs.build1.outputs.cache_key }}
+          name: ${{needs.build1.outputs.artifact_key }}
       - uses: actions/download-artifact@v4
         with:
           path: ./repo2
-          name: ${{needs.build2.outputs.cache_key }}
+          name: ${{needs.build2.outputs.artifact_key }}
 
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
@@ -182,11 +184,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: ./repo1
-          name: ${{needs.build1.outputs.cache_key }}
+          name: ${{needs.build1.outputs.artifact_key }}
       - uses: actions/download-artifact@v4
         with:
           path: ./repo2
-          name: ${{needs.build2.outputs.cache_key }}
+          name: ${{needs.build2.outputs.artifact_key }}
 
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
