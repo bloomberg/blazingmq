@@ -100,7 +100,7 @@ void printFileHeader(bsl::ostream&                     stream,
                      const mqbs::MappedFileDescriptor& mfd,
                      bslma::Allocator*                 allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(5);
     fields.push_back("Protocol Version");
     fields.push_back("Bitness");
@@ -110,7 +110,7 @@ void printFileHeader(bsl::ostream&                     stream,
 
     const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
 
-    PRINTER_TYPE printer(stream, &fields);
+    PRINTER_TYPE printer(stream, fields);
     printer << static_cast<unsigned int>(fh.protocolVersion()) << fh.bitness()
             << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
             << fh.partitionId();
@@ -124,7 +124,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
                             const mqbs::MappedFileDescriptor& journalFd,
                             bslma::Allocator*                 allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(10);
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
@@ -139,7 +139,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
 
     bsls::Types::Uint64 offsetW = header.firstSyncPointOffsetWords();
 
-    PRINTER_TYPE printer(stream, &fields);
+    PRINTER_TYPE printer(stream, fields);
     printer << static_cast<unsigned int>(header.headerWords())
             << static_cast<unsigned int>(header.recordWords()) << offsetW;
 
@@ -183,7 +183,7 @@ void printDataFileHeader(bsl::ostream&               stream,
                          const mqbs::DataFileHeader& header,
                          bslma::Allocator*           allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(2);
     fields.push_back("HeaderWords");
     fields.push_back("FileId (FileKey)");
@@ -191,7 +191,7 @@ void printDataFileHeader(bsl::ostream&               stream,
     bmqu::MemOutStream os;
     os << header.fileKey();
 
-    PRINTER_TYPE printer(stream, &fields);
+    PRINTER_TYPE printer(stream, fields);
     printer << static_cast<unsigned int>(header.headerWords()) << os.str();
 }
 
