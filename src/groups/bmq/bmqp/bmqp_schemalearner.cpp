@@ -30,7 +30,7 @@ namespace bmqp {
 // ============================
 
 /// This struct keeps opaque data associated with each Schema
-struct SchemaLearner::SchemaHandle {
+struct SchemaLearner::SchemaHandle BSLS_KEYWORD_FINAL {
     LRU::const_iterator d_listIterator;
     // Iterator in the list of keys which assists in
     // selecting least recently used Context.
@@ -45,6 +45,8 @@ struct SchemaLearner::SchemaHandle {
     // If 'false', needs new translation.
 
     SchemaHandle(SchemaIdType id);
+
+    ~SchemaHandle();
 };
 
 // CREATORS
@@ -56,6 +58,12 @@ SchemaLearner::SchemaHandle::SchemaHandle(SchemaIdType id)
 {
     // NOTHING
 }
+
+SchemaLearner::SchemaHandle::~SchemaHandle()
+{
+    // NOTHING
+}
+
 // ============================
 // struct SchemaLearner::Source
 // ============================
@@ -92,6 +100,7 @@ SchemaLearner::SchemaLearner(bslma::Allocator* basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_capacity(k_MAX_SCHEMA)
 , d_total(0)
+, d_servers(d_allocator_p)
 , d_muxCatalog(d_allocator_p)
 , d_demuxCatalog(d_allocator_p)
 , d_lru(basicAllocator)
@@ -129,31 +138,38 @@ SchemaLearner::Context SchemaLearner::createContext(int foreignId)
     return context->second;
 }
 
-void SchemaLearner::observe(Context&                     context,
-                            const MessagePropertiesInfo& input)
+SchemaLearner::SchemaPtr*
+SchemaLearner::observe(Context& context, const MessagePropertiesInfo& input)
 {
-    SchemaIdType inputId = input.schemaId();
+    const SchemaIdType inputId = input.schemaId();
 
     if (!isPresentAndValid(inputId)) {
         // Nothing to do
-        return;  // RETURN
+        return 0;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(context);
 
-    typedef bsl::pair<HandlesMap::iterator, bool> InsertResult;
-
     // Lookup the schema within this source
-    InsertResult lookupOrInsert = context->d_handles.emplace(inputId,
-                                                             HandlePtr());
-    HandlePtr&   contextHandle  = lookupOrInsert.first->second;
+    HandlesMap::iterator it = context->d_handles.find(inputId);
 
-    if (contextHandle) {
-        if (input.isRecycled()) {
-            contextHandle->d_schema_sp.reset();
-            // Must destroy previously learned Schema
-        }
+    if (it == context->d_handles.end()) {
+        HandlePtr newHandle(new (*d_allocator_p) SchemaHandle(inputId),
+                            d_allocator_p);
+        it = context->d_handles.emplace(inputId, newHandle, d_allocator_p)
+                 .first;
     }
+
+    const HandlePtr& contextHandle = it->second;
+
+    BSLS_ASSERT_SAFE(contextHandle);
+
+    if (input.isRecycled()) {
+        contextHandle->d_schema_sp.reset();
+        // Must release reference to the previously learned Schema.
+    }
+
+    return &contextHandle->d_schema_sp;
 }
 
 MessagePropertiesInfo
@@ -289,7 +305,7 @@ MessagePropertiesInfo
 SchemaLearner::demultiplex(Context&                     context,
                            const MessagePropertiesInfo& input)
 {
-    SchemaIdType inputId = input.schemaId();
+    const SchemaIdType inputId = input.schemaId();
 
     if (!isPresentAndValid(inputId)) {
         // Nothing to do
@@ -347,7 +363,7 @@ SchemaLearner::demultiplex(Context&                     context,
 int SchemaLearner::read(Context&                     context,
                         MessageProperties*           mps,
                         const MessagePropertiesInfo& messagePropertiesInfo,
-                        const bdlbb::Blob&           blob)
+                        const bdlbb::Blob&           blob) const
 {
     enum RcEnum { rc_SUCCESS = 0, rc_PARSING_ERROR = -1 };
 

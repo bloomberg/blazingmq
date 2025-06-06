@@ -66,7 +66,7 @@ class MessagePropertiesIterator;
 /// This VST keeps a knowledge about unique sequence of Properties.  The
 /// goal is to return the index of a given property.
 /// Once created, it is read-only.
-class MessageProperties_Schema {
+class MessageProperties_Schema BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE TYPES
 
@@ -98,6 +98,8 @@ class MessageProperties_Schema {
     MessageProperties_Schema(const MessageProperties& mps,
                              bslma::Allocator*        basicAllocator);
     MessageProperties_Schema(const MessageProperties_Schema& other);
+
+    ~MessageProperties_Schema();
 
     // PUBLIC ACCESSORS
     bool loadIndex(int* index, const bsl::string& name) const;
