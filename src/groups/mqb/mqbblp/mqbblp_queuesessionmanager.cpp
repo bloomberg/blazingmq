@@ -747,6 +747,11 @@ void QueueSessionManager::tearDown()
 {
     d_validator_sp->invalidate();
     d_shutdownInProgress = true;
+
+    // The above invalidates `onHandleReleasedDispatched` which clears the
+    // context so clear it immediately.
+
+    d_queues.clear();
 }
 
 }  // close package namespace
