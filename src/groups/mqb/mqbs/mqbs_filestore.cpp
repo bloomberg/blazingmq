@@ -7162,10 +7162,12 @@ bool FileStore::gcHistory()
     if (!d_isOpen) {
         return false;  // RETURN
     }
+    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+
     bool haveMore = false;
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
-        if (it->second->gcHistory()) {
+        if (it->second->gcHistory(now) < 0) {
             haveMore = true;
         }
     }
