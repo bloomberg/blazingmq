@@ -123,6 +123,8 @@ if (NOT DEFINED INSTALL_TARGETS)
   set(BMQ_TARGET_E_BMQBRKR_NEEDED      YES)
   set(BMQ_TARGET_TUTORIAL_NEEDED       YES)
   set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
+  set(BMQ_TARGET_IT_NEEDED             YES)
+  set(BMQ_TARGET_FUZZTESTS_NEEDED      NO)
 else()
   bbproject_check_install_target("bmqbrkr"         installBMQBRKR)
   bbproject_check_install_target("BMQBRKR_NIGHTLY" installNightly)
@@ -144,13 +146,17 @@ else()
   set(BMQ_TARGET_MQB_NEEDED            NO)
   set(BMQ_TARGET_TUTORIAL_NEEDED       NO)
   set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
+  set(BMQ_TARGET_IT_NEEDED             NO)
+  set(BMQ_TARGET_FUZZTESTS_NEEDED      NO)
 
-  bbproject_check_install_target("bmq"            installBMQ)
-  bbproject_check_install_target("mqb"            installMQB)
-  bbproject_check_install_target("bmqbrkrcfg"     installBMQBRKRCFG)
-  bbproject_check_install_target("bmqtool"        installBMQTOOL)
-  bbproject_check_install_target("bmqstoragetool" installBMQSTORAGETOOL)
-  bbproject_check_install_target("prometheus"     installPROMETHEUS)
+  bbproject_check_install_target("bmq"              installBMQ)
+  bbproject_check_install_target("mqb"              installMQB)
+  bbproject_check_install_target("bmqbrkrcfg"       installBMQBRKRCFG)
+  bbproject_check_install_target("bmqtool"          installBMQTOOL)
+  bbproject_check_install_target("bmqstoragetool"   installBMQSTORAGETOOL)
+  bbproject_check_install_target("prometheus"       installPROMETHEUS)
+  bbproject_check_install_target("integrationtests" installIT)
+  bbproject_check_install_target("fuzztests"        installFUZZTESTS)
 
   if (installBMQ)
     set(BMQ_TARGET_BMQ_NEEDED YES)
@@ -188,6 +194,19 @@ else()
     set(BMQ_TARGET_BMQ_NEEDED        YES)
     set(BMQ_TARGET_MQB_NEEDED        YES)
     set(BMQ_TARGET_PROMETHEUS_NEEDED YES)
+  endif()
+
+  if (installIT)
+    set(BMQ_TARGET_BMQ_NEEDED       YES)
+    set(BMQ_TARGET_MQB_NEEDED       YES)
+    set(BMQ_TARGET_BMQBRKR_NEEDED   YES)
+    set(BMQ_TARGET_BMQTOOL_NEEDED   YES)
+  endif()
+
+  if (installFUZZTESTS)
+    set(BMQ_TARGET_BMQ_NEEDED       YES)
+    set(BMQ_TARGET_MQB_NEEDED       YES)
+    set(BMQ_TARGET_FUZZTESTS_NEEDED YES)
   endif()
 endif()
 
@@ -299,11 +318,16 @@ add_subdirectory( "src/applications" )
 add_subdirectory( "src/tutorials" )
 add_subdirectory( "src/plugins" )
 add_subdirectory( "src/integration-tests" )
+add_subdirectory( "src/fuzz-tests" )
 
 
 # -----------------------------------------------------------------------------
 #                                   PLUGINS
 # -----------------------------------------------------------------------------
+
+if(NOT BMQ_TARGET_BMQBRKR_NEEDED)
+  return()
+endif()
 
 # Install all the headers for mqb + bmq 
 install(TARGETS bmqbrkr_plugins
@@ -313,12 +337,14 @@ install(TARGETS bmqbrkr_plugins
 )
 install(EXPORT BmqbrkrPluginsTargets NAMESPACE blazingmq:: DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins" COMPONENT bmqbrkr_plugins)
 
+find_package(BdeBuildSystem REQUIRED)
 bbs_read_metadata(GROUP mqb SOURCE_DIR src/groups/mqb)
 bbs_read_metadata(GROUP bmq SOURCE_DIR src/groups/bmq)
 set(bmqbrkr_plugins_deps)
 list(APPEND bmqbrkr_plugins_deps ${mqb_DEPENDS} ${bmq_DEPENDS})
 list(REMOVE_DUPLICATES bmqbrkr_plugins_deps)
 list(REMOVE_ITEM bmqbrkr_plugins_deps bmq) # don't need this dependency
+include(CMakePackageConfigHelpers)
 configure_package_config_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/cmake/BmqbrkrPluginsConfig.cmake.in
   "${CMAKE_CURRENT_BINARY_DIR}/BmqbrkrPluginsConfig.cmake"
