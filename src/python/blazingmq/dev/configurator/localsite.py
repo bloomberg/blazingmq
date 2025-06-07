@@ -15,7 +15,7 @@
 
 from pathlib import Path
 from shutil import rmtree
-from typing import Dict, Tuple, Union
+from typing import Union
 
 from blazingmq.dev.configurator.site import Site
 

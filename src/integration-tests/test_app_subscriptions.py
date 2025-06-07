@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import blazingmq.dev.it.testconstants as tc
-import pytest
 
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
@@ -27,8 +26,6 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     virtual_cluster_config,
 )
 from blazingmq.dev.it.process.client import Client
-from blazingmq.dev.it.util import wait_until
-from blazingmq.dev.configurator.configurator import Configurator
 
 
 class TestAppSubscriptions:
