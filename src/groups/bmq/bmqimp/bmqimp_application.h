@@ -276,6 +276,8 @@ class Application {
     /// Return `true` if the application is started, `false` otherwise.
     bool isStarted() const;
 
+    const SessionId& id() const;
+
     // MANIPULATORS
 
     /// Return a pointer to the blob shared pointer pool used by this instance.
@@ -339,6 +341,11 @@ inline bool Application::isStarted() const
     // the session is started
     return (state == bmqimp::BrokerSession::State::e_STARTED ||
             state == bmqimp::BrokerSession::State::e_RECONNECTING);
+}
+
+inline const SessionId& Application::id() const
+{
+    return d_brokerSession.id();
 }
 
 inline Application::BlobSpPool* Application::blobSpPool()

@@ -133,6 +133,7 @@
 // BMQ
 
 #include <bmqimp_event.h>
+#include <bmqimp_sessionid.h>
 
 #include <bmqc_monitoredqueue_bdlccsingleproducerqueue.h>
 #include <bmqc_multiqueuethreadpool.h>
@@ -282,6 +283,8 @@ class EventQueue {
     // SpinLock to synchronize
     // 'pushBack'
 
+    const SessionId d_sessionId;
+
   private:
     // NOT IMPLEMENTED
     EventQueue(const EventQueue& other) BSLS_CPP11_DELETED;
@@ -332,6 +335,7 @@ class EventQueue {
                int                         highWatermark,
                const EventHandlerCallback& eventHandler,
                int                         numProcessingThreads,
+               const SessionId&            sessionId,
                bslma::Allocator*           allocator);
 
     /// Destructor
@@ -393,6 +397,8 @@ class EventQueue {
     /// last print.  The behavior is undefined unless the statistics were
     /// initialized by a call to `initializeStats`.
     void printStats(bsl::ostream& stream, bool includeDelta) const;
+
+    const SessionId& id() const;
 };
 
 // ============================================================================
