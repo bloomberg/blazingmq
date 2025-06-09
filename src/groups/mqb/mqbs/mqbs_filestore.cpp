@@ -7327,6 +7327,19 @@ void FileStore::flush()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
+    // Don't want to iterate over all the storages on any FileStore update,
+    // this might cause ineffective processing on idle node.
+}
+
+void FileStore::gcStorage()
+{
+    // executed by the *DISPATCHER* thread
+    // This is scheduled for execution every k_GC_MESSAGES_INTERVAL_SECONDS
+    // seconds, or rescheduled immediately if there is more GC work to do.
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
@@ -7335,16 +7348,10 @@ void FileStore::flush()
     const bool haveMore        = gcExpiredMessages(bdlt::CurrentTime::utc());
     const bool haveMoreHistory = gcHistory();
 
-    // This is either Idle or k_GC_MESSAGES_INTERVAL_SECONDS timeout.
-    // 'gcHistory' attempts to iterate all old items. If there are more of them
-    // than the batchSize (1000), it returns 'true'.  In this case, re-enable
-    // flush client to call it again next Idle time.
-    // If it returns 'false', there is no immediate work.  Wait for the
-    // next k_GC_MESSAGES_INTERVAL_SECONDS.
-
     if (haveMore || haveMoreHistory) {
-        // Explicitly schedule 'flush()' instead of relying on idleness
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
+        // Explicitly schedule 'flush()'
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::gcStorage,
+                                                   this),
                               this,
                               mqbi::DispatcherEventType::e_CALLBACK);
     }

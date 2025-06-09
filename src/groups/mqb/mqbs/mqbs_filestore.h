@@ -717,9 +717,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void onDispatcherEvent(const mqbi::DispatcherEvent& event)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the dispatcher to flush any pending operation.. mainly
-    /// used to provide batch and nagling mechanism.
+    /// Called by the dispatcher to flush any pending operation.
     void flush() BSLS_KEYWORD_OVERRIDE;
+
+    /// Iterate over all storages and run garbage collection:
+    /// - On primary: expire messages by TTL and notify other nodes.
+    /// - On replica/primary: remove confirmed messages from deduplication
+    ///   history.
+    /// See also: gcExpiredMessages, gcHistory
+    void gcStorage();
 
     /// Return a pointer to the dispatcher this client is associated with.
     mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE;
