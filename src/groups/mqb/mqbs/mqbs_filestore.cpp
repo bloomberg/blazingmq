@@ -7327,8 +7327,20 @@ void FileStore::flush()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    // Don't want to iterate over all the storages on any FileStore update,
-    // this might cause ineffective processing on idle node.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
+
+    // Iterate over messages for TTL on primary only
+    const bool haveMore = gcExpiredMessages(bdlt::CurrentTime::utc());
+
+    if (haveMore) {
+        // Explicitly schedule 'flush()'
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
+                              this,
+                              mqbi::DispatcherEventType::e_CALLBACK);
+    }
 }
 
 void FileStore::gcStorage()
@@ -7349,7 +7361,7 @@ void FileStore::gcStorage()
     const bool haveMoreHistory = gcHistory();
 
     if (haveMore || haveMoreHistory) {
-        // Explicitly schedule 'flush()'
+        // Explicitly schedule 'gcStorage()'
         dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::gcStorage,
                                                    this),
                               this,
