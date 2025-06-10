@@ -23,7 +23,7 @@
 /// in order, regardless of the success or failure of the negotiation:
 /// - `channelStateCallback`
 /// - `negotiate`
-/// - `negotiationComplete`
+/// - `initialConnectionComplete`
 ///
 /// When a channel goes down, `onClose()` is the only method being invoked.
 
@@ -348,7 +348,8 @@ void TCPSessionFactory::handleInitialConnection(
 
     // Create a unique InitialConnectionContext for the channel, from
     // the OperationContext.  This shared_ptr is bound to the
-    // 'negotiationComplete' callback below, which is what scopes its lifetime.
+    // 'initialConnectionComplete' callback below, which is what scopes its
+    // lifetime.
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
     initialConnectionContext.createInplace(d_allocator_p,
                                            context->d_isIncoming);
@@ -357,7 +358,7 @@ void TCPSessionFactory::handleInitialConnection(
         .setResultState(context->d_resultState_p)
         .setChannel(channel)
         .setCompleteCb(bdlf::BindUtil::bind(
-            &TCPSessionFactory::negotiationComplete,
+            &TCPSessionFactory::initialConnectionComplete,
             this,
             bdlf::PlaceHolders::_1,  // status
             bdlf::PlaceHolders::_2,  // errorDescription
@@ -495,7 +496,7 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
     }
 }
 
-void TCPSessionFactory::negotiationComplete(
+void TCPSessionFactory::initialConnectionComplete(
     int                                      statusCode,
     const bsl::string&                       errorDescription,
     const bsl::shared_ptr<Session>&          session,
@@ -507,15 +508,15 @@ void TCPSessionFactory::negotiationComplete(
 
     if (statusCode != 0) {
         // Failed to negotiate
-        BALL_LOG_WARN << "#SESSION_NEGOTIATION "
+        BALL_LOG_WARN << "#INITIAL_CONNECTION "
                       << "TCPSessionFactory '" << d_config.name() << "' "
-                      << "failed to negotiate a session "
+                      << "failed to authenticate and negotiate a session "
                       << "[channel: '" << channel.get()
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                             "negotiationError",
+                             "initialconnectionError",
                              statusCode,
                              d_allocator_p);
         channel->close(status);
