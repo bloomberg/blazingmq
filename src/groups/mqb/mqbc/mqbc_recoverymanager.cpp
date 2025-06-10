@@ -67,17 +67,6 @@
 namespace BloombergLP {
 namespace mqbc {
 
-namespace {
-
-const unsigned int k_REQUESTED_JOURNAL_SPACE =
-    3 * mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-// Above, 3 == 1 journal record being written +
-//             1 journal sync point if rolling over +
-//             1 journal sync point if self needs to issue another sync point
-//             in 'setPrimary' with old values
-
-}  // close unnamed namespace
-
 void RecoveryManager::ChunkDeleter::operator()(
     BSLA_UNUSED const void* ptr) const
 {
@@ -807,15 +796,13 @@ int RecoveryManager::processReceiveDataChunks(
             BSLS_ASSERT_SAFE(dataFile.isValid());
             BSLS_ASSERT_SAFE(0 == dataOffset % bmqp::Protocol::k_DWORD_SIZE);
 
-            rc = mqbs::FileStoreUtil::writeMessageRecordImpl(
-                &journalPos,
-                &dataFilePos,
-                *blob,
-                recordPosition,
-                journal,
-                k_REQUESTED_JOURNAL_SPACE,
-                dataFile,
-                dataOffset);
+            rc = mqbs::FileStoreUtil::writeMessageRecordImpl(&journalPos,
+                                                             &dataFilePos,
+                                                             *blob,
+                                                             recordPosition,
+                                                             journal,
+                                                             dataFile,
+                                                             dataOffset);
             if (0 != rc) {
                 return 10 * rc + rc_WRITE_MESSAGE_RECORD_ERROR;  // RETURN
             }
@@ -837,7 +824,6 @@ int RecoveryManager::processReceiveDataChunks(
                 *blob,
                 recordPosition,
                 journal,
-                k_REQUESTED_JOURNAL_SPACE,
                 d_qListAware,
                 qlistFile,
                 qlistOffset);
@@ -1060,15 +1046,13 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     mqbs::DataFileIterator    dit;
     mqbs::QlistFileIterator   qit;
     rc = mqbs::FileStoreUtil::loadIterators(errorDescription,
-                                            &jit,
-                                            &dit,
-                                            &qit,
-                                            recoveryCtx.d_mappedJournalFd,
-                                            recoveryCtx.d_mappedDataFd,
-                                            recoveryCtx.d_mappedQlistFd,
                                             recoveryCtx.d_recoveryFileSet,
-                                            d_qListAware,
-                                            true);  // needData
+                                            &jit,
+                                            recoveryCtx.d_mappedJournalFd,
+                                            &dit,
+                                            recoveryCtx.d_mappedDataFd,
+                                            d_qListAware ? &qit : 0,
+                                            recoveryCtx.d_mappedQlistFd);
     if (rc != 0) {
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
@@ -1524,15 +1508,9 @@ int RecoveryManager::recoverSeqNum(
 
     mqbs::JournalFileIterator jit;
     rc = mqbs::FileStoreUtil::loadIterators(errorDesc,
-                                            &jit,
-                                            0,  // dit
-                                            0,  // qit
-                                            recoveryCtx.d_mappedJournalFd,
-                                            mqbs::MappedFileDescriptor(),
-                                            mqbs::MappedFileDescriptor(),
                                             recoveryCtx.d_recoveryFileSet,
-                                            false,   // needQList
-                                            false);  // needData
+                                            &jit,
+                                            recoveryCtx.d_mappedJournalFd);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData.identity().description()
                        << " Partition [" << partitionId << "]: "

@@ -425,14 +425,13 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     QlistFileIterator   qit;
     DataFileIterator    dit;
     rc = FileStoreUtil::loadIterators(errorDescription,
-                                      &jit,
-                                      &dit,
-                                      &qit,
-                                      journalFd,
-                                      dataFd,
-                                      qlistFd,
                                       recoveryFileSet,
-                                      d_qListAware);
+                                      &jit,
+                                      journalFd,
+                                      &dit,
+                                      dataFd,
+                                      d_qListAware ? &qit : 0,
+                                      qlistFd);
     if (0 != rc) {
         FileSystemUtil::close(&journalFd);
         FileSystemUtil::close(&dataFd);
@@ -703,14 +702,13 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                 dit.clear();
 
                 rc = FileStoreUtil::loadIterators(errorDescription,
-                                                  &jit,
-                                                  &dit,
-                                                  &qit,
-                                                  journalFd,
-                                                  dataFd,
-                                                  qlistFd,
                                                   recoveryFileSet,
-                                                  d_qListAware);
+                                                  &jit,
+                                                  journalFd,
+                                                  &dit,
+                                                  dataFd,
+                                                  d_qListAware ? &qit : 0,
+                                                  qlistFd);
                 if (0 != rc) {
                     FileSystemUtil::close(&journalFd);
                     if (d_qListAware) {
@@ -2083,8 +2081,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         // the backward iteration during 2nd pass, 'qinfo' will
                         // already contain the uri field.
 
-                        if (!qinfo.canonicalQueueUri().empty() &&
-                            qinfo.canonicalQueueUri() != uri) {
+                        if (qinfo.canonicalQueueUri().empty()) {
+                            qinfo.setCanonicalQueueUri(uri);
+                        }
+                        else if (qinfo.canonicalQueueUri() != uri) {
                             // Must have seen a QueueOp.ADDITION record earlier
                             // but uri *must* match.
 
@@ -2099,9 +2099,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                 << "], recovered URI [" << uri << "]."
                                 << BMQTSK_ALARMLOG_END;
                             return rc_QUEUE_URI_MISMATCH;  // RETURN
-                        }
-                        else {
-                            qinfo.setCanonicalQueueUri(uri);
                         }
                     }
 
@@ -4141,7 +4138,6 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
         *event,
         recordPosition,
         journal,
-        k_REQUESTED_JOURNAL_SPACE,
         dataFile,
         dataOffset,
         &headerSize,
@@ -4272,7 +4268,6 @@ int FileStore::writeQueueCreationRecord(
         *event,
         recordPosition,
         journal,
-        k_REQUESTED_JOURNAL_SPACE,
         d_qListAware,
         qlistFile,
         qlistOffset,

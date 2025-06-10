@@ -3029,13 +3029,13 @@ void RecoveryManager::startRecovery(
     mqbs::QlistFileIterator   qit;
     mqbs::DataFileIterator    dit;
     rc = mqbs::FileStoreUtil::loadIterators(errorDesc,
+                                            recoveryCtx.fileSet(),
                                             &jit,
-                                            &dit,
-                                            &qit,
                                             recoveryCtx.journalFd(),
+                                            &dit,
                                             recoveryCtx.dataFd(),
-                                            recoveryCtx.qlistFd(),
-                                            recoveryCtx.fileSet());
+                                            &qit,
+                                            recoveryCtx.qlistFd());
     if (0 != rc) {
         rc = mqbs::FileStoreUtil::closePartitionSet(&recoveryCtx.dataFd(),
                                                     &recoveryCtx.journalFd(),
