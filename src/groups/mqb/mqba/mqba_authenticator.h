@@ -32,6 +32,7 @@
 /// are called only from there.  It is not thread safe.
 
 // MQB
+#include "mqbplug_authenticator.h"
 #include <mqbauthn_authenticationcontroller.h>
 #include <mqbconfm_messages.h>
 #include <mqbnet_authenticationcontext.h>
@@ -47,6 +48,7 @@
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_threadpool.h>
+#include <bdlmt_timereventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
@@ -90,6 +92,11 @@ class Authenticator : public mqbnet::Authenticator {
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
+    typedef bsl::shared_ptr<mqbplug::AuthenticationResult>
+        AuthenticationResultSp;
+
+    typedef bsl::shared_ptr<bmqio::Channel> ChannelSp;
+
   private:
     // DATA
 
@@ -97,6 +104,8 @@ class Authenticator : public mqbnet::Authenticator {
     mqbauthn::AuthenticationController* d_authnController_p;
 
     bdlmt::ThreadPool d_threadPool;
+
+    bdlmt::TimerEventScheduler d_scheduler;
 
     BlobSpPool* d_blobSpPool_p;
 
@@ -192,6 +201,17 @@ class Authenticator : public mqbnet::Authenticator {
     int handleReauthentication(bsl::ostream&                  errorDescription,
                                const AuthenticationContextSp& context,
                                const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void timeout(const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void setTimer(const AuthenticationContextSp& context,
+                  const AuthenticationResultSp&  result,
+                  const ChannelSp&               channel);
+
+    void cleanupOnError(int                            errorCode,
+                        const bsl::string&             errorDescription,
+                        const AuthenticationContextSp& context,
+                        const ChannelSp&               channel);
 
   public:
     // TRAITS

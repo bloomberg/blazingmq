@@ -39,7 +39,11 @@ AuthenticationContext::AuthenticationContext(
     bool                                       isReversed,
     State                                      state,
     ConnectionType::Enum                       connectionType)
-: d_initialConnectionContext_p(initialConnectionContext)
+: d_authenticationResultSp()
+, d_authenticationTimerHandle(bdlmt::TimerEventScheduler::INVALID_HANDLE)
+, d_timerHandleMutex()
+, d_mutex()
+, d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
 , d_authenticationEncodingType(authenticationEncodingType)
 , d_reAuthenticateCb(reAuthenticateCb)
@@ -56,6 +60,13 @@ AuthenticationContext& AuthenticationContext::setAuthenticationResult(
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
 
     d_authenticationResultSp = value;
+    return *this;
+}
+
+AuthenticationContext& AuthenticationContext::setAuthenticationTimerHandle(
+    bdlmt::TimerEventScheduler::Handle value)
+{
+    d_authenticationTimerHandle = value;
     return *this;
 }
 
@@ -111,6 +122,17 @@ AuthenticationContext::authenticationResult() const
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
 
     return d_authenticationResultSp;
+}
+
+bdlmt::TimerEventScheduler::Handle
+AuthenticationContext::authenticationTimerHandle() const
+{
+    return d_authenticationTimerHandle;
+}
+
+bslmt::Mutex& AuthenticationContext::authenticationTimerHandleMutex()
+{
+    return d_timerHandleMutex;
 }
 
 InitialConnectionContext*

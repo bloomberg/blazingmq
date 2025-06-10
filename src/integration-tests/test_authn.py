@@ -20,6 +20,7 @@ This suite of test cases is for authentication.
 from pathlib import Path
 import threading
 import pytest
+import time
 
 from blazingmq.dev.it.process.rawclient import RawClient
 
@@ -151,6 +152,38 @@ def test_reauthenticate_pass_basic(single_node: Cluster) -> None:
     # Fail: Sending re-authentication request for a non-existing mechanism
     auth_resp = client.send_authentication_request("NonBasic", "username:password")
     assert auth_resp["authenticateResponse"]["status"]["code"] != 0
+
+    # Fail: Sending negotiation request after failed re-authentication
+    with pytest.raises(ConnectionError):
+        nego_resp = client.send_negotiation_request()
+
+    client.stop()
+
+
+@tweak.broker.app_config.plugins.enabled(
+    ["PassAuthenticator"],
+)
+@libraries
+@config_authentication
+def test_authenticate_pass_basic_timeout(single_node: Cluster) -> None:
+    """
+    Sending an authentication message using RawClient
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Pass: Sending authentication request with Basic mechanism
+    # and valid credentials
+    auth_resp = client.send_authentication_request("Basic", "username:password")
+    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+
+    # Pass: Sending negotiation request after authentication
+    nego_resp = client.send_negotiation_request()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    time.sleep(2)  # set a time that's longer than the timeout
 
     # Fail: Sending negotiation request after failed re-authentication
     with pytest.raises(ConnectionError):

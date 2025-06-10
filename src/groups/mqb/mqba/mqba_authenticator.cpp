@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqba_authenticator.h                                           -*-C++-*-
+#include <bdlmt_timereventscheduler.h>
 #include <mqba_authenticator.h>
 
 #include <mqbscm_version.h>
@@ -55,9 +56,6 @@ namespace mqba {
 
 namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.AUTHENTICATOR");
-
-const int k_AUTHENTICATION_READTIMEOUT = 3 * 60;  // 3 minutes
-
 }
 
 // -------------------
@@ -224,7 +222,6 @@ void Authenticator::authenticate(
                                                &result,
                                                authenticateRequest.mechanism(),
                                                authenticationData);
-
     if (rc != 0) {
         BALL_LOG_ERROR << "Authentication failed for connection '"
                        << channel->peerUri() << "' with mechanism '"
@@ -282,7 +279,10 @@ void Authenticator::authenticate(
                 rc,
                 sendResponseErrorStream.str(),
                 bsl::shared_ptr<mqbnet::Session>());
+            return;  // RETURN
         }
+
+        setTimer(context, result, channel);
     }
 }
 
@@ -338,7 +338,7 @@ void Authenticator::reAuthenticate(
                                                authenticateRequest.mechanism(),
                                                authenticationData);
     if (rc != 0) {
-        BALL_LOG_ERROR << "Authentication failed for connection '"
+        BALL_LOG_ERROR << "Reauthentication failed for connection '"
                        << channel->peerUri() << "' with mechanism '"
                        << authenticateRequest.mechanism() << "' [rc: " << rc
                        << ", error: " << authenticationErrorStream.str()
@@ -356,13 +356,14 @@ void Authenticator::reAuthenticate(
                                   channel,
                                   context->authenticationEncodingType());
 
-        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                             "reAuthenticationError",
-                             rc,
-                             d_allocator_p);
-        channel->close(status);
+        cleanupOnError(rc, "reauthenticationError", context, channel);
     }
     else {
+        // Authentication succeeded
+        BALL_LOG_INFO << "Reauthentication succeeded for connection '"
+                      << channel->peerUri() << "' with mechanism '"
+                      << authenticateRequest.mechanism() << "'";
+
         response.status().code()     = 0;
         response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
         response.lifetimeMs()        = result->lifetimeMs();
@@ -375,11 +376,7 @@ void Authenticator::reAuthenticate(
             BALL_LOG_ERROR << "Failed to set (re)authentication state for '"
                            << channel->peerUri()
                            << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-            bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                                 "reAuthenticationError",
-                                 rc,
-                                 d_allocator_p);
-            channel->close(status);
+            cleanupOnError(rc, "reauthenticationError", context, channel);
             return;  // RETURN
         }
 
@@ -391,12 +388,11 @@ void Authenticator::reAuthenticate(
                                        context->authenticationEncodingType());
 
         if (rc != 0) {
-            bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                                 "reAuthenticationError",
-                                 rc,
-                                 d_allocator_p);
-            channel->close(status);
+            cleanupOnError(rc, "reauthenticationError", context, channel);
+            return;  // RETURN
         }
+
+        setTimer(context, result, channel);
     }
 }
 
@@ -411,6 +407,8 @@ Authenticator::Authenticator(
                100,                                          // max threads
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
+, d_scheduler(bdlmt::TimerEventScheduler(bsls::SystemClockType::e_MONOTONIC,
+                                         allocator))
 , d_blobSpPool_p(blobSpPool)
 , d_allocator_p(allocator)
 {
@@ -429,6 +427,15 @@ int Authenticator::start(bsl::ostream& errorDescription)
     if (rc != 0) {
         errorDescription << "Failed to start thread pool for Authenticator"
                          << "[rc: " << rc << "]";
+        return rc;  // RETURN
+    }
+
+    rc = d_scheduler.start();
+    if (rc != 0) {
+        errorDescription << "Failed to start TimerEventScheduler for "
+                            "Authenticator [rc: "
+                         << rc << "]";
+        d_threadPool.stop();
         return rc;  // RETURN
     }
 
@@ -512,6 +519,82 @@ int Authenticator::handleReauthentication(
     }
 
     return rc;
+}
+
+void Authenticator::timeout(const ChannelSp& channel)
+{
+    BALL_LOG_DEBUG << "Authentication timeout for channel: "
+                   << channel->peerUri();
+
+    bmqio::Status status(bmqio::StatusCategory::e_TIMEOUT,
+                         "authenticationTimeout",
+                         -1,
+                         d_allocator_p);
+    channel->close(status);
+}
+
+void Authenticator::setTimer(const AuthenticationContextSp& context,
+                             const AuthenticationResultSp&  result,
+                             const ChannelSp&               channel)
+{
+    if (!result->lifetimeMs().has_value()) {
+        BALL_LOG_INFO
+            << "Lifetime not set for authentication timer for channel: "
+            << channel->peerUri() << ", this indicates an infinite lifetime.";
+        return;  // RETURN
+    }
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        &context->authenticationTimerHandleMutex());  // MUTEX LOCKED
+
+    bdlmt::TimerEventScheduler::Handle handle =
+        context->authenticationTimerHandle();
+
+    // If the timer handle is invalid, it means that this is the initial
+    // authentication and the timer has not been set yet.
+    if (handle == bdlmt::TimerEventScheduler::INVALID_HANDLE) {
+        handle = d_scheduler.scheduleEvent(
+            bsls::TimeInterval(result->lifetimeMs().value()),
+            bdlf::BindUtil::bind(&Authenticator::timeout, this, channel));
+        context->setAuthenticationTimerHandle(handle);
+    }
+    else {
+        d_scheduler.cancelEvent(handle);
+
+        int rc = d_scheduler.rescheduleEvent(
+            handle,
+            bsls::TimeInterval(result->lifetimeMs().value()));
+
+        if (rc != 0) {
+            BALL_LOG_ERROR << "Failed to reschedule authentication timer for '"
+                           << channel->peerUri() << "' [rc: " << rc
+                           << ", lifetime: " << result->lifetimeMs().value()
+                           << "]";
+            bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                                 "reAuthenticationError",
+                                 rc,
+                                 d_allocator_p);
+            channel->close(status);
+        }
+    }
+}
+
+void Authenticator::cleanupOnError(int                errorCode,
+                                   const bsl::string& errorDescription,
+                                   const AuthenticationContextSp& context,
+                                   const ChannelSp&               channel)
+{
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            &context->authenticationTimerHandleMutex());  // MUTEX LOCKED
+        d_scheduler.cancelEvent(context->authenticationTimerHandle());
+    }
+
+    bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                         errorDescription,
+                         errorCode,
+                         d_allocator_p);
+    channel->close(status);
 }
 
 int Authenticator::authenticationOutboundOrReverse(

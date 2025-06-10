@@ -23,13 +23,14 @@
 ///
 
 // MQB
-#include "bmqp_protocol.h"
 #include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocol.h>
 
 // BDE
+#include <bdlmt_timereventscheduler.h>
 #include <bslmt_mutex.h>
 #include <bsls_atomic.h>
 
@@ -62,6 +63,12 @@ class AuthenticationContext {
     /// during the initial authentication, and can be updated later
     /// during re-authentication.
     bsl::shared_ptr<mqbplug::AuthenticationResult> d_authenticationResultSp;
+
+    /// The timer handle for the authentication timeout.
+    bdlmt::TimerEventScheduler::Handle d_authenticationTimerHandle;
+
+    /// The mutex to protect the AuthenticationTimerHandle and
+    bslmt::Mutex d_timerHandleMutex;
 
     /// The mutex to protect the AuthenticationResult.
     mutable bslmt::Mutex d_mutex;
@@ -105,6 +112,8 @@ class AuthenticationContext {
     AuthenticationContext& setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
     AuthenticationContext&
+    setAuthenticationTimerHandle(bdlmt::TimerEventScheduler::Handle value);
+    AuthenticationContext&
     setInitialConnectionContext(InitialConnectionContext* value);
     AuthenticationContext&
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
@@ -123,6 +132,12 @@ class AuthenticationContext {
     /// `d_authenticationResultSp` to ensure thread safety.
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&
     authenticationResult() const;
+
+    /// This function holds a mutex lock while accessing the
+    /// `d_authenticationTimerHandle` to ensure thread safety.
+    bdlmt::TimerEventScheduler::Handle authenticationTimerHandle() const;
+
+    bslmt::Mutex& authenticationTimerHandleMutex();
 
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;

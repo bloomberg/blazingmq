@@ -104,7 +104,7 @@ int PassAuthenticator::authenticate(
 
     *result = bsl::allocate_shared<PassAuthenticationResult>(d_allocator_p,
                                                              "",
-                                                             600 * 1000);
+                                                             2 * 1000);
     return 0;
 }
 
