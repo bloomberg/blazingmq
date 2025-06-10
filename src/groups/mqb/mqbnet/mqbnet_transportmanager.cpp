@@ -349,6 +349,7 @@ int TransportManager::selfNodeIdLocked(
 TransportManager::TransportManager(
     bdlmt::EventScheduler*                       scheduler,
     bdlbb::BlobBufferFactory*                    blobBufferFactory,
+    bslma::ManagedPtr<Authenticator>&            authenticator,
     bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
     mqbstat::StatController*                     statController,
     bslma::Allocator*                            allocator)
@@ -356,6 +357,7 @@ TransportManager::TransportManager(
 , d_state(e_STOPPED)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_authenticator_mp(authenticator)
 , d_initialConnectionHandler_mp(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
@@ -381,8 +383,9 @@ int TransportManager::start(bsl::ostream& errorDescription)
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS       = 0,
-        rc_TCP_INTERFACE = -1
+        rc_SUCCESS                    = 0,
+        rc_TCP_INTERFACE              = -1,
+        rc_INITIAL_CONNECTION_HANDLER = -2
     };
 
     BALL_LOG_INFO << "Starting TransportManager";
@@ -401,6 +404,12 @@ int TransportManager::start(bsl::ostream& errorDescription)
         if (rc != 0) {
             return (rc * 10) + rc_TCP_INTERFACE;  // RETURN
         }
+    }
+
+    // Start the Authenticator
+    rc = d_authenticator_mp->start(errorDescription);
+    if (rc != 0) {
+        return (rc * 10) + rc_INITIAL_CONNECTION_HANDLER;  // RETURN
     }
 
     d_state = e_STARTING;
@@ -470,6 +479,11 @@ void TransportManager::stop()
     BSLS_ASSERT_SAFE(e_STOPPING == d_state || e_STARTING == d_state);
 
     d_state = e_STOPPED;
+
+    // Stop Authenticator
+    if (d_authenticator_mp) {
+        d_authenticator_mp->stop();
+    }
 
     // Stop interfaces
     if (d_tcpSessionFactory_mp) {

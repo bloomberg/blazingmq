@@ -17,15 +17,15 @@
 #ifndef INCLUDED_AUTHNFAIL_FAILAUTHENTICATOR
 #define INCLUDED_AUTHNFAIL_FAILAUTHENTICATOR
 
-//@PURPOSE: Provide a plugin that always authenticates successfully.
+//@PURPOSE: Provide a plugin that always authenticates unsuccessfully.
 //
 //@CLASSES:
 //  bmqauthnfail::FailAuthenticator: Authenticator plugin that unconditionally
-//  accepts any authentication request.
+//  rejects any authentication request.
 //
 //@DESCRIPTION:
 //  'bmqauthnfail::FailAuthenticator' implements a dummy authenticator for
-//  testing or development purposes. It always returns success, regardless of
+//  testing or development purposes. It always returns failure, regardless of
 //  the input provided.
 
 // MQB
@@ -38,6 +38,7 @@
 #include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bsls_keyword.h>
@@ -54,7 +55,7 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    bslma::Allocator*                 d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS

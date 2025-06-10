@@ -23,12 +23,14 @@
 ///
 
 // MQB
+#include "bmqp_protocol.h"
 #include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
+#include <bslmt_mutex.h>
 #include <bsls_atomic.h>
 
 namespace BloombergLP {
@@ -47,13 +49,35 @@ class AuthenticationContext {
         e_AUTHENTICATED,
     };
 
+    typedef bsl::function<int(
+        bsl::ostream&                                 errorDescription,
+        const bsl::shared_ptr<AuthenticationContext>& context,
+        const bsl::shared_ptr<bmqio::Channel>&        channel)>
+        ReauthenticateCb;
+
   private:
     // DATA
-    InitialConnectionContext*           d_initialConnectionContext_p;
+
+    /// The authentication result to be used for authorization. It is first set
+    /// during the initial authentication, and can be updated later
+    /// during re-authentication.
+    bsl::shared_ptr<mqbplug::AuthenticationResult> d_authenticationResultSp;
+
+    /// The mutex to protect the AuthenticationResult.
+    mutable bslmt::Mutex d_mutex;
+
+    InitialConnectionContext* d_initialConnectionContext_p;
+
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
-    bsls::AtomicInt                     d_state;
-    bool                                d_isReversed;
-    ConnectionType::Enum                d_connectionType;
+
+    /// The encoding type used for sending a message. It should match with the
+    /// encoding type of the received message.
+    bmqp::EncodingType::Enum d_authenticationEncodingType;
+
+    ReauthenticateCb     d_reAuthenticateCb;
+    bsls::AtomicInt      d_state;
+    bool                 d_isReversed;
+    ConnectionType::Enum d_connectionType;
 
   private:
     // NOT IMPLEMENTED
@@ -71,25 +95,41 @@ class AuthenticationContext {
     AuthenticationContext(
         InitialConnectionContext*                  initialConnectionContext,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+        bmqp::EncodingType::Enum                   authenticationEncodingType,
+        const ReauthenticateCb&                    reAuthenticateCb,
         bool                                       isReversed,
         State                                      state,
         ConnectionType::Enum connectionType = ConnectionType::e_UNKNOWN);
 
     // MANIPULATORS
+    AuthenticationContext& setAuthenticationResult(
+        const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
     AuthenticationContext&
     setInitialConnectionContext(InitialConnectionContext* value);
     AuthenticationContext&
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
+    AuthenticationContext&
+    setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
+    AuthenticationContext&
+    setAuthenticateCallback(const ReauthenticateCb& value);
     AuthenticationContext& setIsReversed(bool value);
     AuthenticationContext& setConnectionType(ConnectionType::Enum value);
 
     bsls::AtomicInt& state();
 
     // ACCESSORS
+
+    /// This function holds a mutex lock while accessing the
+    /// `d_authenticationResultSp` to ensure thread safety.
+    const bsl::shared_ptr<mqbplug::AuthenticationResult>&
+    authenticationResult() const;
+
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
-    bool                                       isReversed() const;
-    ConnectionType::Enum                       connectionType() const;
+    bmqp::EncodingType::Enum authenticationEncodingType() const;
+    const ReauthenticateCb&  reAuthenticateCb() const;
+    bool                     isReversed() const;
+    ConnectionType::Enum     connectionType() const;
 };
 
 }  // close package namespace

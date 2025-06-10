@@ -32,6 +32,12 @@
 /// allow to bind specific user data, which then can be retrieved at
 /// application layer during negotiation).
 
+// MQB
+#include <mqbplug_authenticator.h>
+
+// BMQ
+#include <bmqp_protocol.h>
+
 // BDE
 #include <bsl_functional.h>
 #include <bsl_memory.h>
@@ -135,6 +141,12 @@ class InitialConnectionContext {
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
 
+    /// The encoding type that an authentication message uses.
+    /// This is set by the `Authenticator` when it receives an
+    /// authentication message, and is used when it sends an
+    /// authentication message back to the remote peer.
+    bmqp::EncodingType::Enum d_authenticationEncodingType;
+
     /// The AuthenticationContext updated upon receiving an
     /// authentication message.
     bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
@@ -158,6 +170,8 @@ class InitialConnectionContext {
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
     setInitialConnectionCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext&
+    setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
     InitialConnectionContext& setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
     InitialConnectionContext&
@@ -171,6 +185,7 @@ class InitialConnectionContext {
     void*                                  resultState() const;
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
     const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
+    bmqp::EncodingType::Enum               authenticationEncodingType() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
