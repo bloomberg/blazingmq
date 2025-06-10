@@ -511,10 +511,6 @@ class ForwardProxyConnection(ProxyConnection):
     suffix = ""
 
 
-class ReverseProxyConnection:
-    suffix = "_rev"
-
-
 WorkspaceConfigurator = Callable[..., None]
 
 
@@ -587,7 +583,6 @@ def multi_node_cluster_config(
     configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
-    reverse_proxy: bool = False,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
 
@@ -613,7 +608,7 @@ def multi_node_cluster_config(
             tcp_host="localhost",
             tcp_port=next(port_allocator),
             data_center=data_center,
-        ).proxy(cluster, reverse=reverse_proxy)
+        ).proxy(cluster)
 
 
 multi_node_cluster_params = [
@@ -645,7 +640,6 @@ def multi_interface_cluster_config(
     port_allocator: Iterator[int],
     mode: Mode,
     listener_count: int,
-    reverse_proxy: bool = False,
 ) -> None:
     """A factory for cluster configurations containing multiple open TCP interfaces.
 
@@ -662,8 +656,6 @@ def multi_interface_cluster_config(
         mode: The cluster operation mode
         listener_count: The number of listeners that should be opened on a broker. The
             minimum number of listeners is 1.
-        reverse_proxy: If True, configure reverse proxy brokers for the cluster.
-            Otherwise, configure regular proxies for the cluster.
     """
     mode.tweak(configurator.proto.cluster)
 
@@ -699,7 +691,7 @@ def multi_interface_cluster_config(
                 (f"listener{i}", next(port_allocator)) for i in range(listener_count)
             ],
             data_center=data_center,
-        ).proxy(cluster, reverse=reverse_proxy)
+        ).proxy(cluster)
 
 
 multi_interface_cluster_params = [
@@ -739,7 +731,6 @@ def virtual_cluster_config(
     configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
-    reverse_proxy: bool = False,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
 
@@ -778,7 +769,7 @@ def virtual_cluster_config(
             tcp_host="localhost",
             tcp_port=next(port_allocator),
             data_center=data_center,
-        ).proxy(cluster, reverse=reverse_proxy)
+        ).proxy(cluster)
 
 
 virtual_cluster_params = [
@@ -813,14 +804,13 @@ def cluster_config(request, config):
 ###############################################################################
 # cluster fixture for all the combinations of three setups:
 #    - connect via a virtual cluster
-#    - cluster reverse connects to proxies
 #    - use CSL mode
 
 
 cartesian_product_cluster_params = [
     pytest.param(
-        functools.partial(config, mode=mode, reverse_proxy=rp_suffix != ""),
-        id=f"{topology}{mode.suffix}{rp_suffix}",
+        functools.partial(config, mode=mode),
+        id=f"{topology}{mode.suffix}",
         marks=[
             pytest.mark.integrationtest,
             pytest.mark.pr_integrationtest,
@@ -833,7 +823,6 @@ cartesian_product_cluster_params = [
         ("virtual", virtual_cluster_config),
     )
     for mode in Mode.__members__.values()
-    for rp_suffix in ("", "_rp")
 ]
 
 
