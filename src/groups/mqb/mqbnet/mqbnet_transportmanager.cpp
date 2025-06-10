@@ -349,6 +349,7 @@ int TransportManager::selfNodeIdLocked(
 TransportManager::TransportManager(
     bdlmt::EventScheduler*                       scheduler,
     bdlbb::BlobBufferFactory*                    blobBufferFactory,
+    bslma::ManagedPtr<Authenticator>&            authenticator,
     bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
     mqbstat::StatController*                     statController,
     bslma::Allocator*                            allocator)
@@ -356,6 +357,7 @@ TransportManager::TransportManager(
 , d_state(e_STOPPED)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_authenticator_mp(authenticator)
 , d_initialConnectionHandler_mp(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
@@ -404,8 +406,8 @@ int TransportManager::start(bsl::ostream& errorDescription)
         }
     }
 
-    // Start the InitialConnectionHandler
-    rc = d_initialConnectionHandler_mp->start(errorDescription);
+    // Start the Authenticator
+    rc = d_authenticator_mp->start(errorDescription);
     if (rc != 0) {
         return (rc * 10) + rc_INITIAL_CONNECTION_HANDLER;  // RETURN
     }
@@ -478,9 +480,9 @@ void TransportManager::stop()
 
     d_state = e_STOPPED;
 
-    // Stop InitialConnectionHandler
-    if (d_initialConnectionHandler_mp) {
-        d_initialConnectionHandler_mp->stop();
+    // Stop Authenticator
+    if (d_authenticator_mp) {
+        d_authenticator_mp->stop();
     }
 
     // Stop interfaces

@@ -57,14 +57,6 @@ class InitialConnectionHandler {
 
     // MANIPULATORS
 
-    /// Start the InitialConnectionHandler.  Return 0 on success, or a non-zero
-    /// error code and populate the specified `errorDescription` with a
-    /// description of the error otherwise.
-    virtual int start(bsl::ostream& errorDescription) = 0;
-
-    /// Stop the InitialConnectionHandler.
-    virtual void stop() = 0;
-
     /// Method invoked by the client of this object to negotiate a session.
     /// The specified `context` is an in-out member holding the initial
     /// connection context to use, including an `InitialConnectionCompleteCb`,

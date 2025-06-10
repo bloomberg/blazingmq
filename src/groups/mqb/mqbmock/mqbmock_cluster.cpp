@@ -33,6 +33,7 @@
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsla_annotations.h>
 #include <bslmt_semaphore.h>
 #include <bsls_assert.h>
@@ -222,9 +223,11 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isStarted(false)
 , d_clusterDefinition(allocator)
 , d_channels(allocator)
+, d_authenticator_mp()
 , d_initialConnectionHandler_mp()
 , d_transportManager(&d_scheduler,
                      bufferFactory,
+                     d_authenticator_mp,
                      d_initialConnectionHandler_mp,
                      0,  // mqbstat::StatController*
                      allocator)

@@ -17,15 +17,15 @@
 #ifndef INCLUDED_AUTHNFAIL_FAILAUTHENTICATOR
 #define INCLUDED_AUTHNFAIL_FAILAUTHENTICATOR
 
-//@PURPOSE: Provide a plugin that always authenticates successfully.
+//@PURPOSE: Provide a plugin that always authenticates unsuccessfully.
 //
 //@CLASSES:
 //  bmqauthnfail::FailAuthenticator: Authenticator plugin that unconditionally
-//  accepts any authentication request.
+//  rejects any authentication request.
 //
 //@DESCRIPTION:
 //  'bmqauthnfail::FailAuthenticator' implements a dummy authenticator for
-//  testing or development purposes. It always returns success, regardless of
+//  testing or development purposes. It always returns failure, regardless of
 //  the input provided.
 
 // MQB
