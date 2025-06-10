@@ -66,7 +66,7 @@ class Broker:
     id: int
     config: mqbcfg.Configuration
     clusters: mqbcfg.ClustersDefinition = field(
-        default_factory=lambda: mqbcfg.ClustersDefinition([], [], [], [], [])
+        default_factory=lambda: mqbcfg.ClustersDefinition([], [], [])
     )
     domains: Dict[str, "Domain"] = field(default_factory=dict)
     proxy_clusters: Set[str] = field(default_factory=set)
@@ -126,7 +126,7 @@ class Broker:
             )
         )
 
-    def proxy(self, target: Union[Domain, "AbstractCluster"], reverse: bool = False):
+    def proxy(self, target: Union[Domain, "AbstractCluster"]):
         domains = [target] if isinstance(target, Domain) else target.domains.values()
         for domain in domains:
             cluster = domain.cluster
@@ -136,57 +136,6 @@ class Broker:
 
             if cluster.name not in self.proxy_clusters:
                 self.add_proxy_definition(cluster)
-
-            if not reverse:
-                continue
-
-            if cluster.name in self.clusters.my_reverse_clusters:
-                continue
-
-            self.clusters.my_reverse_clusters.append(cluster.name)
-            reverse_cluster = self.configurator.clusters[cluster.name]
-
-            for node in reverse_cluster.nodes.values():
-                if reverse_cluster.name not in node.proxy_clusters:
-                    node.add_proxy_definition(reverse_cluster)
-
-                reversed_cluster_connections_found = False
-                if node.clusters.reversed_cluster_connections is None:
-                    node.clusters.reversed_cluster_connections = []
-                else:
-                    for (
-                        reversed_cluster_connections
-                    ) in node.clusters.reversed_cluster_connections:
-                        if reversed_cluster_connections.name == reverse_cluster.name:
-                            reversed_cluster_connections_found = True
-                            break
-
-                if not reversed_cluster_connections_found:
-                    reversed_cluster_connections = mqbcfg.ReversedClusterConnection(
-                        reverse_cluster.name, []
-                    )
-                    node.clusters.reversed_cluster_connections.append(
-                        reversed_cluster_connections
-                    )
-
-                if self.listeners:
-                    for listener in self.listeners:
-                        print(listener)
-                        reversed_cluster_connections.connections.append(
-                            mqbcfg.ClusterNodeConnection(
-                                mqbcfg.TcpClusterNodeConnection(
-                                    f"tcp://{self.host}:{listener.port}"
-                                )
-                            )
-                        )
-                else:
-                    reversed_cluster_connections.connections.append(
-                        mqbcfg.ClusterNodeConnection(
-                            mqbcfg.TcpClusterNodeConnection(
-                                f"tcp://{self.host}:{self.port}"
-                            )
-                        )
-                    )
 
         return self
 
