@@ -117,10 +117,11 @@ class RawClient:
         # The situation when the event header is not fully received with one
         # 'recv' call is highly improbable.
 
-        # if header is None:
-        #     raise ConnectionError("Failed to receive event header from the broker")
-
-        assert len(header) == header_bytes
+        if len(header) != header_bytes:
+            raise ConnectionError(
+                f"Failed to receive event header from the broker, "
+                f"expected {header_bytes} bytes, got {len(header)} bytes"
+            )
 
         message = b""
 
@@ -133,7 +134,14 @@ class RawClient:
             message += part
 
         padding_bytes = message[-1]
-        assert 1 <= padding_bytes <= 4  # expect correct padding byte value
+
+        # expect correct padding byte value
+        if padding_bytes < 1 or padding_bytes > 4:
+            raise ValueError(
+                f"Invalid padding bytes value: {padding_bytes}, "
+                "expected value in range [1, 4]"
+            )
+
         body = message[:-padding_bytes]
 
         return header, body
@@ -165,6 +173,7 @@ class RawClient:
             response_dict = json.loads(response_body.decode("utf-8"))
         elif type_specific == broker.TypeSpecific.ENCODING_BER:
             print("BER encoding is not supported in open source Python.")
+            raise ValueError("Not supported encoding in response")
         else:
             print(f"Unknown encoding type: {type_specific}")
             raise ValueError("Unknown encoding in response")
