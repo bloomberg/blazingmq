@@ -142,13 +142,13 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
 // -------------------------------------------------
 
 Application::ChannelFactoryPipeline::ChannelFactoryPipeline(
-    const bmqt::SessionOptions& sessionOptions,
     bdlbb::BlobBufferFactory*   blobBufferFactory,
     bdlmt::EventScheduler*      scheduler,
+    BlobSpPool*                             blobSpPool,
+    const bmqt::SessionOptions& sessionOptions,
     const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
                                             statContextCreator,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-    BlobSpPool*                             blobSpPool,
     bslma::Allocator*                       allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
 , d_channelFactory(ntcCreateInterfaceConfig(sessionOptions, d_allocator_p),

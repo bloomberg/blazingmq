@@ -106,14 +106,22 @@ class Application {
 
         /// @brief Initialize the channel factory pipeline that this client
         /// session will use for creating channels.
+        ///
+        /// @param blobBufferFactory The factory to allocate blobs for when data is receieved from the network.
+        /// @param scheduler The scheduler used for retrying connections.
+        /// @param blobSpPool The object pool used to manage BlobSp's.
+        /// @param sessionOptions The options used to configure the network sesison
+        /// @param statContextCreator The factory used to create StatContexts
+        /// @param negotiationMessage The initial negotiation message to send to the outgoing connection.
+        /// @param allocator The allocator used to supply memory.
         ChannelFactoryPipeline(
-            const bmqt::SessionOptions& sessionOptions,
             bdlbb::BlobBufferFactory*   blobBufferFactory,
             bdlmt::EventScheduler*      scheduler,
+            BlobSpPool*                             blobSpPool,
+            const bmqt::SessionOptions& sessionOptions,
             const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
                                                     statContextCreator,
             const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-            BlobSpPool*                             blobSpPool,
             bslma::Allocator*                       allocator = 0);
 
         // ACCESSORS
