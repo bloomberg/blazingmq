@@ -509,10 +509,10 @@ class Storage {
                                         bool onReject = false) = 0;
 
     /// Decrement the reference count of the message identified by the
-    /// `msgGUID`.  If the resulting value is zero, delete the message data and
-    /// record the event in the storage.
+    /// `msgGUID`.  If the resulting value is zero and the specified
+    /// `asPrimary` is `true`, delete the message data and record the event in
+    /// the storage.
     /// Return one of the return codes from:
-    /// * e_SUCCESS          : success
     /// * e_GUID_NOT_FOUND      : `msgGUID` was not found
     /// * e_INVALID_OPERATION   : the value is invalid (already zero)
     /// * e_ZERO_REFERENCES     : message refCount has become zero
@@ -521,8 +521,8 @@ class Storage {
     /// On CONFIRM, the caller of `confirm` is responsible to follow with
     /// `remove` call.  `releaseRef` is an alternative way to remove message in
     /// one call.
-    virtual StorageResult::Enum
-    releaseRef(const bmqt::MessageGUID& msgGUID) = 0;
+    virtual StorageResult::Enum releaseRef(const bmqt::MessageGUID& msgGUID,
+                                           bool asPrimary = true) = 0;
 
     /// Remove from the storage the message having the specified `msgGUID`
     /// and store it's size, in bytes, in the optionally specified `msgSize`.

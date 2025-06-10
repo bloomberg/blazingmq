@@ -336,10 +336,10 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
             bool                     onReject = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Decrement the reference count of the message identified by the
-    /// 'msgGUID'.  If the resulting value is zero, delete the message data and
-    /// record the event in the storage.
+    /// `msgGUID`.  If the resulting value is zero and the specified
+    /// `asPrimary` is `true`, delete the message data and record the event in
+    /// the storage.
     /// Return one of the return codes from:
-    /// * e_SUCCESS          : success
     /// * e_GUID_NOT_FOUND      : 'msgGUID' was not found
     /// * e_INVALID_OPERATION   : the value is invalid (already zero)
     /// * e_ZERO_REFERENCES     : message refCount has become zero
@@ -349,7 +349,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// 'remove' call.  'releaseRef' is an alternative way to remove message in
     /// one call.
     mqbi::StorageResult::Enum
-    releaseRef(const bmqt::MessageGUID& msgGUID) BSLS_KEYWORD_OVERRIDE;
+    releaseRef(const bmqt::MessageGUID& msgGUID,
+               bool asPrimary = true) BSLS_KEYWORD_OVERRIDE;
 
     /// Remove from the storage the message having the specified 'msgGUID'
     /// and store it's size, in bytes, in the optionally specified 'msgSize'.
@@ -679,12 +680,13 @@ inline int InMemoryStorage::addVirtualStorage(bsl::ostream& errorDescription,
 }
 
 inline bool
-InMemoryStorage::removeVirtualStorage(const mqbu::StorageKey& appKey, bool)
+InMemoryStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
+                                      bool                    asPrimary)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
     mqbi::StorageResult::Enum rc =
-        d_virtualStorageCatalog.removeVirtualStorage(appKey);
+        d_virtualStorageCatalog.removeVirtualStorage(appKey, asPrimary);
 
     return mqbi::StorageResult::e_SUCCESS == rc;
 }
