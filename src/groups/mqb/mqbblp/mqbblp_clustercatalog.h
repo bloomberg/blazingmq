@@ -355,11 +355,11 @@ class ClusterCatalog {
     /// session is legit, or 0 and populate the specified `errorDescription`
     /// in case this session was not expected and should be failed to
     /// negotiate.
-    mqbnet::ClusterNode*
-    onNegotiationForClusterSession(bsl::ostream& errorDescription,
-                                   mqbnet::InitialConnectionContext* context,
-                                   const bslstl::StringRef& clusterName,
-                                   int                      nodeId);
+    mqbnet::ClusterNode* onNegotiationForClusterSession(
+        bsl::ostream& errorDescription,
+        const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context,
+        const bslstl::StringRef&                                 clusterName,
+        int                                                      nodeId);
 
     /// Process the specified `command`, and load the result in the
     /// specified `result`.  Return zero on success or a nonzero value

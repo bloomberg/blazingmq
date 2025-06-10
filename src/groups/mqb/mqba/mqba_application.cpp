@@ -363,14 +363,15 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
         initialConnectionHandlerMp(
             new (*d_allocator_p) InitialConnectionHandler(
-                authenticatorMp,
                 negotiatorMp,
+                authenticatorMp.get(),
                 d_allocators.get("InitialConnectionHandler")),
             d_allocator_p);
 
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
+                                   authenticatorMp,
                                    initialConnectionHandlerMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),

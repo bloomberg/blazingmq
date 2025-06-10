@@ -212,11 +212,10 @@ int InitialConnectionHandler::processBlob(
         context->negotiationContext()->d_negotiationMessage =
             bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
 
-        rc = d_negotiator_mp->createSessionOnMsgType(
-            errorDescription,
-            session,
-            isContinueRead,
-            context->negotiationContext());
+        rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
+                                                     session,
+                                                     isContinueRead,
+                                                     context);
     }
 
     return rc;
@@ -335,9 +334,9 @@ void InitialConnectionHandler::complete(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    bslma::ManagedPtr<mqbnet::Authenticator>& authenticator,
-    bslma::ManagedPtr<mqbnet::Negotiator>&    negotiator,
-    bslma::Allocator*                         allocator)
+    bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
+    mqbnet::Authenticator*                 authenticator,
+    bslma::Allocator*                      allocator)
 : d_authenticator_mp(authenticator)
 , d_negotiator_mp(negotiator)
 , d_allocator_p(allocator)
@@ -398,8 +397,10 @@ void InitialConnectionHandler::handleConnectionFlow(
         rc = scheduleRead(errStream, context);
     }
     else {
-        rc = d_negotiator_mp->negotiateOutbound(errStream,
-                                                context->negotiationContext());
+        // TODO: When we are ready to move on to the next step, we should
+        // call `authenticationOutbound` here instead before calling
+        // `negotiateOutbound`.
+        rc = d_negotiator_mp->negotiateOutbound(errStream, context);
 
         // Send outbound request success, continue to read
         if (rc == 0) {
@@ -413,17 +414,6 @@ void InitialConnectionHandler::handleConnectionFlow(
     }
 
     guard.release();
-}
-
-int InitialConnectionHandler::start(bsl::ostream& errorDescription)
-{
-    int rc = d_authenticator_mp->start(errorDescription);
-    return rc;
-}
-
-void InitialConnectionHandler::stop()
-{
-    d_authenticator_mp->stop();
 }
 
 void InitialConnectionHandler::handleInitialConnection(
