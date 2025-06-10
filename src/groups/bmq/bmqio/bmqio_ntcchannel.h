@@ -34,8 +34,8 @@
 #include <bmqvt_propertybag.h>
 
 // NTC
-#include <ntcf_system.h>
-#include <ntci_streamsocket.h>
+#include <ntca_upgradeoptions.h>
+#include <ntci_interface.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -46,6 +46,7 @@
 #include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_keyword.h>
@@ -283,6 +284,11 @@ class NtcChannel : public bmqio::Channel,
     /// Process the closure of the socket.
     void processClose(const bmqio::Status& status);
 
+    /// @brief Process the upgradeServer of this socket to TLS
+    void processUpgrade(const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+                        const ntca::UpgradeEvent&                upgradeEvent,
+                        const ntci::UpgradeFunction&             cb);
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(NtcChannel, bslma::UsesBslmaAllocator)
@@ -406,6 +412,24 @@ class NtcChannel : public bmqio::Channel,
 
     /// Set the write queue high watermark to the specified `highWatermark`.
     void setWriteQueueHighWatermark(int highWatermark);
+
+    /// Assume the TLS server role and begin upgrading the socket from
+    /// being unencrypted to being encrypted with TLS. Invoke the specified
+    /// `upgradeCallback` when the socket has completed upgrading to TLS.
+    int
+    upgrade(bmqio::Status*                                 status,
+            const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer,
+            const ntca::UpgradeOptions&                    options,
+            const ntci::UpgradeFunction&                   upgradeCallback);
+
+    /// Assume the TLS client role and begin upgrading the socket from
+    /// being unencrypted to being encrypted with TLS. Invoke the specified
+    /// `upgradeCallback` when the socket has completed upgrading to TLS.
+    int
+    upgrade(bmqio::Status*                                 status,
+            const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
+            const ntca::UpgradeOptions&                    options,
+            const ntci::UpgradeFunction&                   upgradeCallback);
 
     // ACCESSORS
 
