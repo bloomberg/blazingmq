@@ -21,6 +21,7 @@
 #include <mqbnet_initialconnectioncontext.h>
 
 // BDE
+#include <bslmt_lockguard.h>
 #include <bsls_atomic.h>
 
 namespace BloombergLP {
@@ -33,11 +34,15 @@ namespace mqbnet {
 AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    bmqp::EncodingType::Enum                   authenticationEncodingType,
+    const ReauthenticateCb&                    reAuthenticateCb,
     bool                                       isReversed,
     State                                      state,
     ConnectionType::Enum                       connectionType)
 : d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
+, d_authenticationEncodingType(authenticationEncodingType)
+, d_reAuthenticateCb(reAuthenticateCb)
 , d_state(state)
 , d_isReversed(isReversed)
 , d_connectionType(connectionType)
@@ -48,6 +53,8 @@ AuthenticationContext::AuthenticationContext(
 AuthenticationContext& AuthenticationContext::setAuthenticationResult(
     const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
 {
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+
     d_authenticationResultSp = value;
     return *this;
 }
@@ -63,6 +70,20 @@ AuthenticationContext& AuthenticationContext::setAuthenticationMessage(
     const bmqp_ctrlmsg::AuthenticationMessage& value)
 {
     d_authenticationMessage = value;
+    return *this;
+}
+
+AuthenticationContext& AuthenticationContext::setAuthenticationEncodingType(
+    bmqp::EncodingType::Enum value)
+{
+    d_authenticationEncodingType = value;
+    return *this;
+}
+
+AuthenticationContext&
+AuthenticationContext::setAuthenticateCallback(const ReauthenticateCb& value)
+{
+    d_reAuthenticateCb = value;
     return *this;
 }
 
@@ -87,6 +108,8 @@ AuthenticationContext::setConnectionType(ConnectionType::Enum value)
 const bsl::shared_ptr<mqbplug::AuthenticationResult>&
 AuthenticationContext::authenticationResult() const
 {
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+
     return d_authenticationResultSp;
 }
 
@@ -100,6 +123,18 @@ const bmqp_ctrlmsg::AuthenticationMessage&
 AuthenticationContext::authenticationMessage() const
 {
     return d_authenticationMessage;
+}
+
+bmqp::EncodingType::Enum
+AuthenticationContext::authenticationEncodingType() const
+{
+    return d_authenticationEncodingType;
+}
+
+const AuthenticationContext::ReauthenticateCb&
+AuthenticationContext::reAuthenticateCb() const
+{
+    return d_reAuthenticateCb;
 }
 
 bool AuthenticationContext::isReversed() const
