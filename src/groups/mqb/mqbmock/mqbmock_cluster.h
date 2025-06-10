@@ -183,6 +183,9 @@ class Cluster : public mqbi::Cluster {
     TestChannelMap d_channels;
     // Test channels
 
+    // Authenticator
+    bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
+
     // Initial Connection Handler
     InitialConnectionHandlerMp d_initialConnectionHandler_mp;
 
