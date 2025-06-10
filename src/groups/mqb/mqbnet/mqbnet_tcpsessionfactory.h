@@ -414,21 +414,22 @@ class TCPSessionFactory {
                       bdlbb::Blob*         blob,
                       ChannelInfo*         channelInfo);
 
-    /// Method invoked when the negotiation of the specified `channel` is
-    /// complete, whether it be success or failure.  The specified
-    /// `context` is the `OperationContext` struct created during the
-    /// listen or connect call that is responsible for this negotiation (and
-    /// hence, in the case of `listen`, is common for all sessions
-    /// negotiated); while the specified `negotiatorContext` corresponds to
-    /// the unique context passed in to the `negotiate` method of the
-    /// Negotiator, for that `channel`.  If the specified `statusCode` is 0,
-    /// the negotiation was a success and the specified `session` contains
-    /// the negotiated session.  If `status` is non-zero, the negotiation
-    /// was a failure and `session` will be null, with the specified
-    /// `errorDescription` containing a description of the error.  In either
-    /// case, the specified `callback` must be invoked to notify the channel
-    /// factory of the status.
-    void negotiationComplete(
+    /// Method invoked when the initial connection (including authentication
+    /// and negotiation) of the specified `channel` is complete, whether it be
+    /// success or failure.  The specified `userData` is the `OperationContext`
+    /// struct created during the listen or connect call that is responsible
+    /// for this negotiation (and hence, in the case of `listen`, is common for
+    /// all sessions negotiated); while the specified
+    /// `initialConnectionContext_p` corresponds to the unique context passed
+    /// it to the `handleInitialConnection` method of the
+    /// InitialConnectionHandler, for that `channel`.  If the specified
+    /// `statusCode` is 0, the initial connection was a success and the
+    /// specified `session` contains the negotiated session. If `status` is
+    /// non-zero, the initial connection was a failure and `session` will be
+    /// null, with the specified `errorDescription` containing a description of
+    /// the error.  In either case, the specified `callback` must be invoked to
+    /// notify the channel factory of the status.
+    void initialConnectionComplete(
         int                                      statusCode,
         const bsl::string&                       errorDescription,
         const bsl::shared_ptr<Session>&          session,
@@ -576,9 +577,9 @@ class TCPSessionFactory {
     /// optionally specified `resultState` will be used to set the initial
     /// value of the corresponding member of the `InitialConnectionContext`
     /// that will be created for negotiation of this session; so that it can be
-    /// retrieved in the `negotiationComplete` callback method.  The optionally
-    /// specified `shouldAutoReconnect` will be used to determine if the
-    /// factory should attempt to reconnect upon loss of connection.
+    /// retrieved in the `initialConnectionComplete` callback method.  The
+    /// optionally specified `shouldAutoReconnect` will be used to determine if
+    /// the factory should attempt to reconnect upon loss of connection.
     int connect(const bslstl::StringRef& endpoint,
                 const ResultCallback&    resultCallback,
                 bslma::ManagedPtr<void>* negotiationUserData = 0,
