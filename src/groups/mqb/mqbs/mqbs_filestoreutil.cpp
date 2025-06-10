@@ -28,7 +28,9 @@
 #include <mqbs_qlistfileiterator.h>
 #include <mqbu_storagekey.h>
 
+// BMQ
 #include <bmqtsk_alarmlog.h>
+#include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_stringutil.h>
 
@@ -1293,26 +1295,21 @@ void FileStoreUtil::setFileHeaderOffsets(bsls::Types::Uint64* journalOffset,
 }
 
 int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
-                                 JournalFileIterator*        jit,
-                                 DataFileIterator*           dit,
-                                 QlistFileIterator*          qit,
-                                 const MappedFileDescriptor& journalFd,
-                                 const MappedFileDescriptor& dataFd,
-                                 const MappedFileDescriptor& qlistFd,
                                  const FileStoreSet&         fileSet,
-                                 bool                        needQList,
-                                 bool                        needData)
+                                 JournalFileIterator*        jit,
+                                 const MappedFileDescriptor& journalFd,
+                                 DataFileIterator*           dit,
+                                 const MappedFileDescriptor& dataFd,
+                                 QlistFileIterator*          qit,
+                                 const MappedFileDescriptor& qlistFd)
 {
+    // PRECONDITIONS
     BSLS_ASSERT_SAFE(jit);
     BSLS_ASSERT_SAFE(journalFd.isValid());
-
-    if (needData) {
-        BSLS_ASSERT_SAFE(dit);
+    if (dit) {
         BSLS_ASSERT_SAFE(dataFd.isValid());
     }
-
-    if (needQList) {
-        BSLS_ASSERT_SAFE(qit);
+    if (qit) {
         BSLS_ASSERT_SAFE(qlistFd.isValid());
     }
 
@@ -1334,7 +1331,7 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
     }
     BSLS_ASSERT_SAFE(jit->isValid());
 
-    if (needData) {
+    if (dit) {
         rc = dit->reset(&dataFd, FileStoreProtocolUtil::bmqHeader(dataFd));
         if (0 != rc) {
             errorDescription << "Failed to create data iterator for ["
@@ -1345,7 +1342,7 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
         BSLS_ASSERT_SAFE(dit->isValid());
     }
 
-    if (needQList) {
+    if (qit) {
         rc = qit->reset(&qlistFd, FileStoreProtocolUtil::bmqHeader(qlistFd));
         if (0 != rc) {
             errorDescription << "Failed to create qlist iterator for ["
@@ -1365,7 +1362,6 @@ int FileStoreUtil::writeMessageRecordImpl(
     const bdlbb::Blob&           event,
     const bmqu::BlobPosition&    recordPosition,
     const MappedFileDescriptor&  journal,
-    int                          requestedJournalSpace,
     const MappedFileDescriptor&  dataFile,
     bsls::Types::Uint64          dataOffset,
     int*                         headerSize,
@@ -1380,7 +1376,6 @@ int FileStoreUtil::writeMessageRecordImpl(
     BSLS_ASSERT_SAFE(journalPos && *journalPos >= 0);
     BSLS_ASSERT_SAFE(dataFilePos && *dataFilePos >= 0);
     BSLS_ASSERT_SAFE(journal.isValid());
-    BSLS_ASSERT_SAFE(requestedJournalSpace > 0);
     BSLS_ASSERT_SAFE(dataFile.isValid());
     BSLS_ASSERT_SAFE(dataOffset >= 0);
 
@@ -1466,8 +1461,9 @@ int FileStoreUtil::writeMessageRecordImpl(
 
     // Append message record to journal.
 
-    BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (*journalPos + requestedJournalSpace));
+    BSLS_ASSERT_SAFE(
+        journal.fileSize() >=
+        (*journalPos + 3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
 
     bmqu::BlobUtil::copyToRawBufferFromIndex(
         journal.block().base() + recordOffset,
@@ -1509,7 +1505,6 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
     const bdlbb::Blob&          event,
     const bmqu::BlobPosition&   recordPosition,
     const MappedFileDescriptor& journal,
-    int                         requestedJournalSpace,
     bool                        qListAware,
     const MappedFileDescriptor& qlistFile,
     bsls::Types::Uint64         qlistOffset,
@@ -1524,7 +1519,6 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
     BSLS_ASSERT_SAFE(appIdKeyPairs);
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(journal.isValid());
-    BSLS_ASSERT_SAFE(requestedJournalSpace > 0);
     if (qListAware) {
         BSLS_ASSERT_SAFE(qlistFile.isValid());
     }
@@ -1607,10 +1601,11 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
 
     bsls::Types::Uint64 recordOffset = *journalPos;
 
-    // Append message record to journal.
+    // Append QueueOp record to journal.
 
-    BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (*journalPos + requestedJournalSpace));
+    BSLS_ASSERT_SAFE(
+        journal.fileSize() >=
+        (*journalPos + 3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
     bmqu::BlobUtil::copyToRawBufferFromIndex(
         journal.block().base() + recordOffset,
         event,
@@ -1633,7 +1628,7 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
         *queueOpType = queueRec->type();
     }
 
-    bslstl::StringRef uriString;
+    bmqu::MemOutStream queueUriAppsStr;
     if (qListAware) {
         // Check qlist offset in the replicated journal record sent
         // by the primary vs qlist offset maintained by self.  A
@@ -1657,7 +1652,13 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
 
         const char* uriBegin = qlistFile.block().base() + qlistOffset +
                                queueRecHeaderLen;
-        uriString.assign(uriBegin, paddedUriLen - uriBegin[paddedUriLen - 1]);
+        bmqt::Uri uri(
+            bslstl::StringRef(uriBegin,
+                              paddedUriLen - uriBegin[paddedUriLen - 1]));
+        if (quri) {
+            *quri = uri;
+        }
+
         unsigned int appIdsAreaSize = queueRecLen - queueRecHeaderLen -
                                       paddedUriLen -
                                       FileStoreProtocol::k_HASH_LENGTH -
@@ -1669,31 +1670,22 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
         FileStoreProtocolUtil::loadAppInfos(appIdKeyPairs,
                                             appIdsBlock,
                                             queueRecHeader->numAppIds());
-    }
 
-    BALL_LOG_INFO_BLOCK
-    {
-        BALL_LOG_OUTPUT_STREAM << " Partition [" << partitionId
-                               << "]: " << "Received QueueCreationRecord of "
-                               << "type [" << queueRec->type() << "] for "
-                               << "queueKey [" << queueRec->queueKey() << "]";
-        if (qListAware) {
-            bmqt::Uri uri(uriString);
-            if (quri) {
-                *quri = uri;
-            }
-            BALL_LOG_OUTPUT_STREAM << ", queue [" << uri << "]" << ", with ["
-                                   << appIdKeyPairs->size()
-                                   << "] appId/appKey pairs ";
-            for (mqbi::Storage::AppInfos::const_iterator cit =
-                     appIdKeyPairs->cbegin();
-                 cit != appIdKeyPairs->cend();
-                 ++cit) {
-                BALL_LOG_OUTPUT_STREAM << " [" << cit->first << ", "
-                                       << cit->second << "]";
-            }
+        queueUriAppsStr << ", queue [" << uri << "]" << ", with ["
+                        << appIdKeyPairs->size() << "] appId/appKey pairs ";
+        for (mqbi::Storage::AppInfos::const_iterator cit =
+                 appIdKeyPairs->cbegin();
+             cit != appIdKeyPairs->cend();
+             ++cit) {
+            queueUriAppsStr << " [" << cit->first << ", " << cit->second
+                            << "]";
         }
     }
+
+    BALL_LOG_INFO << " Partition [" << partitionId
+                  << "]: " << "Received QueueCreationRecord of " << "type ["
+                  << queueRec->type() << "] for " << "queueKey ["
+                  << queueRec->queueKey() << "]" << queueUriAppsStr.str();
 
     return rc_SUCCESS;
 }
