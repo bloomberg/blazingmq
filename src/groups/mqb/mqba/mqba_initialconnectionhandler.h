@@ -73,7 +73,7 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     // DATA
 
     /// Authenticator to use for authenticating a connection.
-    bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
+    mqbnet::Authenticator* d_authenticator_mp;
 
     /// Negotiator to use for converting a Channel to a Session.
     bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
@@ -150,23 +150,14 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   public:
     // CREATORS
 
-    InitialConnectionHandler(
-        bslma::ManagedPtr<mqbnet::Authenticator>& authenticator,
-        bslma::ManagedPtr<mqbnet::Negotiator>&    negotiator,
-        bslma::Allocator*                         allocator);
+    InitialConnectionHandler(bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
+                             mqbnet::Authenticator* authenticator,
+                             bslma::Allocator*      allocator);
 
     /// Destructor
     ~InitialConnectionHandler() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-
-    /// Start the InitialConnectionHandler.  Return 0 on success, or a
-    /// non-zero error code and populate the specified `errorDescription`
-    /// with a description of the error otherwise.
-    int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
-
-    /// Stop the InitialConnectionHandler.
-    void stop() BSLS_KEYWORD_OVERRIDE;
 
     /// Method invoked by the client of this object to negotiate a session.
     /// The specified `context` is an in-out member holding the initial
