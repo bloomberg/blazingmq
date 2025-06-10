@@ -35,7 +35,7 @@
 // members that the caller will leverage and use.
 
 // MQB
-#include <mqbnet_negotiationcontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -68,17 +68,17 @@ class Negotiator {
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int createSessionOnMsgType(
-        bsl::ostream&                              errorDescription,
-        bsl::shared_ptr<mqbnet::Session>*          session,
-        bool*                                      isContinueRead,
-        const bsl::shared_ptr<NegotiationContext>& context) = 0;
+        bsl::ostream&                                    errorDescription,
+        bsl::shared_ptr<mqbnet::Session>*                session,
+        bool*                                            isContinueRead,
+        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
 
     /// Send out outbound negotiation message with the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
-    virtual int
-    negotiateOutbound(bsl::ostream& errorDescription,
-                      const bsl::shared_ptr<NegotiationContext>& context) = 0;
+    virtual int negotiateOutbound(
+        bsl::ostream&                                    errorDescription,
+        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
 };
 
 }  // close package namespace
