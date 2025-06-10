@@ -1143,18 +1143,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     StorageKeysOffsets  deletedAppKeysOffsets;
     bsls::Types::Uint64 firstSyncPtOffset = 0;
 
-    // Make a copy of JOURNAL file iterator as we will be making 2 passes over
-    // it.  Both passes will be in reverse iteration.  First pass will retrieve
-    // the list of non-deleted queues in a scratch data structure, and second
-    // pass will retrieve outstanding records for all those non-deleted queues.
-    // The in-memory 'd_records' structure will be updated only in the second
-    // pass.  DATA and QLIST files are not read during the 1st pass.
-
     JournalFileIterator journalIt(*jit);
     BSLS_ASSERT_SAFE(journalIt.isReverseMode());
 
     // First pass.
-    // Populate 'queueKeyInfoMap' while skipping deleted queues
     int rc = 0;
     while ((rc = journalIt.nextRecord()) == 1) {
         const RecordHeader& recHeader = journalIt.recordHeader();
