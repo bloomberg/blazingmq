@@ -156,19 +156,24 @@ class QueueConsumptionMonitor {
         static const char* toAscii(State::Enum value);
     };
 
-    /// Callback function to log alarm info.
-    /// Return `true` if there are un-delivered messages for the specified
-    /// `id`, `false` otherwise.  If the specified `enableLog` is true, there
-    /// are un-delivered messages for the specified `id` and calculated alarm
-    /// time for the specified `now` is in the past, alarm is logged. Set in
-    /// the specified `alarmTime_p` calculated alarm time for the oldest
-    /// undelivered message.
-    /// If `enableLog` is false, `alarmTime_p` is not set and alarm is not
-    /// logged.
-    typedef bsl::function<bool(bsls::TimeInterval*       alarmTime_p,
-                               const bsl::string&        appId,
-                               const bsls::TimeInterval& now,
-                               bool                      enableLog)>
+    /// Callback function to check un-delivered messages.
+    /// Return managed pointer with iterator pointing to the oldest
+    /// un-delivered message if there are un-delivered messages for the
+    /// specified `appId`, or empty managed pointer otherwise.  If there are
+    /// un-delivered messages for the specified `appId` it sets in the
+    /// specified `alarmTime_p` calculated alarm time for the oldest
+    /// un-delivered message.
+    typedef bsl::function<bslma::ManagedPtr<mqbi::StorageIterator>(
+        bsls::TimeInterval*       alarmTime_p,
+        const bsl::string&        appId,
+        const bsls::TimeInterval& now)>
+        HaveUndeliveredCb;
+
+    /// Callback function to log the alarm for the specified `appId` and
+    /// `oldestMsgIt`.
+    typedef bsl::function<void(
+        const bsl::string&                              appId,
+        const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt)>
         LoggingCb;
 
   private:
@@ -211,8 +216,10 @@ class QueueConsumptionMonitor {
 
     SubStreamInfoMap d_subStreamInfos;
 
-    /// Callback to log alarm info if there are undelivered messages.  Return
-    /// `true` if there are undelivered messages, `false` otherwise.
+    /// Callback to check un-delivered messages.
+    HaveUndeliveredCb d_haveUndeliveredCb;
+
+    /// Callback to log alarm
     LoggingCb d_loggingCb;
 
     // NOT IMPLEMENTED
@@ -281,9 +288,10 @@ class QueueConsumptionMonitor {
     /// logging alarm data. Use the optionally specified `allocator` to supply
     /// memory.  If `allocator` is 0, the currently installed default allocator
     /// is used.
-    QueueConsumptionMonitor(QueueState*       queueState,
-                            const LoggingCb&  loggingCb,
-                            bslma::Allocator* allocator);
+    QueueConsumptionMonitor(QueueState*              queueState,
+                            const HaveUndeliveredCb& haveUndeliveredCb,
+                            const LoggingCb&         loggingCb,
+                            bslma::Allocator*        allocator);
 
     virtual ~QueueConsumptionMonitor();
 

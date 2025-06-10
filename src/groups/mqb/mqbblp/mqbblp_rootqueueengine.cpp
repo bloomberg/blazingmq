@@ -259,12 +259,15 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 : d_queueState_p(queueState)
 , d_consumptionMonitor(
       queueState,
-      bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
+      bdlf::BindUtil::bind(&RootQueueEngine::haveUndeliveredCb,
                            this,
                            bdlf::PlaceHolders::_1,   // alarmTime_p
-                           bdlf::PlaceHolders::_2,   // id
-                           bdlf::PlaceHolders::_3,   // now
-                           bdlf::PlaceHolders::_4),  // enableLog
+                           bdlf::PlaceHolders::_2,   // appId
+                           bdlf::PlaceHolders::_3),  // now
+      bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
+                           this,
+                           bdlf::PlaceHolders::_1,   // appId
+                           bdlf::PlaceHolders::_2),  // oldestMsgIt
       allocator)
 , d_apps(allocator)
 , d_hasAppSubscriptions(false)
@@ -1732,10 +1735,10 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     return stream;
 }
 
-bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
-                                 const bsl::string&        appId,
-                                 const bsls::TimeInterval& now,
-                                 bool                      enableLog) const
+bslma::ManagedPtr<mqbi::StorageIterator>
+RootQueueEngine::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
+                                   const bsl::string&        appId,
+                                   const bsls::TimeInterval& now) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1752,30 +1755,37 @@ bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
     // Check if there are un-delivered messages
     bslma::ManagedPtr<mqbi::StorageIterator> headIt = head(app);
 
-    if (!headIt) {
-        // No un-delivered messages, do nothing.
-        return false;  // RETURN
+    if (headIt) {
+        // Get the arrival time delta of the oldest un-delivered message.
+        bsls::Types::Int64 arrivaTimelDelta = 0;
+        mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta,
+                                                headIt->attributes());
+        // Calculate alarm time
+        const bsls::TimeInterval alarmTime =
+            d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
+        if (alarmTime_p) {
+            *alarmTime_p = alarmTime;
+        }
     }
 
-    // Get the arrival time delta of the oldest un-delivered message.
-    bsls::Types::Int64 arrivaTimelDelta = 0;
-    mqbs::StorageUtil::loadArrivalTimeDelta(&arrivaTimelDelta,
-                                            headIt->attributes());
-    // Calculate alarm time
-    const bsls::TimeInterval alarmTime =
-        d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
-    if (alarmTime_p) {
-        *alarmTime_p = alarmTime;
-    }
-    // If the alarm time is in the future, don't log the alarm.
-    if (alarmTime > now) {
-        return true;  // RETURN
-    }
+    return headIt;
+}
 
-    if (!enableLog) {
-        // Alarm condition is met, but log is disabled.
-        return true;  // RETURN
-    }
+void RootQueueEngine::logAlarmCb(
+    const bsl::string&                              appId,
+    const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    // Get AppState by appKey.
+    Apps::const_iterator cItApp = d_apps.find(appId);
+    BSLS_ASSERT_SAFE(cItApp != d_apps.end());
+
+    const AppStateSp& app = cItApp->second;
 
     // Logging alarm info
     bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
@@ -1863,14 +1873,12 @@ bool RootQueueEngine::logAlarmCb(bsls::TimeInterval*       alarmTime_p,
 
     mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
                                         storage,
-                                        *headIt);
+                                        *oldestMsgIt);
 
     mqbcmd::HumanPrinter::print(out, result);
     out << "\n";
 
     BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
-
-    return true;
 }
 
 void RootQueueEngine::afterAppIdRegistered(

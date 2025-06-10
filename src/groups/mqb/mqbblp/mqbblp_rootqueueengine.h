@@ -182,19 +182,23 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
-    /// Callback called by `d_consumptionMonitor` when alarm event occurred.
-    /// Return `true` if there are un-delivered messages for the specified
-    /// `id`, `false` otherwise.  If the specified `enableLog` is true, there
-    /// are un-delivered messages for the specified `id` and calculated alarm
-    /// time for the specified `now` is in the past, alarm is logged. Set in
-    /// the specified `alarmTime_p` calculated alarm time for the oldest
-    /// undelivered message.
-    /// If `enableLog` is false, `alarmTime_p` is not set and alarm is not
-    /// logged.
-    bool logAlarmCb(bsls::TimeInterval*       alarmTime_p,
-                    const bsl::string&        appId,
-                    const bsls::TimeInterval& now,
-                    bool                      enableLog) const;
+    /// Callback called by `d_consumptionMonitor` to check un-delivered
+    /// messages. Return managed pointer with iterator pointing to the oldest
+    /// un-delivered message if there are un-delivered messages for the
+    /// specified `appId`, or empty managed pointer otherwise.  If there are
+    /// un-delivered messages for the specified `appId` it sets in the
+    /// specified `alarmTime_p` calculated alarm time for the oldest
+    /// un-delivered message.
+    bslma::ManagedPtr<mqbi::StorageIterator>
+    haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
+                      const bsl::string&        appId,
+                      const bsls::TimeInterval& now) const;
+
+    /// Callback called by `d_consumptionMonitor` to log the alarm for the
+    /// specified `appId` and `oldestMsgIt`.
+    void logAlarmCb(
+        const bsl::string&                              appId,
+        const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
 
   public:
     // TRAITS

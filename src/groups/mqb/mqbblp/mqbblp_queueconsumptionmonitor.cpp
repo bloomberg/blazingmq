@@ -107,17 +107,21 @@ QueueConsumptionMonitor::SubStreamInfo::~SubStreamInfo()
 // -----------------------------
 
 // CREATORS
-QueueConsumptionMonitor::QueueConsumptionMonitor(QueueState*       queueState,
-                                                 const LoggingCb&  loggingCb,
-                                                 bslma::Allocator* allocator)
+QueueConsumptionMonitor::QueueConsumptionMonitor(
+    QueueState*              queueState,
+    const HaveUndeliveredCb& haveUndeliveredCb,
+    const LoggingCb&         loggingCb,
+    bslma::Allocator*        allocator)
 : d_queueState_p(queueState)
 , d_alarmEventHandle()
 , d_maxIdleTimeSec(0)
 , d_subStreamInfos(allocator)
+, d_haveUndeliveredCb(haveUndeliveredCb)
 , d_loggingCb(loggingCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p);
+    BSLS_ASSERT_SAFE(d_haveUndeliveredCb);
     BSLS_ASSERT_SAFE(d_loggingCb);
 }
 
@@ -239,13 +243,13 @@ void QueueConsumptionMonitor::onMessageSent(const bsl::string& appId)
 
     SubStreamInfo& info = subStreamInfo(appId);
     if (info.d_state == State::e_IDLE) {
-        // Call alarm callback (with disabled log) to check if there are
-        // un-delivered messages with alarm time in the past.
+        // Call callback to check un-delivered messages with alarm time in the
+        // past.
         bsls::TimeInterval now = d_queueState_p->scheduler()->now();
         bsls::TimeInterval alarmTime;
-        const bool         haveUndelivered =
-            d_loggingCb(&alarmTime, appId, now, false);
-        if (haveUndelivered && alarmTime <= now) {
+        bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIt =
+            d_haveUndeliveredCb(&alarmTime, appId, now);
+        if (oldestMsgIt && alarmTime <= now) {
             // There are un-delivered messages with alarm time in the past.
             // Since the idle event was scheduled, it will continue to track
             // state.
@@ -258,7 +262,7 @@ void QueueConsumptionMonitor::onMessageSent(const bsl::string& appId)
         // alive state.
         onTransitionToAlive(&info, appId);
 
-        if (!d_alarmEventHandle && haveUndelivered) {
+        if (!d_alarmEventHandle && oldestMsgIt) {
             // Since there is the oldest un-delivered message with alarm time
             // in the future, schedule the alarm event.
             scheduleAlarmEvent(alarmTime);
@@ -398,14 +402,14 @@ void QueueConsumptionMonitor::alarmEventDispatched()
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
+    if (d_alarmEventHandle) {
+        d_alarmEventHandle.release();
+    }
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0)) {
         // monitoring is disabled
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
-    }
-
-    if (d_alarmEventHandle) {
-        d_alarmEventHandle.release();
     }
 
     // Iterate all substreams and check alarms.
@@ -429,17 +433,19 @@ void QueueConsumptionMonitor::alarmEventDispatched()
 
         BSLS_ASSERT_SAFE(info.d_state == State::e_ALIVE);
 
-        // Call alarm callback to log alarm if condition is met.
-        bsls::TimeInterval alarmTime;
-        const bool haveUndelivered = d_loggingCb(&alarmTime, appId, now, true);
+        // Check un-delivered messages.
+        bsls::TimeInterval                       alarmTime;
+        bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIt =
+            d_haveUndeliveredCb(&alarmTime, appId, now);
 
-        if (!haveUndelivered) {
+        if (!oldestMsgIt) {
             // No un-delivered messages
             continue;  // CONTINUE
         }
         else if (alarmTime <= now) {
-            // Alarm time is in the past, alarm is logged, mark substream as
+            // Alarm time is in the past, log the alarm and mark substream as
             // idle.
+            d_loggingCb(appId, oldestMsgIt);
             info.d_state = State::e_IDLE;
             // schedule polling event to check if queue becomes empty due
             // to GC or purge events.
@@ -467,26 +473,29 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string& appId)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0)) {
-        // monitoring is disabled
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
-    }
-
     SubStreamInfo& info = subStreamInfo(appId);
 
     if (info.d_idleEventHandle) {
         info.d_idleEventHandle.release();
     }
 
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0 ||
+                                              info.d_state != State::e_IDLE)) {
+        // monitoring is disabled or substream is not in idle state
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(info.d_state == State::e_IDLE);
 
-    // Call alarm logging callback (with disabled log) to check if there are
-    // un-delivered messages with alarm time in the past.
+    // Call callback to check un-delivered messages with alarm time in the
+    // past.
     bsls::TimeInterval now = d_queueState_p->scheduler()->now();
     bsls::TimeInterval alarmTime;
-    const bool haveUndelivered = d_loggingCb(&alarmTime, appId, now, false);
-    if (haveUndelivered && alarmTime <= now) {
+    bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIt =
+        d_haveUndeliveredCb(&alarmTime, appId, now);
+
+    if (oldestMsgIt && alarmTime <= now) {
         // There are un-delivered messages with alarm time in the past,
         // reschedule the idle event.
         scheduleIdleEvent(&info, appId);
@@ -497,7 +506,7 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string& appId)
     // is in the future, so we can transition the substream to alive state.
     onTransitionToAlive(&info, appId);
 
-    if (!d_alarmEventHandle && haveUndelivered) {
+    if (!d_alarmEventHandle && oldestMsgIt) {
         // Since there is the oldest un-delivered message with alarm time in
         // the future, schedule the alarm event.
         scheduleAlarmEvent(alarmTime);

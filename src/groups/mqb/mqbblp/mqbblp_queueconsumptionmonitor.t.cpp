@@ -69,10 +69,14 @@ class QueueConsumptionMonitorTest : public QueueConsumptionMonitor {
     // testing purposes.
   public:
     // CREATORS
-    QueueConsumptionMonitorTest(QueueState*       queueState,
-                                const LoggingCb&  loggingCb,
-                                bslma::Allocator* allocator)
-    : QueueConsumptionMonitor(queueState, loggingCb, allocator)
+    QueueConsumptionMonitorTest(QueueState*              queueState,
+                                const HaveUndeliveredCb& haveUndeliveredCb,
+                                const LoggingCb&         loggingCb,
+                                bslma::Allocator*        allocator)
+    : QueueConsumptionMonitor(queueState,
+                              haveUndeliveredCb,
+                              loggingCb,
+                              allocator)
     {
         // NOTHING
     }
@@ -90,6 +94,82 @@ class QueueConsumptionMonitorTest : public QueueConsumptionMonitor {
     {
         QueueConsumptionMonitor::idleEventDispatched(appId);
     }
+};
+
+struct MockStorageIterator : public mqbi::StorageIterator {
+    // PUBLIC DATA
+    bmqt::MessageGUID d_guid;
+
+    mqbi::AppMessage d_appMessage;
+
+    bsl::shared_ptr<bdlbb::Blob> d_appData;
+
+    bsl::shared_ptr<bdlbb::Blob> d_options;
+
+    mqbi::StorageMessageAttributes d_messageAttributes;
+
+    // CREATORS
+    MockStorageIterator()
+    : d_guid()
+    , d_appMessage(bmqp::RdaInfo())
+    , d_appData()
+    , d_options()
+    , d_messageAttributes()
+    {
+    }
+
+    // MANIPULATORS
+    void clearCache() BSLS_KEYWORD_OVERRIDE
+    {
+        d_appData.reset();
+        d_options.reset();
+        d_messageAttributes.reset();
+    }
+
+    bool advance() BSLS_KEYWORD_OVERRIDE { return true; }
+
+    // ACCESSORS
+    void
+    reset(const BSLA_UNUSED bmqt::MessageGUID& where) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_guid;
+    }
+
+    const mqbi::AppMessage& appMessageView(
+        BSLA_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_appMessage;
+    }
+
+    mqbi::AppMessage&
+    appMessageState(BSLA_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE
+    {
+        return d_appMessage;
+    }
+
+    const bsl::shared_ptr<bdlbb::Blob>& appData() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_appData;
+    }
+
+    const bsl::shared_ptr<bdlbb::Blob>& options() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_options;
+    }
+
+    const mqbi::StorageMessageAttributes&
+    attributes() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_messageAttributes;
+    }
+
+    bool atEnd() const BSLS_KEYWORD_OVERRIDE { return false; }
+
+    bool hasReceipt() const BSLS_KEYWORD_OVERRIDE { return true; }
 };
 
 struct Test : bmqtst::Test {
@@ -113,10 +193,15 @@ struct Test : bmqtst::Test {
     void putMessage(const bsl::string& appId         = bsl::string(),
                     bool               isUndelivered = true);
 
-    bool loggingCb(bsls::TimeInterval*       alarmTime_p,
-                   const bsl::string&        appId,
-                   const bsls::TimeInterval& now,
-                   bool                      enableLog);
+    // ACCESSORS
+    bslma::ManagedPtr<mqbi::StorageIterator>
+    haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
+                      const bsl::string&        appId,
+                      const bsls::TimeInterval& now) const;
+
+    void loggingCb(
+        const bsl::string&                              appId,
+        const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
 };
 
 Test::Test()
@@ -135,12 +220,15 @@ Test::Test()
                d_cluster._resources(),
                bmqtst::TestHelperUtil::allocator())
 , d_monitor(&d_queueState,
-            bdlf::BindUtil::bind(&Test::loggingCb,
+            bdlf::BindUtil::bind(&Test::haveUndeliveredCb,
                                  this,
                                  bdlf::PlaceHolders::_1,   // alarmTime_p
-                                 bdlf::PlaceHolders::_2,   // id
-                                 bdlf::PlaceHolders::_3,   // now
-                                 bdlf::PlaceHolders::_4),  // enableLog
+                                 bdlf::PlaceHolders::_2,   // appId
+                                 bdlf::PlaceHolders::_3),  // now
+            bdlf::BindUtil::bind(&Test::loggingCb,
+                                 this,
+                                 bdlf::PlaceHolders::_1,   // appId
+                                 bdlf::PlaceHolders::_2),  // oldestMsgIt
 
             bmqtst::TestHelperUtil::allocator())
 , d_storage(d_queue.uri(),
@@ -197,25 +285,37 @@ void Test::putMessage(const bsl::string& id, bool isUndelivered)
     }
 }
 
-bool Test::loggingCb(bsls::TimeInterval*       alarmTime_p,
-                     const bsl::string&        id,
-                     const bsls::TimeInterval& now,
-                     bool                      enableLog)
+bslma::ManagedPtr<mqbi::StorageIterator>
+Test::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
+                        const bsl::string&        appId,
+                        const bsls::TimeInterval& now) const
+{
+    bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIt;
+
+    const bool haveUndelivered = d_haveUndelivered.contains(appId);
+    if (haveUndelivered) {
+        bslma::Allocator*    alloc = bslma::Default::defaultAllocator();
+        MockStorageIterator* mockStorageIterator_p = new (*alloc)
+            MockStorageIterator();
+        oldestMsgIt.load(mockStorageIterator_p, alloc);
+
+        if (alarmTime_p) {
+            *alarmTime_p = now;
+        }
+    }
+
+    return oldestMsgIt;
+}
+
+void Test::loggingCb(
+    BSLA_UNUSED const bsl::string& id,
+    BSLA_UNUSED const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt)
+    const
 {
     BALL_LOG_SET_CATEGORY("MQBBLP.QUEUECONSUMPTIONMONITORTEST");
 
-    const bool haveUndelivered = d_haveUndelivered.contains(id);
-
-    if (enableLog && haveUndelivered) {
-        BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK")
-            << "Test Alarm" << BMQTSK_ALARMLOG_END;
-    }
-
-    if (alarmTime_p && haveUndelivered) {
-        *alarmTime_p = now;
-    }
-
-    return haveUndelivered;
+    BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK")
+        << "Test Alarm" << BMQTSK_ALARMLOG_END;
 }
 
 // ============================================================================
