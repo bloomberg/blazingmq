@@ -18,7 +18,6 @@ function(BMQ_ADD_FUZZER fileName)
   target_bmq_default_compiler_flags(${targetName})
   target_include_directories(${targetName} PRIVATE ${fuzz-tests_INCLUDE_DIRS})
   target_link_libraries(${targetName} PRIVATE ${fuzz-tests_PCDEPS})
-  target_link_options(${targetName} PUBLIC "-fsanitize=fuzzer")
 
   set_target_properties(${targetName}
     PROPERTIES OUTPUT_NAME ${targetName})

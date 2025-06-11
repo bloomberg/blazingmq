@@ -18,10 +18,6 @@ if(DEFINED ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES $ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
 endif()
 
-if(DEFINED ENV{LIBCXX_BUILD_PATH})
-  set(LIBCXX_BUILD_PATH "$ENV{LIBCXX_BUILD_PATH}")
-endif()
-
 set(TOOLCHAIN_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
 set(TOOLCHAIN_C_FLAGS   "${CMAKE_C_FLAGS_DEBUG}")
 
@@ -46,21 +42,21 @@ string(CONCAT TOOLCHAIN_C_FLAGS
        "${TOOLCHAIN_SHARED_FLAGS} "
       )
 
-if($ENV{FUZZER} STREQUAL "off")
+if(DEFINED ENV{LIBCXX_BUILD_PATH})
     # Use instrumented libc++ (LLVM) standard library for C++ built from source
     string(CONCAT TOOLCHAIN_CXX_FLAGS
            "${TOOLCHAIN_CXX_FLAGS} "
            "-stdlib=libc++ "
-           "-I${LIBCXX_BUILD_PATH}/include/c++/v1 "
+           "-I$ENV{LIBCXX_BUILD_PATH}/include/c++/v1 "
           )
     string(CONCAT TOOLCHAIN_LINKER_FLAGS
            "${CMAKE_LINKER_FLAGS_DEBUG}"
            "-stdlib=libc++ "
-           "-L${LIBCXX_BUILD_PATH}/lib "
-           "-Wl,-rpath,${LIBCXX_BUILD_PATH}/lib "
+           "-L$ENV{LIBCXX_BUILD_PATH}/lib "
+           "-Wl,-rpath,$ENV{LIBCXX_BUILD_PATH}/lib "
            "-lc++abi "
            )
-elseif($ENV{FUZZER} STREQUAL "on")
+else()
     # Use non-instrumented libstdc++ (GNU) standard library for C++. The reason
     # why we use this library is that preinstalled clang and libFuzzer depend
     # on GNU library. If we try to link it to a fuzzer with other dependencies,
@@ -129,8 +125,8 @@ else()
   message(FATAL_ERROR "Unexpected sanitizer name: ${SANITIZER_NAME}")
 endif()
 
-if($ENV{FUZZER} STREQUAL "on")
-  string(APPEND TOOLCHAIN_DEBUG_FLAGS "-fsanitize=fuzzer-no-link ")
+if(DEFINED ENV{FUZZER_FLAG})
+  string(APPEND TOOLCHAIN_DEBUG_FLAGS "-fsanitize=$ENV{FUZZER_FLAG} ")
 endif()
 
 # Set the final configuration variables, as understood by CMake.

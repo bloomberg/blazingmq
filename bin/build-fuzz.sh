@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-# :: Set some environment variables :::::::::::::::::::::::::::::::::::::::::::
-
-export CXXFLAGS="${CXXFLAGS} -fsanitize=fuzzer-no-link,address"
-
 # :: Set some initial constants :::::::::::::::::::::::::::::::::::::::::::::::
 
 DIR_ROOT="$(pwd)"
@@ -17,7 +13,17 @@ mkdir -p "${DIR_BUILD}"
 DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}}"
 mkdir -p "${DIR_INSTALL}"
 
-TOOLCHAIN_PATH="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/clang-default.cmake"
+DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
+
+TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-sanitizer.cmake"
+
+# :: Set some environment variables :::::::::::::::::::::::::::::::::::::::::::
+
+export CC="clang"
+export CXX="clang++"
+export DIR_SCRIPTS="${DIR_SCRIPTS}"
+export SANITIZER_NAME="asan"
+export FUZZER="fuzzer-no-link"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -43,13 +49,9 @@ if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
                         --toolchain "${TOOLCHAIN_PATH}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
-    eval "$(bbs_build_env unset)"
     popd || exit
     touch "${DIR_BUILD}/bde/.complete"
 fi
-
-export CC="clang"
-export CXX="clang++"
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
@@ -67,6 +69,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
+export FUZZER="fuzzer"
 CMAKE_OPTIONS=(\
     -DCMAKE_INSTALL_LIBDIR="lib" \
     -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \

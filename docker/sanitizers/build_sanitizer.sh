@@ -156,7 +156,6 @@ if [ "${FUZZER}" == "off" ]; then
             -DCMAKE_CXX_STANDARD=20 \
             -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
             -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
-            -DLLVM_USE_SANITIZE_COVERAGE="${FUZZER}" \
             "${LLVM_SPECIFIC_CMAKE_OPTIONS}"
 
     cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
@@ -170,11 +169,12 @@ export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-sanitizer.cmake"
 export SANITIZER_NAME="${SANITIZER_NAME}"
-export FUZZER="${FUZZER}"
 export CC="clang"
 export CXX="clang++"
-if [ "${FUZZER}" == "off" ]; then
-    export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${LLVM_VERSION}/include"
+if [ "${FUZZER}" == "on" ]; then
+  export FUZZER_FLAG="fuzzer-no-link"
+else
+  export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${LLVM_VERSION}/include"
 fi
 export BBS_BUILD_SYSTEM="ON"
 PATH="$PATH:$(realpath "${DIR_SRCS_EXT}"/bde-tools/bin)"
@@ -261,6 +261,7 @@ done
 
 # Build BlazingMQ
 if [ "${FUZZER}" == "on" ]; then
+    export FUZZER_FLAG="fuzzer"
     CMAKE_OPTIONS+=(-DINSTALL_TARGETS=fuzztests);
     TARGETS="fuzztests"
 else
