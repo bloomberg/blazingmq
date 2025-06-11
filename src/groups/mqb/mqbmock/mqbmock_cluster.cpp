@@ -326,8 +326,7 @@ int Cluster::start(BSLA_UNUSED bsl::ostream& errorDescription)
     return 0;
 }
 
-void Cluster::initiateShutdown(BSLA_UNUSED const VoidFunctor& callback,
-                               BSLA_UNUSED bool supportShutdownV2)
+void Cluster::initiateShutdown(BSLA_UNUSED const VoidFunctor& callback)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&

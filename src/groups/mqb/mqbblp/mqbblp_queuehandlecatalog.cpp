@@ -379,8 +379,7 @@ bsls::Types::Int64 QueueHandleCatalog::countUnconfirmed() const
          ++cit) {
         const mqbi::QueueHandle* handle(cit->value().get());
 
-        result += handle->countUnconfirmed(
-            bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
+        result += handle->countUnconfirmed();
     }
     return result;
 }

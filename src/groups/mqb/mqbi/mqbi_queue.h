@@ -697,12 +697,8 @@ class QueueHandle {
     virtual const bsl::vector<const mqbu::ResourceUsageMonitor*>
     unconfirmedMonitors(const bsl::string& appId) const = 0;
 
-    /// Return number of unconfirmed messages for the optionally specified
-    /// `subId` unless it has the default value `k_UNASSIGNED_SUBQUEUE_ID`,
-    /// in which case return number of unconfirmed messages for all streams.
-    virtual bsls::Types::Int64
-    countUnconfirmed(unsigned int subId =
-                         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) const = 0;
+    /// Return number of unconfirmed messages for all streams.
+    virtual bsls::Types::Int64 countUnconfirmed() const = 0;
 
     /// Load in the specified `out` object, the internal details about this
     /// queue handle.
@@ -794,9 +790,8 @@ class Queue : public DispatcherClient {
     virtual void
     setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats) = 0;
 
-    /// Return number of unconfirmed messages across all handles with the
-    /// `specified `subId'.
-    virtual bsls::Types::Int64 countUnconfirmed(unsigned int subId) = 0;
+    /// Return number of unconfirmed messages across all handles.
+    virtual bsls::Types::Int64 countUnconfirmed() = 0;
 
     /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
     /// sending PUTs and ACKs.

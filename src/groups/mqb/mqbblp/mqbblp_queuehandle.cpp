@@ -1254,7 +1254,7 @@ QueueHandle::unconfirmedMonitors(const bsl::string& appId) const
     return out;
 }
 
-bsls::Types::Int64 QueueHandle::countUnconfirmed(unsigned int subQueueId) const
+bsls::Types::Int64 QueueHandle::countUnconfirmed() const
 {
     // executed by the *QUEUE_DISPATCHER* thread
 
@@ -1263,21 +1263,15 @@ bsls::Types::Int64 QueueHandle::countUnconfirmed(unsigned int subQueueId) const
         d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
 
     bsls::Types::Int64 result = 0;
-    if (subQueueId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
-        for (Downstreams::const_iterator itStream = d_downstreams.begin();
-             itStream != d_downstreams.end();
-             ++itStream) {
-            const bsl::shared_ptr<Downstream>& downstream = (*itStream);
-            if (downstream) {
-                if (downstream->d_data) {
-                    result += downstream->d_data->size();
-                }
+
+    for (Downstreams::const_iterator itStream = d_downstreams.begin();
+         itStream != d_downstreams.end();
+         ++itStream) {
+        const bsl::shared_ptr<Downstream>& downstream = (*itStream);
+        if (downstream) {
+            if (downstream->d_data) {
+                result += downstream->d_data->size();
             }
-        }
-    }
-    else if (validateDownstreamId(subQueueId)) {
-        if (d_downstreams[subQueueId]->d_data) {
-            result += d_downstreams[subQueueId]->d_data->size();
         }
     }
     return result;

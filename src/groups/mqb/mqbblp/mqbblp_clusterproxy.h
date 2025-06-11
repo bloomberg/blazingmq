@@ -191,14 +191,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                                         bsl::shared_ptr<mqbnet::Session> >
         StopRequestManagerType;
 
-    /// Vector of shared_ptrs to Sessoin objects.
-    typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > SessionSpVec;
-
-    /// Type of the stop request callback.
-    typedef bsl::function<void(
-        const StopRequestManagerType::RequestContextSp& contextSp)>
-        StopRequestCompletionCallback;
-
     // DATA
 
     /// Allocator to use.
@@ -258,8 +250,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Initiate the shutdown of the cluster.  The specified `callback` will
     /// be called when the shutdown is completed.  This routine is invoked
     /// in the cluster-dispatcher thread.
-    void initiateShutdownDispatched(const VoidFunctor& callback,
-                                    bool supportShutdownV2 = false);
+    void initiateShutdownDispatched(const VoidFunctor& callback);
 
     /// Stop the `Cluster`.
     void stopDispatched();
@@ -391,13 +382,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     void
     processResponseDispatched(const bmqp_ctrlmsg::ControlMessage& response);
 
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    /// Send stop request to proxies specified in `sessions` using the
-    /// specified `stopCb` as a callback to be called once all the requests
-    /// get responses.
-    void sendStopRequest(const SessionSpVec&                  sessions,
-                         const StopRequestCompletionCallback& stopCb);
-
     // PRIVATE ACCESSORS
 
     /// Load the queue information to the specified `out` object.
@@ -447,13 +431,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Initiate the shutdown of the cluster and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence. It
     /// is expected that `stop()` will be called soon after this routine is
-    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
-    /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
-    /// deconfigure  queues and the shutting down node (not downstream) wait
-    /// for CONFIRMS.
-    void
-    initiateShutdown(const VoidFunctor& callback,
-                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+    /// invoked.  Execute shutdown logic where upstream (not downstream) nodes
+    /// deconfigure  queues and the shutting down node waits for CONFIRMS.
+    void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;

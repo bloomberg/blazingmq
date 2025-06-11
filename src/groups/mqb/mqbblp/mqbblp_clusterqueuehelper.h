@@ -146,13 +146,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// State of the upstream.
         Enum d_state;
 
-        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
-        // V2.
-
-        /// (timer handle 1s) when waiting for unconfirmed.  This is to cancel
-        /// the timer in the case when this broker stops while waiting.
-        bdlmt::EventScheduler::EventHandle d_timer;
-
         bsl::vector<PendingClose> d_pendingCloseRequests;
 
         SubQueueContext(
@@ -256,7 +249,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         mqbnet::ClusterNode*         d_peer;
         bmqp_ctrlmsg::ControlMessage d_response;
         VoidFunctor                  d_callback;
-        bsls::TimeInterval           d_stopTime;
         /// link StopContext for the same node
         bsl::shared_ptr<StopContext> d_previous_sp;
 
@@ -266,7 +258,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // CREATORS
         StopContext(mqbnet::ClusterNode* source,
                     const VoidFunctor&   callback,
-                    int                  timeoutMs,
                     bslma::Allocator*    allocator);
     };
     typedef bsl::unordered_map<const mqbnet::ClusterNode*,
@@ -770,8 +761,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                        mqbnet::ClusterNode* activeNode,
                        bsls::Types::Uint64  generationCount);
 
-    void cancelAllTimers(QueueContext* queueContext);
-
     void deleteQueue(QueueContext* queueContext);
 
     void removeQueue(const QueueContextMapIter& it);
@@ -783,58 +772,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// availability.  Notify all affected queues.
     void onUpstreamNodeChange(mqbnet::ClusterNode* node, int partitionId);
 
-    void deconfigureQueues(const bsl::shared_ptr<StopContext>& contextSp,
-                           const bsl::vector<int>*             partitions);
-    void deconfigureUri(const bsl::shared_ptr<StopContext>& contextSp,
-                        const bmqt::Uri&                    uri);
-
-    /// First step of StopRequest / CLOSING node advisory processing.  Issue
-    /// de-configure-queue request for all affected queues.  If the
-    /// specified `partitions` is 0, all queues are affected (the
-    /// ClusterProxy case); otherwise affect queues which are assigned to
-    /// one of the `partitions`.
-    void deconfigureQueue(const bsl::shared_ptr<StopContext>& contextSp,
-                          const QueueContextSp&               queueContextSp);
-
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-
-    /// Second step of StopRequest / CLOSING node advisory processing
-    /// (after de-configure response).  Start timer to wait the configured
-    /// `stopTimeoutMs` is there are any pending PUSH messages to collect
-    /// CONFIRMs.
-    void continueStopSequence(
-        const bsl::shared_ptr<StopContext>&   contextSp,
-        const QueueContextSp&                 queueContextSp,
-        unsigned int                          subId,
-        const bmqp_ctrlmsg::Status&           status,
-        const bmqp_ctrlmsg::StreamParameters& streamParameters);
-
-    /// Ping-pong between CLUSTER and QUEUE dispatcher threads.
-    void waitForUnconfirmed(const bsl::shared_ptr<StopContext>& contextSp,
-                            const QueueContextSp&               queueContextSp,
-                            unsigned int                        subId,
-                            bsls::TimeInterval&                 t);
-
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    void checkUnconfirmed(const bsl::shared_ptr<StopContext>& contextSp,
-                          const QueueContextSp&               queueContextSp,
-                          unsigned int                        subId);
-
-    /// Ping-pong between CLUSTER and QUEUE dispatcher threads.
-    void checkUnconfirmedQueueDispatched(
-        const bsl::shared_ptr<StopContext>& contextSp,
-        const QueueContextSp&               queueContextSp,
-        unsigned int                        subId);
-
     void checkUnconfirmedV2Dispatched(
         const bsls::TimeInterval&    whenToStop,
         const bsl::function<void()>& completionCallback);
-
-    void
-    waitForUnconfirmedDispatched(const bsl::shared_ptr<StopContext>& contextSp,
-                                 const QueueContextSp&     queueContextSp,
-                                 unsigned int              subId,
-                                 const bsls::TimeInterval& t);
 
     /// Third step of StopRequest / CLOSING node advisory processing.
     /// Issue close-queue request for the specified `queueSp`.
@@ -1131,15 +1071,12 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 inline ClusterQueueHelper::StopContext::StopContext(
     mqbnet::ClusterNode* source,
     const VoidFunctor&   callback,
-    int                  timeoutMs,
     bslma::Allocator*    allocator)
 : d_peer(source)
 , d_response(allocator)
 , d_callback(callback)
-, d_stopTime(bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC))
 , d_previous_sp()
 {
-    d_stopTime.addMilliseconds(timeoutMs);
 }
 
 // ---------------------------------------

@@ -242,15 +242,8 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     void flush() BSLS_KEYWORD_OVERRIDE;
 
     /// Initiate the shutdown of the session and invoke the specified
-    /// `callback` upon completion of (asynchronous) shutdown sequence or
-    /// if the specified `timeout` is expired.
-    /// The optional (temporary) specified 'supportShutdownV2' indicates
-    /// shutdown V2 logic which is not applicable to `AdminSession`
-    /// implementation.
-    void
-    initiateShutdown(const ShutdownCb&         callback,
-                     const bsls::TimeInterval& timeout,
-                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+    /// `callback` upon completion of (asynchronous) shutdown sequence.
+    void initiateShutdown(const ShutdownCb& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Make the session abandon any work it has.
     void invalidate() BSLS_KEYWORD_OVERRIDE;
