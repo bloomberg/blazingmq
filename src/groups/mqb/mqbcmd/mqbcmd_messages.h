@@ -1,4 +1,4 @@
-// Copyright 2019-2024 Bloomberg Finance L.P.
+// Copyright 2019-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,9 +64,6 @@ namespace bslma {
 class Allocator;
 }
 
-namespace mqbcmd {
-class AddReverseProxy;
-}
 namespace mqbcmd {
 class BrokerConfig;
 }
@@ -430,227 +427,6 @@ class RouteResponseResultList;
 namespace mqbcmd {
 class InternalResult;
 }
-namespace mqbcmd {
-
-// =====================
-// class AddReverseProxy
-// =====================
-
-class AddReverseProxy {
-    // INSTANCE DATA
-    bsl::string d_clusterName;
-    bsl::string d_remotePeer;
-
-  public:
-    // TYPES
-    enum { ATTRIBUTE_ID_CLUSTER_NAME = 0, ATTRIBUTE_ID_REMOTE_PEER = 1 };
-
-    enum { NUM_ATTRIBUTES = 2 };
-
-    enum { ATTRIBUTE_INDEX_CLUSTER_NAME = 0, ATTRIBUTE_INDEX_REMOTE_PEER = 1 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit AddReverseProxy(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'AddReverseProxy' having the default value.
-    //  Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-
-    AddReverseProxy(const AddReverseProxy& original,
-                    bslma::Allocator*      basicAllocator = 0);
-    // Create an object of type 'AddReverseProxy' having the value of the
-    // specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    AddReverseProxy(AddReverseProxy&& original) noexcept;
-    // Create an object of type 'AddReverseProxy' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-
-    AddReverseProxy(AddReverseProxy&& original,
-                    bslma::Allocator* basicAllocator);
-    // Create an object of type 'AddReverseProxy' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-#endif
-
-    ~AddReverseProxy();
-    // Destroy this object.
-
-    // MANIPULATORS
-    AddReverseProxy& operator=(const AddReverseProxy& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    AddReverseProxy& operator=(AddReverseProxy&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    bsl::string& clusterName();
-    // Return a reference to the modifiable "ClusterName" attribute of this
-    // object.
-
-    bsl::string& remotePeer();
-    // Return a reference to the modifiable "RemotePeer" attribute of this
-    // object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    const bsl::string& clusterName() const;
-    // Return a reference offering non-modifiable access to the
-    // "ClusterName" attribute of this object.
-
-    const bsl::string& remotePeer() const;
-    // Return a reference offering non-modifiable access to the
-    // "RemotePeer" attribute of this object.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const AddReverseProxy& lhs,
-                           const AddReverseProxy& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
-    // have the same value, and 'false' otherwise.  Two attribute objects
-    // have the same value if each respective attribute has the same value.
-    {
-        return lhs.clusterName() == rhs.clusterName() &&
-               lhs.remotePeer() == rhs.remotePeer();
-    }
-
-    friend bool operator!=(const AddReverseProxy& lhs,
-                           const AddReverseProxy& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&          stream,
-                                    const AddReverseProxy& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&      hashAlg,
-                           const AddReverseProxy& object)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'AddReverseProxy'.
-    {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.clusterName());
-        hashAppend(hashAlg, object.remotePeer());
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcmd::AddReverseProxy)
-
 namespace mqbcmd {
 
 // ==================
@@ -25799,9 +25575,8 @@ namespace mqbcmd {
 class ClustersCommand {
     // INSTANCE DATA
     union {
-        bsls::ObjectBuffer<Void>            d_list;
-        bsls::ObjectBuffer<AddReverseProxy> d_addReverseProxy;
-        bsls::ObjectBuffer<Cluster>         d_cluster;
+        bsls::ObjectBuffer<Void>    d_list;
+        bsls::ObjectBuffer<Cluster> d_cluster;
     };
 
     int               d_selectionId;
@@ -25817,19 +25592,14 @@ class ClustersCommand {
     // TYPES
 
     enum {
-        SELECTION_ID_UNDEFINED         = -1,
-        SELECTION_ID_LIST              = 0,
-        SELECTION_ID_ADD_REVERSE_PROXY = 1,
-        SELECTION_ID_CLUSTER           = 2
+        SELECTION_ID_UNDEFINED = -1,
+        SELECTION_ID_LIST      = 0,
+        SELECTION_ID_CLUSTER   = 1
     };
 
-    enum { NUM_SELECTIONS = 3 };
+    enum { NUM_SELECTIONS = 2 };
 
-    enum {
-        SELECTION_INDEX_LIST              = 0,
-        SELECTION_INDEX_ADD_REVERSE_PROXY = 1,
-        SELECTION_INDEX_CLUSTER           = 2
-    };
+    enum { SELECTION_INDEX_LIST = 0, SELECTION_INDEX_CLUSTER = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -25918,16 +25688,6 @@ class ClustersCommand {
     // specify the 'value' of the "List".  If 'value' is not specified, the
     // default "List" value is used.
 
-    AddReverseProxy& makeAddReverseProxy();
-    AddReverseProxy& makeAddReverseProxy(const AddReverseProxy& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    AddReverseProxy& makeAddReverseProxy(AddReverseProxy&& value);
-#endif
-    // Set the value of this object to be a "AddReverseProxy" value.
-    // Optionally specify the 'value' of the "AddReverseProxy".  If 'value'
-    // is not specified, the default "AddReverseProxy" value is used.
-
     Cluster& makeCluster();
     Cluster& makeCluster(const Cluster& value);
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
@@ -25950,12 +25710,6 @@ class ClustersCommand {
     // Return a reference to the modifiable "List" selection of this object
     // if "List" is the current selection.  The behavior is undefined
     // unless "List" is the selection of this object.
-
-    AddReverseProxy& addReverseProxy();
-    // Return a reference to the modifiable "AddReverseProxy" selection of
-    // this object if "AddReverseProxy" is the current selection.  The
-    // behavior is undefined unless "AddReverseProxy" is the selection of
-    // this object.
 
     Cluster& cluster();
     // Return a reference to the modifiable "Cluster" selection of this
@@ -25993,12 +25747,6 @@ class ClustersCommand {
     // object if "List" is the current selection.  The behavior is
     // undefined unless "List" is the selection of this object.
 
-    const AddReverseProxy& addReverseProxy() const;
-    // Return a reference to the non-modifiable "AddReverseProxy" selection
-    // of this object if "AddReverseProxy" is the current selection.  The
-    // behavior is undefined unless "AddReverseProxy" is the selection of
-    // this object.
-
     const Cluster& cluster() const;
     // Return a reference to the non-modifiable "Cluster" selection of this
     // object if "Cluster" is the current selection.  The behavior is
@@ -26007,10 +25755,6 @@ class ClustersCommand {
     bool isListValue() const;
     // Return 'true' if the value of this object is a "List" value, and
     // return 'false' otherwise.
-
-    bool isAddReverseProxyValue() const;
-    // Return 'true' if the value of this object is a "AddReverseProxy"
-    // value, and return 'false' otherwise.
 
     bool isClusterValue() const;
     // Return 'true' if the value of this object is a "Cluster" value, and
@@ -31752,146 +31496,11 @@ class InternalResult {
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::InternalResult)
 
-//=============================================================================
+// ============================================================================
 //                          INLINE DEFINITIONS
-//=============================================================================
+// ============================================================================
 
 namespace mqbcmd {
-
-// ---------------------
-// class AddReverseProxy
-// ---------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int AddReverseProxy::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(&d_clusterName,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_remotePeer,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REMOTE_PEER]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int AddReverseProxy::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_CLUSTER_NAME: {
-        return manipulator(&d_clusterName,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
-    }
-    case ATTRIBUTE_ID_REMOTE_PEER: {
-        return manipulator(&d_remotePeer,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REMOTE_PEER]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int AddReverseProxy::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                         const char*    name,
-                                         int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline bsl::string& AddReverseProxy::clusterName()
-{
-    return d_clusterName;
-}
-
-inline bsl::string& AddReverseProxy::remotePeer()
-{
-    return d_remotePeer;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int AddReverseProxy::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_clusterName,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_remotePeer,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REMOTE_PEER]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int AddReverseProxy::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_CLUSTER_NAME: {
-        return accessor(d_clusterName,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
-    }
-    case ATTRIBUTE_ID_REMOTE_PEER: {
-        return accessor(d_remotePeer,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REMOTE_PEER]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int AddReverseProxy::accessAttribute(t_ACCESSOR& accessor,
-                                     const char* name,
-                                     int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline const bsl::string& AddReverseProxy::clusterName() const
-{
-    return d_clusterName;
-}
-
-inline const bsl::string& AddReverseProxy::remotePeer() const
-{
-    return d_remotePeer;
-}
 
 // ------------------
 // class BrokerConfig
@@ -50016,9 +49625,6 @@ void ClustersCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     case Class::SELECTION_ID_LIST:
         hashAppend(hashAlgorithm, this->list());
         break;
-    case Class::SELECTION_ID_ADD_REVERSE_PROXY:
-        hashAppend(hashAlgorithm, this->addReverseProxy());
-        break;
     case Class::SELECTION_ID_CLUSTER:
         hashAppend(hashAlgorithm, this->cluster());
         break;
@@ -50032,8 +49638,6 @@ inline bool ClustersCommand::isEqualTo(const ClustersCommand& rhs) const
     if (this->selectionId() == rhs.selectionId()) {
         switch (rhs.selectionId()) {
         case Class::SELECTION_ID_LIST: return this->list() == rhs.list();
-        case Class::SELECTION_ID_ADD_REVERSE_PROXY:
-            return this->addReverseProxy() == rhs.addReverseProxy();
         case Class::SELECTION_ID_CLUSTER:
             return this->cluster() == rhs.cluster();
         default:
@@ -50066,10 +49670,6 @@ int ClustersCommand::manipulateSelection(t_MANIPULATOR& manipulator)
     case ClustersCommand::SELECTION_ID_LIST:
         return manipulator(&d_list.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST]);
-    case ClustersCommand::SELECTION_ID_ADD_REVERSE_PROXY:
-        return manipulator(
-            &d_addReverseProxy.object(),
-            SELECTION_INFO_ARRAY[SELECTION_INDEX_ADD_REVERSE_PROXY]);
     case ClustersCommand::SELECTION_ID_CLUSTER:
         return manipulator(&d_cluster.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER]);
@@ -50083,12 +49683,6 @@ inline Void& ClustersCommand::list()
 {
     BSLS_ASSERT(SELECTION_ID_LIST == d_selectionId);
     return d_list.object();
-}
-
-inline AddReverseProxy& ClustersCommand::addReverseProxy()
-{
-    BSLS_ASSERT(SELECTION_ID_ADD_REVERSE_PROXY == d_selectionId);
-    return d_addReverseProxy.object();
 }
 
 inline Cluster& ClustersCommand::cluster()
@@ -50110,10 +49704,6 @@ int ClustersCommand::accessSelection(t_ACCESSOR& accessor) const
     case SELECTION_ID_LIST:
         return accessor(d_list.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST]);
-    case SELECTION_ID_ADD_REVERSE_PROXY:
-        return accessor(
-            d_addReverseProxy.object(),
-            SELECTION_INFO_ARRAY[SELECTION_INDEX_ADD_REVERSE_PROXY]);
     case SELECTION_ID_CLUSTER:
         return accessor(d_cluster.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER]);
@@ -50127,12 +49717,6 @@ inline const Void& ClustersCommand::list() const
     return d_list.object();
 }
 
-inline const AddReverseProxy& ClustersCommand::addReverseProxy() const
-{
-    BSLS_ASSERT(SELECTION_ID_ADD_REVERSE_PROXY == d_selectionId);
-    return d_addReverseProxy.object();
-}
-
 inline const Cluster& ClustersCommand::cluster() const
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTER == d_selectionId);
@@ -50142,11 +49726,6 @@ inline const Cluster& ClustersCommand::cluster() const
 inline bool ClustersCommand::isListValue() const
 {
     return SELECTION_ID_LIST == d_selectionId;
-}
-
-inline bool ClustersCommand::isAddReverseProxyValue() const
-{
-    return SELECTION_ID_ADD_REVERSE_PROXY == d_selectionId;
 }
 
 inline bool ClustersCommand::isClusterValue() const
