@@ -149,26 +149,23 @@ bool TransportManager::processSession(
     if (state) {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
 
-        if (state->d_isClusterConnection) {
-            if (state->d_node_p == 0) {
-                BALL_LOG_INFO
-                    << "Session is up, but cluster is no longer valid ["
-                    << "channel: '" << session->channel().get() << "']";
-            }
-            else {
-                BALL_LOG_INFO << "Cluster session is up [cluster: '"
-                              << state->d_node_p->cluster()->name()
-                              << "', channel: '" << session->channel().get()
-                              << "']";
+        if (state->d_node_p == 0) {
+            BALL_LOG_INFO << "Session is up, but cluster is no longer valid ["
+                          << "channel: '" << session->channel().get() << "']";
+        }
+        else {
+            BALL_LOG_INFO << "Cluster session is up [cluster: '"
+                          << state->d_node_p->cluster()->name()
+                          << "', channel: '" << session->channel().get()
+                          << "']";
 
-                // Set the (reduced) watermarks since the node will use
-                // mqbnet::Channel.
-                d_tcpSessionFactory_mp->setNodeWriteQueueWatermarks(*session);
+            // Set the (reduced) watermarks since the node will use
+            // mqbnet::Channel.
+            d_tcpSessionFactory_mp->setNodeWriteQueueWatermarks(*session);
 
-                // Notify the node it now has a channel
-                bsl::weak_ptr<bmqio::Channel> channel(session->channel());
-                state->d_node_p->setChannel(channel, peerIdentity, readCb);
-            }
+            // Notify the node it now has a channel
+            bsl::weak_ptr<bmqio::Channel> channel(session->channel());
+            state->d_node_p->setChannel(channel, peerIdentity, readCb);
         }
 
         // Add self as observer of the channel (so that we can monitor when it
@@ -182,11 +179,7 @@ bool TransportManager::processSession(
                                  bsl::string(channelDescription.str()),
                                  state));
 
-        if (state->d_isClusterConnection) {
-            // Do not enable read (until Cluster/ClusterProxy::startDispatcher
-            // is called).
-            return true;  // RETURN
-        }
+        return true;  // RETURN
     }
 
     // This is either proxy or client connection.
@@ -306,7 +299,7 @@ void TransportManager::onClose(const bsl::string& channelDescription,
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
 
-    if (state->d_isClusterConnection && !state->d_node_p) {
+    if (!state->d_node_p) {
         // The cluster was destroyed, we can just remove that ConnectionState
         // entry from the map
         BALL_LOG_INFO << "Channel onClose [channel: '" << channelDescription
@@ -315,18 +308,12 @@ void TransportManager::onClose(const bsl::string& channelDescription,
         return;  // RETURN
     }
 
-    if (state->d_isClusterConnection) {
-        BALL_LOG_INFO << "Channel onClose [channel: '" << channelDescription
-                      << "', cluster: '" << state->d_node_p->cluster()->name()
-                      << "']";
+    BALL_LOG_INFO << "Channel onClose [channel: '" << channelDescription
+                  << "', cluster: '" << state->d_node_p->cluster()->name()
+                  << "']";
 
-        // Notify node of lost of connectivity
-        state->d_node_p->resetChannel();
-    }
-    else {
-        BALL_LOG_INFO << "Channel onClose [channel: '" << channelDescription
-                      << "']";
-    }
+    // Notify node of lost of connectivity
+    state->d_node_p->resetChannel();
 }
 
 int TransportManager::selfNodeIdLocked(
@@ -563,31 +550,21 @@ int TransportManager::createCluster(
         bsl::shared_ptr<ConnectionState> connectionState;
         connectionState.createInplace(d_allocators.get("ConnectionStates"));
 
-        connectionState->d_endpoint            = tcpConfig.endpoint();
-        connectionState->d_isClusterConnection = true;
-        connectionState->d_node_p              = node;
-        connectionState->d_userData_sp         = userDataSp;
+        connectionState->d_endpoint    = tcpConfig.endpoint();
+        connectionState->d_node_p      = node;
+        connectionState->d_userData_sp = userDataSp;
 
         d_connectionsState[connectionState.get()] = connectionState;
 
         // Skip connection to node depending on the mode
-        if (connectionMode == e_LISTEN_ALL ||
-            (connectionMode == e_MIXED && myNodeId > nodeIt->id())) {
+        if (connectionMode == e_MIXED && myNodeId > nodeIt->id()) {
             BALL_LOG_INFO_BLOCK
             {
-                BALL_LOG_OUTPUT_STREAM << "Skipping connection to '"
-                                       << nodeIt->name() << "' (reason: ";
-                if (connectionMode == e_LISTEN_ALL) {
-                    BALL_LOG_OUTPUT_STREAM
-                        << "connection mode is 'e_LISTEN_ALL'";
-                }
-                else {
-                    BALL_LOG_OUTPUT_STREAM
-                        << "its node id " << nodeIt->id()
-                        << " is lesser than current machine "
-                        << "node id " << myNodeId;
-                }
-                BALL_LOG_OUTPUT_STREAM << ")";
+                BALL_LOG_OUTPUT_STREAM
+                    << "Skipping connection to '" << nodeIt->name()
+                    << "' (reason: its node id " << nodeIt->id()
+                    << " is lesser than current machine "
+                    << "node id " << myNodeId << ")";
             }
             continue;  // CONTINUE
         }
@@ -620,52 +597,6 @@ int TransportManager::createCluster(
     return rc_SUCCESS;
 }
 
-int TransportManager::connectOut(bsl::ostream&            errorDescription,
-                                 const bslstl::StringRef& uri,
-                                 bslma::ManagedPtr<void>* userData)
-{
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS          = 0,
-        rc_INVALID_PROTOCOL = -1,
-        rc_CONNECT_FAILED   = -2
-    };
-
-    // Validation: At the moment, the only supported protocol is TCP.
-    // If/once/when we'll support more, we should use a factory method.
-    if (!bmqu::StringUtil::startsWith(uri, "tcp://")) {
-        errorDescription << "Unsupported transport protocol '" << uri << "'";
-        return rc_INVALID_PROTOCOL;  // RETURN
-    }
-
-    bsl::shared_ptr<ConnectionState> state;
-    state.createInplace(d_allocators.get("ConnectionStates"));
-
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
-        d_connectionsState[state.get()] = state;
-    }
-
-    state->d_endpoint            = uri;
-    state->d_isClusterConnection = false;
-    state->d_node_p              = 0;
-    state->d_userData_sp = userData ? *userData : bsl::shared_ptr<void>();
-
-    int rc = connect(state.get());
-    if (rc != 0) {
-        {
-            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
-            d_connectionsState.erase(state.get());
-        }
-
-        errorDescription << "Failed connecting to '" << uri << "' (rc: " << rc
-                         << ")";
-        return (rc * 10) + rc_CONNECT_FAILED;  // RETURN
-    }
-
-    return rc_SUCCESS;
-}
-
 void* TransportManager::getClusterNodeAndState(
     bsl::ostream&            errorDescription,
     ClusterNode**            clusterNode,
@@ -680,8 +611,7 @@ void* TransportManager::getClusterNodeAndState(
     for (ConnectionsStateMap::iterator it = d_connectionsState.begin();
          it != d_connectionsState.end();
          ++it) {
-        if (it->first->d_isClusterConnection && it->first->d_node_p &&
-            it->first->d_node_p->nodeId() == nodeId &&
+        if (it->first->d_node_p && it->first->d_node_p->nodeId() == nodeId &&
             it->first->d_node_p->cluster()->name() == clusterName) {
             state = it->first;
             break;  // BREAK
