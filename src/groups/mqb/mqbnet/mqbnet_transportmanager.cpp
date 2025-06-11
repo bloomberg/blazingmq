@@ -563,8 +563,8 @@ int TransportManager::createCluster(
                 BALL_LOG_OUTPUT_STREAM
                     << "Skipping connection to '" << nodeIt->name()
                     << "' (reason: its node id " << nodeIt->id()
-                    << " is lesser than current machine "
-                    << "node id " << myNodeId << ")";
+                    << " is lesser than current machine node id " << myNodeId
+                    << ")";
             }
             continue;  // CONTINUE
         }
