@@ -32,7 +32,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
-#include <bslim_printer.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 
@@ -45,7 +45,8 @@ struct SessionId {
 
     SessionId();
 
-    SessionId(const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage);
+    explicit SessionId(
+        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage);
 };
 
 /// Format the specified `rhs` to the specified output `stream` and return a

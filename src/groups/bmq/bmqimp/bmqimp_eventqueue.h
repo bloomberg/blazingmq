@@ -317,6 +317,9 @@ class EventQueue {
     /// the queue and call out the provided EventHandler.
     void dispatchNextEvent();
 
+    // PRIVATE ACCESSORS
+    const SessionId& id() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(EventQueue, bslma::UsesBslmaAllocator)
@@ -397,8 +400,6 @@ class EventQueue {
     /// last print.  The behavior is undefined unless the statistics were
     /// initialized by a call to `initializeStats`.
     void printStats(bsl::ostream& stream, bool includeDelta) const;
-
-    const SessionId& id() const;
 };
 
 // ============================================================================

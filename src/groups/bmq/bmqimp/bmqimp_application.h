@@ -230,6 +230,9 @@ class Application {
                         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     void stopHeartbeat();
 
+    // PRIVATE ACCESSORS
+    const SessionId& id() const;
+
   private:
     // NOT IMPLEMENTED
     Application(const Application& other) BSLS_CPP11_DELETED;
@@ -275,8 +278,6 @@ class Application {
 
     /// Return `true` if the application is started, `false` otherwise.
     bool isStarted() const;
-
-    const SessionId& id() const;
 
     // MANIPULATORS
 
