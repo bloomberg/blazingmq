@@ -37,10 +37,10 @@ struct ConnectionType {
     // side of the connection's point of view.
     enum Enum {
         e_UNKNOWN,
-        e_CLUSTER_PROXY,   // Reverse connection proxy -> broker
-        e_CLUSTER_MEMBER,  // Cluster node -> cluster node
-        e_CLIENT,          // Either SDK or Proxy -> Proxy or cluster node
-        e_ADMIN
+        e_CLUSTER_PROXY,   // Proxy (me) -> cluster
+        e_CLUSTER_MEMBER,  // Cluster member (me) -> cluster member
+        e_CLIENT,          // Client or proxy -> me
+        e_ADMIN            // Admin client -> me
     };
 };
 
@@ -61,10 +61,6 @@ struct NegotiationContext {
     /// The cluster involved in the session being negotiated, or empty if
     /// none.
     bsl::string d_clusterName;
-
-    /// True if this is a "reversed" connection (on either side of the
-    /// connection).
-    bool d_isReversed;
 
     /// The type of the session being negotiated.
     ConnectionType::Enum d_connectionType;

@@ -40,10 +40,6 @@
 //:   cluster
 //: o proxy-cluster connections: connections from a 'proxy' broker to the nodes
 //:   composing a cluster
-//: o reversed connections: outgoing connections established from this node to
-//:   a remote peer, typically used to go around connectivity restrictions
-//:   (firewall) and allow that remote peer to use this connection channel as a
-//:   proxy-cluster communication.
 //
 /// CLUSTER
 ///-------
@@ -118,12 +114,9 @@ class TransportManager {
     enum ConnectionMode {
         // Enum describing how the cluster should establish connection with the
         // nodes of the cluster.
-
-        e_LISTEN_ALL = 0  // Expect incoming connection from all nodes
+        e_CONNECT_ALL = 0  // Connect out to all nodes
         ,
-        e_CONNECT_ALL = 1  // Connect out to all nodes
-        ,
-        e_MIXED = 2  // Connect out to higher node Ids only, expect
+        e_MIXED = 1  // Connect out to higher node Ids only, expect
                      // incoming connection from lower node Ids
     };
 
@@ -141,35 +134,25 @@ class TransportManager {
     };
 
     /// Structure representing the state associated to a connection with a
-    /// remote peer, which may either belong to a cluster (wether proxy or
-    /// not) or a reversed connection.  Note that even for `listen`
-    /// connections of a `cluster`, such a state is created.
+    /// remote peer which belongs to a cluster (whether proxy or
+    /// not).  Note that even for `listen` connections of a `cluster`, such a
+    /// state is created.
     struct ConnectionState {
         // PUBLIC DATA
         bsl::string d_endpoint;
         // Endpoint addressing the remote
         // peer.
 
-        bool d_isClusterConnection;
-        // Indicates whether this connection
-        // represents a cluster connection
-        // (whether proxy or real cluster),
-        // or not (i.e., a reversed
-        // connection).
-
         ClusterNode* d_node_p;
         // Node associated to this
         // connection.  Note that this field
-        // is only relevant if
-        // 'd_isClusterConnection', and is
-        // invalidated when the cluster is
+        // is invalidated when the cluster is
         // destroyed.
 
         bsl::shared_ptr<void> d_userData_sp;
         // The user data, if any, provided
-        // to the 'createCluster' or the
-        // 'connectOut' methods.  This
-        // correspond to the negotiator
+        // to the 'createCluster' method.
+        // This correspond to the negotiator
         // user data.
     };
 
@@ -210,9 +193,7 @@ class TransportManager {
     // relatively small: there will be
     // one entry per node per cluster
     // this broker is either member of,
-    // or proxying to; plus one entry
-    // for each reverse connection this
-    // broker should establish.
+    // or proxying to
 
     mutable bslmt::Mutex d_mutex;
     // Mutex for thread safety of this
@@ -362,10 +343,6 @@ class TransportManager {
     /// * `e_CONNECT_ALL`:  connection out to all nodes from the
     ///   `definition` will be established; this is the case when the node
     ///   is a proxy, establishing connection to the cluster
-    /// * `e_LISTEN_ALL`: no outbound connection wil be made, it is
-    ///   expected that the remote nodes will be connecting to this node;
-    ///   this is the case when the node is on a DMZ network and is setup
-    ///   to go through a gateway cluster
     /// * `e_MIXED`: only connections to node Ids with a value higher than
     ///   the current node Id (detected by the local machine in the
     ///   `definition`) will be established (the idea is that in this mode,
@@ -384,18 +361,6 @@ class TransportManager {
                       const bsl::vector<mqbcfg::ClusterNode>& nodes,
                       ConnectionMode                          connectionMode,
                       bslma::ManagedPtr<void>*                userData = 0);
-
-    /// Connect out to the specified `uri`.  Note that the connection will
-    /// be considered `persistent` with auto-reconnection when it goes down.
-    /// The optionally specified `userData` will be passed in to the
-    /// `negotiate` method of the negotiator (through the
-    /// InitialConnectionContext) for any connections being established
-    /// as a result of this connection creation.  Return 0 on success, or a
-    /// non-zero value and populate the specified `errorDescription` with a
-    /// description of the error in case of failure.
-    int connectOut(bsl::ostream&            errorDescription,
-                   const bslstl::StringRef& uri,
-                   bslma::ManagedPtr<void>* userData = 0);
 
     /// Return the raw pointer `cookie handle` to the internal state
     /// associated to the specified `nodeId` in the specified `clusterName`,

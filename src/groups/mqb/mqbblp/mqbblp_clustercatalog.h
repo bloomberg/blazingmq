@@ -193,10 +193,6 @@ class ClusterCatalog {
     typedef bsl::vector<mqbcfg::ClusterProxyDefinition>::const_iterator
         ClusterProxyDefinitionConstIter;
 
-    /// Vector of information about reversed connections.
-    typedef bsl::vector<mqbcfg::ReversedClusterConnection>
-        ReversedClusterConnectionArray;
-
     /// Map of `Cluster name` to `self nodeId`, of virtual clusters only.
     typedef bsl::unordered_map<bsl::string, int> VirtualClustersMap;
 
@@ -241,14 +237,6 @@ class ClusterCatalog {
     /// clients refer it to, so that upon reception of the negotiation response
     /// they can map it back to their internal `ClusterNode` object.
     VirtualClustersMap d_myVirtualClusters;
-
-    /// Clusters that should be created at startup, expecting remote nodes
-    /// connecting to this machine.
-    bsl::unordered_set<bsl::string> d_myReverseClusters;
-
-    /// List of reversed connections that should be established by this broker,
-    /// if any.
-    ReversedClusterConnectionArray d_reversedClusterConnections;
 
     /// Container for the @bbref{mqbi::Cluster}s that have been created.
     ClustersMap d_clusters;
@@ -306,14 +294,6 @@ class ClusterCatalog {
     /// within the object's mutex locked (see implementation for details).
     int startCluster(bsl::ostream& errorDescription, mqbi::Cluster* cluster);
 
-    /// Initiate establishment of the reversed cluster connections defined
-    /// in the specified `connections`.  Return 0 on success or a non-zero
-    /// value and populate the specified `errorDescription` with a
-    /// description of the error otherwise.
-    int initiateReversedClusterConnectionsImp(
-        bsl::ostream&                         errorDescription,
-        const ReversedClusterConnectionArray& connections);
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterCatalog, bslma::UsesBslmaAllocator)
@@ -348,12 +328,6 @@ class ClusterCatalog {
 
     /// Stop this component.
     void stop();
-
-    /// Initiate establishment of the reversed cluster connections this
-    /// broker should establish, if any.  Return 0 on success or a non-zero
-    /// value and populate the specified `errorDescription` with a
-    /// description of the error otherwise.
-    int initiateReversedClusterConnections(bsl::ostream& errorDescription);
 
     /// Set the specified `domainFactory` on this instance.  Behavior is
     /// undefined unless `domainFactory` is non-zero.
