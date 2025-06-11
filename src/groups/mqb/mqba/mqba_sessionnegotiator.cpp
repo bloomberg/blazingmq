@@ -307,8 +307,10 @@ int SessionNegotiator::createSessionOnMsgType(
         // member.
         // TBD: should find a better way to detect that situation
         if (context->d_connectionType == mqbnet::ConnectionType::e_UNKNOWN) {
-            context->d_connectionType =
-                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
+            errorDescription
+                << "Received BrokerResponse message, but haven't sent a "
+                   "ClientIdentity message yet";
+            return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
         }
 
         *session = onBrokerResponseMessage(errorDescription, context);
