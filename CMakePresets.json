@@ -40,6 +40,17 @@
             "description": "VCPKG based configuration for building on x86_64-based Linux",
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "inherits": "base"
+        },
+        {
+            "name": "fuzz-tests",
+            "description": "Configuration for building fuzztests on x86_64-based Linux",
+            "inherits": "base",
+            "cacheVariables": {
+                "BDE_BUILD_TARGET_64": true,
+                "CMAKE_CXX_STANDARD": "20",
+                "BDE_BUILD_TARGET_CPP17": "20",
+                "INSTALL_TARGETS": "fuzztests"
+            }
         }
     ]
 }

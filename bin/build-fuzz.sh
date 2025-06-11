@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# :: Set some initial constants :::::::::::::::::::::::::::::::::::::::::::::::
-export CC=clang
-export CXX=clang++
+# :: Set some environment variables :::::::::::::::::::::::::::::::::::::::::::
+
+export CXXFLAGS="${CXXFLAGS} -fsanitize=fuzzer-no-link,address"
 
 # :: Set some initial constants :::::::::::::::::::::::::::::::::::::::::::::::
+
 DIR_ROOT="$(pwd)"
 
 DIR_THIRDPARTY="${DIR_ROOT}/thirdparty"
@@ -15,6 +16,8 @@ mkdir -p "${DIR_BUILD}"
 
 DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}}"
 mkdir -p "${DIR_INSTALL}"
+
+TOOLCHAIN_PATH="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/clang-default.cmake"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -33,17 +36,20 @@ fi
 # Build and install BDE
 # Refer to https://bloomberg.github.io/bde/library_information/build.html
 PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
-
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde" || exit
-    eval "$(bbs_build_env -p clang-21.0.0 -u dbg_64_safe_cpp20 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
-    bbs_build configure --prefix="${DIR_INSTALL}"
+    eval "$(bbs_build_env -p clang -u dbg_64_safe_cpp20 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    bbs_build configure --prefix="${DIR_INSTALL}" \
+                        --toolchain "${TOOLCHAIN_PATH}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
     eval "$(bbs_build_env unset)"
     popd || exit
     touch "${DIR_BUILD}/bde/.complete"
 fi
+
+export CC="clang"
+export CXX="clang++"
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
@@ -53,7 +59,8 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
                 --without-warnings-as-errors \
                 --without-usage-examples \
                 --without-applications \
-                --ufid dbg_64_safe_cpp20
+                --ufid "dbg_64_safe_cpp20" \
+                --toolchain "${TOOLCHAIN_PATH}"
     make -j 16
     make install
     popd || exit
@@ -61,19 +68,13 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
 fi
 
 CMAKE_OPTIONS=(\
-    -DBDE_BUILD_TARGET_64=ON \
-    -DBDE_BUILD_TARGET_SAFE=ON \
-    -DBDE_BUILD_TARGET_CPP20=ON \
-    -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_INSTALL_LIBDIR="lib" \
     -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
     -DCMAKE_PREFIX_PATH="${DIR_INSTALL}" \
-    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/clang-default.cmake" \
-    -DCMAKE_CXX_FLAGS="-fsanitize=fuzzer-no-link" \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DINSTALL_TARGETS=fuzztests)
+    -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_PATH}" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
+cmake --preset fuzz-tests -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD}/blazingmq" --parallel 16 --target fuzztests
