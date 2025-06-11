@@ -338,7 +338,7 @@
         myVirtualClusters..........:
             information about all the virtual clusters the current machine is
             considered to belong to (if any)
-        clusters...................: array of cluster definition
+        proxyClusters..............: array of cluster proxy definition
       </documentation>
     </annotation>
     <sequence>
