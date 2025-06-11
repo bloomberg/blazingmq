@@ -413,8 +413,8 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
             // The client connected to us as part of a cluster connection,
             // but we are not member of that cluster; emit an error (but
             // still accept the connection).
-            BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED "
-                           << "Client '" << clientIdentity
+            BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED Client '"
+                           << clientIdentity
                            << "' connected to me as part of cluster '"
                            << clusterName << "' to which I do not belong!";
         }
