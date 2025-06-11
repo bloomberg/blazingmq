@@ -17,8 +17,10 @@
         },
         {
             "name": "macos-arm64-vcpkg",
-            "description": "VCPKG based configuration for building on arm-based MacOS",
-            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "description":
+                "VCPKG based configuration for building on arm-based MacOS",
+            "toolchainFile":
+                "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "inherits": "base",
             "cacheVariables": {
                 "VCPKG_INSTALL_OPTIONS": "--allow-unsupported",
@@ -27,8 +29,10 @@
         },
         {
             "name": "macos-x64-vcpkg",
-            "description": "VCPKG based configuration for building on x86_64-based MacOS",
-            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "description":
+                "VCPKG based configuration for building on x86_64-based MacOS",
+            "toolchainFile":
+                "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "inherits": "base",
             "cacheVariables": {
                 "VCPKG_INSTALL_OPTIONS": "--allow-unsupported",
@@ -37,13 +41,16 @@
         },
         {
             "name": "linux-x64-vcpkg",
-            "description": "VCPKG based configuration for building on x86_64-based Linux",
-            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            "description":
+                "VCPKG based configuration for building on x86_64-based Linux",
+            "toolchainFile":
+                "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             "inherits": "base"
         },
         {
             "name": "fuzz-tests",
-            "description": "Configuration for building fuzztests on x86_64-based Linux",
+            "description":
+                "Configuration for building fuzztests on x86_64-based Linux",
             "inherits": "base",
             "cacheVariables": {
                 "BDE_BUILD_TARGET_64": true,
