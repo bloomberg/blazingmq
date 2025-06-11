@@ -383,6 +383,8 @@ Flattener::packMesage(const Protocol::SubQueueInfosArray& subQInfo)
     schema_p = d_schemaLearner.observe(d_schemaLearner.createContext(queueId),
                                        input);
 
+    bmqp::MessageProperties::SchemaPtr schema;
+
     if (schema_p) {
         if (schema_p->get() == 0) {
             // Learn new Schema by reading all MessageProperties.
@@ -390,19 +392,25 @@ Flattener::packMesage(const Protocol::SubQueueInfosArray& subQInfo)
 
             if (mps.streamIn(d_appData, input.isExtended()) == 0) {
                 // Learn new schema.
-                *schema_p = mps.makeSchema(d_allocator_p);
+                schema   = mps.makeSchema(d_allocator_p);
+                schema_p = &schema;
             }
         }
     }
+    else {
+        schema_p = &schema;
+    }
+
+    BSLS_ASSERT_SAFE(schema_p);
 
     // Successfully packed the current message and associated it with the
     // current SubQueueId being processed.  Add the corresponding queueId for
     // this message associated with the current flattened event.
-    d_currEventInfo.d_ids.push_back(bmqp::EventUtilQueueInfo(
-        header,
-        subQInfo[0].id(),
-        d_msgIterator.applicationDataSize(),
-        schema_p ? *schema_p : bmqp::MessageProperties::SchemaPtr()));
+    d_currEventInfo.d_ids.push_back(
+        bmqp::EventUtilQueueInfo(header,
+                                 subQInfo[0].id(),
+                                 d_msgIterator.applicationDataSize(),
+                                 *schema_p));
 
     return result;
 }

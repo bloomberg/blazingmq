@@ -372,15 +372,14 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
         int                               queueId = header.queueId();
         const bmqp::MessagePropertiesInfo input(header);
 
-        bmqp::MessageProperties::SchemaPtr* schemaHolder =
-            d_schemaLearner.observe(d_schemaLearner.createContext(queueId),
-                                    input);
+        bmqp::MessageProperties::SchemaPtr* schema_p = d_schemaLearner.observe(
+            d_schemaLearner.createContext(queueId),
+            input);
 
         bmqp::MessageProperties::SchemaPtr schema;
 
-        if (schemaHolder) {
-            schema = *schemaHolder;
-            if (!schema) {
+        if (schema_p) {
+            if (schema_p->get() == 0) {
                 // Learn new Schema by reading all MessageProperties.
                 bdlbb::Blob appData(d_allocator_p);
                 if (msgIterator.loadApplicationData(&appData)) {
@@ -388,11 +387,17 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
 
                     if (mps.streamIn(appData, input.isExtended()) == 0) {
                         // Learn new schema.
-                        *schemaHolder = schema = mps.makeSchema(d_allocator_p);
+                        schema   = mps.makeSchema(d_allocator_p);
+                        schema_p = &schema;
                     }
                 }
             }
         }
+        else {
+            schema_p = &schema;
+        }
+
+        BSLS_ASSERT_SAFE(schema_p);
 
         eventInfos->resize(eventInfos->size() + 1);
         if ((optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
@@ -419,7 +424,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
                     bmqp::EventUtilQueueInfo(msgIterator.header(),
                                              subQueueInfos[0].id(),
                                              msgIterator.applicationDataSize(),
-                                             schema));
+                                             *schema_p));
             }
 
             // Update message count
@@ -430,7 +435,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
                 msgIterator.header(),
                 bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                 msgIterator.applicationDataSize(),
-                schema));
+                *schema_p));
 
             // Update message count
             ++(*messageCount);

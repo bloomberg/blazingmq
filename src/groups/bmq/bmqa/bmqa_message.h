@@ -60,6 +60,7 @@
 // BMQ
 
 #include <bmqa_queueid.h>
+#include <bmqp_messageproperties.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
@@ -79,10 +80,6 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bmqimp {
 class Event;
-}
-
-namespace bmqp {
-class MessageProperties_Schema;
 }
 
 namespace bmqa {
@@ -121,7 +118,7 @@ struct MessageImpl {
     /// SubscriptionHandle this message is associated with
     bmqt::SubscriptionHandle d_subscriptionHandle;
 
-    bsl::shared_ptr<const bmqp::MessageProperties_Schema> d_schema_sp;
+    bmqp::MessageProperties::SchemaPtr d_schema_sp;
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
     /// Optional GroupId this message is associated with
