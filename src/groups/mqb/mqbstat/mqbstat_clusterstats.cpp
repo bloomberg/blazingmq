@@ -30,8 +30,8 @@
 #include <bdld_manageddatum.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
+#include <bsla_annotations.h>
 #include <bslmf_assert.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

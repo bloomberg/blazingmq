@@ -25,8 +25,8 @@
 #include <bsl_exception.h>
 #include <bsl_memory.h>
 #include <bsl_utility.h>  // bsl::pair
+#include <bsla_annotations.h>
 #include <bslma_testallocator.h>
-#include <bsls_annotation.h>
 #include <bsls_libraryfeatures.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
@@ -58,11 +58,11 @@ struct ThrowOnCopyValue {
         // NOTHING
     }
 
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     ThrowOnCopyValue(const ThrowOnCopyValue&) { throw ExceptionType(); }
 
     // MANIPULATORS
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     ThrowOnCopyValue& operator=(const ThrowOnCopyValue&)
     {
         throw ExceptionType();
@@ -107,7 +107,7 @@ struct ThrowOnCallCallback {
 
     // MANIPULATORS
     template <class ARG>
-    BSLS_ANNOTATION_NORETURN void operator()(const ARG&) const
+    BSLA_NORETURN void operator()(const ARG&) const
     {
         throw ExceptionType();
     }

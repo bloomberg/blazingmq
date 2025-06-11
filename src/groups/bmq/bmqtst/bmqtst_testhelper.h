@@ -807,7 +807,7 @@ _assert(bool result, const char* expression, const char* file, int line)
 /// A handler to be invoked on BDE assertion violation (see `bsls_assert`).
 /// Prints the error and calls
 /// `bsls::AssertTest::failTestDriver(violation)`.
-BSLS_ANNOTATION_NORETURN
+BSLA_NORETURN
 static inline void
 _assertViolationHandler(const bsls::AssertViolation& violation)
 {

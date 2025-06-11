@@ -174,11 +174,11 @@ struct ThrowOnCopy {
         // NOTHING
     }
 
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     ThrowOnCopy(const ThrowOnCopy&) { throw ExceptionType(); }
 
     // MANIPULATORS
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     ThrowOnCopy& operator=(const ThrowOnCopy&) { throw ExceptionType(); }
 
     // ACCESSORS

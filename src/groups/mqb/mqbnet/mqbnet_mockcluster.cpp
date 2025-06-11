@@ -25,9 +25,9 @@
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_lockguard.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 
@@ -260,9 +260,9 @@ void MockCluster::enableRead()
 }
 
 void MockCluster::onProxyConnectionUp(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
-    BSLS_ANNOTATION_UNUSED const bsl::string& description)
+    BSLA_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
+    BSLA_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
+    BSLA_UNUSED const bsl::string& description)
 {
     // NOTHING
 }

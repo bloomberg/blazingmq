@@ -38,9 +38,9 @@
 #include <bsl_iostream.h>
 #include <bsl_list.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslmt_mutexassert.h>
-#include <bsls_annotation.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
 
@@ -408,9 +408,9 @@ void ElectorStateMachine::applyLeadershipCessionEventToFollower(
 }
 
 void ElectorStateMachine::applyLeadershipCessionEventToCandidate(
-    BSLS_ANNOTATION_UNUSED ElectorStateMachineOutput* out,
-    bsls::Types::Uint64                               term,
-    int                                               sourceNodeId)
+    BSLA_UNUSED ElectorStateMachineOutput* out,
+    bsls::Types::Uint64                    term,
+    int                                    sourceNodeId)
 {
     if (ElectorState::e_CANDIDATE != d_state) {
         return;  // RETURN
@@ -771,9 +771,9 @@ void ElectorStateMachine::applyElectionProposalEventToCandidate(
 }
 
 void ElectorStateMachine::applyElectionProposalEventToLeader(
-    BSLS_ANNOTATION_UNUSED ElectorStateMachineOutput* out,
-    bsls::Types::Uint64                               term,
-    int                                               sourceNodeId)
+    BSLA_UNUSED ElectorStateMachineOutput* out,
+    bsls::Types::Uint64                    term,
+    int                                    sourceNodeId)
 {
     // Support the notion of sticky leader: since self is a healthy leader (has
     // quorum and has not received any stale heartbeat response from any
@@ -787,9 +787,9 @@ void ElectorStateMachine::applyElectionProposalEventToLeader(
 }
 
 void ElectorStateMachine::applyElectionResponseEventToFollower(
-    BSLS_ANNOTATION_UNUSED ElectorStateMachineOutput* out,
-    bsls::Types::Uint64                               term,
-    int                                               sourceNodeId)
+    BSLA_UNUSED ElectorStateMachineOutput* out,
+    bsls::Types::Uint64                    term,
+    int                                    sourceNodeId)
 {
     // This could occur as follows:
     // 1) This node initiates election
@@ -1031,9 +1031,9 @@ void ElectorStateMachine::applyNodeStatusEventToFollower(
 }
 
 void ElectorStateMachine::applyNodeStatusEventToCandidate(
-    BSLS_ANNOTATION_UNUSED ElectorStateMachineOutput* out,
-    ElectorIOEventType::Enum                          event,
-    int                                               sourceNodeId)
+    BSLA_UNUSED ElectorStateMachineOutput* out,
+    ElectorIOEventType::Enum               event,
+    int                                    sourceNodeId)
 {
     BSLS_ASSERT_SAFE(ElectorIOEventType::e_NODE_UNAVAILABLE == event ||
                      ElectorIOEventType::e_NODE_AVAILABLE == event);
@@ -1287,8 +1287,8 @@ void ElectorStateMachine::applyScoutingRequestEvent(
 void ElectorStateMachine::applyScoutingResponseEvent(
     ElectorStateMachineOutput* out,
     bool                       willVote,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 term,
-    int                                        sourceNodeId)
+    BSLA_UNUSED bsls::Types::Uint64 term,
+    int                             sourceNodeId)
 {
     if (!isValidSourceNode(sourceNodeId)) {
         return;  // RETURN

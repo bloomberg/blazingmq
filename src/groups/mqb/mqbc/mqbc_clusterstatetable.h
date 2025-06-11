@@ -35,7 +35,7 @@
 #include <bsl_iostream.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbc {
@@ -587,8 +587,7 @@ ClusterStateTableActions<ARGS>::~ClusterStateTableActions()
 }
 
 template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_none(
-    BSLS_ANNOTATION_UNUSED const ARGS& args)
+void ClusterStateTableActions<ARGS>::do_none(BSLA_UNUSED const ARGS& args)
 {
     // NOTHING
 }

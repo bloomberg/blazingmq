@@ -46,8 +46,8 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace mqbs {
@@ -62,7 +62,8 @@ const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
 // -----------------------
 
 // PRIVATE MANIPULATORS
-void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
+void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
+                                    bool                    asPrimary)
 {
     // This method is common to both primary and replica nodes, when a queue or
     // a specified virtual storage is purged.  QueueEngine should not be
@@ -95,7 +96,7 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
                 d_handles.historySize());
     }
     else {
-        d_virtualStorageCatalog.removeAll(appKey);
+        d_virtualStorageCatalog.removeAll(appKey, asPrimary);
     }
 }
 
@@ -233,12 +234,11 @@ bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
     return d_store_p->hasReceipt(handles[0]);
 }
 
-int FileBackedStorage::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    const mqbconfm::Storage&             config,
-    const mqbconfm::Limits&              limits,
-    const bsls::Types::Int64             messageTtl,
-    int                                  maxDeliveryAttempts)
+int FileBackedStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+                                 const mqbconfm::Storage&  config,
+                                 const mqbconfm::Limits&   limits,
+                                 const bsls::Types::Int64  messageTtl,
+                                 int                       maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -454,7 +454,7 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
 }
 
 mqbi::StorageResult::Enum
-FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
+FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
 {
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
@@ -471,53 +471,55 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
     BSLS_ASSERT_SAFE(!handles.empty());
 
     if (0 == --it->second.d_refCount) {
-        // This appKey was the last outstanding client for this message.
-        // Message can now be deleted.
+        if (asPrimary) {
+            // This appKey was the last outstanding client for this message.
+            // Message can now be deleted.
 
-        int msgLen = static_cast<int>(d_store_p->getMessageLenRaw(handles[0]));
+            unsigned int msgLen = d_store_p->getMessageLenRaw(handles[0]);
 
-        int rc = d_store_p->writeDeletionRecord(
-            guid,
-            d_queueKey,
-            DeletionRecordFlag::e_NONE,
-            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+            int rc = d_store_p->writeDeletionRecord(
+                guid,
+                d_queueKey,
+                DeletionRecordFlag::e_NONE,
+                bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
 
-        if (0 != rc) {
-            BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << "Partition [" << partitionId() << "] failed to write "
-                << "DELETION record for GUID: " << guid << ", for queue '"
-                << d_queueUri << "', queueKey '" << d_queueKey
-                << "' while attempting to purge the message, rc: " << rc
-                << BMQTSK_ALARMLOG_END;
-        }
+            if (0 != rc) {
+                BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                    << "Partition [" << partitionId() << "] failed to write "
+                    << "DELETION record for GUID: " << guid << ", for queue '"
+                    << d_queueUri << "', queueKey '" << d_queueKey
+                    << "' while attempting to purge the message, rc: " << rc
+                    << BMQTSK_ALARMLOG_END;
+            }
 
-        // If a queue is associated, inform it about the message being
-        // deleted, and update queue stats.
-        // The same 'e_DEL_MESSAGE' is about 3 cases: TTL, no SC quorum,
-        // and a purge.
-        if (queue()) {
-            queue()->queueEngine()->beforeMessageRemoved(guid);
-        }
-        d_queueStats_sp
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                msgLen);
+            // If a queue is associated, inform it about the message being
+            // deleted, and update queue stats.
+            // The same 'e_DEL_MESSAGE' is about 3 cases: TTL, no SC quorum,
+            // and a purge.
+            if (queue()) {
+                queue()->queueEngine()->beforeMessageRemoved(guid);
+            }
+            d_queueStats_sp
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
 
-        // There is not really a need to remove the guid from all virtual
-        // storages, because we can be here only if guid doesn't exist in
-        // any virtual storage apart from 'vs' (because updated outstanding
-        // refCount is zero).  So we just delete records associated with
-        // the guid from the underlying (this) storage.
+            // There is not really a need to remove the guid from all virtual
+            // storages, because we can be here only if guid doesn't exist in
+            // any virtual storage apart from 'vs' (because updated outstanding
+            // refCount is zero).  So we just delete records associated with
+            // the guid from the underlying (this) storage.
 
-        for (unsigned int i = 0; i < handles.size(); ++i) {
-            d_store_p->removeRecordRaw(handles[i]);
-        }
+            for (unsigned int i = 0; i < handles.size(); ++i) {
+                d_store_p->removeRecordRaw(handles[i]);
+            }
 
-        d_capacityMeter.remove(1, msgLen);
-        d_handles.erase(it);
+            d_capacityMeter.remove(1, msgLen);
+            d_handles.erase(it);
 
-        d_queueStats_sp
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_queueStats_sp->onEvent<
+                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_handles.historySize());
+        }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;
     }
@@ -611,7 +613,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
                                   DataStoreRecordHandle());
 
         if (mqbi::StorageResult::e_SUCCESS == rc) {
-            purgeCommon(mqbu::StorageKey::k_NULL_KEY);
+            purgeCommon(mqbu::StorageKey::k_NULL_KEY, true);
 
             d_isEmpty.storeRelaxed(1);
 
@@ -652,6 +654,7 @@ bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
 
     mqbi::StorageResult::Enum rc =
         d_virtualStorageCatalog.removeVirtualStorage(appKey,
+                                                     asPrimary,
                                                      onPurge,
                                                      onRemove);
 
@@ -1081,7 +1084,7 @@ void FileBackedStorage::addQueueOpRecordHandle(
 
 void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
 {
-    purgeCommon(appKey);
+    purgeCommon(appKey, false);
 
     if (queue()) {
         bsl::string appId;

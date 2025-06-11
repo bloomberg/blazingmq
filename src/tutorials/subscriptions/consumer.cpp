@@ -57,8 +57,8 @@
 #include <bsl_sstream.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslh_hash.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_spinlock.h>
 #include <bsls_systemclocktype.h>
@@ -786,8 +786,7 @@ static void consume(bmqa::Session*            session,
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
-int main(BSLS_ANNOTATION_UNUSED int         argc,
-         BSLS_ANNOTATION_UNUSED const char* argv[])
+int main(BSLA_UNUSED int argc, BSLA_UNUSED const char* argv[])
 {
     // Set up logging with output to the console and verbosity set to
     // INFO-level.  This way we will get logs from the BlazingMQ SDK.

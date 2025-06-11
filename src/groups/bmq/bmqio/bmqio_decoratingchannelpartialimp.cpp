@@ -18,7 +18,7 @@
 
 #include <bmqscm_version.h>
 // BDE
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace bmqio {
@@ -29,7 +29,7 @@ namespace bmqio {
 
 DecoratingChannelPartialImp::DecoratingChannelPartialImp(
     const bsl::shared_ptr<Channel>& base,
-    BSLS_ANNOTATION_UNUSED bslma::Allocator* basicAllocator)
+    BSLA_UNUSED bslma::Allocator* basicAllocator)
 : d_base(base)
 {
     // NOTHING

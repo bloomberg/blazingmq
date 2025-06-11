@@ -636,10 +636,9 @@ class JsonPrinter : public Printer {
     }
 
     void printOutstandingRatio(
-        int                    ratio,
-        bsl::size_t            outstandingMessagesCount,
-        BSLS_ANNOTATION_UNUSED bsl::size_t totalMessagesCount) const
-        BSLS_KEYWORD_OVERRIDE
+        int         ratio,
+        bsl::size_t outstandingMessagesCount,
+        BSLA_UNUSED bsl::size_t totalMessagesCount) const BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
         d_ostream << "  \"OutstandingRatio\": \"" << ratio

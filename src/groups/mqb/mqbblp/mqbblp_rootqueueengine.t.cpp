@@ -206,9 +206,8 @@ MaybeError checkInvariants(const Invariants&                invariants,
 struct Start : public Operation {
     /// Applies the actual operation using the specified `model` and
     /// `tester`.
-    MaybeError
-    operator()(BSLS_ANNOTATION_UNUSED ActiveConsumersModel* model,
-               BSLS_ANNOTATION_UNUSED mqbblp::QueueEngineTester* tester) const
+    MaybeError operator()(BSLA_UNUSED ActiveConsumersModel* model,
+                          BSLA_UNUSED mqbblp::QueueEngineTester* tester) const
         BSLS_KEYWORD_OVERRIDE
     {
         return MaybeError();
@@ -380,9 +379,8 @@ struct SetCanDeliver : public ClientOperation {
     }
 
     // MANIPULATORS
-    MaybeError
-    operator()(ActiveConsumersModel*  model,
-               BSLS_ANNOTATION_UNUSED mqbblp::QueueEngineTester* tester) const
+    MaybeError operator()(ActiveConsumersModel* model,
+                          BSLA_UNUSED mqbblp::QueueEngineTester* tester) const
         BSLS_KEYWORD_OVERRIDE
     {
         // Applies the actual operation using the specified 'model' and
@@ -474,9 +472,9 @@ struct Post : public Operation {
     }
 };
 
-MaybeError checkReceivedForConsumers(
-    const ActiveConsumersModel&  model,
-    BSLS_ANNOTATION_UNUSED const mqbblp::QueueEngineTester& tester)
+MaybeError
+checkReceivedForConsumers(const ActiveConsumersModel& model,
+                          BSLA_UNUSED const mqbblp::QueueEngineTester& tester)
 {
     // Check, using the specified model and tester, that everyone who is
     // currently active, has the expected number of messages.  Returns 'null'

@@ -55,7 +55,7 @@
 #include <bsl_sstream.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_timeinterval.h>
@@ -225,13 +225,12 @@ void RelayQueueEngine::onHandleConfigured(
 }
 
 void RelayQueueEngine::onHandleConfiguredDispatched(
-    const bsl::weak_ptr<RelayQueueEngine>&   self,
-    const bmqp_ctrlmsg::Status&              status,
-    BSLS_ANNOTATION_UNUSED const             bmqp_ctrlmsg::StreamParameters&
-                                             upStreamParameters,
-    mqbi::QueueHandle*                       handle,
-    const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
-    const bsl::shared_ptr<ConfigureContext>& context)
+    const bsl::weak_ptr<RelayQueueEngine>& self,
+    const bmqp_ctrlmsg::Status&            status,
+    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& upStreamParameters,
+    mqbi::QueueHandle*                                handle,
+    const bmqp_ctrlmsg::StreamParameters&             downStreamParameters,
+    const bsl::shared_ptr<ConfigureContext>&          context)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -939,9 +938,8 @@ RelayQueueEngine::~RelayQueueEngine()
 }
 
 // MANIPULATORS
-int RelayQueueEngine::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    BSLS_ANNOTATION_UNUSED bool          isReconfigure)
+int RelayQueueEngine::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+                                BSLA_UNUSED bool          isReconfigure)
 {
     return 0;
 }
@@ -970,7 +968,7 @@ void RelayQueueEngine::resetState(bool isShuttingDown)
 }
 
 int RelayQueueEngine::rebuildInternalState(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+    BSLA_UNUSED bsl::ostream& errorDescription)
 {
     BSLS_ASSERT_OPT(false && "should never be invoked");
     return 0;
@@ -1391,8 +1389,8 @@ void RelayQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
 }
 
 void RelayQueueEngine::afterNewMessage(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* source)
+    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
+    BSLA_UNUSED mqbi::QueueHandle* source)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1453,10 +1451,9 @@ int RelayQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
     return rc_NON_ZERO_REFERENCES;
 }
 
-int RelayQueueEngine::onRejectMessage(
-    BSLS_ANNOTATION_UNUSED mqbi::QueueHandle* handle,
-    const bmqt::MessageGUID&                  msgGUID,
-    unsigned int                              upstreamSubQueueId)
+int RelayQueueEngine::onRejectMessage(BSLA_UNUSED mqbi::QueueHandle* handle,
+                                      const bmqt::MessageGUID&       msgGUID,
+                                      unsigned int upstreamSubQueueId)
 {
     // Specified 'subQueueId' is the downstream one.  Need to convert it into
     // corresponding appKey.
@@ -1606,8 +1603,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
     }
 }
 
-void RelayQueueEngine::onTimer(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 currentTimer)
+void RelayQueueEngine::onTimer(BSLA_UNUSED bsls::Types::Int64 currentTimer)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1619,10 +1615,10 @@ void RelayQueueEngine::onTimer(
 }
 
 mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
-    BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLS_ANNOTATION_UNUSED const bmqp::MessagePropertiesInfo& mpi,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 timestamp)
+    BSLA_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_UNUSED const bmqp::MessagePropertiesInfo& mpi,
+    BSLA_UNUSED bsls::Types::Uint64 timestamp)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
