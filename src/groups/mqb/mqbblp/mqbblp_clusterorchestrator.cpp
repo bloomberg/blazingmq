@@ -129,6 +129,19 @@ void ClusterOrchestrator::onElectorStateChange(
     case mqbnet::ElectorState::e_LEADER: {
         electorTransitionToLeader(leaderNodeId, term);
     } break;  // BREAK
+
+    default: {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Unknown new elector state: " << state
+                      << ", new code: " << code
+                      << ", new leaderNodeId: " << leaderNodeId
+                      << ", new term: " << term << ", old state: "
+                      << d_clusterData_p->electorInfo().electorState()
+                      << ", old leaderNodeId: "
+                      << d_clusterData_p->electorInfo().leaderNodeId()
+                      << ", old term: "
+                      << d_clusterData_p->electorInfo().electorTerm();
+    }
     }
 }
 
