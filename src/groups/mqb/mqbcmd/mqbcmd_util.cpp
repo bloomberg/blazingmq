@@ -229,6 +229,9 @@ void Util::printCommandResponses(const mqbcmd::RouteResponseList& responseList,
     case mqbcmd::EncodingFormat::JSON_PRETTY: {
         mqbcmd::JsonPrinter::printResponses(os, responseList, true);
     } break;  // BREAK
+    default: {
+        BSLS_ASSERT(false && "Unsupported encoding");
+    } break;  // BREAK
     }
 }
 
