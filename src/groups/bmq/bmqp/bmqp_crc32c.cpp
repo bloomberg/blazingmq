@@ -16,6 +16,9 @@
 // bmqp_crc32c.cpp                                                    -*-C++-*-
 #include <bmqp_crc32c.h>
 
+// BDE
+#include <bsla_annotations.h>
+
 #include <bmqscm_version.h>
 /// Implementation Notes
 ///====================
@@ -573,20 +576,25 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
 
     // [1] Process bytes one at a time until we reach the alignment boundary
     //     (e.g. 8-byte)
-    bsls::Types::IntPtr misaligned = reinterpret_cast<bsls::Types::IntPtr>(
-                                         data) &
-                                     (sizeof(bsls::Types::IntPtr) - 1);
+    bsls::Types::UintPtr misaligned = reinterpret_cast<bsls::Types::UintPtr>(
+                                          data) &
+                                      (sizeof(bsls::Types::UintPtr) - 1);
 
     // No. of bytes from `data` to next alignment boundary
-    unsigned adj = misaligned ? sizeof(bsls::Types::IntPtr) - misaligned : 0;
+    unsigned adj = misaligned ? sizeof(bsls::Types::UintPtr) - misaligned : 0;
     if (adj > length) {
         // the specified length to process is less than the distance from
         // 'data' to the next alignment boundary.
         adj = length;
     }
 
+    // This code relies on the platform-dependent assumption that the distance
+    // from 'data' to next alignment boundary <= 7.  This is true on machines
+    // with 64-bit word sizes or smaller, but to be safe we assert this.
+    BSLS_ASSERT(adj < 8);
+
     int i = 0;
-    switch (adj) {  // distance from 'data' to next alignment boundary <= 7
+    switch (adj) {
     case 7:
         crc = k_CRC_TABLE_IL8_O32[(crc ^ data[i]) & 0x000000FF] ^ (crc >> 8);
         ++i;
@@ -614,6 +622,9 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
     case 1:
         crc = k_CRC_TABLE_IL8_O32[(crc ^ data[i]) & 0x000000FF] ^ (crc >> 8);
         ++i;
+        BSLA_FALLTHROUGH;
+    case 0: break;
+    default: BSLA_UNREACHABLE;  // adj < 8 by above
     }
     length -= adj;
     data += i;
@@ -680,6 +691,10 @@ static inline unsigned int crc32cSoftware(const unsigned char* data,
     case 1:
         crc = k_CRC_TABLE_IL8_O32[(crc ^ data[i]) & 0x000000FF] ^ (crc >> 8);
         ++i;
+        BSLA_FALLTHROUGH;
+    case 0: break;
+    default:
+        BSLA_UNREACHABLE;  // length is now guaranteed to be < 8 from above.
     }
 
     return crc ^ ~0U;  // XOROUT = true: Do a final XOR on output
