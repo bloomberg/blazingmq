@@ -962,11 +962,6 @@ void StorageManager::processReplicaDataResponseDispatched(
         eventDataVec.emplace_back(responder, responseId, partitionId, 1);
 
         switch (dataType) {
-        case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << ": FAIL_ReplicaDataResponse has an unknown data "
-                           << "type, ignoring.";
-        } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
             dispatchEventToPartition(
                 fs,
@@ -984,6 +979,12 @@ void StorageManager::processReplicaDataResponseDispatched(
                 fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
                 eventDataVec);
+        } break;
+        case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
+        default: {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << ": FAIL_ReplicaDataResponse has an unknown data "
+                           << "type, ignoring.";
         } break;
         }
         return;  // RETURN
@@ -1042,12 +1043,6 @@ void StorageManager::processReplicaDataResponseDispatched(
                   << responder->nodeDescription();
 
     switch (dataType) {
-    case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: ReplicaDataResponse has an unknown data type, "
-                       << "ignoring.";
-    } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
@@ -1062,6 +1057,13 @@ void StorageManager::processReplicaDataResponseDispatched(
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
                                  eventDataVec);
+    } break;
+    case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
+    default: {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId
+                       << "]: ReplicaDataResponse has an unknown data type, "
+                       << "ignoring.";
     } break;
     }
 }
