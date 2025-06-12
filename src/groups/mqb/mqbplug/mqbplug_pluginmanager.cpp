@@ -215,7 +215,7 @@ void PluginManager::loadPluginLibrary(const char*            path,
         return;  // RETURN
     }
     bslma::ManagedPtr<void> objectHandleMp(objectHandle,
-                                           (void*)0,
+                                           static_cast<void*>(0),
                                            dlcloseDeleter);
 
     // Clear 'dlerror' before calling 'dlsym()'. See docs for details:
