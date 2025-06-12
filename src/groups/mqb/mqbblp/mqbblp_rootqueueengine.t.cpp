@@ -578,7 +578,7 @@ void regress(Operations*       operations,
 
 /// Populate the specified `strings` with messages parsed from the
 /// specified `str`.  The format of `str` must be:
-///   `<s_1>,<s_2>,...,<s_N>`
+///   `[s_1],[s_2],...,[s_N]`
 ///
 /// The behavior is undefined unless `str` is formatted as above.  Note that
 /// `strings` will be cleared.
@@ -601,7 +601,7 @@ static void parseStrings(bsl::vector<bsl::string>* strings, bsl::string str)
 
 /// Return a fanout domain configured with appIds from the specified
 /// `appIds`.  The format of `appIdsStr` must be:
-///  `<appId_1>,<appId_2>,...,<appIdN>`
+///  `[appId_1],[appId_2],...,[appIdN]`
 ///
 /// The behavior is undefined unless `appIdsStr` is formatted as above.
 mqbconfm::Domain fanoutConfig(const bsl::string& appIdsStr)
