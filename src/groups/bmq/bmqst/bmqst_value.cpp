@@ -49,9 +49,9 @@ void Value::ownValue()
     if (!d_owned && d_value.is<bslstl::StringRef>() &&
         !d_value.the<bslstl::StringRef>().isEmpty()) {
         bslstl::StringRef& ref = d_value.the<bslstl::StringRef>();
-        void*              buf = d_allocator_p->allocate(ref.length());
+        char* buf = static_cast<char*>(d_allocator_p->allocate(ref.length()));
         bsl::memcpy(buf, ref.data(), ref.length());
-        ref.assign((char*)buf, ref.length());
+        ref.assign(buf, ref.length());
         d_owned = true;
     }
 }
@@ -117,7 +117,7 @@ size_t Value::hash() const
             static_cast<int>(d_value.the<bslstl::StringRef>().length()));
     } break;
     default: {
-        d_hash = (size_t)-1;
+        d_hash = bsl::numeric_limits<size_t>::max();
     } break;
     }
 

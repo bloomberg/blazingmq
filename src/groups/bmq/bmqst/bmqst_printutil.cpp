@@ -107,15 +107,15 @@ const char* memoryHelper(bsls::Types::Int64* num,
     int              highestBitSet  = higestBitIndex -
                         bdlb::BitUtil::numLeadingUnsetBits(
                             static_cast<bsl::uint64_t>(bytes));
-    int level = highestBitSet / 10;
+    bsls::Types::Int64 level = highestBitSet / 10;
 
     if (level >= NUM_MEMORY_UNITS) {
         level = NUM_MEMORY_UNITS - 1;
     }
 
-    int shift = level * 10;
+    bsls::Types::Int64 shift = level * 10;
 
-    bsls::Types::Int64 div = (((bsls::Types::Int64)1) << shift);
+    bsls::Types::Int64 div = 1 << shift;
     *num                   = bytes >> shift;
     *remainder             = static_cast<int>(
         bsl::floor(((static_cast<double>(bytes - (*num << shift)) /
@@ -147,7 +147,8 @@ char* printValueWithSeparatorImp(char*              buf,
             digit *= -1;
         }
 
-        *(--buf) = '0' + (char)digit;
+        // 0 <= digit < 10, so this static cast is safe.
+        *(--buf) = '0' + static_cast<char>(digit);
         value /= 10;
 
         ++processedDigits;
@@ -195,7 +196,9 @@ int PrintUtil::printedValueLength(bsls::Types::Int64 value)
 
 int PrintUtil::printedValueLength(double value, int precision)
 {
-    return bmqst::PrintUtil::printedValueLength((bsls::Types::Int64)value) +
+    // static cast to find the length of the non-decimal portion.
+    return bmqst::PrintUtil::printedValueLength(
+               static_cast<bsls::Types::Int64>(value)) +
            precision + 1;
 }
 
@@ -225,8 +228,9 @@ int PrintUtil::printedValueLengthWithSeparator(double value,
                                                int    precision,
                                                int    groupSize)
 {
+    // static cast to find the length of the non-decimal portion.
     return bmqst::PrintUtil::printedValueLengthWithSeparator(
-               (bsls::Types::Int64)value,
+               static_cast<bsls::Types::Int64>(value),
                groupSize) +
            precision + (precision > 0 ? 1 : 0);
 }
@@ -270,10 +274,12 @@ bsl::ostream& PrintUtil::printValueWithSeparator(bsl::ostream& stream,
         pos -= precision + 2;
     }
 
-    return stream << printValueWithSeparatorImp(pos,
-                                                (bsls::Types::Int64)value,
-                                                groupSize,
-                                                separator);
+    // Static cast to only print the non-decimal portion of value.
+    return stream << printValueWithSeparatorImp(
+               pos,
+               static_cast<bsls::Types::Int64>(value),
+               groupSize,
+               separator);
 }
 
 bsl::ostream& PrintUtil::printStringCentered(bsl::ostream&            stream,
