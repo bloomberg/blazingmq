@@ -162,6 +162,9 @@ void Application::setUpLog()
     case ParametersVerbosity::e_FATAL: {
         logLevel = ball::Severity::e_ERROR;
     } break;
+    default: {
+        BSLS_ASSERT(false && "Invalid verbosity specified");
+    }
     }
 
     const bsl::string logFormat =

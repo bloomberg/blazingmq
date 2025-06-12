@@ -159,11 +159,10 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
         MQBSTAT_CASE(e_NO_SC_MSGS_DELTA, "queue_nack_noquorum_msgs")
         MQBSTAT_CASE(e_NO_SC_MSGS_ABS, "queue_nack_noquorum_msgs_abs")
         MQBSTAT_CASE(e_HISTORY_ABS, "queue_history_abs")
+    default:
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    BSLS_ASSERT(!"invalid enumerator");
-    return 0;
-
 #undef MQBSTAT_CASE
 }
 

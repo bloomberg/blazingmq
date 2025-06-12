@@ -1095,6 +1095,10 @@ void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     case SubStreamContext::e_OPENED: {
         sendConfirmMessage(msgGUID, upstreamSubQueueId, source);
     } break;
+    default: {
+        BSLS_ASSERT(false && "Unknown SubStreamContext state.");
+        BSLA_UNREACHABLE;
+    }
     }
 }
 
@@ -1152,6 +1156,10 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
                                 // partitionId is needed only by replica
         dispatcher->dispatchEvent(dispEvent, cluster);
     } break;
+    default: {
+        BSLS_ASSERT(false && "Unknown SubStreamContext state.");
+        BSLA_UNREACHABLE;
+    }
     }
     return result;
 }
