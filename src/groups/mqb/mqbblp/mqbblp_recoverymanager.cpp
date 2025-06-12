@@ -1525,8 +1525,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         break;  // BREAK
 
     case bmqp::RecoveryFileChunkType::e_UNDEFINED:
-        BSLS_ASSERT_SAFE(false);
-        break;  // BREAK
+    default: BSLS_ASSERT_SAFE(false); break;  // BREAK
     }
 
     BSLS_ASSERT_SAFE(0 != mfd);
