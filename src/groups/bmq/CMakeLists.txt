@@ -63,6 +63,15 @@ target_sources(bmqbrkr_plugins PUBLIC FILE_SET HEADERS
   BASE_DIRS "${bmq_INCLUDE_DIRS}"
 )
 
+# Turn off warnings in generated code.
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang")
+    set_property(SOURCE "bmqp/bmqp_ctrlmsg_messages.cpp"
+                        "bmqstm/bmqstm_messages.cpp"
+                 APPEND
+                 PROPERTY COMPILE_OPTIONS "-Wno-everything"
+    )
+endif()
+
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
   # Search homebrewed keg-only versions of Bison and Flex on macOS.
   execute_process(
