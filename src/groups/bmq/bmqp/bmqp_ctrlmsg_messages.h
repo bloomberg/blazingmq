@@ -84,6 +84,9 @@ namespace bmqp_ctrlmsg {
 class DisconnectResponse;
 }
 namespace bmqp_ctrlmsg {
+class DummyType;
+}
+namespace bmqp_ctrlmsg {
 class ElectionProposal;
 }
 namespace bmqp_ctrlmsg {
@@ -2093,6 +2096,152 @@ class DisconnectResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::DisconnectResponse)
+
+namespace bmqp_ctrlmsg {
+
+// ===============
+// class DummyType
+// ===============
+
+class DummyType {
+    // This type is used protocol messages that have been deprecated and
+    // removed.
+
+    // INSTANCE DATA
+
+  public:
+    // TYPES
+    enum { NUM_ATTRIBUTES = 0 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DummyType&, const DummyType&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const DummyType& lhs, const DummyType& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const DummyType& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const DummyType&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'DummyType'.
+    {
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DummyType)
 
 namespace bmqp_ctrlmsg {
 
@@ -18108,6 +18257,7 @@ class NegotiationMessage {
     union {
         bsls::ObjectBuffer<ClientIdentity> d_clientIdentity;
         bsls::ObjectBuffer<BrokerResponse> d_brokerResponse;
+        bsls::ObjectBuffer<DummyType>      d_placeHolder;
     };
 
     int               d_selectionId;
@@ -18125,14 +18275,16 @@ class NegotiationMessage {
     enum {
         SELECTION_ID_UNDEFINED       = -1,
         SELECTION_ID_CLIENT_IDENTITY = 0,
-        SELECTION_ID_BROKER_RESPONSE = 1
+        SELECTION_ID_BROKER_RESPONSE = 1,
+        SELECTION_ID_PLACE_HOLDER    = 2
     };
 
-    enum { NUM_SELECTIONS = 2 };
+    enum { NUM_SELECTIONS = 3 };
 
     enum {
         SELECTION_INDEX_CLIENT_IDENTITY = 0,
-        SELECTION_INDEX_BROKER_RESPONSE = 1
+        SELECTION_INDEX_BROKER_RESPONSE = 1,
+        SELECTION_INDEX_PLACE_HOLDER    = 2
     };
 
     // CONSTANTS
@@ -18232,6 +18384,16 @@ class NegotiationMessage {
     // Optionally specify the 'value' of the "BrokerResponse".  If 'value'
     // is not specified, the default "BrokerResponse" value is used.
 
+    DummyType& makePlaceHolder();
+    DummyType& makePlaceHolder(const DummyType& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    DummyType& makePlaceHolder(DummyType&& value);
+#endif
+    // Set the value of this object to be a "PlaceHolder" value.
+    // Optionally specify the 'value' of the "PlaceHolder".  If 'value' is
+    // not specified, the default "PlaceHolder" value is used.
+
     template <typename t_MANIPULATOR>
     int manipulateSelection(t_MANIPULATOR& manipulator);
     // Invoke the specified 'manipulator' on the address of the modifiable
@@ -18251,6 +18413,11 @@ class NegotiationMessage {
     // this object if "BrokerResponse" is the current selection.  The
     // behavior is undefined unless "BrokerResponse" is the selection of
     // this object.
+
+    DummyType& placeHolder();
+    // Return a reference to the modifiable "PlaceHolder" selection of this
+    // object if "PlaceHolder" is the current selection.  The behavior is
+    // undefined unless "PlaceHolder" is the selection of this object.
 
     // ACCESSORS
     bsl::ostream&
@@ -18290,6 +18457,11 @@ class NegotiationMessage {
     // behavior is undefined unless "BrokerResponse" is the selection of
     // this object.
 
+    const DummyType& placeHolder() const;
+    // Return a reference to the non-modifiable "PlaceHolder" selection of
+    // this object if "PlaceHolder" is the current selection.  The behavior
+    // is undefined unless "PlaceHolder" is the selection of this object.
+
     bool isClientIdentityValue() const;
     // Return 'true' if the value of this object is a "ClientIdentity"
     // value, and return 'false' otherwise.
@@ -18297,6 +18469,10 @@ class NegotiationMessage {
     bool isBrokerResponseValue() const;
     // Return 'true' if the value of this object is a "BrokerResponse"
     // value, and return 'false' otherwise.
+
+    bool isPlaceHolderValue() const;
+    // Return 'true' if the value of this object is a "PlaceHolder" value,
+    // and return 'false' otherwise.
 
     bool isUndefinedValue() const;
     // Return 'true' if the value of this object is undefined, and 'false'
@@ -23242,6 +23418,81 @@ template <typename t_ACCESSOR>
 int DisconnectResponse::accessAttribute(t_ACCESSOR& accessor,
                                         const char* name,
                                         int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+// ---------------
+// class DummyType
+// ---------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int DummyType::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    (void)manipulator;
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int DummyType::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    (void)manipulator;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int DummyType::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                   const char*    name,
+                                   int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int DummyType::accessAttributes(t_ACCESSOR& accessor) const
+{
+    (void)accessor;
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int DummyType::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    (void)accessor;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int DummyType::accessAttribute(t_ACCESSOR& accessor,
+                               const char* name,
+                               int         nameLength) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -34694,6 +34945,9 @@ void NegotiationMessage::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     case Class::SELECTION_ID_BROKER_RESPONSE:
         hashAppend(hashAlgorithm, this->brokerResponse());
         break;
+    case Class::SELECTION_ID_PLACE_HOLDER:
+        hashAppend(hashAlgorithm, this->placeHolder());
+        break;
     default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
     }
 }
@@ -34707,6 +34961,8 @@ inline bool NegotiationMessage::isEqualTo(const NegotiationMessage& rhs) const
             return this->clientIdentity() == rhs.clientIdentity();
         case Class::SELECTION_ID_BROKER_RESPONSE:
             return this->brokerResponse() == rhs.brokerResponse();
+        case Class::SELECTION_ID_PLACE_HOLDER:
+            return this->placeHolder() == rhs.placeHolder();
         default:
             BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
             return true;
@@ -34742,6 +34998,9 @@ int NegotiationMessage::manipulateSelection(t_MANIPULATOR& manipulator)
         return manipulator(
             &d_brokerResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_RESPONSE]);
+    case NegotiationMessage::SELECTION_ID_PLACE_HOLDER:
+        return manipulator(&d_placeHolder.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_PLACE_HOLDER]);
     default:
         BSLS_ASSERT(NegotiationMessage::SELECTION_ID_UNDEFINED ==
                     d_selectionId);
@@ -34761,6 +35020,12 @@ inline BrokerResponse& NegotiationMessage::brokerResponse()
     return d_brokerResponse.object();
 }
 
+inline DummyType& NegotiationMessage::placeHolder()
+{
+    BSLS_ASSERT(SELECTION_ID_PLACE_HOLDER == d_selectionId);
+    return d_placeHolder.object();
+}
+
 // ACCESSORS
 inline int NegotiationMessage::selectionId() const
 {
@@ -34777,6 +35042,9 @@ int NegotiationMessage::accessSelection(t_ACCESSOR& accessor) const
     case SELECTION_ID_BROKER_RESPONSE:
         return accessor(d_brokerResponse.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_RESPONSE]);
+    case SELECTION_ID_PLACE_HOLDER:
+        return accessor(d_placeHolder.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_PLACE_HOLDER]);
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
     }
 }
@@ -34793,6 +35061,12 @@ inline const BrokerResponse& NegotiationMessage::brokerResponse() const
     return d_brokerResponse.object();
 }
 
+inline const DummyType& NegotiationMessage::placeHolder() const
+{
+    BSLS_ASSERT(SELECTION_ID_PLACE_HOLDER == d_selectionId);
+    return d_placeHolder.object();
+}
+
 inline bool NegotiationMessage::isClientIdentityValue() const
 {
     return SELECTION_ID_CLIENT_IDENTITY == d_selectionId;
@@ -34801,6 +35075,11 @@ inline bool NegotiationMessage::isClientIdentityValue() const
 inline bool NegotiationMessage::isBrokerResponseValue() const
 {
     return SELECTION_ID_BROKER_RESPONSE == d_selectionId;
+}
+
+inline bool NegotiationMessage::isPlaceHolderValue() const
+{
+    return SELECTION_ID_PLACE_HOLDER == d_selectionId;
 }
 
 inline bool NegotiationMessage::isUndefinedValue() const

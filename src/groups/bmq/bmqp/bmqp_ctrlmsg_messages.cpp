@@ -846,6 +846,46 @@ bsl::ostream& DisconnectResponse::print(bsl::ostream& stream, int, int) const
     return stream;
 }
 
+// ---------------
+// class DummyType
+// ---------------
+
+// CONSTANTS
+
+const char DummyType::CLASS_NAME[] = "DummyType";
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* DummyType::lookupAttributeInfo(const char* name,
+                                                          int nameLength)
+{
+    (void)name;
+    (void)nameLength;
+    return 0;
+}
+
+const bdlat_AttributeInfo* DummyType::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+// MANIPULATORS
+
+void DummyType::reset()
+{
+}
+
+// ACCESSORS
+
+bsl::ostream& DummyType::print(bsl::ostream& stream, int, int) const
+{
+    return stream;
+}
+
 // --------------------
 // class DumpActionType
 // --------------------
@@ -10502,6 +10542,11 @@ const bdlat_SelectionInfo NegotiationMessage::SELECTION_INFO_ARRAY[] = {
      "brokerResponse",
      sizeof("brokerResponse") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_PLACE_HOLDER,
+     "placeHolder",
+     sizeof("placeHolder") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -10509,7 +10554,7 @@ const bdlat_SelectionInfo NegotiationMessage::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 NegotiationMessage::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             NegotiationMessage::SELECTION_INFO_ARRAY[i];
 
@@ -10529,6 +10574,8 @@ const bdlat_SelectionInfo* NegotiationMessage::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CLIENT_IDENTITY];
     case SELECTION_ID_BROKER_RESPONSE:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_RESPONSE];
+    case SELECTION_ID_PLACE_HOLDER:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_PLACE_HOLDER];
     default: return 0;
     }
 }
@@ -10548,6 +10595,10 @@ NegotiationMessage::NegotiationMessage(const NegotiationMessage& original,
     case SELECTION_ID_BROKER_RESPONSE: {
         new (d_brokerResponse.buffer())
             BrokerResponse(original.d_brokerResponse.object(), d_allocator_p);
+    } break;
+    case SELECTION_ID_PLACE_HOLDER: {
+        new (d_placeHolder.buffer())
+            DummyType(original.d_placeHolder.object());
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -10570,6 +10621,10 @@ NegotiationMessage::NegotiationMessage(NegotiationMessage&& original) noexcept
             BrokerResponse(bsl::move(original.d_brokerResponse.object()),
                            d_allocator_p);
     } break;
+    case SELECTION_ID_PLACE_HOLDER: {
+        new (d_placeHolder.buffer())
+            DummyType(bsl::move(original.d_placeHolder.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -10590,6 +10645,10 @@ NegotiationMessage::NegotiationMessage(NegotiationMessage&& original,
             BrokerResponse(bsl::move(original.d_brokerResponse.object()),
                            d_allocator_p);
     } break;
+    case SELECTION_ID_PLACE_HOLDER: {
+        new (d_placeHolder.buffer())
+            DummyType(bsl::move(original.d_placeHolder.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -10607,6 +10666,9 @@ NegotiationMessage::operator=(const NegotiationMessage& rhs)
         } break;
         case SELECTION_ID_BROKER_RESPONSE: {
             makeBrokerResponse(rhs.d_brokerResponse.object());
+        } break;
+        case SELECTION_ID_PLACE_HOLDER: {
+            makePlaceHolder(rhs.d_placeHolder.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -10629,6 +10691,9 @@ NegotiationMessage& NegotiationMessage::operator=(NegotiationMessage&& rhs)
         case SELECTION_ID_BROKER_RESPONSE: {
             makeBrokerResponse(bsl::move(rhs.d_brokerResponse.object()));
         } break;
+        case SELECTION_ID_PLACE_HOLDER: {
+            makePlaceHolder(bsl::move(rhs.d_placeHolder.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -10648,6 +10713,9 @@ void NegotiationMessage::reset()
     case SELECTION_ID_BROKER_RESPONSE: {
         d_brokerResponse.object().~BrokerResponse();
     } break;
+    case SELECTION_ID_PLACE_HOLDER: {
+        d_placeHolder.object().~DummyType();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -10662,6 +10730,9 @@ int NegotiationMessage::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_BROKER_RESPONSE: {
         makeBrokerResponse();
+    } break;
+    case SELECTION_ID_PLACE_HOLDER: {
+        makePlaceHolder();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -10776,6 +10847,51 @@ BrokerResponse& NegotiationMessage::makeBrokerResponse(BrokerResponse&& value)
 }
 #endif
 
+DummyType& NegotiationMessage::makePlaceHolder()
+{
+    if (SELECTION_ID_PLACE_HOLDER == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_placeHolder.object());
+    }
+    else {
+        reset();
+        new (d_placeHolder.buffer()) DummyType();
+        d_selectionId = SELECTION_ID_PLACE_HOLDER;
+    }
+
+    return d_placeHolder.object();
+}
+
+DummyType& NegotiationMessage::makePlaceHolder(const DummyType& value)
+{
+    if (SELECTION_ID_PLACE_HOLDER == d_selectionId) {
+        d_placeHolder.object() = value;
+    }
+    else {
+        reset();
+        new (d_placeHolder.buffer()) DummyType(value);
+        d_selectionId = SELECTION_ID_PLACE_HOLDER;
+    }
+
+    return d_placeHolder.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+DummyType& NegotiationMessage::makePlaceHolder(DummyType&& value)
+{
+    if (SELECTION_ID_PLACE_HOLDER == d_selectionId) {
+        d_placeHolder.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_placeHolder.buffer()) DummyType(bsl::move(value));
+        d_selectionId = SELECTION_ID_PLACE_HOLDER;
+    }
+
+    return d_placeHolder.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& NegotiationMessage::print(bsl::ostream& stream,
@@ -10791,6 +10907,9 @@ bsl::ostream& NegotiationMessage::print(bsl::ostream& stream,
     case SELECTION_ID_BROKER_RESPONSE: {
         printer.printAttribute("brokerResponse", d_brokerResponse.object());
     } break;
+    case SELECTION_ID_PLACE_HOLDER: {
+        printer.printAttribute("placeHolder", d_placeHolder.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -10804,6 +10923,8 @@ const char* NegotiationMessage::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CLIENT_IDENTITY].name();
     case SELECTION_ID_BROKER_RESPONSE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_RESPONSE].name();
+    case SELECTION_ID_PLACE_HOLDER:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_PLACE_HOLDER].name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
         return "(* UNDEFINED *)";
