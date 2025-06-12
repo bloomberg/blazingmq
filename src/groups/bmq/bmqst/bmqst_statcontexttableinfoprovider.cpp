@@ -492,7 +492,8 @@ int StatContextTableInfoProvider::getValueSize(int row, int column) const
         }
         else if (colInfo.d_doubleFunc) {
             double funcValue = colInfo.d_doubleFunc(value);
-            return bmqst::PrintUtil::printedValueLength(funcValue);
+            return bmqst::PrintUtil::printedValueLength(funcValue,
+                                                        d_precision);
         }
     }
 
