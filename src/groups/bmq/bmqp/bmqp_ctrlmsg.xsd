@@ -1608,6 +1608,7 @@
     <choice>
       <element name='clientIdentity'           type='tns:ClientIdentity'/>
       <element name='brokerResponse'           type='tns:BrokerResponse'/>
+      <element name="placeHolder"              type='tns:DummyType'/>
     </choice>
   </complexType>
 
@@ -1727,6 +1728,14 @@
       <element name='heartbeatIntervalMs'   type='int' default='3000'/>
       <element name='maxMissedHeartbeats'   type='int' default='10'/>
     </sequence>
+  </complexType>
+
+  <complexType name="DummyType">
+    <annotation>
+      <documentation>
+        This type is used protocol messages that have been deprecated and removed.
+      </documentation>
+    </annotation>
   </complexType>
 
 </schema>
