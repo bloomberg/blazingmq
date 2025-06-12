@@ -185,6 +185,8 @@ struct Tester {
 
             message->choice().makeLeaderAdvisoryCommit(commit);
         } break;
+        default:
+            BSLS_ASSERT(false && "Advisory type is not a cluster message");
         }
     }
 

@@ -1566,7 +1566,12 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         break;  // BREAK
 
     case bmqp::RecoveryFileChunkType::e_UNDEFINED:
-        BSLS_ASSERT_SAFE(false);
+        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+        break;  // BREAK
+
+    default:
+        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+        BSLA_UNREACHABLE;
         break;  // BREAK
     }
 

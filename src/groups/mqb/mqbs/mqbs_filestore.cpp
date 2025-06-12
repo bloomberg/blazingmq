@@ -7566,7 +7566,8 @@ bsl::ostream& FileStoreIterator::print(bsl::ostream& stream,
         printer.printAttribute("queueOpRecord", record);
     } break;
     case mqbs::RecordType::e_JOURNAL_OP:
-    case mqbs::RecordType::e_UNDEFINED: {
+    case mqbs::RecordType::e_UNDEFINED:
+    default: {
         // we should never be here
         BSLS_ASSERT_SAFE(false && "Invalid file store record");
     }
