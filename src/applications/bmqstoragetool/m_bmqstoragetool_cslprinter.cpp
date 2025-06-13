@@ -61,10 +61,10 @@ void printQueueInfo(bsl::ostream&     ostream,
                     unsigned int      queuesLimit,
                     bslma::Allocator* allocator)
 {
-    const QueueInfos& queueInfos = queueMap.queueInfos();
+    const QueueMap::QueueInfos& queueInfos = queueMap.queueInfos();
     if (!queueInfos.empty()) {
         ostream << ",\n";
-        QueueInfos::const_iterator itEnd = queueInfos.cend();
+        QueueMap::QueueInfos::const_iterator itEnd = queueInfos.cend();
         if (queueInfos.size() > queuesLimit) {
             ostream << "    \"First" << queuesLimit << "Queues\": [";
             itEnd = queueInfos.cbegin() + queuesLimit;
@@ -72,7 +72,7 @@ void printQueueInfo(bsl::ostream&     ostream,
         else {
             ostream << "    \"Queues\": [";
         }
-        QueueInfos::const_iterator it = queueInfos.cbegin();
+        QueueMap::QueueInfos::const_iterator it = queueInfos.cbegin();
         for (; it != itEnd; ++it) {
             if (it != queueInfos.cbegin()) {
                 ostream << ",";
