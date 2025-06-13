@@ -271,7 +271,7 @@ bool FileManagerImpl::CslFileHandler::resetIterator(
 
     if (d_cslFromBegin) {
         // Move iterator to the first record.
-        const int rc = d_iter_p->next();
+        rc = d_iter_p->next();
         if (rc != 0) {
             errorDescription << "CSL file either empty or corrupted: rc="
                              << rc;
