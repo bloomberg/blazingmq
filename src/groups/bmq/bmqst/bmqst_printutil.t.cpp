@@ -358,7 +358,7 @@ int main(int argc, char* argv[])
                  << "PRINT MEMORY TEST" << endl
                  << "=================" << endl;
 
-#define TO_I64(x) (Int64)(x)
+#define TO_I64(x) static_cast<Int64>(x)
 
         const struct TestData {
             int         d_line;

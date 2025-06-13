@@ -46,12 +46,12 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    const bsl::string        k_DATA_FILE         = "data";
-    const bsls::Types::Int64 k_DATA_FILE_SIZE    = 1 * 1024 * 1024;
-    const bsl::string        k_JOURNAL_FILE      = "journal";
-    const bsls::Types::Int64 k_JOURNAL_FILE_SIZE = 2048;
-    const bsl::string        k_QLIST_FILE        = "qlist";
-    const bsls::Types::Int64 k_QLIST_FILE_SIZE   = 1024;
+    const bsl::string         k_DATA_FILE         = "data";
+    const bsls::Types::Uint64 k_DATA_FILE_SIZE    = 1 * 1024 * 1024;
+    const bsl::string         k_JOURNAL_FILE      = "journal";
+    const bsls::Types::Uint64 k_JOURNAL_FILE_SIZE = 2048;
+    const bsl::string         k_QLIST_FILE        = "qlist";
+    const bsls::Types::Uint64 k_QLIST_FILE_SIZE   = 1024;
 
     // Default constructor
     PV("Default constructor");
@@ -92,11 +92,11 @@ static void test1_breathingTest()
     obj1.reset();
 
     BMQTST_ASSERT_EQ(obj1.dataFile(), "");
-    BMQTST_ASSERT_EQ(obj1.dataFileSize(), 0LL)
+    BMQTST_ASSERT_EQ(obj1.dataFileSize(), 0u)
     BMQTST_ASSERT_EQ(obj1.journalFile(), "");
-    BMQTST_ASSERT_EQ(obj1.journalFileSize(), 0LL)
+    BMQTST_ASSERT_EQ(obj1.journalFileSize(), 0u)
     BMQTST_ASSERT_EQ(obj1.qlistFile(), "");
-    BMQTST_ASSERT_EQ(obj1.qlistFileSize(), 0LL)
+    BMQTST_ASSERT_EQ(obj1.qlistFileSize(), 0u)
 
     BMQTST_ASSERT_EQ(obj2.dataFile(), k_DATA_FILE);
     BMQTST_ASSERT_EQ(obj2.dataFileSize(), k_DATA_FILE_SIZE);
