@@ -91,11 +91,12 @@ class MessageIterator {
 
   private:
     // DATA
-    MessageIteratorImpl d_impl;  // Implementation. Abstracted in its own
-                                 // struct and private so that we can do some
-                                 // magic to manipulate it without exposing any
-                                 // accessors/manipulators (this is wanted
-                                 // since this class is a public class).
+
+    /// Implementation. Abstracted in its own struct and private so that we can
+    /// do some magic to manipulate it without exposing any
+    /// accessors/manipulators (this is wanted since this class is a public
+    /// class).
+    MessageIteratorImpl d_impl;
 
   public:
     // CREATORS
