@@ -164,7 +164,7 @@ inline static bsls::Types::Int64 convertFromEpoch(bsls::Types::Int64 epochTime)
 // PRIVATE CLASS METHODS
 void StatContext::statContextDeleter(void* context_vp, void* allocator_vp)
 {
-    StatContext* context = (StatContext*)context_vp;
+    StatContext* context = static_cast<StatContext*>(context_vp);
     context->d_isDeleted = true;
     if (context->d_released.swap(true)) {
         // Context was already release by its parent context, therefore we are

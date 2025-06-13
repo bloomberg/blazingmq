@@ -377,7 +377,7 @@ static void test3_humanReadableRecordsTest()
     }
 }
 
-void test4_humanReadableOffsetsTest()
+static void test4_humanReadableOffsetsTest()
 // ------------------------------------------------------------------------
 // HUMAN READABLE OFFSETS TEST
 //
@@ -1156,7 +1156,7 @@ static void test11_jsonPrettyRecordsTest()
     }
 }
 
-void test12_jsonPrettyOffsetsTest()
+static void test12_jsonPrettyOffsetsTest()
 // ------------------------------------------------------------------------
 // JSON PRETTY OFFSETS TEST
 //
@@ -2040,7 +2040,7 @@ static void test19_jsonLineRecordsTest()
     }
 }
 
-void test20_jsonLineOffsetsTest()
+static void test20_jsonLineOffsetsTest()
 // ------------------------------------------------------------------------
 // JSON LINE OFFSETS TEST
 //
