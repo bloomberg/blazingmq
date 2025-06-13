@@ -74,13 +74,14 @@ static void test1_humanReadableShortResultTest()
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     {
-        bslim::Printer printer(&expectedStream, 0, -1);
-        printer.start();
-        printer.printAttribute("recordType", header.recordType());
-        printer.printAttribute("electorTerm", header.electorTerm());
-        printer.printAttribute("sequenceNumber", header.sequenceNumber());
-        printer.printAttribute("timestamp", header.timestamp());
-        printer.end();
+        bslim::Printer expectedPrinter(&expectedStream, 0, -1);
+        expectedPrinter.start();
+        expectedPrinter.printAttribute("recordType", header.recordType());
+        expectedPrinter.printAttribute("electorTerm", header.electorTerm());
+        expectedPrinter.printAttribute("sequenceNumber",
+                                       header.sequenceNumber());
+        expectedPrinter.printAttribute("timestamp", header.timestamp());
+        expectedPrinter.end();
         expectedStream << recordId << '\n';
     }
 
@@ -134,10 +135,12 @@ static void test2_humanReadableDetailResultTest()
         bmqu::MemOutStream recordStream(bmqtst::TestHelperUtil::allocator());
         record.print(recordStream, 2, 2);
 
-        CslRecordPrinter<bmqu::AlignedPrinter> printer(
+        CslRecordPrinter<bmqu::AlignedPrinter> expectedPrinter(
             expectedStream,
             bmqtst::TestHelperUtil::allocator());
-        printer.printRecordDetails(recordStream.str(), header, recordId);
+        expectedPrinter.printRecordDetails(recordStream.str(),
+                                           header,
+                                           recordId);
     }
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());

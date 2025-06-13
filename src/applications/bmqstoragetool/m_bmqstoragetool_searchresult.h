@@ -554,7 +554,7 @@ class SearchResultOffsetDecorator : public SearchResultDecorator {
 class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
   private:
     /// Higher bound sequence number.
-    const CompositeSequenceNumber sequenceNumberLt;
+    const CompositeSequenceNumber d_sequenceNumberLt;
 
     // ACCESSORS
 

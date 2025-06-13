@@ -116,7 +116,6 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
         }
     }
     if (!queueUris.empty()) {
-        mqbu::StorageKey                         key;
         bsl::vector<bsl::string>::const_iterator uriIt = queueUris.cbegin();
         for (; uriIt != queueUris.cend(); ++uriIt) {
             bsl::optional<mqbu::StorageKey> key = queueMap.findKeyByUri(

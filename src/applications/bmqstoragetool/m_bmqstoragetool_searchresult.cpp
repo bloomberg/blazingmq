@@ -254,7 +254,7 @@ bool SearchResultOffsetDecorator::processDeletionRecord(
 bool SearchResultSequenceNumberDecorator::stop(
     const CompositeSequenceNumber& sequenceNumber) const
 {
-    return sequenceNumberLt <= sequenceNumber &&
+    return d_sequenceNumberLt <= sequenceNumber &&
            !SearchResultDecorator::hasCache();
 }
 
@@ -263,7 +263,7 @@ SearchResultSequenceNumberDecorator::SearchResultSequenceNumberDecorator(
     const CompositeSequenceNumber&       sequenceNumberLt,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
-, sequenceNumberLt(sequenceNumberLt)
+, d_sequenceNumberLt(sequenceNumberLt)
 {
     // NOTHING
 }
