@@ -858,6 +858,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                                              bdlf::PlaceHolders::_1)  // event
                       : bmqimp::EventQueue::EventHandlerCallback(),
                   bdlf::MemFnUtil::memFn(&TestSession::stateCb, this),
+                  bmqimp::SessionId(),
                   d_allocator_p)
 , d_onChannelCloseHandler(d_testChannel.onClose(
       bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this)))
@@ -894,6 +895,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                                              bdlf::PlaceHolders::_1)  // event
                       : bmqimp::EventQueue::EventHandlerCallback(),
                   bdlf::MemFnUtil::memFn(&TestSession::stateCb, this),
+                  bmqimp::SessionId(),
                   d_allocator_p)
 , d_onChannelCloseHandler(d_testChannel.onClose(
       bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this)))
@@ -2874,6 +2876,7 @@ static void test1_breathingTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
     PVV_SAFE("Starting session...");
     int rc = session.startAsync();
@@ -2940,6 +2943,7 @@ static void test2_basicAccessorsTest()
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
+                              bmqimp::SessionId(),
                               bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT(!obj.isUsingSessionEventHandler());
@@ -2999,6 +3003,7 @@ static void test3_nullChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.isUsingSessionEventHandler(), true);
@@ -3087,6 +3092,7 @@ static void test4_createEventTest()
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
+                              bmqimp::SessionId(),
                               bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> ev = obj.createEvent();
@@ -3142,6 +3148,7 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
@@ -3370,6 +3377,7 @@ static void test6_setChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Starting session...");
@@ -4053,6 +4061,7 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
+            bmqimp::SessionId(),
             bmqtst::TestHelperUtil::allocator());
 
         // Start the session
@@ -4159,6 +4168,7 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
+            bmqimp::SessionId(),
             bmqtst::TestHelperUtil::allocator());
 
         // Start the session
@@ -5824,6 +5834,7 @@ static void test25_sessionFsmTable()
                              &table,
                              &tcpRc,
                              &doneSemaphore),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     table = obj.getSessionFsmTransitionTable();
@@ -7881,6 +7892,7 @@ static void test40_syncCalledFromEventHandler()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");

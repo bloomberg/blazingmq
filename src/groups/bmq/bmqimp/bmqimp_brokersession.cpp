@@ -368,8 +368,8 @@ BrokerSession::SessionFsm::setState(State::Enum value, FsmEvent::Enum event)
     bool        isValidTransition = false;
     State::Enum oldState          = state();
 
-    BALL_LOG_INFO << "::: STATE TRANSITION: " << oldState << " -> [" << event
-                  << "] -> " << value << " :::";
+    BALL_LOG_INFO << id() << "::: STATE TRANSITION: " << oldState << " -> ["
+                  << event << "] -> " << value << " :::";
 
     for (size_t i = 0; i < d_transitionTable.size(); ++i) {
         if (d_transitionTable[i].d_currentState == oldState &&
@@ -608,16 +608,16 @@ bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
         res = bmqt::GenericResult::e_SUCCESS;
     } break;
     case State::e_STARTING: {
-        BALL_LOG_ERROR << "Session is already being started";
+        BALL_LOG_ERROR << id() << "Session is already being started";
         res = bmqt::GenericResult::e_NOT_SUPPORTED;
     } break;
     case State::e_RECONNECTING: {
-        BALL_LOG_ERROR << "Broker is not connected";
+        BALL_LOG_ERROR << id() << "Broker is not connected";
         res = bmqt::GenericResult::e_NOT_CONNECTED;
     } break;
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL: {
-        BALL_LOG_ERROR << "Session is being stopped";
+        BALL_LOG_ERROR << id() << "Session is being stopped";
         res = bmqt::GenericResult::e_NOT_SUPPORTED;
     } break;
     case State::e_STOPPED: {
@@ -641,7 +641,7 @@ void BrokerSession::SessionFsm::handleStartTimeout()
 
     switch (state()) {
     case State::e_STARTING: {
-        BALL_LOG_ERROR << "Start (ASYNC) has timed out";
+        BALL_LOG_ERROR << id() << "Start (ASYNC) has timed out";
         setStopped(event, true);
         logOperationTime("Start");
     } break;
@@ -653,8 +653,8 @@ void BrokerSession::SessionFsm::handleStartTimeout()
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << "::: UNEXPECTED START_TIMEOUT IN STATE " << state()
-                       << " :::";
+        BALL_LOG_ERROR << id() << "::: UNEXPECTED START_TIMEOUT IN STATE "
+                       << state() << " :::";
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -673,7 +673,7 @@ void BrokerSession::SessionFsm::handleStartSynchronousFailure()
 
     switch (state()) {
     case State::e_STARTING: {
-        BALL_LOG_ERROR << "Start (ASYNC) has failed";
+        BALL_LOG_ERROR << id() << "Start (ASYNC) has failed";
 
         BSLS_ASSERT_SAFE(!d_onceConnected);
         setStopped(event, false);
@@ -687,8 +687,8 @@ void BrokerSession::SessionFsm::handleStartSynchronousFailure()
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << "::: UNEXPECTED START_FAILURE IN STATE " << state()
-                       << " :::";
+        BALL_LOG_ERROR << id() << "::: UNEXPECTED START_FAILURE IN STATE "
+                       << state() << " :::";
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -710,7 +710,8 @@ void BrokerSession::SessionFsm::handleStopRequest()
 
         bmqt::GenericResult::Enum res = setClosingSession(event);
         if (res != bmqt::GenericResult::e_SUCCESS) {
-            BALL_LOG_ERROR << "::: FAILED TO DISCONNECT BROKER GRACEFULLY :::";
+            BALL_LOG_ERROR << id()
+                           << "::: FAILED TO DISCONNECT BROKER GRACEFULLY :::";
             setClosingChannel(FsmEvent::e_SESSION_DOWN);
         }
     } break;
@@ -726,10 +727,10 @@ void BrokerSession::SessionFsm::handleStopRequest()
     } break;
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL: {
-        BALL_LOG_INFO << "::: STOP IN PROGRESS :::";
+        BALL_LOG_INFO << id() << "::: STOP IN PROGRESS :::";
     } break;
     case State::e_STOPPED: {
-        BALL_LOG_INFO << "::: ALREADY STOPPED :::";
+        BALL_LOG_INFO << id() << "::: ALREADY STOPPED :::";
         // trigger stateCb
         setStopped(event);
     } break;
@@ -764,8 +765,8 @@ void BrokerSession::SessionFsm::handleChannelUp(
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << "::: UNEXPECTED CHANNEL_UP IN STATE " << state()
-                       << " :::";
+        BALL_LOG_ERROR << id() << "::: UNEXPECTED CHANNEL_UP IN STATE "
+                       << state() << " :::";
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -813,8 +814,8 @@ void BrokerSession::SessionFsm::handleChannelDown()
     } break;
     case State::e_RECONNECTING:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << "::: UNEXPECTED CHANNEL_DOWN IN STATE " << state()
-                       << " :::";
+        BALL_LOG_ERROR << id() << "::: UNEXPECTED CHANNEL_DOWN IN STATE "
+                       << state() << " :::";
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -839,8 +840,8 @@ void BrokerSession::SessionFsm::handleSessionClosed()
     case State::e_CLOSING_CHANNEL:
     case State::e_RECONNECTING:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << "::: UNEXPECTED SESSION_DOWN WHILE " << state()
-                       << " :::";
+        BALL_LOG_ERROR << id() << "::: UNEXPECTED SESSION_DOWN WHILE "
+                       << state() << " :::";
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -866,7 +867,8 @@ void BrokerSession::SessionFsm::handleHostUnhealthy()
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << " ::: UNEXPECTED HOST-HEALTH NOTIFICATION AFTER "
+        BALL_LOG_ERROR << id()
+                       << " ::: UNEXPECTED HOST-HEALTH NOTIFICATION AFTER "
                        << "INITIATING SESSION CLOSURE :::";
     } break;
     default: {
@@ -893,7 +895,8 @@ void BrokerSession::SessionFsm::handleHostHealthy()
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL:
     case State::e_STOPPED: {
-        BALL_LOG_ERROR << " ::: UNEXPECTED HOST-HEALTH NOTIFICATION AFTER "
+        BALL_LOG_ERROR << id()
+                       << " ::: UNEXPECTED HOST-HEALTH NOTIFICATION AFTER "
                        << "STOPPING SESSION :::";
     } break;
     default: {
@@ -921,7 +924,8 @@ void BrokerSession::SessionFsm::handleAllQueuesResumed()
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL:
     case State::e_STOPPED: {
-        BALL_LOG_INFO << "Elided e_QUEUES_RESTORED event for closing session";
+        BALL_LOG_INFO << id()
+                      << "Elided e_QUEUES_RESTORED event for closing session";
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -934,7 +938,7 @@ void BrokerSession::SessionFsm::logOperationTime(const char* operation)
     if (d_beginTimestamp) {
         const bsls::Types::Int64 elapsed =
             bmqsys::Time::highResolutionTimer() - d_beginTimestamp;
-        BALL_LOG_INFO << operation << " took: "
+        BALL_LOG_INFO << id() << operation << " took: "
                       << bmqu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
         d_beginTimestamp = 0;
@@ -960,7 +964,7 @@ void BrokerSession::QueueFsm::setQueueState(
     bool             isValidTransition = false;
     QueueState::Enum oldState          = queue->state();
 
-    BALL_LOG_INFO << "::: QUEUE STATE TRANSITION [qId=" << queue->id()
+    BALL_LOG_INFO << id() << "::: QUEUE STATE TRANSITION [qId=" << queue->id()
                   << "]: " << oldState << " -> [" << event << "] -> " << value
                   << " :::";
 
@@ -1385,7 +1389,8 @@ void BrokerSession::QueueFsm::logOperationTime(const bsl::string& queueUri,
     if (it != d_timestampMap.end()) {
         const bsls::Types::Int64 elapsed =
             bmqsys::Time::highResolutionTimer() - it->second;
-        BALL_LOG_INFO << operation << " [uri=" << queueUri << "] took: "
+        BALL_LOG_INFO << id() << operation << " [uri=" << queueUri
+                      << "] took: "
                       << bmqu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
         // Handling of error cases causes of several operations.
@@ -1502,7 +1507,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
     const QueueFsmEvent::Enum   event = QueueFsmEvent::e_OPEN_CMD;
     bmqt::OpenQueueResult::Enum res   = bmqt::OpenQueueResult::e_UNKNOWN;
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     // We don't support open the same queue multiple times, or concurrently
@@ -1568,7 +1573,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
     const QueueState::Enum    state = queue->state();
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_REQ_NOT_SENT;
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -1726,7 +1731,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -1748,7 +1753,7 @@ void BrokerSession::QueueFsm::handleReopenRequest(
     const QueueState::Enum    state = queue->state();
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_CHANNEL_UP;
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -1782,7 +1787,7 @@ void BrokerSession::QueueFsm::handleReopenRequest(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -1808,7 +1813,7 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     bmqt::ConfigureQueueResult::Enum rc =
         bmqt::ConfigureQueueResult::e_UNKNOWN;
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -1846,12 +1851,12 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         rc = bmqt::ConfigureQueueResult::e_NOT_SUPPORTED;
     } break;
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         rc = bmqt::ConfigureQueueResult::e_INVALID_QUEUE;
     } break;
@@ -1876,7 +1881,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
     if (!d_session.d_acceptRequests) {
         // The session is being/has been stopped or not started: client should
         // not send any request to the broker.
-        BALL_LOG_ERROR << "Unable to process closeQueue request "
+        BALL_LOG_ERROR << id() << "Unable to process closeQueue request "
                        << "[reason: 'SESSION_STOPPED']";
         return bmqt::CloseQueueResult::e_NOT_CONNECTED;  // RETURN
     }
@@ -1890,7 +1895,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
     const QueueState::Enum       state = queue->state();
     bmqt::CloseQueueResult::Enum res   = bmqt::CloseQueueResult::e_SUCCESS;
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -1989,7 +1994,7 @@ void BrokerSession::QueueFsm::handleResponseError(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_RESP_BAD;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2140,7 +2145,7 @@ void BrokerSession::QueueFsm::handleResponseError(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2161,7 +2166,7 @@ void BrokerSession::QueueFsm::handleSessionDown(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_SESSION_DOWN;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2250,7 +2255,7 @@ void BrokerSession::QueueFsm::handleSessionDown(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2271,7 +2276,7 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_REQ_CANCELED;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2358,7 +2363,7 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2380,7 +2385,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_RESP_TIMEOUT;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2493,7 +2498,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2515,7 +2520,7 @@ void BrokerSession::QueueFsm::handleResponseExpired(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_RESP_EXPIRED;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2564,7 +2569,7 @@ void BrokerSession::QueueFsm::handleResponseExpired(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2586,7 +2591,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_RESP_OK;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2770,7 +2775,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2791,7 +2796,7 @@ void BrokerSession::QueueFsm::handleLateResponse(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_LATE_RESP;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2890,7 +2895,7 @@ void BrokerSession::QueueFsm::handleLateResponse(
     case QueueState::e_REOPENING_CFG:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED: {
-        BALL_LOG_ERROR << "Unexpected queue state: " << *queue
+        BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
     } break;
@@ -2910,7 +2915,7 @@ void BrokerSession::QueueFsm::handleChannelDown(
     const QueueFsmEvent::Enum event = QueueFsmEvent::e_CHANNEL_DOWN;
     const QueueState::Enum    state = queue->state();
 
-    BALL_LOG_INFO << "Queue FSM Event: " << event << " ["
+    BALL_LOG_INFO << id() << "Queue FSM Event: " << event << " ["
                   << "QueueState: " << state << "]";
 
     switch (state) {
@@ -2955,7 +2960,7 @@ void BrokerSession::QueueFsm::handleChannelDown(
     case QueueState::e_CLOSING_CLS:
     case QueueState::e_CLOSED:
     case QueueState::e_PENDING: {
-        BALL_LOG_INFO << "No actions for queue: " << *queue
+        BALL_LOG_INFO << id() << "No actions for queue: " << *queue
                       << " when handling " << event;
     } break;
     default: {
@@ -2997,7 +3002,7 @@ void BrokerSession::QueueFsm::handleQueueSuspend(
     case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_OPENING_OPN_EXPIRED:
     case QueueState::e_PENDING: {
-        BALL_LOG_INFO << "No actions for queue: " << *queue
+        BALL_LOG_INFO << id() << "No actions for queue: " << *queue
                       << " when handling " << event;
     } break;
     default: {
@@ -3148,8 +3153,8 @@ void BrokerSession::sendConfirm(const bdlbb::Blob& blob, const int msgCount)
             res != bmqt::GenericResult::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Unable to confirm " << msgCount << " message(s)"
-                       << " [reason: 'NOT_CONNECTED']";
+        BALL_LOG_ERROR << id() << "Unable to confirm " << msgCount
+                       << " message(s) [reason: 'NOT_CONNECTED']";
         return;  // RETURN
     }
 
@@ -3166,7 +3171,7 @@ void BrokerSession::fsmThreadLoop()
     // Init FSM thread checker
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    BALL_LOG_INFO << "FSM thread started "
+    BALL_LOG_INFO << id() << "FSM thread started "
                   << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
 
     while (true) {
@@ -3199,13 +3204,13 @@ void BrokerSession::fsmThreadLoop()
         case Event::EventType::e_MESSAGE:
         case Event::EventType::e_UNINITIALIZED:
         default: {
-            BALL_LOG_ERROR << "Unexpected FSM event: " << *event;
+            BALL_LOG_ERROR << id() << "Unexpected FSM event: " << *event;
             BSLS_ASSERT_SAFE(false && "Unexpected FSM event");
         } break;
         }
     }
 
-    BALL_LOG_INFO << "FSM thread terminated "
+    BALL_LOG_INFO << id() << "FSM thread terminated "
                   << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
 }
 
@@ -3399,14 +3404,15 @@ void BrokerSession::processControlEvent(const bmqp::Event& event)
 
     int rc = event.loadControlEvent(&controlMessage);
     if (rc != 0) {
-        BALL_LOG_ERROR << "Received invalid control message from broker "
+        BALL_LOG_ERROR << id()
+                       << "Received invalid control message from broker "
                        << "[reason: 'failed to decode', rc: " << rc << "]"
                        << "\n"
                        << bmqu::BlobStartHexDumper(event.blob());
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "Received " << controlMessage;
+    BALL_LOG_INFO << id() << "Received " << controlMessage;
     d_eventsStats.onEvent(EventsStatsEventType::e_CONTROL,
                           event.blob()->length(),
                           0);
@@ -3422,7 +3428,7 @@ void BrokerSession::processControlEvent(const bmqp::Event& event)
     // Control message has an id, this is a response to a request
     rc = d_requestManager.processResponse(controlMessage);
     if (rc != 0) {
-        BALL_LOG_ERROR << "Received an unrecognized response: "
+        BALL_LOG_ERROR << id() << "Received an unrecognized response: "
                        << controlMessage;
         // Ignore the event.
     }
@@ -3444,7 +3450,7 @@ void BrokerSession::enableMessageRetransmission(
             putIter.loadApplicationData(&appData) != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Failed to load message payload";
+        BALL_LOG_ERROR << id() << "Failed to load message payload";
         BSLS_ASSERT_SAFE(false && "Failed to load message payload");
         return;  // RETURN
     }
@@ -3489,7 +3495,8 @@ void BrokerSession::processPutEvent(const bmqp::Event& event)
                 res != bmqt::GenericResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            BALL_LOG_ERROR << "Unable to post event [reason: 'NOT_CONNECTED']";
+            BALL_LOG_ERROR << id()
+                           << "Unable to post event [reason: 'NOT_CONNECTED']";
 
             // Channel is down. The blob hasn't been put into the extention
             // buffer. The messages will be put into the retransmitting buffer
@@ -3538,7 +3545,7 @@ void BrokerSession::processConfirmEvent(const bmqp::Event& event)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isStarted())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // Not connected to broker, can't post the event.
-        BALL_LOG_ERROR << "Unable to send confirm event "
+        BALL_LOG_ERROR << id() << "Unable to send confirm event "
                        << "[reason: 'NOT_CONNECTED']";
         return;  // RETURN
     }
@@ -3555,7 +3562,8 @@ void BrokerSession::processConfirmEvent(const bmqp::Event& event)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to confirm event [reason: 'Iteration failed'"
+        BALL_LOG_ERROR << id()
+                       << "Unable to confirm event [reason: 'Iteration failed'"
                        << ",rc: " << rc << "]";
         return;  // RETURN
     }
@@ -3578,7 +3586,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
     event.loadPushMessageIterator(&msgIterator);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!msgIterator.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to process PUSH event "
+        BALL_LOG_ERROR << id() << "Unable to process PUSH event "
                        << "[reason: 'Invalid PushIterator']";
         return;  // RETURN
     }
@@ -3602,7 +3610,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
     // Check for invalid message
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to process push event "
+        BALL_LOG_ERROR << id() << "Unable to process push event "
                        << "[reason: 'Iteration failed', rc: " << rc << "]";
         return;  // RETURN
     }
@@ -3619,7 +3627,8 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BALL_LOG_ERROR << "Unable to flatten PUSH event" << " [rc: " << rc
+            BALL_LOG_ERROR << id() << "Unable to flatten PUSH event"
+                           << " [rc: " << rc
                            << ", length: " << event.blob()->length()
                            << ", eventMessageCount: " << eventMessageCount
                            << "]" << bsl::endl
@@ -3796,7 +3805,7 @@ BrokerSession::openQueueImp(const bsl::shared_ptr<Queue>&  queue,
     if (!d_acceptRequests) {
         // The session is being/has been stopped or not started: client should
         // not send any request to the broker.
-        BALL_LOG_ERROR << "Unable to process openQueue request "
+        BALL_LOG_ERROR << id() << "Unable to process openQueue request "
                        << "[reason: 'SESSION_STOPPED']: " << *queue;
         return bmqt::OpenQueueResult::e_NOT_CONNECTED;  // RETURN
     }
@@ -3820,9 +3829,8 @@ BrokerSession::openQueueImp(const bsl::shared_ptr<Queue>&  queue,
         queueLookup = queue;
     }
 
-    BALL_LOG_INFO << "Opening queue "
-                  << "[queue: " << *queueLookup << ", timeout: " << timeout
-                  << "]";
+    BALL_LOG_INFO << id() << "Opening queue [queue: " << *queueLookup
+                  << ", timeout: " << timeout << "]";
 
     return d_queueFsm.handleOpenRequest(queueLookup, timeout, context);
 }
@@ -3870,8 +3878,7 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
     BSLS_ASSERT_SAFE(queue->state() != QueueState::e_CLOSED);
 
-    BALL_LOG_INFO << "Configure queue "
-                  << " [queue: " << *queue
+    BALL_LOG_INFO << id() << "Configure queue [queue: " << *queue
                   << ", newClientOptions: " << newClientOptions
                   << ", timeout: " << timeout << "]";
 
@@ -3892,7 +3899,7 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
     if (!d_acceptRequests) {
         // The session is being/has been stopped or not started: client should
         // not send any request to the broker.
-        BALL_LOG_ERROR << "Unable to process configureQueue request "
+        BALL_LOG_ERROR << id() << "Unable to process configureQueue request "
                        << "[reason: 'SESSION_STOPPED']: "
                        << context->request();
 
@@ -3925,7 +3932,8 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
         // Failure to send
-        BALL_LOG_ERROR << "Error while sending configureQueue request: [rc: "
+        BALL_LOG_ERROR << id()
+                       << "Error while sending configureQueue request: [rc: "
                        << rc << ", request: " << context->request() << "]";
 
         // Revert to previous QueueOptions
@@ -3952,7 +3960,8 @@ BrokerSession::sendConfigureRequest(const bsl::shared_ptr<Queue>&  queue,
     // Configure queue currently only makes sense for a reader, and is
     // therefore a no-op for a writer only.
     if (!bmqt::QueueFlagsUtil::isReader(queue->flags())) {
-        BALL_LOG_INFO << "Skipping configure queue (reason: not a reader): "
+        BALL_LOG_INFO << id()
+                      << "Skipping configure queue (reason: not a reader): "
                       << *queue;
         // Will signal and trigger the event callback if there is one.
         // The below signaling on the request is what the 'configuredCb' would
@@ -4023,7 +4032,8 @@ BrokerSession::sendSuspendRequest(const bsl::shared_ptr<Queue>&  queueSp,
     // Configure queue currently only makes sense for a reader, and is
     // therefore a no-op for a writer only.
     if (!bmqt::QueueFlagsUtil::isReader(queueSp->flags())) {
-        BALL_LOG_INFO << "Skipping configure queue (reason: not a reader): "
+        BALL_LOG_INFO << id()
+                      << "Skipping configure queue (reason: not a reader): "
                       << *queueSp;
         // Will signal and trigger the event callback if there is one.
         // The below signaling on the request is what the 'configuredCb' would
@@ -4037,7 +4047,7 @@ BrokerSession::sendSuspendRequest(const bsl::shared_ptr<Queue>&  queueSp,
     // Call 'configureQueueImp' to configure 'queue' via the request 'context'
     // with the provided 'suspendOptions' and 'timeout'. The bound callback
     // will be invoked asynchronously, if and only if 'rc' is 'e_SUCCESS'.
-    BALL_LOG_INFO << "Suspending queue [queue: " << *queueSp << "]";
+    BALL_LOG_INFO << id() << "Suspending queue [queue: " << *queueSp << "]";
     bmqt::ConfigureQueueResult::Enum rc = configureQueueImp(
         context,
         queueSp,
@@ -4081,7 +4091,8 @@ BrokerSession::sendResumeRequest(const bsl::shared_ptr<Queue>&  queueSp,
     // Configure queue currently only makes sense for a reader, and is
     // therefore a no-op for a writer only.
     if (!bmqt::QueueFlagsUtil::isReader(queueSp->flags())) {
-        BALL_LOG_INFO << "Skipping configure queue (reason: not a reader): "
+        BALL_LOG_INFO << id()
+                      << "Skipping configure queue (reason: not a reader): "
                       << *queueSp;
         // Will signal and trigger the event callback if there is one.
         // The below signaling on the request is what the 'configuredCb' would
@@ -4284,11 +4295,11 @@ void BrokerSession::doHandleChannelWatermark(
     // HWM condition is detected by the channel 'write' result, so we do not
     // handle HWM here
     if (type == bmqio::ChannelWatermarkType::e_HIGH_WATERMARK) {
-        BALL_LOG_INFO << "HWM: Channel is not writable";
+        BALL_LOG_INFO << id() << "HWM: Channel is not writable";
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "LWM: Channel is writable";
+    BALL_LOG_INFO << id() << "LWM: Channel is writable";
 
     while (!d_extensionBlobBuffer.empty()) {
         // We expect the channel is ready for writing so we write control blobs
@@ -4303,7 +4314,8 @@ void BrokerSession::doHandleChannelWatermark(
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BALL_LOG_ERROR << "Failed to send buffered control messages ";
+            BALL_LOG_ERROR << id()
+                           << "Failed to send buffered control messages ";
 
             break;  // BREAK
         }
@@ -4313,7 +4325,7 @@ void BrokerSession::doHandleChannelWatermark(
         bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);  // LOCK
         d_extensionBufferEmpty = true;
 
-        BALL_LOG_INFO << "LWM: Channel is ready for user messages";
+        BALL_LOG_INFO << id() << "LWM: Channel is ready for user messages";
         d_extensionBufferCondition.broadcast();
     }
 }
@@ -4344,7 +4356,7 @@ void BrokerSession::onSuspendQueueConfigured(
 
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    BALL_LOG_INFO << "Handling suspend response [queue: " << *queueSp
+    BALL_LOG_INFO << id() << "Handling suspend response [queue: " << *queueSp
                   << ", deferred: " << deferred << "]";
 
     if (context->isLateResponse()) {
@@ -4400,7 +4412,8 @@ void BrokerSession::onSuspendQueueConfigured(
 
             // If the request wasn't successful or canceled, drop the channel.
             if (context->result() != bmqt::GenericResult::e_SUCCESS) {
-                BALL_LOG_ERROR << "Got suspend error; dropping channel "
+                BALL_LOG_ERROR << id()
+                               << "Got suspend error; dropping channel "
                                << "[result: " << context->result()
                                << ", queue: " << *queueSp << "]";
                 if (d_channel_sp) {
@@ -4613,7 +4626,7 @@ bool BrokerSession::cancelPendingMessageImp(
         // cancelled.  If the cancelation is for the particular queue fire
         // assert because such item should have been already deleted.
         if (queueSp) {
-            BALL_LOG_ERROR << "Unexpected pending request: "
+            BALL_LOG_ERROR << id() << "Unexpected pending request: "
                            << qac.d_requestContext->request();
             BSLS_ASSERT_SAFE(false && "Unexpected pending request");
         }
@@ -4666,7 +4679,7 @@ bool BrokerSession::cancelPendingMessageImp(
                              ackEvent));
 
     if (rc != bmqt::EventBuilderResult::e_SUCCESS) {
-        BALL_LOG_ERROR << "Failed to append ACK/NACK [rc: " << rc
+        BALL_LOG_ERROR << id() << "Failed to append ACK/NACK [rc: " << rc
                        << ", GUID: " << guid << ", queueId: " << qac.d_queueId;
         return res;  // RETURN
     }
@@ -4741,7 +4754,8 @@ bool BrokerSession::retransmitControlMessage(
             res != bmqt::GenericResult::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Failed to send pending CONTROL message: " << res;
+        BALL_LOG_ERROR << id()
+                       << "Failed to send pending CONTROL message: " << res;
 
         // Interrupt iteration
         return true;  // RETURN
@@ -4791,7 +4805,8 @@ bool BrokerSession::appendOrSend(
                 res != bmqt::GenericResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            BALL_LOG_ERROR << "Failed to send pending PUT event: " << res;
+            BALL_LOG_ERROR << id()
+                           << "Failed to send pending PUT event: " << res;
 
             *interrupt = true;
         }
@@ -4800,7 +4815,7 @@ bool BrokerSession::appendOrSend(
 
         return false;  // RETURN
     }
-    BALL_LOG_ERROR << "Failed to append PUT message [rc: " << result
+    BALL_LOG_ERROR << id() << "Failed to append PUT message [rc: " << result
                    << ", correlationId: " << qac.d_header.correlationId()
                    << ", queueId: " << qac.d_queueId << "]";
 
@@ -4900,7 +4915,7 @@ void BrokerSession::retransmitPendingMessages()
     const bool allIterated = d_messageCorrelationIdContainer.iterateAndInvoke(
         callback);
     if (!allIterated) {
-        BALL_LOG_ERROR << "Stop message retransmission. Bad channel.";
+        BALL_LOG_ERROR << id() << "Stop message retransmission. Bad channel.";
         return;  // RETURN
     }
 
@@ -4914,7 +4929,8 @@ void BrokerSession::retransmitPendingMessages()
                 res != bmqt::GenericResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            BALL_LOG_ERROR << "Failed to send pending PUT event: " << res;
+            BALL_LOG_ERROR << id()
+                           << "Failed to send pending PUT event: " << res;
         }
     }
 }
@@ -4926,7 +4942,7 @@ BrokerSession::enqueueFsmEvent(bsl::shared_ptr<Event>& event)
 
     BALL_LOG_TRACE_BLOCK
     {
-        BALL_LOG_OUTPUT_STREAM << "Enqueuing to FSM: ";
+        BALL_LOG_OUTPUT_STREAM << id() << "Enqueuing to FSM: ";
         if (event) {
             BALL_LOG_OUTPUT_STREAM << *event;
         }
@@ -4940,7 +4956,7 @@ BrokerSession::enqueueFsmEvent(bsl::shared_ptr<Event>& event)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BSLS_ASSERT_SAFE(false && "Impossible - failed to enqueue FSM event");
-        BALL_LOG_ERROR << "Failed to enqueue FSM event: " << *event;
+        BALL_LOG_ERROR << id() << "Failed to enqueue FSM event: " << *event;
         return bmqt::GenericResult::e_REFUSED;  // RETURN
     }
 
@@ -5116,7 +5132,7 @@ void BrokerSession::doCloseQueue(
     // the operation.
     bslma::ManagedPtr<void> scopedSpan(activateDTSpan(span));
 
-    BALL_LOG_INFO << "Close queue [queue: " << *queue
+    BALL_LOG_INFO << id() << "Close queue [queue: " << *queue
                   << ", timeout: " << timeout << "]";
 
     RequestManagerType::RequestSp closeContext = createCloseQueueContext(
@@ -5146,13 +5162,15 @@ void BrokerSession::doSetChannel(
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
     if (channel) {  // We are now connected to bmqbrkr
-        BALL_LOG_INFO << "Setting channel [host: " << channel->peerUri()
+        BALL_LOG_INFO << id()
+                      << "Setting channel [host: " << channel->peerUri()
                       << "]";
 
         d_sessionFsm.handleChannelUp(channel);
     }
     else {  // We lost connection with bmqbrkr
-        BALL_LOG_INFO << "Channel is RESET, state: " << d_sessionFsm.state();
+        BALL_LOG_INFO << id()
+                      << "Channel is RESET, state: " << d_sessionFsm.state();
 
         // Cancel pending requests before notifying the queues about channel
         // down.  This is needed to move all in-progress queues into EXPIRED
@@ -5654,7 +5672,8 @@ BrokerSession::writeOrBuffer(const bdlbb::Blob& eventBlob,
         else {
             res = bmqt::GenericResult::e_NOT_CONNECTED;
             // Critical error. Close the channel.
-            BALL_LOG_ERROR << "Unrecoverable channel error: " << status;
+            BALL_LOG_ERROR << id()
+                           << "Unrecoverable channel error: " << status;
             d_channel_sp->close();
         }
     }
@@ -5669,6 +5688,7 @@ BrokerSession::BrokerSession(
     const bmqt::SessionOptions&             sessionOptions,
     const EventQueue::EventHandlerCallback& eventHandlerCb,
     const StateFunctor&                     stateCb,
+    const SessionId&                        sessionId,
     bslma::Allocator*                       allocator)
 : d_allocators(allocator)
 , d_eventPool(bdlf::BindUtil::bind(&poolCreateEvent,
@@ -5710,6 +5730,7 @@ BrokerSession::BrokerSession(
                // supply an empty handler callback if session is not
                // configured to use event handler
                (eventHandlerCb ? sessionOptions.numProcessingThreads() : 0),
+               sessionId,
                d_allocators.get("EventQueue"))
 , d_requestManager(bmqp::EventType::e_CONTROL,
                    blobSpPool_p,
@@ -5740,6 +5761,7 @@ BrokerSession::BrokerSession(
 , d_queueRetransmissionTimeoutMap(allocator)
 , d_nextInternalSubscriptionId(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)
 , d_doConfigureStream(0)
+, d_id(sessionId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==
@@ -5829,7 +5851,7 @@ BrokerSession::processPacket(const bmqp::Event& event)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Received an invalid packet: "
+        BALL_LOG_ERROR << id() << "Received an invalid packet: "
                        << bmqu::BlobStartHexDumper(
                               event.blob(),
                               e_NUM_BYTES_IN_BLOB_TO_DUMP);
@@ -5849,11 +5871,12 @@ void BrokerSession::setChannel(const bsl::shared_ptr<bmqio::Channel>& channel)
     bmqsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
 
     if (channel) {  // We are now connected to bmqbrkr
-        BALL_LOG_INFO << "Channel is CREATED [host: " << channel->peerUri()
+        BALL_LOG_INFO << id()
+                      << "Channel is CREATED [host: " << channel->peerUri()
                       << "]";
     }
     else {  // We lost connection with bmqbrkr
-        BALL_LOG_INFO << "Channel is RESET";
+        BALL_LOG_INFO << id() << "Channel is RESET";
     }
 
     // Add to the FSM event queue
@@ -5879,7 +5902,8 @@ int BrokerSession::start(const bsls::TimeInterval& timeout)
 
     int rc = startAsync();
     if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to start brokerSession [rc: " << rc << "]";
+        BALL_LOG_ERROR << id() << "Failed to start brokerSession [rc: " << rc
+                       << "]";
         return rc;  // RETURN
     }
 
@@ -5887,7 +5911,7 @@ int BrokerSession::start(const bsls::TimeInterval& timeout)
                                     timeout);
     if (rc != 0) {
         // Timeout
-        BALL_LOG_ERROR << "Start (SYNC) has timed out";
+        BALL_LOG_ERROR << id() << "Start (SYNC) has timed out";
 
         // Stop the brokerSession.  Being under the mutex lock use async stop.
         while (d_stopSemaphore.tryWait() == 0) {
@@ -5939,7 +5963,7 @@ void BrokerSession::onDisconnectResponse(
     BSLS_ASSERT_SAFE(context->groupId() == k_NON_BUFFERED_REQUEST_GROUP_ID);
     BSLS_ASSERT_SAFE(context->userData().isNull());
 
-    BALL_LOG_INFO << "OnDisconnectResponse";
+    BALL_LOG_INFO << id() << "OnDisconnectResponse";
 
     if (context->response().choice().isDisconnectResponseValue() == false) {
         // Error... this is a disconnect response.. nothing much to do, just
@@ -5947,7 +5971,7 @@ void BrokerSession::onDisconnectResponse(
         //          response.
         //          Usually it's a status response but in theory it may be any
         //          message.
-        BALL_LOG_ERROR << "Got error disconnect response: "
+        BALL_LOG_ERROR << id() << "Got error disconnect response: "
                        << context->response() << "\n";
 
         const bool wasCanceled = context->result() ==
@@ -6024,11 +6048,11 @@ void BrokerSession::onOpenQueueResponse(
     }
 
     if (context->isLocalTimeout()) {
-        BALL_LOG_ERROR << "Timeout while opening queue: [request: "
+        BALL_LOG_ERROR << id() << "Timeout while opening queue: [request: "
                        << context->request().choice().openQueue() << "]";
     }
     else if (context->isError()) {
-        BALL_LOG_ERROR << "Error while opening queue: [status: "
+        BALL_LOG_ERROR << id() << "Error while opening queue: [status: "
                        << context->response().choice().status()
                        << ", request: " << context->request() << "]";
     }
@@ -6063,11 +6087,11 @@ void BrokerSession::onCloseQueueResponse(
     BSLS_ASSERT_SAFE(context->userData().isNull());
 
     if (context->isLocalTimeout()) {
-        BALL_LOG_ERROR << "Timeout while closing queue: [request: "
+        BALL_LOG_ERROR << id() << "Timeout while closing queue: [request: "
                        << context->request().choice().closeQueue() << "]";
     }
     else if (context->isError()) {
-        BALL_LOG_ERROR << "Error while closing queue: [status: "
+        BALL_LOG_ERROR << id() << "Error while closing queue: [status: "
                        << context->response().choice().status()
                        << ", request: "
                        << context->request().choice().closeQueue() << "]";
@@ -6199,18 +6223,19 @@ void BrokerSession::onOpenQueueConfigured(
         // arrives (it may or may not), it will be treated as a response to a
         // request that timed out locally.
 
-        BALL_LOG_ERROR << "Timed out locally while opening queue: "
+        BALL_LOG_ERROR << id() << "Timed out locally while opening queue: "
                        << "[queue: " << (*queue)
                        << ", isReopenRequest: " << isReopenRequest << "]";
     }
     else if (configureQueueContext->isLateResponse()) {
         // The initial open request has timed out and now late configure
         // response comes
-        BALL_LOG_INFO << "Late open-configure response: [queue: " << (*queue)
+        BALL_LOG_INFO << id()
+                      << "Late open-configure response: [queue: " << (*queue)
                       << ", isReopenRequest: " << isReopenRequest << "]";
     }
     else if (configureQueueContext->isError()) {
-        BALL_LOG_ERROR << "Error opening queue: [queue: " << (*queue)
+        BALL_LOG_ERROR << id() << "Error opening queue: [queue: " << (*queue)
                        << ", isReopenRequest: " << isReopenRequest << "]";
     }
 
@@ -6242,12 +6267,12 @@ void BrokerSession::onConfigureQueueResponse(
                              res == bmqt::GenericResult::e_NOT_SUPPORTED);
 
             (void)res;
-            BALL_LOG_INFO << "Ignore cancelled request: "
+            BALL_LOG_INFO << id() << "Ignore cancelled request: "
                           << context->request();
             return;  // RETURN
         }
         // Response indicates failure
-        BALL_LOG_ERROR << "Error while configuring queue: [status: "
+        BALL_LOG_ERROR << id() << "Error while configuring queue: [status: "
                        << context->response().choice().status()
                        << ", request: " << context->request() << "]";
 
@@ -6427,7 +6452,8 @@ void BrokerSession::onCloseQueueConfigured(
         // Response indicates failure
         bmqt::GenericResult::Enum result = configureQueueContext->result();
 
-        BALL_LOG_ERROR << "Error configuring while closing queue: [queue: "
+        BALL_LOG_ERROR << id()
+                       << "Error configuring while closing queue: [queue: "
                        << (*queue) << ", result: " << result << "]";
 
         // NOTE: Even if the configure failed, we still want to send the close
@@ -6496,7 +6522,7 @@ void BrokerSession::reopenQueues()
     d_numPendingReopenQueues = pendingQueues.size();
     if (d_numPendingReopenQueues == 0) {
         // Fast path
-        BALL_LOG_INFO << "No queues need to be reopened.";
+        BALL_LOG_INFO << id() << "No queues need to be reopened.";
 
         BSLS_ASSERT_SAFE(
             (d_messageCorrelationIdContainer.numberOfPuts() == 0) &&
@@ -6510,7 +6536,7 @@ void BrokerSession::reopenQueues()
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "Number of queues that need to be reopened: "
+    BALL_LOG_INFO << id() << "Number of queues that need to be reopened: "
                   << d_numPendingReopenQueues;
 
     // Reset the subStreamCount before initiating reopen logic
@@ -6909,7 +6935,7 @@ int BrokerSession::toFsm(const bmqimp::BrokerSession::FsmCallback& fsmCallback,
     if (!d_acceptRequests) {
         // The session is being/has been stopped or not started: client should
         // not send any request to the broker.
-        BALL_LOG_ERROR << "Unable to process queue request "
+        BALL_LOG_ERROR << id() << "Unable to process queue request "
                        << "[reason: 'SESSION_STOPPED']";
         rc = bmqt::GenericResult::e_REFUSED;
     }
@@ -7100,7 +7126,7 @@ void BrokerSession::setupPutExpirationTimer(const bsls::TimeInterval& timeout)
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
     BSLS_ASSERT_SAFE(timeout > 0);
 
-    BALL_LOG_INFO << "Setup PUT expiration timer to " << timeout;
+    BALL_LOG_INFO << id() << "Setup PUT expiration timer to " << timeout;
 
     d_scheduler_p->scheduleEvent(
         &d_messageExpirationTimeoutHandle,
@@ -7165,7 +7191,8 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
     bmqp::Event event(&eventBlob, d_allocator_p);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isPutEvent())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to post event [reason: 'Not a PUT event']";
+        BALL_LOG_ERROR << id()
+                       << "Unable to post event [reason: 'Not a PUT event']";
         return bmqt::PostResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
@@ -7173,7 +7200,7 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
     event.loadPutMessageIterator(&putIter);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!putIter.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to post event "
+        BALL_LOG_ERROR << id() << "Unable to post event "
                        << "[reason: 'Invalid PutIterator']";
         return bmqt::PostResult::e_INVALID_ARGUMENT;  // RETURN
     }
@@ -7196,7 +7223,7 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
     int rc       = d_queueManager.updateStatsOnPutEvent(&msgCount, putIter);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to post event "
+        BALL_LOG_ERROR << id() << "Unable to post event "
                        << "[reason: 'Invalid event', rc: " << rc << "]";
 
         return bmqt::PostResult::e_INVALID_ARGUMENT;  // RETURN
@@ -7205,14 +7232,15 @@ int BrokerSession::post(const bdlbb::Blob&        eventBlob,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_acceptRequests)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // In the process of stopping or not started, can't post the event.
-        BALL_LOG_ERROR << "Unable to post event [reason: 'SESSION_STOPPED']";
+        BALL_LOG_ERROR << id()
+                       << "Unable to post event [reason: 'SESSION_STOPPED']";
         return bmqt::PostResult::e_NOT_CONNECTED;  // RETURN
     }
     bool isAccepted = acceptUserEvent(eventBlob, timeout);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Unable to post event [reason: 'LIMIT']";
+        BALL_LOG_ERROR << id() << "Unable to post event [reason: 'LIMIT']";
         return bmqt::PostResult::e_BW_LIMIT;  // RETURN
     }
 
@@ -7274,7 +7302,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // In the process of stopping or not started, can't send confirmation
         // message.
-        BALL_LOG_ERROR << "Unable to confirm message "
+        BALL_LOG_ERROR << id() << "Unable to confirm message "
                        << "[reason: 'SESSION_STOPPED']";
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
     }
@@ -7290,7 +7318,8 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             rc != bmqt::EventBuilderResult::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to append confirm message to the builder: "
+        BALL_LOG_ERROR << id()
+                       << "Unable to append confirm message to the builder: "
                        << rc;
         return rc;  // RETURN
     }
@@ -7298,7 +7327,8 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Unable to send confirm event [reason: 'LIMIT']";
+        BALL_LOG_ERROR << id()
+                       << "Unable to send confirm event [reason: 'LIMIT']";
         return bmqt::GenericResult::e_TIMEOUT;  // RETURN
     }
 
@@ -7315,7 +7345,7 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_acceptRequests)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Unable to confirm message "
+        BALL_LOG_ERROR << id() << "Unable to confirm message "
                        << "[reason: 'SESSION_STOPPED']";
 
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
@@ -7324,7 +7354,8 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
     bmqp::Event event(&blob, d_allocator_p);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isConfirmEvent())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to confirm event [reason: 'Not a CONFIRM "
+        BALL_LOG_ERROR << id()
+                       << "Unable to confirm event [reason: 'Not a CONFIRM "
                        << "event ']";
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
@@ -7333,7 +7364,7 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
     event.loadConfirmMessageIterator(&confirmIter);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!confirmIter.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Unable to confirm event [reason: 'Invalid"
+        BALL_LOG_ERROR << id() << "Unable to confirm event [reason: 'Invalid"
                        << "ConfirmIterator']";
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
@@ -7342,7 +7373,8 @@ int BrokerSession::confirmMessages(const bdlbb::Blob&        blob,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_ERROR << "Unable to send confirm event [reason: 'LIMIT']";
+        BALL_LOG_ERROR << id()
+                       << "Unable to send confirm event [reason: 'LIMIT']";
         return bmqt::GenericResult::e_TIMEOUT;  // RETURN
     }
 
@@ -7371,7 +7403,7 @@ void BrokerSession::postToFsm(const bsl::function<void()>& f)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "Failed to enqueue FSM event: " << *event;
+        BALL_LOG_ERROR << id() << "Failed to enqueue FSM event: " << *event;
     }
 }
 
@@ -7447,7 +7479,7 @@ void BrokerSession::handleChannelWatermark(
 
 void BrokerSession::printStats(bsl::ostream& stream, bool includeDelta) const
 {
-    stream << "::::: Events >>";
+    stream << id() << "::::: Events >>";
     d_eventsStats.printStats(stream, includeDelta);
 
     stream << "::::: Queues >>";

@@ -148,7 +148,7 @@ void Application::onChannelDown(const bsl::string&   peerUri,
 
     stopHeartbeat();
 
-    BALL_LOG_INFO << "Session with '" << peerUri << "' is now DOWN"
+    BALL_LOG_INFO << id() << "Session with '" << peerUri << "' is now DOWN"
                   << " [status: " << status << "]";
 
     d_brokerSession.setChannel(0);
@@ -159,7 +159,8 @@ void Application::onChannelWatermark(const bsl::string&                peerUri,
 {
     // executed by the *IO* thread
 
-    BALL_LOG_INFO << type << " write watermark for '" << peerUri << "'.";
+    BALL_LOG_INFO << id() << type << " write watermark for '" << peerUri
+                  << "'.";
     d_brokerSession.handleChannelWatermark(type);
 }
 
@@ -175,7 +176,7 @@ void Application::readCb(
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         if (status.category() != bmqio::StatusCategory::e_CANCELED) {
-            BALL_LOG_ERROR << "#TCP_READ_ERROR " << channel->peerUri()
+            BALL_LOG_ERROR << id() << "#TCP_READ_ERROR " << channel->peerUri()
                            << ": ReadCallback error [status: " << status
                            << "]";
             // Nothing much we can do, close the channel
@@ -192,7 +193,7 @@ void Application::readCb(
     const int rc = bmqio::ChannelUtil::handleRead(&readBlob, numNeeded, blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "#TCP_READ_ERROR " << channel->peerUri()
+        BALL_LOG_ERROR << id() << "#TCP_READ_ERROR " << channel->peerUri()
                        << ": ReadCallback unrecoverable error "
                        << "[status: " << status << "]:\n"
                        << bmqu::BlobStartHexDumper(blob);
@@ -233,7 +234,7 @@ void Application::channelStateCallback(
 
     switch (event) {
     case bmqio::ChannelFactoryEvent::e_CHANNEL_UP: {
-        BALL_LOG_INFO << "Session with '" << channel->peerUri()
+        BALL_LOG_INFO << id() << "Session with '" << channel->peerUri()
                       << "' is now UP";
 
         channel->onClose(
@@ -265,7 +266,7 @@ void Application::channelStateCallback(
                                  channel,
                                  monitor));
         if (!st) {
-            BALL_LOG_ERROR << "Could not read from channel:"
+            BALL_LOG_ERROR << id() << "Could not read from channel:"
                            << " [peer: " << channel->peerUri()
                            << ", status: " << status << "]";
             channel->close();
@@ -284,12 +285,12 @@ void Application::channelStateCallback(
                        << ", status: " << status << "]";
     } break;  // BREAK
     case bmqio::ChannelFactoryEvent::e_CONNECT_FAILED: {
-        BALL_LOG_ERROR << "Could not establish session with '" << endpoint
-                       << "' [event: " << event << ", status: " << status
-                       << "]";
+        BALL_LOG_ERROR << id() << "Could not establish session with '"
+                       << endpoint << "' [event: " << event
+                       << ", status: " << status << "]";
     } break;  // BREAK
     default: {
-        BALL_LOG_ERROR << "Session with '" << endpoint << "' is now"
+        BALL_LOG_ERROR << id() << "Session with '" << endpoint << "' is now"
                        << " in an unknown state [event: " << event
                        << ", status: " << status << "]";
     }
@@ -331,7 +332,7 @@ void Application::brokerSessionStopped(
     // Cleanup stats to be ready for a potential restart of the session.
     d_rootStatContext.cleanup();
 
-    BALL_LOG_INFO << "bmqimp::Application stop completed";
+    BALL_LOG_INFO << id() << "bmqimp::Application stop completed";
 }
 
 bmqt::GenericResult::Enum Application::startChannel()
@@ -346,7 +347,8 @@ bmqt::GenericResult::Enum Application::startChannel()
     // Start the channel factories.
     rc = d_channelFactory.start();
     if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to start channelFactory [rc: " << rc << "]";
+        BALL_LOG_ERROR << id() << "Failed to start channelFactory [rc: " << rc
+                       << "]";
         return bmqt::GenericResult::e_UNKNOWN;  // RETURN
     }
     bdlb::ScopeExitAny tcpScopeGuard(
@@ -355,7 +357,8 @@ bmqt::GenericResult::Enum Application::startChannel()
 
     rc = d_reconnectingChannelFactory.start();
     if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to start reconnectingChannelFactory [rc: "
+        BALL_LOG_ERROR << id()
+                       << "Failed to start reconnectingChannelFactory [rc: "
                        << rc << "]";
         return bmqt::GenericResult::e_UNKNOWN;  // RETURN
     }
@@ -366,8 +369,8 @@ bmqt::GenericResult::Enum Application::startChannel()
     // Connect to the broker.
     bmqio::TCPEndpoint endpoint(d_sessionOptions.brokerUri());
     if (!endpoint) {
-        BALL_LOG_ERROR << "Invalid brokerURI '" << d_sessionOptions.brokerUri()
-                       << "'";
+        BALL_LOG_ERROR << id() << "Invalid brokerURI '"
+                       << d_sessionOptions.brokerUri() << "'";
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
 
@@ -396,7 +399,7 @@ bmqt::GenericResult::Enum Application::startChannel()
                              bdlf::PlaceHolders::_2,    // status
                              bdlf::PlaceHolders::_3));  // channel
     if (!status) {
-        BALL_LOG_ERROR << "Failed to connect to broker at '"
+        BALL_LOG_ERROR << id() << "Failed to connect to broker at '"
                        << d_sessionOptions.brokerUri()
                        << "' [status: " << status << "]";
 
@@ -493,7 +496,7 @@ void Application::printStats(bool isFinal)
         bmqst::TableUtil::printTable(os, d_channelsTip);
     }
 
-    BALL_LOG_INFO << os.str();
+    BALL_LOG_INFO << id() << os.str();
 
     // We don't cleanup the stat context: we deleted the
     // managedPtr<StatContext> for the closed queue, so they will show up as
@@ -509,7 +512,7 @@ Application::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
 {
     // executed by the FSM thread
 
-    BALL_LOG_INFO << "State transitioning from " << oldState << " to "
+    BALL_LOG_INFO << id() << "State transitioning from " << oldState << " to "
                   << newState << " on " << event;
 
     bmqt::GenericResult::Enum res = bmqt::GenericResult::e_SUCCESS;
@@ -524,7 +527,7 @@ Application::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
         }
     }
     else if (newState == bmqimp::BrokerSession::State::e_STOPPED) {
-        BALL_LOG_INFO << "::: STOP (FINALIZE) :::";
+        BALL_LOG_INFO << id() << "::: STOP (FINALIZE) :::";
 
         if (oldState != bmqimp::BrokerSession::State::e_STOPPED) {
             // Session was once started, perform cleanup
@@ -611,6 +614,7 @@ Application::Application(
                   d_sessionOptions,
                   eventHandlerCB,
                   bdlf::MemFnUtil::memFn(&Application::stateCb, this),
+                  SessionId(negotiationMessage),
                   d_allocators.get("Session"))
 , d_startTimeoutHandle()
 , d_statSnaphotTimerHandle()
@@ -632,7 +636,7 @@ Application::Application(
 
     BALL_LOG_INFO_BLOCK
     {
-        BALL_LOG_OUTPUT_STREAM << "Creating Application "
+        BALL_LOG_OUTPUT_STREAM << id() << "Creating Application "
                                << "[bmq: " << bmqscm::Version::version()
                                << "], options:\n";
         d_sessionOptions.print(BALL_LOG_OUTPUT_STREAM, 1, 4);
@@ -694,7 +698,7 @@ Application::Application(
 
 Application::~Application()
 {
-    BALL_LOG_INFO << "Destroying Application";
+    BALL_LOG_INFO << id() << "Destroying Application";
 
     // Calling stop() here. It is ok even if the session is already stopped
     stop();
@@ -708,7 +712,8 @@ Application::~Application()
 
 int Application::start(const bsls::TimeInterval& timeout)
 {
-    BALL_LOG_INFO << "::: START (SYNC) << [state: " << d_brokerSession.state()
+    BALL_LOG_INFO << id()
+                  << "::: START (SYNC) << [state: " << d_brokerSession.state()
                   << "] :::";
 
     return d_brokerSession.start(timeout);
@@ -716,12 +721,14 @@ int Application::start(const bsls::TimeInterval& timeout)
 
 int Application::startAsync(const bsls::TimeInterval& timeout)
 {
-    BALL_LOG_INFO << "::: START (ASYNC) [state: " << d_brokerSession.state()
+    BALL_LOG_INFO << id()
+                  << "::: START (ASYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
     int rc = d_brokerSession.startAsync();
     if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to start brokerSession [rc: " << rc << "]";
+        BALL_LOG_ERROR << id() << "Failed to start brokerSession [rc: " << rc
+                       << "]";
         return rc;  // RETURN
     }
 
@@ -736,7 +743,8 @@ int Application::startAsync(const bsls::TimeInterval& timeout)
 
 void Application::stop()
 {
-    BALL_LOG_INFO << "::: STOP (SYNC) [state: " << d_brokerSession.state()
+    BALL_LOG_INFO << id()
+                  << "::: STOP (SYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
     stopHeartbeat();
@@ -747,7 +755,8 @@ void Application::stop()
 
 void Application::stopAsync()
 {
-    BALL_LOG_INFO << "::: STOP (ASYNC) [state: " << d_brokerSession.state()
+    BALL_LOG_INFO << id()
+                  << "::: STOP (ASYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
     stopHeartbeat();

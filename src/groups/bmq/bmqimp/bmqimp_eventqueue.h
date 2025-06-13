@@ -133,6 +133,7 @@
 // BMQ
 
 #include <bmqimp_event.h>
+#include <bmqimp_sessionid.h>
 
 #include <bmqc_monitoredqueue_bdlccsingleproducerqueue.h>
 #include <bmqc_multiqueuethreadpool.h>
@@ -282,6 +283,8 @@ class EventQueue {
     // SpinLock to synchronize
     // 'pushBack'
 
+    const SessionId d_sessionId;
+
   private:
     // NOT IMPLEMENTED
     EventQueue(const EventQueue& other) BSLS_CPP11_DELETED;
@@ -314,6 +317,9 @@ class EventQueue {
     /// the queue and call out the provided EventHandler.
     void dispatchNextEvent();
 
+    // PRIVATE ACCESSORS
+    const SessionId& id() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(EventQueue, bslma::UsesBslmaAllocator)
@@ -332,6 +338,7 @@ class EventQueue {
                int                         highWatermark,
                const EventHandlerCallback& eventHandler,
                int                         numProcessingThreads,
+               const SessionId&            sessionId,
                bslma::Allocator*           allocator);
 
     /// Destructor

@@ -247,7 +247,7 @@ void EventQueue::dispatchNextEvent()
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_eventHandler);
 
-    BALL_LOG_INFO << "EventHandler thread started "
+    BALL_LOG_INFO << id() << "EventHandler thread started "
                   << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
 
     while (true) {
@@ -262,7 +262,7 @@ void EventQueue::dispatchNextEvent()
         d_eventHandler(eventSp);
     }
 
-    BALL_LOG_INFO << "EventHandler thread terminated "
+    BALL_LOG_INFO << id() << "EventHandler thread terminated "
                   << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
 }
 
@@ -272,6 +272,7 @@ EventQueue::EventQueue(EventPool*                  eventPool,
                        int                         highWatermark,
                        const EventHandlerCallback& eventHandler,
                        int                         numProcessingThreads,
+                       const SessionId&            sessionId,
                        bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
 , d_eventPool_p(eventPool)
@@ -288,6 +289,7 @@ EventQueue::EventQueue(EventPool*                  eventPool,
 , d_statTip(&d_statTable, allocator)
 , d_statTipNoDelta(&d_statTable, allocator)
 , d_pushBackSpinlock(bsls::SpinLock::s_unlocked)
+, d_sessionId(sessionId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT((eventHandler && numProcessingThreads > 0) ||
@@ -307,7 +309,7 @@ EventQueue::EventQueue(EventPool*                  eventPool,
         outStream << ", NOT using eventHandler]";
     }
 
-    BALL_LOG_INFO << outStream.str();
+    BALL_LOG_INFO << id() << outStream.str();
 
     d_queue.setWatermarks(lowWatermark, highWatermark);
     d_queue.setStateCallback(
@@ -430,12 +432,13 @@ int EventQueue::start()
 
     if (!d_eventHandler) {
         // Not using the eventHandler, nothing to do here ...
-        BALL_LOG_INFO << "No event handler specified, event queue will not "
+        BALL_LOG_INFO << id()
+                      << "No event handler specified, event queue will not "
                       << "create internal threads for event processing.";
         return 0;  // RETURN
     }
 
-    BALL_LOG_INFO << "Starting EventQueue ThreadPool "
+    BALL_LOG_INFO << id() << "Starting EventQueue ThreadPool "
                   << "[numThreads: " << d_numProcessingThreads << "]";
 
     int rc = 0;
@@ -458,7 +461,7 @@ int EventQueue::start()
     // Start the ThreadPool
     rc = d_threadPool_mp->start();
     if (rc != 0) {
-        BALL_LOG_ERROR << "Failed starting EventQueue ThreadPool "
+        BALL_LOG_ERROR << id() << "Failed starting EventQueue ThreadPool "
                        << "[rc: " << rc << "]";
         return -1;  // RETURN
     }
@@ -468,7 +471,8 @@ int EventQueue::start()
         rc = d_threadPool_mp->tryEnqueueJob(
             bdlf::MemFnUtil::memFn(&EventQueue::dispatchNextEvent, this));
         if (rc != 0) {
-            BALL_LOG_ERROR << "Failed to enqueue job to EventQueue ThreadPool "
+            BALL_LOG_ERROR << id()
+                           << "Failed to enqueue job to EventQueue ThreadPool "
                            << "[rc: " << rc << "]";
             d_threadPool_mp->stop();
             return -1;  // RETURN
@@ -488,9 +492,9 @@ void EventQueue::stop()
             enqueuePoisonPill();
         }
 
-        BALL_LOG_INFO << "Stopping EventQueue ThreadPool...";
+        BALL_LOG_INFO << id() << "Stopping EventQueue ThreadPool...";
         d_threadPool_mp->stop();
-        BALL_LOG_INFO << "EventQueue ThreadPool stopped";
+        BALL_LOG_INFO << id() << "EventQueue ThreadPool stopped";
     }
 
     d_threadPool_mp.reset();
@@ -518,7 +522,7 @@ int EventQueue::pushBack(bsl::shared_ptr<Event>& event)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BSLS_ASSERT_SAFE(false && "Impossible - failed to enqueue");
-        BALL_LOG_ERROR << "Failed to enqueue: " << *item.d_event_sp;
+        BALL_LOG_ERROR << id() << "Failed to enqueue: " << *item.d_event_sp;
         return -1;  // RETURN
     }
 
@@ -639,6 +643,11 @@ void EventQueue::printStats(bsl::ostream& stream, bool includeDelta) const
         bmqst::TableUtil::printTable(stream, d_statTipNoDelta);
     }
     stream << "\n";
+}
+
+inline const SessionId& EventQueue::id() const
+{
+    return d_sessionId;
 }
 
 }  // close package namespace
