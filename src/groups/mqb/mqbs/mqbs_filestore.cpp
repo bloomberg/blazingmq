@@ -1832,7 +1832,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         key);
                 }
 
-                DataStoreRecord    record(RecordType::e_QUEUE_OP,
+                DataStoreRecord record(RecordType::e_QUEUE_OP,
                                        jit->recordOffset());
                 d_records.rinsert(bsl::make_pair(key, record));
 
@@ -3347,7 +3347,8 @@ void FileStore::gc(FileSet* fileSet)
                                  fileSet));
 }
 
-void FileStore::gcDispatched(int partitionId, FileSet* fileSet)
+void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
+                             FileSet*              fileSet)
 {
     // executed by the *DISPATCHER* thread
 
@@ -3355,7 +3356,6 @@ void FileStore::gcDispatched(int partitionId, FileSet* fileSet)
     BSLS_ASSERT_SAFE(partitionId == d_config.partitionId());
     BSLS_ASSERT_SAFE(fileSet);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-    (void)partitionId;  // Compiler happiness
 
     if (fileSet == d_fileSets[0].get()) {
         // This occurs when FileStore::close() has happened.

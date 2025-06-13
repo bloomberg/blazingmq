@@ -28,6 +28,7 @@
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslmt_semaphore.h>
 #include <bslmt_threadattributes.h>
 #include <bslmt_threadutil.h>
@@ -204,10 +205,10 @@ static void test1_MonitoredQueue_breathingTest()
         //
         // Verify timed popFront is undefined
         // // int                      item    = -1;
-        // const bsls::TimeInterval timeout = bsls::TimeInterval(
+        // BSLA_MAYBE_UNUSED const bsls::TimeInterval timeout =
+        // bsls::TimeInterval(
         //     0, 5 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
         // BMQTST_ASSERT_SAFE_FAIL(queue.timedPopFront(&item, timeout));
-        // (void)timeout;  // prod-build compiler happiness
 
         // popfront two items
         item = -1;

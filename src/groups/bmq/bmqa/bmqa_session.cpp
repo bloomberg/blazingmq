@@ -49,6 +49,7 @@
 #include <bdlt_timeunitratio.h>
 #include <bsl_cstdio.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
@@ -596,10 +597,10 @@ SessionUtil::validateAndSetConfigureQueueParameters(
 }
 
 bmqt::CloseQueueResult::Enum SessionUtil::validateAndSetCloseQueueParameters(
-    bmqu::MemOutStream*       errorDescription,
-    const QueueId*            queueId,
-    const SessionImpl*        sessionImpl,
-    const bsls::TimeInterval& timeout)
+    bmqu::MemOutStream*                  errorDescription,
+    const QueueId*                       queueId,
+    BSLA_MAYBE_UNUSED const SessionImpl* sessionImpl,
+    const bsls::TimeInterval&            timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(sessionImpl && "Must provide 'sessionImpl'");
@@ -613,8 +614,6 @@ bmqt::CloseQueueResult::Enum SessionUtil::validateAndSetCloseQueueParameters(
         (*errorDescription) << "Not connected";
         return bmqt::CloseQueueResult::e_NOT_CONNECTED;  // RETURN
     }
-
-    (void)sessionImpl;  // Compiler happiness in OPT build
 
     // Make sure the provided QueueId is valid
     if (!queueId->isValid()) {

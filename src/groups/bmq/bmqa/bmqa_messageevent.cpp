@@ -23,6 +23,7 @@
 
 // BDE
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bslmf_ispolymorphic.h>
 #include <bsls_assert.h>
@@ -53,11 +54,10 @@ MessageIterator MessageEvent::messageIterator() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_impl_sp);
 
-    const bmqp::Event& rawEvent = d_impl_sp->rawEvent();
+    BSLA_MAYBE_UNUSED const bmqp::Event& rawEvent = d_impl_sp->rawEvent();
 
     BSLS_ASSERT(rawEvent.isAckEvent() || rawEvent.isPushEvent() ||
                 rawEvent.isPutEvent());
-    (void)rawEvent;  // compiler happiness
 
     d_impl_sp->resetIterators();
 

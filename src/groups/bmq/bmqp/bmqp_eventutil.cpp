@@ -31,6 +31,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
@@ -336,9 +337,9 @@ Flattener::EventBuilderResult Flattener::importOptions()
             LSA                        lsa(d_allocator_p);
             bmqp::Protocol::MsgGroupId msgGroupId(&lsa);
 
-            int rc = d_optionsView.loadMsgGroupIdOption(&msgGroupId);
+            BSLA_MAYBE_UNUSED int rc = d_optionsView.loadMsgGroupIdOption(
+                &msgGroupId);
             BSLS_ASSERT_SAFE(rc == 0);
-            (void)rc;  // Compiler happiness
             result = d_builder.addMsgGroupIdOption(msgGroupId);
         } break;
         case OptionType::e_SUB_QUEUE_INFOS: {

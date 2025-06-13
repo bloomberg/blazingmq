@@ -181,6 +181,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
 
   public:
     // TRAITS
+    BSLA_MAYBE_UNUSED
     BSLMF_NESTED_TRAIT_DECLARATION(ManagedCallbackBuffer,
                                    bslma::UsesBslmaAllocator)
 
@@ -232,6 +233,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
 
     // ACCESSORS
 
+    BSLA_MAYBE_UNUSED
     inline bool empty() const { return d_empty; }
 
     inline void operator()() const

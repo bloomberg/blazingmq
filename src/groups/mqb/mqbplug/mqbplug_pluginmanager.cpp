@@ -33,6 +33,7 @@
 #include <bsl_algorithm.h>
 #include <bsl_functional.h>
 #include <bsl_unordered_map.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
@@ -54,13 +55,10 @@ const char k_PLUGIN_ENTRY_POINT[] = "instantiatePluginLibrary";
 typedef void (*PluginEntryFnPtr)(bslma::ManagedPtr<mqbplug::PluginLibrary>*,
                                  bslma::Allocator*);
 
-void dlcloseDeleter(void* dlopenHandle, void* unused)
+void dlcloseDeleter(void* dlopenHandle, BSLA_UNUSED void*)
 {
-    (void)unused;
-
-    int rc = dlclose(dlopenHandle);
+    BSLA_MAYBE_UNUSED int rc = dlclose(dlopenHandle);
     BSLS_ASSERT_SAFE(rc == 0);
-    (void)rc;  // Assert is unevaluated in production builds.
 }
 
 bool findPluginPredicate(const bsl::string&         target,

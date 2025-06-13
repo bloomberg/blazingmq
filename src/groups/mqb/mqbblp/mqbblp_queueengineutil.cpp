@@ -54,6 +54,7 @@
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_timeinterval.h>
@@ -208,10 +209,11 @@ int QueueEngineUtil::validateUri(
     mqbi::QueueHandle*                         handle,
     const mqbi::QueueHandleRequesterContext&   clientContext)
 {
-    bmqt::Uri   uri;
-    bsl::string error;
-    int rc = bmqt::UriParser::parse(&uri, &error, handleParameters.uri());
-    (void)rc;  // compiler happiness
+    bmqt::Uri       uri;
+    bsl::string     error;
+    BSLA_UNUSED int rc = bmqt::UriParser::parse(&uri,
+                                                &error,
+                                                handleParameters.uri());
     if (handle->queue()->uri().canonical() != uri.canonical()) {
         BALL_LOG_ERROR_BLOCK
         {

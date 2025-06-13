@@ -751,11 +751,10 @@ inline const TYPE& MessageProperties::getPropertyOr(const bsl::string& name,
     }
     const Property& p = cit->second;
     if (p.d_value.isUnset()) {
-        bool result = streamInPropertyValue(p);
+        BSLA_MAYBE_UNUSED bool result = streamInPropertyValue(p);
         BSLS_ASSERT(result);
         // We assert 'true' result because the length and offset have already
         // been checked.
-        (void)result;
     }
     BSLS_ASSERT(p.d_value.is<TYPE>() && "Property data type mismatch");
 

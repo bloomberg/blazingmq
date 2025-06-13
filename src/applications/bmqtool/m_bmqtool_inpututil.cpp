@@ -27,6 +27,7 @@
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -173,11 +174,10 @@ void InputUtil::verifyProperties(
         if (in.hasProperty("pairs_", &type)) {
             BSLS_ASSERT_SAFE(type == bmqt::PropertyType::e_INT32);
 
-            int numPairs = in.getPropertyAsInt32("pairs_");
+            BSLA_MAYBE_UNUSED int numPairs = in.getPropertyAsInt32("pairs_");
 
             BSLS_ASSERT_SAFE(in.numProperties() == (numPairs * 2 + 1));
 
-            (void)numPairs;
             bmqa::MessagePropertiesIterator it(&in);
 
             bsl::unordered_set<bsl::string> pairs;
@@ -192,10 +192,9 @@ void InputUtil::verifyProperties(
                 }
 
                 name += "_value";
-                bool hasValue = in.hasProperty(name, &type);
+                BSLA_MAYBE_UNUSED bool hasValue = in.hasProperty(name, &type);
 
                 BSLS_ASSERT_SAFE(hasValue);
-                (void)hasValue;
                 BSLS_ASSERT_SAFE(it.type() == type);
 
                 pairs.insert(name);

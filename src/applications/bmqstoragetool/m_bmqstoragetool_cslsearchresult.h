@@ -47,6 +47,9 @@
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
 
+// BDE
+#include <bsla_annotations.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -95,7 +98,7 @@ class CslSearchShortResult : public CslSearchResult {
     /// Record counters
     CslRecordCount d_recordCount;
     /// Allocator used inside the class.
-    bslma::Allocator* d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS
@@ -141,7 +144,7 @@ class CslSearchDetailResult : public CslSearchResult {
     /// Record counters
     CslRecordCount d_recordCount;
     /// Allocator used inside the class.
-    bslma::Allocator* d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS
@@ -306,7 +309,7 @@ class CslSummaryResult : public CslSearchResult {
     /// Limit number of queues to display
     unsigned int d_cslSummaryQueuesLimit;
     /// Pointer to allocator that is used inside the class.
-    bslma::Allocator* d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS

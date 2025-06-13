@@ -29,6 +29,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -69,11 +70,11 @@ struct Tester {
         return domainState;
     }
 
-    mqbc::ClusterState::QueueInfoSp
-    createQueueInfoSp(const bsl::string&                  uriString,
-                      const mqbu::StorageKey&             key,
-                      int                                 partitionId,
-                      const mqbc::ClusterState::AppInfos& appIdInfos)
+    mqbc::ClusterState::QueueInfoSp createQueueInfoSp(
+        const bsl::string&      uriString,
+        const mqbu::StorageKey& key,
+        int                     partitionId,
+        BSLA_UNUSED const mqbc::ClusterState::AppInfos& appIdInfos)
     {
         bmqp_ctrlmsg::QueueInfo advisory(bmqtst::TestHelperUtil::allocator());
 

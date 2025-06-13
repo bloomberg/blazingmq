@@ -1758,14 +1758,12 @@ void MockSession::openQueueAsync(BSLA_UNUSED QueueId*                 queueId,
     BMQA_ASSERT_AND_POP_FRONT();
 }
 
-int MockSession::configureQueue(QueueId*                  queueId,
-                                const bmqt::QueueOptions& options,
-                                const bsls::TimeInterval& timeout)
+int MockSession::configureQueue(BSLA_MAYBE_UNUSED QueueId* queueId,
+                                const bmqt::QueueOptions&  options,
+                                const bsls::TimeInterval&  timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
-
-    (void)queueId;  // Compiler happiness in 'opt' build
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1792,14 +1790,12 @@ int MockSession::configureQueue(QueueId*                  queueId,
 }
 
 ConfigureQueueStatus
-MockSession::configureQueueSync(QueueId*                  queueId,
-                                const bmqt::QueueOptions& options,
-                                const bsls::TimeInterval& timeout)
+MockSession::configureQueueSync(BSLA_MAYBE_UNUSED QueueId* queueId,
+                                const bmqt::QueueOptions&  options,
+                                const bsls::TimeInterval&  timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId && "'queueId' not provided");
-
-    (void)queueId;  // Compiler happiness in 'opt' build
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1837,14 +1833,12 @@ MockSession::configureQueueSync(QueueId*                  queueId,
     return _result;
 }
 
-int MockSession::configureQueueAsync(QueueId*                  queueId,
-                                     const bmqt::QueueOptions& options,
-                                     const bsls::TimeInterval& timeout)
+int MockSession::configureQueueAsync(BSLA_MAYBE_UNUSED QueueId* queueId,
+                                     const bmqt::QueueOptions&  options,
+                                     const bsls::TimeInterval&  timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
-
-    (void)queueId;  // Compiler happiness in 'opt' build
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1873,15 +1867,13 @@ int MockSession::configureQueueAsync(QueueId*                  queueId,
 }
 
 void MockSession::configureQueueAsync(
-    QueueId*                                  queueId,
+    BSLA_MAYBE_UNUSED QueueId*                queueId,
     const bmqt::QueueOptions&                 options,
     BSLA_UNUSED const ConfigureQueueCallback& callback,
     const bsls::TimeInterval&                 timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueId && "'queueId' not provided");
-
-    (void)queueId;  // Compiler happiness in 'opt' build
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -2016,14 +2008,12 @@ int MockSession::closeQueueAsync(QueueId*                  queueId,
 }
 
 void MockSession::closeQueueAsync(
-    QueueId*                              queueId,
+    BSLA_MAYBE_UNUSED QueueId*            queueId,
     BSLA_UNUSED const CloseQueueCallback& callback,
     const bsls::TimeInterval&             timeout)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueId && "'queueId' not provided");
-
-    (void)queueId;  // Compiler happiness in 'opt' build
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 

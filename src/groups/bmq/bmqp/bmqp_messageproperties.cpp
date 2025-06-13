@@ -35,6 +35,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_algorithm.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslma_default.h>
 #include <bslmf_assert.h>
@@ -224,11 +225,10 @@ const MessageProperties::PropertyVariant&
 MessageProperties::getPropertyValue(const Property& property) const
 {
     if (property.d_value.isUnset()) {
-        bool result = streamInPropertyValue(property);
+        BSLA_MAYBE_UNUSED bool result = streamInPropertyValue(property);
         BSLS_ASSERT_SAFE(result);
         // We assert 'true' result because the length and offset have already
         // been checked.
-        (void)result;
     }
     return property.d_value;
 }
@@ -874,9 +874,8 @@ MessageProperties::streamOut(bdlbb::BlobBufferFactory*          bufferFactory,
          ++cit) {
         const Property& p = cit->second;
         if (p.d_value.isUnset() && p.d_isValid) {
-            bool result = streamInPropertyValue(p);
+            BSLA_MAYBE_UNUSED bool result = streamInPropertyValue(p);
             BSLS_ASSERT(result);
-            (void)result;
         }
     }
 

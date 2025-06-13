@@ -19,6 +19,7 @@
 #include <bmqscm_version.h>
 // BDE
 #include <bdlmt_multiqueuethreadpool.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace bmqex {
@@ -33,9 +34,7 @@ void BdlmtMultiQueueThreadPoolExecutor::post(
     // PRECONDITIONS
     BSLS_ASSERT(f);
 
-    int rc = d_context_p->enqueueJob(d_queueId, f);
-
-    (void)rc;
+    BSLA_MAYBE_UNUSED int rc = d_context_p->enqueueJob(d_queueId, f);
     BSLS_ASSERT(rc == 0);
 }
 
