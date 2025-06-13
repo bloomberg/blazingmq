@@ -36,7 +36,7 @@ using namespace bsl;
 //                                    HELPERS
 // ----------------------------------------------------------------------------
 
-bsl::ostream& logEnhancedStorageInfoCb(bsl::ostream& stream)
+inline bsl::ostream& logEnhancedStorageInfoCb(bsl::ostream& stream)
 {
     stream << "Test enhanced storage Info";
     return stream;
