@@ -70,9 +70,9 @@ namespace m_bmqstoragetool {
 class PrinterMock : public Printer {
   public:
     // CREATORS
-    PrinterMock() {}
+    PrinterMock();
 
-    ~PrinterMock() BSLS_KEYWORD_OVERRIDE {}
+    ~PrinterMock() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
@@ -113,9 +113,9 @@ class PrinterMock : public Printer {
 class CslPrinterMock : public CslPrinter {
   public:
     // CREATORS
-    CslPrinterMock() {}
+    CslPrinterMock();
 
-    ~CslPrinterMock() BSLS_KEYWORD_OVERRIDE {}
+    ~CslPrinterMock() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
