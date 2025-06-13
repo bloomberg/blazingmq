@@ -64,20 +64,19 @@ int generateRandomInteger(int min, int max)
 /// `numSubQueueInfos` number of randomly generated SubQueueInfos. Note that
 /// `subQueueInfos` will be cleared.
 void generateSubQueueInfos(bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
-                           int numSubQueueInfos)
+                           size_t numSubQueueInfos)
 {
     BSLS_ASSERT_SAFE(subQueueInfos);
     BSLS_ASSERT_SAFE(numSubQueueInfos >= 0);
 
     subQueueInfos->clear();
 
-    for (int i = 0; i < numSubQueueInfos; ++i) {
+    for (size_t i = 0; i < numSubQueueInfos; ++i) {
         const unsigned int subQueueId = generateRandomInteger(0, 120);
         subQueueInfos->push_back(bmqp::SubQueueInfo(subQueueId));
     }
 
-    BSLS_ASSERT_SAFE(subQueueInfos->size() ==
-                     static_cast<unsigned int>(numSubQueueInfos));
+    BSLS_ASSERT_SAFE(subQueueInfos->size() == numSubQueueInfos);
 }
 }
 
@@ -170,7 +169,7 @@ static void test2_validPushMessagePrint()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqa::Event                    event;
+    bmqa::Event event;
 
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
     implPtr              = bsl::make_shared<bmqimp::Event>(
@@ -181,23 +180,22 @@ static void test2_validPushMessagePrint()
     const bmqt::MessageGUID guid;
     const char*             buffer = "abcdefghijklmnopqrstuvwxyz";
     const int               flags  = 0;
-    const int               numSubQueueInfos =
+    const size_t            numSubQueueInfos =
         bmqp::Protocol::SubQueueInfosArray::static_size + 4;
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
-    BMQTST_ASSERT_EQ(static_cast<unsigned int>(payload.length()),
-                     bsl::strlen(buffer));
+    BMQTST_ASSERT_EQ(payload.length(), static_cast<int>(bsl::strlen(buffer)));
 
     // Create PushEventBuilder
     bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
-    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
-                     static_cast<size_t>(peb.eventSize()));
-    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
-                     static_cast<size_t>(peb.blob()->length()));
+    BMQTST_ASSERT_EQ(static_cast<int>(sizeof(bmqp::EventHeader)),
+                     peb.eventSize());
+    BMQTST_ASSERT_EQ(static_cast<int>(sizeof(bmqp::EventHeader)),
+                     peb.blob()->length());
     BMQTST_ASSERT_EQ(0, peb.messageCount());
 
     // Add SubQueueInfo option
@@ -205,11 +203,11 @@ static void test2_validPushMessagePrint()
     bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
         subQueueInfos);
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
-    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
-                     static_cast<size_t>(peb.eventSize()));
+    BMQTST_ASSERT_EQ(static_cast<int>(sizeof(bmqp::EventHeader)),
+                     peb.eventSize());
     // 'eventSize()' excludes unpacked messages
-    BMQTST_ASSERT_LT(sizeof(bmqp::EventHeader),
-                     static_cast<size_t>(peb.blob()->length()));
+    BMQTST_ASSERT_LT(static_cast<int>(sizeof(bmqp::EventHeader)),
+                     peb.blob()->length());
     // But the option is written to the underlying blob
     rc = peb.packMessage(payload,
                          queueId,
@@ -347,7 +345,8 @@ static void test3_messageProperties()
         BMQTST_ASSERT_EQ(0, message.loadProperties(&out2));
 
         BMQTST_ASSERT_EQ(0, out2.setPropertyAsString("y", mod));
-        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+        BMQTST_ASSERT_EQ(out1.totalSize() + static_cast<int>(sizeof(mod)) -
+                             static_cast<int>(sizeof(y)),
                          out2.totalSize());
 
         BMQTST_ASSERT_EQ(out2.getPropertyAsString("z"), z);
@@ -387,7 +386,8 @@ static void test3_messageProperties()
 
         BMQTST_ASSERT_EQ(y, out4.getPropertyAsString("y"));
         BMQTST_ASSERT_EQ(0, out4.setPropertyAsString("y", mod));
-        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+        BMQTST_ASSERT_EQ(out1.totalSize() + static_cast<int>(sizeof(mod)) -
+                             static_cast<int>(sizeof(y)),
                          out4.totalSize());
 
         BMQTST_ASSERT_EQ(out4.getPropertyAsString("z"), z);
@@ -469,11 +469,11 @@ static void test4_subscriptionHandle()
         bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
             subQueueInfos);
         BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
-        BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
-                         static_cast<size_t>(peb.eventSize()));
+        BMQTST_ASSERT_EQ(static_cast<int>(sizeof(bmqp::EventHeader)),
+                         peb.eventSize());
         // 'eventSize()' excludes unpacked messages
-        BMQTST_ASSERT_LT(sizeof(bmqp::EventHeader),
-                         static_cast<size_t>(peb.blob()->length()));
+        BMQTST_ASSERT_LT(static_cast<int>(sizeof(bmqp::EventHeader)),
+                         peb.blob()->length());
         // But the option is written to the underlying blob
 
         // Add message

@@ -152,13 +152,13 @@ static void test2_iterations()
                                        ps.d_stream.begin());
 
         BMQTST_ASSERT(!pit.atEnd());
-        BMQTST_ASSERT_EQ(pit.numApps(), 2);
+        BMQTST_ASSERT_EQ(pit.numApps(), 2u);
 
         BMQTST_ASSERT_EQ(element1, pit.element(0));
         BMQTST_ASSERT_EQ(element3, pit.element(1));
 
         BMQTST_ASSERT(pit.advance());
-        BMQTST_ASSERT_EQ(pit.numApps(), 2);
+        BMQTST_ASSERT_EQ(pit.numApps(), 2u);
 
         BMQTST_ASSERT_EQ(element2, pit.element(0));
         BMQTST_ASSERT_EQ(element4, pit.element(1));
@@ -173,14 +173,14 @@ static void test2_iterations()
                                               ps.d_stream.begin());
 
         BMQTST_ASSERT(!vit.atEnd());
-        BMQTST_ASSERT_EQ(vit.numApps(), 1);
+        BMQTST_ASSERT_EQ(vit.numApps(), 1u);
 
         BMQTST_ASSERT_EQ(element1, vit.element(0));
 
         vit.advance();
 
         BMQTST_ASSERT(!vit.atEnd());
-        BMQTST_ASSERT_EQ(vit.numApps(), 1);
+        BMQTST_ASSERT_EQ(vit.numApps(), 1u);
 
         BMQTST_ASSERT_EQ(element4, vit.element(0));
 
