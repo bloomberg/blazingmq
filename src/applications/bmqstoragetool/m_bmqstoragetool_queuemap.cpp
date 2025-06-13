@@ -114,9 +114,9 @@ QueueMap::findKeyByUri(const bsl::string& uri) const
     return result;
 }
 
-QueueInfos QueueMap::queueInfos() const
+QueueMap::QueueInfos QueueMap::queueInfos() const
 {
-    QueueInfos result(d_allocator_p);
+    QueueMap::QueueInfos result(d_allocator_p);
     result.reserve(d_queueKeyToInfoMap.size());
 
     QueueKeyToInfoMap::const_iterator it = d_queueKeyToInfoMap.begin();
