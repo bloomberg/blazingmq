@@ -161,17 +161,17 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
                                 d_allocator_p);
     }
 
+    // Inform the storage about the queue.
+    d_state_p->storageManager()->setQueueRaw(queue,
+                                             d_state_p->uri(),
+                                             d_state_p->partitionId());
+
     rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
 
     d_haveStrongConsistency = domainCfg.consistency().isStrongValue();
-
-    // Inform the storage about the queue.
-    d_state_p->storageManager()->setQueueRaw(queue,
-                                             d_state_p->uri(),
-                                             d_state_p->partitionId());
 
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
@@ -456,6 +456,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     bool         haveReceipt = true;
     unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
 
+    BALL_LOG_ERROR << " PUT "<< putHeader.messageGUID();
+
     if (res == mqbi::StorageResult::e_SUCCESS) {
         if (refCount) {
             // Note that arrival timepoint is used only at the primary node,
@@ -615,6 +617,8 @@ void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     int rc = d_queueEngine_mp->onConfirmMessage(source,
                                                 msgGUID,
                                                 upstreamSubQueueId);
+
+    BALL_LOG_ERROR << " CONFIRM " << upstreamSubQueueId << " " << msgGUID;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc == 1)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
