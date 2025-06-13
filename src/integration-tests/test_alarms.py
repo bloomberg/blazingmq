@@ -92,42 +92,27 @@ def test_priority_no_alarms_for_a_slow_queue(
     producer = proxy.create_client("producer")
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
-    consumer1 = proxy.create_client("consumer1")
-    consumer2 = proxy.create_client("consumer2")
-    consumer1.open(
+    consumer = proxy.create_client("consumer")
+    consumer.open(
         uri_priority, flags=["read"], max_unconfirmed_messages=1, succeed=True
     )
 
+    # post 3 messages
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, ["msg2"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, ["msg3"], succeed=True, wait_ack=True)
 
-    consumer1.confirm(uri_priority, "*", succeed=True)
-
-    producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
-    producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
-
-    time.sleep(4)
-
-    # First, test the alarm
-    assert leader.alarms("QUEUE_STUCK", 1)
-    assert leader.capture(r"For appId: __default")
-    leader.drain()
-
-    # Then test no alarm while consumer1 slowly confirms
+    # Simulate a slow consumer by not confirming the message immediately
     time.sleep(1)
-    consumer1.confirm(uri_priority, "*", succeed=True)
+    consumer.confirm(uri_priority, "+1", succeed=True)
+    consumer.wait_push_event()
 
     time.sleep(1)
-    consumer1.confirm(uri_priority, "*", succeed=True)
-    producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
-
-    time.sleep(1)
-    # Consumer2 picks the last message
-    consumer2.open(
-        uri_priority, flags=["read"], max_unconfirmed_messages=1, succeed=True
-    )
+    consumer.confirm(uri_priority, "+1", succeed=True)
+    consumer.wait_push_event()
 
     # Test that no alarm is triggered
-    time.sleep(1)
+    time.sleep(2)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
 
@@ -147,27 +132,28 @@ def test_priority_transition_active_alarm_active(
     producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     consumer = proxy.create_client("consumer")
-    consumer.open(uri_priority, flags=["read"], succeed=True)
+    consumer.open(
+        uri_priority, flags=["read"], max_unconfirmed_messages=1, succeed=True
+    )
 
-    # Post a message
+    # Post "msg1", it is delivered to consumer
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait more than max idle time and check no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    time.sleep(2)
+    assert not leader.alarms("QUEUE_STUCK", 1)
 
-    # Close consumer queue and post one more message
-    consumer.close(uri_priority, succeed=True)
-
+    # Post "msg2", it is not delivered to consumer due to max_unconfirmed_messages=1
     producer.post(uri_priority, ["msg2"], succeed=True, wait_ack=True)
 
-    # Test that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    # Wait more than max idle and check that alarm is triggered
+    time.sleep(2)
+    assert leader.alarms("QUEUE_STUCK", 1)
     assert leader.capture(r"For appId: __default")
     leader.drain()
 
-    # Open consumer queue and post one more message
-    consumer.open(uri_priority, flags=["read"], succeed=True)
-    producer.post(uri_priority, ["msg3"], succeed=True, wait_ack=True)
+    # Confirm messages, queue is empty
+    consumer.confirm(uri_priority, "*", succeed=True)
 
     # Test that queue is no longer in alarm state
     assert leader.outputs_regex(r"no longer appears to be stuck.", 1)
@@ -192,13 +178,15 @@ def test_priority_enable_disable_alarm(cluster: Cluster, domain_urls: tc.DomainU
     # Post a message
     producer.post(du.uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
-    # Test that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    # Wait more than max idle and check that alarm is triggered
+    time.sleep(2)
+    assert leader.alarms("QUEUE_STUCK", 1)
     assert leader.capture(r"For appId: __default")
     leader.drain()
 
     # Open consumer queue
     consumer.open(du.uri_priority, flags=["read"], succeed=True)
+    consumer.wait_push_event()
 
     # Test that queue is no longer in alarm state
     assert leader.outputs_regex(r"no longer appears to be stuck.", 1)
@@ -212,7 +200,64 @@ def test_priority_enable_disable_alarm(cluster: Cluster, domain_urls: tc.DomainU
     producer.post(du.uri_priority, ["msg2"], succeed=True, wait_ack=True)
 
     # Test that alarm is not triggered
+    time.sleep(2)
+    assert not leader.alarms("QUEUE_STUCK", 1)
+
+
+@tweak.domain.max_idle_time(3)
+def test_priority_reconfigure_max_idle_time(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
+    """
+    Test that if max idle time is reconfigured, alarm is triggered on proper time in priority mode.
+    """
+    du = domain_urls
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(du.uri_priority, flags=["write,ack"], succeed=True)
+    consumer = proxy.create_client("consumer")
+    consumer.open(
+        du.uri_priority, flags=["read"], max_unconfirmed_messages=1, succeed=True
+    )
+
+    # Post 2 messages, msg2 is not delivered to consumer due to max_unconfirmed_messages=1
+    producer.post(du.uri_priority, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(du.uri_priority, ["msg2"], succeed=True, wait_ack=True)
+
+    # Decrease max idle time from 3 to 1 second
+    cluster.config.domains[du.domain_priority].definition.parameters.max_idle_time = 1
+    cluster.reconfigure_domain(du.domain_priority, succeed=True)
+
+    # Within 2 sec (more than new max idle time 1 sec but less than old one 3 sec) check that alarm is triggered
+    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.capture(r"For appId: __default")
+    leader.drain()
+
+    # Confirm messages, queue is empty
+    consumer.confirm(du.uri_priority, "*", succeed=True)
+    consumer.wait_push_event()
+
+    # Check that queue is no longer in alarm state
+    assert leader.outputs_regex(r"no longer appears to be stuck.", 1)
+
+    # Post 2 more messages, msg4 is not delivered to consumer due to max_unconfirmed_messages=1
+    producer.post(du.uri_priority, ["msg3"], succeed=True, wait_ack=True)
+    producer.post(du.uri_priority, ["msg4"], succeed=True, wait_ack=True)
+
+    # Increase max idle time from 1 to 3 seconds
+    cluster.config.domains[du.domain_priority].definition.parameters.max_idle_time = 3
+    cluster.reconfigure_domain(du.domain_priority, succeed=True)
+
+    # Within 2 secs (more than old max idle time 1 sec) check no alarm is triggered
     assert not leader.alarms("QUEUE_STUCK", 2)
+
+    # Wait 2 seconds more (more than new max idle time 3 sec) and check that alarm is triggered
+    time.sleep(2)
+    assert leader.alarms("QUEUE_STUCK", 1)
+    assert leader.capture(r"For appId: __default")
 
 
 @tweak.domain.max_idle_time(1)
@@ -268,7 +313,7 @@ def test_fanout_no_alarms_for_a_slow_queue(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     """
-    Test no broker ALARMS in fanout mode for a slowly moving queue.
+    Test broker ALARMS in fanout mode for a slowly moving queue.
     """
     uri_fanout = domain_urls.uri_fanout
     leader = cluster.last_known_leader
@@ -285,39 +330,33 @@ def test_fanout_no_alarms_for_a_slow_queue(
     for app_id in app_ids:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
-        consumer.open(f"{uri_fanout}?id={app_id}", flags=["read"], succeed=True)
+        consumer.open(
+            f"{uri_fanout}?id={app_id}",
+            flags=["read"],
+            max_unconfirmed_messages=1,
+            succeed=True,
+        )
 
+    # Post 3 message
     producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(uri_fanout, ["msg2"], succeed=True, wait_ack=True)
+    producer.post(uri_fanout, ["msg3"], succeed=True, wait_ack=True)
 
+    # Simulate a slow consumer by not confirming the message immediately
+    time.sleep(1)
     for app_id in app_ids:
-        consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "*", succeed=True)
-
-    producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
-    producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
-
-    time.sleep(4)
-
-    # First, test the alarm
-    assert leader.alarms("QUEUE_STUCK", 1)
-    assert leader.capture(r"For appId: bar")
-    leader.drain()
-
-    # Then test no alarm while consumer 'foo' slowly confirms
-    time.sleep(1)
-    consumers["foo"].confirm(f"{uri_fanout}?id=foo", "*", succeed=True)
+        consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "+1", succeed=True)
 
     time.sleep(1)
-    consumers["foo"].confirm(f"{uri_fanout}?id=foo", "*", succeed=True)
+    for app_id in app_ids:
+        consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "+1", succeed=True)
 
-    producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
-    time.sleep(1)
-
-    # Consumer 'bar' picks the last message
+    # Consumer 'bar' appears and picks all messages
     consumer_bar = next(proxies).create_client("bar")
     consumer_bar.open(f"{uri_fanout}?id=bar", flags=["read"], succeed=True)
 
     # Test that no alarm is triggered
-    time.sleep(1)
+    time.sleep(2)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
 
@@ -342,28 +381,38 @@ def test_fanout_transition_active_alarm_active(
     for app_id in app_ids:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
-        consumer.open(f"{uri_fanout}?id={app_id}", flags=["read"], succeed=True)
+        consumer.open(
+            f"{uri_fanout}?id={app_id}",
+            flags=["read"],
+            max_unconfirmed_messages=1,
+            succeed=True,
+        )
 
+    # Post "msg1" message, it is delivered to all consumers
     producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait more than max idle time and check no alarm is triggered
     time.sleep(2)
     assert not leader.alarms("QUEUE_STUCK", 1)
 
-    # Close 'foo' consumer queue and post one more message
-    consumers["foo"].close(f"{uri_fanout}?id=foo", succeed=True)
+    # Post "msg2" message, it is not delivered to consumers due to max_unconfirmed_messages=1
     producer.post(uri_fanout, ["msg2"], succeed=True, wait_ack=True)
 
+    # Apps except 'foo' confirm all messages, msg2 for 'foo' remains in queue
+    for app_id in app_ids:
+        if app_id != "foo":
+            consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "*", succeed=True)
+
+    # Wait more than max idle time
     time.sleep(2)
 
-    # Test that alarm is triggered
+    # Test that alarm is triggered for 'foo' consumer
     assert leader.alarms("QUEUE_STUCK", 1)
     assert leader.capture(r"For appId: foo")
     leader.drain()
 
-    # Open consumer queue and post one more message
-    consumers["foo"].open(f"{uri_fanout}?id=foo", flags=["read"], succeed=True)
-    producer.post(uri_fanout, ["msg3"], succeed=True, wait_ack=True)
+    # Confirm all messages for 'foo', queue is empty
+    consumers["foo"].confirm(f"{uri_fanout}?id=foo", "*", succeed=True)
 
     # Test that queue for 'foo' consumer is no longer in alarm state
     assert leader.outputs_regex(r"id=foo' no longer appears to be stuck.", 1)

@@ -216,6 +216,9 @@ class QueueConsumptionMonitor {
 
     SubStreamInfoMap d_subStreamInfos;
 
+    /// Last scheduled alarm time.
+    bsls::TimeInterval d_scheduledAlarmTime;
+
     /// Callback to check un-delivered messages.
     HaveUndeliveredCb d_haveUndeliveredCb;
 
@@ -246,6 +249,12 @@ class QueueConsumptionMonitor {
 
     /// Schedule the alarm event for the specified `alarmTime`.
     void scheduleAlarmEvent(const bsls::TimeInterval& alarmTime);
+
+    /// Schedule the alarm event for the specified `alarmTime` if it was not
+    /// scheduled.  Reschedule the alarm event for the specified `alarmTime` if
+    /// it was already scheduled and alarmTime < d_scheduledAlarmTime.
+    void scheduleOrRescheduleAlarmEventIfNeeded(
+        const bsls::TimeInterval& alarmTime);
 
     /// Schedule the idle event for the specified `subStreamInfo` and `appId`.
     void scheduleIdleEvent(SubStreamInfo*     subStreamInfo,

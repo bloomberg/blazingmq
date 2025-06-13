@@ -116,6 +116,7 @@ QueueConsumptionMonitor::QueueConsumptionMonitor(
 , d_alarmEventHandle()
 , d_maxIdleTimeSec(0)
 , d_subStreamInfos(allocator)
+, d_scheduledAlarmTime()
 , d_haveUndeliveredCb(haveUndeliveredCb)
 , d_loggingCb(loggingCb)
 {
@@ -249,24 +250,25 @@ void QueueConsumptionMonitor::onMessageSent(const bsl::string& appId)
         bsls::TimeInterval alarmTime;
         bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIt =
             d_haveUndeliveredCb(&alarmTime, appId, now);
-        if (oldestMsgIt && alarmTime <= now) {
-            // There are un-delivered messages with alarm time in the past.
-            // Since the idle event was scheduled, it will continue to track
-            // state.
-            BSLS_ASSERT_SAFE(info.d_idleEventHandle);
-            return;  // RETURN
+        if (oldestMsgIt) {
+            if (alarmTime <= now) {
+                // There are un-delivered messages with alarm time in the past.
+                // Since the idle event was scheduled, it will continue to
+                // track state.
+                BSLS_ASSERT_SAFE(info.d_idleEventHandle);
+
+                return;  // RETURN
+            }
+
+            // Since there is the oldest un-delivered message with alarm time
+            // in the future, schedule or reschedule the alarm event if needed.
+            scheduleOrRescheduleAlarmEventIfNeeded(alarmTime);
         }
 
         // There are no un-delivered messages or alarm time of the oldest
         // message is in the future, so we can transition the substream to
         // alive state.
         onTransitionToAlive(&info, appId);
-
-        if (!d_alarmEventHandle && oldestMsgIt) {
-            // Since there is the oldest un-delivered message with alarm time
-            // in the future, schedule the alarm event.
-            scheduleAlarmEvent(alarmTime);
-        }
     }
 }
 
@@ -310,12 +312,38 @@ void QueueConsumptionMonitor::scheduleAlarmEvent(
         d_queueState_p->queue()));
     BSLS_ASSERT_SAFE(!d_alarmEventHandle);
 
+    d_scheduledAlarmTime = alarmTime;
+
     d_queueState_p->scheduler()->scheduleEvent(
         &d_alarmEventHandle,
-        alarmTime,
+        d_scheduledAlarmTime,
         bdlf::BindUtil::bind(
             &QueueConsumptionMonitor::executeAlarmInQueueDispatcher,
             this));
+}
+
+void QueueConsumptionMonitor::scheduleOrRescheduleAlarmEventIfNeeded(
+    const bsls::TimeInterval& alarmTime)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    if (d_alarmEventHandle) {
+        // If the event is already scheduled, reschedule it only if the new
+        // alarm time is earlier than the currently scheduled one.
+        if (alarmTime < d_scheduledAlarmTime) {
+            d_scheduledAlarmTime = alarmTime;
+            d_queueState_p->scheduler()->rescheduleEvent(d_alarmEventHandle,
+                                                         d_scheduledAlarmTime);
+        }
+    }
+    else {
+        // If the event is not scheduled, schedule it.
+        scheduleAlarmEvent(alarmTime);
+    }
 }
 
 void QueueConsumptionMonitor::scheduleIdleEvent(SubStreamInfo* subStreamInfo,
@@ -495,22 +523,23 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string& appId)
     bslma::ManagedPtr<mqbi::StorageIterator> oldestMsgIt =
         d_haveUndeliveredCb(&alarmTime, appId, now);
 
-    if (oldestMsgIt && alarmTime <= now) {
+    if (oldestMsgIt) {
         // There are un-delivered messages with alarm time in the past,
-        // reschedule the idle event.
-        scheduleIdleEvent(&info, appId);
-        return;  // RETURN
+        // schedule the idle event.
+        if (alarmTime <= now) {
+            scheduleIdleEvent(&info, appId);
+
+            return;  // RETURN
+        }
+
+        // Since there is the oldest un-delivered message with alarm time in
+        // the future, schedule or reschedule the alarm event if needed.
+        scheduleOrRescheduleAlarmEventIfNeeded(alarmTime);
     }
 
     // There are no un-delivered messages or alarm time of the oldest message
     // is in the future, so we can transition the substream to alive state.
     onTransitionToAlive(&info, appId);
-
-    if (!d_alarmEventHandle && oldestMsgIt) {
-        // Since there is the oldest un-delivered message with alarm time in
-        // the future, schedule the alarm event.
-        scheduleAlarmEvent(alarmTime);
-    }
 }
 
 // ACCESSORS
