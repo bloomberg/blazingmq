@@ -3624,6 +3624,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                                                event,
                                                d_bufferFactory_p,
                                                d_blobSpPool_p,
+                                               d_queueManager.schemaLearner(),
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -3664,21 +3665,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                  sIds.begin();
              citer != sIds.end();
              ++citer) {
-            bmqt::CorrelationId         correlationId;
-            unsigned int                subscriptionHandleId;
-            const QueueManager::QueueSp queue =
-                d_queueManager.observePushEvent(&correlationId,
-                                                &subscriptionHandleId,
-                                                *citer);
-
-            BSLS_ASSERT(queue);
-            queueEvent->insertQueue(citer->d_subscriptionId, queue);
-
-            // Use 'subscriptionHandle' instead of the internal
-            // 'citer->d_subscriptionId' so that
-            // 'bmqimp::Event::subscriptionId()' returns 'subscriptionHandle'
-
-            queueEvent->addCorrelationId(correlationId, subscriptionHandleId);
+            d_queueManager.observePushEvent(queueEvent.get(), *citer);
         }
 
         // Update event bytes
@@ -3775,7 +3762,7 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
         }
 
         // Keep track of user-provided CorrelationId (it may be unset)
-        queueEvent->addCorrelationId(correlationId);
+        queueEvent->addContext(correlationId);
 
         // Insert queue into event
         queueEvent->insertQueue(queue);
@@ -4685,7 +4672,7 @@ bool BrokerSession::cancelPendingMessageImp(
     }
 
     // Keep track of user-provided CorrelationId (it may be unset)
-    (*ackEvent)->addCorrelationId(qac.d_correlationId);
+    (*ackEvent)->addContext(qac.d_correlationId);
 
     // Insert queue into event
     bsl::shared_ptr<Queue> queue = queueSp;

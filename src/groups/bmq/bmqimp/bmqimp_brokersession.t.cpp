@@ -6845,7 +6845,7 @@ static void test33_queueNackTest()
     BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrId, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrId, nackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 9. Waiting QUEUE_CLOSE_RESULT event...");
@@ -9263,7 +9263,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(k_ACK_STATUS_SUCCESS, ackIter->message().status());
     BMQTST_ASSERT_EQ(guidFirst, ackIter->message().messageGUID());
     BMQTST_ASSERT_EQ(1, ackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrIdFirst, ackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrIdFirst, ackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, ackIter->next());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
@@ -9335,13 +9335,13 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(guidSecond, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(2, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrIdSecond, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrIdSecond, nackEvent->context(0).d_correlationId);
 
     BMQTST_ASSERT_EQ(1, iter->next());
     BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
     BMQTST_ASSERT_EQ(guidThird, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    BMQTST_ASSERT_EQ(corrIdThird, nackEvent->correlationId(1));
+    BMQTST_ASSERT_EQ(corrIdThird, nackEvent->context(1).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 11. Send one more PUT message while the channel is down");
@@ -9387,7 +9387,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(guidFourth, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrIdFourth, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrIdFourth, nackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 14. Waiting QUEUE_CLOSE_RESULT event...");
@@ -9621,7 +9621,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(guid2, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrId, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrId, nackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 13. Waiting QUEUE_CLOSE_RESULT event...");
