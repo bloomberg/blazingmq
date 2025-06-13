@@ -269,11 +269,9 @@ else
     TARGETS="all.t"
 fi
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
-    -DBDE_BUILD_TARGET_64=ON \
-    -DBDE_BUILD_TARGET_CPP20=ON \
+cmake --preset fuzz-tests -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
-    -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS[@]}"
+    "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target ${TARGETS} -v --clean-first
 

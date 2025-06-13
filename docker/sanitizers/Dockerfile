@@ -16,6 +16,7 @@ COPY docker docker
 COPY etc etc
 COPY src src
 COPY CMakeLists.txt ./
+COPY CMakePresets.json ./
 
 # Build with sanitizer instrumentation
 RUN docker/sanitizers/build_sanitizer.sh ${SANITIZER_NAME} ${FUZZER}

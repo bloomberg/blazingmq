@@ -51,11 +51,15 @@
             "name": "fuzz-tests",
             "description":
                 "Configuration for building fuzztests on x86_64-based Linux",
-            "inherits": "base",
+            "binaryDir": "cmake.bld",
             "cacheVariables": {
-                "BDE_BUILD_TARGET_64": true,
+                "DBDE_BUILD_TARGET_64": "1",
+                "DBDE_BUILD_TARGET_CPP20": "1",
+                "DBDE_BUILD_TARGET_SAFE": "1",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_LIBDIR": "lib64",
                 "CMAKE_CXX_STANDARD": "20",
-                "BDE_BUILD_TARGET_CPP17": "20",
                 "INSTALL_TARGETS": "fuzztests"
             }
         }

@@ -71,12 +71,10 @@ fi
 
 export FUZZER="fuzzer"
 CMAKE_OPTIONS=(\
-    -DCMAKE_INSTALL_LIBDIR="lib" \
     -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
     -DCMAKE_PREFIX_PATH="${DIR_INSTALL}" \
-    -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_PATH}" \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+    -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_PATH}")
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake --preset fuzz-tests -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
