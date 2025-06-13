@@ -59,7 +59,7 @@ class Printer {
   public:
     // CREATORS
 
-    virtual ~Printer() {}
+    virtual ~Printer();
 
     // PUBLIC METHODS
 
