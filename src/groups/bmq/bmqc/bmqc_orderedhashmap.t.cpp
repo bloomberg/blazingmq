@@ -213,17 +213,17 @@ static void test3_insert()
 
 #if defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on Solaris
-    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
-    const int k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
-                                   ? 100 * 1000    // 100K
-                                   : 1000 * 1000;  // 1M
+    const size_t k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
+                                      ? 100 * 1000    // 100K
+                                      : 1000 * 1000;  // 1M
 #elif defined(__SANITIZE_MEMORY__)
     // GCC-supported macros for checking MSAN
-    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
-    const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
+    const size_t k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
 
     // Insert 1M elements
@@ -275,30 +275,30 @@ static void test4_rinsert()
     bmqtst::TestHelper::printTestName("RINSERT");
 
     // rinsert() test
-    typedef bmqc::OrderedHashMap<int, int> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     MyMapType map(bmqtst::TestHelperUtil::allocator());
 
 #if defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on Solaris
-    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
-    const int k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
-                                   ? 100 * 1000    // 100K
-                                   : 1000 * 1000;  // 1M
+    const size_t k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
+                                      ? 100 * 1000    // 100K
+                                      : 1000 * 1000;  // 1M
 #elif defined(__SANITIZE_MEMORY__)
     // GCC-supported macros for checking MSAN
-    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
-    const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
+    const size_t k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
 
     // Insert 1M elements
-    for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
+    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.rinsert(bsl::make_pair(i, i + 1));
         BMQTST_ASSERT_EQ_D(i, true, rc.second);
         BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
@@ -307,12 +307,12 @@ static void test4_rinsert()
         BMQTST_ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
     }
 
-    BMQTST_ASSERT_EQ(map.size(), static_cast<size_t>(k_NUM_ELEMENTS));
+    BMQTST_ASSERT_EQ(map.size(), k_NUM_ELEMENTS);
 
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
-        int              i    = k_NUM_ELEMENTS - 1;
+        size_t           i    = k_NUM_ELEMENTS - 1;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
             BMQTST_ASSERT_EQ_D(i, i, cit->first);
             BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
@@ -323,7 +323,7 @@ static void test4_rinsert()
     // Reverse iterate using --(end()) and confirm
     {
         const MyMapType& cmap = map;
-        int              i    = 0;
+        size_t           i    = 0;
         ConstIterType    cit  = --(cmap.end());  // last element
         for (; cit != cmap.begin(); --cit) {
             BMQTST_ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
@@ -450,9 +450,9 @@ static void test6_clear()
     bmqtst::TestHelper::printTestName("CLEAR");
 
     // clear
-    typedef bmqc::OrderedHashMap<int, int> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
+    typedef MyMapType::iterator                  IterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     MyMapType map(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(true, map.empty());
@@ -466,10 +466,10 @@ static void test6_clear()
     BMQTST_ASSERT_EQ(0U, map.size());
     BMQTST_ASSERT_EQ(true, map.load_factor() == 0.0);
 
-    const int k_NUM_ELEMENTS = 100;
+    const size_t k_NUM_ELEMENTS = 100;
 
     // Insert elements
-    for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
+    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
         BMQTST_ASSERT_EQ_D(i, rc.second, true);
         BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
@@ -479,7 +479,7 @@ static void test6_clear()
 
     BMQTST_ASSERT_EQ(false, map.empty());
     BMQTST_ASSERT_EQ(true, map.begin() != map.end());
-    BMQTST_ASSERT_EQ(static_cast<int>(k_NUM_ELEMENTS), map.size());
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS, map.size());
 
     map.clear();
     BMQTST_ASSERT_EQ(true, map.empty());
@@ -496,16 +496,16 @@ static void test7_erase()
     bmqtst::TestHelper::printTestName("ERASE");
 
     // erase
-    typedef bmqc::OrderedHashMap<int, int> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
-    const int k_NUM_ELEMENTS = 100;
-    MyMapType map(bmqtst::TestHelperUtil::allocator());
+    const size_t k_NUM_ELEMENTS = 100;
+    MyMapType    map(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
-    for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
+    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
         BMQTST_ASSERT_EQ_D(i, rc.second, true);
         BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
@@ -767,9 +767,9 @@ static void test13_previousEndIterator()
     bmqtst::TestHelper::printTestName("PREVIOUS END ITERATOR");
     // is pointing to the newly inserted element.
 
-    typedef bmqc::OrderedHashMap<int, int> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
+    typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
 
     MyMapType        map(bmqtst::TestHelperUtil::allocator());
     const MyMapType& cmap = map;
@@ -780,7 +780,7 @@ static void test13_previousEndIterator()
     IterType      endIt  = map.end();
     ConstIterType endCit = cmap.end();
 
-    int                       i  = 0;
+    size_t                    i  = 0;
     bsl::pair<IterType, bool> rc = map.insert(bsl::make_pair(i, i * i));
 
     BMQTST_ASSERT_EQ(true, rc.first == endIt);
@@ -954,8 +954,7 @@ static void test15_eraseRange()
     BMQTST_ASSERT_EQ(true, map.empty());
 }
 
-BSLA_MAYBE_UNUSED
-static void testN1_insertPerformanceOrdered()
+BSLA_MAYBE_UNUSED static void testN1_insertPerformanceOrdered()
 // ------------------------------------------------------------------------
 // INSERT PERFORMANCE
 // ------------------------------------------------------------------------
@@ -982,8 +981,7 @@ static void testN1_insertPerformanceOrdered()
     }
 }
 
-BSLA_MAYBE_UNUSED
-static void testN1_insertPerformanceUnordered()
+BSLA_MAYBE_UNUSED static void testN1_insertPerformanceUnordered()
 // ------------------------------------------------------------------------
 // INSERT PERFORMANCE
 // ------------------------------------------------------------------------
