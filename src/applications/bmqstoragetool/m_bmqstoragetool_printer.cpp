@@ -285,12 +285,12 @@ void printQueueDetails(bsl::ostream&          ostream,
                 // Sort Apps by number of records ascending
                 AppsData appsData(allocator);
                 appsData.reserve(appKeysCount);
-                for (QueueDetails::AppDetailsMap::const_iterator it =
+                for (QueueDetails::AppDetailsMap::const_iterator appIt =
                          details.d_appDetailsMap.cbegin();
-                     it != details.d_appDetailsMap.cend();
-                     ++it) {
-                    appsData.emplace_back(it->second.d_recordsNumber,
-                                          it->first);
+                     appIt != details.d_appDetailsMap.cend();
+                     ++appIt) {
+                    appsData.emplace_back(appIt->second.d_recordsNumber,
+                                          appIt->first);
                 }
                 bsl::sort(appsData.begin(), appsData.end());
 
