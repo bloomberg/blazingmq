@@ -337,7 +337,7 @@ void QlistFileIterator::loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const
 }
 
 void QlistFileIterator::loadAppIdHashes(
-    bsl::vector<const char*>* appIdHashes) const
+    bsl::vector<bsl::string>* appIdHashes) const
 {
     BSLS_ASSERT_SAFE(appIdHashes);
 
