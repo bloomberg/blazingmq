@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Apr  2 14:55:18 2025
+// Generated on Thu Jun 12 18:09:18 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
 
 #ifdef COMPILING_BMQEX_FUTURE_H
@@ -1644,6 +1644,11 @@ inline FutureSharedState<R>::~FutureSharedState()
         reinterpret_cast<Buffer*>(&d_result)->object().~ExceptionObjType();
         break;  // BREAK
     }
+    default: {
+        // Unreachable code, but makes the compiler happy.
+        BSLS_ASSERT(false);
+        BSLS_ASSERT_INVOKE_NORETURN("");
+    }
     }
 }
 
@@ -2185,11 +2190,12 @@ inline R& FutureSharedState<R>::get()
         typedef bsls::ObjectBuffer<ExceptionObjType> Buffer;
         reinterpret_cast<Buffer*>(&d_result)->object().emit();  // THROW
     }
+    default: {
+        // Unreachable code, but makes the compiler happy.
+        BSLS_ASSERT(false);
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    // Unreachable code, but makes the compiler happy.
-    BSLS_ASSERT(false);
-    return *reinterpret_cast<R*>(0x42);
+    }
 }
 
 template <class R>

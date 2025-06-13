@@ -150,7 +150,7 @@
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Apr  2 14:55:18 2025
+// Generated on Thu Jun 12 17:51:39 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
 
 # define COMPILING_BMQEX_FUTURE_H
@@ -1648,6 +1648,10 @@ inline FutureSharedState<R>::~FutureSharedState()
         reinterpret_cast<Buffer*>(&d_result)->object().~ExceptionObjType();
         break;  // BREAK
     }
+    default: {
+        // Unreachable code, but makes the compiler happy.
+        BSLS_ASSERT(false);
+    }
     }
 }
 
@@ -1821,11 +1825,12 @@ inline R& FutureSharedState<R>::get()
         typedef bsls::ObjectBuffer<ExceptionObjType> Buffer;
         reinterpret_cast<Buffer*>(&d_result)->object().emit();  // THROW
     }
+    default: {
+        // Unreachable code, but makes the compiler happy.
+        BSLS_ASSERT(false);
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    // Unreachable code, but makes the compiler happy.
-    BSLS_ASSERT(false);
-    return *reinterpret_cast<R*>(0x42);
+    }
 }
 
 template <class R>
