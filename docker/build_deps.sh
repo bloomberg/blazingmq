@@ -80,7 +80,7 @@ build() {
 }
 
 fetch_deps
-configure
 if [ "${DO_BUILD}" = true ]; then
+    configure
     build
 fi

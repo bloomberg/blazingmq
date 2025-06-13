@@ -18,8 +18,6 @@ if(DEFINED ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES $ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
 endif()
 
-set(LIBCXX_BUILD_PATH "$ENV{LIBCXX_BUILD_PATH}")
-
 set(TOOLCHAIN_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
 set(TOOLCHAIN_C_FLAGS   "${CMAKE_C_FLAGS_DEBUG}")
 
@@ -44,12 +42,33 @@ string(CONCAT TOOLCHAIN_C_FLAGS
        "${TOOLCHAIN_SHARED_FLAGS} "
       )
 
-# Use libc++ standard library for C++.
-string(CONCAT TOOLCHAIN_CXX_FLAGS
-       "${TOOLCHAIN_CXX_FLAGS} "
-       "-stdlib=libc++ "
-       "-I${LIBCXX_BUILD_PATH}/include/c++/v1 "
-      )
+if(DEFINED ENV{LIBCXX_BUILD_PATH})
+    # Use instrumented libc++ (LLVM) standard library for C++ built from source
+    string(CONCAT TOOLCHAIN_CXX_FLAGS
+           "${TOOLCHAIN_CXX_FLAGS} "
+           "-stdlib=libc++ "
+           "-I$ENV{LIBCXX_BUILD_PATH}/include/c++/v1 "
+          )
+    string(CONCAT TOOLCHAIN_LINKER_FLAGS
+           "${CMAKE_LINKER_FLAGS_DEBUG}"
+           "-stdlib=libc++ "
+           "-L$ENV{LIBCXX_BUILD_PATH}/lib "
+           "-Wl,-rpath,$ENV{LIBCXX_BUILD_PATH}/lib "
+           "-lc++abi "
+           )
+else()
+    # Use non-instrumented libstdc++ (GNU) standard library for C++. The reason
+    # why we use this library is that preinstalled clang and libFuzzer depend
+    # on GNU library. If we try to link it to a fuzzer with other dependencies,
+    # built with LLVM libc++, it leads to a conflict. An alternative is to
+    # build clang and libFuzzer ourselves with LLVM libc++. Though it takes too
+    # much time. Also it contradicts BFuzz workflow that we are trying to
+    # imitate here.
+    string(CONCAT TOOLCHAIN_LINKER_FLAGS
+           "${CMAKE_LINKER_FLAGS_DEBUG}"
+           "-lstdc++ "
+           )
+endif()
 
 # Suppress some warnings when building C++ code.
 string(CONCAT TOOLCHAIN_CXX_FLAGS
@@ -68,15 +87,6 @@ string(CONCAT TOOLCHAIN_CXX_FLAGS
        "-Wno-zero-as-null-pointer-constant "
        "-Wno-unsafe-buffer-usage "
        )
-
-# Define linker flags (used for both shared-objects and executables).
-string( CONCAT TOOLCHAIN_LINKER_FLAGS
-        "${CMAKE_LINKER_FLAGS_DEBUG}"
-        "-stdlib=libc++ "
-        "-L${LIBCXX_BUILD_PATH}/lib "
-        "-Wl,-rpath,${LIBCXX_BUILD_PATH}/lib "
-        "-lc++abi "
-        )
 
 set( TOOLCHAIN_EXE_FLAGS "${TOOLCHAIN_LINKER_FLAGS}" )
 
@@ -113,6 +123,10 @@ elseif(SANITIZER_NAME STREQUAL "ubsan")
   set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=undefined ")
 else()
   message(FATAL_ERROR "Unexpected sanitizer name: ${SANITIZER_NAME}")
+endif()
+
+if(DEFINED ENV{FUZZER_FLAG})
+  string(APPEND TOOLCHAIN_DEBUG_FLAGS "-fsanitize=$ENV{FUZZER_FLAG} ")
 endif()
 
 # Set the final configuration variables, as understood by CMake.
