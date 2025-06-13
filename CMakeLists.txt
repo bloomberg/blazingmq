@@ -336,6 +336,7 @@ set(bmqbrkr_plugins_deps)
 list(APPEND bmqbrkr_plugins_deps ${mqb_DEPENDS} ${bmq_DEPENDS})
 list(REMOVE_DUPLICATES bmqbrkr_plugins_deps)
 list(REMOVE_ITEM bmqbrkr_plugins_deps bmq) # don't need this dependency
+
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/cmake/BmqbrkrPluginsConfig.cmake.in
