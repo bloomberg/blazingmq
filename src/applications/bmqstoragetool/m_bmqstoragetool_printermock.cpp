@@ -20,7 +20,33 @@ namespace BloombergLP {
 
 namespace m_bmqstoragetool {
 
-// NOTHING
+// =================
+// class PrinterMock
+// =================
+
+PrinterMock::PrinterMock()
+{
+    // NOTHING
+}
+
+PrinterMock::~PrinterMock()
+{
+    // NOTHING
+}
+
+// ====================
+// class CslPrinterMock
+// ====================
+
+CslPrinterMock::CslPrinterMock()
+{
+    // NOTHING
+}
+
+CslPrinterMock::~CslPrinterMock()
+{
+    // NOTHING
+}
 
 }  // close package namespace
 
