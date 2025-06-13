@@ -348,9 +348,9 @@ struct FileStoreUtil {
     /// Write a queue creation record loaded from `event` at `recordPosition`
     /// for `partitionId` to the `journal`.  If `qListAware`, also write to
     /// `qlistFile` currently at `qlistOffset`.  Store the resulting values in
-    /// `journalPos` and `qlistFilePos`, and optionally in `queueRecLength`,
-    /// `quri`, `queueKey`, and `queueOpType` if they are not null.  Return 0
-    /// on success, non-zero value otherwise.
+    /// `journalPos`, `qlistFilePos` and `appIdKeyPairs`, and optionally in
+    /// `queueRecLength`, `quri`, `queueKey`, and `queueOpType` if they are not
+    /// null.  Return 0 on success, non-zero value otherwise.
     static int
     writeQueueCreationRecordImpl(bsls::Types::Uint64*        journalPos,
                                  bsls::Types::Uint64*        qlistFilePos,
