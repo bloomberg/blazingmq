@@ -85,87 +85,74 @@ ClusterFSM& ClusterFSM::unregisterObserver(ClusterFSMObserver* observer)
     return *this;
 }
 
-void ClusterFSM::applyEvent(ClusterFSMArgsSp& eventsQueue)
+void ClusterFSM::popEventAndProcess(ClusterFSMArgsSp& eventsQueue)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!eventsQueue->empty());
+    while (!eventsQueue->empty()) {
+        State::Enum oldState = d_state;
+        Transition  transition =
+            d_stateTable.transition(oldState, eventsQueue->front().first);
 
-    State::Enum oldState = d_state;
-    Transition  transition =
-        d_stateTable.transition(oldState, eventsQueue->front().first);
+        // Transition state
+        d_state = static_cast<State::Enum>(transition.first);
 
-    // Transition state
-    d_state = static_cast<State::Enum>(transition.first);
+        BALL_LOG_INFO << "Cluster FSM on Event '" << eventsQueue->front().first
+                      << "', transition: State '" << oldState
+                      << "' =>  State '" << d_state << "'";
 
-    BALL_LOG_INFO << "Cluster FSM on Event '" << eventsQueue->front().first
-                  << "', transition: State '" << oldState << "' =>  State '"
-                  << d_state << "'";
+        // Perform action
+        (d_actions.*(transition.second))(eventsQueue);
 
-    // Perform action
-    (d_actions.*(transition.second))(eventsQueue);
-
-    // Notify observers
-    if (d_state != oldState) {
-        switch (d_state) {
-        case State::e_UNKNOWN: {
-            for (ObserversSetIter it = d_observers.begin();
-                 it != d_observers.end();
-                 ++it) {
-                (*it)->onUnknown();
+        // Notify observers
+        if (d_state != oldState) {
+            switch (d_state) {
+            case State::e_UNKNOWN: {
+                for (ObserversSetIter it = d_observers.begin();
+                     it != d_observers.end();
+                     ++it) {
+                    (*it)->onUnknown();
+                }
+                break;  // BREAK
             }
-
-            break;  // BREAK
-        }
-        case State::e_FOL_HEALED: {
-            for (ObserversSetIter it = d_observers.begin();
-                 it != d_observers.end();
-                 ++it) {
-                (*it)->onHealedFollower();
+            case State::e_FOL_HEALED: {
+                for (ObserversSetIter it = d_observers.begin();
+                     it != d_observers.end();
+                     ++it) {
+                    (*it)->onHealedFollower();
+                }
+                break;  // BREAK
             }
-
-            break;  // BREAK
-        }
-        case State::e_LDR_HEALED: {
-            for (ObserversSetIter it = d_observers.begin();
-                 it != d_observers.end();
-                 ++it) {
-                (*it)->onHealedLeader();
+            case State::e_LDR_HEALED: {
+                for (ObserversSetIter it = d_observers.begin();
+                     it != d_observers.end();
+                     ++it) {
+                    (*it)->onHealedLeader();
+                }
+                break;  // BREAK
             }
-
-            break;  // BREAK
-        }
-        case State::e_STOPPING: {
-            for (ObserversSetIter it = d_observers.begin();
-                 it != d_observers.end();
-                 ++it) {
-                (*it)->onStopping();
+            case State::e_STOPPING: {
+                for (ObserversSetIter it = d_observers.begin();
+                     it != d_observers.end();
+                     ++it) {
+                    (*it)->onStopping();
+                }
+                break;  // BREAK
             }
-
-            break;  // BREAK
+            case State::e_NUM_STATES: {
+                BSLS_ASSERT_SAFE(false && "Code unreachable by design");
+                break;  // BREAK
+            }
+            case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
+            case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
+            case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;
+            case State::e_STOPPED: BSLA_FALLTHROUGH;
+            default: {
+                break;  // BREAK
+            }
+            }
         }
-        case State::e_NUM_STATES: {
-            BSLS_ASSERT_SAFE(false && "Code unreachable by design");
-
-            break;  // BREAK
-        }
-        case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
-        case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
-        case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;
-        case State::e_STOPPED: BSLA_FALLTHROUGH;
-        default: {
-            break;  // BREAK
-        }
-        }
+        eventsQueue->pop();
     }
-
-    eventsQueue->pop();
-    if (!eventsQueue->empty()) {
-        applyEvent(eventsQueue);
-    }
-    else {
-        // NOTHING
-        // There are no successive events to be processed so its safe to exit.
-    }
+    // There are no successive events to be processed so its safe to exit.
 }
 
 }  // close package namespace

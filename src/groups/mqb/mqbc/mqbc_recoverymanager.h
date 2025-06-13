@@ -184,6 +184,12 @@ class RecoveryManager {
         /// Write offset of the data file.
         bsls::Types::Uint64 d_dataFilePosition;
 
+        /// QList file descriptor to use for recovery.
+        mqbs::MappedFileDescriptor d_mappedQlistFd;
+
+        /// Write offset of the QList file.
+        bsls::Types::Uint64 d_qlistFilePosition;
+
         /// Peer node from which we are receiving live data.
         mqbnet::ClusterNode* d_liveDataSource_p;
 
@@ -245,6 +251,10 @@ class RecoveryManager {
 
     /// Allocator to use
     bslma::Allocator* d_allocator_p;
+
+    bool d_qListAware;
+    // Whether the broker still reads and writes to the to-be-deprecated Qlist
+    // file.
 
     /// Blob shared pointer pool to use
     BlobSpPool* d_blobSpPool_p;
@@ -456,6 +466,7 @@ inline RecoveryManager::ChunkDeleter::ChunkDeleter(
 , d_counter_sp(counter)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_mfd_sp);
     BSLS_ASSERT_SAFE(d_counter_sp);
 
     ++(*d_counter_sp);
@@ -501,6 +512,8 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_journalFilePosition(0)
 , d_mappedDataFd()
 , d_dataFilePosition(0)
+, d_mappedQlistFd()
+, d_qlistFilePosition(0)
 , d_liveDataSource_p(0)
 , d_bufferedEvents(basicAllocator)
 , d_receiveDataContext()
@@ -516,6 +529,8 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_journalFilePosition(other.d_journalFilePosition)
 , d_mappedDataFd(other.d_mappedDataFd)
 , d_dataFilePosition(other.d_dataFilePosition)
+, d_mappedQlistFd(other.d_mappedQlistFd)
+, d_qlistFilePosition(other.d_qlistFilePosition)
 , d_liveDataSource_p(other.d_liveDataSource_p)
 , d_bufferedEvents(other.d_bufferedEvents)
 , d_receiveDataContext(other.d_receiveDataContext)

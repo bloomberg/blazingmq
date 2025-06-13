@@ -3736,6 +3736,13 @@ bool Cluster::isFSMWorkflow() const
     return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow();
 }
 
+bool Cluster::doesFSMwriteQLIST() const
+{
+    return d_clusterData.clusterConfig()
+        .clusterAttributes()
+        .doesFSMwriteQLIST();
+}
+
 bmqt::GenericResult::Enum
 Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
                      mqbnet::ClusterNode*                          target,
