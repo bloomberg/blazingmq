@@ -43,7 +43,7 @@
 ///       * a DNS entry.  In this case, the client will resolve the list of
 ///         addresses from that entry, and try to connect to one of them.  When
 ///         the connection with the host goes down, it will automatically
-///         immediately failover and reconnects to another entry from the
+///         immediately failover and reconnect to another entry from the
 ///         address list.
 ///
 ///     If the environment variable `BMQ_BROKER_URI` is set, then instances of
