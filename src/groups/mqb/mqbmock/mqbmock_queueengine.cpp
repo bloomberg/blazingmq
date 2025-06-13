@@ -124,7 +124,7 @@ void QueueEngine::afterQueuePurged(BSLA_UNUSED const bsl::string& appId,
     // NOTHING
 }
 
-void QueueEngine::onTimer(BSLA_UNUSED bsls::Types::Int64 currentTimer)
+void QueueEngine::afterPostMessage()
 {
     // executed by the *QUEUE DISPATCHER* thread
 
