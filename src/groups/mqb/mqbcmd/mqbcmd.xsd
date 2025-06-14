@@ -813,7 +813,6 @@
   <complexType name="ClustersCommand">
     <choice>
       <element name="list"            type="tns:Void"/>
-      <element name="addReverseProxy" type="tns:AddReverseProxy"/>
       <element name="cluster"         type="tns:Cluster"/>
     </choice>
   </complexType>
@@ -1033,13 +1032,6 @@
     <sequence>
       <element name="name"    type="xs:string"/>
       <element name="command" type="tns:DomainCommand"/>
-    </sequence>
-  </complexType>
-
-  <complexType name="AddReverseProxy">
-    <sequence>
-      <element name="clusterName" type="xs:string"/>
-      <element name="remotePeer"  type="xs:string"/>
     </sequence>
   </complexType>
 

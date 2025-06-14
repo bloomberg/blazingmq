@@ -241,19 +241,18 @@ int Application::start(bsl::ostream& errorDescription)
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                            = 0,
-        rc_STATCONTROLLER                     = -1,
-        rc_CONFIGPROVIDER                     = -2,
-        rc_DISPATCHER                         = -3,
-        rc_TRANSPORTMANAGER                   = -4,
-        rc_BROKER_CLUSTER_CONFIG_LOADFAILURE  = -5,
-        rc_INVALID_CONFIGPROVIDER_VERSION     = -6,
-        rc_CLUSTERCATALOG                     = -7,
-        rc_DOMAINMANAGER                      = -8,
-        rc_TRANSPORTMANAGER_LISTEN            = -9,
-        rc_CLUSTER_REVERSECONNECTIONS_FAILURE = -10,
-        rc_ADMIN_POOL_START_FAILURE           = -11,
-        rc_PLUGINMANAGER                      = -12
+        rc_SUCCESS                           = 0,
+        rc_STATCONTROLLER                    = -1,
+        rc_CONFIGPROVIDER                    = -2,
+        rc_DISPATCHER                        = -3,
+        rc_TRANSPORTMANAGER                  = -4,
+        rc_BROKER_CLUSTER_CONFIG_LOADFAILURE = -5,
+        rc_INVALID_CONFIGPROVIDER_VERSION    = -6,
+        rc_CLUSTERCATALOG                    = -7,
+        rc_DOMAINMANAGER                     = -8,
+        rc_TRANSPORTMANAGER_LISTEN           = -9,
+        rc_ADMIN_POOL_START_FAILURE          = -10,
+        rc_PLUGINMANAGER                     = -11
     };
 
     int rc = rc_SUCCESS;
@@ -424,12 +423,6 @@ int Application::start(bsl::ostream& errorDescription)
     rc = d_transportManager_mp->startListening(errorDescription);
     if (rc != 0) {
         return (rc * 100) + rc_TRANSPORTMANAGER_LISTEN;  // RETURN
-    }
-
-    rc = d_clusterCatalog_mp->initiateReversedClusterConnections(
-        errorDescription);
-    if (rc != 0) {
-        return (rc * 100) + rc_CLUSTER_REVERSECONNECTIONS_FAILURE;  // RETURN
     }
 
     rc = d_adminExecutionPool.start();

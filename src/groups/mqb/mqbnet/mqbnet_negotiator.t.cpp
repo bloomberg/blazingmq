@@ -66,10 +66,9 @@ struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
         return 0;
     }
 
-    int negotiateOutboundOrReverse(
-        bsl::ostream&                                      errorDescription,
-        const bsl::shared_ptr<mqbnet::NegotiationContext>& negotiationContext)
-        BSLS_KEYWORD_OVERRIDE
+    int negotiateOutbound(bsl::ostream& errorDescription,
+                          const bsl::shared_ptr<mqbnet::NegotiationContext>&
+                              negotiationContext) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
         return 0;
@@ -143,9 +142,9 @@ static void test1_Negotiator()
         bmqu::MemOutStream                          errStream;
         bool                                        isContinueRead = false;
 
-        BSLS_PROTOCOLTEST_ASSERT(
-            testObj,
-            negotiateOutboundOrReverse(errStream, dummyNegotiationContextSp));
+        BSLS_PROTOCOLTEST_ASSERT(testObj,
+                                 negotiateOutbound(errStream,
+                                                   dummyNegotiationContextSp));
 
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
