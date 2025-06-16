@@ -31,10 +31,24 @@ NEW_VERSION_SUFFIX = "NEW_VERSION"
 DEFAULT_TIMEOUT = 2
 
 
+def disable_exit_code_check(cluster: Cluster):
+    """Disable exit code check for all nodes in the cluster."""
+
+    # Non-FSM mode has poor healing mechanism, and can have flaky dirty
+    # shutdowns, so let's disable checking exit code here.
+    #
+    # To give an example, an in-sync node might attempt to syncrhonize with an
+    # out-of-sync node, and become out-of-sync too.  FSM mode is determined to
+    # eliminate these kinds of defects.
+    for node in cluster.nodes():
+        node.check_exit_code = False
+
+
 def update_and_redeploy(cluster: Cluster):
     """Update the cluster and redeploy it."""
 
     # Stop all nodes
+    disable_exit_code_check(cluster)
     cluster.stop_nodes()
 
     # Update env var for all node, i.e. BLAZINGMQ_BROKER_{NAME}
@@ -111,6 +125,7 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
 
     for broker in multi7_node.configurator.brokers.values():
         # Stop all nodes
+        disable_exit_code_check(multi7_node)
         multi7_node.stop_nodes()
 
         # Update binary for the given broker
