@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;a85a13623309e6414cde79a09b5dcf6ca4c9fae1</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;f111770a073835fe724db83db2ddce286393657e</span>
    </div>
   </td>
  </tr>
@@ -144,7 +144,7 @@ Functions</h2></td></tr>
 <li><p class="startli"><em>brokerUri</em>: Address of the broker to connect to. Default is to connect to the broker on the local host on the default port (30114). The format is <code>tcp://&lt;host&gt;:port</code>. Host can be:</p><ul>
 <li>an explicit hostname or <code>localhost</code>,</li>
 <li>an IP, example 10.11.12.13, or</li>
-<li>a DNS entry. In this case, the client will resolve the list of addresses from that entry, and try to connect to one of them. When the connection with the host goes down, it will automatically immediately failover and reconnects to another entry from the address list.</li>
+<li>a DNS entry. In this case, the client will resolve the list of addresses from that entry, and try to connect to one of them. When the connection with the host goes down, it will automatically immediately failover and reconnect to another entry from the address list.</li>
 </ul>
 <p class="startli">If the environment variable <code>BMQ_BROKER_URI</code> is set, then instances of <a class="el" href="classBloombergLP_1_1bmqa_1_1Session.html">bmqa::Session</a> will ignore the <code>brokerUri</code> field from the provided <a class="el" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a> and use the value from this environment variable instead.</p>
 </li>
