@@ -60,6 +60,7 @@
 // BMQ
 
 #include <bmqa_queueid.h>
+#include <bmqp_messageproperties.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
@@ -71,8 +72,8 @@
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 
@@ -116,6 +117,8 @@ struct MessageImpl {
 
     /// SubscriptionHandle this message is associated with
     bmqt::SubscriptionHandle d_subscriptionHandle;
+
+    bmqp::MessageProperties::SchemaPtr d_schema_sp;
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
     /// Optional GroupId this message is associated with
@@ -207,19 +210,20 @@ class Message {
     /// correct usage).
     ///
     /// This method is deprecated, please use `setDataRef()` instead.
-    Message& setData(const bdlbb::Blob* data) BSLS_ANNOTATION_DEPRECATED;
+    BSLA_DEPRECATED_MESSAGE("Use `setDataRef() instead.")
+    Message& setData(const bdlbb::Blob* data);
 
-    Message& setData(const char* data,
-                     size_t      length) BSLS_ANNOTATION_DEPRECATED;
-    // Set the payload of this message to the specified 'length' bytes
-    // starting at the specified 'data' address.  The behavior is undefined
-    // unless 'data' is non-null and 'length' is greater than zero.  Note
-    // that payload pointed to by 'data' is *not* copied right away, and
-    // should not be destroyed or modified until this message has been
-    // packed (see 'bmqa::MessageEventBuilder' component level
-    // documentation for correct usage).
-    //
-    // This method is deprecated, please use 'setDataRef()' instead.
+    /// Set the payload of this message to the specified `length` bytes
+    /// starting at the specified `data` address.  The behavior is undefined
+    /// unless `data` is non-null and `length` is greater than zero.  Note that
+    /// payload pointed to by `data` is *not* copied right away, and should not
+    /// be destroyed or modified until this message has been packed (see
+    /// `bmqa::MessageEventBuilder` component level documentation for correct
+    /// usage).
+    ///
+    /// This method is deprecated, please use `setDataRef()` instead.
+    BSLA_DEPRECATED_MESSAGE("Use `setDataRef() instead.")
+    Message& setData(const char* data, size_t length);
 
     /// Set the payload of this message to the blob pointed to by the
     /// specified `data`.  Behavior is undefined unless `data` is non-null
@@ -283,12 +287,12 @@ class Message {
     /// an error.
     ///
     /// This method is deprecated.
-    bool isValid() const;  // TBD:BSLS_ANNOTATION_DEPRECATED
+    bool isValid() const;  // TBD:BSLA_DEPRECATED
 
     /// Same as `isValid`.
     ///
     /// This method is deprecated.
-    operator bool() const;  // TBD:BSLS_ANNOTATION_DEPRECATED
+    operator bool() const;  // TBD:BSLA_DEPRECATED
 
     /// Return a copy of this message, using the optionally specified
     /// `basicAllocator` with the copy holding all the data of this instance

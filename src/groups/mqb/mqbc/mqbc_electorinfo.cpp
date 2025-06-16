@@ -25,7 +25,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
@@ -79,8 +79,8 @@ ElectorInfoObserver::~ElectorInfoObserver()
 }
 
 void ElectorInfoObserver::onClusterLeader(
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* node,
-    BSLS_ANNOTATION_UNUSED ElectorInfoLeaderStatus::Enum status)
+    BSLA_UNUSED mqbnet::ClusterNode* node,
+    BSLA_UNUSED ElectorInfoLeaderStatus::Enum status)
 {
     // NOTHING
 }

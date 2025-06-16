@@ -96,7 +96,7 @@ class PropertyValueStreamOutVisitor {
 
     // MANIPULATORS
     template <class TYPE>
-    void operator()(BSLS_ANNOTATION_UNUSED const TYPE& value)
+    void operator()(BSLA_UNUSED const TYPE& value)
     {
         // This method is partially specialized for each possible type, so its
         // safe to assert here.
@@ -479,9 +479,9 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
-    int                            totalLen = 0;
-    bmqp::MessagePropertiesInfo    logic =
+    bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
+    int                         totalLen = 0;
+    bmqp::MessagePropertiesInfo logic =
         bmqp::MessagePropertiesInfo::makeInvalidSchema();
     // Empty instance.
     BMQTST_ASSERT_EQ(0, p.numProperties());
@@ -829,9 +829,9 @@ static void test4_iteratorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
-    const size_t                   numProps = 157;
-    PropertyMap                    pmap(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    const size_t            numProps = 157;
+    PropertyMap             pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate 'p' instance with various properties.
     populateProperties(&p, &pmap, numProps);
@@ -856,7 +856,7 @@ static void test5_streamInTest()
         bmqtst::TestHelperUtil::allocator());
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    logic =
+    bmqp::MessagePropertiesInfo logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
     // Empty rep.
     p.streamIn(wireRep, logic.isExtended());
@@ -906,8 +906,8 @@ static void test6_streamOutTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    logic =
+    bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessagePropertiesInfo logic =
         bmqp::MessagePropertiesInfo::makeInvalidSchema();
 
     // Empty rep.
@@ -965,8 +965,8 @@ static void test7_streamInOutMixTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    logic =
+    bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessagePropertiesInfo logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
 
     // First stream in a valid wire-representation in an instance.
@@ -1169,7 +1169,7 @@ static void test9_copyAssignTest()
     bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     PropertyMap pmap(bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    logic =
+    bmqp::MessagePropertiesInfo logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
 
     const size_t numProps =
@@ -1225,7 +1225,7 @@ static void test10_empty()
         bmqtst::TestHelperUtil::allocator());
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    logic(true, 1, true);
+    bmqp::MessagePropertiesInfo logic(true, 1, true);
 
     // Empty rep.
     p.streamIn(wireRep, logic.isExtended());

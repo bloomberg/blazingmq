@@ -20,6 +20,7 @@
 //
 //@CLASSES:
 //  PrinterMock: provides Printer implementation with mocked methods.
+//  CslPrinterMock: provides CslPrinter implementation with mocked methods.
 //
 //@DESCRIPTION: Printer mock for unit testing.
 
@@ -104,6 +105,10 @@ class PrinterMock : public Printer {
     MOCK_CONST_METHOD1(printOffsetsNotFound, void(const OffsetsVec&));
     MOCK_CONST_METHOD1(printCompositesNotFound, void(const CompositesVec&));
 };
+
+// ====================
+// class CslPrinterMock
+// ====================
 
 class CslPrinterMock : public CslPrinter {
   public:

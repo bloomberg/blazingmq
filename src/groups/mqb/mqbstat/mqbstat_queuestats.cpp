@@ -494,18 +494,18 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
 
     // Some of these event types make no sense per appId and should be reported
     // per entire queue instead
-    case EventType::e_ACK: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_ACK_TIME: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_NACK: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_CONFIRM: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_REJECT: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_PUSH: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_PUT: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_GC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_CHANGE_ROLE: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_CFG_MSGS: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_CFG_BYTES: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_NO_SC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_ACK: BSLA_FALLTHROUGH;
+    case EventType::e_ACK_TIME: BSLA_FALLTHROUGH;
+    case EventType::e_NACK: BSLA_FALLTHROUGH;
+    case EventType::e_CONFIRM: BSLA_FALLTHROUGH;
+    case EventType::e_REJECT: BSLA_FALLTHROUGH;
+    case EventType::e_PUSH: BSLA_FALLTHROUGH;
+    case EventType::e_PUT: BSLA_FALLTHROUGH;
+    case EventType::e_GC_MESSAGE: BSLA_FALLTHROUGH;
+    case EventType::e_CHANGE_ROLE: BSLA_FALLTHROUGH;
+    case EventType::e_CFG_MSGS: BSLA_FALLTHROUGH;
+    case EventType::e_CFG_BYTES: BSLA_FALLTHROUGH;
+    case EventType::e_NO_SC_MESSAGE: BSLA_FALLTHROUGH;
     case EventType::e_UPDATE_HISTORY: {
         BSLS_ASSERT_SAFE(false && "Unexpected event type for appId metric");
     } break;

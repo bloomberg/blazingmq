@@ -51,99 +51,11 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_functional.h>  // for bsl::ref()
 #include <bsl_iostream.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
 namespace mqbblp {
-
-namespace {
-const char k_LOG_CATEGORY[] = "MQBBLP.QUEUE";
-
-/// This method performs the actual drop. It dispatches to the templated
-/// (local or remote) specified `queue`.  The specified `handle` will be
-/// released.
-///
-/// THREAD: This method is called from the Queue's dispatcher thread.
-template <typename QueueType>
-void doDropHandle(QueueType&         queue,
-                  mqbi::QueueHandle* handle,
-                  bool               doDeconfigure)
-{
-    // executed by the *QUEUE* dispatcher thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(
-        handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
-
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-
-    // Since the handle is being dropped (which typically occurs if a client is
-    // stopping without explicitly closing its queues, or if a client crashes),
-    // we need to configure the handle's stream with null
-    // (e.g. 'consumerPriority == k_CONSUMER_PRIORITY_INVALID') parameters
-    // before we release the handle.  'configureHandle' call is eventually
-    // processed by the queue engine, which may choose to simply ignore this
-    // request if handle's stream parameters are already zero (which could
-    // occur if a client crashed immediately after sending a close-queue
-    // request).  Note that we must execute the 'configureHandle' &
-    // 'releaseHandle' operations seperately for each subStream of the
-    // 'handle'.
-
-    // Execute the 'configureHandle' & 'releaseHandle' sequence to drop each
-    // subStream of the handle in turn.
-
-    mqbi::QueueHandle::SubStreams::const_iterator citer =
-        handle->subStreamInfos().begin();
-    bool isFinal = (citer == handle->subStreamInfos().end());
-    while (!isFinal) {
-        const bsl::string&                   appId = citer->first;
-        const mqbi::QueueHandle::StreamInfo& info  = citer->second;
-
-        BSLS_ASSERT_SAFE(appId != bmqp::ProtocolUtil::k_NULL_APP_ID);
-
-        bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo;
-        subStreamInfo.appId() = appId;
-        subStreamInfo.subId() = info.d_downstreamSubQueueId;
-
-        bmqp_ctrlmsg::QueueHandleParameters consumerHandleParams =
-            bmqp::QueueUtil::createHandleParameters(handle->handleParameters(),
-                                                    subStreamInfo,
-                                                    info.d_counts.d_readCount);
-        if (doDeconfigure) {
-            bmqp_ctrlmsg::StreamParameters nullStreamParameters;
-            nullStreamParameters.appId() = appId;
-
-            queue.configureHandle(
-                handle,
-                nullStreamParameters,
-                mqbi::QueueHandle::HandleConfiguredCallback());
-        }
-
-        // Set 'isFinal' when releasing the last subStream of this handle
-        isFinal = ((++citer) == handle->subStreamInfos().end());
-
-        BALL_LOG_INFO << "For queue [" << handle->queue()->description()
-                      << "] and handle [" << handle->client() << ":"
-                      << handle->id() << "] "
-                      << "having [handleParamerers: "
-                      << handle->handleParameters() << "], dropping subStream "
-                      << "[" << subStreamInfo << "] having [streamParameters: "
-                      << info.d_streamParameters
-                      << "]. 'isFinal' flag: " << bsl::boolalpha << isFinal
-                      << ".";
-
-        // 'releaseHandle' erases from 'handle->subStreamInfos()' invalidating
-        // the iterator.
-        queue.releaseHandle(handle,
-                            consumerHandleParams,
-                            isFinal,  // isFinal flag
-                            mqbi::QueueHandle::HandleReleasedCallback());
-    }
-}
-
-}  // close unnamed namespace
 
 // -----------
 // class Queue
@@ -284,17 +196,66 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
     BALL_LOG_INFO << "Dropping QueueHandle [" << handle << "] for queue ["
                   << description() << "].";
 
-    if (d_localQueue_mp) {
-        doDropHandle(*d_localQueue_mp, handle, doDeconfigure);
-    }
-    else if (d_remoteQueue_mp) {
-        doDropHandle(*d_remoteQueue_mp, handle, doDeconfigure);
-    }
-    else {
-        BSLS_ASSERT_OPT(false && "Uninitialized queue");
-    }
+    // Since the handle is being dropped (which typically occurs if a client is
+    // stopping without explicitly closing its queues, or if a client crashes),
+    // we need to configure the handle's stream with null
+    // (e.g. 'consumerPriority == k_CONSUMER_PRIORITY_INVALID') parameters
+    // before we release the handle.  'configureHandle' call is eventually
+    // processed by the queue engine, which may choose to simply ignore this
+    // request if handle's stream parameters are already zero (which could
+    // occur if a client crashed immediately after sending a close-queue
+    // request).  Note that we must execute the 'configureHandle' &
+    // 'releaseHandle' operations seperately for each subStream of the
+    // 'handle'.
 
-    updateStats();
+    // Execute the 'configureHandle' & 'releaseHandle' sequence to drop each
+    // subStream of the handle in turn.
+
+    mqbi::QueueHandle::SubStreams::const_iterator citer =
+        handle->subStreamInfos().begin();
+    bool isFinal = (citer == handle->subStreamInfos().end());
+    while (!isFinal) {
+        const bsl::string&                   appId = citer->first;
+        const mqbi::QueueHandle::StreamInfo& info  = citer->second;
+
+        BSLS_ASSERT_SAFE(appId != bmqp::ProtocolUtil::k_NULL_APP_ID);
+
+        bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo;
+        subStreamInfo.appId() = appId;
+        subStreamInfo.subId() = info.d_downstreamSubQueueId;
+
+        bmqp_ctrlmsg::QueueHandleParameters consumerHandleParams =
+            bmqp::QueueUtil::createHandleParameters(handle->handleParameters(),
+                                                    subStreamInfo,
+                                                    info.d_counts.d_readCount);
+        if (doDeconfigure) {
+            bmqp_ctrlmsg::StreamParameters nullStreamParameters;
+            nullStreamParameters.appId() = appId;
+
+            configureHandle(handle,
+                            nullStreamParameters,
+                            mqbi::QueueHandle::HandleConfiguredCallback());
+        }
+
+        // Set 'isFinal' when releasing the last subStream of this handle
+        isFinal = ((++citer) == handle->subStreamInfos().end());
+
+        BALL_LOG_INFO << "For queue [" << handle->queue()->description()
+                      << "] and handle [" << handle->client() << ":"
+                      << handle->id() << "] " << "having [handleParamerers: "
+                      << handle->handleParameters() << "], dropping subStream "
+                      << "[" << subStreamInfo << "] having [streamParameters: "
+                      << info.d_streamParameters
+                      << "]. 'isFinal' flag: " << bsl::boolalpha << isFinal
+                      << ".";
+
+        // 'releaseHandle' erases from 'handle->subStreamInfos()' invalidating
+        // the iterator.
+        releaseHandleDispatched(handle,
+                                consumerHandleParams,
+                                isFinal,  // isFinal flag
+                                mqbi::QueueHandle::HandleReleasedCallback());
+    }
 }
 
 void Queue::closeDispatched()

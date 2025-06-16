@@ -1,0 +1,16 @@
+==============================
+
+    RecordType      : QUEUE_OP
+    Index           : 1
+    Offset          : 104
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 2
+    Timestamp       : 29OCT2024_14:01:06.000000
+    Epoch           : 1730210466
+    QueueKey        : 26DACDC974
+    AppKey          : ** NULL **
+    QueueOpType     : CREATION
+    QLIST OffsetWords: 9
+
+1 queueOp record(s) found.
+

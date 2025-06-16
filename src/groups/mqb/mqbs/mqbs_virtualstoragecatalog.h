@@ -160,7 +160,8 @@ class VirtualStorageCatalog {
 
     mqbi::StorageResult::Enum purgeImpl(VirtualStorage*     vs,
                                         DataStreamIterator& itData,
-                                        unsigned int        replacingOrdinal);
+                                        unsigned int        replacingOrdinal,
+                                        bool                asPrimary);
 
   public:
     // TRAITS
@@ -241,8 +242,9 @@ class VirtualStorageCatalog {
                                       const mqbu::StorageKey&  appKey);
 
     /// Update all states of the App corresponding to the 'appKey' as purged.
-    /// This does not affect the underlying `DataStore`.
-    void removeAll(const mqbu::StorageKey& appKey);
+    /// If the  specified `asPrimary` is `true`, delete the messages data and
+    /// record the event in the storage.
+    void removeAll(const mqbu::StorageKey& appKey, bool asPrimary);
 
     /// Erase the entire DataStream;
     /// This does not affect the underlying `DataStore`.
@@ -282,6 +284,7 @@ class VirtualStorageCatalog {
     /// return `e_SUCCESS`.
     mqbi::StorageResult::Enum
     removeVirtualStorage(const mqbu::StorageKey& appKey,
+                         bool                    asPrimary,
                          const PurgeCallback&    onPurge  = PurgeCallback(),
                          const RemoveCallback&   onRemove = RemoveCallback());
 

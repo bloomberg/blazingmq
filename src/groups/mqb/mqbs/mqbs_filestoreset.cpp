@@ -21,8 +21,8 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <bsla_annotations.h>
 #include <bslim_printer.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace mqbs {
@@ -33,7 +33,7 @@ namespace {
 /// optionally specified `level` and `spacesPerLevel`.
 static bsl::ostream& prettyPrintSize(bsl::ostream&              stream,
                                      const bsls::Types::Uint64& size,
-                                     BSLS_ANNOTATION_UNUSED int level = 0,
+                                     BSLA_UNUSED int            level = 0,
                                      int spacesPerLevel               = 4)
 {
     stream << bmqu::PrintUtil::prettyNumber(

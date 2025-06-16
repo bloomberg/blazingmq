@@ -43,9 +43,9 @@
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmf_removecv.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_keyword.h>
 #include <bsls_types.h>
@@ -451,7 +451,7 @@ inline bool operator!=(const OrderedHashMapWithHistory_Iterator<VALUE1>& lhs,
 }
 
 template <class VALUE>
-inline void clean(BSLS_ANNOTATION_UNUSED VALUE& value)
+inline void clean(BSLA_UNUSED VALUE& value)
 {
     // NOTHING
 }
@@ -617,8 +617,8 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
     const SOURCE_TYPE& value,
     TimeType           timePoint)
 {
-    bsl::pair<gc_iterator, bool> result = d_impl.insert(
-        Value(value, d_timeout ? timePoint + d_timeout : 0));
+    TimeType                     time = d_timeout ? timePoint + d_timeout : 0;
+    bsl::pair<gc_iterator, bool> result = d_impl.insert(Value(value, time));
     // No need to keep track of element's timePoint if the map is not
     // maintaining any history (i.e., if d_timeout == 0).
 
@@ -635,6 +635,21 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
         }
         it->d_next = d_impl.end();
     }
+    else {
+        if (!it->d_isLive) {
+            // This is previously erase key that still exists in history.
+            // Erase and reinsert.
+            d_impl.erase(it);
+            --d_historySize;
+
+            result = d_impl.insert(Value(value, time));
+
+            it = result.first;
+
+            BSLS_ASSERT_SAFE(result.second);
+        }
+    }
+    BSLS_ASSERT_SAFE(it->d_isLive);
 
     return bsl::pair<iterator, bool>(iterator(it), result.second);
 }

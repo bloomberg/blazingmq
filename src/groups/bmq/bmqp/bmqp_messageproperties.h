@@ -43,10 +43,10 @@
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_objectbuffer.h>
 #include <bsls_types.h>
@@ -66,7 +66,7 @@ class MessagePropertiesIterator;
 /// This VST keeps a knowledge about unique sequence of Properties.  The
 /// goal is to return the index of a given property.
 /// Once created, it is read-only.
-class MessageProperties_Schema {
+class MessageProperties_Schema BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE TYPES
 
@@ -98,6 +98,8 @@ class MessageProperties_Schema {
     MessageProperties_Schema(const MessageProperties& mps,
                              bslma::Allocator*        basicAllocator);
     MessageProperties_Schema(const MessageProperties_Schema& other);
+
+    ~MessageProperties_Schema();
 
     // PUBLIC ACCESSORS
     bool loadIndex(int* index, const bsl::string& name) const;
@@ -691,15 +693,15 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
 
 // PRIVATE ACCESSORS
 template <class TYPE>
-inline int MessageProperties::getPropertyValueSize(
-    BSLS_ANNOTATION_UNUSED const TYPE& value) const
+inline int
+MessageProperties::getPropertyValueSize(BSLA_UNUSED const TYPE& value) const
 {
     return static_cast<int>(sizeof(TYPE));
 }
 
 template <>
-inline int MessageProperties::getPropertyValueSize(
-    BSLS_ANNOTATION_UNUSED const bool& value) const
+inline int
+MessageProperties::getPropertyValueSize(BSLA_UNUSED const bool& value) const
 {
     // Partial specialization for type 'bool', to return 1.  sizeof(bool)
     // should be one on all platforms, but just in case.

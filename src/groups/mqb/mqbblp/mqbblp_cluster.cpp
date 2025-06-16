@@ -69,8 +69,8 @@
 #include <bsl_list.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslmt_latch.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
@@ -1045,6 +1045,9 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
     // it needs to be forwarded to the queue after appropriate checks.  The
     // replica source node is event.clusterNode().  This routine is similar to
     // that of ClientSession.
+    // Note that we don't check if the queue is opened in WRITE mode here, we
+    // just pass the event to the corresponding *QUEUE* dispatcher thread that
+    // can safely access the `QueueHandleParameters` to check this.
 
     mqbnet::ClusterNode*      source = event.clusterNode();
     mqbc::ClusterNodeSession* ns =
@@ -1127,28 +1130,6 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
         BSLS_ASSERT_SAFE(queueState.d_subQueueInfosMap.findBySubIdSafe(
                              bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) !=
                          queueState.d_subQueueInfosMap.end());
-
-        // Ensure that queue is opened in WRITE mode
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                !bmqt::QueueFlagsUtil::isWriter(
-                    queueState.d_handle_p->handleParameters().flags()))) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            BMQU_THROTTLEDACTION_THROTTLE(
-                d_throttledFailedPutMessages,
-                BALL_LOG_WARN << description() << ": PUT message for queue ["
-                              << queueState.d_handle_p->queue()->uri()
-                              << "] not opened in WRITE mode.";);
-
-            sendAck(bmqt::AckResult::e_REFUSED,
-                    bmqp::AckMessage::k_NULL_CORRELATION_ID,
-                    putIt.header().messageGUID(),
-                    queueId.id(),
-                    "putEvent::notWritable",
-                    ns,
-                    true);  // isSelfGenerated
-            continue;       // CONTINUE
-        }
 
         // Ensure that final closeQueue request has not been sent.
 
@@ -3527,8 +3508,7 @@ void Cluster::onNodeHighWatermark(mqbnet::ClusterNode* node)
         << node->nodeDescription() << BMQTSK_ALARMLOG_END;
 }
 
-void Cluster::onNodeLowWatermark(
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* node)
+void Cluster::onNodeLowWatermark(BSLA_UNUSED mqbnet::ClusterNode* node)
 {
     // executed by the *IO* thread
 

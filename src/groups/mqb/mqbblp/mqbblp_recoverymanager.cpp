@@ -61,11 +61,11 @@
 #include <bsl_cstdlib.h>  // for bsl::rand()
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
 #include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
@@ -227,7 +227,7 @@ void RecoveryManager_PrimarySyncContext::clear()
 
 // ACCESSORS
 void RecoveryManager_ChunkDeleter::operator()(
-    BSLS_ANNOTATION_UNUSED const void* ptr) const
+    BSLA_UNUSED const void* ptr) const
 {
     // executed by *ANY* thread
 
@@ -1418,7 +1418,7 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
     BSLS_ASSERT_SAFE(primarySyncCtx.primarySyncInProgress());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << "For Partition [" << partitionId
+                  << ": For Partition [" << partitionId
                   << "], primary sync returned with status: " << status
                   << ".  Resetting primary sync peer from "
                   << (primarySyncCtx.syncPeer()
@@ -2255,7 +2255,7 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
             journalOpRec->syncPointType()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")
                 << d_clusterData_p->identity().description()
-                << ": For partition [" << partitionId << "]"
+                << ": For Partition [" << partitionId << "]"
                 << ", received a syncPoint record of UNDEFINED type (expected "
                 << "type REGULAR/ROLLOVER), in storage message with sequence "
                 << "number (" << syncPointRecHeader->primaryLeaseId() << ", "

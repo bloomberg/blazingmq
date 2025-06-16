@@ -153,13 +153,15 @@ void queuePerformance(int                       numReaders,
         bmqtst::TestHelperUtil::allocator());
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
-    bmqimp::EventQueue                       obj(&eventPool,
-                           queueSize,  // initialCapacity
-                           queueSize / 3,  // lowWatermark
-                           queueSize / 2,  // highWatermark
-                           emptyEventHandler,
-                           0,  // numProcessingThreads
-                           bmqtst::TestHelperUtil::allocator());
+    bmqimp::EventQueue                       obj(
+        &eventPool,
+        queueSize,      // initialCapacity
+        queueSize / 3,  // lowWatermark
+        queueSize / 2,  // highWatermark
+        emptyEventHandler,
+        0,  // numProcessingThreads
+        bmqimp::SessionId(bmqp_ctrlmsg::NegotiationMessage()),
+        bmqtst::TestHelperUtil::allocator());
 
     for (int i = 0; i < numReaders; i++) {
         threadPool.enqueueJob(
@@ -213,6 +215,7 @@ static void test1_breathingTest()
                            6,  // highWatermark
                            emptyEventHandler,
                            0,  // numProcessingThreads
+                           bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
 
     // Basic testing.. enqueue one item, pop it out ..
@@ -282,6 +285,7 @@ static void test2_capacityTest()
                            k_INITIAL_CAPACITY - 1,  // highWatermark
                            emptyEventHandler,
                            0,  // numProcessingThreads
+                           bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
 
     builder.startMessage();
@@ -342,6 +346,7 @@ static void test3_watermark()
                            6,  // highWatermark
                            emptyEventHandler,
                            0,  // numProcessingThreads
+                           bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> event;
@@ -425,6 +430,7 @@ static void test4_basicEventHandlerTest()
                                                 bdlf::PlaceHolders::_1,
                                                 bsl::ref(eventCounter)),
                            k_NUM_THREADS,  // numProcessingThreads
+                           bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
 
     obj.start();
@@ -512,6 +518,7 @@ static void test5_emptyStatsTest()
                            6,  // highWatermark
                            emptyEventHandler,
                            0,  // numProcessingThreads
+                           bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_SAFE_FAIL(obj.printStats(out, false));
@@ -622,6 +629,7 @@ static void test6_workingStatsTest()
                            k_QUEUE_HWM,         // highWatermark
                            emptyEventHandler,
                            0,  // numProcessingThreads
+                           bmqimp::SessionId(),
                            bmqtst::TestHelperUtil::allocator());
 
     // May also call 'start' for the queue without custom event

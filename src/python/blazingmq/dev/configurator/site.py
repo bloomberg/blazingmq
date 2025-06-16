@@ -14,8 +14,6 @@
 # limitations under the License.
 
 import abc
-from pathlib import Path
-from typing import Union
 
 
 class Site(abc.ABC):

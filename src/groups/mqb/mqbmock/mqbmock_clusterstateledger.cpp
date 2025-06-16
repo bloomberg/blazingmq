@@ -21,8 +21,8 @@
 #include <mqbmock_clusterstateledgeriterator.h>
 
 // BDE
+#include <bsla_annotations.h>
 #include <bslmf_allocatorargt.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 namespace mqbmock {
@@ -224,9 +224,8 @@ int ClusterStateLedger::apply(
     return -1;
 }
 
-int ClusterStateLedger::apply(
-    BSLS_ANNOTATION_UNUSED const bdlbb::Blob& record,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+int ClusterStateLedger::apply(BSLA_UNUSED const bdlbb::Blob& record,
+                              BSLA_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 

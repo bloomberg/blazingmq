@@ -223,7 +223,7 @@ int extractLogIdCallback(mqbu::StorageKey*                      logId,
     return 0;
 }
 
-int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+int cleanupCallback(BSLA_UNUSED const bsl::string& logPath)
 {
     return 0;
 }
@@ -372,9 +372,8 @@ struct Tester {
     }
 
     // MANIPULATORS
-    int
-    onRolloverCallback(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& oldLogId,
-                       const mqbu::StorageKey&                        newLogId)
+    int onRolloverCallback(BSLA_UNUSED const mqbu::StorageKey& oldLogId,
+                           const mqbu::StorageKey&             newLogId)
     {
         int rc = mqbc::ClusterStateLedgerUtil::writeFileHeader(
             d_ledger_mp.get(),

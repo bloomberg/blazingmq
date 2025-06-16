@@ -29,8 +29,8 @@
 #include <bsl_cstdlib.h>
 #include <bsl_list.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslmt_lockguard.h>
-#include <bsls_annotation.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {

@@ -37,6 +37,7 @@
 #include <bmqimp_messagedumper.h>
 #include <bmqimp_queue.h>
 #include <bmqimp_queuemanager.h>
+#include <bmqimp_sessionid.h>
 #include <bmqimp_stat.h>
 #include <bmqp_ackeventbuilder.h>
 #include <bmqp_ctrlmsg_messages.h>
@@ -427,6 +428,8 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// return a reference to the non-modifiable transition table
         const bsl::vector<BrokerSession::StateTransition>& table() const;
 
+        const SessionId& id() const;
+
         // MANIPULATORS
 
         /// Handle user start request event
@@ -613,6 +616,8 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         /// return a reference to the non-modifiable transition table
         const bsl::vector<BrokerSession::QueueStateTransition>& table() const;
+
+        const SessionId& id() const;
 
         // MANIPULATORS
 
@@ -884,6 +889,8 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     int d_doConfigureStream;
     // Temporary safety switch to control configure request.
+
+    const SessionId d_id;
 
   private:
     // NOT IMPLEMENTED
@@ -1497,6 +1504,7 @@ class BrokerSession BSLS_CPP11_FINAL {
                   const bmqt::SessionOptions&             sessionOptions,
                   const EventQueue::EventHandlerCallback& eventHandlerCb,
                   const StateFunctor&                     stateCb,
+                  const SessionId&                        sessionId,
                   bslma::Allocator*                       allocator);
 
     /// Destructor
@@ -1662,6 +1670,8 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// variations since the last print.  The behavior is undefined unless
     /// the statistics were initialized by a call to `initializeStats`.
     void printStats(bsl::ostream& stream, bool includeDelta) const;
+
+    const SessionId& id() const;
 };
 
 // FREE OPERATORS
@@ -1715,6 +1725,11 @@ BrokerSession::SessionFsm::table() const
     return d_transitionTable;
 }
 
+inline const SessionId& BrokerSession::SessionFsm::id() const
+{
+    return d_session.id();
+}
+
 // --------------
 // class QueueFsm
 // --------------
@@ -1724,6 +1739,11 @@ inline const bsl::vector<BrokerSession::QueueStateTransition>&
 BrokerSession::QueueFsm::table() const
 {
     return d_transitionTable;
+}
+
+inline const SessionId& BrokerSession::QueueFsm::id() const
+{
+    return d_session.id();
 }
 
 // -------------------
@@ -1756,6 +1776,11 @@ BrokerSession::getSessionFsmTransitionTable() const
 inline bool BrokerSession::isStarted() const
 {
     return d_sessionFsm.state() == State::e_STARTED;
+}
+
+inline const SessionId& BrokerSession::id() const
+{
+    return d_id;
 }
 
 }  // close package namespace

@@ -34,6 +34,9 @@ have the following Path attributes:
 - tool:
     bmqtool; the value of env var BLAZINGMQ_TOOL, or
     f"{build_dir}/src/applications/bmqtool/bmqtool.tsk" if not set
+- storagetool:
+    bmqstoragetool; the value of env var BLAZINGMQ_STORAGETOOL, or
+    f"{build_dir}/src/applications/bmqstoragetool/bmqstoragetool.tsk" if not set
 - plugins:
     the value of env var BLAZINGMQ_PLUGINS, or
     f"{build_dir}/src/applications/bmqtool/bmqtool.tsk" if not set
@@ -41,7 +44,6 @@ have the following Path attributes:
 
 from dataclasses import dataclass
 import os
-import platform
 from pathlib import Path
 from typing import Optional
 
@@ -69,6 +71,7 @@ class Paths:
     _build_dir: Optional[Path] = None
     _broker: Optional[Path] = None
     _tool: Optional[Path] = None
+    _storagetool: Optional[Path] = None
     _plugin: Optional[Path] = None
 
     @property
@@ -188,6 +191,29 @@ class Paths:
                 raise FileNotFoundError(self._tool)
 
         return self._tool
+
+    @property
+    def storagetool(self) -> Path:
+        """
+        Return the path to the bmqstoragetool task.
+        """
+
+        if self._storagetool is not None:
+            return self._storagetool
+
+        if path_str := os.environ.get("BLAZINGMQ_STORAGETOOL"):
+            self._storagetool = Path(path_str)
+        else:
+            self._storagetool = self.build_dir.joinpath(
+                *"src/applications/bmqstoragetool/bmqstoragetool.tsk".split("/")
+            )
+
+        if not self._storagetool.exists():
+            logger.warning("path %s does not exist", self._storagetool)
+            if self.must_exist:
+                raise FileNotFoundError(self._storagetool)
+
+        return self._storagetool
 
     @property
     def plugins(self) -> Path:

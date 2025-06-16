@@ -40,29 +40,27 @@ QueueEngine::~QueueEngine()
 }
 
 void QueueEngine::afterAppIdRegistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfos& addedAppIds)
+    BSLA_UNUSED const mqbi::Storage::AppInfos& addedAppIds)
 {
     // NOTHING
 }
 
 void QueueEngine::afterAppIdUnregistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfos& removedAppIds)
+    BSLA_UNUSED const mqbi::Storage::AppInfos& removedAppIds)
 {
     // NOTHING
 }
 
-void QueueEngine::registerStorage(
-    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+void QueueEngine::registerStorage(BSLA_UNUSED const bsl::string& appId,
+                                  BSLA_UNUSED const mqbu::StorageKey& appKey,
+                                  BSLA_UNUSED unsigned int appOrdinal)
 {
     // NOTHING
 }
 
-void QueueEngine::unregisterStorage(
-    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+void QueueEngine::unregisterStorage(BSLA_UNUSED const bsl::string& appId,
+                                    BSLA_UNUSED const mqbu::StorageKey& appKey,
+                                    BSLA_UNUSED unsigned int appOrdinal)
 {
     // NOTHING
 }

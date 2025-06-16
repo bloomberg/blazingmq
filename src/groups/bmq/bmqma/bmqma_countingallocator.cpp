@@ -29,8 +29,8 @@
 #include <balst_stacktraceprintutil.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
+#include <bsla_annotations.h>
 #include <bsls_alignmentutil.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 
@@ -48,7 +48,7 @@ const unsigned int k_MAGIC = 0xabcdabcd;
 // FUNCTIONS
 bool statFilter(const bmqst::StatContext*     context,
                 bmqst::StatContext::ValueType valueType,
-                BSLS_ANNOTATION_UNUSED int    level)
+                BSLA_UNUSED int               level)
 {
     return (context->isDeleted() &&
             valueType == bmqst::StatContext::e_TOTAL_VALUE) ||

@@ -32,9 +32,9 @@
 #include <bsl_cstring.h>  // for memcmp
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
@@ -121,21 +121,20 @@ int extractLogIdCallback(mqbu::StorageKey*                      logId,
     return 0;
 }
 
-int validateLogCallback(
-    mqbsi::Log::Offset*          offset,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<mqbsi::Log>& log)
+int validateLogCallback(mqbsi::Log::Offset* offset,
+                        BSLA_UNUSED const bsl::shared_ptr<mqbsi::Log>& log)
 {
     *offset = mqbu::StorageKey::e_KEY_LENGTH_BINARY + k_DUMMY_LOG_MESSAGE_LEN;
     return 0;
 }
 
-int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+int cleanupCallback(BSLA_UNUSED const bsl::string& logPath)
 {
     return 0;
 }
 
-int onRolloverCallback(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& oldLogId,
-                       BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& newLogId)
+int onRolloverCallback(BSLA_UNUSED const mqbu::StorageKey& oldLogId,
+                       BSLA_UNUSED const mqbu::StorageKey& newLogId)
 {
     return 0;
 }

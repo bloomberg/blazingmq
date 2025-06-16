@@ -86,9 +86,9 @@ QueueHandle::subscription2downstreamSubQueueId(unsigned int sId) const
 QueueHandle::QueueHandle(
     const bsl::shared_ptr<mqbi::Queue>&                       queueSp,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
-    BSLS_ANNOTATION_UNUSED mqbstat::QueueStatsDomain* domainStats,
-    const bmqp_ctrlmsg::QueueHandleParameters&        handleParameters,
-    bslma::Allocator*                                 allocator)
+    BSLA_UNUSED mqbstat::QueueStatsDomain*     domainStats,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+    bslma::Allocator*                          allocator)
 : d_handleParameters(allocator)
 , d_downstreams(allocator)
 , d_subStreamInfos(allocator)
@@ -197,15 +197,15 @@ bool QueueHandle::unregisterSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& info,
 }
 
 mqbi::QueueHandle*
-QueueHandle::setIsClientClusterMember(BSLS_ANNOTATION_UNUSED bool value)
+QueueHandle::setIsClientClusterMember(BSLA_UNUSED bool value)
 {
     return this;
 }
 
 void QueueHandle::postMessage(
-    BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
+    BSLA_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
 {
     // NOTHING
 }
@@ -270,17 +270,16 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
     }
 }
 
-void QueueHandle::onAckMessage(
-    BSLS_ANNOTATION_UNUSED const bmqp::AckMessage& ackMessage)
+void QueueHandle::onAckMessage(BSLA_UNUSED const bmqp::AckMessage& ackMessage)
 {
     // NOTHING
 }
 
 void QueueHandle::deliverMessage(
     const mqbi::StorageIterator& message,
-    BSLS_ANNOTATION_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray&                subscriptions,
-    BSLS_ANNOTATION_UNUSED bool                              isOutOfOrder)
+    BSLA_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
+    const bmqp::Protocol::SubQueueInfosArray&     subscriptions,
+    BSLA_UNUSED bool                              isOutOfOrder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -342,10 +341,9 @@ void QueueHandle::deconfigureAll(
 }
 
 void QueueHandle::release(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::QueueHandleParameters&
-                                 handleParameters,
-    BSLS_ANNOTATION_UNUSED bool  isFinal,
-    BSLS_ANNOTATION_UNUSED const HandleReleasedCallback& releasedCb)
+    BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+    BSLA_UNUSED bool                                       isFinal,
+    BSLA_UNUSED const HandleReleasedCallback&              releasedCb)
 {
     // NOTHING
 }
@@ -535,8 +533,7 @@ bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 }
 
 const bsl::vector<const mqbu::ResourceUsageMonitor*>
-QueueHandle::unconfirmedMonitors(
-    BSLS_ANNOTATION_UNUSED const bsl::string& appId) const
+QueueHandle::unconfirmedMonitors(BSLA_UNUSED const bsl::string& appId) const
 {
     bsl::vector<const mqbu::ResourceUsageMonitor*> out(d_allocator_p);
     out.push_back(&d_unconfirmedMessageMonitor);

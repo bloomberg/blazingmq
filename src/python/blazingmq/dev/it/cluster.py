@@ -38,13 +38,23 @@ logger = logging.getLogger(__name__)
 
 CORE_PATTERN_PATH = "/proc/sys/kernel/core_pattern"
 
+QUORUM_DEFAULT = 0
+QUORUM_TO_ENSURE_LEADER = 1
+QUORUM_TO_ENSURE_NOT_LEADER = 100
 
-def _match_broker(broker, **kw):
-    datacenter = kw.get("datacenter", None)
-    near = kw.get("near", None)
-    exclude = kw.get("exclude", None)
+
+def _match_broker(
+    broker,
+    *,
+    datacenter: str = None,
+    near: Broker = None,
+    exclude: Union[Broker, List[Broker]] = None,
+    alive=False,
+    invert=False,
+):
     if datacenter is not None and near is not None:
         raise RuntimeError("`near` and `datacenter` options cannot be both specified")
+
     result = True
 
     if exclude is not None and (broker is exclude or broker in exclude):
@@ -53,10 +63,13 @@ def _match_broker(broker, **kw):
         result = result and broker.datacenter == datacenter
     elif near is not None:
         result = result and broker.datacenter == near.datacenter
-    if kw.get("alive", None):
+
+    if alive:
         result = result and broker.is_alive()
-    if kw.get("invert", False):
+
+    if invert:
         result = not result
+
     return result
 
 
@@ -134,7 +147,9 @@ class Cluster(contextlib.AbstractContextManager):
             self.last_known_leader.config.port
         )
 
-    def start(self, wait_leader=True, wait_ready=False):
+    def start(
+        self, wait_leader=True, wait_ready=False, leader_name: Union[str, None] = None
+    ):
         """
         Start all the nodes and proxies in the cluster.
 
@@ -144,6 +159,8 @@ class Cluster(contextlib.AbstractContextManager):
         See also: 'wait_status' for more information on the 'ready' flags.
         """
 
+        need_preset_leader = leader_name is not None
+
         with internal_use(self):
             for broker in self.config.configurator.brokers.values():
                 if len(broker.clusters.my_virtual_clusters) > 0:
@@ -151,7 +168,14 @@ class Cluster(contextlib.AbstractContextManager):
                 elif len(broker.clusters.my_clusters) == 0:
                     self.start_proxy(broker)
                 else:
-                    self.start_node(broker)
+                    brkrproc = self.start_node(broker)
+
+                    # Select leader based on the given leader_name
+                    if need_preset_leader:
+                        if broker.name == leader_name:
+                            brkrproc.set_quorum(QUORUM_TO_ENSURE_LEADER)
+                        else:
+                            brkrproc.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
 
             if self.is_single_node:
                 self._proxies = self._nodes
@@ -159,6 +183,11 @@ class Cluster(contextlib.AbstractContextManager):
             else:
                 self.wait_status(wait_leader, wait_ready)
                 self.drain()
+
+            # Reset quorum to default
+            if need_preset_leader:
+                for brkrproc in self._nodes:
+                    brkrproc.set_quorum(QUORUM_DEFAULT)
 
         return (self._nodes, self._proxies)
 
@@ -200,7 +229,7 @@ class Cluster(contextlib.AbstractContextManager):
                     process.stop()
                 except Exception as error:
                     self._logger.error(
-                        f"Exception raised while stopping process: {error}"
+                        "Exception raised while stopping process: %s", error
                     )
                 if process.name in self._processes:
                     del self._processes[process.name]
@@ -296,7 +325,7 @@ class Cluster(contextlib.AbstractContextManager):
         self._logger.info("restarting all nodes")
         for node in self.nodes():
             if node is not self.last_known_leader:
-                node.set_quorum(100)
+                node.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
 
         self.last_known_leader = None
         with internal_use(self):
@@ -312,7 +341,6 @@ class Cluster(contextlib.AbstractContextManager):
 
     def destroy(self):
         """Free the resources owned by this cluster."""
-        pass
         # self._esx.close()
 
     # TODO: fold following three in start_broker
@@ -396,7 +424,15 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self._processes[name]
 
-    def nodes(self, **kw) -> List[Broker]:
+    def nodes(
+        self,
+        *,
+        datacenter: str = None,
+        near: Broker = None,
+        exclude: Union[Broker, List[Broker]] = None,
+        alive=False,
+        invert=False,
+    ) -> List[Broker]:
         """Return the nodes matching the conditions specified by 'kw'.
 
         Conditions
@@ -412,9 +448,28 @@ class Cluster(contextlib.AbstractContextManager):
         the nodes that do *not* match the condition(s).
         """
 
-        return [broker for broker in self._nodes if _match_broker(broker, **kw)]
+        return [
+            broker
+            for broker in self._nodes
+            if _match_broker(
+                broker,
+                datacenter=datacenter,
+                near=near,
+                exclude=exclude,
+                alive=alive,
+                invert=invert,
+            )
+        ]
 
-    def virtual_nodes(self, **kw):
+    def virtual_nodes(
+        self,
+        *,
+        datacenter: str = None,
+        near: Broker = None,
+        exclude: Union[Broker, List[Broker]] = None,
+        alive=False,
+        invert=False,
+    ):
         """Return the virtual nodes matching the conditions specified by 'kw'.
 
         Conditions can be any combination of: - datacenter:<name> return the
@@ -425,9 +480,28 @@ class Cluster(contextlib.AbstractContextManager):
         is true, return the nodes that do *not* match the condition(s).
         """
 
-        return [broker for broker in self._virtual_nodes if _match_broker(broker, **kw)]
+        return [
+            broker
+            for broker in self._virtual_nodes
+            if _match_broker(
+                broker,
+                datacenter=datacenter,
+                near=near,
+                exclude=exclude,
+                alive=alive,
+                invert=invert,
+            )
+        ]
 
-    def proxies(self, **kw) -> List[Broker]:
+    def proxies(
+        self,
+        *,
+        datacenter: str = None,
+        near: Broker = None,
+        exclude: Union[Broker, List[Broker]] = None,
+        alive=False,
+        invert=False,
+    ) -> List[Broker]:
         """Return the proxies matching the conditions specified by 'kw'.
 
         Conditions can be any combination of: - datacenter:<name> return the
@@ -438,7 +512,18 @@ class Cluster(contextlib.AbstractContextManager):
         is true, return the nodes that do *not* match the condition(s).
         """
 
-        return [broker for broker in self._proxies if _match_broker(broker, **kw)]
+        return [
+            broker
+            for broker in self._proxies
+            if _match_broker(
+                broker,
+                datacenter=datacenter,
+                near=near,
+                exclude=exclude,
+                alive=alive,
+                invert=invert,
+            )
+        ]
 
     def proxy_cycle(self):
         """
@@ -731,9 +816,13 @@ class Cluster(contextlib.AbstractContextManager):
 
         return None
 
-    def _start_broker(self, broker: cfg.Broker, array, cluster_name):
+    def _start_broker(
+        self, broker: cfg.Broker, brokers: List[Broker], cluster_name: Union[str, None]
+    ):
         if broker.name in self._processes:
-            raise RuntimeError(f'node "{broker.name}" is already running')
+            raise RuntimeError(
+                f'node "{broker.name}" is already running in cluster "{cluster_name}"'
+            )
 
         process = Broker(
             broker,
@@ -746,7 +835,7 @@ class Cluster(contextlib.AbstractContextManager):
         process.start()
 
         self._processes[broker.name] = process
-        array.append(process)
+        brokers.append(process)
 
         process.wait_until_started()
 

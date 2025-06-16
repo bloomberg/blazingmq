@@ -76,12 +76,12 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
 #include <bslmf_allocatorargt.h>
 #include <bslmf_assert.h>
-#include <bsls_annotation.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
@@ -2636,9 +2636,8 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
 }
 
 void ClusterQueueHelper::reconfigureCallback(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::Status& status,
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::StreamParameters&
-                                 streamParameters)
+    BSLA_UNUSED const bmqp_ctrlmsg::Status& status,
+    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters)
 {
     onResponseToPendingQueueRequest();
 }
@@ -5731,8 +5730,7 @@ void ClusterQueueHelper::continueStopSequence(
     const QueueContextSp&               queueContextSp,
     unsigned int                        subId,
     const bmqp_ctrlmsg::Status&         status,
-    BSLS_ANNOTATION_UNUSED const        bmqp_ctrlmsg::StreamParameters&
-                                        streamParameters)
+    BSLA_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters)
 {
     // executed by the cluster *DISPATCHER* thread
 

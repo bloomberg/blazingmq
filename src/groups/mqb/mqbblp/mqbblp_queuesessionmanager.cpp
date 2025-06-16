@@ -40,7 +40,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
-#include <bsls_annotation.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -73,8 +73,7 @@ void createQueueStatsDatum(bmqst::StatContext* statContext,
 /// is a shared_ptr to the queue handle being closed) to events being
 /// enqueued to the dispatcher and let it die `naturally` when the
 /// associated queue's dispatcher thread is drained up to the event.
-void handleHolderDummy(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<void>& handle)
+void handleHolderDummy(BSLA_UNUSED const bsl::shared_ptr<void>& handle)
 {
     // NOTHING
 }
@@ -748,6 +747,11 @@ void QueueSessionManager::tearDown()
 {
     d_validator_sp->invalidate();
     d_shutdownInProgress = true;
+
+    // The above invalidates `onHandleReleasedDispatched` which clears the
+    // context so clear it immediately.
+
+    d_queues.clear();
 }
 
 }  // close package namespace

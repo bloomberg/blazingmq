@@ -67,11 +67,11 @@
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslalg_swaputil.h>
 #include <bslmf_movableref.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_once.h>
-#include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 #include <bsls_platform.h>
 #include <bsls_systemclocktype.h>
@@ -157,8 +157,8 @@ bsl::ostream& operator<<(bsl::ostream& os, const bmqio::Channel* channel)
 /// `SessionNegotiator` can extract and leverage).
 void ntcChannelPreCreation(
     const bsl::shared_ptr<bmqio::NtcChannel>& channel,
-    BSLS_ANNOTATION_UNUSED const
-        bsl::shared_ptr<bmqio::ChannelFactory::OpHandle>& operationHandle)
+    BSLA_UNUSED const bsl::shared_ptr<bmqio::ChannelFactory::OpHandle>&
+                      operationHandle)
 {
     ntsa::Endpoint peerEndpoint   = channel->peerEndpoint();
     ntsa::Endpoint sourceEndpoint = channel->sourceEndpoint();

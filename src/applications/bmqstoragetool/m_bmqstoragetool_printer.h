@@ -99,8 +99,7 @@ class Printer {
         bsls::Types::Uint64                   foundJournalOpCount,
         const Parameters::ProcessRecordTypes& processRecordTypes) const = 0;
 
-    /// Print the `outstandingMessagesCount` and its `ratio` to the
-    /// `totalMessagesCount`.
+    /// Print the outstanding ratio.
     virtual void
     printOutstandingRatio(int         ratio,
                           bsl::size_t outstandingMessagesCount,

@@ -144,8 +144,8 @@ class MyDispatcherClient : public mqbi::DispatcherClient {
         return d_dispatcherClientData;
     }
 
-    void onDispatcherEvent(BSLS_ANNOTATION_UNUSED const mqbi::DispatcherEvent&
-                               event) BSLS_KEYWORD_OVERRIDE
+    void onDispatcherEvent(BSLA_UNUSED const mqbi::DispatcherEvent& event)
+        BSLS_KEYWORD_OVERRIDE
     {
     }
 

@@ -76,11 +76,11 @@
 #include <bsl_cstring.h>  // for bsl::memset, bsl::memcmp
 
 #include <bsl_iosfwd.h>
+#include <bsla_annotations.h>
 #include <bslh_hash.h>
 #include <bslmf_isbitwiseequalitycomparable.h>
 #include <bslmf_istriviallycopyable.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_annotation.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -332,9 +332,8 @@ inline MessageGUIDHashAlgo::MessageGUIDHashAlgo()
 }
 
 // MANIPULATORS
-inline void
-MessageGUIDHashAlgo::operator()(const void*                   data,
-                                BSLS_ANNOTATION_UNUSED size_t numBytes)
+inline void MessageGUIDHashAlgo::operator()(const void*        data,
+                                            BSLA_UNUSED size_t numBytes)
 {
     // Implementation note: the implementation is based on Jon Maiga's research
     // on different bit mixers and their qualities (look for `mxm`):

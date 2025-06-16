@@ -9,4 +9,5 @@ bmqimp_messagedumper
 bmqimp_negotiatedchannelfactory
 bmqimp_queue
 bmqimp_queuemanager
+bmqimp_sessionid
 bmqimp_stat

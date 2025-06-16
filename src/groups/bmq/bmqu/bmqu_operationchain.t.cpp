@@ -27,10 +27,10 @@
 #include <bdlf_placeholder.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_functional.h>
+#include <bsla_annotations.h>
 #include <bslmf_movableref.h>
 #include <bslmt_semaphore.h>
 #include <bslmt_threadutil.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_systemclocktype.h>
 #include <bsls_systemtime.h>
@@ -176,7 +176,7 @@ struct ThrowException {
     typedef void ResultType;
 
     // ACCESSORS
-    BSLS_ANNOTATION_NORETURN
+    BSLA_NORETURN
     void operator()() const { throw static_cast<int>(42); }
 };
 

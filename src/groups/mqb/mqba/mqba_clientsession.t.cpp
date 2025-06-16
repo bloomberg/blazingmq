@@ -58,9 +58,9 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_timedsemaphore.h>
-#include <bsls_annotation.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -536,7 +536,7 @@ class MyQueueEngine : public mqbmock::QueueEngine {
 
     // MANIPULATORS
     void configureHandle(
-        BSLS_ANNOTATION_UNUSED mqbi::QueueHandle*          handle,
+        BSLA_UNUSED mqbi::QueueHandle*                     handle,
         const bmqp_ctrlmsg::StreamParameters&              streamParameters,
         const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb)
         BSLS_KEYWORD_OVERRIDE
@@ -584,7 +584,7 @@ class MyMockDomain : public mqbmock::Domain {
     /// calls the specified `callback` with a new queue handle created
     /// using the specified `handleParameters`.  The specified `uri` and
     /// `clientContext` are ignored.
-    void openQueue(BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
+    void openQueue(BSLA_UNUSED const bmqt::Uri& uri,
                    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,

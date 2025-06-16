@@ -392,19 +392,18 @@ class JsonCslPrinter : public CslPrinter {
         d_ostream << "\n  ]";
     }
 
-    void
-    printFooter(const CslRecordCount&        recordCount,
-                BSLS_ANNOTATION_UNUSED const Parameters::ProcessCslRecordTypes&
-                    processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
+    void printFooter(const CslRecordCount& recordCount,
+                     BSLA_UNUSED const     Parameters::ProcessCslRecordTypes&
+                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"SnapshotRecords\": " << recordCount.d_snapshotCount
-                  << ",\n";
-        d_ostream << "  \"UpdateRecords\": " << recordCount.d_updateCount
-                  << ",\n";
-        d_ostream << "  \"CommitRecords\": " << recordCount.d_commitCount
-                  << ",\n";
-        d_ostream << "  \"AckRecords\": " << recordCount.d_ackCount;
+        d_ostream << "  \"SnapshotRecords\": \"" << recordCount.d_snapshotCount
+                  << "\",\n";
+        d_ostream << "  \"UpdateRecords\": \"" << recordCount.d_updateCount
+                  << "\",\n";
+        d_ostream << "  \"CommitRecords\": \"" << recordCount.d_commitCount
+                  << "\",\n";
+        d_ostream << "  \"AckRecords\": \"" << recordCount.d_ackCount << "\"";
     }
 };
 
@@ -459,13 +458,13 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
         printer.printRecordDetails(recStr, header, recordId);
     }
 
-    void printSummaryResult(
-        const CslRecordCount&        recordCount,
-        const CslUpdateChoiceMap&    updateChoiceMap,
-        const QueueMap&              queueMap,
-        BSLS_ANNOTATION_UNUSED const Parameters::ProcessCslRecordTypes&
-                                     processCslRecordTypes,
-        unsigned int                 queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    void
+    printSummaryResult(const CslRecordCount&     recordCount,
+                       const CslUpdateChoiceMap& updateChoiceMap,
+                       const QueueMap&           queueMap,
+                       BSLA_UNUSED const Parameters::ProcessCslRecordTypes&
+                                         processCslRecordTypes,
+                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
     {
         d_ostream << "    \"Summary\":\n";
 
@@ -529,13 +528,13 @@ class JsonLineCslPrinter : public JsonCslPrinter {
         printer.printRecordDetails(recStr, header, recordId);
     }
 
-    void printSummaryResult(
-        const CslRecordCount&        recordCount,
-        const CslUpdateChoiceMap&    updateChoiceMap,
-        const QueueMap&              queueMap,
-        BSLS_ANNOTATION_UNUSED const Parameters::ProcessCslRecordTypes&
-                                     processCslRecordTypes,
-        unsigned int                 queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    void
+    printSummaryResult(const CslRecordCount&     recordCount,
+                       const CslUpdateChoiceMap& updateChoiceMap,
+                       const QueueMap&           queueMap,
+                       BSLA_UNUSED const Parameters::ProcessCslRecordTypes&
+                                         processCslRecordTypes,
+                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
     {
         d_ostream << "    \"Summary\": ";
 

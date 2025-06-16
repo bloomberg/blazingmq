@@ -129,10 +129,10 @@
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
@@ -290,11 +290,10 @@ class SessionOptions {
     setTraceOptions(const bsl::shared_ptr<bmqpi::DTContext>& dtContext,
                     const bsl::shared_ptr<bmqpi::DTTracer>&  dtTracer);
 
-    /// DEPRECATED: Use 'configureEventQueue(int lowWatermark,
-    ///                                      int highWatermark)'
-    ///             instead.  This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
+    /// DEPRECATED: Use `configureEventQueue(int lowWatermark,
+    ///                                      int highWatermark)`
+    ///             instead.  This method will be marked as `BSLA_DEPRECATED`
+    ///             in future release of libbmq.
     SessionOptions&
     configureEventQueue(int queueSize, int lowWatermark, int highWatermark);
 
