@@ -762,7 +762,7 @@ class Session : public AbstractSession {
     /// of the operation is communicated with a session event.  If the
     /// optionally specified `timeout` is not populated, use the one defined
     /// in the session options.  Return 0 on success (this doesn't imply the
-    /// session is connected !), or a non-zero value corresponding to the
+    /// session is connected!), or a non-zero value corresponding to the
     /// `bmqt::GenericResult::Enum` enum values otherwise.  The behavior is
     /// undefined if this method is called on an already started `Session`.
     int startAsync(const bsls::TimeInterval& timeout = bsls::TimeInterval())
