@@ -1023,15 +1023,14 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
+
+    # pick proxy in datacenter opposite to the primary's
+    next(proxies)
+
     proxy = next(proxies)
 
     producer = proxy.create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
-
-    app_id = default_app_ids[0]
-    consumer = proxy.create_client(app_id)
-    consumer_uri = f"{du.uri_fanout}?id={app_id}"
-    consumer.open(consumer_uri, flags=["read"], succeed=True)
 
     # ---------------------------------------------------------------------
     # +new_app_1
@@ -1039,6 +1038,22 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     set_app_ids(cluster, default_app_ids + [new_app_1], du)
 
     leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
+
+    # ---------------------------------------------------------------------
+    # Post a message.
+    producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # consume the messages in all the authorized substreams
+
+    # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
+    for app_id in default_app_ids:
+        appid_uri = f"{du.uri_fanout}?id={app_id}"
+        consumer = next(proxies).create_client(app_id)
+        consumer.open(appid_uri, flags=["read"], succeed=True)
+        assert consumer.wait_push_event()
+        assert wait_until(lambda: len(consumer.list(appid_uri, block=True)) == 1, 3)
+        consumer.confirm(appid_uri, "*", succeed=True)
 
     # ---------------------------------------------------------------------
     # -new_app_1

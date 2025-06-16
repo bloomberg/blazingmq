@@ -82,11 +82,14 @@ void ClusterNodeSession::teardown()
     // executed by the *DISPATCHER* thread
 
     // Release all queue handles that were associated with this session
-    for (QueueHandleMapIter it = d_queueHandles.begin();
-         it != d_queueHandles.end();
-         ++it) {
-        mqbi::QueueHandle* handle = it->second.d_handle_p;
-        handle->drop();
+    QueueHandleMapIter qit = d_queueHandles.begin();
+
+    while (qit != d_queueHandles.end()) {
+        mqbi::QueueHandle* handle_p = qit->second.d_handle_p;
+        BSLS_ASSERT_SAFE(handle_p);
+
+        handle_p->drop();
+        qit = d_queueHandles.erase(qit);
     }
 
     // TBD: Synchronize on the dispatcher ?

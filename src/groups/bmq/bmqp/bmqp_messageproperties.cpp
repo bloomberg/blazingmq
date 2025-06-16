@@ -194,6 +194,11 @@ MessageProperties_Schema::MessageProperties_Schema(
     // NOTHING
 }
 
+MessageProperties_Schema::~MessageProperties_Schema()
+{
+    // NOTHING
+}
+
 // PUBLIC ACCESSORS
 bool MessageProperties_Schema::loadIndex(int*               index,
                                          const bsl::string& name) const

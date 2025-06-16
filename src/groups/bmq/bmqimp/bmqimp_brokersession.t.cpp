@@ -858,6 +858,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                                              bdlf::PlaceHolders::_1)  // event
                       : bmqimp::EventQueue::EventHandlerCallback(),
                   bdlf::MemFnUtil::memFn(&TestSession::stateCb, this),
+                  bmqimp::SessionId(),
                   d_allocator_p)
 , d_onChannelCloseHandler(d_testChannel.onClose(
       bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this)))
@@ -894,6 +895,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                                              bdlf::PlaceHolders::_1)  // event
                       : bmqimp::EventQueue::EventHandlerCallback(),
                   bdlf::MemFnUtil::memFn(&TestSession::stateCb, this),
+                  bmqimp::SessionId(),
                   d_allocator_p)
 , d_onChannelCloseHandler(d_testChannel.onClose(
       bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this)))
@@ -2874,6 +2876,7 @@ static void test1_breathingTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
     PVV_SAFE("Starting session...");
     int rc = session.startAsync();
@@ -2940,6 +2943,7 @@ static void test2_basicAccessorsTest()
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
+                              bmqimp::SessionId(),
                               bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT(!obj.isUsingSessionEventHandler());
@@ -2999,6 +3003,7 @@ static void test3_nullChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.isUsingSessionEventHandler(), true);
@@ -3087,6 +3092,7 @@ static void test4_createEventTest()
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
+                              bmqimp::SessionId(),
                               bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> ev = obj.createEvent();
@@ -3142,6 +3148,7 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
@@ -3370,6 +3377,7 @@ static void test6_setChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Starting session...");
@@ -4053,6 +4061,7 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
+            bmqimp::SessionId(),
             bmqtst::TestHelperUtil::allocator());
 
         // Start the session
@@ -4159,6 +4168,7 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
+            bmqimp::SessionId(),
             bmqtst::TestHelperUtil::allocator());
 
         // Start the session
@@ -5824,6 +5834,7 @@ static void test25_sessionFsmTable()
                              &table,
                              &tcpRc,
                              &doneSemaphore),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     table = obj.getSessionFsmTransitionTable();
@@ -6834,7 +6845,7 @@ static void test33_queueNackTest()
     BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrId, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrId, nackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 9. Waiting QUEUE_CLOSE_RESULT event...");
@@ -7881,6 +7892,7 @@ static void test40_syncCalledFromEventHandler()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
+        bmqimp::SessionId(),
         bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
@@ -9251,7 +9263,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(k_ACK_STATUS_SUCCESS, ackIter->message().status());
     BMQTST_ASSERT_EQ(guidFirst, ackIter->message().messageGUID());
     BMQTST_ASSERT_EQ(1, ackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrIdFirst, ackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrIdFirst, ackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, ackIter->next());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
@@ -9323,13 +9335,13 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(guidSecond, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(2, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrIdSecond, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrIdSecond, nackEvent->context(0).d_correlationId);
 
     BMQTST_ASSERT_EQ(1, iter->next());
     BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
     BMQTST_ASSERT_EQ(guidThird, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    BMQTST_ASSERT_EQ(corrIdThird, nackEvent->correlationId(1));
+    BMQTST_ASSERT_EQ(corrIdThird, nackEvent->context(1).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 11. Send one more PUT message while the channel is down");
@@ -9375,7 +9387,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(guidFourth, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrIdFourth, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrIdFourth, nackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 14. Waiting QUEUE_CLOSE_RESULT event...");
@@ -9609,7 +9621,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(guid2, iter->message().messageGUID());
     BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
     BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrId, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(corrId, nackEvent->context(0).d_correlationId);
     BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 13. Waiting QUEUE_CLOSE_RESULT event...");

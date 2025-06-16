@@ -25,7 +25,6 @@ of commands; only that they get routed to the proper nodes.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
-    multi_node,
 )
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client

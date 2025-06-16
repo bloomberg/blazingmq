@@ -321,8 +321,6 @@ Queue::Queue(bslma::Allocator* allocator)
 , d_isOldStyle(true)
 , d_isSuspendedWithBroker(false)
 , d_schemaGenerator(allocator)
-, d_schemaLearner(allocator)
-, d_schemaLearnerContext(d_schemaLearner.createContext())
 , d_config(allocator)
 , d_registeredInternalSubscriptionIds(allocator)
 {

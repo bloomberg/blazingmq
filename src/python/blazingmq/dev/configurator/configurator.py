@@ -23,13 +23,13 @@ scripts for running a cluster.
 # pyright: reportOptionalMemberAccess=false
 
 import copy
+import dataclasses
 import functools
 import itertools
 import logging
 from dataclasses import dataclass, field
-from decimal import Decimal
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.serializers import JsonSerializer
@@ -318,7 +318,29 @@ class Configurator:
             site.mkdir(str(stats_dir))
 
     def deploy_domains(self, broker: Broker, site: Site) -> None:
-        self._create_json_file(broker.clusters, site, "etc/clusters.json")
+        # Separate proxy clusters from clusters involved in reversed proxy
+        # connections. The latter must go in the main clusters.json file.
+        # The others can go in their own files, one per cluster.
+        reversed_clusters = {
+            cluster.name for cluster in broker.clusters.reversed_cluster_connections
+        }
+        proxy_clusters = []
+        lazy_proxy_clusters = []
+
+        for cluster in broker.clusters.proxy_clusters:
+            if cluster.name in reversed_clusters:
+                proxy_clusters.append(cluster)
+            else:
+                lazy_proxy_clusters.append(cluster)
+
+        self._create_json_file(
+            dataclasses.replace(broker.clusters, proxy_clusters=proxy_clusters),
+            site,
+            "etc/clusters.json",
+        )
+
+        for proxy in lazy_proxy_clusters:
+            self._create_json_file(proxy, site, f"etc/proxyclusters/{proxy.name}.json")
 
         for cluster in broker.clusters.my_clusters:
             for storage_dir in (

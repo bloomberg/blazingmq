@@ -71,6 +71,7 @@
 #include <bmqp_pushmessageiterator.h>
 #include <bmqp_putmessageiterator.h>
 #include <bmqp_queueid.h>
+#include <bmqp_schemalearner.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_uri.h>
 
@@ -216,6 +217,9 @@ class QueueManager {
     // both Queue id and Subscription/
     // SubQueue id,
 
+    /// Schema learner to use.  Held, not owned.
+    bmqp::SchemaLearner d_schemaLearner;
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
@@ -309,9 +313,10 @@ class QueueManager {
                     bool* hasMessageWithMultipleSubQueueIds,
                     const bmqp::PushMessageIterator& iterator);
 
-    const QueueSp observePushEvent(bmqt::CorrelationId* correlationId,
-                                   unsigned int*        subscriptionHandleId,
-                                   const bmqp::EventUtilQueueInfo& info);
+    /// Find the queue using the specified `info` in the internal storage
+    /// and append the queue context to the specified `queueEvent`.
+    void observePushEvent(Event*                          queueEvent,
+                          const bmqp::EventUtilQueueInfo& info);
 
     /// Update stats for the queue(s) corresponding to the messages pointed
     /// to by the specified `iterator` and populate the specified
@@ -341,6 +346,8 @@ class QueueManager {
 
     void updateSubscriptions(const bsl::shared_ptr<Queue>&         queue,
                              const bmqp_ctrlmsg::StreamParameters& config);
+
+    bmqp::SchemaLearner& schemaLearner();
 
     // ACCESSORS
     QueueSp lookupQueue(const bmqt::Uri& uri) const;
@@ -447,6 +454,11 @@ inline QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionId(
                                              subscriptionHandleId,
                                              queueId,
                                              internalSubscriptionId);
+}
+
+inline bmqp::SchemaLearner& QueueManager::schemaLearner()
+{
+    return d_schemaLearner;
 }
 
 }  // close package namespace
