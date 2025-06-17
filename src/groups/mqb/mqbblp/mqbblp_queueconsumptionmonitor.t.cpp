@@ -528,19 +528,21 @@ BMQTST_TEST_F(Test, changeMaxIdleTime)
     // Disable monitoring
     d_monitor.setMaxIdleTime(0);
 
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_ALIVE);
     BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 
-    d_monitor.alarmEventDispatched();
-    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
-
     // Enable monitoring again
     d_monitor.setMaxIdleTime(2);
 
-    d_monitor.alarmEventDispatched();
+    // Simulate message posting to schedule alarm event
+    d_monitor.onMessagePosted();
 
-    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
+    BMQTST_ASSERT(d_monitor.isAlarmScheduled());
+
+    d_monitor.alarmEventDispatched();
 
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_IDLE)
