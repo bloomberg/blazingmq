@@ -565,7 +565,7 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
     //       not the first hop, correlationId will be NULL.  But this method
     //       does not care about them.
 
-    bmqt::Uri uri;
+    const bmqt::Uri* uri_p = NULL;
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(status !=
                                               bmqt::AckResult::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -580,7 +580,7 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
         if (queueState) {
             BSLS_ASSERT_SAFE(queueState->d_handle_p);
 
-            uri = queueState->d_handle_p->queue()->uri();
+            uri_p = &queueState->d_handle_p->queue()->uri();
 
             // If queue is found, report locally generated NACK
             if (isSelfGenerated) {
@@ -598,20 +598,20 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
         if (d_state.d_throttledFailedAckMessages.requestPermission()) {
             BALL_LOG_INFO << description() << ": failed Ack "
                           << "[status: " << status << ", source: '" << source
-                          << "'"
-                          << ", correlationId: " << correlationId
-                          << ", GUID: " << messageGUID << ", queue: '" << uri
-                          << "' "
-                          << "(id: " << queueId << ")]";
+                          << "', correlationId: " << correlationId
+                          << ", GUID: " << messageGUID << ", queue: '"
+                          << (uri_p ? (*uri_p) : "** null **")
+                          << "' (id: " << queueId << ")]";
         }
     }
 
     // Always print at trace level
     BALL_LOG_TRACE << description() << ": sending Ack "
-                   << "[status: " << status << ", source: '" << source << "'"
-                   << ", correlationId: " << correlationId
-                   << ", GUID: " << messageGUID << ", queue: '" << uri
-                   << "' (id: " << queueId << ")]";
+                   << "[status: " << status << ", source: '" << source
+                   << "', correlationId: " << correlationId
+                   << ", GUID: " << messageGUID << ", queue: '"
+                   << (uri_p ? (*uri_p) : "** null **") << "' (id: " << queueId
+                   << ")]";
 
     // Append the ACK to the ackBuilder
     bmqt::EventBuilderResult::Enum rc = bmqp::ProtocolUtil::buildEvent(
@@ -624,9 +624,9 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
 
     if (rc != bmqt::EventBuilderResult::e_SUCCESS) {
         BALL_LOG_ERROR << "Failed to append ACK [rc: " << rc << ", source: '"
-                       << source << "'"
-                       << ", correlationId: " << correlationId
-                       << ", GUID: " << messageGUID << ", queue: '" << uri
+                       << source << "', correlationId: " << correlationId
+                       << ", GUID: " << messageGUID << ", queue: '"
+                       << (uri_p ? (*uri_p) : "** null **")
                        << "' (id: " << queueId << ")]";
     }
 

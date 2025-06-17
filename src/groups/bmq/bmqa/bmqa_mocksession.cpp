@@ -312,7 +312,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     implPtr->configureAsMessageEvent(
         bmqp::Event(ackBuilder.blob().get(), alloc, true));
     for (size_t i = 0; i != acks.size(); ++i) {
-        implPtr->addCorrelationId(acks[i].d_correlationId);
+        implPtr->addContext(acks[i].d_correlationId);
     }
 
     return event;
@@ -368,7 +368,7 @@ Event MockSessionUtil::createPushEvent(
                                 logic);
         implPtr->insertQueue(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                              queueImplPtr);
-        implPtr->addCorrelationId(bmqt::CorrelationId());
+        implPtr->addContext(bmqt::CorrelationId());
     }
 
     bmqp::Event bmqpEvent(pushBuilder.blob().get(), alloc, true);

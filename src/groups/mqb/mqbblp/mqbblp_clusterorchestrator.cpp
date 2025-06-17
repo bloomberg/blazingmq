@@ -75,6 +75,16 @@ void ClusterOrchestrator::processElectorEventDispatched(
     BSLS_ASSERT_SAFE(event.isValid());
     BSLS_ASSERT_SAFE(source);
 
+    if (d_clusterData_p->membership().selfNodeStatus() ==
+        bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
+        // No need to process the event since self is stopping.
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": Not processing elector event from node "
+                      << source->nodeDescription()
+                      << " since self is stopping.";
+        return;  // RETURN
+    }
+
     d_elector_mp->processEvent(event, source);
 }
 
@@ -1215,16 +1225,6 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
             << " received an elector event from node "
             << source->nodeDescription() << " in local cluster setup."
             << BMQTSK_ALARMLOG_END;
-        return;  // RETURN
-    }
-
-    if (d_clusterData_p->membership().selfNodeStatus() ==
-        bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
-        // No need to process the event since self is stopping.
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Not processing elector event from node "
-                      << source->nodeDescription()
-                      << " since self is stopping.";
         return;  // RETURN
     }
 

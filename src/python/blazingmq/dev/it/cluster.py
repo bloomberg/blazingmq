@@ -43,12 +43,18 @@ QUORUM_TO_ENSURE_LEADER = 1
 QUORUM_TO_ENSURE_NOT_LEADER = 100
 
 
-def _match_broker(broker, **kw):
-    datacenter = kw.get("datacenter", None)
-    near = kw.get("near", None)
-    exclude = kw.get("exclude", None)
+def _match_broker(
+    broker,
+    *,
+    datacenter: str = None,
+    near: Broker = None,
+    exclude: Union[Broker, List[Broker]] = None,
+    alive=False,
+    invert=False,
+):
     if datacenter is not None and near is not None:
         raise RuntimeError("`near` and `datacenter` options cannot be both specified")
+
     result = True
 
     if exclude is not None and (broker is exclude or broker in exclude):
@@ -57,10 +63,13 @@ def _match_broker(broker, **kw):
         result = result and broker.datacenter == datacenter
     elif near is not None:
         result = result and broker.datacenter == near.datacenter
-    if kw.get("alive", None):
+
+    if alive:
         result = result and broker.is_alive()
-    if kw.get("invert", False):
+
+    if invert:
         result = not result
+
     return result
 
 
@@ -220,7 +229,7 @@ class Cluster(contextlib.AbstractContextManager):
                     process.stop()
                 except Exception as error:
                     self._logger.error(
-                        f"Exception raised while stopping process: {error}"
+                        "Exception raised while stopping process: %s", error
                     )
                 if process.name in self._processes:
                     del self._processes[process.name]
@@ -332,7 +341,6 @@ class Cluster(contextlib.AbstractContextManager):
 
     def destroy(self):
         """Free the resources owned by this cluster."""
-        pass
         # self._esx.close()
 
     # TODO: fold following three in start_broker
@@ -416,7 +424,15 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self._processes[name]
 
-    def nodes(self, **kw) -> List[Broker]:
+    def nodes(
+        self,
+        *,
+        datacenter: str = None,
+        near: Broker = None,
+        exclude: Union[Broker, List[Broker]] = None,
+        alive=False,
+        invert=False,
+    ) -> List[Broker]:
         """Return the nodes matching the conditions specified by 'kw'.
 
         Conditions
@@ -432,9 +448,28 @@ class Cluster(contextlib.AbstractContextManager):
         the nodes that do *not* match the condition(s).
         """
 
-        return [broker for broker in self._nodes if _match_broker(broker, **kw)]
+        return [
+            broker
+            for broker in self._nodes
+            if _match_broker(
+                broker,
+                datacenter=datacenter,
+                near=near,
+                exclude=exclude,
+                alive=alive,
+                invert=invert,
+            )
+        ]
 
-    def virtual_nodes(self, **kw):
+    def virtual_nodes(
+        self,
+        *,
+        datacenter: str = None,
+        near: Broker = None,
+        exclude: Union[Broker, List[Broker]] = None,
+        alive=False,
+        invert=False,
+    ):
         """Return the virtual nodes matching the conditions specified by 'kw'.
 
         Conditions can be any combination of: - datacenter:<name> return the
@@ -445,9 +480,28 @@ class Cluster(contextlib.AbstractContextManager):
         is true, return the nodes that do *not* match the condition(s).
         """
 
-        return [broker for broker in self._virtual_nodes if _match_broker(broker, **kw)]
+        return [
+            broker
+            for broker in self._virtual_nodes
+            if _match_broker(
+                broker,
+                datacenter=datacenter,
+                near=near,
+                exclude=exclude,
+                alive=alive,
+                invert=invert,
+            )
+        ]
 
-    def proxies(self, **kw) -> List[Broker]:
+    def proxies(
+        self,
+        *,
+        datacenter: str = None,
+        near: Broker = None,
+        exclude: Union[Broker, List[Broker]] = None,
+        alive=False,
+        invert=False,
+    ) -> List[Broker]:
         """Return the proxies matching the conditions specified by 'kw'.
 
         Conditions can be any combination of: - datacenter:<name> return the
@@ -458,7 +512,18 @@ class Cluster(contextlib.AbstractContextManager):
         is true, return the nodes that do *not* match the condition(s).
         """
 
-        return [broker for broker in self._proxies if _match_broker(broker, **kw)]
+        return [
+            broker
+            for broker in self._proxies
+            if _match_broker(
+                broker,
+                datacenter=datacenter,
+                near=near,
+                exclude=exclude,
+                alive=alive,
+                invert=invert,
+            )
+        ]
 
     def proxy_cycle(self):
         """

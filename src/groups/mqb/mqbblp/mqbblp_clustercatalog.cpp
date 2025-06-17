@@ -123,11 +123,13 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                    = 0,
-        rc_NAME_NOT_UNIQUE            = -1,
-        rc_FETCH_DEFINITION_FAILED    = -2,
-        rc_NETCLUSTER_CREATION_FAILED = -3,
-        rc_NETCLUSTER_INVALID_NODE_ID = -4
+        rc_SUCCESS                            = 0,
+        rc_NAME_NOT_UNIQUE                    = -1,
+        rc_FETCH_DEFINITION_FAILED            = -2,
+        rc_NETCLUSTER_CREATION_FAILED         = -3,
+        rc_NETCLUSTER_INVALID_NODE_ID         = -4,
+        rc_BROKER_CLUSTER_CONFIG_LOAD_FAILURE = -5,
+        rc_JSON_DECODE_ERROR                  = -6
     };
 
     int rc = rc_SUCCESS;
@@ -205,9 +207,60 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
 
         if (proxyDefinitionIter ==
             d_clustersDefinition.proxyClusters().end()) {
-            errorDescription << "Fetch proxy definition failed for cluster: '"
-                             << name << "'";
-            return rc_FETCH_DEFINITION_FAILED;  // RETURN
+            // Maybe a proxy cluster JSON was added to the
+            // 'proxyclusters' directory since we started.
+
+            const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
+            bsl::string              configFilename = brkrCfg.etcDir();
+
+            bdls::PathUtil::appendRaw(&configFilename, "proxyclusters");
+            bdls::PathUtil::appendRaw(&configFilename,
+                                      (name + ".json").c_str());
+
+            bsl::ifstream      configStream(configFilename.c_str());
+            bmqu::MemOutStream configParameters;
+            configParameters << configStream.rdbuf();
+
+            if (!configStream || !configParameters) {
+                errorDescription
+                    << "Fetch proxy definition failed for cluster: '" << name
+                    << "', file: '" << configFilename
+                    << "' is not readable or empty";
+                return rc_BROKER_CLUSTER_CONFIG_LOAD_FAILURE * 10 +
+                       rc_FETCH_DEFINITION_FAILED;  // RETURN
+            }
+
+            configStream.close();
+
+            BALL_LOG_INFO
+                << "Dynamically loading cluster proxy definition from '"
+                << configFilename;
+
+            // Decode the JSON stream
+            mqbcfg::ClusterProxyDefinition proxyDefinition;
+            baljsn::Decoder                decoder;
+            baljsn::DecoderOptions         options;
+            bslstl::StringRef              jsonString = configParameters.str();
+            bdlsb::FixedMemInStreamBuf     jsonStreamBuf(jsonString.data(),
+                                                     jsonString.length());
+
+            options.setSkipUnknownElements(true);
+
+            rc = decoder.decode(&jsonStreamBuf, &proxyDefinition, options);
+            if (rc != 0) {
+                BALL_LOG_ERROR << "Error while decoding JSON from '"
+                               << configFilename << "' [rc: " << rc
+                               << ", error: '" << decoder.loggedMessages()
+                               << "']" << ", content:\n"
+                               << configParameters.str();
+                return rc_JSON_DECODE_ERROR * 10 +
+                       rc_NETCLUSTER_CREATION_FAILED;  // RETURN
+            }
+
+            d_clustersDefinition.proxyClusters().push_back(
+                proxyDefinition);  // Add the new cluster to the list
+            proxyDefinitionIter = d_clustersDefinition.proxyClusters().end() -
+                                  1;
         }
 
         const mqbcfg::ClusterProxyDefinition& clusterProxyDefinition =
@@ -407,10 +460,10 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                           = 0,
-        rc_BROKER_CLUSTER_CONFIG_LOADFAILURE = -1,
-        rc_CONFIG_READ_ERROR                 = -1,
-        rc_JSON_DECODE_ERROR                 = -2
+        rc_SUCCESS                            = 0,
+        rc_BROKER_CLUSTER_CONFIG_LOAD_FAILURE = -1,
+        rc_CONFIG_READ_ERROR                  = -1,
+        rc_JSON_DECODE_ERROR                  = -2
     };
 
     int rc = rc_SUCCESS;
@@ -421,7 +474,7 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
     if (bdls::PathUtil::appendIfValid(&configFilename, "clusters.json")) {
         BALL_LOG_ERROR << "Invalid path '" << configFilename << "'\n";
         return rc_CONFIG_READ_ERROR * 10 +
-               rc_BROKER_CLUSTER_CONFIG_LOADFAILURE;  // RETURN
+               rc_BROKER_CLUSTER_CONFIG_LOAD_FAILURE;  // RETURN
     }
 
     bsl::ifstream      configStream(configFilename.c_str());
@@ -432,7 +485,8 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
         BALL_LOG_ERROR << "Error while reading JSON from '" << configFilename
                        << "'\n";
         return rc_CONFIG_READ_ERROR * 10 +
-               rc_BROKER_CLUSTER_CONFIG_LOADFAILURE;  // RETURN
+
+               rc_BROKER_CLUSTER_CONFIG_LOAD_FAILURE;  // RETURN
     }
     configStream.close();
 
@@ -453,7 +507,8 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
                        << ", content:\n"
                        << configParameters.str();
         return rc_JSON_DECODE_ERROR * 10 +
-               rc_BROKER_CLUSTER_CONFIG_LOADFAILURE;  // RETURN
+
+               rc_BROKER_CLUSTER_CONFIG_LOAD_FAILURE;  // RETURN
     }
 
     BALL_LOG_INFO << "Read config from " << configFilename << ": "

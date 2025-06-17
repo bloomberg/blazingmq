@@ -317,11 +317,13 @@ static void test1_breathingTest()
     // 2) Flatten the event
     bsl::vector<bmqp::EventUtilEventInfo> eventInfos(
         bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     rc = bmqp::EventUtil::flattenPushEvent(
         &eventInfos,
         event,
         &bufferFactory,
         blobSpPool.get(),
+        theLearner,
         bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT_EQ(eventInfos.size(), 1u);
@@ -495,11 +497,14 @@ static void test2_flattenExplodesEvent()
     // 2) Flatten the event
     bsl::vector<bmqp::EventUtilEventInfo> eventInfos(
         bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
+
     rc = bmqp::EventUtil::flattenPushEvent(
         &eventInfos,
         event,
         &bufferFactory,
         blobSpPool.get(),
+        theLearner,
         bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT_EQ(eventInfos.size(), 2u);
@@ -774,11 +779,13 @@ static void test3_flattenWithMessageProperties()
     // 2) Flatten the event.
     bsl::vector<bmqp::EventUtilEventInfo> eventInfos(
         bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     rc = bmqp::EventUtil::flattenPushEvent(
         &eventInfos,
         event,
         &bufferFactory,
         blobSpPool.get(),
+        theLearner,
         bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT_EQ(eventInfos.size(), 1U);
