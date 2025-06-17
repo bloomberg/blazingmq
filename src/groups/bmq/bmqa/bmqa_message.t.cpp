@@ -67,7 +67,6 @@ void generateSubQueueInfos(bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
                            size_t numSubQueueInfos)
 {
     BSLS_ASSERT_SAFE(subQueueInfos);
-    BSLS_ASSERT_SAFE(numSubQueueInfos >= 0);
 
     subQueueInfos->clear();
 
@@ -75,8 +74,6 @@ void generateSubQueueInfos(bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
         const unsigned int subQueueId = generateRandomInteger(0, 120);
         subQueueInfos->push_back(bmqp::SubQueueInfo(subQueueId));
     }
-
-    BSLS_ASSERT_SAFE(subQueueInfos->size() == numSubQueueInfos);
 }
 }
 
