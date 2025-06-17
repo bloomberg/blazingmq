@@ -2078,20 +2078,15 @@ RootQueueEngine::head(const AppStateSp app) const
 {
     bslma::ManagedPtr<mqbi::StorageIterator> out;
 
-    if (!app->putAsideList().empty()) {
-        d_queueState_p->storage()->getIterator(&out,
-                                               app->appKey(),
-                                               app->putAsideList().first());
-    }
-    else if (!app->resumePoint().isUnset()) {
-        d_queueState_p->storage()->getIterator(&out,
-                                               app->appKey(),
-                                               app->resumePoint());
-    }
-    else if (!d_storageIter_mp->atEnd()) {
-        d_queueState_p->storage()->getIterator(&out,
-                                               app->appKey(),
-                                               d_storageIter_mp->guid());
+    // Try to get the oldest message iterator from the
+    // redelivery list, put aside list, or resume point.
+    if (!app->getOldestMessageIterator(&out)) {
+        // No oldest message found, try d_storageIter_mp
+        if (!d_storageIter_mp->atEnd()) {
+            d_queueState_p->storage()->getIterator(&out,
+                                                   app->appKey(),
+                                                   d_storageIter_mp->guid());
+        }
     }
 
     return out;

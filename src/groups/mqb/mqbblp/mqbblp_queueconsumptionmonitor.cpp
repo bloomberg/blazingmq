@@ -154,6 +154,8 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
         cancelIdleEventsAndResetStates();
     }
 
+    // No change in app states when new max idle time value is set.
+
     // If alarm event was already scheduled
     if (d_alarmEventHandle) {
         // Cancel the event and execute alarmEventDispatched() to reschedule

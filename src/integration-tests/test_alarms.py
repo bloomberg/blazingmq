@@ -154,6 +154,7 @@ def test_priority_transition_active_alarm_active(
 
     # Confirm messages, queue is empty
     consumer.confirm(uri_priority, "*", succeed=True)
+    consumer.wait_push_event()
 
     # Test that queue is no longer in alarm state
     assert leader.outputs_regex(r"no longer appears to be stuck.", 1)
@@ -346,10 +347,13 @@ def test_fanout_no_alarms_for_a_slow_queue(
     time.sleep(1)
     for app_id in app_ids:
         consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "+1", succeed=True)
+        consumers[app_id].wait_push_event()
+
 
     time.sleep(1)
     for app_id in app_ids:
         consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "+1", succeed=True)
+        consumers[app_id].wait_push_event()
 
     # Consumer 'bar' appears and picks all messages
     consumer_bar = next(proxies).create_client("bar")
@@ -402,6 +406,7 @@ def test_fanout_transition_active_alarm_active(
     for app_id in app_ids:
         if app_id != "foo":
             consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "*", succeed=True)
+            consumers[app_id].wait_push_event()
 
     # Wait more than max idle time
     time.sleep(2)
@@ -413,6 +418,7 @@ def test_fanout_transition_active_alarm_active(
 
     # Confirm all messages for 'foo', queue is empty
     consumers["foo"].confirm(f"{uri_fanout}?id=foo", "*", succeed=True)
+    consumers["foo"].wait_push_event()
 
     # Test that queue for 'foo' consumer is no longer in alarm state
     assert leader.outputs_regex(r"id=foo' no longer appears to be stuck.", 1)

@@ -190,8 +190,7 @@ struct Test : bmqtst::Test {
     ~Test() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void putMessage(const bsl::string& appId         = bsl::string(),
-                    bool               isUndelivered = true);
+    void putMessage(const bsl::string& appId = bsl::string());
 
     // ACCESSORS
     bslma::ManagedPtr<mqbi::StorageIterator>
@@ -277,12 +276,10 @@ Test::~Test()
     d_domain.unregisterQueue(&d_queue);
 }
 
-void Test::putMessage(const bsl::string& id, bool isUndelivered)
+void Test::putMessage(const bsl::string& id)
 {
     d_monitor.onMessagePosted();
-    if (isUndelivered) {
-        d_haveUndelivered.insert(id);
-    }
+    d_haveUndelivered.insert(id);
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>
@@ -536,11 +533,14 @@ BMQTST_TEST_F(Test, changeMaxIdleTime)
     BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 
     d_monitor.alarmEventDispatched();
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
     // Enable monitoring again
     d_monitor.setMaxIdleTime(2);
 
     d_monitor.alarmEventDispatched();
+
+    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
 
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
                      QueueConsumptionMonitor::State::e_IDLE)
@@ -561,16 +561,14 @@ BMQTST_TEST_F(Test, reset)
 
     d_monitor.registerSubStream(d_id);
 
-    putMessage(d_id, false);
+    putMessage(d_id);
 
     BMQTST_ASSERT(d_monitor.isAlarmScheduled());
 
     d_monitor.alarmEventDispatched();
 
-    BMQTST_ASSERT(!d_monitor.isAlarmScheduled());
-
     BMQTST_ASSERT_EQ(d_monitor.state(d_id),
-                     QueueConsumptionMonitor::State::e_ALIVE);
+                     QueueConsumptionMonitor::State::e_IDLE);
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::e_INFO,
                                           bmqtst::TestHelperUtil::allocator());
