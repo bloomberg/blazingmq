@@ -174,9 +174,10 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appData);
-    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+    BSLS_ASSERT_SAFE(static_cast<unsigned int>(appData->length()) ==
+                     attributes->appDataLen());
 
-    const int    msgSize  = attributes->appDataLen();
+    const int    msgSize  = static_cast<int>(attributes->appDataLen());
     unsigned int refCount = attributes->refCount();
     // Proxies are unaware of the number of apps unlike Replicas.
     // The latter can check for duplicates.
