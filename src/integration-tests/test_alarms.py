@@ -349,7 +349,6 @@ def test_fanout_no_alarms_for_a_slow_queue(
         consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "+1", succeed=True)
         consumers[app_id].wait_push_event()
 
-
     time.sleep(1)
     for app_id in app_ids:
         consumers[app_id].confirm(f"{uri_fanout}?id={app_id}", "+1", succeed=True)
