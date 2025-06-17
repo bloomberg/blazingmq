@@ -171,7 +171,6 @@
 #include <bslmf_allocatorargt.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_condition.h>
-#include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bslmt_threadutil.h>
@@ -574,7 +573,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     // PRIVATE CLASS METHODS
 
     /// Creator function passed to `d_pool` to create an event in the
-    /// speificed `arena` using the specified `allocator`.
+    /// specified `arena` using the specified `allocator`.
     static void eventCreator(void* arena, bslma::Allocator* allocator);
 
     // PRIVATE MANIPULATORS
@@ -590,9 +589,8 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     /// Thread pool worker function.
     /// Pop and process events from the queue with the specified `queue`
-    /// until a `0` event is popped off.  Use the specified `latch_p` to signal
-    /// that the thread is ready to process the events.
-    void processQueue(int queue, bslmt::Latch* latch_p);
+    /// until a `0` event is popped off.
+    void processQueue(int queue);
 
     /// Enqueue the specified `event` on the specified `queue`, or all
     /// queues if `queue == -1`, if we're not stopped.
@@ -928,20 +926,13 @@ inline bool MultiQueueThreadPool<TYPE>::unrefEvent(Event* event, bool release)
 }
 
 template <typename TYPE>
-inline void MultiQueueThreadPool<TYPE>::processQueue(int           queue,
-                                                     bslmt::Latch* latch_p)
+inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
 {
     QueueInfo& info = d_queues[queue];
     QueueItem  item;
 
     // Store the thread id of the thread being exclusively used
     info.d_exclusiveThreadHandle = bslmt::ThreadUtil::self();
-
-    // We signal that this thread is ready to accept messages only after we
-    // cached this thread handle.
-    if (latch_p) {
-        latch_p->arrive();
-    }
 
     while (true) {
         const int popRet = info.d_queue_p->tryPopFront(&item);
@@ -1080,9 +1071,25 @@ inline MultiQueueThreadPool<TYPE>::~MultiQueueThreadPool()
 template <typename TYPE>
 inline int MultiQueueThreadPool<TYPE>::start()
 {
+    /// Enum for the various RC error categories
+    enum RcEnum {
+        rc_SUCCESS            = 0,
+        rc_NOT_ENOUGH_THREADS = -1,
+        rc_ALREADY_STARTED    = -2
+    };
+
     if (isStarted()) {
         // MQTP has already been started
-        return -2;  // RETURN
+        return rc_ALREADY_STARTED;  // RETURN
+    }
+
+    // Verify threads availability
+    const int numAvailableThreads =
+        d_config.d_threadPool_p->maxThreads() -
+        d_config.d_threadPool_p->numActiveThreads();
+    if (numAvailableThreads < static_cast<int>(d_queues.size())) {
+        // Not enough threads for exclusive use
+        return rc_NOT_ENOUGH_THREADS;  // RETURN
     }
 
     // Create the queues
@@ -1109,26 +1116,16 @@ inline int MultiQueueThreadPool<TYPE>::start()
         d_queues[i].d_processedZero = false;
     }
 
-    // Set up threads
-    int numAvailableThreads = d_config.d_threadPool_p->maxThreads() -
-                              d_config.d_threadPool_p->numActiveThreads();
-    if (numAvailableThreads < static_cast<int>(d_queues.size())) {
-        // Not enough threads for exclusive use
-        return -1;  // RETURN
-    }
-
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
 
-    bslmt::Latch latch(d_queues.size());
+    // Set up threads
     for (size_t i = 0; i < d_queues.size(); ++i) {
         BSLA_MAYBE_UNUSED const int rc = d_config.d_threadPool_p->enqueueJob(
             bdlf::BindUtil::bind(&ThisClass::processQueue,
                                  this,
-                                 static_cast<int>(i),
-                                 &latch));
+                                 static_cast<int>(i)));
         BSLS_ASSERT_SAFE(rc == 0);
     }
-    latch.wait();
 
     // See if we have to start monitoring job
     if (d_config.d_eventScheduler_p &&
@@ -1141,7 +1138,7 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     d_started = true;
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 template <typename TYPE>
