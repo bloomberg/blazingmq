@@ -281,8 +281,8 @@ class OrderedHashMapWithHistory {
     /// Return rc == 0, if no elements were GCed.
     /// Return rc > 0, if all the needed elements were GCed and there is
     ///                nothing more to do now.
-    /// Return rc == -1, if the maximum batch of elements was GCed, but there
-    ///                  are more messages to GC.
+    /// Return rc < 0, if the maximum batch of elements was GCed, but there
+    ///                are more messages to GC.
     int gc(TimeType now, unsigned batchSize = 0);
 
     /// Remove all entries from this container.  Clear all history.  Note
@@ -691,12 +691,17 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
         // Meaning, there is no need for 'd_gcIt' to step back.  Only forward.
 
         if (--batchSize == 0) {
-            // remember where we have stopped and resume from there next time
-            return -1;  // RETURN
+            // Remember where we have stopped and resume from there next time
+
+            const int historyChange = initialHistorySize - d_historySize;
+            // Note that we return either a negative value or 0 here:
+            return -historyChange;  // RETURN
         }
     }
 
-    return initialHistorySize - d_historySize;
+    const int historyChange = initialHistorySize - d_historySize;
+    // Note that we return either a positive value or 0 here:
+    return historyChange;
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>

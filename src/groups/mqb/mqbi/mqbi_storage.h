@@ -567,8 +567,8 @@ class Storage {
     /// Return rc == 0, if no messages were GCed.
     /// Return rc > 0, if all the needed messages were GCed and there is
     ///                nothing more to do now.
-    /// Return rc == -1, if the maximum batch of messages was GCed, but there
-    ///                  are more messages to GC.
+    /// Return rc < 0, if the maximum batch of elements was GCed, but there
+    ///                are more messages to GC.
     virtual int gcHistory(bsls::Types::Int64 now) = 0;
 
     /// Create, if it doesn't exist already, a virtual storage instance with
