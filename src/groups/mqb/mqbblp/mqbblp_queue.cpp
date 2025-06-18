@@ -886,7 +886,7 @@ void Queue::flush()
     }
 }
 
-bsls::Types::Int64 Queue::countUnconfirmed()
+bsls::Types::Int64 Queue::countUnconfirmed() const
 {
     // executed by the *QUEUE* dispatcher thread
 

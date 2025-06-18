@@ -184,8 +184,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
                              whenToStop,
                              bdlf::PlaceHolders::_1));  // completionCb
 
-    // Add callback to be invoked once V1 shuts down all client sessions or
-    // V2 finishes waiting for unconfirmed
+    // Add callback to be invoked once V2 finishes waiting for unconfirmed
     d_shutdownChain.appendInplace(bdlf::BindUtil::bind(&completeShutDown,
                                                        bdlf::PlaceHolders::_1),
                                   callback);

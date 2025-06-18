@@ -246,7 +246,7 @@ Queue::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
     d_stats_sp = stats;
 }
 
-bsls::Types::Int64 Queue::countUnconfirmed()
+bsls::Types::Int64 Queue::countUnconfirmed() const
 {
     // NOT IMPLENTED
     return 0;

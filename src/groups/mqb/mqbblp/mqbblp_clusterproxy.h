@@ -432,7 +432,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// `callback` upon completion of (asynchronous) shutdown sequence. It
     /// is expected that `stop()` will be called soon after this routine is
     /// invoked.  Execute shutdown logic where upstream (not downstream) nodes
-    /// deconfigure  queues and the shutting down node waits for CONFIRMS.
+    /// deconfigure queues and the shutting down node waits for CONFIRMS.
     void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.

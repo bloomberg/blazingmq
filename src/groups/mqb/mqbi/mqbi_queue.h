@@ -791,7 +791,7 @@ class Queue : public DispatcherClient {
     setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats) = 0;
 
     /// Return number of unconfirmed messages across all handles.
-    virtual bsls::Types::Int64 countUnconfirmed() = 0;
+    virtual bsls::Types::Int64 countUnconfirmed() const = 0;
 
     /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
     /// sending PUTs and ACKs.
