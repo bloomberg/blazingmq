@@ -154,7 +154,6 @@ class ClusterCatalog {
     struct NegotiationUserData {
         bsl::string d_clusterName;
         int         d_myNodeId;
-        bool        d_isClusterConnection;
     };
 
     /// Struct containing meta information associated to a created cluster.

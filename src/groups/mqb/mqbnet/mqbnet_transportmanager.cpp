@@ -146,6 +146,8 @@ bool TransportManager::processSession(
         negoMsg.isClientIdentityValue()
             ? negoMsg.clientIdentity()
             : negoMsg.brokerResponse().brokerIdentity();
+
+    // This is an outgoing connection to a cluster node
     if (state) {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
 
@@ -182,7 +184,7 @@ bool TransportManager::processSession(
         return true;  // RETURN
     }
 
-    // This is either proxy or client connection.
+    // This is either proxy or client incoming connection.
     if (cluster) {
         BALL_LOG_INFO << "Proxy session is up [channel: '"
                       << session->channel().get() << "']";

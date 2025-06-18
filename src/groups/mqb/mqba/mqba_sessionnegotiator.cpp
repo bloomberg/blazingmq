@@ -822,9 +822,8 @@ int SessionNegotiator::negotiateOutbound(bsl::ostream& errorDescription,
     const mqbblp::ClusterCatalog::NegotiationUserData* userData =
         reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
             context->d_initialConnectionContext_p->userData());
-    BSLS_ASSERT_SAFE(userData);
 
-    int rc = 0;
+    BSLS_ASSERT_SAFE(userData);
 
     context->d_clusterName = userData->d_clusterName;
     if (d_clusterCatalog_p->isMemberOf(context->d_clusterName)) {
@@ -834,7 +833,7 @@ int SessionNegotiator::negotiateOutbound(bsl::ostream& errorDescription,
         context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
     }
 
-    rc = initiateOutboundNegotiation(errorDescription, context);
+    int rc = initiateOutboundNegotiation(errorDescription, context);
 
     return rc;
 }

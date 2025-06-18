@@ -74,7 +74,6 @@ int ClusterCatalog::createNetCluster(
     NegotiationUserData* userData = new (*d_allocator_p) NegotiationUserData;
     userData->d_clusterName       = name;
     userData->d_myNodeId          = -1;  // Unused when not reversed connection
-    userData->d_isClusterConnection = true;
 
     bslma::ManagedPtr<void> userDataMp(userData, d_allocator_p);
 
