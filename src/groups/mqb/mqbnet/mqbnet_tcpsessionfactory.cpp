@@ -518,7 +518,6 @@ void TCPSessionFactory::negotiationComplete(
     }
 
     // Successful negotiation
-
     BSLS_ASSERT_SAFE(initialConnectionContext_p);
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
 
@@ -527,7 +526,7 @@ void TCPSessionFactory::negotiationComplete(
                   << session->description() << "', channel: '" << channel.get()
                   << "', maxMissedHeartbeat: "
                   << initialConnectionContext_p->negotiationContext()
-                         ->d_maxMissedHeartbeat
+                         ->d_maxMissedHeartbeats
                   << "]";
 
     // Session is established; keep a hold to it.
@@ -558,10 +557,13 @@ void TCPSessionFactory::negotiationComplete(
         ++d_nbSessions;
 
         info.createInplace(d_allocator_p,
-                           channel,
-                           *initialConnectionContext_p,
-                           d_initialMissedHeartbeatCounter,
-                           monitoredSession);
+                           channel.get(),
+                           monitoredSession,
+                           initialConnectionContext_p->negotiationContext()
+                               ->d_eventProcessor_p,
+                           initialConnectionContext_p->negotiationContext()
+                               ->d_maxMissedHeartbeats,
+                           d_initialMissedHeartbeatCounter);
         // See comments in 'calculateInitialMissedHbCounter'.
 
         bsl::pair<bmqio::Channel*, ChannelInfoSp> toInsert(channel.get(),
@@ -1509,15 +1511,15 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 // ------------------------------------
 
 TCPSessionFactory::ChannelInfo::ChannelInfo(
-    const bsl::shared_ptr<bmqio::Channel>& channel,
-    const InitialConnectionContext&        context,
-    int                                    initialMissedHeartbeatCounter,
-    const bsl::shared_ptr<Session>&        monitoredSession)
-: d_channel_p(channel.get())
+    bmqio::Channel*                 channel,
+    const bsl::shared_ptr<Session>& monitoredSession,
+    SessionEventProcessor*          eventProcessor,
+    int                             maxMissedHeartbeats,
+    int                             initialMissedHeartbeatCounter)
+: d_channel_p(channel)
 , d_session_sp(monitoredSession)
-, d_eventProcessor_p(context.negotiationContext()->d_eventProcessor_p)
-, d_monitor(context.negotiationContext()->d_maxMissedHeartbeat,
-            initialMissedHeartbeatCounter)
+, d_eventProcessor_p(eventProcessor)
+, d_monitor(maxMissedHeartbeats, initialMissedHeartbeatCounter)
 {
     if (!d_eventProcessor_p) {
         // No eventProcessor was provided default to the negotiated session
