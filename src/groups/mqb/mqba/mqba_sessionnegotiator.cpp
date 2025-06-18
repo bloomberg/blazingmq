@@ -470,7 +470,7 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
     // Communicate heartbeat settings.  Currently, only for SDK use
     const mqbcfg::NetworkInterfaces& niConfig = appConfig.networkInterfaces();
 
-    response.maxMissedHeartbeats() = context->d_maxMissedHeartbeat;
+    response.maxMissedHeartbeats() = context->d_maxMissedHeartbeats;
 
     if (niConfig.tcpInterface().has_value()) {
         response.heartbeatIntervalMs() =
@@ -704,7 +704,7 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
         }
     }
 
-    context->d_maxMissedHeartbeat = maxMissedHeartbeats;
+    context->d_maxMissedHeartbeats = maxMissedHeartbeats;
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(
