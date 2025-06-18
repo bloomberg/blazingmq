@@ -177,15 +177,14 @@ class TCPSessionFactory {
 
     /// Struct holding internal data associated to an active channel
     struct ChannelInfo {
+        /// The channel
         bmqio::Channel* d_channel_p;
-        // The channel
 
+        /// The session tied to the channel
         bsl::shared_ptr<Session> d_session_sp;
-        // The session tied to the channel
 
+        /// The event processor of Events received on this channel.
         SessionEventProcessor* d_eventProcessor_p;
-        // The event processor of Events received on
-        // this channel.
 
         bmqp::HeartbeatMonitor d_monitor;
 
@@ -219,6 +218,7 @@ class TCPSessionFactory {
         explicit PortManager(bslma::Allocator* allocator = 0);
 
         // PUBLIC METHODS
+
         /// Create a sub context of the specified 'parent' with the specified
         /// 'endpoint' as the StatContext's name. Increases the number of
         /// channels on the specified 'port'.
@@ -260,39 +260,34 @@ class TCPSessionFactory {
 
   private:
     // DATA
-    bmqu::SharedResource<TCPSessionFactory> d_self;
-    // Used to make sure no callback
-    // is invoked on a destroyed
-    // object.
 
+    /// Used to make sure no callback is invoked on a destroyed object.
+    bmqu::SharedResource<TCPSessionFactory> d_self;
+
+    /// Has this component been started?
     bool d_isStarted;
-    // Has this component been
-    // started ?
 
     /// Config to use for setting up this SessionFactory
     mqbcfg::TcpInterfaceConfig d_config;
 
+    /// Event scheduler held not owned
     bdlmt::EventScheduler* d_scheduler_p;
-    // Event scheduler held not owned
 
+    /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
-    // BlobBuffer factory to use
-    // (passed to the ChannelFactory)
 
-    // Initial Connection Handler to use for orchestraing
-    // authentication and negotiation
+    /// Initial Connection Handler to use for orchestraing
+    /// authentication and negotiation
     InitialConnectionHandler* d_initialConnectionHandler_p;
 
+    /// Channels' stat context (passed to TCPSessionFactory)
     mqbstat::StatController* d_statController_p;
-    // Channels' stat context (passed
-    // to TCPSessionFactory)
 
+    /// ChannelFactory
     TCPChannelFactoryMp d_tcpChannelFactory_mp;
-    // ChannelFactory
 
+    /// Executor context used for performing DNS resolution
     bmqex::SequentialContext d_resolutionContext;
-    // Executor context used for
-    // performing DNS resolution
 
     ResolvingChannelFactoryMp d_resolvingChannelFactory_mp;
 
@@ -300,96 +295,74 @@ class TCPSessionFactory {
 
     StatChannelFactoryMp d_statChannelFactory_mp;
 
+    /// Name to use for the IO threads
     bsl::string d_threadName;
-    // Name to use for the IO threads
 
+    /// Number of active channels (including the ones being negotiated)
     bsls::AtomicInt d_nbActiveChannels;
-    // Number of active channels
-    // (including the ones being
-    // negotiated)
 
+    /// Number of open clients and proxies (not including the ones being
+    /// negotiated)
     bsls::AtomicInt d_nbOpenClients;
-    // Number of open clients and
-    // proxies (not including the
-    // ones being negotiated)
 
+    /// The number of sessions created; this does not need to be atomic because
+    /// it is always manipulated under the 'd_mutex' (due to usage of the
+    /// 'd_noSessionCondition' condition variable), but it is declared atomic
+    /// so that we can access it read-only outside the mutex for logging
+    /// purposes.
     bsls::AtomicInt d_nbSessions;
-    // The number of sessions
-    // created; this does not need to
-    // be atomic because it is always
-    // manipulated under the
-    // 'd_mutex' (due to usage of the
-    // 'd_noSessionCondition'
-    // condition variable), but it is
-    // declared atomic so that we can
-    // access it read-only outside
-    // the mutex for logging
-    // purposes.
 
+    /// Condition variable signaled after the last session created by this
+    /// factory has been destroyed.
     bslmt::Condition d_noSessionCondition;
-    // Condition variable signaled
-    // after the last session created
-    // by this factory has been
-    // destroyed.
 
+    /// Condition variable signaled after all clients and proxies are
+    /// destroyed.
     bslmt::Condition d_noClientCondition;
-    // Condition variable signaled
-    // after all clients and proxies
-    // are destroyed.
 
+    /// Map of all active channels
     ChannelMap d_channels;
-    // Map of all active channels
 
+    /// Manager of all open ports
     PortManager d_ports;
-    // Manager of all open ports
 
+    /// True if the recurring heartbeat check event is active.
     bool d_heartbeatSchedulerActive;
-    // True if the recurring
-    // heartbeat check event is
-    // active.
 
+    /// Scheduler handle for the recurring event used to heartbeat monitor the
+    /// channels.
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
-    // Scheduler handle for the
-    // recurring event used to
-    // heartbeat monitor the
-    // channels.
 
+    /// Map of all channels which are heartbeat enabled; only manipulated from
+    /// the event scheduler thread.
     bsl::unordered_map<bmqio::Channel*, ChannelInfo*> d_heartbeatChannels;
-    // Map of all channels which are
-    // heartbeat enabled; only
-    // manipulated from the event
-    // scheduler thread.
 
+    /// Value for initializing 'ChannelInfo.d_missedHeartbeatCounter'.  See
+    /// comments in 'calculateInitialMissedHbCounter'.
     const int d_initialMissedHeartbeatCounter;
-    // Value for initializing
-    // 'ChannelInfo.d_missedHeartbeatCounter'.
-    // See comments in
-    // 'calculateInitialMissedHbCounter'.
 
     /// Handles that can be used to stop listening. Empty unless listening.
     ListeningHandleMap d_listeningHandles;
 
+    /// Set to 'true' before calling 'listen'.  Set to 'false' in
+    /// 'stopListening'.
     bsls::AtomicBool d_isListening;
-    // Set to 'true' before calling
-    // 'listen'.  Set to 'false' in
-    // 'stopListening'.
 
+    /// Mutex for thread safety of this component.
     mutable bslmt::Mutex d_mutex;
-    // Mutex for thread safety of
-    // this component.
 
-    // Maintain ownership of 'OperationContext' instead of passing it to
-    // 'ChannelFactory::listen' because it may delete the context (on
-    // stopListening) while operation (readCallback/ negotiation) is in
-    // progress.
+    /// Maintain ownership of 'OperationContext' instead of passing it to
+    /// 'ChannelFactory::listen' because it may delete the context (on
+    /// stopListening) while operation (readCallback/ negotiation) is in
+    /// progress.
     bsl::unordered_map<int, bsl::shared_ptr<OperationContext> >
         d_listenContexts;
 
+    /// Map of HiRes timestamp of the session beginning per channel.
     TimestampMap d_timestampMap;
-    // Map of HiRes timestamp of the session beginning per channel.
 
+    /// Allocator to use
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   private:
     // PRIVATE MANIPULATORS
@@ -424,11 +397,11 @@ class TCPSessionFactory {
 
     /// Method invoked when the negotiation of the specified `channel` is
     /// complete, whether it be success or failure.  The specified
-    /// `userData` is the `OperationContext` struct created during the
+    /// `context` is the `OperationContext` struct created during the
     /// listen or connect call that is responsible for this negotiation (and
     /// hence, in the case of `listen`, is common for all sessions
     /// negotiated); while the specified `negotiatorContext` corresponds to
-    /// the unique context passed it to the `negotiate` method of the
+    /// the unique context passed in to the `negotiate` method of the
     /// Negotiator, for that `channel`.  If the specified `statusCode` is 0,
     /// the negotiation was a success and the specified `session` contains
     /// the negotiated session.  If `status` is non-zero, the negotiation
