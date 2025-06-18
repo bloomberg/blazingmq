@@ -94,16 +94,12 @@
 #include <bsls_compilerfeatures.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
-// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Apr  2 14:54:56 2025
+// Generated on Wed Jun 18 14:44:06 2025
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.h
-
 # define COMPILING_BMQU_MANAGEDCALLBACK_H
 # include <bmqu_managedcallback_cpp03.h>
-# undef COMPILING_BMQU_MANAGEDCALLBACK_H
-
-// clang-format on
+#undef COMPILING_BMQU_MANAGEDCALLBACK_H
 #else
 
 namespace BloombergLP {
