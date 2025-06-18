@@ -125,6 +125,8 @@ class InitialConnectionContext {
     /// Create a new object having the specified `isIncoming` value.
     InitialConnectionContext(bool isIncoming);
 
+    ~InitialConnectionContext();
+
     // MANIPULATORS
 
     /// Set the corresponding field to the specified `value` and return a
@@ -147,7 +149,7 @@ class InitialConnectionContext {
     const bsl::shared_ptr<bmqio::Channel>&     channel() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
 
-    void complete(const int                               rc,
+    void complete(int                                     rc,
                   const bsl::string&                      error,
                   const bsl::shared_ptr<mqbnet::Session>& session) const;
 };

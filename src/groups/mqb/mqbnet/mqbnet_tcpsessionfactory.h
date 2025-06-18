@@ -441,7 +441,7 @@ class TCPSessionFactory {
         const bsl::string&                       errorDescription,
         const bsl::shared_ptr<Session>&          session,
         const bsl::shared_ptr<bmqio::Channel>&   channel,
-        const InitialConnectionContext*          initialConnectionContext,
+        const InitialConnectionContext*          initialConnectionContext_p,
         const bsl::shared_ptr<OperationContext>& operationContext);
 
     /// Custom deleter of the session's shared_ptr for the specified

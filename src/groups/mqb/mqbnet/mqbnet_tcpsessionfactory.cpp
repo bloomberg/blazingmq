@@ -489,7 +489,7 @@ void TCPSessionFactory::negotiationComplete(
     const bsl::string&                       errorDescription,
     const bsl::shared_ptr<Session>&          session,
     const bsl::shared_ptr<bmqio::Channel>&   channel,
-    const InitialConnectionContext*          initialConnectionContext,
+    const InitialConnectionContext*          initialConnectionContext_p,
     const bsl::shared_ptr<OperationContext>& operationContext)
 {
     // executed by one of the *IO* threads
@@ -518,16 +518,16 @@ void TCPSessionFactory::negotiationComplete(
 
     // Successful negotiation
 
-    BSLS_ASSERT_SAFE(initialConnectionContext);
-    BSLS_ASSERT_SAFE(initialConnectionContext->negotiationContext());
+    BSLS_ASSERT_SAFE(initialConnectionContext_p);
+    BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
 
-    BALL_LOG_INFO
-        << "TCPSessionFactory '" << d_config.name()
-        << "' successfully negotiated a session [session: '"
-        << session->description() << "', channel: '" << channel.get()
-        << "', maxMissedHeartbeat: "
-        << initialConnectionContext->negotiationContext()->d_maxMissedHeartbeat
-        << "]";
+    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
+                  << "' successfully negotiated a session [session: '"
+                  << session->description() << "', channel: '" << channel.get()
+                  << "', maxMissedHeartbeat: "
+                  << initialConnectionContext_p->negotiationContext()
+                         ->d_maxMissedHeartbeat
+                  << "]";
 
     // Session is established; keep a hold to it.
 
@@ -558,7 +558,7 @@ void TCPSessionFactory::negotiationComplete(
 
         info.createInplace(d_allocator_p,
                            channel,
-                           *initialConnectionContext,
+                           *initialConnectionContext_p,
                            d_initialMissedHeartbeatCounter,
                            monitoredSession);
         // See comments in 'calculateInitialMissedHbCounter'.
@@ -575,12 +575,12 @@ void TCPSessionFactory::negotiationComplete(
 
     // Do not initiate reading from the channel.  Transport observer(s) will
     // enable the read when they are ready.
-    bool result = operationContext->d_resultCb(
+    const bool result = operationContext->d_resultCb(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext->negotiationContext()->d_cluster_p,
-        initialConnectionContext->resultState(),
+        initialConnectionContext_p->negotiationContext()->d_cluster_p,
+        initialConnectionContext_p->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
                              bdlf::PlaceHolders::_1,  // status

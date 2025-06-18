@@ -33,6 +33,11 @@ InitialConnectionContext::InitialConnectionContext(bool isIncoming)
     // NOTHING
 }
 
+InitialConnectionContext::~InitialConnectionContext()
+{
+    // NOTHING
+}
+
 InitialConnectionContext& InitialConnectionContext::setUserData(void* value)
 {
     d_userData_p = value;
@@ -88,7 +93,7 @@ InitialConnectionContext::channel() const
 }
 
 void InitialConnectionContext::complete(
-    const int                               rc,
+    int                                     rc,
     const bsl::string&                      error,
     const bsl::shared_ptr<mqbnet::Session>& session) const
 {
