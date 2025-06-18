@@ -666,8 +666,12 @@ int main(int argc, const char* argv[])
 
     ignoreSigpipe();
 
-    // Register a SIGINT handler to allow graceful shutdown of the broker from
+    // Register signal handlers to allow graceful shutdown of the broker from
     // lower layers.
+    // Note: If signal handler registration fails, the broker will continue to
+    // run but will not be able to perform graceful shutdown when these signals
+    // are received. Note the broker can still be terminated gracefully by
+    // sending the 'exit' command through the control pipe.
     struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags   = 0;
@@ -675,18 +679,18 @@ int main(int argc, const char* argv[])
 
     int rc = ::sigaction(SIGINT, &sa, NULL);
     if (rc != 0) {
-        // Note that this is not fatal, as the primary way to stop the broker
-        // is not through a 'kill -s INT', but via issueing an 'exit' command
-        // through the control pipe.
         bsl::cerr << "Failed to install SIGINT handler  (rc: " << rc << ")\n"
                   << bsl::flush;
     }
-
-    // If running in a TTY, enable signal handler so that user signals can be
-    // used to stop the task.
-    if (isatty(fileno(stdout))) {
-        ::sigaction(SIGQUIT, &sa, NULL);
-        ::sigaction(SIGTERM, &sa, NULL);
+    rc = ::sigaction(SIGQUIT, &sa, NULL);
+    if (rc != 0) {
+        bsl::cerr << "Failed to install SIGQUIT handler  (rc: " << rc << ")\n"
+                  << bsl::flush;
+    }
+    rc = ::sigaction(SIGTERM, &sa, NULL);
+    if (rc != 0) {
+        bsl::cerr << "Failed to install SIGTERM handler  (rc: " << rc << ")\n"
+                  << bsl::flush;
     }
 
     TaskEnvironment taskEnv;
