@@ -119,6 +119,7 @@ QueueConsumptionMonitor::QueueConsumptionMonitor(
 , d_scheduledAlarmTime()
 , d_haveUndeliveredCb(haveUndeliveredCb)
 , d_loggingCb(loggingCb)
+, d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p);
@@ -151,7 +152,7 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
     if (d_maxIdleTimeSec == 0) {
         // Monitoring is disabled, cancel the idle events and reset all
         // substreams states.
-        cancelIdleEventsAndResetStates();
+        cancelIdleEvents(true);
     }
 
     // No change in app states when new max idle time value is set.
@@ -207,7 +208,7 @@ void QueueConsumptionMonitor::reset()
         d_alarmEventHandle.release();
     }
 
-    cancelIdleEventsAndResetStates(false);
+    cancelIdleEvents(false);
 
     d_subStreamInfos.clear();
 }
@@ -220,8 +221,7 @@ void QueueConsumptionMonitor::onMessagePosted()
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    if (d_alarmEventHandle || d_maxIdleTimeSec == 0) {
-        // Event is already scheduled or monitoring is disabled.
+    if (d_alarmEventHandle || isMonitoringDisabled()) {
         return;  // RETURN
     }
 
@@ -238,8 +238,7 @@ void QueueConsumptionMonitor::onMessageSent(const bsl::string& appId)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0)) {
-        // monitoring is disabled
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isMonitoringDisabled())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
     }
@@ -293,15 +292,19 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
 
     subStreamInfo->d_state = State::e_ALIVE;
 
-    bdlma::LocalSequentialAllocator<2048> localAllocator(0);
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
 
-    bmqt::UriBuilder uriBuilder(d_queueState_p->uri(), &localAllocator);
-    uriBuilder.setId(appId);
+    BALL_LOG_INFO_BLOCK
+    {
+        bmqt::UriBuilder uriBuilder(d_queueState_p->uri(), &localAllocator);
+        uriBuilder.setId(appId);
 
-    bmqt::Uri uri(&localAllocator);
-    uriBuilder.uri(&uri);
+        bmqt::Uri uri(&localAllocator);
+        uriBuilder.uri(&uri);
 
-    BALL_LOG_INFO << "Queue '" << uri << "' no longer appears to be stuck.";
+        BALL_LOG_OUTPUT_STREAM << "Queue '" << uri
+                               << "' no longer appears to be stuck.";
+    }
 }
 
 void QueueConsumptionMonitor::scheduleAlarmEvent(
@@ -372,7 +375,7 @@ void QueueConsumptionMonitor::scheduleIdleEvent(SubStreamInfo* subStreamInfo,
 
 void QueueConsumptionMonitor::executeAlarmInQueueDispatcher()
 {
-    // executed by the *SCHEDULER DISPATCHER* thread
+    // executed by the *SCHEDULER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->scheduler()->isInDispatcherThread());
@@ -387,7 +390,7 @@ void QueueConsumptionMonitor::executeAlarmInQueueDispatcher()
 void QueueConsumptionMonitor::executeIdleInQueueDispatcher(
     const bsl::string& appId)
 {
-    // executed by the *SCHEDULER DISPATCHER* thread
+    // executed by the *SCHEDULER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->scheduler()->isInDispatcherThread());
@@ -400,7 +403,7 @@ void QueueConsumptionMonitor::executeIdleInQueueDispatcher(
         d_queueState_p->queue());
 }
 
-void QueueConsumptionMonitor::cancelIdleEventsAndResetStates(bool resetStates)
+void QueueConsumptionMonitor::cancelIdleEvents(bool resetStates)
 {
     // Should always be called from the queue thread, but will be invoked from
     // the cluster thread once upon queue creation.
@@ -432,14 +435,13 @@ void QueueConsumptionMonitor::alarmEventDispatched()
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    if (d_alarmEventHandle) {
-        d_alarmEventHandle.release();
-    }
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0)) {
-        // monitoring is disabled
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isMonitoringDisabled())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
+    }
+
+    if (d_alarmEventHandle) {
+        d_alarmEventHandle.release();
     }
 
     // Iterate all substreams and check alarms.
@@ -509,9 +511,8 @@ void QueueConsumptionMonitor::idleEventDispatched(const bsl::string& appId)
         info.d_idleEventHandle.release();
     }
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTimeSec == 0 ||
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isMonitoringDisabled() ||
                                               info.d_state != State::e_IDLE)) {
-        // monitoring is disabled or substream is not in idle state
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
     }
@@ -561,11 +562,6 @@ bsls::TimeInterval QueueConsumptionMonitor::calculateAlarmTime(
     alarmTime.addSeconds(d_maxIdleTimeSec);
 
     return alarmTime;
-}
-
-bool QueueConsumptionMonitor::isAlarmScheduled() const
-{
-    return d_alarmEventHandle ? true : false;
 }
 
 }  // close package namespace

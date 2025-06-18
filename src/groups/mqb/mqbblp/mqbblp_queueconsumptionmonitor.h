@@ -222,8 +222,11 @@ class QueueConsumptionMonitor {
     /// Callback to check un-delivered messages.
     HaveUndeliveredCb d_haveUndeliveredCb;
 
-    /// Callback to log alarm
+    /// Callback to log alarm.
     LoggingCb d_loggingCb;
+
+    /// Allocator used inside the class.
+    bslma::Allocator* d_allocator_p;
 
     // NOT IMPLEMENTED
     QueueConsumptionMonitor(const QueueConsumptionMonitor&) BSLS_CPP11_DELETED;
@@ -270,7 +273,7 @@ class QueueConsumptionMonitor {
 
     /// Cancel all idle events (for all substreams) if they were scheduled.
     /// If the specified `resetStates` is true, reset substreams states.
-    void cancelIdleEventsAndResetStates(bool resetStates = true);
+    void cancelIdleEvents(bool resetStates);
 
   protected:
     /// Alarm event dispatcher, executed in queue dispatcher thread.
@@ -354,6 +357,10 @@ class QueueConsumptionMonitor {
 
     /// Return `true` if the alarm event is scheduled, and `false` otherwise.
     bool isAlarmScheduled() const;
+
+    /// Return `true` if monitoring is disabled (d_maxIdleTimeSec is zero),
+    /// and `false` otherwise.
+    bool isMonitoringDisabled() const;
 };
 
 // FREE OPERATORS
@@ -415,6 +422,16 @@ QueueConsumptionMonitor::state(const bsl::string& appId) const
         d_queueState_p->queue()));
 
     return subStreamInfo(appId).d_state;
+}
+
+inline bool QueueConsumptionMonitor::isAlarmScheduled() const
+{
+    return d_alarmEventHandle != 0;
+}
+
+inline bool QueueConsumptionMonitor::isMonitoringDisabled() const
+{
+    return d_maxIdleTimeSec == 0;
 }
 
 }  // close package namespace
