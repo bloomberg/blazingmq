@@ -67,12 +67,12 @@ struct NegotiationContext {
 
     /// If non-zero, enable smart-heartbeat and specify
     /// that the connection should be proactively
-    /// resetted if no data has been received from this
-    /// channel for the 'maxMissedHeartbeat' number of
+    /// reset if no data has been received from this
+    /// channel for the 'maxMissedHeartbeats' number of
     /// heartbeat intervals.  When enabled, heartbeat
     /// requests will be sent if no 'regular' data is
     /// being received.
-    int d_maxMissedHeartbeat;
+    int d_maxMissedHeartbeats;
 
     /// The event processor to use for initiating the
     /// read on the channel once the session has been
