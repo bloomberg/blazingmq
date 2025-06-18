@@ -59,9 +59,12 @@ struct NegotiationContext;
 /// `InitialConnectionCompleteCb` method.
 class InitialConnectionContext {
   public:
-    typedef bsl::function<void(int                status,
-                               const bsl::string& errorDescription,
-                               const bsl::shared_ptr<Session>& session)>
+    typedef bsl::function<void(
+        int                                    status,
+        const bsl::string&                     errorDescription,
+        const bsl::shared_ptr<Session>&        session,
+        const bsl::shared_ptr<bmqio::Channel>& channel,
+        const InitialConnectionContext*        initialConnectionContext)>
         InitialConnectionCompleteCb;
 
   private:
@@ -131,19 +134,22 @@ class InitialConnectionContext {
     InitialConnectionContext&
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
-    setInitialConnectionCompleteCb(const InitialConnectionCompleteCb& value);
+    setCompleteCb(const InitialConnectionCompleteCb& value);
     InitialConnectionContext&
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
     // ACCESSORS
 
     /// Return the value of the corresponding field.
-    bool                                   isIncoming() const;
-    void*                                  userData() const;
-    void*                                  resultState() const;
-    const bsl::shared_ptr<bmqio::Channel>& channel() const;
-    const InitialConnectionCompleteCb&     initialConnectionCompleteCb() const;
+    bool                                       isIncoming() const;
+    void*                                      userData() const;
+    void*                                      resultState() const;
+    const bsl::shared_ptr<bmqio::Channel>&     channel() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
+
+    void complete(const int                               rc,
+                  const bsl::string&                      error,
+                  const bsl::shared_ptr<mqbnet::Session>& session) const;
 };
 
 }  // close package namespace

@@ -293,7 +293,7 @@ void InitialConnectionHandler::complete(
     const bsl::string&                      error,
     const bsl::shared_ptr<mqbnet::Session>& session)
 {
-    context->initialConnectionCompleteCb()(rc, error, session);
+    context->complete(rc, error, session);
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
