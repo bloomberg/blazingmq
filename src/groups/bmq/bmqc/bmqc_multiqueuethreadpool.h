@@ -23,7 +23,6 @@
 //@CLASSES:
 //  bmqc::MultiQueueThreadPool: Queues processed by a thread pool
 //  bmqc::MultiQueueThreadPoolConfig: Configuration for a MQTP
-//  bmqc::MultiQueueThreadPoolUtil: Utilities for MQTP
 //  bmqc::MultiQueueThreadPool_QueueCreatorRet: MQTP queueCreator args
 //
 //@DESCRIPTION: This component defines a mechanism,
@@ -35,10 +34,6 @@
 // - Creating it with a 'bdlmt::EventScheduler' allows the
 //   'bmqc::MultiQueueThreadPool' to enqueue items on the appropriate queue at
 //   the requested time.
-// - Creating the 'bmqc::MultiQueueThreadPool' without a 'bdlmt::ThreadPool'
-//   allows the user to flush the queues manually. This is intended to be used
-//   in test drivers to obviate the need for any synchronization logic while
-//   keeping the operation of the object under test unchanged.
 //
 /// Usage
 ///-----
@@ -107,9 +102,7 @@
 //  MQTP mfqtp(MQTP::Config(
 //                        3,    // number of queues,
 //                        bdlf::BindUtil::bind(&eventCb, _1, _2, _3),
-//                        bdlf::BindUtil::bind(&queueCreator, _1, _2, _3),
-//                        MultiQueueThreadPoolUtil::defaultCreator<int>(),
-//                        MultiQueueThreadPoolUtil::noOpResetter<int>())
+//                        bdlf::BindUtil::bind(&queueCreator, _1, _2, _3))
 //                                                     .threadPool(&threadPool)
 //                                                     .exclusive(true));
 //  mfqtp.start();
@@ -120,19 +113,19 @@
 // then the integer '3' on all the queues.
 //..
 //  MQTP::Event event = mfqtp.getUnmanagedEvent();
-//  event->object() = 0;
+//  event->object().value() = 0;
 //  mfqtp.enqueueEvent(event, 0);
 //
 //  event = mfqtp.getUnmanagedEvent();
-//  event->object() = 1;
+//  event->object().value() = 1;
 //  mfqtp.enqueueEvent(event, 1);
 //
 //  event = mfqtp.getUnmanagedEvent();
-//  event->object() = 2;
+//  event->object().value() = 2;
 //  mfqtp.enqueueEvent(event, 2);
 //
 //  event = mfqtp.getUnmanagedEvent();
-//  event->object() = 3;
+//  event->object().value() = 3;
 //  mfqtp.enqueueEventOnAllQueues(event);
 //..
 // Finally, we stop the MQTP, which will block until all queues are empty, and
@@ -193,11 +186,6 @@
 namespace BloombergLP {
 namespace bmqc {
 
-// FORWARD DECLARE
-template <typename TYPE>
-class MultiQueueThreadPool;
-struct MultiQueueThreadPoolUtil;
-
 // ===============================
 // class MultiQueueThreadPoolEvent
 // ===============================
@@ -225,28 +213,14 @@ class MultiQueueThreadPoolEvent {
     typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
         CreatorFn;
 
-    /// `ResetterFn` is an alias for a functor invoked to reset an object of
-    /// `TYPE` to a reusable state.
-    typedef bsl::function<void(TYPE*)> ResetterFn;
-
   private:
     // DATA
     bsls::ObjectBuffer<TYPE> d_object;  // The user defined object owned by
                                         // this event
 
-    ResetterFn d_objectResetterFn;
-
     bsls::AtomicInt d_refCount;
 
     Type d_type;  // Event type
-
-    bool d_singleThreadedImmediateExecute;
-    // When the 'MultiQueueThreadPool' is
-    // running in single-threaded mode
-    // (without a ThreadPool), should this
-    // event be processed immediately or
-    // enqueued and processed by the next
-    // 'flushQueues' call?
 
     bool d_enqueuedOnMultipleQueues;
     // True if this event was enqueued on
@@ -269,9 +243,7 @@ class MultiQueueThreadPoolEvent {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    MultiQueueThreadPoolEvent(const CreatorFn&  creator,
-                              const ResetterFn& resetter,
-                              bslma::Allocator* basicAllocator = 0);
+    explicit MultiQueueThreadPoolEvent(bslma::Allocator* basicAllocator = 0);
 
     ~MultiQueueThreadPoolEvent();
 
@@ -282,15 +254,12 @@ class MultiQueueThreadPoolEvent {
 
     TYPE& object();
 
-    bool& singleThreadedImmediateExecute();
-
     // ACCESSORS
 
     /// Return this event's type.
     Type type() const;
 
     const TYPE& object() const;
-    bool        singleThreadedImmediateExecute() const;
 };
 
 // ==========================================
@@ -362,18 +331,12 @@ class MultiQueueThreadPoolConfig {
 
   private:
     // PRIVATE TYPES
-    typedef MultiQueueThreadPoolUtil Util;
-
     typedef MultiQueueThreadPoolEvent<TYPE> Event;
 
     /// `CreatorFn` is an alias for a functor creating an object of `TYPE`
     /// in the specified `arena` using the specified `allocator`.
     typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
         CreatorFn;
-
-    /// `ResetterFn` is an alias for a functor invoked to reset an object of
-    /// `TYPE` to a reusable state.
-    typedef bsl::function<void(TYPE*)> ResetterFn;
 
     struct QueueItem {
         // PUBLIC DATA
@@ -405,28 +368,17 @@ class MultiQueueThreadPoolConfig {
 
   private:
     // DATA
-    const int d_numQueues;  // Number of monitored single consumer
-                            // queues
+    /// Number of monitored single consumer queues
+    const int d_numQueues;
 
+    /// Thread pool to use (held, not owned)
     bdlmt::ThreadPool* d_threadPool_p;
-    // Thread pool to use.  If non-null,
-    // one thread will be tied per queue.
-    // May be set to null to allow the
-    // user to flush queues manually and
-    // thus obviate the need for
-    // synchronization (useful in test
-    // drivers)
 
+    /// Optional Event Scheduler used to enqueue items on the appropriate
+    /// queue at the requested time.
     bdlmt::EventScheduler* d_eventScheduler_p;
-    // Optional Event Scheduler used to
-    // enqueue items on the appropriate
-    // queue at the requested time.
 
     EventFn d_eventCallbackFn;
-
-    CreatorFn d_objectCreatorFn;
-
-    ResetterFn d_objectResetterFn;
 
     QueueCreatorFn d_queueCreatorFn;
 
@@ -454,18 +406,11 @@ class MultiQueueThreadPoolConfig {
     /// process events, the specified `queueCreator` to create the queues,
     /// and the optionally specified `objectCreator` and `objectResetter` to
     /// create and reset objects of the parameterized `TYPE`.
-    MultiQueueThreadPoolConfig(int                   numQueues,
-                               bdlmt::ThreadPool*    threadPool,
-                               const EventFn&        eventCallback,
-                               const QueueCreatorFn& queueCreator,
-                               bslma::Allocator*     basicAllocator = 0);
-    MultiQueueThreadPoolConfig(int                   numQueues,
-                               bdlmt::ThreadPool*    threadPool,
-                               const EventFn&        eventCallback,
-                               const QueueCreatorFn& queueCreator,
-                               const CreatorFn&      objectCreator,
-                               const ResetterFn&     objectResetter,
-                               bslma::Allocator*     basicAllocator = 0);
+    explicit MultiQueueThreadPoolConfig(int                   numQueues,
+                                        bdlmt::ThreadPool*    threadPool,
+                                        const EventFn&        eventCallback,
+                                        const QueueCreatorFn& queueCreator,
+                                        bslma::Allocator* basicAllocator = 0);
 
     /// Create a `bmqc::MultiQueueThreadPoolConfig` object having the same
     /// value as the specified `original` object.  Use the optionally
@@ -483,20 +428,6 @@ class MultiQueueThreadPoolConfig {
     /// modifiable access to this object.
     MultiQueueThreadPoolConfig<TYPE>&
     setEventScheduler(bdlmt::EventScheduler* eventScheduler);
-
-    /// Set the function used to create TYPE objects to the specified
-    /// `objectCreator`.  By default, objects will be created by calling
-    /// their default constructor.  Return a reference offering modifiable
-    /// access to this object.
-    MultiQueueThreadPoolConfig<TYPE>&
-    setObjectCreator(const CreatorFn& objectCreator);
-
-    /// Set the function used to reset TYPE objects once they've been
-    /// processed to the specified `objectResetter`.  By default, objects
-    /// will be reset by calling `reset` on them.  Return a reference
-    /// offering modifiable access to this object.
-    MultiQueueThreadPoolConfig<TYPE>&
-    setObjectResetter(const ResetterFn& objectResetter);
 
     /// Set the name of the MQTP to the specified `name` and return a
     /// reference offering modifiable access to this object.
@@ -532,13 +463,11 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
   public:
     // PUBLIC TYPES
     typedef MultiQueueThreadPool<TYPE>       ThisClass;
-    typedef MultiQueueThreadPoolUtil         Util;
     typedef MultiQueueThreadPoolConfig<TYPE> Config;
     typedef MultiQueueThreadPoolEvent<TYPE>  Event;
     typedef typename Config::QueueItem       QueueItem;
     typedef typename Config::Queue           Queue;
     typedef typename Config::CreatorFn       CreatorFn;
-    typedef typename Config::ResetterFn      ResetterFn;
     typedef typename Config::QueueCreatorRet QueueCreatorRet;
     typedef typename Config::QueueCreatorFn  QueueCreatorFn;
     typedef typename Config::EventFn         EventFn;
@@ -644,12 +573,8 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     // PRIVATE CLASS METHODS
 
     /// Creator function passed to `d_pool` to create an event in the
-    /// speificed `arena` using the specified `objectCreator`,
-    /// `objectResetter` and `allocator`.
-    static void eventCreator(const CreatorFn&  objectCreator,
-                             const ResetterFn& objectResetter,
-                             void*             arena,
-                             bslma::Allocator* allocator);
+    /// specified `arena` using the specified `allocator`.
+    static void eventCreator(void* arena, bslma::Allocator* allocator);
 
     // PRIVATE MANIPULATORS
 
@@ -662,14 +587,14 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// event back to the pool if `true` is returned.
     bool unrefEvent(Event* event, bool release);
 
+    /// Thread pool worker function.
     /// Pop and process events from the queue with the specified `queue`
     /// until a `0` event is popped off.
     void processQueue(int queue);
 
     /// Enqueue the specified `event` on the specified `queue`, or all
-    /// queues if `queue == -1`, if we're not stopped.  If the specified
-    /// `tryPush` is `true`, do a `tryPushBack` instead of a `pushBack`.
-    int enqueueEventImp(Event* event, int queue, bool tryPush);
+    /// queues if `queue == -1`, if we're not stopped.
+    int enqueueEventImp(Event* event, int queue);
 
   private:
     // NOT IMPLEMENTED
@@ -678,12 +603,16 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     operator=(const MultiQueueThreadPool&) BSLS_KEYWORD_DELETED;
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(MultiQueueThreadPool,
+                                   bslma::UsesBslmaAllocator)
+
     // CREATORS
 
     /// Create a `bmqc::MultiQueueThreadPool` with the specified `config`
     /// and the optionally specified `basicAllocator`.
-    MultiQueueThreadPool(const Config&     config,
-                         bslma::Allocator* basicAllocator = 0);
+    explicit MultiQueueThreadPool(const Config&     config,
+                                  bslma::Allocator* basicAllocator = 0);
 
     ~MultiQueueThreadPool();
 
@@ -744,12 +673,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// event obtained from a call to `getUnmanagedEvent`.
     int enqueueEventOnAllQueues(TYPE* userEvent);
 
-    /// Flush the specified `queue` if `queue >= 0` or all queues if 'queue
-    /// < 0'.  The behavior is undefined unless this
-    /// `bmqc::MultiQueueThreadPool` was created without a
-    /// `bdlmt::ThreadPool`, it has started, and `queue < numQueues()`.
-    void flushQueue(int queue = -1);
-
     /// Block until all queues are empty.  Note that calling this only makes
     /// sense after making sure that no other threads can enqueue any new
     /// events on the MQTP.
@@ -768,53 +691,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// The behavior is undefined unless this object was created in the
     /// exclusive mode.
     bslmt::ThreadUtil::Handle queueThreadHandle(int queueId) const;
-
-    /// Return true if this `MultiQueueThreadPool` is configured to process
-    /// queue events in a single (calling) thread and false otherwise.  Note
-    /// that configuring this `MultiQueueThreadPool` to run in a single
-    /// thread may be useful in test drivers.
-    bool isSingleThreaded() const;
-};
-
-// ===============================
-// struct MultiQueueThreadPoolUtil
-// ===============================
-
-/// Utility functions for `MultiQueueThreadPool`
-struct MultiQueueThreadPoolUtil {
-  private:
-    // PRIVATE CLASS METHODS
-
-    /// Reset the specified `object` by calling `reset()` on it.
-    template <typename T>
-    static void resetResetterImp(T* object);
-
-    /// Do nothing to the specified `object`.
-    template <typename T>
-    static void noOpResetterImp(T* object);
-
-    /// Create an object of the parameterized type `T` using the specified
-    /// `arena` and `allocator`.
-    template <typename T>
-    static void defaultCreatorImp(void* arena, bslma::Allocator* allocator);
-
-  public:
-    // CLASS METHODS
-
-    /// Return a pointer to a function that resets its argument by calling
-    /// `reset` on it.
-    template <typename T>
-    static void (*resetResetter())(T*);
-
-    /// Return a pointer to a function that `resets` its argument by doing
-    /// nothing.
-    template <typename T>
-    static void (*noOpResetter())(T*);
-
-    /// Return a pointer to a function that default constructs its argument
-    /// using the provided allocator.
-    template <typename T>
-    static void (*defaultCreator())(void*, bslma::Allocator*);
 };
 
 // ============================================================================
@@ -828,17 +704,15 @@ struct MultiQueueThreadPoolUtil {
 // CREATORS
 template <typename TYPE>
 inline MultiQueueThreadPoolEvent<TYPE>::MultiQueueThreadPoolEvent(
-    const CreatorFn&  creator,
-    const ResetterFn& resetter,
     bslma::Allocator* basicAllocator)
 : d_object()
-, d_objectResetterFn(bsl::allocator_arg, basicAllocator, resetter)
 , d_refCount(0)
 , d_type(BMQC_USER)
-, d_singleThreadedImmediateExecute(false)
 , d_enqueuedOnMultipleQueues(false)
 {
-    creator(d_object.buffer(), basicAllocator);
+    bslalg::ScalarPrimitives::defaultConstruct(
+        reinterpret_cast<TYPE*>(d_object.buffer()),
+        basicAllocator);
 }
 
 template <typename TYPE>
@@ -852,21 +726,13 @@ template <typename TYPE>
 inline void MultiQueueThreadPoolEvent<TYPE>::reset()
 {
     d_type = BMQC_USER;
-
-    d_objectResetterFn(&d_object.object());
-    d_singleThreadedImmediateExecute = false;
+    d_object.object().reset();
 }
 
 template <typename TYPE>
 inline TYPE& MultiQueueThreadPoolEvent<TYPE>::object()
 {
     return d_object.object();
-}
-
-template <typename TYPE>
-inline bool& MultiQueueThreadPoolEvent<TYPE>::singleThreadedImmediateExecute()
-{
-    return d_singleThreadedImmediateExecute;
 }
 
 // ACCESSORS
@@ -881,13 +747,6 @@ template <typename TYPE>
 inline const TYPE& MultiQueueThreadPoolEvent<TYPE>::object() const
 {
     return d_object.object();
-}
-
-template <typename TYPE>
-inline bool
-MultiQueueThreadPoolEvent<TYPE>::singleThreadedImmediateExecute() const
-{
-    return d_singleThreadedImmediateExecute;
 }
 
 // --------------------------------
@@ -906,12 +765,6 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 , d_threadPool_p(threadPool)
 , d_eventScheduler_p(0)
 , d_eventCallbackFn(bsl::allocator_arg, basicAllocator, eventCallback)
-, d_objectCreatorFn(bsl::allocator_arg,
-                    basicAllocator,
-                    Util::defaultCreator<TYPE>())
-, d_objectResetterFn(bsl::allocator_arg,
-                     basicAllocator,
-                     Util::resetResetter<TYPE>())
 , d_queueCreatorFn(bsl::allocator_arg, basicAllocator, queueCreator)
 , d_name(basicAllocator)
 , d_finalizeType(BMQC_FINALIZE_NONE)
@@ -920,33 +773,8 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 , d_growBy(-1)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!threadPool || threadPool->enabled());
-}
-
-template <typename TYPE>
-inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
-    int                   numQueues,
-    bdlmt::ThreadPool*    threadPool,
-    const EventFn&        eventCallback,
-    const QueueCreatorFn& queueCreator,
-    const CreatorFn&      objectCreator,
-    const ResetterFn&     objectResetter,
-    bslma::Allocator*     basicAllocator)
-: d_numQueues(numQueues)
-, d_threadPool_p(threadPool)
-, d_eventScheduler_p(0)
-, d_eventCallbackFn(bsl::allocator_arg, basicAllocator, eventCallback)
-, d_objectCreatorFn(bsl::allocator_arg, basicAllocator, objectCreator)
-, d_objectResetterFn(bsl::allocator_arg, basicAllocator, objectResetter)
-, d_queueCreatorFn(bsl::allocator_arg, basicAllocator, queueCreator)
-, d_name(basicAllocator)
-, d_finalizeType(BMQC_FINALIZE_NONE)
-, d_monitorAlarmString(basicAllocator)
-, d_monitorAlarmTimeout()
-, d_growBy(-1)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!threadPool || threadPool->enabled());
+    BSLS_ASSERT_SAFE(threadPool);
+    BSLS_ASSERT_SAFE(threadPool->enabled());
 }
 
 template <typename TYPE>
@@ -959,12 +787,6 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 , d_eventCallbackFn(bsl::allocator_arg,
                     basicAllocator,
                     other.d_eventCallbackFn)
-, d_objectCreatorFn(bsl::allocator_arg,
-                    basicAllocator,
-                    other.d_objectCreatorFn)
-, d_objectResetterFn(bsl::allocator_arg,
-                     basicAllocator,
-                     other.d_objectResetterFn)
 , d_queueCreatorFn(bsl::allocator_arg, basicAllocator, other.d_queueCreatorFn)
 , d_name(other.d_name, basicAllocator)
 , d_finalizeType(other.d_finalizeType)
@@ -981,24 +803,6 @@ MultiQueueThreadPoolConfig<TYPE>::setEventScheduler(
     bdlmt::EventScheduler* eventScheduler)
 {
     d_eventScheduler_p = eventScheduler;
-    return *this;
-}
-
-template <typename TYPE>
-inline MultiQueueThreadPoolConfig<TYPE>&
-MultiQueueThreadPoolConfig<TYPE>::setObjectCreator(
-    const CreatorFn& objectCreator)
-{
-    d_objectCreatorFn = objectCreator;
-    return *this;
-}
-
-template <typename TYPE>
-inline MultiQueueThreadPoolConfig<TYPE>&
-MultiQueueThreadPoolConfig<TYPE>::setObjectResetter(
-    const ResetterFn& objectResetter)
-{
-    d_objectResetterFn = objectResetter;
     return *this;
 }
 
@@ -1050,9 +854,7 @@ MultiQueueThreadPoolConfig<TYPE>::setGrowBy(int value)
 // PRIVATE CLASS METHODS
 template <typename TYPE>
 inline void
-MultiQueueThreadPool<TYPE>::eventCreator(const CreatorFn&  objectCreator,
-                                         const ResetterFn& objectResetter,
-                                         void*             arena,
+MultiQueueThreadPool<TYPE>::eventCreator(void*             arena,
                                          bslma::Allocator* allocator)
 {
     // PRECONDITIONS
@@ -1060,8 +862,6 @@ MultiQueueThreadPool<TYPE>::eventCreator(const CreatorFn&  objectCreator,
     BSLS_ASSERT_SAFE(allocator);
 
     bslalg::ScalarPrimitives::construct(reinterpret_cast<Event*>(arena),
-                                        objectCreator,
-                                        objectResetter,
                                         allocator);
 }
 
@@ -1142,13 +942,6 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
                                        info.d_context_p.get(),
                                        &d_queueEmptyEvent);
 
-            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isSingleThreaded())) {
-                // In single-threaded mode; return here to avoid blocking on
-                // the only thread.
-                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-                return;  // RETURN
-            }
-
             info.d_queue_p->popFront(&item);
         }
 
@@ -1194,24 +987,19 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
 }
 
 template <typename TYPE>
-inline int MultiQueueThreadPool<TYPE>::enqueueEventImp(Event* event,
-                                                       int    queue,
-                                                       bool   tryPush)
+inline int MultiQueueThreadPool<TYPE>::enqueueEventImp(Event* event, int queue)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event);
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
+    /// Value for the various RC error categories
     enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS = 0  // No error
-        ,
-        rc_TRY_PUSH_BACK_ERROR = -1  // An error was encountered while trying
-                                     // to push back (queue is full or
-                                     // disabled)
-        ,
-        rc_PUSH_BACK_ERROR = -2  // An error was encountered while pushing
-                                 // back (queue is disabled)
+        /// No error
+        rc_SUCCESS = 0,
+
+        /// An error was encountered while pushing back (queue is disabled)
+        rc_PUSH_BACK_ERROR = -1
     };
 
     // Determine start and end queues for which to enqueue
@@ -1237,28 +1025,13 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventImp(Event* event,
                               event};  // pointer to event
 
         // [try to] Push back item
-        int pushRet = 0;
-        if (tryPush) {
-            pushRet = info.d_queue_p->tryPushBack(newItem);
-        }
-        else {
-            pushRet = info.d_queue_p->pushBack(newItem);
-        }
+        const int pushRet = info.d_queue_p->pushBack(newItem);
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(pushRet != 0)) {
             // [try to] Push back failed
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            ret = 10 * pushRet +
-                  (tryPush ? rc_TRY_PUSH_BACK_ERROR : rc_PUSH_BACK_ERROR);
+            ret = 10 * pushRet + rc_PUSH_BACK_ERROR;
             unrefEvent(event, true);
-        }
-        else {
-            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                    isSingleThreaded() &&
-                    event->singleThreadedImmediateExecute())) {
-                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-                processQueue(queueIdx);
-            }
         }
     }
 
@@ -1272,16 +1045,11 @@ inline MultiQueueThreadPool<TYPE>::MultiQueueThreadPool(
     bslma::Allocator* basicAllocator)
 : d_config(config, basicAllocator)
 , d_pool(bdlf::BindUtil::bind(&MultiQueueThreadPool<TYPE>::eventCreator,
-                              config.d_objectCreatorFn,
-                              config.d_objectResetterFn,
-                              bdlf::PlaceHolders::_1,
-                              // arena
+                              bdlf::PlaceHolders::_1,   // arena
                               bdlf::PlaceHolders::_2),  // allocator
          config.d_growBy,
          basicAllocator)
-, d_queueEmptyEvent(config.d_objectCreatorFn,
-                    config.d_objectResetterFn,
-                    basicAllocator)
+, d_queueEmptyEvent(basicAllocator)
 , d_queues(config.d_numQueues, QueueInfo(), basicAllocator)
 , d_started(false)
 , d_monitorEventHandle()
@@ -1303,9 +1071,25 @@ inline MultiQueueThreadPool<TYPE>::~MultiQueueThreadPool()
 template <typename TYPE>
 inline int MultiQueueThreadPool<TYPE>::start()
 {
+    /// Enum for the various RC error categories
+    enum RcEnum {
+        rc_SUCCESS            = 0,
+        rc_NOT_ENOUGH_THREADS = -1,
+        rc_ALREADY_STARTED    = -2
+    };
+
     if (isStarted()) {
         // MQTP has already been started
-        return -2;  // RETURN
+        return rc_ALREADY_STARTED;  // RETURN
+    }
+
+    // Verify threads availability
+    const int numAvailableThreads =
+        d_config.d_threadPool_p->maxThreads() -
+        d_config.d_threadPool_p->numActiveThreads();
+    if (numAvailableThreads < static_cast<int>(d_queues.size())) {
+        // Not enough threads for exclusive use
+        return rc_NOT_ENOUGH_THREADS;  // RETURN
     }
 
     // Create the queues
@@ -1332,26 +1116,15 @@ inline int MultiQueueThreadPool<TYPE>::start()
         d_queues[i].d_processedZero = false;
     }
 
-    // Set up threads
-    if (!isSingleThreaded()) {
-        // Thread pool was provided -> execution is not limited to a single
-        // thread
-        int numAvailableThreads = d_config.d_threadPool_p->maxThreads() -
-                                  d_config.d_threadPool_p->numActiveThreads();
-        if (numAvailableThreads < static_cast<int>(d_queues.size())) {
-            // Not enough threads for exclusive use
-            return -1;  // RETURN
-        }
+    BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
 
-        BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
-        for (size_t i = 0; i < d_queues.size(); ++i) {
-            int rc = d_config.d_threadPool_p->enqueueJob(
-                bdlf::BindUtil::bind(&ThisClass::processQueue,
-                                     this,
-                                     static_cast<int>(i)));
-            BSLS_ASSERT_SAFE(rc == 0);
-            (void)rc;  // Compiler happiness
-        }
+    // Set up threads
+    for (size_t i = 0; i < d_queues.size(); ++i) {
+        BSLA_MAYBE_UNUSED const int rc = d_config.d_threadPool_p->enqueueJob(
+            bdlf::BindUtil::bind(&ThisClass::processQueue,
+                                 this,
+                                 static_cast<int>(i)));
+        BSLS_ASSERT_SAFE(rc == 0);
     }
 
     // See if we have to start monitoring job
@@ -1365,7 +1138,7 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     d_started = true;
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 template <typename TYPE>
@@ -1392,10 +1165,6 @@ inline void MultiQueueThreadPool<TYPE>::stop()
                           0};  // pointer to event
         info.d_queue_p->pushBack(item);
         info.d_queue_p->disablePushBack();
-
-        if (isSingleThreaded()) {
-            processQueue(static_cast<int>(i));
-        }
 
         // TODO: Change 'd_processedZero' to semaphore instead to avoid busy
         //       waiting?
@@ -1457,7 +1226,7 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEvent(Event* event, int queueId)
     BSLS_ASSERT(0 <= queueId && queueId < numQueues());
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
-    const int ret = enqueueEventImp(event, queueId, false);
+    const int ret = enqueueEventImp(event, queueId);
 
     return ret;
 }
@@ -1480,7 +1249,7 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventOnAllQueues(Event* event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
-    const int ret = enqueueEventImp(event, -1, false);
+    const int ret = enqueueEventImp(event, -1);
 
     return ret;
 }
@@ -1495,25 +1264,6 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventOnAllQueues(TYPE* userEvent)
         (reinterpret_cast<char*>(userEvent) - d_eventOffset));
 
     return enqueueEventOnAllQueues(event);
-}
-
-template <typename TYPE>
-inline void MultiQueueThreadPool<TYPE>::flushQueue(int queue)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(isSingleThreaded());
-    BSLS_ASSERT_OPT(isStarted() && "MQTP has not been started");
-    BSLS_ASSERT_OPT(queue < numQueues());
-
-    if (queue < 0) {
-        // Flush all queues
-        for (size_t i = 0; i < d_queues.size(); ++i) {
-            processQueue(static_cast<int>(i));
-        }
-    }
-    else {
-        processQueue(queue);
-    }
 }
 
 template <typename TYPE>
@@ -1558,58 +1308,6 @@ MultiQueueThreadPool<TYPE>::queueThreadHandle(int queueId) const
     BSLS_ASSERT_SAFE(queueId < numQueues());
 
     return d_queues[queueId].d_exclusiveThreadHandle;
-}
-
-template <typename TYPE>
-inline bool MultiQueueThreadPool<TYPE>::isSingleThreaded() const
-{
-    return (d_config.d_threadPool_p == 0);
-}
-
-// -------------------------------
-// struct MultiQueueThreadPoolUtil
-// -------------------------------
-
-// PRIVATE CLASS METHODS
-template <typename T>
-inline void MultiQueueThreadPoolUtil::resetResetterImp(T* object)
-{
-    object->reset();
-}
-
-template <typename T>
-inline void MultiQueueThreadPoolUtil::noOpResetterImp(BSLA_UNUSED T* object)
-{
-    // NOTHING
-}
-
-template <typename T>
-inline void
-MultiQueueThreadPoolUtil::defaultCreatorImp(void*             arena,
-                                            bslma::Allocator* allocator)
-{
-    bslalg::ScalarPrimitives::defaultConstruct(reinterpret_cast<T*>(arena),
-                                               allocator);
-}
-
-// CLASS METHODS
-template <typename T>
-inline void (*MultiQueueThreadPoolUtil::resetResetter())(T*)
-{
-    return &resetResetterImp<T>;
-}
-
-template <typename T>
-inline void (*MultiQueueThreadPoolUtil::noOpResetter())(T*)
-{
-    return &noOpResetterImp<T>;
-}
-
-template <typename T>
-inline void (*MultiQueueThreadPoolUtil::defaultCreator())(void*,
-                                                          bslma::Allocator*)
-{
-    return &defaultCreatorImp<T>;
 }
 
 }  // close package namespace
