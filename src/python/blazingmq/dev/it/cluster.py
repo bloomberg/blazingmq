@@ -239,7 +239,8 @@ class Cluster(contextlib.AbstractContextManager):
                     self._clients.remove(process)
 
         self.last_known_leader = None
-        bad_exit = False
+        bad_exit_code = False
+        bad_exit_still_alive = False
         cores_dir = None if self.copy_cores is None else self._find_cores_dir()
 
         for process in processes:
@@ -257,7 +258,7 @@ class Cluster(contextlib.AbstractContextManager):
                             break
                     if not core_found:
                         self._logger.warning("could not find core for %s", process.name)
-                bad_exit = True
+                bad_exit_code = True
                 self._logger.error(
                     "%s [%d] exited with rc = %s",
                     process.name,
@@ -269,16 +270,26 @@ class Cluster(contextlib.AbstractContextManager):
             if process.is_alive():
                 self._logger.error("killing recalcitrant process %s", process.name)
                 process.force_stop()
-                bad_exit = True
+                bad_exit_still_alive = True
 
         for process in self._other_processes:
             self._logger.info("killing subordinate process %s", process.name)
             process.force_stop()
 
-        if bad_exit:
-            raise RuntimeError("cluster did not shut down cleanly")
+        if bad_exit_code:
+            raise RuntimeError("cluster did not shut down cleanly: non-zero exit code")
 
-    def start_nodes(self, wait_leader=True, wait_ready=False):
+        if bad_exit_still_alive:
+            raise RuntimeError(
+                "cluster did not shut down cleanly: some processes are still alive"
+            )
+
+    def start_nodes(
+        self,
+        wait_leader=True,
+        wait_ready=False,
+        include: List[Union[cfg.Broker, str]] = [],
+    ):
         """Start the nodes in the cluster.
 
         If 'wait_leader' is 'True', wait for a leader to be elected.  If
@@ -288,43 +299,49 @@ class Cluster(contextlib.AbstractContextManager):
         'start' is the preferred method to start the cluster as a whole.
         """
 
-        self._logger.info("starting all nodes")
+        if include:
+            resolved_include = [
+                self._processes[self.resolve_broker_name(b).name] for b in include
+            ]
+            nodes = self.nodes(exclude=resolved_include, invert=True)
+        else:
+            nodes = self.nodes()
 
-        for node in self.nodes():
+        self._logger.info("starting %d nodes", len(nodes))
+
+        for node in nodes:
             with internal_use(node):
                 node.start()
                 node.wait_until_started()
 
         self.wait_status(wait_leader, wait_ready)
 
-    def stop_nodes(self, retries=4):
+    def stop_nodes(
+        self, include: List[Union[cfg.Broker, str]] = [], num_retries: int = 4
+    ):
         """Stop the nodes in the cluster.
 
         NOTE: this method does *not* stop the proxies.
         """
 
-        self._logger.info("stopping all nodes")
         self.last_known_leader = None
 
-        for node in self.nodes():
+        if include:
+            resolved_include = [
+                self._processes[self.resolve_broker_name(b).name] for b in include
+            ]
+            nodes = self.nodes(exclude=resolved_include, invert=True)
+        else:
+            nodes = self.nodes()
+
+        self._logger.info("stopping %d nodes", len(nodes))
+
+        for node in nodes:
             with internal_use(node):
                 node.stop()
 
-        for node in self.nodes():
-            is_alive = True
-            for attempt in range(retries):
-                if node.is_alive():
-                    # Empirical experiements show that usually wait time is 6 seconds
-                    # So it takes 2 retry attampts to stop a node
-                    delay = pow(2, attempt + 1)
-                    time.sleep(delay)
-                else:
-                    is_alive = False
-                    break
-
-            if is_alive:
-                error = f"node {node.name} refused to stop"
-                self._error(error)
+        for node in nodes:
+            self._make_sure_node_stopped(node, num_retries)
 
     def restart_nodes(self, wait_leader=True, wait_ready=False):
         """Restart all the nodes.
@@ -356,14 +373,23 @@ class Cluster(contextlib.AbstractContextManager):
         """Free the resources owned by this cluster."""
         # self._esx.close()
 
+    def resolve_broker_name(self, broker: Union[cfg.Broker, str]) -> cfg.Broker:
+        """
+        Return the broker configuration specified by 'broker name'.
+        """
+
+        if isinstance(broker, str):
+            broker = self.config.nodes[broker]
+
+        return broker
+
     # TODO: fold following three in start_broker
     def start_node(self, broker: Union[cfg.Broker, str]):
         """
         Start a process for 'broker'.
         """
 
-        if isinstance(broker, str):
-            broker = self.config.nodes[broker]
+        broker = self.resolve_broker_name(broker)
 
         self._logger.info("starting broker %s", broker)
 
@@ -375,8 +401,7 @@ class Cluster(contextlib.AbstractContextManager):
     def start_virtual_node(self, broker: Union[cfg.Broker, str]):
         """Start the node specified by 'name'."""
 
-        if isinstance(broker, str):
-            broker = self.config.nodes[broker]
+        broker = self.resolve_broker_name(broker)
 
         if len(broker.clusters.my_virtual_clusters) != 1:
             raise RuntimeError(f"Cannot use start_virtual_node to start {broker.name}")
@@ -890,3 +915,27 @@ class Cluster(contextlib.AbstractContextManager):
     def _error(self, error: str):
         self._logger.error(error)
         raise RuntimeError(error)
+
+    def _make_sure_node_stopped(self, process: Broker, num_retries: int):
+        """Make sure that the given broker process is stopped.
+
+        If the process is still alive, try to stop it several times.
+        If it is still alive after 'num_retries' attempts, raise an error.
+        """
+
+        self._logger.info("making sure that %s is stopped", process.name)
+
+        is_alive = True
+        for attempt in range(num_retries):
+            if process.is_alive():
+                # Empirical experiements show that usually wait time is 6 seconds
+                # So it takes 2 retry attampts to stop a node
+                delay = pow(2, attempt + 1)
+                time.sleep(delay)
+            else:
+                is_alive = False
+                break
+
+        if is_alive:
+            error = f"node {process.name} refused to stop"
+            self._error(error)

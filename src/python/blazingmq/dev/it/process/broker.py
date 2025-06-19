@@ -211,14 +211,14 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         if wait_leader:
             leader_name = matches.pop(0)
             if leader_name is None:
-                error = "no active leader"
+                error = f"[broker {self.name}]: no active leader"
                 self._logger.error(error)
                 raise RuntimeError(error)
             self.last_known_leader = self.cluster.process(leader_name[1])
             self._logger.log(self._log_level, "leader is %s", self.last_known_leader)
 
         if wait_ready and matches.pop(0) is None:
-            error = "cluster not ready"
+            error = f"[broker {self.name}]: cluster not ready"
             self._logger.error(error)
             raise RuntimeError(error)
 

@@ -29,6 +29,7 @@ from blazingmq.dev.it.util import wait_until
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
 DEFAULT_TIMEOUT = 2
+WAIT_READY = False
 
 
 def disable_exit_code_check(cluster: Cluster):
@@ -56,10 +57,10 @@ def update_and_redeploy(cluster: Cluster):
     cluster.update_all_brokers_binary(NEW_VERSION_SUFFIX)
 
     # Restart all nodes to apply binary update
-    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    cluster.start_nodes(wait_leader=True, wait_ready=WAIT_READY)
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=True)
+@start_cluster(start=True, wait_leader=True, wait_ready=WAIT_READY)
 def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test start, stop, update broker version for all nodes and restart."""
 
@@ -84,8 +85,10 @@ def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     )
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=True)
-def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
+@start_cluster(start=True, wait_leader=True, wait_ready=WAIT_READY)
+def test_redeploy_whole_cluster_restart(
+    multi7_node: Cluster, domain_urls: tc.DomainUrls
+):
     """
     Test to upgrade binaries of cluster nodes one by one.
     Every time a node is upgraded, all the nodes are restarted.
@@ -123,16 +126,79 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     post_message()
     assert_posted()
 
+    disable_exit_code_check(multi7_node)
+
     for broker in multi7_node.configurator.brokers.values():
         # Stop all nodes
-        disable_exit_code_check(multi7_node)
         multi7_node.stop_nodes()
 
         # Update binary for the given broker
         multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
 
         # Restart all nodes to apply binary update
-        multi7_node.start_nodes(wait_leader=True, wait_ready=True)
+        multi7_node.start_nodes(wait_leader=True, wait_ready=WAIT_READY)
+
+        # Post and receive message after each redeploy
+        post_message()
+        assert_posted()
+
+    # Post and receive final message after all nodes have been redeployed
+    post_message()
+    assert_posted()
+
+
+@start_cluster(start=True, wait_leader=True, wait_ready=WAIT_READY)
+def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
+    """
+    Test to upgrade binaries of cluster nodes one by one.
+    Every time a node is upgraded, only this node is restarted.
+    """
+
+    uri_priority = domain_urls.uri_priority
+
+    # Start a producer and consumer
+    proxies = multi7_node.proxy_cycle()
+    producer = next(proxies).create_client("producer")
+    consumer = next(proxies).create_client("consumer")
+
+    # Open queue
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    number_posted = 0
+
+    def post_message():
+        nonlocal number_posted
+        number_posted += 1
+        producer.post(
+            uri_priority, payload=[f"msg{number_posted}"], wait_ack=True, succeed=True
+        )
+
+    def assert_posted():
+        nonlocal number_posted
+        consumer.wait_push_event()
+        assert wait_until(
+            lambda: len(consumer.list(uri_priority, block=True)) == number_posted,
+            DEFAULT_TIMEOUT,
+        )
+
+    # Post and receive initial message
+    post_message()
+    assert_posted()
+
+    disable_exit_code_check(multi7_node)
+
+    for broker in multi7_node.configurator.brokers.values():
+        # Stop all nodes
+        multi7_node.stop_nodes(include=[broker])
+
+        # Update binary for the given broker
+        multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
+
+        # Restart all nodes to apply binary update
+        multi7_node.start_nodes(
+            wait_leader=True, wait_ready=WAIT_READY, include=[broker]
+        )
 
         # Post and receive message after each redeploy
         post_message()
