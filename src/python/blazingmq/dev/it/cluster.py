@@ -284,11 +284,14 @@ class Cluster(contextlib.AbstractContextManager):
                 "cluster did not shut down cleanly: some processes are still alive"
             )
 
-    def start_nodes(
-        self,
-        wait_leader=True,
-        wait_ready=False,
-        include: List[Union[cfg.Broker, str]] = [],
+    def start_nodes(self, wait_leader=True, wait_ready=False):
+        """Start all the nodes in the cluster."""
+        return self.start_some_nodes(
+            wait_leader=wait_leader, wait_ready=wait_ready, include=[]
+        )
+
+    def start_some_nodes(
+        self, include: List[Union[cfg.Broker, str]], wait_leader=True, wait_ready=False
     ):
         """Start the nodes in the cluster.
 
@@ -317,8 +320,13 @@ class Cluster(contextlib.AbstractContextManager):
         self.wait_status(wait_leader, wait_ready)
 
     def stop_nodes(
-        self, include: List[Union[cfg.Broker, str]] = [], num_retries: int = 4
+        self,
     ):
+        """Stop all the nodes in the cluster."""
+
+        return self.stop_some_nodes(include=[])
+
+    def stop_some_nodes(self, include: List[Union[cfg.Broker, str]]):
         """Stop the nodes in the cluster.
 
         NOTE: this method does *not* stop the proxies.
@@ -341,7 +349,7 @@ class Cluster(contextlib.AbstractContextManager):
                 node.stop()
 
         for node in nodes:
-            self._make_sure_node_stopped(node, num_retries)
+            self._make_sure_node_stopped(node)
 
     def restart_nodes(self, wait_leader=True, wait_ready=False):
         """Restart all the nodes.
@@ -916,7 +924,7 @@ class Cluster(contextlib.AbstractContextManager):
         self._logger.error(error)
         raise RuntimeError(error)
 
-    def _make_sure_node_stopped(self, process: Broker, num_retries: int):
+    def _make_sure_node_stopped(self, process: Broker, num_retries: int = 4):
         """Make sure that the given broker process is stopped.
 
         If the process is still alive, try to stop it several times.

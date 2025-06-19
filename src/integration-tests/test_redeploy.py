@@ -190,14 +190,14 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
 
     for broker in multi7_node.configurator.brokers.values():
         # Stop all nodes
-        multi7_node.stop_nodes(include=[broker])
+        multi7_node.stop_some_nodes(filter=[broker])
 
         # Update binary for the given broker
         multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
 
         # Restart all nodes to apply binary update
-        multi7_node.start_nodes(
-            wait_leader=True, wait_ready=WAIT_READY, include=[broker]
+        multi7_node.start_some_nodes(
+            wait_leader=True, wait_ready=WAIT_READY, filter=[broker]
         )
 
         # Post and receive message after each redeploy
