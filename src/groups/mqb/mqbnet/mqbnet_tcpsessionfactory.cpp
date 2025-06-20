@@ -354,15 +354,15 @@ void TCPSessionFactory::handleInitialConnection(
         .setUserData(context->d_negotiationUserData_sp.get())
         .setResultState(context->d_resultState_p)
         .setChannel(channel)
-        .setInitialConnectionCompleteCb(
-            bdlf::BindUtil::bind(&TCPSessionFactory::negotiationComplete,
-                                 this,
-                                 bdlf::PlaceHolders::_1,  // status
-                                 bdlf::PlaceHolders::_2,  // errorDescription
-                                 bdlf::PlaceHolders::_3,  // session
-                                 channel,
-                                 context,
-                                 initialConnectionContext));
+        .setCompleteCb(bdlf::BindUtil::bind(
+            &TCPSessionFactory::negotiationComplete,
+            this,
+            bdlf::PlaceHolders::_1,  // status
+            bdlf::PlaceHolders::_2,  // errorDescription
+            bdlf::PlaceHolders::_3,  // session
+            bdlf::PlaceHolders::_4,  // channel
+            bdlf::PlaceHolders::_5,  // initialConnectionContext
+            context));
 
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
     // from the
@@ -485,12 +485,12 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
 }
 
 void TCPSessionFactory::negotiationComplete(
-    int                                              statusCode,
-    const bsl::string&                               errorDescription,
-    const bsl::shared_ptr<Session>&                  session,
-    const bsl::shared_ptr<bmqio::Channel>&           channel,
-    const bsl::shared_ptr<OperationContext>&         context,
-    const bsl::shared_ptr<InitialConnectionContext>& initialConnectionContext)
+    int                                      statusCode,
+    const bsl::string&                       errorDescription,
+    const bsl::shared_ptr<Session>&          session,
+    const bsl::shared_ptr<bmqio::Channel>&   channel,
+    const InitialConnectionContext*          initialConnectionContext_p,
+    const bsl::shared_ptr<OperationContext>& operationContext)
 {
     // executed by one of the *IO* threads
 
@@ -517,13 +517,17 @@ void TCPSessionFactory::negotiationComplete(
     }
 
     // Successful negotiation
-    BALL_LOG_INFO
-        << "TCPSessionFactory '" << d_config.name()
-        << "' successfully negotiated a session [session: '"
-        << session->description() << "', channel: '" << channel.get()
-        << "', maxMissedHeartbeat: "
-        << initialConnectionContext->negotiationContext()->d_maxMissedHeartbeat
-        << "]";
+
+    BSLS_ASSERT_SAFE(initialConnectionContext_p);
+    BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
+
+    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
+                  << "' successfully negotiated a session [session: '"
+                  << session->description() << "', channel: '" << channel.get()
+                  << "', maxMissedHeartbeat: "
+                  << initialConnectionContext_p->negotiationContext()
+                         ->d_maxMissedHeartbeat
+                  << "]";
 
     // Session is established; keep a hold to it.
 
@@ -554,7 +558,7 @@ void TCPSessionFactory::negotiationComplete(
 
         info.createInplace(d_allocator_p,
                            channel,
-                           *initialConnectionContext,
+                           *initialConnectionContext_p,
                            d_initialMissedHeartbeatCounter,
                            monitoredSession);
         // See comments in 'calculateInitialMissedHbCounter'.
@@ -571,12 +575,12 @@ void TCPSessionFactory::negotiationComplete(
 
     // Do not initiate reading from the channel.  Transport observer(s) will
     // enable the read when they are ready.
-    bool result = context->d_resultCb(
+    const bool result = operationContext->d_resultCb(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext->negotiationContext()->d_cluster_p,
-        initialConnectionContext->resultState(),
+        initialConnectionContext_p->negotiationContext()->d_cluster_p,
+        initialConnectionContext_p->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
                              bdlf::PlaceHolders::_1,  // status
