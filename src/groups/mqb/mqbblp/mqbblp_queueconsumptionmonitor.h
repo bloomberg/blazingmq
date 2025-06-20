@@ -25,7 +25,8 @@
 /// monitors a queue and alerts if the queue has not been consumed for a
 /// configurable amount of time.  Monitoring does not happen until a "maximum
 /// idle time" has been set (using `setMaxIdleTime`).  Monitoring can be
-/// disabled by setting the maximum idle time to zero.
+/// disabled by setting the maximum idle time to zero. In this case substreams
+/// states are reset to 'alive' and scheduled alarm is cancelled.
 ///
 /// Once in monitoring mode, the component is operated by a series of calls to
 /// `onMessagePosted` when message is posted and `onMessageSent` when it is

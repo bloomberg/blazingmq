@@ -1485,11 +1485,9 @@ bool QueueEngineUtil_AppState::getOldestMessageIterator(
 
     // Check in the following order: redelivery list, put aside list and resume
     // point.
-    if (!d_redeliveryList.empty()) {
-        isFound = getOldestMessageIteratorFromList(out, d_redeliveryList);
-    }
+    isFound = getOldestMessageIteratorFromList(out, d_redeliveryList);
 
-    if (!isFound && !d_putAsideList.empty()) {
+    if (!isFound) {
         isFound = getOldestMessageIteratorFromList(out, d_putAsideList);
     }
 
@@ -1506,6 +1504,10 @@ bool QueueEngineUtil_AppState::getOldestMessageIteratorFromList(
     bslma::ManagedPtr<mqbi::StorageIterator>* out,
     RedeliveryList&                           list)
 {
+    if (list.empty()) {
+        return false;  // RETURN
+    }
+
     RedeliveryList::iterator it = list.begin();
 
     // Iterate through the list until the oldest valid message is found.

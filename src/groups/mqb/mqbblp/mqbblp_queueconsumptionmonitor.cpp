@@ -160,12 +160,17 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
     // If alarm event was already scheduled
     if (d_alarmEventHandle) {
         // Cancel the event and execute alarmEventDispatched() to reschedule
-        // alarm event for the new maxIdleTime.
-        d_queueState_p->scheduler()->cancelEventAndWait(&d_alarmEventHandle);
-        d_alarmEventHandle.release();
+        // alarm event for the new maxIdleTime. If rc != 0, it means that
+        // cancellation was not successful because the event was already
+        // dispatched. So it's not needed to call alarmEventDispatched() again.
+        int rc = d_queueState_p->scheduler()->cancelEventAndWait(
+            &d_alarmEventHandle);
+        if (rc == 0) {
+            d_alarmEventHandle.release();
 
-        if (d_maxIdleTimeSec > 0) {
-            alarmEventDispatched();
+            if (d_maxIdleTimeSec > 0) {
+                alarmEventDispatched();
+            }
         }
     }
 
