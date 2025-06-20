@@ -209,7 +209,8 @@ void QueueConsumptionMonitor::reset()
     d_maxIdleTimeSec = 0;
 
     if (d_alarmEventHandle) {
-        int rc = d_queueState_p->scheduler()->cancelEventAndWait(&d_alarmEventHandle);
+        int rc = d_queueState_p->scheduler()->cancelEventAndWait(
+            &d_alarmEventHandle);
         if (rc == 0) {
             d_alarmEventHandle.release();
         }
