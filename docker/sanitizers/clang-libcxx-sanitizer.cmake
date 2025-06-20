@@ -58,13 +58,11 @@ if(DEFINED ENV{LIBCXX_BUILD_PATH})
            "-lc++abi "
            )
 else()
-    # Use non-instrumented libstdc++ (GNU) standard library for C++. The reason
-    # why we use this library is that preinstalled clang and libFuzzer depend
-    # on GNU library. If we try to link it to a fuzzer with other dependencies,
-    # built with LLVM libc++, it leads to a conflict. An alternative is to
-    # build clang and libFuzzer ourselves with LLVM libc++. Though it takes too
-    # much time. Also it contradicts BFuzz workflow that we are trying to
-    # imitate here.
+    # Use the non-instrumented libstdc++ (GNU) standard library for C++. We
+    # use this library because the preinstalled clang and libFuzzer depend on
+    # GNU's standard library. If we try to link it to a fuzzer with other dependencies
+    # built with LLVM's libc++, it leads to a conflict. The alternative is to build clang
+    # and libFuzzer ourselves with LLVM's libc++, but this takes too much time.
     string(CONCAT TOOLCHAIN_LINKER_FLAGS
            "${CMAKE_LINKER_FLAGS_DEBUG}"
            "-stdlib=libstdc++ "
