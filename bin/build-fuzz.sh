@@ -23,7 +23,7 @@ export CC="clang"
 export CXX="clang++"
 export DIR_SCRIPTS="${DIR_SCRIPTS}"
 export SANITIZER_NAME="asan"
-export FUZZER="fuzzer-no-link"
+export FUZZER_FLAG="fuzzer-no-link"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -69,7 +69,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-export FUZZER="fuzzer"
+export FUZZER_FLAG="fuzzer"
 CMAKE_OPTIONS=(\
     -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \

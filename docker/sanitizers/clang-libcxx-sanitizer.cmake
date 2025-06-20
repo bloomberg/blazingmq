@@ -16,6 +16,7 @@ endif()
 
 if(DEFINED ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES $ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
+  set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES $ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
 endif()
 
 set(TOOLCHAIN_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -46,7 +47,7 @@ if(DEFINED ENV{LIBCXX_BUILD_PATH})
     # Use instrumented libc++ (LLVM) standard library for C++ built from source
     string(CONCAT TOOLCHAIN_CXX_FLAGS
            "${TOOLCHAIN_CXX_FLAGS} "
-           "-stdlib=libc++ "
+           "-nostdinc++ "
            "-I$ENV{LIBCXX_BUILD_PATH}/include/c++/v1 "
           )
     string(CONCAT TOOLCHAIN_LINKER_FLAGS
@@ -66,7 +67,7 @@ else()
     # imitate here.
     string(CONCAT TOOLCHAIN_LINKER_FLAGS
            "${CMAKE_LINKER_FLAGS_DEBUG}"
-           "-lstdc++ "
+           "-stdlib=libstdc++ "
            )
 endif()
 

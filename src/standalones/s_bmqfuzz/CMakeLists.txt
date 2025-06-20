@@ -1,5 +1,5 @@
-# fuzz-tests
-# ------------
+# s_bmqfuzz
+# ---------
 
 if(NOT BMQ_TARGET_FUZZTESTS_NEEDED OR NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang")
   return()
@@ -9,15 +9,16 @@ endif()
 add_custom_target("fuzztests")
 
 find_package(BdeBuildSystem REQUIRED)
-bbs_read_metadata(PACKAGE fuzz-tests)
+bbs_read_metadata(PACKAGE s_bmqfuzz)
 
 function(BMQ_ADD_FUZZER fileName)
   get_filename_component(targetName "${fileName}" NAME_WE)
+  message("targetName: ${targetName}")
   add_executable(${targetName} ${fileName})
 
   target_bmq_default_compiler_flags(${targetName})
-  target_include_directories(${targetName} PRIVATE ${fuzz-tests_INCLUDE_DIRS})
-  target_link_libraries(${targetName} PRIVATE ${fuzz-tests_PCDEPS})
+  target_include_directories(${targetName} PRIVATE ${s_bmqfuzz_INCLUDE_DIRS})
+  target_link_libraries(${targetName} PRIVATE ${s_bmqfuzz_PCDEPS})
 
   set_target_properties(${targetName}
     PROPERTIES OUTPUT_NAME ${targetName})
@@ -26,10 +27,10 @@ function(BMQ_ADD_FUZZER fileName)
   add_dependencies("fuzztests" ${targetName})
 endfunction()
 
-file(GLOB sources "*fuzzer.cpp")
-foreach (source ${sources})
+foreach (source ${s_bmqfuzz_SOURCE_FILES})
+  message("source: ${source}")
   bmq_add_fuzzer(${source})
 endforeach()
 
-target_include_directories(eval_fuzzer
+target_include_directories(s_bmqfuzz_eval
                            PRIVATE "$<TARGET_PROPERTY:bmq,BINARY_DIR>")

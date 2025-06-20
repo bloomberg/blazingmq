@@ -18,6 +18,12 @@
 # 6) Build sanitizer-instrumented BlazingMQ unit tests.
 # 7) Generate scripts to run unit tests:
 #      ./cmake.bld/Linux/run-unittests.sh
+#
+# The script takes two positional arguments that are required: <sanitizer-name>
+# and <fuzzer>. <sanitizer-name> can be either "asan", "msan", "tsan" or
+# "ubsan". <fuzzer> can be either "on" or "off"
+# Usage example:
+#    build_sanitizer.sh asan on
 
 set -eux
 
@@ -173,8 +179,6 @@ export CC="clang"
 export CXX="clang++"
 if [ "${FUZZER}" == "on" ]; then
   export FUZZER_FLAG="fuzzer-no-link"
-else
-  export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${LLVM_VERSION}/include"
 fi
 export BBS_BUILD_SYSTEM="ON"
 PATH="$PATH:$(realpath "${DIR_SRCS_EXT}"/bde-tools/bin)"
@@ -182,7 +186,7 @@ export PATH
 
 # Build BDE + NTF
 pushd "${DIR_SRCS_EXT}/bde"
-eval "$(bbs_build_env -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
+eval "$(bbs_build_env  -p clang -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
 bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
 bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install

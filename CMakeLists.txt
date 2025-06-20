@@ -310,7 +310,7 @@ add_subdirectory( "src/applications" )
 add_subdirectory( "src/tutorials" )
 add_subdirectory( "src/plugins" )
 add_subdirectory( "src/integration-tests" )
-add_subdirectory( "src/fuzz-tests" )
+add_subdirectory( "src/standalones" )
 
 
 # -----------------------------------------------------------------------------
