@@ -45,7 +45,7 @@
 #include <bsls_timeutil.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
 
@@ -127,7 +127,7 @@ static int populateBufferLengthsSorted(bsl::vector<int>* bufferLengths)
     return bufferLengths->back();
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 /// Populate the specified `bufferLengths` with various lengths in
 /// increasing sorted order. Apply these arguments to Google Benchmark
 /// internals Note that upper bound is 64 Ki
@@ -2209,7 +2209,7 @@ static void testN6_bdldPerformanceDefault()
     bmqtst::TestHelperUtil::allocator()->deallocate(buffer);
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 
 static void
 testN1_performanceDefaultUserInput_GoogleBenchmark(benchmark::State& state)
@@ -2577,7 +2577,7 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
     bmqtst::TestHelperUtil::allocator()->deallocate(buffer);
 }
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
 //                                 MAIN PROGRAM
@@ -2651,7 +2651,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

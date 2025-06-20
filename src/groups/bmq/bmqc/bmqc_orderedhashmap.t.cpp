@@ -32,7 +32,7 @@
 #include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
 
@@ -1106,9 +1106,7 @@ BSLA_MAYBE_UNUSED static void testN3_profile()
     }
 }
 
-// Begin benchmarking library tests (Linux only)
-#ifdef BSLS_PLATFORM_OS_LINUX
-
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void
 testN1_insertPerformanceUnordered_GoogleBenchmark(benchmark::State& state)
 {
@@ -1223,7 +1221,8 @@ static void testN3_profile_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BMQTST_BENCHMARK_ENABLED
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -1283,7 +1282,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

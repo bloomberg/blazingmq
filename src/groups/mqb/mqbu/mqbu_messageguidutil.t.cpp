@@ -45,7 +45,7 @@
 #include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
 
@@ -934,8 +934,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
          << " insertions per second." << endl;
 }
 
-// Begin Benchmarking Library
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_decode_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // DECODE
@@ -1311,7 +1310,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
 //                                 MAIN PROGRAM
@@ -1386,7 +1385,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
