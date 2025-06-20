@@ -30,7 +30,8 @@ namespace bmqst {
 void StringKey::makeCopy()
 {
     if (!d_isOwned) {
-        char* newString = (char*)d_allocator_p->allocate(d_length);
+        char* newString = static_cast<char*>(
+            d_allocator_p->allocate(d_length));
         bsl::memcpy(newString, d_string_p, d_length);
 
         d_string_p = newString;
