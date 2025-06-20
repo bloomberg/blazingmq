@@ -3494,7 +3494,7 @@ void StorageUtil::forceFlushFileStores(FileStores* fileStores)
             continue;  // CONTINUE
         }
 
-        fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::flush, fs));
+        fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::gcStorage, fs));
     }
 }
 

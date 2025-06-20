@@ -854,16 +854,15 @@ int FileBackedStorage::gcExpiredMessages(
     return numMsgsDeleted;
 }
 
-bool FileBackedStorage::gcHistory()
+int FileBackedStorage::gcHistory(bsls::Types::Int64 now)
 {
-    bool hasMoreToGc = d_handles.gc(bmqsys::Time::highResolutionTimer(),
-                                    k_GC_MESSAGES_BATCH_SIZE);
-
-    d_queueStats_sp
-        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-            d_handles.historySize());
-
-    return hasMoreToGc;
+    const int rc = d_handles.gc(now, k_GC_MESSAGES_BATCH_SIZE);
+    if (0 != rc) {
+        d_queueStats_sp
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_handles.historySize());
+    }
+    return rc;
 }
 
 void FileBackedStorage::processMessageRecord(

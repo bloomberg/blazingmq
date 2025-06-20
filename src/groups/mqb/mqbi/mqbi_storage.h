@@ -562,10 +562,14 @@ class Storage {
                                   bsls::Types::Int64*  configuredTtlValue,
                                   bsls::Types::Uint64  secondsFromEpoch) = 0;
 
-    /// Garbage-collect those messages from the deduplication history which
-    /// have expired the deduplication window.  Return `true`, if there are
-    /// expired items unprocessed because of the batch limit.
-    virtual bool gcHistory() = 0;
+    /// Garbage collect a batch of expired messages from the deduplication
+    /// history, using the specified `now` as the current timestamp.
+    /// Return rc == 0, if no messages were GCed.
+    /// Return rc > 0, if all the needed messages were GCed and there is
+    ///                nothing more to do now.
+    /// Return rc < 0, if the maximum batch of elements was GCed, but there
+    ///                are more messages to GC.
+    virtual int gcHistory(bsls::Types::Int64 now) = 0;
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified `appId` and `appKey`.  Return zero upon success and a

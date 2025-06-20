@@ -524,19 +524,16 @@ int InMemoryStorage::gcExpiredMessages(
     return numMsgsDeleted;
 }
 
-bool InMemoryStorage::gcHistory()
+int InMemoryStorage::gcHistory(bsls::Types::Int64 now)
 {
-    bool hasMoreToGc = d_items.gc(bmqsys::Time::highResolutionTimer(),
-                                  k_GC_MESSAGES_BATCH_SIZE);
-
-    if (queue()) {
+    const int rc = d_items.gc(now, k_GC_MESSAGES_BATCH_SIZE);
+    if (0 != rc && queue()) {
         queue()
             ->stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
     }
-
-    return hasMoreToGc;
+    return rc;
 }
 
 void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
