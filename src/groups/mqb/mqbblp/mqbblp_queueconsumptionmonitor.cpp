@@ -209,8 +209,10 @@ void QueueConsumptionMonitor::reset()
     d_maxIdleTimeSec = 0;
 
     if (d_alarmEventHandle) {
-        d_queueState_p->scheduler()->cancelEventAndWait(&d_alarmEventHandle);
-        d_alarmEventHandle.release();
+        int rc = d_queueState_p->scheduler()->cancelEventAndWait(&d_alarmEventHandle);
+        if (rc == 0) {
+            d_alarmEventHandle.release();
+        }
     }
 
     cancelIdleEvents(false);
@@ -290,9 +292,11 @@ void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
 
     if (subStreamInfo->d_idleEventHandle) {
         // Cancel the idle event if it was scheduled.
-        d_queueState_p->scheduler()->cancelEventAndWait(
+        int rc = d_queueState_p->scheduler()->cancelEventAndWait(
             &subStreamInfo->d_idleEventHandle);
-        subStreamInfo->d_idleEventHandle.release();
+        if (rc == 0) {
+            subStreamInfo->d_idleEventHandle.release();
+        }
     }
 
     subStreamInfo->d_state = State::e_ALIVE;
@@ -420,9 +424,11 @@ void QueueConsumptionMonitor::cancelIdleEvents(bool resetStates)
         SubStreamInfo& info = iter->second;
         if (info.d_idleEventHandle) {
             // Cancel the event if it was scheduled.
-            d_queueState_p->scheduler()->cancelEventAndWait(
+            int rc = d_queueState_p->scheduler()->cancelEventAndWait(
                 &info.d_idleEventHandle);
-            info.d_idleEventHandle.release();
+            if (rc == 0) {
+                info.d_idleEventHandle.release();
+            }
         }
 
         if (resetStates) {
@@ -440,13 +446,13 @@ void QueueConsumptionMonitor::alarmEventDispatched()
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
+    if (d_alarmEventHandle) {
+        d_alarmEventHandle.release();
+    }
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isMonitoringDisabled())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
-    }
-
-    if (d_alarmEventHandle) {
-        d_alarmEventHandle.release();
     }
 
     // Iterate all substreams and check alarms.

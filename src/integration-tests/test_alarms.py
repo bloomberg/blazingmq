@@ -158,6 +158,35 @@ def test_priority_transition_active_alarm_active(
 
 
 @tweak.domain.max_idle_time(1)
+def test_priority_alarm_when_consumer_dropped(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
+    """
+    Test that alarm is triggered when consumer droppped the connection in priority mode.
+    """
+    uri_priority = domain_urls.uri_priority
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Post "msg1", it is delivered to consumer
+    producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
+
+    # Consumer dropping the connection, msg1 is in redelivery list
+    consumer.stop_session(block=True)
+
+    # Wait more than max idle and check that alarm is triggered
+    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.capture(r"For appId: __default")
+
+
+@tweak.domain.max_idle_time(1)
 def test_priority_enable_disable_alarm(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test that alarm is triggered if consumption monitor is enabled (maxIdleTime > 0) in priority mode.
