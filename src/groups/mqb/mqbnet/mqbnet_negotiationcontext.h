@@ -37,10 +37,10 @@ struct ConnectionType {
     // side of the connection's point of view.
     enum Enum {
         e_UNKNOWN,
-        e_CLUSTER_PROXY,   // Proxy (me) -> cluster
-        e_CLUSTER_MEMBER,  // Cluster member (me) -> cluster member
-        e_CLIENT,          // Client or proxy -> me
-        e_ADMIN            // Admin client -> me
+        e_CLUSTER_PROXY,   // Proxy (me) -> broker (outgoing)
+        e_CLUSTER_MEMBER,  // Cluster node -> cluster node (both)
+        e_CLIENT,          // Client or proxy -> me (incoming)
+        e_ADMIN            // Admin client -> me (incoming)
     };
 };
 

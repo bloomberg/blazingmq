@@ -147,8 +147,8 @@ bool TransportManager::processSession(
             ? negoMsg.clientIdentity()
             : negoMsg.brokerResponse().brokerIdentity();
 
-    // This is an outgoing connection to a cluster node
     if (state) {
+        // This is an outgoing connection to a broker
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
 
         if (state->d_node_p == 0) {
