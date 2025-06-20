@@ -18,7 +18,7 @@ BMQ_PREFIX="${BMQ_PREFIX:-localBMQ}"
 
 if [ ! -d "$BMQ_PREFIX" ]; then
     mkdir "$BMQ_PREFIX"
-    ln -sf "$(readlink etc)" "$BMQ_PREFIX/etc"
+    ln -sf "$(realpath etc)" "$BMQ_PREFIX/etc"
     mkdir "$BMQ_PREFIX/logs"
     mkdir -p "$BMQ_PREFIX/storage/local/archive"
 else
