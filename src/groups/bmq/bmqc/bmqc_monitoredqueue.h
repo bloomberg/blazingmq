@@ -174,33 +174,29 @@ class MonitoredQueue {
 
     StateCallback d_stateChangedCb;
 
+    /// How full the queue is.
+    ///   0: below high watermark
+    ///   1: reached high watermark but never filled queue
+    ///   2: reached high watermark 2 but never full
+    ///   3: filled queue
+    /// The state doesn't go down until the queue size reaches the low
+    /// watermark.
     bsls::AtomicInt d_state;
-    // How full the queue is.
-    //   0: below high watermark
-    //   1: reached high watermark but never filled queue
-    //   2: reached high watermark 2 but never full
-    //   3: filled queue
-    // The state doesn't go down until the queue size
-    // reaches the low watermark.
 
     QUEUE d_queue;
 
     bsls::AtomicInt64 d_queueLength;
 
+    /// Whether timed operations are supported (timedPopFront). This has a
+    /// slight performance impact (conditionVariable.signal()), so it should be
+    /// enabled only if any timed operations will be used on the queue.
     bool d_supportTimedOperations;
-    // Whether timed operations are supported
-    // (timedPopFront). This has a slight performance
-    // impact (conditionVariable.signal()), so it should
-    // be enabled only if any timed operations will be
-    // used on the queue.
 
+    /// Mutex to use with the below condition variable for timed operations
     bslmt::Mutex d_timedOperationsMutex;
-    // Mutex to use with the below condition variable for
-    // timed operations
 
+    /// Condition variable to notify timedOperation of data added to the queue
     bslmt::Condition d_timedOperationsCondition;
-    // Condition variable to notify timedOperation of
-    // data added to the queue
 
     // PRIVATE MANIPULATORS
 
