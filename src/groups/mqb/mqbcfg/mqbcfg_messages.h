@@ -137,9 +137,6 @@ namespace mqbcfg {
 class NetworkInterfaces;
 }
 namespace mqbcfg {
-class ReversedClusterConnection;
-}
-namespace mqbcfg {
 class StatPluginConfig;
 }
 namespace mqbcfg {
@@ -7062,232 +7059,6 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
-// ===============================
-// class ReversedClusterConnection
-// ===============================
-
-class ReversedClusterConnection {
-    // Type representing the configuration for remote cluster connections..
-    // name.............: name of the cluster connections......: list of
-    // connections to establish
-
-    // INSTANCE DATA
-    bsl::vector<ClusterNodeConnection> d_connections;
-    bsl::string                        d_name;
-
-  public:
-    // TYPES
-    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_CONNECTIONS = 1 };
-
-    enum { NUM_ATTRIBUTES = 2 };
-
-    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_CONNECTIONS = 1 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit ReversedClusterConnection(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'ReversedClusterConnection' having the
-    // default value.  Use the optionally specified 'basicAllocator' to
-    // supply memory.  If 'basicAllocator' is 0, the currently installed
-    // default allocator is used.
-
-    ReversedClusterConnection(const ReversedClusterConnection& original,
-                              bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'ReversedClusterConnection' having the
-    // value of the specified 'original' object.  Use the optionally
-    // specified 'basicAllocator' to supply memory.  If 'basicAllocator' is
-    // 0, the currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ReversedClusterConnection(ReversedClusterConnection&& original) noexcept;
-    // Create an object of type 'ReversedClusterConnection' having the
-    // value of the specified 'original' object.  After performing this
-    // action, the 'original' object will be left in a valid, but
-    // unspecified state.
-
-    ReversedClusterConnection(ReversedClusterConnection&& original,
-                              bslma::Allocator*           basicAllocator);
-    // Create an object of type 'ReversedClusterConnection' having the
-    // value of the specified 'original' object.  After performing this
-    // action, the 'original' object will be left in a valid, but
-    // unspecified state.  Use the optionally specified 'basicAllocator' to
-    // supply memory.  If 'basicAllocator' is 0, the currently installed
-    // default allocator is used.
-#endif
-
-    ~ReversedClusterConnection();
-    // Destroy this object.
-
-    // MANIPULATORS
-    ReversedClusterConnection& operator=(const ReversedClusterConnection& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ReversedClusterConnection& operator=(ReversedClusterConnection&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    bsl::string& name();
-    // Return a reference to the modifiable "Name" attribute of this
-    // object.
-
-    bsl::vector<ClusterNodeConnection>& connections();
-    // Return a reference to the modifiable "Connections" attribute of this
-    // object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    const bsl::string& name() const;
-    // Return a reference offering non-modifiable access to the "Name"
-    // attribute of this object.
-
-    const bsl::vector<ClusterNodeConnection>& connections() const;
-    // Return a reference offering non-modifiable access to the
-    // "Connections" attribute of this object.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const ReversedClusterConnection& lhs,
-                           const ReversedClusterConnection& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
-    // have the same value, and 'false' otherwise.  Two attribute objects
-    // have the same value if each respective attribute has the same value.
-    {
-        return lhs.name() == rhs.name() &&
-               lhs.connections() == rhs.connections();
-    }
-
-    friend bool operator!=(const ReversedClusterConnection& lhs,
-                           const ReversedClusterConnection& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&                    stream,
-                                    const ReversedClusterConnection& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                           const ReversedClusterConnection& object)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'ReversedClusterConnection'.
-    {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.name());
-        hashAppend(hashAlg, object.connections());
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::ReversedClusterConnection)
-
-namespace mqbcfg {
-
 // ======================
 // class StatPluginConfig
 // ======================
@@ -9107,19 +8878,12 @@ class ClustersDefinition {
     // Top level type representing the configuration for all clusters.
     // myClusters.................: definition of the clusters the current
     // machine is part of (if any); empty means this broker does not belong to
-    // any cluster myReverseClusters..........: name of the clusters (if any)
-    // the current machine is expected to receive inbound connections about and
-    // therefore should pro-actively create a proxy cluster at startup
-    // myVirtualClusters..........: information about all the virtual clusters
-    // the current machine is considered to belong to (if any)
-    // clusters...................: array of cluster definition
-    // reversedClusterConnections.: cluster and associated remote connections
-    // that should be established
+    // any cluster myVirtualClusters..........: information about all the
+    // virtual clusters the current machine is considered to belong to (if any)
+    // proxyClusters..............: array of cluster proxy definition
 
     // INSTANCE DATA
-    bsl::vector<bsl::string>               d_myReverseClusters;
     bsl::vector<VirtualClusterInformation> d_myVirtualClusters;
-    bsl::vector<ReversedClusterConnection> d_reversedClusterConnections;
     bsl::vector<ClusterProxyDefinition>    d_proxyClusters;
     bsl::vector<ClusterDefinition>         d_myClusters;
 
@@ -9127,26 +8891,20 @@ class ClustersDefinition {
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
-    bool isEqualTo(const ClustersDefinition& rhs) const;
-
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_MY_CLUSTERS                  = 0,
-        ATTRIBUTE_ID_MY_REVERSE_CLUSTERS          = 1,
-        ATTRIBUTE_ID_MY_VIRTUAL_CLUSTERS          = 2,
-        ATTRIBUTE_ID_PROXY_CLUSTERS               = 3,
-        ATTRIBUTE_ID_REVERSED_CLUSTER_CONNECTIONS = 4
+        ATTRIBUTE_ID_MY_CLUSTERS         = 0,
+        ATTRIBUTE_ID_MY_VIRTUAL_CLUSTERS = 1,
+        ATTRIBUTE_ID_PROXY_CLUSTERS      = 2
     };
 
-    enum { NUM_ATTRIBUTES = 5 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_MY_CLUSTERS                  = 0,
-        ATTRIBUTE_INDEX_MY_REVERSE_CLUSTERS          = 1,
-        ATTRIBUTE_INDEX_MY_VIRTUAL_CLUSTERS          = 2,
-        ATTRIBUTE_INDEX_PROXY_CLUSTERS               = 3,
-        ATTRIBUTE_INDEX_REVERSED_CLUSTER_CONNECTIONS = 4
+        ATTRIBUTE_INDEX_MY_CLUSTERS         = 0,
+        ATTRIBUTE_INDEX_MY_VIRTUAL_CLUSTERS = 1,
+        ATTRIBUTE_INDEX_PROXY_CLUSTERS      = 2
     };
 
     // CONSTANTS
@@ -9249,10 +9007,6 @@ class ClustersDefinition {
     // Return a reference to the modifiable "MyClusters" attribute of this
     // object.
 
-    bsl::vector<bsl::string>& myReverseClusters();
-    // Return a reference to the modifiable "MyReverseClusters" attribute
-    // of this object.
-
     bsl::vector<VirtualClusterInformation>& myVirtualClusters();
     // Return a reference to the modifiable "MyVirtualClusters" attribute
     // of this object.
@@ -9260,10 +9014,6 @@ class ClustersDefinition {
     bsl::vector<ClusterProxyDefinition>& proxyClusters();
     // Return a reference to the modifiable "ProxyClusters" attribute of
     // this object.
-
-    bsl::vector<ReversedClusterConnection>& reversedClusterConnections();
-    // Return a reference to the modifiable "ReversedClusterConnections"
-    // attribute of this object.
 
     // ACCESSORS
     bsl::ostream&
@@ -9312,10 +9062,6 @@ class ClustersDefinition {
     // Return a reference offering non-modifiable access to the
     // "MyClusters" attribute of this object.
 
-    const bsl::vector<bsl::string>& myReverseClusters() const;
-    // Return a reference offering non-modifiable access to the
-    // "MyReverseClusters" attribute of this object.
-
     const bsl::vector<VirtualClusterInformation>& myVirtualClusters() const;
     // Return a reference offering non-modifiable access to the
     // "MyVirtualClusters" attribute of this object.
@@ -9324,11 +9070,6 @@ class ClustersDefinition {
     // Return a reference offering non-modifiable access to the
     // "ProxyClusters" attribute of this object.
 
-    const bsl::vector<ReversedClusterConnection>&
-    reversedClusterConnections() const;
-    // Return a reference offering non-modifiable access to the
-    // "ReversedClusterConnections" attribute of this object.
-
     // HIDDEN FRIENDS
     friend bool operator==(const ClustersDefinition& lhs,
                            const ClustersDefinition& rhs)
@@ -9336,7 +9077,9 @@ class ClustersDefinition {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.isEqualTo(rhs);
+        return lhs.myClusters() == rhs.myClusters() &&
+               lhs.myVirtualClusters() == rhs.myVirtualClusters() &&
+               lhs.proxyClusters() == rhs.proxyClusters();
     }
 
     friend bool operator!=(const ClustersDefinition& lhs,
@@ -15962,142 +15705,6 @@ NetworkInterfaces::tcpInterface() const
     return d_tcpInterface;
 }
 
-// -------------------------------
-// class ReversedClusterConnection
-// -------------------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int ReversedClusterConnection::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_connections,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONNECTIONS]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int ReversedClusterConnection::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                   int            id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_NAME: {
-        return manipulator(&d_name,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    }
-    case ATTRIBUTE_ID_CONNECTIONS: {
-        return manipulator(&d_connections,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONNECTIONS]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int ReversedClusterConnection::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                   const char*    name,
-                                                   int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline bsl::string& ReversedClusterConnection::name()
-{
-    return d_name;
-}
-
-inline bsl::vector<ClusterNodeConnection>&
-ReversedClusterConnection::connections()
-{
-    return d_connections;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int ReversedClusterConnection::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_connections,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONNECTIONS]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int ReversedClusterConnection::accessAttribute(t_ACCESSOR& accessor,
-                                               int         id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_NAME: {
-        return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    }
-    case ATTRIBUTE_ID_CONNECTIONS: {
-        return accessor(d_connections,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONNECTIONS]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int ReversedClusterConnection::accessAttribute(t_ACCESSOR& accessor,
-                                               const char* name,
-                                               int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline const bsl::string& ReversedClusterConnection::name() const
-{
-    return d_name;
-}
-
-inline const bsl::vector<ClusterNodeConnection>&
-ReversedClusterConnection::connections() const
-{
-    return d_connections;
-}
-
 // ----------------------
 // class StatPluginConfig
 // ----------------------
@@ -18212,20 +17819,8 @@ void ClustersDefinition::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 {
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->myClusters());
-    hashAppend(hashAlgorithm, this->myReverseClusters());
     hashAppend(hashAlgorithm, this->myVirtualClusters());
     hashAppend(hashAlgorithm, this->proxyClusters());
-    hashAppend(hashAlgorithm, this->reversedClusterConnections());
-}
-
-inline bool ClustersDefinition::isEqualTo(const ClustersDefinition& rhs) const
-{
-    return this->myClusters() == rhs.myClusters() &&
-           this->myReverseClusters() == rhs.myReverseClusters() &&
-           this->myVirtualClusters() == rhs.myVirtualClusters() &&
-           this->proxyClusters() == rhs.proxyClusters() &&
-           this->reversedClusterConnections() ==
-               rhs.reversedClusterConnections();
 }
 
 // CLASS METHODS
@@ -18237,13 +17832,6 @@ int ClustersDefinition::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_myClusters,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_CLUSTERS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_myReverseClusters,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_REVERSE_CLUSTERS]);
     if (ret) {
         return ret;
     }
@@ -18261,13 +17849,6 @@ int ClustersDefinition::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(
-        &d_reversedClusterConnections,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REVERSED_CLUSTER_CONNECTIONS]);
-    if (ret) {
-        return ret;
-    }
-
     return 0;
 }
 
@@ -18281,11 +17862,6 @@ int ClustersDefinition::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(&d_myClusters,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_CLUSTERS]);
     }
-    case ATTRIBUTE_ID_MY_REVERSE_CLUSTERS: {
-        return manipulator(
-            &d_myReverseClusters,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_REVERSE_CLUSTERS]);
-    }
     case ATTRIBUTE_ID_MY_VIRTUAL_CLUSTERS: {
         return manipulator(
             &d_myVirtualClusters,
@@ -18295,11 +17871,6 @@ int ClustersDefinition::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_proxyClusters,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROXY_CLUSTERS]);
-    }
-    case ATTRIBUTE_ID_REVERSED_CLUSTER_CONNECTIONS: {
-        return manipulator(&d_reversedClusterConnections,
-                           ATTRIBUTE_INFO_ARRAY
-                               [ATTRIBUTE_INDEX_REVERSED_CLUSTER_CONNECTIONS]);
     }
     default: return NOT_FOUND;
     }
@@ -18326,11 +17897,6 @@ inline bsl::vector<ClusterDefinition>& ClustersDefinition::myClusters()
     return d_myClusters;
 }
 
-inline bsl::vector<bsl::string>& ClustersDefinition::myReverseClusters()
-{
-    return d_myReverseClusters;
-}
-
 inline bsl::vector<VirtualClusterInformation>&
 ClustersDefinition::myVirtualClusters()
 {
@@ -18340,12 +17906,6 @@ ClustersDefinition::myVirtualClusters()
 inline bsl::vector<ClusterProxyDefinition>& ClustersDefinition::proxyClusters()
 {
     return d_proxyClusters;
-}
-
-inline bsl::vector<ReversedClusterConnection>&
-ClustersDefinition::reversedClusterConnections()
-{
-    return d_reversedClusterConnections;
 }
 
 // ACCESSORS
@@ -18360,12 +17920,6 @@ int ClustersDefinition::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_myReverseClusters,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_REVERSE_CLUSTERS]);
-    if (ret) {
-        return ret;
-    }
-
     ret = accessor(d_myVirtualClusters,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_VIRTUAL_CLUSTERS]);
     if (ret) {
@@ -18374,13 +17928,6 @@ int ClustersDefinition::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_proxyClusters,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROXY_CLUSTERS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_reversedClusterConnections,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REVERSED_CLUSTER_CONNECTIONS]);
     if (ret) {
         return ret;
     }
@@ -18398,11 +17945,6 @@ int ClustersDefinition::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_myClusters,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_CLUSTERS]);
     }
-    case ATTRIBUTE_ID_MY_REVERSE_CLUSTERS: {
-        return accessor(
-            d_myReverseClusters,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_REVERSE_CLUSTERS]);
-    }
     case ATTRIBUTE_ID_MY_VIRTUAL_CLUSTERS: {
         return accessor(
             d_myVirtualClusters,
@@ -18411,11 +17953,6 @@ int ClustersDefinition::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_PROXY_CLUSTERS: {
         return accessor(d_proxyClusters,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROXY_CLUSTERS]);
-    }
-    case ATTRIBUTE_ID_REVERSED_CLUSTER_CONNECTIONS: {
-        return accessor(d_reversedClusterConnections,
-                        ATTRIBUTE_INFO_ARRAY
-                            [ATTRIBUTE_INDEX_REVERSED_CLUSTER_CONNECTIONS]);
     }
     default: return NOT_FOUND;
     }
@@ -18443,12 +17980,6 @@ ClustersDefinition::myClusters() const
     return d_myClusters;
 }
 
-inline const bsl::vector<bsl::string>&
-ClustersDefinition::myReverseClusters() const
-{
-    return d_myReverseClusters;
-}
-
 inline const bsl::vector<VirtualClusterInformation>&
 ClustersDefinition::myVirtualClusters() const
 {
@@ -18459,12 +17990,6 @@ inline const bsl::vector<ClusterProxyDefinition>&
 ClustersDefinition::proxyClusters() const
 {
     return d_proxyClusters;
-}
-
-inline const bsl::vector<ReversedClusterConnection>&
-ClustersDefinition::reversedClusterConnections() const
-{
-    return d_reversedClusterConnections;
 }
 
 // -------------------
@@ -18612,4 +18137,3 @@ inline const AppConfig& Configuration::appConfig() const
 // GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
-// ----------------------------------------------------------------------------

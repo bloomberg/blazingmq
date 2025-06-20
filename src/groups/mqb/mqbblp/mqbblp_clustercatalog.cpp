@@ -61,16 +61,11 @@ int ClusterCatalog::createNetCluster(
     // PRECONDITIONS
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex was LOCKED
 
-    const bool isMember  = (d_myClusters.find(name) != d_myClusters.end());
-    const bool isReverse = (d_myReverseClusters.find(name) !=
-                            d_myReverseClusters.end());
+    const bool isMember = (d_myClusters.find(name) != d_myClusters.end());
 
     mqbnet::TransportManager::ConnectionMode connectionMode;
     if (isMember) {
         connectionMode = mqbnet::TransportManager::e_MIXED;
-    }
-    else if (isReverse) {
-        connectionMode = mqbnet::TransportManager::e_LISTEN_ALL;
     }
     else {
         connectionMode = mqbnet::TransportManager::e_CONNECT_ALL;
@@ -79,7 +74,6 @@ int ClusterCatalog::createNetCluster(
     NegotiationUserData* userData = new (*d_allocator_p) NegotiationUserData;
     userData->d_clusterName       = name;
     userData->d_myNodeId          = -1;  // Unused when not reversed connection
-    userData->d_isClusterConnection = true;
 
     bslma::ManagedPtr<void> userDataMp(userData, d_allocator_p);
 
@@ -334,87 +328,6 @@ int ClusterCatalog::startCluster(bsl::ostream&  errorDescription,
     return rc;
 }
 
-int ClusterCatalog::initiateReversedClusterConnectionsImp(
-    bsl::ostream&                         errorDescription,
-    const ReversedClusterConnectionArray& connections)
-{
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS               = 0,
-        rc_CLUSTER_NOT_FOUND     = -1,
-        rc_SELF_NOT_FOUND        = -2,
-        rc_UNSUPPORTED_TRANSPORT = -3,
-        rc_CONNECTION_FAILED     = -4
-    };
-
-    int rc = rc_SUCCESS;
-
-    for (size_t itCluster = 0; itCluster < connections.size(); ++itCluster) {
-        const mqbcfg::ReversedClusterConnection& clusterConnection =
-            connections[itCluster];
-
-        ClusterProxyDefinitionConstIter proxyDefinitionIter = bsl::find_if(
-            d_clustersDefinition.proxyClusters().begin(),
-            d_clustersDefinition.proxyClusters().end(),
-            Named(clusterConnection.name()));
-        if (proxyDefinitionIter ==
-            d_clustersDefinition.proxyClusters().end()) {
-            errorDescription << " (while trying to establish "
-                             << "reverse connections)";
-            return rc_CLUSTER_NOT_FOUND;  // RETURN
-        }
-
-        const mqbcfg::ClusterProxyDefinition& clusterProxyDefinition =
-            *proxyDefinitionIter;
-
-        const int myNodeId = d_transportManager_p->selfNodeId(
-            clusterProxyDefinition.nodes());
-        if (myNodeId == -1) {
-            errorDescription << "Unable to find self in cluster '"
-                             << clusterConnection.name() << "' while trying "
-                             << "to establish reverse connections";
-            return rc_SELF_NOT_FOUND;  // RETURN
-        }
-
-        // Establish reversed cluster connections for the cluster
-        for (size_t itConnection = 0;
-             itConnection < clusterConnection.connections().size();
-             ++itConnection) {
-            const mqbcfg::ClusterNodeConnection& nodeConnection =
-                clusterConnection.connections()[itConnection];
-
-            if (!nodeConnection.isTcpValue()) {
-                errorDescription << "Unsupported transport in cluster '"
-                                 << clusterConnection.name()
-                                 << "': " << nodeConnection;
-                return rc_UNSUPPORTED_TRANSPORT;  // RETURN
-            }
-
-            NegotiationUserData* userData = new (*d_allocator_p)
-                NegotiationUserData;
-            userData->d_clusterName         = clusterConnection.name();
-            userData->d_myNodeId            = myNodeId;
-            userData->d_isClusterConnection = false;
-
-            bslma::ManagedPtr<void> userDataMp(userData, d_allocator_p);
-
-            rc = d_transportManager_p->connectOut(
-                errorDescription,
-                nodeConnection.tcp().endpoint(),
-                &userDataMp);
-            if (rc != 0) {
-                return (rc * 10) + rc_CONNECTION_FAILED;  // RETURN
-            }
-
-            BALL_LOG_INFO << "Initiated reversed cluster connection from '"
-                          << clusterConnection.name() << "' to '"
-                          << nodeConnection.tcp().endpoint() << "'";
-        }
-    }
-
-    return rc;
-}
-
 ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
                                mqbnet::TransportManager*     transportManager,
                                const StatContextsMap&        statContexts,
@@ -429,8 +342,6 @@ ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
 , d_clustersDefinition(d_allocator_p)
 , d_myClusters(d_allocator_p)
 , d_myVirtualClusters(d_allocator_p)
-, d_myReverseClusters(d_allocator_p)
-, d_reversedClusterConnections(d_allocator_p)
 , d_clusters(d_allocator_p)
 , d_statContexts(statContexts)
 , d_resources(resources)
@@ -514,12 +425,6 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
     BALL_LOG_INFO << "Read config from " << configFilename << ": "
                   << jsonString;
 
-    d_myReverseClusters.insert(
-        d_clustersDefinition.myReverseClusters().begin(),
-        d_clustersDefinition.myReverseClusters().end());
-    d_reversedClusterConnections =
-        d_clustersDefinition.reversedClusterConnections();
-
     struct local {
         static const bsl::string&
         clusterName(const mqbcfg::ClusterDefinition& cluster)
@@ -555,27 +460,6 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
                 << "  I am a member of the following clusters: " << printer;
         }
 
-        if (!d_myReverseClusters.empty()) {
-            bmqu::Printer<bsl::unordered_set<bsl::string> > printer(
-                &d_myReverseClusters);
-            BALL_LOG_OUTPUT_STREAM
-                << "\n  The following clusters will remote connect to me '"
-                << printer << "'.";
-        }
-
-        if (!d_reversedClusterConnections.empty()) {
-            BALL_LOG_OUTPUT_STREAM
-                << "\n  I will reverse connect to the following hosts:";
-            for (size_t i = 0; i < d_reversedClusterConnections.size(); ++i) {
-                const mqbcfg::ReversedClusterConnection& clusterConnection =
-                    d_reversedClusterConnections[i];
-                bmqu::Printer<bsl::vector<mqbcfg::ClusterNodeConnection> >
-                    printer(&clusterConnection.connections());
-                BALL_LOG_OUTPUT_STREAM << "\n    '" << clusterConnection.name()
-                                       << "': " << printer;
-            }
-        }
-
         if (!d_myVirtualClusters.empty()) {
             bmqu::Printer<bsl::unordered_map<bsl::string, int> > printer(
                 &d_myVirtualClusters);
@@ -606,7 +490,6 @@ int ClusterCatalog::start(bsl::ostream& errorDescription)
     int rc = rc_SUCCESS;
     // Create a map composed of all clusters, whether member or remote.
     bsl::unordered_set<bsl::string> allClusters(d_myClusters);
-    allClusters.insert(d_myReverseClusters.begin(), d_myReverseClusters.end());
 
     // Create any cluster this broker is member of
     bsl::unordered_set<bsl::string>::const_iterator it;
@@ -654,13 +537,6 @@ void ClusterCatalog::stop()
         d_clusters.clear();
         d_myClusters.clear();
     }
-}
-
-int ClusterCatalog::initiateReversedClusterConnections(
-    bsl::ostream& errorDescription)
-{
-    return initiateReversedClusterConnectionsImp(errorDescription,
-                                                 d_reversedClusterConnections);
 }
 
 void ClusterCatalog::setDomainFactory(mqbi::DomainFactory* domainFactory)
@@ -831,30 +707,6 @@ int ClusterCatalog::processCommand(mqbcmd::ClustersResult*        result,
         }
 
         return 0;  // RETURN
-    }
-    else if (command.isAddReverseProxyValue()) {
-        ReversedClusterConnectionArray    connectionArray;
-        mqbcfg::ReversedClusterConnection connection;
-        mqbcfg::ClusterNodeConnection     nodeConnection;
-
-        nodeConnection.makeTcp().endpoint() =
-            command.addReverseProxy().remotePeer();
-        connection.name() = command.addReverseProxy().clusterName();
-        connection.connections().push_back(nodeConnection);
-        connectionArray.push_back(connection);
-
-        bmqu::MemOutStream os;
-        int rc = initiateReversedClusterConnectionsImp(os, connectionArray);
-        if (rc != 0) {
-            result->makeError().message() = os.str() +
-                                            " [rc: " + bsl::to_string(rc) +
-                                            "]";
-        }
-        else {
-            result->makeSuccess();
-        }
-
-        return rc;  // RETURN
     }
     else if (command.isClusterValue()) {
         bsl::shared_ptr<mqbi::Cluster> cluster;

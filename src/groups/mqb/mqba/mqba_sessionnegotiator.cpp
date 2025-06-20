@@ -46,22 +46,6 @@
 //:   remote peer establishing a Cluster Proxy, in which case we also
 //:   create a ClientSession; otherwise, this is a Cluster member incoming
 //:   connection, so create a DummySession.
-//
-/// Reverse connection
-///------------------
-// In order to support DMZ and machines under restricted limited network
-// connectivity, it is sometimes needed to establish the connection from A -> B
-// where in reality 'A' is the 'server' and 'B' the client (e.g., 'B' could be
-// a 'DMZ' machine connection to 'A' being a cluster node).  While the channel
-// is established in one direction, we still want the negotiation to be client
-// first identifying itself, and server responding after.  Therefore, a third
-// negotiation message type, 'ReverseConnectionRequest' is used: it is sent by
-// 'A' immediately after the connection with 'B' has been established, and
-// following receipt of that message, 'B' initiates a negotiation as-if it was
-// the one initiating the connection.  In that negotiation message, the
-// initiator of the connection indicates the cluster name and its own nodeId in
-// that cluster, to let the remote know aware of what that connection should be
-// used for.
 
 // MQB
 #include <mqba_adminsession.h>
@@ -323,27 +307,14 @@ int SessionNegotiator::createSessionOnMsgType(
         // member.
         // TBD: should find a better way to detect that situation
         if (context->d_connectionType == mqbnet::ConnectionType::e_UNKNOWN) {
-            context->d_connectionType =
-                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
+            errorDescription
+                << "Received BrokerResponse message, but haven't sent a "
+                   "ClientIdentity message yet";
+            return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
         }
 
         *session = onBrokerResponseMessage(errorDescription, context);
     } break;
-    case bmqp_ctrlmsg::NegotiationMessage ::
-        SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
-        context->d_isReversed  = true;
-        context->d_clusterName = context->d_negotiationMessage
-                                     .reverseConnectionRequest()
-                                     .clusterName();
-        context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
-
-        int rc = initiateOutboundNegotiation(errorDescription, context);
-        if (rc == 0) {
-            *isContinueRead = true;
-            return rc_SUCCESS;  // RETURN
-        }
-        return rc_SEND_NEGOTIATION_MESSAGE_ERROR;  // RETURN
-    }  // break;
     default: {
         errorDescription
             << "Invalid negotiation message received (unknown type): "
@@ -365,10 +336,9 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context->d_negotiationMessage.isClientIdentityValue());
-    BSLS_ASSERT_SAFE(context->d_initialConnectionContext_p->isIncoming() ||
-                     context->d_isReversed);
+    BSLS_ASSERT_SAFE(context->d_initialConnectionContext_p->isIncoming());
     // We should be receiving a ClientIdentity message only if this is a
-    // 'listen'-established connection or a reversed one.
+    // 'listen'-established connection.
 
     bmqp_ctrlmsg::ClientIdentity& clientIdentity =
         context->d_negotiationMessage.clientIdentity();
@@ -439,29 +409,16 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
         // this cluster.
         int nodeId = mqbnet::Cluster::k_INVALID_NODE_ID;
 
-        if (context->d_isReversed) {
-            // NOTE: In the case of reversed connection, the broker initiating
-            //       the connection may be part of a virtual cluster, therefore
-            //       the cluster doesn't exist, and we can't look it up; that's
-            //       why we stored the nodeId in the negotiation user data.
-            const mqbblp::ClusterCatalog::NegotiationUserData* userData =
-                reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
-                    context->d_initialConnectionContext_p->userData());
-            BSLS_ASSERT_SAFE(userData);
-            nodeId = userData->d_myNodeId;
-        }
-        else {
-            nodeId = d_clusterCatalog_p->selfNodeIdInCluster(clusterName);
+        nodeId = d_clusterCatalog_p->selfNodeIdInCluster(clusterName);
 
-            if (nodeId == mqbnet::Cluster::k_INVALID_NODE_ID) {
-                // The client connected to us as part of a cluster connection,
-                // but we are not member of that cluster; emit an error (but
-                // still accept the connection).
-                BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED "
-                               << "Client '" << clientIdentity
-                               << "' connected to me as part of cluster '"
-                               << clusterName << "' to which I do not belong!";
-            }
+        if (nodeId == mqbnet::Cluster::k_INVALID_NODE_ID) {
+            // The client connected to us as part of a cluster connection,
+            // but we are not member of that cluster; emit an error (but
+            // still accept the connection).
+            BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED Client '"
+                           << clientIdentity
+                           << "' connected to me as part of cluster '"
+                           << clusterName << "' to which I do not belong!";
         }
         // Virtual clusters do not advertise node status.  Therefore, the
         // identity should not advertise k_BROADCAST_TO_PROXIES feature.
@@ -582,11 +539,9 @@ int SessionNegotiator::sendNegotiationMessage(
         rc_WRITE_FAILURE = -2
     };
 
-    // This method is used to send any of the three kinds of negotiation
-    // message:
+    // This method is used to send two types of negotiation message:
     //   - the initial negotiation request,
     //   - its response,
-    //   - or the reverseConnectionRequest.
     // In the second case, where broker is responding to an incoming
     // negotiation from a client (whether an application client, or a
     // downstream broker), we want to encode using the requesters preferred
@@ -646,8 +601,6 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
     BSLS_ASSERT_SAFE(context->d_connectionType !=
                      mqbnet::ConnectionType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(!context->d_negotiationMessage.isUndefinedValue());
-    BSLS_ASSERT_SAFE(
-        !context->d_negotiationMessage.isReverseConnectionRequestValue());
 
     const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
         context->d_negotiationMessage;
@@ -859,62 +812,28 @@ int SessionNegotiator::initiateOutboundNegotiation(
     return rc;
 }
 
-int SessionNegotiator::negotiateOutboundOrReverse(
-    bsl::ostream&               errorDescription,
-    const NegotiationContextSp& context)
+int SessionNegotiator::negotiateOutbound(bsl::ostream& errorDescription,
+                                         const NegotiationContextSp& context)
 {
     BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(context->d_initialConnectionContext_p);
     BSLS_ASSERT_SAFE(!context->d_initialConnectionContext_p->isIncoming());
 
-    // If this is a 'connect' negotiation, this could either represent an
-    // outgoing proxy/cluster connection, or a reversed cluster connection;
-    // the context's user data will tell.  We send the identity and then
-    // read.
-    //
-    // In an outgoing connection, the negotiatorContext user data must be
-    // present (set in 'ClusterCatalog::createCluster' or
-    // 'ClusterCatalog::initiateReversedClusterConnections' and is of type
-    // 'mqbblp::ClusterCatalog::NegotiationUserData').
     const mqbblp::ClusterCatalog::NegotiationUserData* userData =
         reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
             context->d_initialConnectionContext_p->userData());
+
     BSLS_ASSERT_SAFE(userData);
 
-    int rc = 0;
-
-    if (userData->d_isClusterConnection) {
-        context->d_clusterName = userData->d_clusterName;
-        if (d_clusterCatalog_p->isMemberOf(context->d_clusterName)) {
-            context->d_connectionType =
-                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
-        }
-        else {
-            context->d_connectionType =
-                mqbnet::ConnectionType::e_CLUSTER_PROXY;
-        }
-
-        rc = initiateOutboundNegotiation(errorDescription, context);
+    context->d_clusterName = userData->d_clusterName;
+    if (d_clusterCatalog_p->isMemberOf(context->d_clusterName)) {
+        context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_MEMBER;
     }
     else {
-        // This is a reverse connection, we simply send the negotiation
-        // request message and enter the 'regular' inbound negotiation
-        // logic.
-
-        bmqp_ctrlmsg::NegotiationMessage        negotiationMessage;
-        bmqp_ctrlmsg::ReverseConnectionRequest& request =
-            negotiationMessage.makeReverseConnectionRequest();
-        request.protocolVersion() = bmqp::Protocol::k_VERSION;
-        request.clusterName()     = userData->d_clusterName;
-        request.clusterNodeId()   = userData->d_myNodeId;
-
-        context->d_isReversed     = true;
-        context->d_connectionType = mqbnet::ConnectionType::e_CLIENT;
-
-        rc = sendNegotiationMessage(errorDescription,
-                                    negotiationMessage,
-                                    context);
+        context->d_connectionType = mqbnet::ConnectionType::e_CLUSTER_PROXY;
     }
+
+    int rc = initiateOutboundNegotiation(errorDescription, context);
 
     return rc;
 }

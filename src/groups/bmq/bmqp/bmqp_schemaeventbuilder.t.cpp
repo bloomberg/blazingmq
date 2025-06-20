@@ -88,9 +88,9 @@ static void test1_breathingTest()
         PVV(test.d_line << ": Create a message");
         bmqp_ctrlmsg::ControlMessage message(
             bmqtst::TestHelperUtil::allocator());
-        bmqp_ctrlmsg::Status&        status = message.choice().makeStatus();
-        status.code()                       = 123;
-        status.message()                    = "Test";
+        bmqp_ctrlmsg::Status& status = message.choice().makeStatus();
+        status.code()                = 123;
+        status.message()             = "Test";
 
         // Encode the message
         rc = obj.setMessage(message, bmqp::EventType::e_CONTROL);
@@ -340,7 +340,7 @@ static void testN1_decodeFromFile()
                 bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::NegotiationMessage decoded(
                 bmqtst::TestHelperUtil::allocator());
-            bmqp_ctrlmsg::ClientIdentity&    ci = message.makeClientIdentity();
+            bmqp_ctrlmsg::ClientIdentity& ci = message.makeClientIdentity();
 
             ci.protocolVersion() = bmqp::Protocol::k_VERSION;
             ci.sdkVersion()      = bmqscm::Version::versionAsInt();
@@ -364,7 +364,6 @@ static void testN1_decodeFromFile()
 
             BMQTST_ASSERT_EQ(decoded.isClientIdentityValue(), true);
             BMQTST_ASSERT_EQ(decoded.isBrokerResponseValue(), false);
-            BMQTST_ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
             BMQTST_ASSERT_EQ(decoded.isUndefinedValue(), false);
 
             bmqp_ctrlmsg::ClientIdentity& dci = decoded.clientIdentity();
@@ -391,7 +390,7 @@ static void testN1_decodeFromFile()
                 bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::NegotiationMessage decoded(
                 bmqtst::TestHelperUtil::allocator());
-            bmqp_ctrlmsg::ClientIdentity&    ci = message.makeClientIdentity();
+            bmqp_ctrlmsg::ClientIdentity& ci = message.makeClientIdentity();
 
             ci.protocolVersion() = bmqp::Protocol::k_VERSION;
             ci.sdkVersion()      = bmqscm::Version::versionAsInt();
@@ -414,7 +413,6 @@ static void testN1_decodeFromFile()
 
             BMQTST_ASSERT_EQ(decoded.isClientIdentityValue(), true);
             BMQTST_ASSERT_EQ(decoded.isBrokerResponseValue(), false);
-            BMQTST_ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
             BMQTST_ASSERT_EQ(decoded.isUndefinedValue(), false);
 
             bmqp_ctrlmsg::ClientIdentity& dci = decoded.clientIdentity();
@@ -442,11 +440,11 @@ static void testN1_decodeFromFile()
                 bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::NegotiationMessage decoded(
                 bmqtst::TestHelperUtil::allocator());
-            bmqp_ctrlmsg::BrokerResponse&    br = message.makeBrokerResponse();
-            br.protocolVersion()                = bmqp::Protocol::k_VERSION;
-            br.brokerVersion()                  = k_BROKER_VERSION;
-            br.isDeprecatedSdk()                = false;
-            br.result().code()                  = 0;
+            bmqp_ctrlmsg::BrokerResponse& br = message.makeBrokerResponse();
+            br.protocolVersion()             = bmqp::Protocol::k_VERSION;
+            br.brokerVersion()               = k_BROKER_VERSION;
+            br.isDeprecatedSdk()             = false;
+            br.result().code()               = 0;
             br.result().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
             br.brokerIdentity()    = bmqp_ctrlmsg::ClientIdentity();
 
@@ -469,7 +467,6 @@ static void testN1_decodeFromFile()
 
             BMQTST_ASSERT_EQ(decoded.isClientIdentityValue(), false);
             BMQTST_ASSERT_EQ(decoded.isBrokerResponseValue(), true);
-            BMQTST_ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
             BMQTST_ASSERT_EQ(decoded.isUndefinedValue(), false);
 
             bmqp_ctrlmsg::BrokerResponse& dbr = message.makeBrokerResponse();
@@ -497,12 +494,12 @@ static void testN1_decodeFromFile()
                 bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::ControlMessage decoded(
                 bmqtst::TestHelperUtil::allocator());
-            bmqp_ctrlmsg::OpenQueue&     openQueue =
+            bmqp_ctrlmsg::OpenQueue& openQueue =
                 message.choice().makeOpenQueue();
 
             bmqp_ctrlmsg::QueueHandleParameters params(
                 bmqtst::TestHelperUtil::allocator());
-            bsls::Types::Uint64                 flags = 0;
+            bsls::Types::Uint64 flags = 0;
 
             bmqt::QueueFlagsUtil::setWriter(&flags);
             bmqt::QueueFlagsUtil::setAck(&flags);
@@ -543,7 +540,7 @@ static void testN1_decodeFromFile()
 
             bmqp_ctrlmsg::QueueHandleParameters params(
                 bmqtst::TestHelperUtil::allocator());
-            bsls::Types::Uint64                 flags = 0;
+            bsls::Types::Uint64 flags = 0;
 
             bmqt::QueueFlagsUtil::setWriter(&flags);
             bmqt::QueueFlagsUtil::setAck(&flags);

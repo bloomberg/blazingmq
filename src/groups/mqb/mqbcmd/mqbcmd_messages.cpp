@@ -1,4 +1,4 @@
-// Copyright 2019-2024 Bloomberg Finance L.P.
+// Copyright 2019-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,135 +42,6 @@
 
 namespace BloombergLP {
 namespace mqbcmd {
-
-// ---------------------
-// class AddReverseProxy
-// ---------------------
-
-// CONSTANTS
-
-const char AddReverseProxy::CLASS_NAME[] = "AddReverseProxy";
-
-const bdlat_AttributeInfo AddReverseProxy::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_CLUSTER_NAME,
-     "clusterName",
-     sizeof("clusterName") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_REMOTE_PEER,
-     "remotePeer",
-     sizeof("remotePeer") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-AddReverseProxy::lookupAttributeInfo(const char* name, int nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            AddReverseProxy::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo* AddReverseProxy::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_CLUSTER_NAME:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME];
-    case ATTRIBUTE_ID_REMOTE_PEER:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REMOTE_PEER];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-AddReverseProxy::AddReverseProxy(bslma::Allocator* basicAllocator)
-: d_clusterName(basicAllocator)
-, d_remotePeer(basicAllocator)
-{
-}
-
-AddReverseProxy::AddReverseProxy(const AddReverseProxy& original,
-                                 bslma::Allocator*      basicAllocator)
-: d_clusterName(original.d_clusterName, basicAllocator)
-, d_remotePeer(original.d_remotePeer, basicAllocator)
-{
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AddReverseProxy::AddReverseProxy(AddReverseProxy&& original) noexcept
-: d_clusterName(bsl::move(original.d_clusterName)),
-  d_remotePeer(bsl::move(original.d_remotePeer))
-{
-}
-
-AddReverseProxy::AddReverseProxy(AddReverseProxy&& original,
-                                 bslma::Allocator* basicAllocator)
-: d_clusterName(bsl::move(original.d_clusterName), basicAllocator)
-, d_remotePeer(bsl::move(original.d_remotePeer), basicAllocator)
-{
-}
-#endif
-
-AddReverseProxy::~AddReverseProxy()
-{
-}
-
-// MANIPULATORS
-
-AddReverseProxy& AddReverseProxy::operator=(const AddReverseProxy& rhs)
-{
-    if (this != &rhs) {
-        d_clusterName = rhs.d_clusterName;
-        d_remotePeer  = rhs.d_remotePeer;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AddReverseProxy& AddReverseProxy::operator=(AddReverseProxy&& rhs)
-{
-    if (this != &rhs) {
-        d_clusterName = bsl::move(rhs.d_clusterName);
-        d_remotePeer  = bsl::move(rhs.d_remotePeer);
-    }
-
-    return *this;
-}
-#endif
-
-void AddReverseProxy::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_clusterName);
-    bdlat_ValueTypeFunctions::reset(&d_remotePeer);
-}
-
-// ACCESSORS
-
-bsl::ostream& AddReverseProxy::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("clusterName", this->clusterName());
-    printer.printAttribute("remotePeer", this->remotePeer());
-    printer.end();
-    return stream;
-}
 
 // ------------------
 // class BrokerConfig
@@ -22196,11 +22067,6 @@ const bdlat_SelectionInfo ClustersCommand::SELECTION_INFO_ARRAY[] = {
      sizeof("list") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_ADD_REVERSE_PROXY,
-     "addReverseProxy",
-     sizeof("addReverseProxy") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_CLUSTER,
      "cluster",
      sizeof("cluster") - 1,
@@ -22212,7 +22078,7 @@ const bdlat_SelectionInfo ClustersCommand::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 ClustersCommand::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 2; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             ClustersCommand::SELECTION_INFO_ARRAY[i];
 
@@ -22229,8 +22095,6 @@ const bdlat_SelectionInfo* ClustersCommand::lookupSelectionInfo(int id)
 {
     switch (id) {
     case SELECTION_ID_LIST: return &SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST];
-    case SELECTION_ID_ADD_REVERSE_PROXY:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_ADD_REVERSE_PROXY];
     case SELECTION_ID_CLUSTER:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER];
     default: return 0;
@@ -22247,11 +22111,6 @@ ClustersCommand::ClustersCommand(const ClustersCommand& original,
     switch (d_selectionId) {
     case SELECTION_ID_LIST: {
         new (d_list.buffer()) Void(original.d_list.object());
-    } break;
-    case SELECTION_ID_ADD_REVERSE_PROXY: {
-        new (d_addReverseProxy.buffer())
-            AddReverseProxy(original.d_addReverseProxy.object(),
-                            d_allocator_p);
     } break;
     case SELECTION_ID_CLUSTER: {
         new (d_cluster.buffer())
@@ -22271,11 +22130,6 @@ ClustersCommand::ClustersCommand(ClustersCommand&& original) noexcept
     case SELECTION_ID_LIST: {
         new (d_list.buffer()) Void(bsl::move(original.d_list.object()));
     } break;
-    case SELECTION_ID_ADD_REVERSE_PROXY: {
-        new (d_addReverseProxy.buffer())
-            AddReverseProxy(bsl::move(original.d_addReverseProxy.object()),
-                            d_allocator_p);
-    } break;
     case SELECTION_ID_CLUSTER: {
         new (d_cluster.buffer())
             Cluster(bsl::move(original.d_cluster.object()), d_allocator_p);
@@ -22292,11 +22146,6 @@ ClustersCommand::ClustersCommand(ClustersCommand&& original,
     switch (d_selectionId) {
     case SELECTION_ID_LIST: {
         new (d_list.buffer()) Void(bsl::move(original.d_list.object()));
-    } break;
-    case SELECTION_ID_ADD_REVERSE_PROXY: {
-        new (d_addReverseProxy.buffer())
-            AddReverseProxy(bsl::move(original.d_addReverseProxy.object()),
-                            d_allocator_p);
     } break;
     case SELECTION_ID_CLUSTER: {
         new (d_cluster.buffer())
@@ -22315,9 +22164,6 @@ ClustersCommand& ClustersCommand::operator=(const ClustersCommand& rhs)
         switch (rhs.d_selectionId) {
         case SELECTION_ID_LIST: {
             makeList(rhs.d_list.object());
-        } break;
-        case SELECTION_ID_ADD_REVERSE_PROXY: {
-            makeAddReverseProxy(rhs.d_addReverseProxy.object());
         } break;
         case SELECTION_ID_CLUSTER: {
             makeCluster(rhs.d_cluster.object());
@@ -22340,9 +22186,6 @@ ClustersCommand& ClustersCommand::operator=(ClustersCommand&& rhs)
         case SELECTION_ID_LIST: {
             makeList(bsl::move(rhs.d_list.object()));
         } break;
-        case SELECTION_ID_ADD_REVERSE_PROXY: {
-            makeAddReverseProxy(bsl::move(rhs.d_addReverseProxy.object()));
-        } break;
         case SELECTION_ID_CLUSTER: {
             makeCluster(bsl::move(rhs.d_cluster.object()));
         } break;
@@ -22362,9 +22205,6 @@ void ClustersCommand::reset()
     case SELECTION_ID_LIST: {
         d_list.object().~Void();
     } break;
-    case SELECTION_ID_ADD_REVERSE_PROXY: {
-        d_addReverseProxy.object().~AddReverseProxy();
-    } break;
     case SELECTION_ID_CLUSTER: {
         d_cluster.object().~Cluster();
     } break;
@@ -22379,9 +22219,6 @@ int ClustersCommand::makeSelection(int selectionId)
     switch (selectionId) {
     case SELECTION_ID_LIST: {
         makeList();
-    } break;
-    case SELECTION_ID_ADD_REVERSE_PROXY: {
-        makeAddReverseProxy();
     } break;
     case SELECTION_ID_CLUSTER: {
         makeCluster();
@@ -22450,53 +22287,6 @@ Void& ClustersCommand::makeList(Void&& value)
 }
 #endif
 
-AddReverseProxy& ClustersCommand::makeAddReverseProxy()
-{
-    if (SELECTION_ID_ADD_REVERSE_PROXY == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_addReverseProxy.object());
-    }
-    else {
-        reset();
-        new (d_addReverseProxy.buffer()) AddReverseProxy(d_allocator_p);
-        d_selectionId = SELECTION_ID_ADD_REVERSE_PROXY;
-    }
-
-    return d_addReverseProxy.object();
-}
-
-AddReverseProxy&
-ClustersCommand::makeAddReverseProxy(const AddReverseProxy& value)
-{
-    if (SELECTION_ID_ADD_REVERSE_PROXY == d_selectionId) {
-        d_addReverseProxy.object() = value;
-    }
-    else {
-        reset();
-        new (d_addReverseProxy.buffer()) AddReverseProxy(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_ADD_REVERSE_PROXY;
-    }
-
-    return d_addReverseProxy.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AddReverseProxy& ClustersCommand::makeAddReverseProxy(AddReverseProxy&& value)
-{
-    if (SELECTION_ID_ADD_REVERSE_PROXY == d_selectionId) {
-        d_addReverseProxy.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_addReverseProxy.buffer())
-            AddReverseProxy(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_ADD_REVERSE_PROXY;
-    }
-
-    return d_addReverseProxy.object();
-}
-#endif
-
 Cluster& ClustersCommand::makeCluster()
 {
     if (SELECTION_ID_CLUSTER == d_selectionId) {
@@ -22554,9 +22344,6 @@ bsl::ostream& ClustersCommand::print(bsl::ostream& stream,
     case SELECTION_ID_LIST: {
         printer.printAttribute("list", d_list.object());
     } break;
-    case SELECTION_ID_ADD_REVERSE_PROXY: {
-        printer.printAttribute("addReverseProxy", d_addReverseProxy.object());
-    } break;
     case SELECTION_ID_CLUSTER: {
         printer.printAttribute("cluster", d_cluster.object());
     } break;
@@ -22571,8 +22358,6 @@ const char* ClustersCommand::selectionName() const
     switch (d_selectionId) {
     case SELECTION_ID_LIST:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST].name();
-    case SELECTION_ID_ADD_REVERSE_PROXY:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_ADD_REVERSE_PROXY].name();
     case SELECTION_ID_CLUSTER:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER].name();
     default:

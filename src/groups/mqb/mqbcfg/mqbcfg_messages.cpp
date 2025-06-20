@@ -3534,7 +3534,7 @@ void PartitionConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_maxJournalFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxQlistFileSize);
     d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
-    d_preallocate = DEFAULT_INITIALIZER_PREALLOCATE;
+    d_preallocate    = DEFAULT_INITIALIZER_PREALLOCATE;
     bdlat_ValueTypeFunctions::reset(&d_maxArchivedFileSets);
     d_prefaultPages   = DEFAULT_INITIALIZER_PREFAULT_PAGES;
     d_flushAtShutdown = DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN;
@@ -4347,143 +4347,6 @@ bsl::ostream& NetworkInterfaces::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("heartbeats", this->heartbeats());
     printer.printAttribute("tcpInterface", this->tcpInterface());
-    printer.end();
-    return stream;
-}
-
-// -------------------------------
-// class ReversedClusterConnection
-// -------------------------------
-
-// CONSTANTS
-
-const char ReversedClusterConnection::CLASS_NAME[] =
-    "ReversedClusterConnection";
-
-const bdlat_AttributeInfo ReversedClusterConnection::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_NAME,
-     "name",
-     sizeof("name") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_CONNECTIONS,
-     "connections",
-     sizeof("connections") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-ReversedClusterConnection::lookupAttributeInfo(const char* name,
-                                               int         nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            ReversedClusterConnection::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo*
-ReversedClusterConnection::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
-    case ATTRIBUTE_ID_CONNECTIONS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONNECTIONS];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-ReversedClusterConnection::ReversedClusterConnection(
-    bslma::Allocator* basicAllocator)
-: d_connections(basicAllocator)
-, d_name(basicAllocator)
-{
-}
-
-ReversedClusterConnection::ReversedClusterConnection(
-    const ReversedClusterConnection& original,
-    bslma::Allocator*                basicAllocator)
-: d_connections(original.d_connections, basicAllocator)
-, d_name(original.d_name, basicAllocator)
-{
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReversedClusterConnection::ReversedClusterConnection(
-    ReversedClusterConnection&& original) noexcept
-: d_connections(bsl::move(original.d_connections)),
-  d_name(bsl::move(original.d_name))
-{
-}
-
-ReversedClusterConnection::ReversedClusterConnection(
-    ReversedClusterConnection&& original,
-    bslma::Allocator*           basicAllocator)
-: d_connections(bsl::move(original.d_connections), basicAllocator)
-, d_name(bsl::move(original.d_name), basicAllocator)
-{
-}
-#endif
-
-ReversedClusterConnection::~ReversedClusterConnection()
-{
-}
-
-// MANIPULATORS
-
-ReversedClusterConnection&
-ReversedClusterConnection::operator=(const ReversedClusterConnection& rhs)
-{
-    if (this != &rhs) {
-        d_name        = rhs.d_name;
-        d_connections = rhs.d_connections;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReversedClusterConnection&
-ReversedClusterConnection::operator=(ReversedClusterConnection&& rhs)
-{
-    if (this != &rhs) {
-        d_name        = bsl::move(rhs.d_name);
-        d_connections = bsl::move(rhs.d_connections);
-    }
-
-    return *this;
-}
-#endif
-
-void ReversedClusterConnection::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_name);
-    bdlat_ValueTypeFunctions::reset(&d_connections);
-}
-
-// ACCESSORS
-
-bsl::ostream& ReversedClusterConnection::print(bsl::ostream& stream,
-                                               int           level,
-                                               int spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("name", this->name());
-    printer.printAttribute("connections", this->connections());
     printer.end();
     return stream;
 }
@@ -5850,11 +5713,6 @@ const bdlat_AttributeInfo ClustersDefinition::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("myClusters") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_MY_REVERSE_CLUSTERS,
-     "myReverseClusters",
-     sizeof("myReverseClusters") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_MY_VIRTUAL_CLUSTERS,
      "myVirtualClusters",
      sizeof("myVirtualClusters") - 1,
@@ -5864,11 +5722,6 @@ const bdlat_AttributeInfo ClustersDefinition::ATTRIBUTE_INFO_ARRAY[] = {
      "proxyClusters",
      sizeof("proxyClusters") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_REVERSED_CLUSTER_CONNECTIONS,
-     "reversedClusterConnections",
-     sizeof("reversedClusterConnections") - 1,
-     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -5876,7 +5729,7 @@ const bdlat_AttributeInfo ClustersDefinition::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ClustersDefinition::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ClustersDefinition::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5894,15 +5747,10 @@ const bdlat_AttributeInfo* ClustersDefinition::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_MY_CLUSTERS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_CLUSTERS];
-    case ATTRIBUTE_ID_MY_REVERSE_CLUSTERS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_REVERSE_CLUSTERS];
     case ATTRIBUTE_ID_MY_VIRTUAL_CLUSTERS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MY_VIRTUAL_CLUSTERS];
     case ATTRIBUTE_ID_PROXY_CLUSTERS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROXY_CLUSTERS];
-    case ATTRIBUTE_ID_REVERSED_CLUSTER_CONNECTIONS:
-        return &ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_REVERSED_CLUSTER_CONNECTIONS];
     default: return 0;
     }
 }
@@ -5910,9 +5758,7 @@ const bdlat_AttributeInfo* ClustersDefinition::lookupAttributeInfo(int id)
 // CREATORS
 
 ClustersDefinition::ClustersDefinition(bslma::Allocator* basicAllocator)
-: d_myReverseClusters(basicAllocator)
-, d_myVirtualClusters(basicAllocator)
-, d_reversedClusterConnections(basicAllocator)
+: d_myVirtualClusters(basicAllocator)
 , d_proxyClusters(basicAllocator)
 , d_myClusters(basicAllocator)
 {
@@ -5920,10 +5766,7 @@ ClustersDefinition::ClustersDefinition(bslma::Allocator* basicAllocator)
 
 ClustersDefinition::ClustersDefinition(const ClustersDefinition& original,
                                        bslma::Allocator* basicAllocator)
-: d_myReverseClusters(original.d_myReverseClusters, basicAllocator)
-, d_myVirtualClusters(original.d_myVirtualClusters, basicAllocator)
-, d_reversedClusterConnections(original.d_reversedClusterConnections,
-                               basicAllocator)
+: d_myVirtualClusters(original.d_myVirtualClusters, basicAllocator)
 , d_proxyClusters(original.d_proxyClusters, basicAllocator)
 , d_myClusters(original.d_myClusters, basicAllocator)
 {
@@ -5932,10 +5775,7 @@ ClustersDefinition::ClustersDefinition(const ClustersDefinition& original,
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 ClustersDefinition::ClustersDefinition(ClustersDefinition&& original) noexcept
-: d_myReverseClusters(bsl::move(original.d_myReverseClusters)),
-  d_myVirtualClusters(bsl::move(original.d_myVirtualClusters)),
-  d_reversedClusterConnections(
-      bsl::move(original.d_reversedClusterConnections)),
+: d_myVirtualClusters(bsl::move(original.d_myVirtualClusters)),
   d_proxyClusters(bsl::move(original.d_proxyClusters)),
   d_myClusters(bsl::move(original.d_myClusters))
 {
@@ -5943,11 +5783,7 @@ ClustersDefinition::ClustersDefinition(ClustersDefinition&& original) noexcept
 
 ClustersDefinition::ClustersDefinition(ClustersDefinition&& original,
                                        bslma::Allocator*    basicAllocator)
-: d_myReverseClusters(bsl::move(original.d_myReverseClusters), basicAllocator)
-, d_myVirtualClusters(bsl::move(original.d_myVirtualClusters), basicAllocator)
-, d_reversedClusterConnections(
-      bsl::move(original.d_reversedClusterConnections),
-      basicAllocator)
+: d_myVirtualClusters(bsl::move(original.d_myVirtualClusters), basicAllocator)
 , d_proxyClusters(bsl::move(original.d_proxyClusters), basicAllocator)
 , d_myClusters(bsl::move(original.d_myClusters), basicAllocator)
 {
@@ -5964,11 +5800,9 @@ ClustersDefinition&
 ClustersDefinition::operator=(const ClustersDefinition& rhs)
 {
     if (this != &rhs) {
-        d_myClusters                 = rhs.d_myClusters;
-        d_myReverseClusters          = rhs.d_myReverseClusters;
-        d_myVirtualClusters          = rhs.d_myVirtualClusters;
-        d_proxyClusters              = rhs.d_proxyClusters;
-        d_reversedClusterConnections = rhs.d_reversedClusterConnections;
+        d_myClusters        = rhs.d_myClusters;
+        d_myVirtualClusters = rhs.d_myVirtualClusters;
+        d_proxyClusters     = rhs.d_proxyClusters;
     }
 
     return *this;
@@ -5979,12 +5813,9 @@ ClustersDefinition::operator=(const ClustersDefinition& rhs)
 ClustersDefinition& ClustersDefinition::operator=(ClustersDefinition&& rhs)
 {
     if (this != &rhs) {
-        d_myClusters                 = bsl::move(rhs.d_myClusters);
-        d_myReverseClusters          = bsl::move(rhs.d_myReverseClusters);
-        d_myVirtualClusters          = bsl::move(rhs.d_myVirtualClusters);
-        d_proxyClusters              = bsl::move(rhs.d_proxyClusters);
-        d_reversedClusterConnections = bsl::move(
-            rhs.d_reversedClusterConnections);
+        d_myClusters        = bsl::move(rhs.d_myClusters);
+        d_myVirtualClusters = bsl::move(rhs.d_myVirtualClusters);
+        d_proxyClusters     = bsl::move(rhs.d_proxyClusters);
     }
 
     return *this;
@@ -5994,10 +5825,8 @@ ClustersDefinition& ClustersDefinition::operator=(ClustersDefinition&& rhs)
 void ClustersDefinition::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_myClusters);
-    bdlat_ValueTypeFunctions::reset(&d_myReverseClusters);
     bdlat_ValueTypeFunctions::reset(&d_myVirtualClusters);
     bdlat_ValueTypeFunctions::reset(&d_proxyClusters);
-    bdlat_ValueTypeFunctions::reset(&d_reversedClusterConnections);
 }
 
 // ACCESSORS
@@ -6009,11 +5838,8 @@ bsl::ostream& ClustersDefinition::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("myClusters", this->myClusters());
-    printer.printAttribute("myReverseClusters", this->myReverseClusters());
     printer.printAttribute("myVirtualClusters", this->myVirtualClusters());
     printer.printAttribute("proxyClusters", this->proxyClusters());
-    printer.printAttribute("reversedClusterConnections",
-                           this->reversedClusterConnections());
     printer.end();
     return stream;
 }
@@ -6152,4 +5978,3 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
-// ----------------------------------------------------------------------------
