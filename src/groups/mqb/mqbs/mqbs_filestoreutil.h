@@ -268,16 +268,16 @@ struct FileStoreUtil {
     /// corresponding journal, data and qlist files (if **specified**) in
     /// the specified 'journalFd' and 'dataFd', and the optionally specified
     /// 'qlistFd' respectively, and update the specified 'recoveryFileSet'
-    /// with the retrieved set, update the specified 'journalFilePos' and
-    /// 'dataFilePos' with the corresponding write offsets, and archive the
-    /// remaining sets to the specified 'config' archiveLocation.  If the
-    /// specified 'readOnly' is true, open the files in read-only mode. The
-    /// behavior also depends on the specified 'isFSMWorkflow' flag.  Return
-    /// 0 on success, non zero value otherwise along with populating the
-    /// specified 'errorDescription' with a brief reason for logging
-    /// purposes.  Note that a return value of '1' is special and indicates
-    /// that no file sets were present at 'config' location.  Also note that
-    /// in case of error, this method closes any files it opened.
+    /// with the retrieved set, update the specified 'journalFilePos',
+    /// 'dataFilePos' and optionally specified 'qlistFilePos' with the
+    /// corresponding write offsets, and archive the remaining sets to the
+    /// specified 'config' archiveLocation.  If the specified 'readOnly' is
+    /// true, open the files in read-only mode.  Return 0 on success, non zero
+    /// value otherwise along with populating the specified 'errorDescription'
+    /// with a brief reason for logging purposes.  Note that a return value of
+    /// '1' is special and indicates that no file sets were present at 'config'
+    /// location.  Also note that in case of error, this method closes any
+    /// files it opened.
     static int openRecoveryFileSet(bsl::ostream&         errorDescription,
                                    MappedFileDescriptor* journalFd,
                                    MappedFileDescriptor* dataFd,
@@ -288,8 +288,8 @@ struct FileStoreUtil {
                                    int                   numSetsToCheck,
                                    const mqbs::DataStoreConfig& config,
                                    bool                         readOnly,
-                                   bool                         isFSMWorkflow,
-                                   MappedFileDescriptor*        qlistFd = 0);
+                                   MappedFileDescriptor*        qlistFd = 0,
+                                   bsls::Types::Uint64* qlistFilePos    = 0);
 
     /// Set the specified 'journalOffset' and 'dataOffset' to the end of
     /// Journal/Data file header respectively based on the specified 'jit'
@@ -305,26 +305,67 @@ struct FileStoreUtil {
                          bsls::Types::Uint64*       qlistOffset = 0,
                          const QlistFileIterator&   qit = QlistFileIterator());
 
-    /// Load into the specified `jit`, `dit` and `qit` the iterators
-    /// corresponding to the already opened specified `journalFd`, `dataFd`
-    /// and `qlistFd` files respectively, with the names of the three files
-    /// captured in the specified `fileSet`.  Return 0 on success, non-zero
-    /// value otherwise along with populating the specified
-    /// `errorDescription` with a brief reason for logging purposes.
-    /// Behavior is undefined unless `journalFd`, `qlistFd` and `dataFd`
-    /// represent opened files. The optionally specified `needData` and
-    /// `needQList` values make sure to not do the work to load data and
-    /// QList iterators respectively when they are not needed.
-    static int loadIterators(bsl::ostream&               errorDescription,
-                             JournalFileIterator*        jit,
-                             DataFileIterator*           dit,
-                             QlistFileIterator*          qit,
-                             const MappedFileDescriptor& journalFd,
-                             const MappedFileDescriptor& dataFd,
-                             const MappedFileDescriptor& qlistFd,
-                             const FileStoreSet&         fileSet,
-                             bool                        needQList = true,
-                             bool                        needData  = true);
+    /// Load into `jit`, `dit` and `qit` the iterators corresponding to the
+    /// already opened `journalFd`, `dataFd` and `qlistFd` files respectively,
+    /// with the names of the three files captured in `fileSet`.  Skip loading
+    /// into `dit` if it is nullptr; skip loading into `qit` if it is nullptr.
+    /// Return 0 on success, non-zero value otherwise along with populating
+    /// `errorDescription` with a brief reason for logging purposes.  Behavior
+    /// is undefined unless `journalFd`, `dataFd` (if `dit` is not null), and
+    /// `qlistFd` (if `qit` is not null) represent opened files.
+    static int loadIterators(
+        bsl::ostream&               errorDescription,
+        const FileStoreSet&         fileSet,
+        JournalFileIterator*        jit,
+        const MappedFileDescriptor& journalFd,
+        DataFileIterator*           dit     = 0,
+        const MappedFileDescriptor& dataFd  = MappedFileDescriptor(),
+        QlistFileIterator*          qit     = 0,
+        const MappedFileDescriptor& qlistFd = MappedFileDescriptor());
+
+    /// Write a message recorded loaded from `event` at `recordPosition` to the
+    /// `journal` and `dataFile` currently at `dataOffset`.  Store the
+    /// resulting values in `journalPos` and `dataFilePos`, and optionally in
+    /// `headerSize`, `optionsSize`, `messageSize`, `queueKey`, `messageGuid`,
+    /// `refCount`, and `messagePropertiesInfo` if they are not null.  Return 0
+    /// on success, non-zero value otherwise.
+    static int writeMessageRecordImpl(
+        bsls::Types::Uint64*         journalPos,
+        bsls::Types::Uint64*         dataFilePos,
+        const bdlbb::Blob&           event,
+        const bmqu::BlobPosition&    recordPosition,
+        const MappedFileDescriptor&  journal,
+        const MappedFileDescriptor&  dataFile,
+        bsls::Types::Uint64          dataOffset,
+        int*                         headerSize            = 0,
+        int*                         optionsSize           = 0,
+        int*                         messageSize           = 0,
+        mqbu::StorageKey*            queueKey              = 0,
+        bmqt::MessageGUID*           messageGuid           = 0,
+        unsigned int*                refCount              = 0,
+        bmqp::MessagePropertiesInfo* messagePropertiesInfo = 0);
+
+    /// Write a queue creation record loaded from `event` at `recordPosition`
+    /// for `partitionId` to the `journal`.  If `qListAware`, also write to
+    /// `qlistFile` currently at `qlistOffset`.  Store the resulting values in
+    /// `journalPos`, `qlistFilePos` and `appIdKeyPairs`, and optionally in
+    /// `queueRecLength`, `quri`, `queueKey`, and `queueOpType` if they are not
+    /// null.  Return 0 on success, non-zero value otherwise.
+    static int
+    writeQueueCreationRecordImpl(bsls::Types::Uint64*        journalPos,
+                                 bsls::Types::Uint64*        qlistFilePos,
+                                 mqbi::Storage::AppInfos*    appIdKeyPairs,
+                                 int                         partitionId,
+                                 const bdlbb::Blob&          event,
+                                 const bmqu::BlobPosition&   recordPosition,
+                                 const MappedFileDescriptor& journal,
+                                 bool                        qListAware,
+                                 const MappedFileDescriptor& qlistFile,
+                                 bsls::Types::Uint64         qlistOffset,
+                                 unsigned int*      queueRecLength = 0,
+                                 bmqt::Uri*         quri           = 0,
+                                 mqbu::StorageKey*  queueKey       = 0,
+                                 QueueOpType::Enum* queueOpType    = 0);
 };
 
 // ============================================================================
