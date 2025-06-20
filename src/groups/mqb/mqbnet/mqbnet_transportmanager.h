@@ -65,6 +65,7 @@
 // MQB
 
 #include <mqbcfg_messages.h>
+#include <mqbnet_authenticator.h>
 #include <mqbnet_channel.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbnet_tcpsessionfactory.h>
@@ -195,6 +196,9 @@ class TransportManager {
     // BlobBufferFactory to use by the
     // sessions
 
+    /// Authenticator to use for authenticating a connection.
+    bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
+
     // Initial Connection to use
     bslma::ManagedPtr<InitialConnectionHandler> d_initialConnectionHandler_mp;
 
@@ -322,6 +326,7 @@ class TransportManager {
     TransportManager(
         bdlmt::EventScheduler*                       scheduler,
         bdlbb::BlobBufferFactory*                    blobBufferFactory,
+        bslma::ManagedPtr<Authenticator>&            authenticator,
         bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
         mqbstat::StatController*                     statController,
         bslma::Allocator*                            allocator);

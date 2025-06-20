@@ -39,6 +39,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_memory.h>
 #include <bsls_timeinterval.h>
+#include <bslstl_variant.h>
 
 namespace BloombergLP {
 namespace mqba {
@@ -178,54 +179,55 @@ int InitialConnectionHandler::processBlob(
         rc_INVALID_NEGOTIATION_MESSAGE = -1,
     };
 
-    bsl::optional<bmqp_ctrlmsg::AuthenticationMessage> authenticationMsg;
-    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>    negotiationMsg;
+    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                               bmqp_ctrlmsg::NegotiationMessage> >
+        message;
 
     int rc = decodeInitialConnectionMessage(errorDescription,
+                                            &message,
                                             blob,
-                                            &authenticationMsg,
-                                            &negotiationMsg);
+                                            context);
 
     if (rc != rc_SUCCESS) {
         return (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;  // RETURN
     }
 
-    // Authentication or Negotiation based on the type of message received.
-    if (authenticationMsg.has_value()) {
-        rc = d_authenticator_mp->handleAuthentication(
-            errorDescription,
-            isContinueRead,
-            context,
-            authenticationMsg.value());
-    }
-    else if (negotiationMsg.has_value()) {
-        context->negotiationContext()->d_negotiationMessage =
-            negotiationMsg.value();
-
-        rc = d_negotiator_mp->createSessionOnMsgType(
-            errorDescription,
-            session,
-            isContinueRead,
-            context->negotiationContext());
-    }
-    else {
+    if (!message.has_value()) {
         errorDescription << "Decode AuthenticationMessage or "
                             "NegotiationMessage succeeds but nothing gets "
                             "loaded in.";
         rc = (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
+    }
+    else if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+                 message.value())) {
+        rc = d_authenticator_mp->handleAuthentication(
+            errorDescription,
+            isContinueRead,
+            context,
+            bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message.value()));
+    }
+    else if (bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
+                 message.value())) {
+        context->negotiationContext()->d_negotiationMessage =
+            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
+
+        rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
+                                                     session,
+                                                     isContinueRead,
+                                                     context);
     }
 
     return rc;
 }
 
 int InitialConnectionHandler::decodeInitialConnectionMessage(
-    bsl::ostream&                                       errorDescription,
-    const bdlbb::Blob&                                  blob,
-    bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
-    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg)
+    bsl::ostream& errorDescription,
+    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                               bmqp_ctrlmsg::NegotiationMessage> >* message,
+    const bdlbb::Blob&                                              blob,
+    const InitialConnectionContextSp&                               context)
 {
-    BSLS_ASSERT(authenticationMsg);
-    BSLS_ASSERT(negotiationMsg);
+    BSLS_ASSERT(message);
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -250,6 +252,8 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
+    BALL_LOG_INFO << "Received blob: " << bmqu::BlobStartHexDumper(&blob);
+
     if (event.isAuthenticationEvent()) {
         const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
@@ -260,7 +264,9 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
             return rc_INVALID_AUTHENTICATION_EVENT;  // RETURN
         }
 
-        *authenticationMsg = authenticationMessage;
+        context->setAuthenticationEncodingType(
+            event.authenticationEventEncodingType());
+        *message = authenticationMessage;
     }
     else if (event.isControlEvent()) {
         const int rc = event.loadControlEvent(&negotiationMessage);
@@ -271,7 +277,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
             return rc_INVALID_CONTROL_EVENT;  // RETURN
         }
 
-        *negotiationMsg = negotiationMessage;
+        *message = negotiationMessage;
     }
     else {
         errorDescription
@@ -327,9 +333,9 @@ void InitialConnectionHandler::complete(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    bslma::ManagedPtr<mqbnet::Authenticator>& authenticator,
-    bslma::ManagedPtr<mqbnet::Negotiator>&    negotiator,
-    bslma::Allocator*                         allocator)
+    bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
+    mqbnet::Authenticator*                 authenticator,
+    bslma::Allocator*                      allocator)
 : d_authenticator_mp(authenticator)
 , d_negotiator_mp(negotiator)
 , d_allocator_p(allocator)
@@ -394,9 +400,7 @@ void InitialConnectionHandler::handleConnectionFlow(
         // TODO: When we are ready to move on to the next step, we should
         // call `authenticationOutboundOrReverse` here instead before calling
         // `negotiateOutboundOrReverse`.
-        rc = d_negotiator_mp->negotiateOutboundOrReverse(
-            errStream,
-            context->negotiationContext());
+        rc = d_negotiator_mp->negotiateOutboundOrReverse(errStream, context);
 
         // Send outbound request success, continue to read
         if (rc == 0) {

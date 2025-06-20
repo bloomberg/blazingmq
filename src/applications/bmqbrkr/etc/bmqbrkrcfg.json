@@ -92,6 +92,23 @@
         },
         "bmqconfConfig": {
             "cacheTTLSeconds": 30
+        },
+        "plugins": {
+            "libraries": ["/Users/wlei29/Workspace/blazingmq/build/blazingmq/src/plugins/"],
+            "enabled": ["PassAuthenticator"]
+        },
+        "authentication": {
+            "plugins": [
+                {
+                    "name": "FailAuthenticator",
+                    "configs": []
+                },
+                {
+                    "name": "PassAuthenticator",
+                    "configs": []
+                }
+            ],
+            "fallbackPrincipal": "defaultFallbackPrincipal"
         }
     }
 }

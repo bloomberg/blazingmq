@@ -32,6 +32,8 @@
 /// are called only from there.  It is not thread safe.
 
 // MQB
+#include "mqbplug_authenticator.h"
+#include <mqbauthn_authenticationcontroller.h>
 #include <mqbconfm_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
@@ -45,6 +47,8 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
+#include <bdlmt_threadpool.h>
+#include <bdlmt_timereventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
@@ -88,13 +92,25 @@ class Authenticator : public mqbnet::Authenticator {
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
+    typedef bsl::shared_ptr<mqbplug::AuthenticationResult>
+        AuthenticationResultSp;
+
+    typedef bsl::shared_ptr<bmqio::Channel> ChannelSp;
+
   private:
     // DATA
 
-    /// Allocator to use.
-    bslma::Allocator* d_allocator_p;
+    /// Authentication Controller.
+    mqbauthn::AuthenticationController* d_authnController_p;
+
+    bdlmt::ThreadPool d_threadPool;
+
+    bdlmt::TimerEventScheduler d_scheduler;
 
     BlobSpPool* d_blobSpPool_p;
+
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -137,7 +153,8 @@ class Authenticator : public mqbnet::Authenticator {
     int sendAuthenticationMessage(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& message,
-        const AuthenticationContextSp&             context);
+        const bsl::shared_ptr<bmqio::Channel>&     channel,
+        bmqp::EncodingType::Enum                   authenticationEncodingType);
 
     /// Initiate an outbound authentication (i.e., send out some authentication
     /// message and schedule a read of the response) using the specified
@@ -146,6 +163,56 @@ class Authenticator : public mqbnet::Authenticator {
     void
     initiateOutboundAuthentication(const AuthenticationContextSp& context);
 
+    /// Schedule an authentication job in the thread pool using the
+    /// specified `context` and `channel`.  Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
+    int authenticateAsync(bsl::ostream&                  errorDescription,
+                          const AuthenticationContextSp& context,
+                          const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Schedule a re-authentication job in the thread pool using the
+    /// specified `context` and `channel`.  Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
+    int reAuthenticateAsync(bsl::ostream&                  errorDescription,
+                            const AuthenticationContextSp& context,
+                            const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Authenticate the connection using the `AuthenticationMessage` stored in
+    /// `context`.  If authentication fails, invoke
+    /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
+    /// state of `context` as appropriate.
+    void authenticate(const AuthenticationContextSp&         context,
+                      const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Re-authenticate the connection using the `AuthenticationMessage`
+    /// stored in `context`.  If re-authentication fails, invoke
+    /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
+    /// state of `context` as appropriate.
+    void reAuthenticate(const AuthenticationContextSp&         context,
+                        const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Handle re-authentication depending on the type of AuthenticationMessage
+    /// stored in `context` for the specified `context` and `channel`. If the
+    /// re-authentication is successful, return 0; otherwise, return a non-zero
+    /// error code and populate the specified `errorDescription` with a
+    /// description of the error.
+    int handleReauthentication(bsl::ostream&                  errorDescription,
+                               const AuthenticationContextSp& context,
+                               const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void timeout(const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void setTimer(const AuthenticationContextSp& context,
+                  const AuthenticationResultSp&  result,
+                  const ChannelSp&               channel);
+
+    void cleanupOnError(int                            errorCode,
+                        const bsl::string&             errorDescription,
+                        const AuthenticationContextSp& context,
+                        const ChannelSp&               channel);
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Authenticator, bslma::UsesBslmaAllocator)
@@ -153,11 +220,11 @@ class Authenticator : public mqbnet::Authenticator {
   public:
     // CREATORS
 
-    /// Create a new `Authenticator` using the specified
-    /// `bufferFactory`, `dispatcher`, `statContext`, `scheduler` and
-    /// `blobSpPool` to inject in the negotiated sessions.  Use the
-    /// specified `allocator` for all memory allocations.
-    Authenticator(BlobSpPool* blobSpPool, bslma::Allocator* allocator);
+    /// Create a new `Authenticator` using the specified `authnController` and
+    /// `blobSpPool`. Use the specified `allocator` for all memory allocations.
+    Authenticator(mqbauthn::AuthenticationController* authnController,
+                  BlobSpPool*                         blobSpPool,
+                  bslma::Allocator*                   allocator);
 
     /// Destructor
     ~Authenticator() BSLS_KEYWORD_OVERRIDE;
@@ -165,10 +232,20 @@ class Authenticator : public mqbnet::Authenticator {
     // MANIPULATORS
     //   (virtual: mqbnet::Authenticator)
 
-    /// Authenticate the connection using the specified `authenticationMsg`
-    /// and `context`.  An `AuthenticationContext` will be created and stored
-    /// into `context`.  Set `isContinueRead` to true if further reading
-    /// should continue, or false if authentication is complete.
+    /// Start the authenticator.  Return 0 on success, or a non-zero error
+    /// code and populate the specified `errorDescription` with a description
+    /// of the error otherwise.
+    /// This method will block until the thread pool is started.
+    int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the authenticator.  This method will block until the thread pool
+    /// is stopped.
+    void stop() BSLS_KEYWORD_OVERRIDE;
+
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// `authenticationMsg`.  Set `isContinueRead` to true if we want to
+    /// continue reading instead of finishing authentication.  Create an
+    /// AuthenticationContext and store into `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int handleAuthentication(bsl::ostream& errorDescription,
@@ -177,10 +254,10 @@ class Authenticator : public mqbnet::Authenticator {
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 
-    /// Send out outbound authentication message or reverse connection request
-    /// with the specified `context`.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
+    /// Send out outbound authentication message or reverse connection
+    /// request with the specified `context`. Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
     int authenticationOutboundOrReverse(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
