@@ -183,7 +183,7 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
 
     disable_exit_code_check(multi7_node)
 
-    for broker in multi7_node.nodes():
+    for broker in multi7_node.configurator.brokers.values():
         # Stop all nodes
         multi7_node.stop_some_nodes(include=[broker])
 
