@@ -33,10 +33,10 @@
 // BDE
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslstl_stringref.h>
 
 namespace BloombergLP {
 
@@ -80,7 +80,7 @@ class PluginInfo {
     /// and `name`.  Optionally specify an `allocator` used to supply
     /// memory.
     PluginInfo(mqbplug::PluginType::Enum type,
-               bslstl::StringRef         name,
+               bsl::string_view          name,
                bslma::Allocator*         allocator = 0);
 
     /// Create an instance of `PluginInfo` having the same value as
@@ -93,9 +93,9 @@ class PluginInfo {
 
     // MANIPULATORS
     PluginInfo& setType(mqbplug::PluginType::Enum value);
-    PluginInfo& setName(bslstl::StringRef value);
-    PluginInfo& setDescription(bslstl::StringRef value);
-    PluginInfo& setVersion(bslstl::StringRef value);
+    PluginInfo& setName(bsl::string_view value);
+    PluginInfo& setDescription(bsl::string_view value);
+    PluginInfo& setVersion(bsl::string_view value);
 
     /// Set the corresponding field to the specified `value` and return a
     /// reference offering modifiable access to this object.
@@ -158,19 +158,19 @@ inline PluginInfo& PluginInfo::setType(mqbplug::PluginType::Enum value)
     return *this;
 }
 
-inline PluginInfo& PluginInfo::setName(bslstl::StringRef value)
+inline PluginInfo& PluginInfo::setName(bsl::string_view value)
 {
     d_name = value;
     return *this;
 }
 
-inline PluginInfo& PluginInfo::setDescription(bslstl::StringRef value)
+inline PluginInfo& PluginInfo::setDescription(bsl::string_view value)
 {
     d_description = value;
     return *this;
 }
 
-inline PluginInfo& PluginInfo::setVersion(bslstl::StringRef value)
+inline PluginInfo& PluginInfo::setVersion(bsl::string_view value)
 {
     d_version = value;
     return *this;

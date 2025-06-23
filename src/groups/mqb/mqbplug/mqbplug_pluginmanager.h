@@ -129,7 +129,7 @@ class PluginManager BSLS_CPP11_FINAL {
     ///
     /// See `PluginLibrary::loadPluginLibrary()` comments for more detail.
     void enableRequiredPlugins(
-        const bslstl::StringRef&                         pluginPath,
+        bsl::string_view                                 pluginPath,
         const bslma::ManagedPtr<mqbplug::PluginLibrary>& pluginLibrary,
         RequiredPluginsRecord*                           requiredPlugins,
         bsl::vector<bsl::string>*                        pluginsProvided,

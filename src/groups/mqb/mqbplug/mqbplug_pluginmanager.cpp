@@ -86,7 +86,7 @@ PluginManager::PluginManager(bslma::Allocator* allocator)
 }
 
 void PluginManager::enableRequiredPlugins(
-    const bslstl::StringRef&                pluginPath,
+    bsl::string_view                        pluginPath,
     const bslma::ManagedPtr<PluginLibrary>& pluginLibrary,
     RequiredPluginsRecord*                  requiredPlugins,
     bsl::vector<bsl::string>*               pluginsProvided,
