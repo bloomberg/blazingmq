@@ -29,7 +29,7 @@ from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
-DEFAULT_TIMEOUT = 2
+CONSUMER_WAIT_TIMEOUT_SEC = 60
 
 
 def disable_exit_code_check(cluster: Cluster):
@@ -54,17 +54,17 @@ class MessagesCounter:
     def post_message(self, producer: Client, uri: str):
         """Post a message and increment the counter."""
 
+        self.number_posted += 1
         producer.post(
             uri, payload=[f"msg {self.number_posted}"], wait_ack=True, succeed=True
         )
-        self.number_posted += 1
 
     def assert_posted(self, consumer: Client, uri: str):
         consumer.wait_push_event()
         assert wait_until(
             lambda: len(consumer.list(uri, block=True)) == 1,
-            DEFAULT_TIMEOUT,
-        ), "Consumer did not receive message"
+            CONSUMER_WAIT_TIMEOUT_SEC,
+        ), f"Consumer did not receive message {self.number_posted}"
 
         assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS, (
             f"Consumer did not confirm message {self.number_posted}"
@@ -72,7 +72,7 @@ class MessagesCounter:
 
         assert wait_until(
             lambda: len(consumer.list(uri, block=True)) == 0,
-            DEFAULT_TIMEOUT,
+            CONSUMER_WAIT_TIMEOUT_SEC,
         ), f"Consumer did not receive message {self.number_posted} after confirm"
 
 
@@ -120,6 +120,13 @@ def test_redeploy_whole_cluster_restart(
     Test to upgrade binaries of cluster nodes one by one.
     Every time a node is upgraded, all the nodes are restarted.
     """
+
+    # Ensure the leader is not changing during cluster restart.
+    # Otherwise cluster gets stuck on leader reelection (in legacy mode)
+    QUORUM_TO_ENSURE_NOT_LEADER = 100
+    for node in multi7_node.nodes():
+        if node is not multi7_node.last_known_leader:
+            node.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
 
     uri_priority = domain_urls.uri_priority
 
