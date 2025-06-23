@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_uri_fuzzer.cpp                                                -*-C++-*-
+// s_bmqfuzz_bmqt_uri.fuzz.cpp                                        -*-C++-*-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
