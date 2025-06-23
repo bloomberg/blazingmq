@@ -277,9 +277,13 @@ class OrderedHashMapWithHistory {
 
     /// Iterate up to the specified `batchSize` of elements (both historical
     /// and live) and erase expired historical records according to the
-    /// specified `now` time.  Return `true`, if there are expired items
-    /// unprocessed because of the `batchSize` limit.
-    bool gc(TimeType now, unsigned batchSize = 0);
+    /// specified `now` time.
+    /// Return rc == 0, if no elements were GCed.
+    /// Return rc > 0, if all the needed elements were GCed and there is
+    ///                nothing more to do now.
+    /// Return rc < 0, if the maximum batch of elements was GCed, but there
+    ///                are more messages to GC.
+    int gc(TimeType now, unsigned batchSize = 0);
 
     /// Remove all entries from this container.  Clear all history.  Note
     /// that this container will be empty after calling this method, but
@@ -655,21 +659,17 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
-inline bool
+inline int
 OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
                                                             unsigned batchSize)
 {
     // Try to advance to either a young item, or to the end of the batch, or to
     // the end of collection.
-    // Return 'true' if at the end of the batch to be called as soon as
-    // possible.  Otherwise, return 'false' to be called at the next timeout.
-    // In either case, resume iteration from where we stopped (or wrap around).
-    // 'erase' can set the iterator back to erase item if its expiration time
-    // is sooner than the current one.
 
     if (d_gcIt == endGc()) {
         d_gcIt = beginGc();
     }
+    const int initialHistorySize = d_historySize;
 
     while (d_gcIt != endGc() && d_historySize) {
         if (now < d_gcIt->d_time) {
@@ -691,12 +691,17 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
         // Meaning, there is no need for 'd_gcIt' to step back.  Only forward.
 
         if (--batchSize == 0) {
-            // remember where we have stopped and resume from there next time
-            return true;  // RETURN
+            // Remember where we have stopped and resume from there next time
+
+            const int historyChange = initialHistorySize - d_historySize;
+            // Note that we return either a negative value or 0 here:
+            return -historyChange;  // RETURN
         }
     }
 
-    return false;
+    const int historyChange = initialHistorySize - d_historySize;
+    // Note that we return either a positive value or 0 here:
+    return historyChange;
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
