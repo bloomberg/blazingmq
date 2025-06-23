@@ -1,4 +1,5 @@
 bmqc_array
+bmqc_batchedpool
 bmqc_monitoredqueue
 bmqc_monitoredqueue_bdlccfixedqueue
 bmqc_monitoredqueue_bdlccsingleconsumerqueue
