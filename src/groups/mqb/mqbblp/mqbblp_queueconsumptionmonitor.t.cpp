@@ -107,7 +107,8 @@ Test::Test()
                                  bdlf::PlaceHolders::_2),  // enableLog
 
             bmqtst::TestHelperUtil::allocator())
-, d_storage(d_queue.uri(),
+, d_storage(0,  // No FileStore
+            d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
             mqbs::DataStore::k_INVALID_PARTITION_ID,
             getDomainConfig(),

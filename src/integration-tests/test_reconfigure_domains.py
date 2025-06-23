@@ -336,6 +336,9 @@ class TestReconfigureDomains:
         # Sleep for long enough to trigger message GC.
         time.sleep(2)
 
+        # Write one more message to trigger early TTL check
+        assert self.post_n_msgs(uri_priority_1, 1)
+
         # Observe that both messages were GC'd from the queue.
         assert leader.erases_messages(uri_priority_1, msgs=2, timeout=1)
 

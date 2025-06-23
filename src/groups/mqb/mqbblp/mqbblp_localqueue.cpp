@@ -56,6 +56,13 @@
 namespace BloombergLP {
 namespace mqbblp {
 
+namespace {
+
+/// The number of messages to expire on idle.
+const int k_EXPIRE_MESSAGES_BATCH_SIZE = 1000;
+
+}
+
 // ----------------
 // class LocalQueue
 // ----------------
@@ -378,6 +385,14 @@ void LocalQueue::flush()
     if (d_state_p->storage()) {
         const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
         d_state_p->storage()->gcHistory(now);
+
+        const bdlt::Datetime      currentTimeUtc = bdlt::CurrentTime::utc();
+        const bsls::Types::Uint64 currentSecondsFromEpoch =
+            static_cast<bsls::Types::Uint64>(
+                bdlt::EpochUtil::convertToTimeT64(currentTimeUtc));
+        d_state_p->storage()->gcExpiredMessages(currentTimeUtc,
+                                                currentSecondsFromEpoch,
+                                                k_EXPIRE_MESSAGES_BATCH_SIZE);
 
         // See notes in 'FileStore::flushStorage' for motivation behind
         // this flush:

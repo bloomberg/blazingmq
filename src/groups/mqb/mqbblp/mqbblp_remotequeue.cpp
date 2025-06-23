@@ -112,6 +112,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // 'mqbs::DataStore::k_INVALID_PARTITION_ID' indicates the case of Proxy.
     bsl::shared_ptr<mqbi::Storage> storageSp;
     storageSp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+                       0,  // No FileStore
                        d_state_p->uri(),
                        d_state_p->key(),
                        mqbs::DataStore::k_INVALID_PARTITION_ID,
