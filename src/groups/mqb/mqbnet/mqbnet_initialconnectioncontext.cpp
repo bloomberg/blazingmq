@@ -33,6 +33,11 @@ InitialConnectionContext::InitialConnectionContext(bool isIncoming)
     // NOTHING
 }
 
+InitialConnectionContext::~InitialConnectionContext()
+{
+    // NOTHING
+}
+
 InitialConnectionContext& InitialConnectionContext::setUserData(void* value)
 {
     d_userData_p = value;
@@ -52,8 +57,7 @@ InitialConnectionContext& InitialConnectionContext::setChannel(
     return *this;
 }
 
-InitialConnectionContext&
-InitialConnectionContext::setInitialConnectionCompleteCb(
+InitialConnectionContext& InitialConnectionContext::setCompleteCb(
     const InitialConnectionCompleteCb& value)
 {
     d_initialConnectionCompleteCb = value;
@@ -88,10 +92,14 @@ InitialConnectionContext::channel() const
     return d_channelSp;
 }
 
-const InitialConnectionContext::InitialConnectionCompleteCb&
-InitialConnectionContext::initialConnectionCompleteCb() const
+void InitialConnectionContext::complete(
+    int                                     rc,
+    const bsl::string&                      error,
+    const bsl::shared_ptr<mqbnet::Session>& session) const
 {
-    return d_initialConnectionCompleteCb;
+    BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
+
+    d_initialConnectionCompleteCb(rc, error, session, channel(), this);
 }
 
 const bsl::shared_ptr<NegotiationContext>&

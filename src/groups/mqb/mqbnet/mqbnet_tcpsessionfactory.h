@@ -437,12 +437,12 @@ class TCPSessionFactory {
     /// case, the specified `callback` must be invoked to notify the channel
     /// factory of the status.
     void negotiationComplete(
-        int                                              statusCode,
-        const bsl::string&                               errorDescription,
-        const bsl::shared_ptr<Session>&                  session,
-        const bsl::shared_ptr<bmqio::Channel>&           channel,
-        const bsl::shared_ptr<OperationContext>&         context,
-        const bsl::shared_ptr<InitialConnectionContext>& negotiatorContext);
+        int                                      statusCode,
+        const bsl::string&                       errorDescription,
+        const bsl::shared_ptr<Session>&          session,
+        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        const InitialConnectionContext*          initialConnectionContext_p,
+        const bsl::shared_ptr<OperationContext>& operationContext);
 
     /// Custom deleter of the session's shared_ptr for the specified
     /// `session` (of type `Session`) associated with the specified `sprep`

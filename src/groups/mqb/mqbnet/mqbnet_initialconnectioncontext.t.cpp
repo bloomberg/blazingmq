@@ -35,6 +35,29 @@
 using namespace BloombergLP;
 using namespace bsl;
 
+namespace {
+
+void complete(const bsl::shared_ptr<int>&             check,
+              int                                     status,
+              const bsl::string&                      errorDescription,
+              const bsl::shared_ptr<mqbnet::Session>& session,
+              const bsl::shared_ptr<bmqio::Channel>&  channel,
+              const mqbnet::InitialConnectionContext* initialConnectionContext)
+{
+    BSLS_ASSERT_SAFE(check);
+
+    BSLS_ASSERT_SAFE(*check == 0);
+
+    *check = status;
+
+    (void)errorDescription;
+    (void)session;
+    (void)channel;
+    (void)initialConnectionContext;
+}
+
+}  // close unnamed namespace
+
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
@@ -76,6 +99,31 @@ static void test1_initialConnectionContext()
             channel.createInplace(allocator);
             BMQTST_ASSERT_EQ(&(obj.setChannel(channel)), &obj);
             BMQTST_ASSERT_EQ(obj.channel(), channel);
+        }
+
+        {
+            // CompletionCb
+
+            bsl::shared_ptr<int> check;
+            int                  rc     = 1;
+            bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();
+
+            check.createInplace(allocator, 0);
+
+            obj.setCompleteCb(bdlf::BindUtil::bind(
+                &complete,
+                check,
+                bdlf::PlaceHolders::_1,  // status
+                bdlf::PlaceHolders::_2,  // errorDescription
+                bdlf::PlaceHolders::_3,  // session
+                bdlf::PlaceHolders::_4,  // channel
+                bdlf::PlaceHolders::_5   // initialConnectionContext
+                ));
+            obj.complete(rc,
+                         bsl::string(),
+                         bsl::shared_ptr<mqbnet::Session>());
+
+            BMQTST_ASSERT_EQ(*check, rc);
         }
     }
 }
