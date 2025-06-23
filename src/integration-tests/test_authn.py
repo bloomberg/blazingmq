@@ -43,6 +43,7 @@ config_authentication = tweak.broker.app_config.authentication(
         "plugins": [
             {"name": "FailAuthenticator", "configs": []},
             {"name": "PassAuthenticator", "configs": []},
+            {"name": "BasicAuthenticator", "configs": []},
         ],
         "fallbackPrincipal": "defaultFallbackPrincipal",
     }
@@ -56,7 +57,7 @@ config_authentication = tweak.broker.app_config.authentication(
 @config_authentication
 def test_authenticate_pass_basic(single_node: Cluster) -> None:
     """
-    Test sending an authentication message using RawClient.
+    This test uses the PassAuthenticator plugin to simulate a successful authentication.
     """
 
     # Start the raw client
@@ -79,7 +80,7 @@ def test_authenticate_pass_basic(single_node: Cluster) -> None:
 @config_authentication
 def test_authenticate_fail_basic(single_node: Cluster) -> None:
     """
-    Test sending an authentication message using RawClient.
+    This test uses the FailAuthenticator plugin to simulate a failed authentication.
     """
 
     # Start the raw client
@@ -100,6 +101,7 @@ def test_authenticate_fail_basic(single_node: Cluster) -> None:
 def test_authenticate_pass_concurrent(single_node: Cluster) -> None:
     """
     Test sending an authentication message using RawClient.
+    This test uses the PassAuthenticator plugin to simulate successful concurrent authentications.
     """
 
     num_threads = 8
@@ -126,13 +128,16 @@ def test_authenticate_pass_concurrent(single_node: Cluster) -> None:
 
 
 @tweak.broker.app_config.plugins.enabled(
-    ["PassAuthenticator"],
+    ["BasicAuthenticator"],
 )
 @libraries
 @config_authentication
-def test_reauthenticate_pass_basic(single_node: Cluster) -> None:
+def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
     """
-    Test sending an authentication message using RawClient.
+    This test checks the behavior of re-authentication with Basic mechanism.
+    It simulates a scenario where the initial authentication is successful,
+    but a subsequent re-authentication fails due to invalid credentials.
+    The test ensures that the client cannot proceed with negotiation after a failed re-authentication.
     """
 
     # Start the raw client
@@ -141,15 +146,15 @@ def test_reauthenticate_pass_basic(single_node: Cluster) -> None:
 
     # Pass: Sending authentication request with Basic mechanism
     # and valid credentials
-    auth_resp = client.send_authentication_request("Basic", "username:password")
+    auth_resp = client.send_authentication_request("Basic", "user1:password1")
     assert auth_resp["authenticateResponse"]["status"]["code"] == 0
 
     # Pass: Sending negotiation request after authentication
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
-    # Fail: Sending re-authentication request for a non-existing mechanism
-    auth_resp = client.send_authentication_request("NonBasic", "username:password")
+    # Fail: Sending re-authentication request with invalid credentials
+    auth_resp = client.send_authentication_request("Basic", "user1:password2")
     assert auth_resp["authenticateResponse"]["status"]["code"] != 0
 
     # Fail: Sending negotiation request after failed re-authentication
