@@ -42,7 +42,7 @@ import blazingmq.dev.configurator.configurator as cfg
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
 
 BLOCK_TIMEOUT = 60
-START_TIMEOUT = 240  # Increased for 7-node cluster running on CI 4-cpu machine
+START_TIMEOUT = 120
 
 
 def open_non_blocking(path, flags):

@@ -25,11 +25,11 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     multi7_node,
     start_cluster,
 )
+from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
 DEFAULT_TIMEOUT = 2
-WAIT_READY = False
 
 
 def disable_exit_code_check(cluster: Cluster):
@@ -45,22 +45,38 @@ def disable_exit_code_check(cluster: Cluster):
         node.check_exit_code = False
 
 
-def update_and_redeploy(cluster: Cluster):
-    """Update the cluster and redeploy it."""
+class MessagesCounter:
+    """Simple counter class to keep track of posted messages."""
 
-    # Stop all nodes
-    disable_exit_code_check(cluster)
-    cluster.stop_nodes()
+    def __init__(self):
+        self.number_posted = 0
 
-    # Update env var for all node, i.e. BLAZINGMQ_BROKER_{NAME}
-    # to the value stored in BLAZINGMQ_BROKER_NEW_VERSION
-    cluster.update_all_brokers_binary(NEW_VERSION_SUFFIX)
+    def post_message(self, producer: Client, uri: str):
+        """Post a message and increment the counter."""
 
-    # Restart all nodes to apply binary update
-    cluster.start_nodes(wait_leader=True, wait_ready=WAIT_READY)
+        producer.post(
+            uri, payload=[f"msg {self.number_posted}"], wait_ack=True, succeed=True
+        )
+        self.number_posted += 1
+
+    def assert_posted(self, consumer: Client, uri: str):
+        consumer.wait_push_event()
+        assert wait_until(
+            lambda: len(consumer.list(uri, block=True)) == 1,
+            DEFAULT_TIMEOUT,
+        ), "Consumer did not receive message"
+
+        assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS, (
+            f"Consumer did not confirm message {self.number_posted}"
+        )
+
+        assert wait_until(
+            lambda: len(consumer.list(uri, block=True)) == 0,
+            DEFAULT_TIMEOUT,
+        ), f"Consumer did not receive message {self.number_posted} after confirm"
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=WAIT_READY)
+@start_cluster(start=True, wait_leader=True, wait_ready=True)
 def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test start, stop, update broker version for all nodes and restart."""
 
@@ -69,23 +85,34 @@ def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     # Start a producer and post a message.
     proxies = multi7_node.proxy_cycle()
     producer = next(proxies).create_client("producer")
-    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
-    producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
-
-    update_and_redeploy(multi7_node)
-
-    producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
-
     consumer = next(proxies).create_client("consumer")
+
+    # Open queue
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     consumer.open(uri_priority, flags=["read"], succeed=True)
-    consumer.wait_push_event()
 
-    assert wait_until(
-        lambda: len(consumer.list(uri_priority, block=True)) == 2, DEFAULT_TIMEOUT
-    )
+    # Post and receive initial message
+    messagesCounter = MessagesCounter()
+    messagesCounter.post_message(producer, uri_priority)
+    messagesCounter.assert_posted(consumer, uri_priority)
+
+    # Stop all nodes
+    disable_exit_code_check(multi7_node)
+    multi7_node.stop_nodes()
+
+    # Update env var for all node, i.e. BLAZINGMQ_BROKER_{NAME}
+    # to the value stored in BLAZINGMQ_BROKER_NEW_VERSION
+    multi7_node.update_all_brokers_binary(NEW_VERSION_SUFFIX)
+
+    # Restart all nodes to apply binary update
+    multi7_node.start_nodes(wait_leader=True, wait_ready=False)
+
+    # Post and receive message after redeploy
+    messagesCounter.post_message(producer, uri_priority)
+    messagesCounter.assert_posted(consumer, uri_priority)
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=WAIT_READY)
+@start_cluster(start=True, wait_leader=True, wait_ready=True)
 def test_redeploy_whole_cluster_restart(
     multi7_node: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -105,26 +132,10 @@ def test_redeploy_whole_cluster_restart(
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    number_posted = 0
-
-    def post_message():
-        nonlocal number_posted
-        number_posted += 1
-        producer.post(
-            uri_priority, payload=[f"msg{number_posted}"], wait_ack=True, succeed=True
-        )
-
-    def assert_posted():
-        nonlocal number_posted
-        consumer.wait_push_event()
-        assert wait_until(
-            lambda: len(consumer.list(uri_priority, block=True)) == number_posted,
-            DEFAULT_TIMEOUT,
-        )
-
     # Post and receive initial message
-    post_message()
-    assert_posted()
+    messagesCounter = MessagesCounter()
+    messagesCounter.post_message(producer, uri_priority)
+    messagesCounter.assert_posted(consumer, uri_priority)
 
     disable_exit_code_check(multi7_node)
 
@@ -136,18 +147,18 @@ def test_redeploy_whole_cluster_restart(
         multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
 
         # Restart all nodes to apply binary update
-        multi7_node.start_nodes(wait_leader=True, wait_ready=WAIT_READY)
+        multi7_node.start_nodes(wait_leader=True, wait_ready=False)
 
         # Post and receive message after each redeploy
-        post_message()
-        assert_posted()
+        messagesCounter.post_message(producer, uri_priority)
+        messagesCounter.assert_posted(consumer, uri_priority)
 
     # Post and receive final message after all nodes have been redeployed
-    post_message()
-    assert_posted()
+    messagesCounter.post_message(producer, uri_priority)
+    messagesCounter.assert_posted(consumer, uri_priority)
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=WAIT_READY)
+@start_cluster(start=True, wait_leader=True, wait_ready=True)
 def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test to upgrade binaries of cluster nodes one by one.
@@ -165,30 +176,14 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    number_posted = 0
-
-    def post_message():
-        nonlocal number_posted
-        number_posted += 1
-        producer.post(
-            uri_priority, payload=[f"msg{number_posted}"], wait_ack=True, succeed=True
-        )
-
-    def assert_posted():
-        nonlocal number_posted
-        consumer.wait_push_event()
-        assert wait_until(
-            lambda: len(consumer.list(uri_priority, block=True)) == number_posted,
-            DEFAULT_TIMEOUT,
-        )
-
     # Post and receive initial message
-    post_message()
-    assert_posted()
+    messagesCounter = MessagesCounter()
+    messagesCounter.post_message(producer, uri_priority)
+    messagesCounter.assert_posted(consumer, uri_priority)
 
     disable_exit_code_check(multi7_node)
 
-    for broker in multi7_node.configurator.brokers.values():
+    for broker in multi7_node.nodes():
         # Stop all nodes
         multi7_node.stop_some_nodes(include=[broker])
 
@@ -197,13 +192,13 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
 
         # Restart all nodes to apply binary update
         multi7_node.start_some_nodes(
-            wait_leader=True, wait_ready=WAIT_READY, include=[broker]
+            wait_leader=False, wait_ready=False, include=[broker]
         )
 
         # Post and receive message after each redeploy
-        post_message()
-        assert_posted()
+        messagesCounter.post_message(producer, uri_priority)
+        messagesCounter.assert_posted(consumer, uri_priority)
 
     # Post and receive final message after all nodes have been redeployed
-    post_message()
-    assert_posted()
+    messagesCounter.post_message(producer, uri_priority)
+    messagesCounter.assert_posted(consumer, uri_priority)
