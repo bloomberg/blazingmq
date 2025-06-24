@@ -40,7 +40,7 @@
 #include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
 
@@ -538,7 +538,7 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
 }
 
 // Begin Benchmark Tests
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_MonitoredSingleConsumerQueue_performance_GoogleBenchmark(
     benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -801,7 +801,7 @@ testN1_bdlccSingleConsumerQueueThreaded_performance_GoogleBenchmark(
     }
 }
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 //=============================================================================
 //                                MAIN PROGRAM
@@ -816,7 +816,7 @@ int main(int argc, char* argv[])
     case 2: test2_MonitoredSingleConsumerQueue_exceed_reset(); break;
     case 1: test1_MonitoredSingleConsumerQueue_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
         BENCHMARK(
             testN1_MonitoredSingleConsumerQueue_performance_GoogleBenchmark)
             ->Unit(benchmark::kMillisecond);

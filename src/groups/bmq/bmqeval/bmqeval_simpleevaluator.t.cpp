@@ -20,16 +20,16 @@
 #include <bmqeval_simpleevaluatorparser.hpp>
 #include <bmqeval_simpleevaluatorscanner.h>
 
-// BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
-#include <benchmark/benchmark.h>
-#endif
-
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_sstream.h>
+
+// BENCHMARKING LIBRARY
+#ifdef BMQTST_BENCHMARK_ENABLED
+#include <benchmark/benchmark.h>
+#endif
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -81,7 +81,7 @@ bdld::Datum MockPropertiesReader::get(const bsl::string& name,
     return iter->second;
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
@@ -599,7 +599,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

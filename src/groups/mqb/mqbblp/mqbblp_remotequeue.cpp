@@ -487,6 +487,7 @@ RemoteQueue::RemoteQueue(QueueState*       state,
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_state_p);
     BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
     BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     // A RemoteQueue must have an upstream id
@@ -869,6 +870,10 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
 void RemoteQueue::flush()
 {
+    if (d_state_p->storage()) {
+        const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+        d_state_p->storage()->gcHistory(now);
+    }
     if (d_queueEngine_mp) {
         const bmqt::MessageGUID dummy;
         d_queueEngine_mp->afterNewMessage(dummy, 0);

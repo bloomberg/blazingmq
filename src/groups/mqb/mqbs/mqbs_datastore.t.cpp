@@ -27,7 +27,7 @@
 #include <bsls_types.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
 
@@ -443,7 +443,7 @@ static void testN4_orderedMapWithCustomHashBenchmark()
          << " insertions per second.\n";
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void
 testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -560,7 +560,8 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -603,7 +604,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
