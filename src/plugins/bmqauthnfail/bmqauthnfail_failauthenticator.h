@@ -29,6 +29,7 @@
 //  the input provided.
 
 // MQB
+#include <bslstl_stringview.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 
