@@ -90,7 +90,7 @@ FileStoreProtocolUtil::bmqHeader(const MappedFileDescriptor& mfd)
     return reinterpret_cast<const FileHeader&>(*(mfd.block().base()));
 }
 
-int FileStoreProtocolUtil::hasValidFirstSyncPointRecord(
+int FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
     const MappedFileDescriptor& journalFd)
 {
     enum {

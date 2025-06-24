@@ -659,11 +659,16 @@
         isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
                            cluster.  This flag *must* be false if
                            'isCSLModeEnabled' is false.
+        doesFSMwriteQLIST: indicates whether the broker still writes to the
+                           to-be-deprecated QLIST file when FSM workflow is
+                           enabled.  If above 'isFSMWorkflow' flag is false,
+                           this flag is ignored.
       </documentation>
     </annotation>
     <sequence>
-      <element name='isCSLModeEnabled' type ='boolean' default='false'/>
-      <element name='isFSMWorkflow'    type ='boolean' default='false'/>
+      <element name='isCSLModeEnabled'  type ='boolean' default='false'/>
+      <element name='isFSMWorkflow'     type ='boolean' default='false'/>
+      <element name='doesFSMwriteQLIST' type ='boolean' default='true'/>
     </sequence>
   </complexType>
 

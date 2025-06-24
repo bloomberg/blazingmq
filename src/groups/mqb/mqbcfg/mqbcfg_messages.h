@@ -397,23 +397,33 @@ class ClusterAttributes {
     // isCSLModeEnabled.: indicates if CSL is enabled for this cluster
     // isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
     // cluster.  This flag *must* be false if 'isCSLModeEnabled' is false.
+    // doesFSMwriteQLIST: indicates whether the broker still writes to the
+    // to-be-deprecated QLIST file when FSM workflow is enabled.  If above
+    // 'isFSMWorkflow' flag is false, this flag is ignored.
 
     // INSTANCE DATA
     bool d_isCSLModeEnabled;
     bool d_isFSMWorkflow;
+    bool d_doesFSMwriteQLIST;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED = 0,
-        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW     = 1
+        ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED     = 0,
+        ATTRIBUTE_ID_IS_F_S_M_WORKFLOW         = 1,
+        ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T = 2
     };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED = 0,
-        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW     = 1
+        ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED     = 0,
+        ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW         = 1,
+        ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T = 2
     };
 
     // CONSTANTS
@@ -422,6 +432,8 @@ class ClusterAttributes {
     static const bool DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED;
 
     static const bool DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
+
+    static const bool DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -484,6 +496,10 @@ class ClusterAttributes {
     // Return a reference to the modifiable "IsFSMWorkflow" attribute of
     // this object.
 
+    bool& doesFSMwriteQLIST();
+    // Return a reference to the modifiable "DoesFSMwriteQLIST" attribute
+    // of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -533,6 +549,10 @@ class ClusterAttributes {
     bool isFSMWorkflow() const;
     // Return the value of the "IsFSMWorkflow" attribute of this object.
 
+    bool doesFSMwriteQLIST() const;
+    // Return the value of the "DoesFSMwriteQLIST" attribute of this
+    // object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const ClusterAttributes& lhs,
                            const ClusterAttributes& rhs)
@@ -541,7 +561,8 @@ class ClusterAttributes {
     // have the same value if each respective attribute has the same value.
     {
         return lhs.isCSLModeEnabled() == rhs.isCSLModeEnabled() &&
-               lhs.isFSMWorkflow() == rhs.isFSMWorkflow();
+               lhs.isFSMWorkflow() == rhs.isFSMWorkflow() &&
+               lhs.doesFSMwriteQLIST() == rhs.doesFSMwriteQLIST();
     }
 
     friend bool operator!=(const ClusterAttributes& lhs,
@@ -567,9 +588,7 @@ class ClusterAttributes {
     // effectively provides a 'bsl::hash' specialization for
     // 'ClusterAttributes'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.isCSLModeEnabled());
-        hashAppend(hashAlg, object.isFSMWorkflow());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -9470,6 +9489,16 @@ inline int BmqconfConfig::cacheTTLSeconds() const
 // class ClusterAttributes
 // -----------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void ClusterAttributes::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->isCSLModeEnabled());
+    hashAppend(hashAlgorithm, this->isFSMWorkflow());
+    hashAppend(hashAlgorithm, this->doesFSMwriteQLIST());
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -9486,6 +9515,13 @@ int ClusterAttributes::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_isFSMWorkflow,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_doesFSMwriteQLIST,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
     if (ret) {
         return ret;
     }
@@ -9508,6 +9544,11 @@ int ClusterAttributes::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_isFSMWorkflow,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW]);
+    }
+    case ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T: {
+        return manipulator(
+            &d_doesFSMwriteQLIST,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
     }
     default: return NOT_FOUND;
     }
@@ -9539,6 +9580,11 @@ inline bool& ClusterAttributes::isFSMWorkflow()
     return d_isFSMWorkflow;
 }
 
+inline bool& ClusterAttributes::doesFSMwriteQLIST()
+{
+    return d_doesFSMwriteQLIST;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
@@ -9554,6 +9600,13 @@ int ClusterAttributes::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_isFSMWorkflow,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_doesFSMwriteQLIST,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
     if (ret) {
         return ret;
     }
@@ -9576,6 +9629,11 @@ int ClusterAttributes::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_isFSMWorkflow,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW]);
+    }
+    case ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T: {
+        return accessor(
+            d_doesFSMwriteQLIST,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T]);
     }
     default: return NOT_FOUND;
     }
@@ -9605,6 +9663,11 @@ inline bool ClusterAttributes::isCSLModeEnabled() const
 inline bool ClusterAttributes::isFSMWorkflow() const
 {
     return d_isFSMWorkflow;
+}
+
+inline bool ClusterAttributes::doesFSMwriteQLIST() const
+{
+    return d_doesFSMwriteQLIST;
 }
 
 // --------------------------

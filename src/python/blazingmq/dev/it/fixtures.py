@@ -490,6 +490,7 @@ class Mode(IntEnum):
         # CSL and FSM settings must be either both enabled or both disabled
         cluster.cluster_attributes.is_cslmode_enabled = self == Mode.FSM
         cluster.cluster_attributes.is_fsmworkflow = self == Mode.FSM
+        cluster.cluster_attributes.does_fsmwrite_qlist = True
 
     @property
     def suffix(self) -> str:

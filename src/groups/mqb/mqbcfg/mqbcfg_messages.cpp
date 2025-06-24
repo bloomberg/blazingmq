@@ -186,6 +186,9 @@ const bool ClusterAttributes::DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED =
 
 const bool ClusterAttributes::DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW = false;
 
+const bool ClusterAttributes::DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T =
+    true;
+
 const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_IS_C_S_L_MODE_ENABLED,
      "isCSLModeEnabled",
@@ -196,6 +199,11 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
      "isFSMWorkflow",
      sizeof("isFSMWorkflow") - 1,
      "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T,
+     "doesFSMwriteQLIST",
+     sizeof("doesFSMwriteQLIST") - 1,
+     "",
      bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
@@ -203,7 +211,7 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ClusterAttributes::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ClusterAttributes::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -223,6 +231,9 @@ const bdlat_AttributeInfo* ClusterAttributes::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_C_S_L_MODE_ENABLED];
     case ATTRIBUTE_ID_IS_F_S_M_WORKFLOW:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_F_S_M_WORKFLOW];
+    case ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_DOES_F_S_MWRITE_Q_L_I_S_T];
     default: return 0;
     }
 }
@@ -232,6 +243,7 @@ const bdlat_AttributeInfo* ClusterAttributes::lookupAttributeInfo(int id)
 ClusterAttributes::ClusterAttributes()
 : d_isCSLModeEnabled(DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED)
 , d_isFSMWorkflow(DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW)
+, d_doesFSMwriteQLIST(DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T)
 {
 }
 
@@ -240,7 +252,8 @@ ClusterAttributes::ClusterAttributes()
 void ClusterAttributes::reset()
 {
     d_isCSLModeEnabled = DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED;
-    d_isFSMWorkflow    = DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
+    d_isFSMWorkflow     = DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
+    d_doesFSMwriteQLIST = DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
 }
 
 // ACCESSORS
@@ -253,6 +266,7 @@ bsl::ostream& ClusterAttributes::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("isCSLModeEnabled", this->isCSLModeEnabled());
     printer.printAttribute("isFSMWorkflow", this->isFSMWorkflow());
+    printer.printAttribute("doesFSMwriteQLIST", this->doesFSMwriteQLIST());
     printer.end();
     return stream;
 }

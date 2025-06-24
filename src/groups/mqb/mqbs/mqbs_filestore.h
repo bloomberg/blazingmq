@@ -386,6 +386,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Whether CSL FSM worklow is in
     // effect
 
+    bool d_qListAware;
+    // Whether the broker still read and writes to the to-be-deprecated Qlist
+    // file.
+
     bool d_ignoreCrc32c;
     // Whether to ignore Crc32
     // calculations.  We should only set
@@ -474,15 +478,24 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int openInRecoveryMode(bsl::ostream&          errorDescription,
                            const QueueKeyInfoMap& queueKeyInfoMap);
 
-    /// In non-FSM workflow, populate the specified `queueKeyInfoMap`
-    /// container with the messages recovered from the BlazingMQ files
-    /// represented by the specified `jit`, `qit` and `dit` iterators.
-    /// Else, use the information from `queueKeyInfoMap` to validate against
-    /// the messages recovered from `jit` and `dit`; QList file will not be
-    /// used since `queueKeyInfoMap` already contains such queue
-    /// information.  Return zero on success, non zero value otherwise.  The
-    /// behavior is undefined unless the journal iterator `jit` is in
-    /// reverse mode.  Note that this method invalidates all iterators.
+    /// Make two passes over the journal file iterator `jit` in reverse
+    /// iteration.
+    ///
+    /// - First pass: Retrieve the list of non-deleted queues from `jit`.  In
+    /// non-FSM workflow, populate `queueKeyInfoMap` with that list; in FSM
+    /// workflow, use information from `queueKeyInfoMap` already populated by
+    /// the CSL to validate against that list.
+    ///
+    /// - Second pass: Iterate over jit`, `dit`, and optionally `qit` if
+    /// `d_qListAware` is true, and retrieve outstanding records for all those
+    /// non-deleted queues in `queueKeyInfoMap` to populate into `d_records`.
+    /// Moreover, update `journalOffset`, `dataOffset` and `qlistOffset` to the
+    /// end of the journal, data and qlist files respectively.
+    ///
+    /// Return zero on success, non zero value otherwise.  The behavior is
+    /// undefined unless the journal iterator `jit` is in reverse mode.
+    ///
+    /// WARNING：This method invalidates all iterators.
     int recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         bsls::Types::Uint64* journalOffset,
                         bsls::Types::Uint64* qlistOffset,
@@ -702,6 +715,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               bdlmt::FixedThreadPool* miscWorkThreadPool,
               bool                    isCSLModeEnabled,
               bool                    isFSMWorkflow,
+              bool                    doesFSMwriteQLIST,
               int                     replicationFactor,
               bslma::Allocator*       allocator);
 
