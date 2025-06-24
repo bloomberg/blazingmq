@@ -335,25 +335,16 @@
         myClusters.................:
             definition of the clusters the current machine is part of (if any);
             empty means this broker does not belong to any cluster
-        myReverseClusters..........:
-            name of the clusters (if any) the current machine is expected to
-            receive inbound connections about and therefore should pro-actively
-            create a proxy cluster at startup
         myVirtualClusters..........:
             information about all the virtual clusters the current machine is
             considered to belong to (if any)
-        clusters...................: array of cluster definition
-        reversedClusterConnections.:
-            cluster and associated remote connections that should be
-            established
+        proxyClusters..............: array of cluster proxy definition
       </documentation>
     </annotation>
     <sequence>
       <element name='myClusters'                 type='tns:ClusterDefinition'         maxOccurs='unbounded'/>
-      <element name='myReverseClusters'          type='string'                        maxOccurs='unbounded'/>
       <element name='myVirtualClusters'          type='tns:VirtualClusterInformation' maxOccurs='unbounded'/>
       <element name='proxyClusters'              type='tns:ClusterProxyDefinition'    maxOccurs='unbounded'/>
-      <element name='reversedClusterConnections' type='tns:ReversedClusterConnection' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
@@ -827,21 +818,6 @@
     </annotation>
     <sequence>
       <element name='endpoint' type='string'/>
-    </sequence>
-  </complexType>
-
-  <complexType name='ReversedClusterConnection'>
-    <annotation>
-      <documentation>
-        Type representing the configuration for remote cluster connections..
-
-        name.............: name of the cluster
-        connections......: list of connections to establish
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='name'        type='string'/>
-      <element name='connections' type='tns:ClusterNodeConnection' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 

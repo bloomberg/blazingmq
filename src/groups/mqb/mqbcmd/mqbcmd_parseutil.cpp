@@ -202,7 +202,6 @@ DEF_FUNC(ConfigProvider, ConfigProviderCommand);
 DEF_FUNC(Stat, StatCommand);
 DEF_FUNC(BrokerConfig, BrokerConfigCommand);
 DEF_FUNC(ClustersCommand, ClustersCommand);
-DEF_FUNC(AddReverseProxy, AddReverseProxy);
 DEF_FUNC(Cluster, Cluster);
 DEF_FUNC(Storage, ClusterCommand);
 DEF_FUNC(StoragePartition, StoragePartition);
@@ -741,34 +740,12 @@ int parseClustersCommand(ClustersCommand* clusters,
         clusters->makeList();
         return expectEnd(error, next);  // RETURN
     }
-    else if (equalCaseless(subcommand, "ADDREVERSE")) {
-        return parseAddReverseProxy(&clusters->makeAddReverseProxy(),
-                                    error,
-                                    next);  // RETURN
-    }
     else if (equalCaseless(subcommand, "CLUSTER")) {
         return parseCluster(&clusters->makeCluster(), error, next);  // RETURN
     }
 
     *error = "Invalid CLUSTERS subcommand: " + subcommand;
     return -1;
-}
-
-/// CLUSTERS ADDREVERSE ...
-int parseAddReverseProxy(AddReverseProxy* command,
-                         bsl::string*     error,
-                         WordGenerator    next)
-{
-    command->clusterName() = next();
-    command->remotePeer()  = next();
-
-    if (command->clusterName().empty() || command->remotePeer().empty()) {
-        *error = "CLUSTERS ADDREVERSE <clusterName> <remotePeer> requires two "
-                 "arguments.";
-        return -1;  // RETURN
-    }
-
-    return expectEnd(error, next);
 }
 
 /// CLUSTERS CLUSTER ...

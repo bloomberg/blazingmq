@@ -1564,32 +1564,6 @@ class NetworkInterfaces:
 
 
 @dataclass
-class ReversedClusterConnection:
-    """Type representing the configuration for remote cluster connections..
-
-    name.............: name of the cluster
-    connections......: list of connections to establish
-    """
-
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    connections: List[ClusterNodeConnection] = field(
-        default_factory=list,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
-        },
-    )
-
-
-@dataclass
 class StatPluginConfig:
     name: str = field(
         default="",
@@ -2087,32 +2061,16 @@ class ClustersDefinition:
     myClusters.................:
     definition of the clusters the current machine is part of (if any);
     empty means this broker does not belong to any cluster
-    myReverseClusters..........:
-    name of the clusters (if any) the current machine is expected to
-    receive inbound connections about and therefore should pro-actively
-    create a proxy cluster at startup
     myVirtualClusters..........:
     information about all the virtual clusters the current machine is
     considered to belong to (if any)
     clusters...................: array of cluster definition
-    reversedClusterConnections.:
-    cluster and associated remote connections that should be
-    established
     """
 
     my_clusters: List[ClusterDefinition] = field(
         default_factory=list,
         metadata={
             "name": "myClusters",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
-        },
-    )
-    my_reverse_clusters: List[str] = field(
-        default_factory=list,
-        metadata={
-            "name": "myReverseClusters",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
@@ -2131,15 +2089,6 @@ class ClustersDefinition:
         default_factory=list,
         metadata={
             "name": "proxyClusters",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
-        },
-    )
-    reversed_cluster_connections: List[ReversedClusterConnection] = field(
-        default_factory=list,
-        metadata={
-            "name": "reversedClusterConnections",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
