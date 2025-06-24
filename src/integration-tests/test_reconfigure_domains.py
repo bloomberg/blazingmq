@@ -356,11 +356,15 @@ class TestReconfigureDomains:
         # Sleep for the same duration as before.
         time.sleep(2)
 
+        # Write one more message to (possibly) trigger idle TTL check and GC.
+        # However, we changed TTL setting and no GC should happen here
+        assert self.post_n_msgs(uri_priority_1, 1)
+
         # Observe that no messages were GC'ed.
         assert not leader.erases_messages(uri_priority_1, timeout=1)
 
         # Verify that the reader can confirm the written messages.
-        self.reader.confirm(uri_priority_1, "+3", succeed=True)
+        self.reader.confirm(uri_priority_1, "+4", succeed=True)
 
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts(
