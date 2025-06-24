@@ -57,7 +57,11 @@ def launch_broker(broker_cmd: str, broker_dir: str, time_limit: float):
             broker_cmd.split(), cwd=broker_dir, timeout=time_limit, check=True
         )
     except subprocess.CalledProcessError as ex:
-        # Handle the case when terminate is called from the fuzzing script.
+        # Broker exited with non-zero exit code.
+        # This could be due the broker calling abort, crashing, etc. The broker
+        # should not exit with a non-zero exit code during graceful shutdown.
+        #
+        # Note on return codes:
         # When the broker is launched via 'run' script, intermediate bash shell
         # is being opened.  So the process tree looks like:
         # fuzzscript -> bash -> bmqbrkr.tsk
@@ -65,17 +69,13 @@ def launch_broker(broker_cmd: str, broker_dir: str, time_limit: float):
         # 'bmqbrkr.tsk'.  There are conventional exit codes for linux utility
         # applications.  In this case:
         # 128+n - Fatal error signal "n"
-        # With a SIGTERM = 15 signal, 128+15=143 should be expected.
-        if ex.returncode == 143:
-            return
+        print(f"Broker command exited with non-zero exit code: {ex.returncode}")
+        os._exit(ex.returncode)  # pylint: disable=W0212
     except subprocess.TimeoutExpired:
         stop_broker(Path(broker_dir), BROKER_TERMINATE_TIMEOUT)
 
-    # boofuzz has an inner loop for handling exceptions.
-    # Just calling 'exit()' or 'sys.exit()' will generate SystemExit exception
-    # which will be handled - this will prevent the application from exit.
-    # That is why 'os._exit()' is used instead.
-    os._exit(-1)  # pylint: disable=W0212
+    # Broker exited gracefully (e.g. due to a stop_broker() call)
+    return
 
 
 def main():
