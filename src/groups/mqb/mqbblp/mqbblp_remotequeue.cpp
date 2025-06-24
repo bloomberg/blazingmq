@@ -871,7 +871,7 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
 void RemoteQueue::flush()
 {
-    if (d_state_p->storage()) {
+    if (d_state_p->storage() && !d_state_p->isStopping()) {
         const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
         d_state_p->storage()->gcHistory(now);
     }

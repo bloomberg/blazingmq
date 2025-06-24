@@ -636,7 +636,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
         bmqp_ctrlmsg::NodeStatus::E_STOPPING);
 
     if (supportShutdownV2) {
-        d_clusterOrchestrator.queueHelper().requestToStopPushing();
+        d_clusterOrchestrator.queueHelper().requestToStopQueues();
 
         bsls::TimeInterval whenToStop(
             bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));

@@ -797,9 +797,12 @@ class Queue : public DispatcherClient {
     /// `specified `subId'.
     virtual bsls::Types::Int64 countUnconfirmed(unsigned int subId) = 0;
 
-    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
-    /// sending PUTs and ACKs.
-    virtual void stopPushing() = 0;
+    /// Set the state of this queue to "stopping".
+    /// This is a one-way step before shutting down the broker.
+    /// In this state, the queue will:
+    /// - Continue receiving CONFIRMs, receiving and sending PUTs and ACKs.
+    /// - Stop sending PUSHes and stop idle GC.
+    virtual void setStopping() = 0;
 
     /// Called when a message with the specified `msgGUID`, `appData`,
     /// `options`, `compressionAlgorithmType` payload is pushed to this

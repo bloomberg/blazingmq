@@ -5125,9 +5125,7 @@ void ClusterQueueHelper::processShutdownEvent()
     }
 }
 
-/// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
-/// sending PUTs and ACKs.
-void ClusterQueueHelper::requestToStopPushing()
+void ClusterQueueHelper::requestToStopQueues()
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5138,7 +5136,7 @@ void ClusterQueueHelper::requestToStopPushing()
     // Assume Shutdown V2
     d_isShutdownLogicOn = true;
 
-    // Prevent future queue operations from sending PUSHes.
+    // Prevent future queue operations from sending PUSHes and GC.
     for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
          ++it) {
         QueueContextSp& queueContextSp = it->second;
@@ -5150,7 +5148,7 @@ void ClusterQueueHelper::requestToStopPushing()
         }
 
         queue->dispatcher()->execute(
-            bdlf::BindUtil::bind(&mqbi::Queue::stopPushing, queue),
+            bdlf::BindUtil::bind(&mqbi::Queue::setStopping, queue),
             queue);
     }
 }
