@@ -29,6 +29,7 @@
 
 // BDE
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsl_unordered_set.h>
 
 namespace BloombergLP {
@@ -122,7 +123,7 @@ void AuthenticationController::stop()
 int AuthenticationController::authenticate(
     bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-    bslstl::StringRef                               mechanism,
+    bsl::string_view                                mechanism,
     const mqbplug::AuthenticationData&              input)
 {
     enum RcEnum {
