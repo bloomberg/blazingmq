@@ -38,6 +38,8 @@
 #include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bsls_keyword.h>
@@ -54,7 +56,7 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    bslma::Allocator*                 d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
@@ -64,15 +66,15 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
     // CREATORS
 
     /// Construct this object using the optionally specified `allocator`.
-    PassAuthenticationResult(const bslstl::StringRef& principal,
-                             bsls::Types::Int64       lifetimeMs,
-                             bslma::Allocator*        allocator);
+    PassAuthenticationResult(bsl::string_view   principal,
+                             bsls::Types::Int64 lifetimeMs,
+                             bslma::Allocator*  allocator);
 
     ~PassAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
-    bslstl::StringRef principal() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view principal() const BSLS_KEYWORD_OVERRIDE;
     const bsl::optional<bsls::Types::Int64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
@@ -113,10 +115,10 @@ class PassAuthenticator : public mqbplug::Authenticator {
     // MANIPULATORS
 
     /// Return the name of the plugin.
-    bslstl::StringRef name() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view name() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the authentication mechanism the Authenticator supports.
-    bslstl::StringRef mechanism() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view mechanism() const BSLS_KEYWORD_OVERRIDE;
 
     /// Authenticate using the data provided in the specified `input`.
     /// - Return `0` on success, and populate the specified `result` with

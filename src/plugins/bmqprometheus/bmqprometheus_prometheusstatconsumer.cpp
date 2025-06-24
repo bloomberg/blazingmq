@@ -41,6 +41,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_exception.h>
 #include <bsl_ostream.h>
+#include <bsl_string_view.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
@@ -72,63 +73,63 @@ class Tagger {
 
   public:
     // MANIPULATORS
-    Tagger& setCluster(const bslstl::StringRef& value)
+    Tagger& setCluster(bsl::string_view value)
     {
-        labels["Cluster"] = value;
+        labels["Cluster"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setDomain(const bslstl::StringRef& value)
+    Tagger& setDomain(bsl::string_view value)
     {
-        labels["Domain"] = value;
+        labels["Domain"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setTier(const bslstl::StringRef& value)
+    Tagger& setTier(bsl::string_view value)
     {
-        labels["Tier"] = value;
+        labels["Tier"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setQueue(const bslstl::StringRef& value)
+    Tagger& setQueue(bsl::string_view value)
     {
-        labels["Queue"] = value;
+        labels["Queue"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setRole(const bslstl::StringRef& value)
+    Tagger& setRole(bsl::string_view value)
     {
-        labels["Role"] = value;
+        labels["Role"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setInstance(const bslstl::StringRef& value)
+    Tagger& setInstance(bsl::string_view value)
     {
-        labels["Instance"] = value;
+        labels["Instance"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setRemoteHost(const bslstl::StringRef& value)
+    Tagger& setRemoteHost(bsl::string_view value)
     {
-        labels["RemoteHost"] = value;
+        labels["RemoteHost"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setDataType(const bslstl::StringRef& value)
+    Tagger& setDataType(bsl::string_view value)
     {
-        labels["DataType"] = value;
+        labels["DataType"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setAppId(const bslstl::StringRef& value)
+    Tagger& setAppId(bsl::string_view value)
     {
-        labels["AppId"] = value;
+        labels["AppId"] = bsl::string(value);
         return *this;
     }
 
-    Tagger& setPort(const bslstl::StringRef& value)
+    Tagger& setPort(bsl::string_view value)
     {
-        labels["Port"] = value;
+        labels["Port"] = bsl::string(value);
         return *this;
     }
 
@@ -655,8 +656,8 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                     clusterIt->datum();
                 bdld::DatumMapRef map = mdSp->datum().theMap();
 
-                bslstl::StringRef upstream = map.find("upstream")->theString();
-                tagger.setRemoteHost(upstream.isEmpty() ? "_none_" : upstream);
+                bsl::string_view upstream = map.find("upstream")->theString();
+                tagger.setRemoteHost(upstream.empty() ? "_none_" : upstream);
             }
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
@@ -815,7 +816,7 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
         bslma::ManagedPtr<bdld::ManagedDatum> mdSp = domainIt->datum();
         bdld::DatumMapRef                     map  = mdSp->datum().theMap();
 
-        const bslstl::StringRef clusterName = map.find("cluster")->theString();
+        const bsl::string_view clusterName = map.find("cluster")->theString();
 
         if (leaders.find(clusterName) == leaders.end()) {
             // is NOT leader
