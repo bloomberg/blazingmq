@@ -24,6 +24,7 @@
 // BDE
 #include <ball_log.h>
 #include <bsl_memory.h>
+#include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
 
@@ -42,7 +43,7 @@ class AuthenticationController {
   private:
     // PRIVATE TYPES
     typedef bslma::ManagedPtr<mqbplug::Authenticator> AuthenticatorMp;
-    typedef bsl::unordered_map<bslstl::StringRef, AuthenticatorMp>
+    typedef bsl::unordered_map<bsl::string_view, AuthenticatorMp>
         AuthenticatorMap;
 
     // DATA
@@ -99,7 +100,7 @@ class AuthenticationController {
     /// Note that the `mechanism` is case insensitive.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
-                     bslstl::StringRef                               mechanism,
+                     bsl::string_view                                mechanism,
                      const mqbplug::AuthenticationData&              input);
 };
 

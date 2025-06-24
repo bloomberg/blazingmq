@@ -28,6 +28,7 @@
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsla_unused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -41,9 +42,9 @@ namespace bmqauthnfail {
 // ------------------------------
 
 FailAuthenticationResult::FailAuthenticationResult(
-    const bslstl::StringRef& principal,
-    bsls::Types::Int64       lifetimeMs,
-    bslma::Allocator*        allocator)
+    bsl::string_view   principal,
+    bsls::Types::Int64 lifetimeMs,
+    bslma::Allocator*  allocator)
 : d_principal(principal)
 , d_lifetimeMs(lifetimeMs)
 , d_allocator_p(allocator)
@@ -54,7 +55,7 @@ FailAuthenticationResult::~FailAuthenticationResult()
 {
 }
 
-bslstl::StringRef FailAuthenticationResult::principal() const
+bsl::string_view FailAuthenticationResult::principal() const
 {
     return d_principal;
 }
@@ -83,12 +84,12 @@ FailAuthenticator::~FailAuthenticator()
     stop();
 }
 
-bslstl::StringRef FailAuthenticator::name() const
+bsl::string_view FailAuthenticator::name() const
 {
     return k_NAME;
 }
 
-bslstl::StringRef FailAuthenticator::mechanism() const
+bsl::string_view FailAuthenticator::mechanism() const
 {
     return "Basic";
 }
