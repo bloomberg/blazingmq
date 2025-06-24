@@ -51,7 +51,7 @@ StatConsumerPluginFactory::~StatConsumerPluginFactory()
 // ----------------------
 
 const mqbcfg::StatPluginConfig*
-StatConsumerUtil::findConsumerConfig(bslstl::StringRef name)
+StatConsumerUtil::findConsumerConfig(bsl::string_view name)
 {
     const bsl::vector<mqbcfg::StatPluginConfig>& configs =
         mqbcfg::BrokerConfig::get().stats().plugins();

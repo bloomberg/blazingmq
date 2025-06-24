@@ -18,6 +18,7 @@
 
 #include <mqbscm_version.h>
 // BDE
+#include <bsl_string_view.h>
 #include <bslim_printer.h>
 #include <bslma_default.h>
 
@@ -30,7 +31,7 @@ namespace mqbplug {
 
 // CREATORS
 PluginInfo::PluginInfo(mqbplug::PluginType::Enum type,
-                       bslstl::StringRef         name,
+                       bsl::string_view          name,
                        bslma::Allocator*         allocator)
 : d_type(type)
 , d_name(name, allocator)

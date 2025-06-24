@@ -41,10 +41,10 @@
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslstl_stringref.h>
 
 namespace BloombergLP {
 namespace mqbplug {
@@ -63,7 +63,7 @@ class AuthenticationData BSLS_KEYWORD_FINAL {
   public:
     // CREATORS
     AuthenticationData(const bsl::vector<char>& authnPayload,
-                       bslstl::StringRef        clientIpAddress);
+                       bsl::string_view         clientIpAddress);
 
     // ACESSORS
 
@@ -71,7 +71,7 @@ class AuthenticationData BSLS_KEYWORD_FINAL {
     const bsl::vector<char>& authnPayload() const;
 
     /// Return the IP Address of the client.
-    bslstl::StringRef clientIpAddress() const;
+    bsl::string_view clientIpAddress() const;
 };
 
 // ==========================
@@ -87,7 +87,7 @@ class AuthenticationResult {
     // ACCESSORS
 
     /// Return the principal.
-    virtual bslstl::StringRef principal() const = 0;
+    virtual bsl::string_view principal() const = 0;
 
     /// Return the remaining lifetime of an authenticated session.
     virtual const bsl::optional<bsls::Types::Int64>& lifetimeMs() const = 0;
@@ -108,12 +108,12 @@ class Authenticator {
     // ACESSORS
 
     /// Return the name of the plugin.
-    virtual bslstl::StringRef name() const = 0;
+    virtual bsl::string_view name() const = 0;
 
     /// Return the authentication mechanism supported by this Authenticator.
     /// Guaranteed to return a valid mechanism once the Authenticator is
     /// constructed.
-    virtual bslstl::StringRef mechanism() const = 0;
+    virtual bsl::string_view mechanism() const = 0;
 
     /// Authenticate using the data provided in the specified `input`.
     /// - Return `0` on success, and populate the specified `result` with
@@ -166,7 +166,7 @@ struct AuthenticatorUtil {
 
     /// Find authenticator config with the specified `name`
     static const mqbcfg::AuthenticatorPluginConfig*
-    findAuthenticatorConfig(bslstl::StringRef name);
+    findAuthenticatorConfig(bsl::string_view name);
 };
 
 // ============================================================================
@@ -179,7 +179,7 @@ struct AuthenticatorUtil {
 
 inline AuthenticationData::AuthenticationData(
     const bsl::vector<char>& authnPayload,
-    bslstl::StringRef        clientIpAddress)
+    bsl::string_view         clientIpAddress)
 : d_authnPayload(authnPayload)
 , d_clientIpAddress(clientIpAddress)
 {
@@ -190,7 +190,7 @@ inline const bsl::vector<char>& AuthenticationData::authnPayload() const
     return d_authnPayload;
 }
 
-inline bslstl::StringRef AuthenticationData::clientIpAddress() const
+inline bsl::string_view AuthenticationData::clientIpAddress() const
 {
     return d_clientIpAddress;
 }
