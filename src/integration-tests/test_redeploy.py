@@ -146,12 +146,12 @@ def test_redeploy_whole_cluster_restart(
 
     disable_exit_code_check(multi7_node)
 
-    for broker in multi7_node.configurator.brokers.values():
+    for broker in multi7_node.nodes():
         # Stop all nodes
         multi7_node.stop_nodes()
 
         # Update binary for the given broker
-        multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
+        multi7_node.update_broker_binary(broker.config, NEW_VERSION_SUFFIX)
 
         # Restart all nodes to apply binary update
         multi7_node.start_nodes(wait_leader=True, wait_ready=False)
@@ -190,17 +190,19 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
 
     disable_exit_code_check(multi7_node)
 
-    for broker in multi7_node.configurator.brokers.values():
-        # Stop all nodes
-        multi7_node.stop_some_nodes(include=[broker])
+    for broker in multi7_node.nodes():
+        # Stop one node
+        broker.stop()
+        multi7_node.make_sure_node_stopped(broker)
 
         # Update binary for the given broker
-        multi7_node.update_broker_binary(broker, NEW_VERSION_SUFFIX)
+        multi7_node.update_broker_binary(broker.config, NEW_VERSION_SUFFIX)
 
-        # Restart all nodes to apply binary update
-        multi7_node.start_some_nodes(
-            wait_leader=False, wait_ready=False, include=[broker]
-        )
+        # Restart the stopped node
+        broker.start()
+        broker.wait_until_started()
+        # When updating just a single node, wait mechanism is not reliable
+        multi7_node.wait_status(wait_leader=False, wait_ready=False)
 
         # Post and receive message after each redeploy
         messagesCounter.post_message(producer, uri_priority)

@@ -285,15 +285,7 @@ class Cluster(contextlib.AbstractContextManager):
             )
 
     def start_nodes(self, wait_leader=True, wait_ready=False):
-        """Start all the nodes in the cluster."""
-        return self.start_some_nodes(
-            wait_leader=wait_leader, wait_ready=wait_ready, include=[]
-        )
-
-    def start_some_nodes(
-        self, include: List[Union[cfg.Broker, str]], wait_leader=True, wait_ready=False
-    ):
-        """Start the nodes in the cluster.
+        """Start all the nodes in the cluster.
 
         If 'wait_leader' is 'True', wait for a leader to be elected.  If
         'wait_ready' is True, wait until the cluster is available in all nodes.
@@ -302,17 +294,9 @@ class Cluster(contextlib.AbstractContextManager):
         'start' is the preferred method to start the cluster as a whole.
         """
 
-        if include:
-            resolved_include = [
-                self._processes[self.resolve_broker_name(b).name] for b in include
-            ]
-            nodes = self.nodes(exclude=resolved_include, invert=True)
-        else:
-            nodes = self.nodes()
+        self._logger.info("starting all nodes")
 
-        self._logger.info("starting %d nodes", len(nodes))
-
-        for node in nodes:
+        for node in self.nodes():
             with internal_use(node):
                 node.start()
                 node.wait_until_started()
@@ -322,11 +306,6 @@ class Cluster(contextlib.AbstractContextManager):
     def stop_nodes(
         self,
     ):
-        """Stop all the nodes in the cluster."""
-
-        return self.stop_some_nodes(include=[])
-
-    def stop_some_nodes(self, include: List[Union[cfg.Broker, str]]):
         """Stop the nodes in the cluster.
 
         NOTE: this method does *not* stop the proxies.
@@ -334,22 +313,14 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.last_known_leader = None
 
-        if include:
-            resolved_include = [
-                self._processes[self.resolve_broker_name(b).name] for b in include
-            ]
-            nodes = self.nodes(exclude=resolved_include, invert=True)
-        else:
-            nodes = self.nodes()
+        self._logger.info("stopping all nodes")
 
-        self._logger.info("stopping %d nodes", len(nodes))
-
-        for node in nodes:
+        for node in self.nodes():
             with internal_use(node):
                 node.stop()
 
-        for node in nodes:
-            self._make_sure_node_stopped(node)
+        for node in self.nodes():
+            self.make_sure_node_stopped(node)
 
     def restart_nodes(self, wait_leader=True, wait_ready=False):
         """Restart all the nodes.
@@ -924,7 +895,7 @@ class Cluster(contextlib.AbstractContextManager):
         self._logger.error(error)
         raise RuntimeError(error)
 
-    def _make_sure_node_stopped(self, process: Broker, num_retries: int = 4):
+    def make_sure_node_stopped(self, process: Broker, num_retries: int = 4):
         """Make sure that the given broker process is stopped.
 
         If the process is still alive, try to stop it several times.
