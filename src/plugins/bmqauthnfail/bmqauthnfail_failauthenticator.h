@@ -17,15 +17,15 @@
 #ifndef INCLUDED_AUTHNFAIL_FAILAUTHENTICATOR
 #define INCLUDED_AUTHNFAIL_FAILAUTHENTICATOR
 
-//@PURPOSE: Provide a plugin that always authenticates successfully.
+//@PURPOSE: Provide a plugin that always authenticates unsuccessfully.
 //
 //@CLASSES:
 //  bmqauthnfail::FailAuthenticator: Authenticator plugin that unconditionally
-//  accepts any authentication request.
+//  rejects any authentication request.
 //
 //@DESCRIPTION:
 //  'bmqauthnfail::FailAuthenticator' implements a dummy authenticator for
-//  testing or development purposes. It always returns success, regardless of
+//  testing or development purposes. It always returns failure, regardless of
 //  the input provided.
 
 // MQB
@@ -38,6 +38,7 @@
 #include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bsls_keyword.h>
@@ -64,15 +65,15 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
     // CREATORS
 
     /// Construct this object using the optionally specified `allocator`.
-    FailAuthenticationResult(const bslstl::StringRef& principal,
-                             bsls::Types::Int64       lifetimeMs,
-                             bslma::Allocator*        allocator);
+    FailAuthenticationResult(bsl::string_view   principal,
+                             bsls::Types::Int64 lifetimeMs,
+                             bslma::Allocator*  allocator);
 
     ~FailAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
-    bslstl::StringRef principal() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view principal() const BSLS_KEYWORD_OVERRIDE;
     const bsl::optional<bsls::Types::Int64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
@@ -113,10 +114,10 @@ class FailAuthenticator : public mqbplug::Authenticator {
     // MANIPULATORS
 
     /// Return the name of the plugin.
-    bslstl::StringRef name() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view name() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the authentication mechanism the Authenticator supports.
-    bslstl::StringRef mechanism() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string_view mechanism() const BSLS_KEYWORD_OVERRIDE;
 
     /// Authenticate using the data provided in the specified `input`.
     /// - Return `0` on success, and populate the specified `result` with
