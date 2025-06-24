@@ -18,6 +18,13 @@
 
 #include <mqbscm_version.h>
 
+// MQB
+#include <mqbcfg_messages.h>
+
+// BDE
+#include <bsl_string_view.h>
+#include <bsl_vector.h>
+
 namespace BloombergLP {
 namespace mqbplug {
 
@@ -58,7 +65,7 @@ AuthenticatorPluginFactory::~AuthenticatorPluginFactory()
 // -----------------------
 
 const mqbcfg::AuthenticatorPluginConfig*
-AuthenticatorUtil::findAuthenticatorConfig(bslstl::StringRef name)
+AuthenticatorUtil::findAuthenticatorConfig(bsl::string_view name)
 {
     const bsl::vector<mqbcfg::AuthenticatorPluginConfig>& authenticatorsCfg =
         mqbcfg::BrokerConfig::get().authentication().plugins();
