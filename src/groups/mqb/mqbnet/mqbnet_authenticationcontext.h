@@ -23,11 +23,11 @@
 ///
 
 // MQB
-#include "bmqp_protocol.h"
 #include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocol.h>
 
 // BDE
 #include <bslmt_mutex.h>
@@ -74,7 +74,7 @@ class AuthenticationContext {
     /// encoding type of the received message.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
-    ReauthenticateCb     d_reAuthenticateCb;
+    ReauthenticateCb     d_reauthenticateCb;
     bsls::AtomicInt      d_state;
     ConnectionType::Enum d_connectionType;
 
@@ -95,7 +95,7 @@ class AuthenticationContext {
         InitialConnectionContext*                  initialConnectionContext,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
         bmqp::EncodingType::Enum                   authenticationEncodingType,
-        const ReauthenticateCb&                    reAuthenticateCb,
+        const ReauthenticateCb&                    reauthenticateCb,
         State                                      state,
         ConnectionType::Enum connectionType = ConnectionType::e_UNKNOWN);
 
@@ -124,7 +124,7 @@ class AuthenticationContext {
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
     bmqp::EncodingType::Enum authenticationEncodingType() const;
-    const ReauthenticateCb&  reAuthenticateCb() const;
+    const ReauthenticateCb&  reauthenticateCb() const;
     ConnectionType::Enum     connectionType() const;
 };
 

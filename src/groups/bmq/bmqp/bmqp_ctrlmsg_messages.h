@@ -13482,7 +13482,7 @@ class AuthenticateResponse {
     // authentication.
     // status.....: Status of the request lifetimeMs.: The duration (in
     // milliseconds) the client's session is valid for.  The client must
-    // re-authenticate before the lifetime expires or it will be disconnected.
+    // reauthenticate before the lifetime expires or it will be disconnected.
     // The session lifetime is undefined if this value is unset.
 
     // INSTANCE DATA
