@@ -2734,8 +2734,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
     // TODO: uncomment when default credential support is implemented
     // if (!event.isAuthenticationEvent() && !d_authenticationContext) {
     //     BALL_LOG_ERROR << "The authentication lifetime has expired.  Need to
-    //     "
-    //                       "re-authenticate.";
+    //     reauthenticate.";
     //     return;  // RETURN
     // }
 
@@ -2769,7 +2768,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
             event.authenticationEventEncodingType());
 
         bmqu::MemOutStream errorStream;
-        rc = d_authenticationContext->reAuthenticateCb()(
+        rc = d_authenticationContext->reauthenticateCb()(
             errorStream,
             d_authenticationContext,
             d_channel_sp);

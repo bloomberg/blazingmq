@@ -708,7 +708,7 @@ void SessionNegotiator::createSession(
         mqbnet::ClusterNode* clusterNode = 0;
         clusterNode = d_clusterCatalog_p->onNegotiationForClusterSession(
             errorDescription,
-            context,
+            context.get(),
             peerIdentity.clusterName(),
             peerIdentity.clusterNodeId());
 
