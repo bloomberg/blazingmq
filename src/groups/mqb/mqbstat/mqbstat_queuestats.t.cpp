@@ -32,7 +32,6 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_memory.h>
 
 // TEST DRIVER
@@ -62,11 +61,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        1024,
-        bmqtst::TestHelperUtil::allocator());
-    mqbmock::Cluster mockCluster(&bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator());
     mqbmock::Domain  mockDomain(&mockCluster,
                                bmqtst::TestHelperUtil::allocator());
 
@@ -277,11 +272,7 @@ static void test3_queueStatsDomain()
     bmqtst::TestHelper::printTestName("QueueStatsDomain");
 
     // Create statcontext
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        1024,
-        bmqtst::TestHelperUtil::allocator());
-    mqbmock::Cluster mockCluster(&bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator());
     mqbmock::Domain  mockDomain(&mockCluster,
                                bmqtst::TestHelperUtil::allocator());
 
@@ -449,14 +440,10 @@ static void test4_queueStatsDomainContent()
                          mqbstat::QueueStatsDomain::Stat::PARAM));
 
     // Create the necessary objects to test
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        1024,
-        bmqtst::TestHelperUtil::allocator());
-    mqbmock::Cluster               mockCluster(&bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator());
-    mqbmock::Domain                mockDomain(&mockCluster,
+    mqbmock::Cluster    mockCluster(bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain     mockDomain(&mockCluster,
                                bmqtst::TestHelperUtil::allocator());
-    bmqst::StatContext*            sc = mockDomain.queueStatContext();
+    bmqst::StatContext* sc = mockDomain.queueStatContext();
 
     mqbstat::QueueStatsDomain obj(bmqtst::TestHelperUtil::allocator());
     obj.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
@@ -587,11 +574,7 @@ static void test5_appIdMetrics()
                                              3,
                                          bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        1024,
-        bmqtst::TestHelperUtil::allocator());
-    mqbmock::Cluster mockCluster(&bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator(),
+    mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator(),
                                  isClusterMember,
                                  isLeader,
                                  isCSL,

@@ -57,6 +57,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
@@ -156,7 +157,7 @@ class Cluster : public mqbi::Cluster {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    bdlbb::PooledBlobBufferFactory d_bufferFactory;
     // Buffer factory to use
 
     BlobSpPool d_blobSpPool;
@@ -257,17 +258,16 @@ class Cluster : public mqbi::Cluster {
     /// the optionally specified `isLeader` is true, self will become the
     /// leader of the cluster.  Note that if `isClusterMember` is false,
     /// `isLeader` cannot be true.
-    Cluster(bdlbb::BlobBufferFactory* bufferFactory,
-            bslma::Allocator*         allocator,
-            bool                      isClusterMember   = false,
-            bool                      isLeader          = false,
-            bool                      isCSLMode         = false,
-            bool                      isFSMWorkflow     = false,
-            bool                      doesFSMwriteQLIST = false,
-            const ClusterNodeDefs&    clusterNodeDefs   = ClusterNodeDefs(),
-            const bslstl::StringRef&  name              = "testCluster",
-            const bslstl::StringRef&  location          = "",
-            const bslstl::StringRef&  archive           = "");
+    Cluster(bslma::Allocator*        allocator,
+            bool                     isClusterMember   = false,
+            bool                     isLeader          = false,
+            bool                     isCSLMode         = false,
+            bool                     isFSMWorkflow     = false,
+            bool                     doesFSMwriteQLIST = false,
+            const ClusterNodeDefs&   clusterNodeDefs   = ClusterNodeDefs(),
+            const bslstl::StringRef& name              = "testCluster",
+            const bslstl::StringRef& location          = "",
+            const bslstl::StringRef& archive           = "");
 
     /// Destructor
     ~Cluster() BSLS_KEYWORD_OVERRIDE;
@@ -426,7 +426,7 @@ class Cluster : public mqbi::Cluster {
     Cluster& _setIsRestoringState(bool value);
 
     /// Get a modifiable reference to this object's buffer factory.
-    bdlbb::BlobBufferFactory* _bufferFactory();
+    bdlbb::BlobBufferFactory* bufferFactory();
 
     /// Get a modifiable reference to this object's blob shared pointer pool.
     BlobSpPool* _blobSpPool();
@@ -583,11 +583,6 @@ inline void Cluster::_setEventProcessor(const EventProcessor& processor)
     d_processor = processor;
 }
 
-inline bdlbb::BlobBufferFactory* Cluster::_bufferFactory()
-{
-    return d_bufferFactory_p;
-}
-
 inline Cluster::BlobSpPool* Cluster::_blobSpPool()
 {
     return &d_blobSpPool;
@@ -611,6 +606,11 @@ inline mqbc::ClusterData* Cluster::_clusterData()
 inline mqbc::ClusterState& Cluster::_state()
 {
     return d_state;
+}
+
+inline bdlbb::BlobBufferFactory* Cluster::bufferFactory()
+{
+    return &d_bufferFactory;
 }
 
 inline void Cluster::advanceTime(int seconds)

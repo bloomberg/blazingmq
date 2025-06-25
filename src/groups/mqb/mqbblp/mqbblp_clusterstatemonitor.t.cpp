@@ -39,7 +39,6 @@
 #include <ball_log.h>
 #include <ball_severity.h>
 #include <bdlb_nullablevalue.h>
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_iostream.h>
@@ -124,8 +123,6 @@ struct TestHelper {
 
   public:
     // PUBLIC DATA
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
-
     bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
 
     bsl::vector<mqbnet::MockClusterNode*> d_nodes;
@@ -134,8 +131,7 @@ struct TestHelper {
 
     // CREATORS
     TestHelper()
-    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
-    , d_cluster_mp(0)
+    : d_cluster_mp(0)
     , d_nodes(bmqtst::TestHelperUtil::allocator())
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     {
@@ -180,8 +176,7 @@ struct TestHelper {
 
         d_cluster_mp.load(
             new (*bmqtst::TestHelperUtil::allocator())
-                mqbmock::Cluster(&d_bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator(),
+                mqbmock::Cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
                                  false,  // isLeader
                                  false,  // isCSLMode
