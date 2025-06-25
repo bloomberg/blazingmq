@@ -223,6 +223,11 @@ class QueueStatsDomain {
     /// Copy constructor and assignment operator are not implemented.
     QueueStatsDomain& operator=(const QueueStatsDomain&) BSLS_CPP11_DELETED;
 
+    // ACCESSORS
+    /// Look for the specified `appId` among the stored appId subcontexts and
+    /// return the pointer to it, or return 0 if a context is not found.
+    bmqst::StatContext* findAppIdContext(const bsl::string& appId) const;
+
   public:
     // CLASS METHODS
 
@@ -259,6 +264,10 @@ class QueueStatsDomain {
     /// Set the writer count to the specified `writerCount`.  Return the
     /// `QueueStatsDomain` object.
     QueueStatsDomain& setWriterCount(int writerCount);
+
+    void setOutstandingData(bsls::Types::Int64 numMessages,
+                            bsls::Types::Int64 numBytes,
+                            const bsl::string& appId);
 
     /// Update statistics for the event of the specified `type` and with the
     /// specified `value`.  Depending on the `type`, `value` can represent
