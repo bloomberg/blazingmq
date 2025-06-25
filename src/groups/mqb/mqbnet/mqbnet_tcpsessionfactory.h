@@ -306,8 +306,8 @@ class TCPSessionFactory {
     bsls::AtomicInt d_nbOpenClients;
 
     /// The number of sessions created; this does not need to be atomic because
-    /// it is always manipulated under the 'd_mutex' (due to usage of the
-    /// 'd_noSessionCondition' condition variable), but it is declared atomic
+    /// it is always manipulated under the `d_mutex` (due to usage of the
+    /// `d_noSessionCondition` condition variable), but it is declared atomic
     /// so that we can access it read-only outside the mutex for logging
     /// purposes.
     bsls::AtomicInt d_nbSessions;
