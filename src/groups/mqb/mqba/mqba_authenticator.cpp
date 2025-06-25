@@ -92,12 +92,12 @@ int Authenticator::onAuthenticationRequest(
             authenticationMsg,  // authenticationMessage
             context
                 ->authenticationEncodingType(),  // authenticationEncodingType
-            bdlf::BindUtil::bind(&Authenticator::reAuthenticateAsync,
+            bdlf::BindUtil::bind(&Authenticator::reauthenticateAsync,
                                  this,                    // authenticator
                                  bdlf::PlaceHolders::_1,  // errorDescription,
                                  bdlf::PlaceHolders::_2,  // context,
                                  bdlf::PlaceHolders::_3   // channel
-                                 ),                       // reAuthenticateCb
+                                 ),                       // reauthenticateCb
             State::e_AUTHENTICATING                       // state
         );
 
@@ -279,13 +279,13 @@ void Authenticator::authenticate(
     }
 }
 
-int Authenticator::reAuthenticateAsync(
+int Authenticator::reauthenticateAsync(
     bsl::ostream&                          errorDescription,
     const AuthenticationContextSp&         context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     int rc = d_threadPool.enqueueJob(
-        bdlf::BindUtil::bind(&Authenticator::reAuthenticate,
+        bdlf::BindUtil::bind(&Authenticator::reauthenticate,
                              this,
                              context,
                              channel));
@@ -300,7 +300,7 @@ int Authenticator::reAuthenticateAsync(
     return rc;
 }
 
-void Authenticator::reAuthenticate(
+void Authenticator::reauthenticate(
     const AuthenticationContextSp&         context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
@@ -350,7 +350,7 @@ void Authenticator::reAuthenticate(
                                   context->authenticationEncodingType());
 
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                             "reAuthenticationError",
+                             "reauthenticationError",
                              rc,
                              d_allocator_p);
         channel->close(status);
@@ -369,7 +369,7 @@ void Authenticator::reAuthenticate(
                            << channel->peerUri()
                            << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
             bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                                 "reAuthenticationError",
+                                 "reauthenticationError",
                                  rc,
                                  d_allocator_p);
             channel->close(status);
@@ -385,7 +385,7 @@ void Authenticator::reAuthenticate(
 
         if (rc != 0) {
             bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                                 "reAuthenticationError",
+                                 "reauthenticationError",
                                  rc,
                                  d_allocator_p);
             channel->close(status);
@@ -467,41 +467,6 @@ int Authenticator::handleAuthentication(
 
     if (rc == rc_SUCCESS) {
         *isContinueRead = true;
-    }
-
-    return rc;
-}
-
-int Authenticator::handleReauthentication(
-    bsl::ostream&                          errorDescription,
-    const AuthenticationContextSp&         context,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
-{
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS = 0,
-        rc_ERROR   = -1,
-    };
-
-    bmqu::MemOutStream errStream;
-    int                rc = rc_SUCCESS;
-
-    switch (context->authenticationMessage().selectionId()) {
-    case bmqp_ctrlmsg::AuthenticationMessage::
-        SELECTION_ID_AUTHENTICATE_REQUEST: {
-        rc = reAuthenticateAsync(errorDescription, context, channel);
-    } break;  // BREAK
-    case bmqp_ctrlmsg::AuthenticationMessage::
-        SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        BALL_LOG_ERROR << "Reauthentication when receiving authentication "
-                          "message is not implemented";
-    } break;  // BREAK
-    default: {
-        errorDescription
-            << "Invalid authentication message received (unknown type): "
-            << context->authenticationMessage();
-        return rc_ERROR;  // RETURN
-    }
     }
 
     return rc;
