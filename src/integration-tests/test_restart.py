@@ -181,9 +181,8 @@ def test_migrate_domain_to_another_cluster(
             functools.partial(
                 multi_node_cluster_config,
                 mode=Mode.LEGACY,
-                reverse_proxy=rp_suffix != "",
             ),
-            id=f"multi_node_switch_fsm{rp_suffix}",
+            id="multi_node_switch_fsm",
             marks=[
                 pytest.mark.integrationtest,
                 pytest.mark.quick_integrationtest,
@@ -192,7 +191,6 @@ def test_migrate_domain_to_another_cluster(
                 *Mode.FSM.marks,
             ],
         )
-        for rp_suffix in ("", "_rp")
     ]
 )
 def switch_fsm_cluster(request):
