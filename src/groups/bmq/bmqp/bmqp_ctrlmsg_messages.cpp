@@ -576,86 +576,6 @@ bsl::ostream& CloseQueueResponse::print(bsl::ostream& stream, int, int) const
     return stream;
 }
 
-// ------------------------
-// class ClusterSyncRequest
-// ------------------------
-
-// CONSTANTS
-
-const char ClusterSyncRequest::CLASS_NAME[] = "ClusterSyncRequest";
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-ClusterSyncRequest::lookupAttributeInfo(const char* name, int nameLength)
-{
-    (void)name;
-    (void)nameLength;
-    return 0;
-}
-
-const bdlat_AttributeInfo* ClusterSyncRequest::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-// MANIPULATORS
-
-void ClusterSyncRequest::reset()
-{
-}
-
-// ACCESSORS
-
-bsl::ostream& ClusterSyncRequest::print(bsl::ostream& stream, int, int) const
-{
-    return stream;
-}
-
-// -------------------------
-// class ClusterSyncResponse
-// -------------------------
-
-// CONSTANTS
-
-const char ClusterSyncResponse::CLASS_NAME[] = "ClusterSyncResponse";
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-ClusterSyncResponse::lookupAttributeInfo(const char* name, int nameLength)
-{
-    (void)name;
-    (void)nameLength;
-    return 0;
-}
-
-const bdlat_AttributeInfo* ClusterSyncResponse::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-// MANIPULATORS
-
-void ClusterSyncResponse::reset()
-{
-}
-
-// ACCESSORS
-
-bsl::ostream& ClusterSyncResponse::print(bsl::ostream& stream, int, int) const
-{
-    return stream;
-}
-
 // ------------------
 // class ConsumerInfo
 // ------------------
@@ -12781,11 +12701,11 @@ ClusterMessageChoice::ClusterMessageChoice(
     } break;
     case SELECTION_ID_CLUSTER_SYNC_REQUEST: {
         new (d_clusterSyncRequest.buffer())
-            ClusterSyncRequest(original.d_clusterSyncRequest.object());
+            DummyType(original.d_clusterSyncRequest.object());
     } break;
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
         new (d_clusterSyncResponse.buffer())
-            ClusterSyncResponse(original.d_clusterSyncResponse.object());
+            DummyType(original.d_clusterSyncResponse.object());
     } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         new (d_queueUnAssignmentAdvisory.buffer()) QueueUnAssignmentAdvisory(
@@ -12927,12 +12847,12 @@ ClusterMessageChoice::ClusterMessageChoice(ClusterMessageChoice&& original)
             bsl::move(original.d_primaryStatusAdvisory.object()));
     } break;
     case SELECTION_ID_CLUSTER_SYNC_REQUEST: {
-        new (d_clusterSyncRequest.buffer()) ClusterSyncRequest(
-            bsl::move(original.d_clusterSyncRequest.object()));
+        new (d_clusterSyncRequest.buffer())
+            DummyType(bsl::move(original.d_clusterSyncRequest.object()));
     } break;
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
-        new (d_clusterSyncResponse.buffer()) ClusterSyncResponse(
-            bsl::move(original.d_clusterSyncResponse.object()));
+        new (d_clusterSyncResponse.buffer())
+            DummyType(bsl::move(original.d_clusterSyncResponse.object()));
     } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         new (d_queueUnAssignmentAdvisory.buffer()) QueueUnAssignmentAdvisory(
@@ -13075,12 +12995,12 @@ ClusterMessageChoice::ClusterMessageChoice(ClusterMessageChoice&& original,
             bsl::move(original.d_primaryStatusAdvisory.object()));
     } break;
     case SELECTION_ID_CLUSTER_SYNC_REQUEST: {
-        new (d_clusterSyncRequest.buffer()) ClusterSyncRequest(
-            bsl::move(original.d_clusterSyncRequest.object()));
+        new (d_clusterSyncRequest.buffer())
+            DummyType(bsl::move(original.d_clusterSyncRequest.object()));
     } break;
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
-        new (d_clusterSyncResponse.buffer()) ClusterSyncResponse(
-            bsl::move(original.d_clusterSyncResponse.object()));
+        new (d_clusterSyncResponse.buffer())
+            DummyType(bsl::move(original.d_clusterSyncResponse.object()));
     } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         new (d_queueUnAssignmentAdvisory.buffer()) QueueUnAssignmentAdvisory(
@@ -13445,10 +13365,10 @@ void ClusterMessageChoice::reset()
         d_primaryStatusAdvisory.object().~PrimaryStatusAdvisory();
     } break;
     case SELECTION_ID_CLUSTER_SYNC_REQUEST: {
-        d_clusterSyncRequest.object().~ClusterSyncRequest();
+        d_clusterSyncRequest.object().~DummyType();
     } break;
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
-        d_clusterSyncResponse.object().~ClusterSyncResponse();
+        d_clusterSyncResponse.object().~DummyType();
     } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         d_queueUnAssignmentAdvisory.object().~QueueUnAssignmentAdvisory();
@@ -14454,29 +14374,28 @@ ClusterMessageChoice::makePrimaryStatusAdvisory(PrimaryStatusAdvisory&& value)
 }
 #endif
 
-ClusterSyncRequest& ClusterMessageChoice::makeClusterSyncRequest()
+DummyType& ClusterMessageChoice::makeClusterSyncRequest()
 {
     if (SELECTION_ID_CLUSTER_SYNC_REQUEST == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_clusterSyncRequest.object());
     }
     else {
         reset();
-        new (d_clusterSyncRequest.buffer()) ClusterSyncRequest();
+        new (d_clusterSyncRequest.buffer()) DummyType();
         d_selectionId = SELECTION_ID_CLUSTER_SYNC_REQUEST;
     }
 
     return d_clusterSyncRequest.object();
 }
 
-ClusterSyncRequest&
-ClusterMessageChoice::makeClusterSyncRequest(const ClusterSyncRequest& value)
+DummyType& ClusterMessageChoice::makeClusterSyncRequest(const DummyType& value)
 {
     if (SELECTION_ID_CLUSTER_SYNC_REQUEST == d_selectionId) {
         d_clusterSyncRequest.object() = value;
     }
     else {
         reset();
-        new (d_clusterSyncRequest.buffer()) ClusterSyncRequest(value);
+        new (d_clusterSyncRequest.buffer()) DummyType(value);
         d_selectionId = SELECTION_ID_CLUSTER_SYNC_REQUEST;
     }
 
@@ -14485,16 +14404,14 @@ ClusterMessageChoice::makeClusterSyncRequest(const ClusterSyncRequest& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterSyncRequest&
-ClusterMessageChoice::makeClusterSyncRequest(ClusterSyncRequest&& value)
+DummyType& ClusterMessageChoice::makeClusterSyncRequest(DummyType&& value)
 {
     if (SELECTION_ID_CLUSTER_SYNC_REQUEST == d_selectionId) {
         d_clusterSyncRequest.object() = bsl::move(value);
     }
     else {
         reset();
-        new (d_clusterSyncRequest.buffer())
-            ClusterSyncRequest(bsl::move(value));
+        new (d_clusterSyncRequest.buffer()) DummyType(bsl::move(value));
         d_selectionId = SELECTION_ID_CLUSTER_SYNC_REQUEST;
     }
 
@@ -14502,29 +14419,29 @@ ClusterMessageChoice::makeClusterSyncRequest(ClusterSyncRequest&& value)
 }
 #endif
 
-ClusterSyncResponse& ClusterMessageChoice::makeClusterSyncResponse()
+DummyType& ClusterMessageChoice::makeClusterSyncResponse()
 {
     if (SELECTION_ID_CLUSTER_SYNC_RESPONSE == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_clusterSyncResponse.object());
     }
     else {
         reset();
-        new (d_clusterSyncResponse.buffer()) ClusterSyncResponse();
+        new (d_clusterSyncResponse.buffer()) DummyType();
         d_selectionId = SELECTION_ID_CLUSTER_SYNC_RESPONSE;
     }
 
     return d_clusterSyncResponse.object();
 }
 
-ClusterSyncResponse&
-ClusterMessageChoice::makeClusterSyncResponse(const ClusterSyncResponse& value)
+DummyType&
+ClusterMessageChoice::makeClusterSyncResponse(const DummyType& value)
 {
     if (SELECTION_ID_CLUSTER_SYNC_RESPONSE == d_selectionId) {
         d_clusterSyncResponse.object() = value;
     }
     else {
         reset();
-        new (d_clusterSyncResponse.buffer()) ClusterSyncResponse(value);
+        new (d_clusterSyncResponse.buffer()) DummyType(value);
         d_selectionId = SELECTION_ID_CLUSTER_SYNC_RESPONSE;
     }
 
@@ -14533,16 +14450,14 @@ ClusterMessageChoice::makeClusterSyncResponse(const ClusterSyncResponse& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterSyncResponse&
-ClusterMessageChoice::makeClusterSyncResponse(ClusterSyncResponse&& value)
+DummyType& ClusterMessageChoice::makeClusterSyncResponse(DummyType&& value)
 {
     if (SELECTION_ID_CLUSTER_SYNC_RESPONSE == d_selectionId) {
         d_clusterSyncResponse.object() = bsl::move(value);
     }
     else {
         reset();
-        new (d_clusterSyncResponse.buffer())
-            ClusterSyncResponse(bsl::move(value));
+        new (d_clusterSyncResponse.buffer()) DummyType(bsl::move(value));
         d_selectionId = SELECTION_ID_CLUSTER_SYNC_RESPONSE;
     }
 
