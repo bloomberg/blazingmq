@@ -42,7 +42,6 @@
 #include <ball_record.h>
 #include <ball_severity.h>
 #include <bdlb_string.h>
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_memory.h>
 #include <bsl_set.h>
@@ -67,7 +66,6 @@ struct Test : bmqtst::Test {
     // PUBLIC DATA
     bsl::string                    d_id;
     mqbmock::Dispatcher            d_dispatcher;
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
     mqbmock::Cluster               d_cluster;
     mqbmock::Domain                d_domain;
     mqbmock::Queue                 d_queue;
@@ -88,8 +86,7 @@ struct Test : bmqtst::Test {
 Test::Test()
 : d_id()
 , d_dispatcher(bmqtst::TestHelperUtil::allocator())
-, d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
-, d_cluster(&d_bufferFactory, bmqtst::TestHelperUtil::allocator())
+, d_cluster(bmqtst::TestHelperUtil::allocator())
 , d_domain(&d_cluster, bmqtst::TestHelperUtil::allocator())
 , d_queue(&d_domain, bmqtst::TestHelperUtil::allocator())
 , d_queueState(&d_queue,
