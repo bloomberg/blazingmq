@@ -337,8 +337,8 @@ class TCPSessionFactory {
     /// the event scheduler thread.
     bsl::unordered_map<bmqio::Channel*, ChannelInfo*> d_heartbeatChannels;
 
-    /// Value for initializing 'ChannelInfo.d_missedHeartbeatCounter'.  See
-    /// comments in 'calculateInitialMissedHbCounter'.
+    /// Value for initializing `ChannelInfo.d_missedHeartbeatCounter`.  See
+    /// comments in `calculateInitialMissedHbCounter`.
     const int d_initialMissedHeartbeatCounter;
 
     /// Handles that can be used to stop listening. Empty unless listening.
