@@ -46,7 +46,6 @@
 #include <bsl_fstream.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
-#include <bsl_memory.h>
 #include <bslmt_mutexassert.h>
 #include <bsls_systemclocktype.h>
 
@@ -632,10 +631,10 @@ int ClusterCatalog::count()
 }
 
 mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
-    bsl::ostream&                                            errorDescription,
-    const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context,
-    const bslstl::StringRef&                                 clusterName,
-    int                                                      nodeId)
+    bsl::ostream&                     errorDescription,
+    mqbnet::InitialConnectionContext* context,
+    const bslstl::StringRef&          clusterName,
+    int                               nodeId)
 {
     mqbnet::ClusterNode* clusterNode = 0;
 
