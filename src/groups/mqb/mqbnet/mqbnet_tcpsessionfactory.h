@@ -344,8 +344,8 @@ class TCPSessionFactory {
     /// Handles that can be used to stop listening. Empty unless listening.
     ListeningHandleMap d_listeningHandles;
 
-    /// Set to 'true' before calling 'listen'.  Set to 'false' in
-    /// 'stopListening'.
+    /// Set to `true` before calling `listen`.  Set to `false` in
+    /// `stopListening`.
     bsls::AtomicBool d_isListening;
 
     /// Mutex for thread safety of this component.
