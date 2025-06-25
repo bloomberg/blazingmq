@@ -1049,6 +1049,11 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
     clusterState->queueKeys().erase(key);
 
     if (!cluster->isCSLModeEnabled()) {
+        // Broadcast 'queueAssignmentAdvisory' to all followers
+        // Do it before 'assignQueue' so that Replicas receive CSL before
+        // QueueCreationRecord
+        clusterData->messageTransmitter().broadcastMessage(controlMsg);
+
         // In CSL mode, we assign the queue to ClusterState upon CSL commit
         // callback of QueueAssignmentAdvisory, so we don't assign it here.
 
@@ -1065,15 +1070,12 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
 
         BALL_LOG_INFO << cluster->description()
                       << ": Queue assigned: " << queueAdvisory;
-
-        // Broadcast 'queueAssignmentAdvisory' to all followers
         //
         // NOTE: We must broadcast this control message before applying to CSL,
         // because if CSL is running in eventual consistency it will
         // immediately apply a commit with a higher seqeuence number than the
         // QueueAssignmentAdvisory.  If we ever receive the commit before the
         // QAA, we will alarm due to out-of-sequence advisory.
-        clusterData->messageTransmitter().broadcastMessage(controlMsg);
     }
 
     // Apply 'queueAssignmentAdvisory' to CSL
