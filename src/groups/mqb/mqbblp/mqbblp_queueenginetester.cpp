@@ -534,6 +534,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     mqbi::Storage* storage_p = new (*d_allocator_p)
         mqbs::InMemoryStorage(d_mockQueue_sp->uri(),
                               k_NULL_QUEUE_KEY,
+                              d_mockDomain_mp.get(),
                               k_PARTITION_ID,
                               domainConfig,
                               d_mockDomain_mp->capacityMeter(),

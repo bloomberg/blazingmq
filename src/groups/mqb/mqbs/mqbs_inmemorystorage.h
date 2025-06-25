@@ -188,6 +188,9 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     ItemsMap d_items;
 
+    /// Statistics of the queue associated to this storage.
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
+
     VirtualStorageCatalog d_virtualStorageCatalog;
 
     RecordHandles d_queueOpRecordHandles;
@@ -246,6 +249,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// `allocator`.
     InMemoryStorage(const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
+                    mqbi::Domain*                  domain,
                     int                            partitionId,
                     const mqbconfm::Domain&        config,
                     mqbu::CapacityMeter*           parentCapacityMeter,

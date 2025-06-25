@@ -50,6 +50,11 @@
 
 namespace BloombergLP {
 
+// FORWARD DECLARATION
+namespace mqbstat {
+class QueueStatsDomain;
+}
+
 namespace mqbs {
 
 // ===========================
@@ -71,7 +76,7 @@ namespace mqbs {
 // offset in the consecutive memory ('VirtualStorage::DataStreamMessage')
 // holding all Apps states ('mqbi::AppMessage') for each guid.
 
-class VirtualStorageCatalog {
+class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBS.VIRTUALSTORAGE");
@@ -155,6 +160,11 @@ class VirtualStorageCatalog {
     /// queue instance has not been created.
     mqbi::Queue* d_queue_p;
 
+    /// Statistics of the queue associated to this storage.
+    /// Must exist even if `d_queue_p` is null to ensure correct queue stats if
+    /// this cluster node changes its role to PRIMARY.
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
+
   private:
     // NOT IMPLEMENTED
     VirtualStorageCatalog(const VirtualStorageCatalog&);  // = delete
@@ -174,9 +184,14 @@ class VirtualStorageCatalog {
   public:
     // CREATORS
 
-    /// Create an instance of virtual storage catalog with the specified
-    /// 'defaultRdaInfo' and 'allocator'.
-    VirtualStorageCatalog(mqbi::Storage* storage, bslma::Allocator* allocator);
+    /// Create an instance of virtual storage catalog associated with the
+    /// specified `storage`.  Use the specified `queueStats_sp` to collect
+    /// metrics for the associated queue.  Use the specified `allocator` for
+    /// all memory allocations.
+    explicit VirtualStorageCatalog(
+        mqbi::Storage*                                    storage,
+        const bsl::shared_ptr<mqbstat::QueueStatsDomain>& queueStats_sp,
+        bslma::Allocator*                                 allocator);
 
     /// Destructor
     ~VirtualStorageCatalog();
