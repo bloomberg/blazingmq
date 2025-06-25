@@ -302,7 +302,7 @@ struct MessageEventBuilderImpl {
     /// and the value is not guaranteed to be correct when in WRITE mode.
     int d_messageCountFinal;
 
-    /// The final message event size of the current 'd_msgEvent' cached on
+    /// The final message event size of the current `d_msgEvent` cached on
     /// switching this MessageEvent from WRITE to READ mode.
     /// This cached value exists because we are not able to access the
     /// underlying PutEventBuilder once downgraded to READ.
