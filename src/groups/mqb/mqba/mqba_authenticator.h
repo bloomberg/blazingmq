@@ -159,7 +159,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// specified `context` and `channel`.  Return 0 on success, or a
     /// non-zero error code and populate the specified `errorDescription`
     /// with a description of the error otherwise.
-    int reAuthenticateAsync(bsl::ostream&                  errorDescription,
+    int reauthenticateAsync(bsl::ostream&                  errorDescription,
                             const AuthenticationContextSp& context,
                             const bsl::shared_ptr<bmqio::Channel>& channel);
 
@@ -170,21 +170,12 @@ class Authenticator : public mqbnet::Authenticator {
     void authenticate(const AuthenticationContextSp&         context,
                       const bsl::shared_ptr<bmqio::Channel>& channel);
 
-    /// Re-authenticate the connection using the `AuthenticationMessage`
+    /// Reauthenticate the connection using the `AuthenticationMessage`
     /// stored in `context`.  If re-authentication fails, invoke
     /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
     /// state of `context` as appropriate.
-    void reAuthenticate(const AuthenticationContextSp&         context,
+    void reauthenticate(const AuthenticationContextSp&         context,
                         const bsl::shared_ptr<bmqio::Channel>& channel);
-
-    /// Handle re-authentication depending on the type of AuthenticationMessage
-    /// stored in `context` for the specified `context` and `channel`. If the
-    /// re-authentication is successful, return 0; otherwise, return a non-zero
-    /// error code and populate the specified `errorDescription` with a
-    /// description of the error.
-    int handleReauthentication(bsl::ostream&                  errorDescription,
-                               const AuthenticationContextSp& context,
-                               const bsl::shared_ptr<bmqio::Channel>& channel);
 
   public:
     // TRAITS
