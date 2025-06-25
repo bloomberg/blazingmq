@@ -351,9 +351,9 @@ class TCPSessionFactory {
     /// Mutex for thread safety of this component.
     mutable bslmt::Mutex d_mutex;
 
-    /// Maintain ownership of 'OperationContext' instead of passing it to
-    /// 'ChannelFactory::listen' because it may delete the context (on
-    /// stopListening) while operation (readCallback/ negotiation) is in
+    /// Maintain ownership of `OperationContext` instead of passing it to
+    /// `ChannelFactory::listen` because it may delete the context (on
+    /// stopListening) while operation (readCallback/negotiation) is in
     /// progress.
     bsl::unordered_map<int, bsl::shared_ptr<OperationContext> >
         d_listenContexts;
