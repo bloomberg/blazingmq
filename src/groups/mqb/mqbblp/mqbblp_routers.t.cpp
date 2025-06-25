@@ -26,6 +26,8 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
+#include <mqbmock_cluster.h>
+#include <mqbmock_domain.h>
 #include <mqbmock_queue.h>
 #include <mqbmock_queuehandle.h>
 #include <mqbs_inmemorystorage.h>
@@ -50,44 +52,50 @@ namespace BloombergLP {
 
 /// Mechanism to mock QueueHandle and StorageIterator for Router testing.
 struct TestStorage {
+    bslma::Allocator* d_allocator_p;
+
     unsigned int                             d_subQueueId;
     mqbconfm::Domain                         d_domainCfg;
     mqbu::CapacityMeter                      d_capacityMeter;
     mqbu::StorageKey                         d_storageKey;
+    mqbmock::Cluster                         d_cluster;
+    mqbmock::Domain                          d_domain;
     mqbs::InMemoryStorage                    d_storage;
     bslma::ManagedPtr<mqbi::StorageIterator> d_iterator;
     bdlbb::PooledBlobBufferFactory           d_bufferFactory;
 
     bsl::shared_ptr<mqbmock::Queue> d_queue_sp;
 
-    bslma::Allocator* d_allocator_p;
-
     TestStorage(unsigned int subQueueId, bslma::Allocator* allocator)
-    : d_subQueueId(subQueueId)
-    , d_domainCfg(allocator)
-    , d_capacityMeter("cm", allocator)
+    : d_allocator_p(bslma::Default::allocator(allocator))
+    , d_subQueueId(subQueueId)
+    , d_domainCfg(d_allocator_p)
+    , d_capacityMeter("cm", d_allocator_p)
     , d_storageKey(d_subQueueId)
-    , d_storage(bmqt::Uri("uri", allocator),
+    , d_cluster(d_allocator_p)
+    , d_domain(&d_cluster,
+               d_allocator_p)  // Use domain only to hold mqbstat::StatContext
+    , d_storage(bmqt::Uri("uri", d_allocator_p),
                 d_storageKey,
+                &d_domain,
                 1,
                 d_domainCfg,
                 &d_capacityMeter,
-                allocator)
+                d_allocator_p)
     , d_iterator(d_storage.getIterator(mqbu::StorageKey()))
-    , d_bufferFactory(32, allocator)
-    , d_queue_sp(new(*allocator) mqbmock::Queue(0, allocator), allocator)
-    , d_allocator_p(allocator)
-
+    , d_bufferFactory(32, d_allocator_p)
+    , d_queue_sp(new(*d_allocator_p) mqbmock::Queue(0, d_allocator_p),
+                 d_allocator_p)
     {
         bmqt::MessageGUID guid;
         guid.fromHex("00000000000000000000000000000001");
         mqbi::StorageMessageAttributes     attributes;
         const bsl::shared_ptr<bdlbb::Blob> appData(
-            new (*allocator) bdlbb::Blob(&d_bufferFactory, allocator),
-            allocator);
+            new (*d_allocator_p) bdlbb::Blob(&d_bufferFactory, d_allocator_p),
+            d_allocator_p);
         const bsl::shared_ptr<bdlbb::Blob> options(
-            new (*allocator) bdlbb::Blob(&d_bufferFactory, allocator),
-            allocator);
+            new (*d_allocator_p) bdlbb::Blob(&d_bufferFactory, d_allocator_p),
+            d_allocator_p);
         // TODO: put data for Expression evaluation
 
         mqbi::StorageResult::Enum rc =
