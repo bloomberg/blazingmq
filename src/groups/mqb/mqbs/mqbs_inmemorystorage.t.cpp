@@ -199,6 +199,7 @@ struct Tester {
         d_replicatedStorage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
                                         bmqt::Uri(k_URI_STR, d_allocator_p),
                                         k_QUEUE_KEY,
+                                        &d_mockDomain,
                                         partitionId,
                                         domainCfg,
                                         d_mockDomain.capacityMeter(),

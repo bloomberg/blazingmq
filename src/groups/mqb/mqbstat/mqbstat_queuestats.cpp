@@ -171,6 +171,31 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
 // class QueueStatsDomain
 // ----------------------
 
+inline bmqst::StatContext*
+QueueStatsDomain::findAppIdContext(const bsl::string& appId) const
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    if (d_subContextsLookup.empty()) {
+        return 0;  // RETURN
+    }
+
+    bsl::unordered_map<bsl::string, bmqst::StatContext*>::const_iterator it =
+        d_subContextsLookup.find(appId);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it ==
+                                              d_subContextsLookup.cend())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            << "[THROTTLED] No matching StatContext for domain: "
+            << d_statContext_mp->name() << ", appId: " << appId;
+        return 0;  // RETURN
+    }
+
+    return it->second;
+}
+
 bsls::Types::Int64
 QueueStatsDomain::getValue(const bmqst::StatContext& context,
                            int                       snapshotId,
@@ -443,34 +468,35 @@ QueueStatsDomain& QueueStatsDomain::setWriterCount(int writerCount)
     return *this;
 }
 
+void QueueStatsDomain::setOutstandingData(bsls::Types::Int64 numMessages,
+                                          bsls::Types::Int64 numBytes,
+                                          const bsl::string& appId)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
+    bmqst::StatContext* appIdContext = findAppIdContext(appId);
+    if (0 == appIdContext) {
+        // No subcontext for appId is a normal scenario when metrics for this
+        // appId are disabled by configuration.
+        return;  // RETURN
+    }
+
+    appIdContext->setValue(DomainQueueStats::e_STAT_BYTES, numBytes);
+    appIdContext->setValue(DomainQueueStats::e_STAT_MESSAGES, numMessages);
+}
+
 void QueueStatsDomain::onEvent(EventType::Enum    type,
                                bsls::Types::Int64 value,
                                const bsl::string& appId)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
 
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-
-    if (d_subContextsLookup.empty()) {
-        // Not an error if the domain is not configured for Apps stats.
+    bmqst::StatContext* appIdContext = findAppIdContext(appId);
+    if (0 == appIdContext) {
+        // No subcontext for appId is a normal scenario when metrics for this
+        // appId are disabled by configuration.
         return;  // RETURN
     }
-
-    bsl::unordered_map<bsl::string, bmqst::StatContext*>::iterator it =
-        d_subContextsLookup.find(appId);
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it ==
-                                              d_subContextsLookup.end())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-            << "[THROTTLED] No matching StatContext for domain: "
-            << d_statContext_mp->name() << ", appId: " << appId;
-        return;  // RETURN
-    }
-
-    bmqst::StatContext* appIdContext = it->second;
-    BSLS_ASSERT_SAFE(appIdContext);
 
     switch (type) {
     case EventType::e_CONFIRM_TIME: {
