@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;8de50ceb3b794208ac41b57d6f6b41375a1f4020</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;19306570a81bffbd54e5b4d2e99edcabd5defd20</span>
    </div>
   </td>
  </tr>
@@ -1021,6 +1021,8 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Asynchronously configure the queue identified by the specified <code>queueId</code> using the specified <code>options</code> to configure some advanced settings. The result of the operation is communicated to the specified <code>callback</code> via a <code><a class="el" href="classBloombergLP_1_1bmqa_1_1ConfigureQueueStatus.html">bmqa::ConfigureQueueStatus</a></code>, providing the status and context of the requested operation. If the optionally specified <code>timeout</code> is not populated, use the one defined in the session options.</p>
+<p>THREAD: The <code>callback</code> will <em>ALWAYS</em> be invoked from the EventHandler thread(s) (or if a <a class="el" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html">SessionEventHandler</a> was not specified, from the thread invoking <code>nextEvent</code>).</p>
 <p>DEPRECATED: Use the <code>closeQueueSync(QueueId *queueId...)</code> instead. This method will be marked as <code>BSLA_DEPRECATED</code> in future release of libbmq. </p>
 
 <p>Reimplemented in <a class="el" href="classBloombergLP_1_1bmqa_1_1MockSession.html#aa5d99dfbfc5af2155ab58140bf52e08f">BloombergLP::bmqa::MockSession</a>, and <a class="el" href="classBloombergLP_1_1bmqa_1_1Session.html#a0d1d0e25c4488deefcfd63781550980b">BloombergLP::bmqa::Session</a>.</p>

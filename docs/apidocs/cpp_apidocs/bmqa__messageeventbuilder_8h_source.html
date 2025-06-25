@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;8de50ceb3b794208ac41b57d6f6b41375a1f4020</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;19306570a81bffbd54e5b4d2e99edcabd5defd20</span>
    </div>
   </td>
  </tr>
@@ -161,20 +161,8 @@ $(document).ready(function(){initNavTree('bmqa__messageeventbuilder_8h_source.ht
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <span class="comment">// GUID generator object.</span></div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>    bsl::shared_ptr&lt;bmqp::MessageGUIDGenerator&gt; d_guidGenerator_sp;</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span> </div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    <span class="comment">// The final number of messages in the current &#39;d_msgEvent&#39; cached on</span></div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    <span class="comment">// switching this MessageEvent from WRITE to READ mode.</span></div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    <span class="comment">// This cached value exists because we are not able to access the</span></div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    <span class="comment">// underlying PutEventBuilder once downgraded to READ.</span></div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    <span class="comment">// CONTRACT: the stored value is correct every moment when in READ mode,</span></div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    <span class="comment">// and the value is not guaranteed to be correct when in WRITE mode.</span></div>
 <div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>    <span class="keywordtype">int</span> d_messageCountFinal;</div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span> </div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>    <span class="comment">// The final message event size of the current &#39;d_msgEvent&#39; cached on</span></div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>    <span class="comment">// switching this MessageEvent from WRITE to READ mode.</span></div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>    <span class="comment">// This cached value exists because we are not able to access the</span></div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>    <span class="comment">// underlying PutEventBuilder once downgraded to READ.</span></div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>    <span class="comment">// CONTRACT: the stored value is correct every moment when in READ mode,</span></div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    <span class="comment">// and the value is not guaranteed to be correct when in WRITE mode.</span></div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>    <span class="keywordtype">int</span> d_messageEventSizeFinal;</div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>};</div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span> </div>
