@@ -508,8 +508,8 @@ void TCPSessionFactory::initialConnectionComplete(
 
     if (statusCode != 0) {
         // Failed to negotiate
-        BALL_LOG_WARN << "#INITIAL_CONNECTION "
-                      << "TCPSessionFactory '" << d_config.name() << "' "
+        BALL_LOG_WARN << "#INITIAL_CONNECTION TCPSessionFactory '"
+                      << d_config.name() << "' "
                       << "failed to authenticate and negotiate a session "
                       << "[channel: '" << channel.get()
                       << "', status: " << statusCode << ", error: '"

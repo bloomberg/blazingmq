@@ -35,13 +35,13 @@ AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
     bmqp::EncodingType::Enum                   authenticationEncodingType,
-    const ReauthenticateCb&                    reAuthenticateCb,
+    const ReauthenticateCb&                    reauthenticateCb,
     State                                      state,
     ConnectionType::Enum                       connectionType)
 : d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
 , d_authenticationEncodingType(authenticationEncodingType)
-, d_reAuthenticateCb(reAuthenticateCb)
+, d_reauthenticateCb(reauthenticateCb)
 , d_state(state)
 , d_connectionType(connectionType)
 {
@@ -81,7 +81,7 @@ AuthenticationContext& AuthenticationContext::setAuthenticationEncodingType(
 AuthenticationContext&
 AuthenticationContext::setAuthenticateCallback(const ReauthenticateCb& value)
 {
-    d_reAuthenticateCb = value;
+    d_reauthenticateCb = value;
     return *this;
 }
 
@@ -124,9 +124,9 @@ AuthenticationContext::authenticationEncodingType() const
 }
 
 const AuthenticationContext::ReauthenticateCb&
-AuthenticationContext::reAuthenticateCb() const
+AuthenticationContext::reauthenticateCb() const
 {
-    return d_reAuthenticateCb;
+    return d_reauthenticateCb;
 }
 
 ConnectionType::Enum AuthenticationContext::connectionType() const
