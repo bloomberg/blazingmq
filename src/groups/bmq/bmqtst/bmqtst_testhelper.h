@@ -285,6 +285,7 @@
 #include <ball_loggermanagerconfiguration.h>
 #include <ball_multiplexobserver.h>
 #include <ball_severity.h>
+#include <balst_stacktraceprintutil.h>
 #include <balst_stacktracetestallocator.h>
 #if BSL_VERSION >= BSL_MAKE_VERSION(4, 9)
 #include <bdlm_metricsregistry.h>
@@ -823,6 +824,8 @@ _assertViolationHandler(const bsls::AssertViolation& violation)
                  violation.fileName(),
                  violation.lineNumber(),
                  violation.comment());
+
+    balst::StackTracePrintUtil::printStackTrace(bsl::cerr);
 
     // Ensure the error message is printed before terminating
     bsl::fflush(stderr);
