@@ -246,7 +246,7 @@ class Client(BMQProcess):
             f"<--.*configureQueue.*uri = {re.escape(uri)}.*" r"\((-?\d+)\)",
             succeed,
             no_except,
-            timeout,
+            timeout=timeout,
         )
         return res.error_code
 
@@ -290,7 +290,7 @@ class Client(BMQProcess):
             r"<--.*post.*\((-?\d+)\)",
             succeed,
             no_except,
-            extra_patterns,
+            extra_patterns=extra_patterns,
         )
         error_code = res.error_code
         if wait_ack:
@@ -541,6 +541,7 @@ class Client(BMQProcess):
         pattern: str,
         succeed: Optional[bool],
         no_except: Optional[bool],
+        *,
         extra_patterns: Optional[List[str]] = None,
         timeout: Optional[int] = None,
     ) -> CommandResult:
