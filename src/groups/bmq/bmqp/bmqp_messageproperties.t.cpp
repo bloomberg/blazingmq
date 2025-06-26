@@ -1209,9 +1209,12 @@ static void test9_copyAssignTest()
     verify(&pmap2, obj2);
 
     // Check self assignment
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
     PropertyMap pmap3 = pmap;
     obj2              = obj2;
     verify(&pmap3, obj2);
+#pragma clang diagnostic pop
 }
 
 static void test10_empty()
