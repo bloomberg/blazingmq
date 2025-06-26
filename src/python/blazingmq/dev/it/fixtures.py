@@ -634,11 +634,23 @@ def multi7_node_cluster_config(
     configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
-    reverse_proxy: bool = False,
 ) -> None:
+    """A factory for cluster configurations containing multiple open TCP interfaces.
+
+    This function generates configuration for a 7-node BlazingMQ cluster, a proxy in
+    each data center region, and adds domains to the cluster to be used by tests.
+
+    Cluster: east1, east2, west1, west2, north1, north2, south1
+    Proxies: eastp, westp, northp, southp
+
+    Args:
+        configurator: The Configurator used to generate and manage cluster and broker
+            configuration definitions
+        port_allocator: An iterator providing port numbers for brokers
+        mode: The cluster operation mode
+    """
     mode.tweak(configurator.proto.cluster)
 
-    # Create a cluster with 7 nodes in 4 data centers
     data_centers = {
         "east": 2,
         "west": 2,
@@ -668,7 +680,7 @@ def multi7_node_cluster_config(
             tcp_host="localhost",
             tcp_port=next(port_allocator),
             data_center=data_center,
-        ).proxy(cluster, reverse=reverse_proxy)
+        ).proxy(cluster)
 
 
 multi7_node_cluster_params = [
