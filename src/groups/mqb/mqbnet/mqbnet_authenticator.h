@@ -77,6 +77,12 @@ class Authenticator {
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int authenticationOutbound(
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
+
+    // ACCESSORS
+
+    /// Return the default credential used for authentication.
+    /// If no default credential is set, return an empty optional.
+    virtual const bsl::optional<bsl::string>& defaultCredential() = 0;
 };
 
 }  // close package namespace

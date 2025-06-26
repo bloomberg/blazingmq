@@ -176,8 +176,9 @@ int InitialConnectionHandler::processBlob(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                     = 0,
-        rc_INVALID_NEGOTIATION_MESSAGE = -1,
+        rc_SUCCESS                               = 0,
+        rc_INVALID_NEGOTIATION_MESSAGE           = -1,
+        rc_ERROR_AUTHENTICATE_DEFAULT_CREDENTIAL = -1,
     };
 
     bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
@@ -209,8 +210,30 @@ int InitialConnectionHandler::processBlob(
     }
     else if (bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
                  message.value())) {
+        // Store NegotiationMessage in the context
         context->negotiationContext()->d_negotiationMessage =
             bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
+
+        // Received a NegotiationMessage before an AuthenticationMessage,
+        // use the default authentication credential to authenticate.
+        // In order not to block the IO thread, for default credential, we do
+        // negotiation in authentication threads
+        if (!context->authenticationContext()) {
+            bmqp_ctrlmsg::AuthenticationMessage authenticationMsg;
+            bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
+                authenticationMsg.makeAuthenticateRequest();
+            authenticateRequest.mechanism()    = "Anonymous";
+            authenticateRequest.data().value() = bsl::vector<char>(
+                d_authenticator_mp->defaultCredential().value().begin(),
+                d_authenticator_mp->defaultCredential().value().end());
+
+            rc = d_authenticator_mp->handleAuthentication(errorDescription,
+                                                          isContinueRead,
+                                                          context,
+                                                          authenticationMsg);
+
+            return rc;  // RETURN
+        }
 
         rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
                                                      session,
