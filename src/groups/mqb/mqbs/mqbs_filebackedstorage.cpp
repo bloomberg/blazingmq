@@ -296,9 +296,10 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appData);
-    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+    BSLS_ASSERT_SAFE(static_cast<unsigned int>(appData->length()) ==
+                     attributes->appDataLen());
 
-    const int msgSize = attributes->appDataLen();
+    const int msgSize = static_cast<int>(attributes->appDataLen());
 
     // Store the specified message in the 'physical' as well as *all*
     // virtual storages.
