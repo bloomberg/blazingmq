@@ -677,7 +677,7 @@ class TestBench {
                    1024,  // blob pool growth strategy
                    allocator)
     , d_channel(new bmqio::TestChannel(allocator))
-    , d_cluster(&d_bufferFactory, allocator)
+    , d_cluster(allocator)
     , d_mockDispatcher(allocator)
     , d_domain(&d_mockDispatcher, &d_cluster, atMostOnce, allocator)
     , d_mockDomainFactory(d_domain, allocator)

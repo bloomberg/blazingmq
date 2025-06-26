@@ -653,7 +653,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_resetReceiveDataCtx(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_openStorage(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_attemptOpenStorage(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
 
     void
     do_updateStorage(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;

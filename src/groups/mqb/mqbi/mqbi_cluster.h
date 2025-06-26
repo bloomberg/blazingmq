@@ -425,6 +425,10 @@ class Cluster : public DispatcherClient {
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     virtual bool isFSMWorkflow() const;
 
+    /// Return boolean flag indicating whether the broker still writes to the
+    /// to-be-deprecated QLIST file when FSM workflow is enabled.
+    virtual bool doesFSMwriteQLIST() const;
+
     /// Returns a pointer to cluster config if this `mqbi::Cluster`
     /// represents a cluster, otherwise null.
     virtual const mqbcfg::ClusterDefinition* clusterConfig() const = 0;
@@ -535,6 +539,11 @@ inline bool Cluster::isCSLModeEnabled() const
 }
 
 inline bool Cluster::isFSMWorkflow() const
+{
+    return false;
+}
+
+inline bool Cluster::doesFSMwriteQLIST() const
 {
     return false;
 }

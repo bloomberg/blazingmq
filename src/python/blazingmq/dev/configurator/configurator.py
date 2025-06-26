@@ -318,28 +318,19 @@ class Configurator:
             site.mkdir(str(stats_dir))
 
     def deploy_domains(self, broker: Broker, site: Site) -> None:
-        # Separate proxy clusters from clusters involved in reversed proxy
-        # connections. The latter must go in the main clusters.json file.
-        # The others can go in their own files, one per cluster.
-        reversed_clusters = {
-            cluster.name for cluster in broker.clusters.reversed_cluster_connections
-        }
-        proxy_clusters = []
-        lazy_proxy_clusters = []
-
-        for cluster in broker.clusters.proxy_clusters:
-            if cluster.name in reversed_clusters:
-                proxy_clusters.append(cluster)
-            else:
-                lazy_proxy_clusters.append(cluster)
-
+        """Deploy the domains for the broker.
+        This will create the directories for the domains, and write the
+        domain definitions to JSON files in the `etc/domains` directory.
+        It will also create the clusters and proxy clusters JSON files in the
+        `etc/clusters` and `etc/proxyclusters` directories, respectively.
+        """
         self._create_json_file(
-            dataclasses.replace(broker.clusters, proxy_clusters=proxy_clusters),
+            dataclasses.replace(broker.clusters, proxy_clusters=[]),
             site,
             "etc/clusters.json",
         )
 
-        for proxy in lazy_proxy_clusters:
+        for proxy in broker.clusters.proxy_clusters:
             self._create_json_file(proxy, site, f"etc/proxyclusters/{proxy.name}.json")
 
         for cluster in broker.clusters.my_clusters:

@@ -1136,7 +1136,7 @@ def test_incorrect_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     for i, expression in enumerate(expressions):
         try:
-            consumer.configure([expression], timeout=5)
+            consumer.configure([expression], timeout=1)
             assert False  # must not get here, expect exception
         except ITError:
             # expected
@@ -1242,7 +1242,7 @@ def test_numeric_limits(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.configure(["x < 0"])
 
         try:
-            consumer.configure([f"x != {value}"], timeout=5)
+            consumer.configure([f"x != {value}"], timeout=1)
             assert value in supported_ints
         except ITError:
             # exception is expected for values from 'unsupported_ints'

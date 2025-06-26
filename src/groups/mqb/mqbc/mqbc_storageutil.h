@@ -494,21 +494,17 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster *DISPATCHER* thread.
     static int assignPartitionDispatcherThreads(
-        bdlmt::FixedThreadPool*                     threadPool,
-        mqbc::ClusterData*                          clusterData,
-        const mqbi::Cluster&                        cluster,
-        mqbi::Dispatcher*                           dispatcher,
-        const mqbcfg::PartitionConfig&              config,
-        FileStores*                                 fileStores,
-        BlobSpPool*                                 blobSpPool,
-        bmqma::CountingAllocatorStore*              allocators,
-        bsl::ostream&                               errorDescription,
-        int                                         replicationFactor,
-        const RecoveredQueuesCb&                    recoveredQueuesCb,
-        const bdlb::NullableValue<QueueCreationCb>& queueCreationCb =
-            bdlb::NullableValue<QueueCreationCb>(),
-        const bdlb::NullableValue<QueueDeletionCb>& queueDeletionCb =
-            bdlb::NullableValue<QueueDeletionCb>());
+        bdlmt::FixedThreadPool*        threadPool,
+        mqbc::ClusterData*             clusterData,
+        const mqbi::Cluster&           cluster,
+        mqbi::Dispatcher*              dispatcher,
+        const mqbcfg::PartitionConfig& config,
+        FileStores*                    fileStores,
+        BlobSpPool*                    blobSpPool,
+        bmqma::CountingAllocatorStore* allocators,
+        bsl::ostream&                  errorDescription,
+        int                            replicationFactor,
+        const RecoveredQueuesCb&       recoveredQueuesCb);
 
     /// Clear the specified `primary` of the specified `partitionId` from
     /// the specified `fs` and `partitionInfo`, using the specified
@@ -685,8 +681,7 @@ struct StorageUtil {
                                      int                partitionId,
                                      const bmqt::Uri&   uri,
                                      const mqbu::StorageKey& queueKey,
-                                     const mqbu::StorageKey& appKey,
-                                     bool                    isCSLMode);
+                                     const mqbu::StorageKey& appKey);
 
     static void
     updateQueueReplicaDispatched(int*                    status,

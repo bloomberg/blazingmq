@@ -335,25 +335,16 @@
         myClusters.................:
             definition of the clusters the current machine is part of (if any);
             empty means this broker does not belong to any cluster
-        myReverseClusters..........:
-            name of the clusters (if any) the current machine is expected to
-            receive inbound connections about and therefore should pro-actively
-            create a proxy cluster at startup
         myVirtualClusters..........:
             information about all the virtual clusters the current machine is
             considered to belong to (if any)
-        clusters...................: array of cluster definition
-        reversedClusterConnections.:
-            cluster and associated remote connections that should be
-            established
+        proxyClusters..............: array of cluster proxy definition
       </documentation>
     </annotation>
     <sequence>
       <element name='myClusters'                 type='tns:ClusterDefinition'         maxOccurs='unbounded'/>
-      <element name='myReverseClusters'          type='string'                        maxOccurs='unbounded'/>
       <element name='myVirtualClusters'          type='tns:VirtualClusterInformation' maxOccurs='unbounded'/>
       <element name='proxyClusters'              type='tns:ClusterProxyDefinition'    maxOccurs='unbounded'/>
-      <element name='reversedClusterConnections' type='tns:ReversedClusterConnection' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
@@ -668,11 +659,16 @@
         isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
                            cluster.  This flag *must* be false if
                            'isCSLModeEnabled' is false.
+        doesFSMwriteQLIST: indicates whether the broker still writes to the
+                           to-be-deprecated QLIST file when FSM workflow is
+                           enabled.  If above 'isFSMWorkflow' flag is false,
+                           this flag is ignored.
       </documentation>
     </annotation>
     <sequence>
-      <element name='isCSLModeEnabled' type ='boolean' default='false'/>
-      <element name='isFSMWorkflow'    type ='boolean' default='false'/>
+      <element name='isCSLModeEnabled'  type ='boolean' default='false'/>
+      <element name='isFSMWorkflow'     type ='boolean' default='false'/>
+      <element name='doesFSMwriteQLIST' type ='boolean' default='true'/>
     </sequence>
   </complexType>
 
@@ -827,21 +823,6 @@
     </annotation>
     <sequence>
       <element name='endpoint' type='string'/>
-    </sequence>
-  </complexType>
-
-  <complexType name='ReversedClusterConnection'>
-    <annotation>
-      <documentation>
-        Type representing the configuration for remote cluster connections..
-
-        name.............: name of the cluster
-        connections......: list of connections to establish
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='name'        type='string'/>
-      <element name='connections' type='tns:ClusterNodeConnection' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
