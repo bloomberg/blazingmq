@@ -166,9 +166,10 @@ class Authenticator : public mqbnet::Authenticator {
     /// Authenticate the connection using the `AuthenticationMessage` stored in
     /// `context`.  If authentication fails, invoke
     /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
-    /// state of `context` as appropriate.
-    void authenticate(const AuthenticationContextSp&         context,
-                      const bsl::shared_ptr<bmqio::Channel>& channel);
+    /// state of `context` as appropriate. Return 0 on success, or a
+    /// non-zero error code otherwise.
+    int authenticate(const AuthenticationContextSp&         context,
+                     const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Reauthenticate the connection using the `AuthenticationMessage`
     /// stored in `context`.  If re-authentication fails, invoke
@@ -223,6 +224,13 @@ class Authenticator : public mqbnet::Authenticator {
     /// specified `errorDescription` with a description of the error otherwise.
     int authenticationOutbound(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// ACCESSORS
+
+    /// Return the default credential used for authentication.
+    /// If no default credential is set, return an empty optional.
+    const bsl::optional<bsl::string>&
+    defaultCredential() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace
