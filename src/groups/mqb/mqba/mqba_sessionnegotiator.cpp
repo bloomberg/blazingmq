@@ -257,6 +257,9 @@ int SessionNegotiator::createSessionOnMsgType(
     BSLS_ASSERT(context);
     BSLS_ASSERT(context->negotiationContext());
 
+    // Authentication needs to be done before we can create a session.
+    BSLS_ASSERT(context->authenticationContext());
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                        = 0,
@@ -265,11 +268,6 @@ int SessionNegotiator::createSessionOnMsgType(
         rc_SEND_NEGOTIATION_MESSAGE_ERROR = -3,
         rc_INVALID_NEGOTIATION_TYPE       = -4
     };
-
-    // No previous authentication being made, use default plugin
-    if (!context->authenticationContext()) {
-        // TODO: fallback credential / principal
-    }
 
     const NegotiationContextSp& negotiationContext =
         context->negotiationContext();

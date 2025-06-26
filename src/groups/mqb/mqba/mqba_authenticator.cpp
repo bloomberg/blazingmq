@@ -69,13 +69,6 @@ int Authenticator::onAuthenticationRequest(
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
     const InitialConnectionContextSp&          context)
 {
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS                    = 0,
-        rc_AUTHENTICATING_IN_PROGRESS = -1,
-        rc_FAIL_TO_ENQUEUE_JOB        = -2,
-    };
-
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticateRequestValue());
     BSLS_ASSERT_SAFE(context->isIncoming());
@@ -184,9 +177,8 @@ int Authenticator::authenticateAsync(
     return rc;
 }
 
-void Authenticator::authenticate(
-    const AuthenticationContextSp&         context,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+int Authenticator::authenticate(const AuthenticationContextSp&         context,
+                                const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // PRECONDITIONS
     BSLS_ASSERT(context);
@@ -260,7 +252,7 @@ void Authenticator::authenticate(
                 rc,
                 authenticationErrorStream.str(),
                 bsl::shared_ptr<mqbnet::Session>());
-            return;  // RETURN
+            return rc;  // RETURN
         }
 
         // send the success response back to the client
@@ -277,6 +269,8 @@ void Authenticator::authenticate(
                 bsl::shared_ptr<mqbnet::Session>());
         }
     }
+
+    return rc;
 }
 
 int Authenticator::reauthenticateAsync(
@@ -478,6 +472,12 @@ int Authenticator::authenticationOutbound(
     BALL_LOG_ERROR << "Not Implemented";
 
     return -1;
+}
+
+// ACCESSORS
+const bsl::optional<bsl::string>& Authenticator::defaultCredential()
+{
+    return d_authnController_p->defaultCredential();
 }
 
 }  // close package namespace
