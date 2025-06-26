@@ -123,8 +123,6 @@ def test_reconfigure_from_non_CSL_to_CSL(cluster: Cluster):
     consumer_foo.open(uri_fanout1_foo, flags=["read"], succeed=True)
     consumer_foo.wait_push_event()
 
-    cluster._logger.info("send list command...")
-
     assert wait_until(
         lambda: len(consumer_foo.list(uri_fanout1_foo, block=True)) == 1, 2
     )
@@ -134,8 +132,6 @@ def test_reconfigure_from_non_CSL_to_CSL(cluster: Cluster):
     consumer_foo.close(uri_fanout1_foo, succeed=True)
 
     cluster.stop_nodes()
-
-    cluster._logger.info("============ Before 2 ==========")
 
     # -----------------------------------------------
     # 2. Reconfigure the cluster from non-CSL to CSL mode
@@ -181,8 +177,6 @@ def test_reconfigure_from_non_CSL_to_CSL(cluster: Cluster):
     consumer_foo.confirm(uri_fanout1_foo, "+1", succeed=True)
     consumer_bar.confirm(uri_fanout1_bar, "+2", succeed=True)
 
-    cluster._logger.info("============ Before 3 ==========")
-
     # -----------------------------------------------
     # 3. Open queues in CSL mode
     producer = next(proxies).create_client("producer")
@@ -206,11 +200,7 @@ def test_reconfigure_from_non_CSL_to_CSL(cluster: Cluster):
 
     consumer_foo.close(uri_fanout2_foo, succeed=True)
 
-    cluster._logger.info("before stop nodes...")
     cluster.stop_nodes()
-    cluster._logger.info("after stop nodes...")
-
-    cluster._logger.info("============ Before 4 ==========")
 
     # -----------------------------------------------
     # 4. Reconfigure the cluster back from CSL to non-CSL mode
@@ -221,9 +211,7 @@ def test_reconfigure_from_non_CSL_to_CSL(cluster: Cluster):
             my_clusters[0].cluster_attributes.is_fsmworkflow = False
     cluster.deploy_domains()
 
-    cluster._logger.info("before starting nodes...")
     cluster.start_nodes(wait_leader=True, wait_ready=True)
-    cluster._logger.info("after starting nodes...")
     # For a standard cluster, states have already been restored as part of
     # leader re-election.
     if cluster.is_single_node:
