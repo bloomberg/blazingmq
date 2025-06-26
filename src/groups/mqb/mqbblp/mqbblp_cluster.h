@@ -412,11 +412,6 @@ class Cluster : public mqbi::Cluster,
     processClusterControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                  mqbnet::ClusterNode*                source);
 
-    /// Process the ClusterSyncRequest in the specified `request`
-    /// originating from the specified `requester`.
-    void processClusterSyncRequest(const bmqp_ctrlmsg::ControlMessage& request,
-                                   mqbnet::ClusterNode* requester);
-
     void onPutEvent(const mqbi::DispatcherPutEvent& event);
 
     void onRelayPutEvent(const mqbi::DispatcherEvent& event);

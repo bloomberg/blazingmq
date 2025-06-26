@@ -69,12 +69,6 @@ namespace bmqp_ctrlmsg {
 class CloseQueueResponse;
 }
 namespace bmqp_ctrlmsg {
-class ClusterSyncRequest;
-}
-namespace bmqp_ctrlmsg {
-class ClusterSyncResponse;
-}
-namespace bmqp_ctrlmsg {
 class ConsumerInfo;
 }
 namespace bmqp_ctrlmsg {
@@ -1266,310 +1260,6 @@ class CloseQueueResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::CloseQueueResponse)
-
-namespace bmqp_ctrlmsg {
-
-// ========================
-// class ClusterSyncRequest
-// ========================
-
-class ClusterSyncRequest {
-    // This type represents a message sent by a cluster member node to all
-    // peers, in order to ensure sync (think of it as a distributed latch
-    // between all nodes in the cluster).  Each peer, upon reception of this
-    // request, is expected to reply with a 'ClusterSyncResponse' message.
-
-    // INSTANCE DATA
-
-  public:
-    // TYPES
-    enum { NUM_ATTRIBUTES = 0 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-
-    // MANIPULATORS
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const ClusterSyncRequest&,
-                           const ClusterSyncRequest&)
-    // Returns 'true' as this type has no attributes and so all objects of
-    // this type are considered equal.
-    {
-        return true;
-    }
-
-    friend bool operator!=(const ClusterSyncRequest& lhs,
-                           const ClusterSyncRequest& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&             stream,
-                                    const ClusterSyncRequest& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&, const ClusterSyncRequest&)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'ClusterSyncRequest'.
-    {
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClusterSyncRequest)
-
-namespace bmqp_ctrlmsg {
-
-// =========================
-// class ClusterSyncResponse
-// =========================
-
-class ClusterSyncResponse {
-    // This type represents a message sent by a cluster member node, in
-    // response to a 'ClusterSyncRequest'.
-
-    // INSTANCE DATA
-
-  public:
-    // TYPES
-    enum { NUM_ATTRIBUTES = 0 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-
-    // MANIPULATORS
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const ClusterSyncResponse&,
-                           const ClusterSyncResponse&)
-    // Returns 'true' as this type has no attributes and so all objects of
-    // this type are considered equal.
-    {
-        return true;
-    }
-
-    friend bool operator!=(const ClusterSyncResponse& lhs,
-                           const ClusterSyncResponse& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&              stream,
-                                    const ClusterSyncResponse& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&, const ClusterSyncResponse&)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'ClusterSyncResponse'.
-    {
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClusterSyncResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -20268,8 +19958,8 @@ class ClusterMessageChoice {
         bsls::ObjectBuffer<PartitionSyncDataQueryStatus>
             d_partitionSyncDataQueryStatus;
         bsls::ObjectBuffer<PrimaryStatusAdvisory> d_primaryStatusAdvisory;
-        bsls::ObjectBuffer<ClusterSyncRequest>    d_clusterSyncRequest;
-        bsls::ObjectBuffer<ClusterSyncResponse>   d_clusterSyncResponse;
+        bsls::ObjectBuffer<DummyType>             d_clusterSyncRequest;
+        bsls::ObjectBuffer<DummyType>             d_clusterSyncResponse;
         bsls::ObjectBuffer<QueueUnAssignmentAdvisory>
             d_queueUnAssignmentAdvisory;
         bsls::ObjectBuffer<QueueUnassignedAdvisory> d_queueUnassignedAdvisory;
@@ -20659,24 +20349,22 @@ class ClusterMessageChoice {
     // 'value' is not specified, the default "PrimaryStatusAdvisory" value
     // is used.
 
-    ClusterSyncRequest& makeClusterSyncRequest();
-    ClusterSyncRequest&
-    makeClusterSyncRequest(const ClusterSyncRequest& value);
+    DummyType& makeClusterSyncRequest();
+    DummyType& makeClusterSyncRequest(const DummyType& value);
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ClusterSyncRequest& makeClusterSyncRequest(ClusterSyncRequest&& value);
+    DummyType& makeClusterSyncRequest(DummyType&& value);
 #endif
     // Set the value of this object to be a "ClusterSyncRequest" value.
     // Optionally specify the 'value' of the "ClusterSyncRequest".  If
     // 'value' is not specified, the default "ClusterSyncRequest" value is
     // used.
 
-    ClusterSyncResponse& makeClusterSyncResponse();
-    ClusterSyncResponse&
-    makeClusterSyncResponse(const ClusterSyncResponse& value);
+    DummyType& makeClusterSyncResponse();
+    DummyType& makeClusterSyncResponse(const DummyType& value);
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ClusterSyncResponse& makeClusterSyncResponse(ClusterSyncResponse&& value);
+    DummyType& makeClusterSyncResponse(DummyType&& value);
 #endif
     // Set the value of this object to be a "ClusterSyncResponse" value.
     // Optionally specify the 'value' of the "ClusterSyncResponse".  If
@@ -20925,13 +20613,13 @@ class ClusterMessageChoice {
     // selection.  The behavior is undefined unless "PrimaryStatusAdvisory"
     // is the selection of this object.
 
-    ClusterSyncRequest& clusterSyncRequest();
+    DummyType& clusterSyncRequest();
     // Return a reference to the modifiable "ClusterSyncRequest" selection
     // of this object if "ClusterSyncRequest" is the current selection.
     // The behavior is undefined unless "ClusterSyncRequest" is the
     // selection of this object.
 
-    ClusterSyncResponse& clusterSyncResponse();
+    DummyType& clusterSyncResponse();
     // Return a reference to the modifiable "ClusterSyncResponse" selection
     // of this object if "ClusterSyncResponse" is the current selection.
     // The behavior is undefined unless "ClusterSyncResponse" is the
@@ -21137,13 +20825,13 @@ class ClusterMessageChoice {
     // selection.  The behavior is undefined unless "PrimaryStatusAdvisory"
     // is the selection of this object.
 
-    const ClusterSyncRequest& clusterSyncRequest() const;
+    const DummyType& clusterSyncRequest() const;
     // Return a reference to the non-modifiable "ClusterSyncRequest"
     // selection of this object if "ClusterSyncRequest" is the current
     // selection.  The behavior is undefined unless "ClusterSyncRequest" is
     // the selection of this object.
 
-    const ClusterSyncResponse& clusterSyncResponse() const;
+    const DummyType& clusterSyncResponse() const;
     // Return a reference to the non-modifiable "ClusterSyncResponse"
     // selection of this object if "ClusterSyncResponse" is the current
     // selection.  The behavior is undefined unless "ClusterSyncResponse"
@@ -22889,157 +22577,6 @@ template <typename t_ACCESSOR>
 int CloseQueueResponse::accessAttribute(t_ACCESSOR& accessor,
                                         const char* name,
                                         int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-// ------------------------
-// class ClusterSyncRequest
-// ------------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int ClusterSyncRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    (void)manipulator;
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int ClusterSyncRequest::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
-{
-    (void)manipulator;
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int ClusterSyncRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                            const char*    name,
-                                            int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int ClusterSyncRequest::accessAttributes(t_ACCESSOR& accessor) const
-{
-    (void)accessor;
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int ClusterSyncRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    (void)accessor;
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int ClusterSyncRequest::accessAttribute(t_ACCESSOR& accessor,
-                                        const char* name,
-                                        int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-// -------------------------
-// class ClusterSyncResponse
-// -------------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int ClusterSyncResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    (void)manipulator;
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int ClusterSyncResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                             int            id)
-{
-    (void)manipulator;
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int ClusterSyncResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                             const char*    name,
-                                             int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int ClusterSyncResponse::accessAttributes(t_ACCESSOR& accessor) const
-{
-    (void)accessor;
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int ClusterSyncResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    (void)accessor;
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int ClusterSyncResponse::accessAttribute(t_ACCESSOR& accessor,
-                                         const char* name,
-                                         int         nameLength) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -36590,13 +36127,13 @@ inline PrimaryStatusAdvisory& ClusterMessageChoice::primaryStatusAdvisory()
     return d_primaryStatusAdvisory.object();
 }
 
-inline ClusterSyncRequest& ClusterMessageChoice::clusterSyncRequest()
+inline DummyType& ClusterMessageChoice::clusterSyncRequest()
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTER_SYNC_REQUEST == d_selectionId);
     return d_clusterSyncRequest.object();
 }
 
-inline ClusterSyncResponse& ClusterMessageChoice::clusterSyncResponse()
+inline DummyType& ClusterMessageChoice::clusterSyncResponse()
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTER_SYNC_RESPONSE == d_selectionId);
     return d_clusterSyncResponse.object();
@@ -36927,15 +36464,13 @@ ClusterMessageChoice::primaryStatusAdvisory() const
     return d_primaryStatusAdvisory.object();
 }
 
-inline const ClusterSyncRequest&
-ClusterMessageChoice::clusterSyncRequest() const
+inline const DummyType& ClusterMessageChoice::clusterSyncRequest() const
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTER_SYNC_REQUEST == d_selectionId);
     return d_clusterSyncRequest.object();
 }
 
-inline const ClusterSyncResponse&
-ClusterMessageChoice::clusterSyncResponse() const
+inline const DummyType& ClusterMessageChoice::clusterSyncResponse() const
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTER_SYNC_RESPONSE == d_selectionId);
     return d_clusterSyncResponse.object();
