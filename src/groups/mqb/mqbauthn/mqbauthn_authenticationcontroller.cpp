@@ -65,12 +65,9 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
     int                rc = rc_SUCCESS;
     bmqu::MemOutStream errorStream(d_allocator_p);
 
-    // Assign fallback principal
-    bdlb::NullableValue<bsl::string> fallbackPrincipal =
-        mqbcfg::BrokerConfig::get().authentication().fallbackPrincipal();
-    if (!fallbackPrincipal.isNull()) {
-        d_principal = fallbackPrincipal.value();
-    }
+    // Read default credential from configuration
+    // We hack one for now before implementing default credential
+    d_defaultCredential = "allmighty:password";
 
     // Initialize Authenticators from plugins
     {
@@ -161,6 +158,11 @@ int AuthenticationController::authenticate(
     }
 
     return rc_SUCCESS;
+}
+
+const bsl::optional<bsl::string>& AuthenticationController::defaultCredential()
+{
+    return d_defaultCredential;
 }
 
 }  // close package namespace

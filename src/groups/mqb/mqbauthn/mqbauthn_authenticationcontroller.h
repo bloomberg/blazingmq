@@ -56,8 +56,8 @@ class AuthenticationController {
     /// Mapping an authentication mechanism to a mqbplug::Authenticator
     AuthenticatorMap d_authenticators;
 
-    /// Fallback principal
-    bsl::optional<bsl::string> d_principal;
+    /// Default credential
+    bsl::optional<bsl::string> d_defaultCredential;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
@@ -102,6 +102,10 @@ class AuthenticationController {
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
                      bsl::string_view                                mechanism,
                      const mqbplug::AuthenticationData&              input);
+
+    /// Return the default credential used for authentication.
+    /// If no default credential is set, return an empty optional.
+    const bsl::optional<bsl::string>& defaultCredential();
 };
 
 }  // close package namespace
