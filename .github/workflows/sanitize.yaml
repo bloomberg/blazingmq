@@ -10,10 +10,14 @@ concurrency:
 
 jobs:
   build_and_run_sanitizer:
-    name: ${{ matrix.mode }}
+    name: ${{ matrix.mode }}${{ matrix.fuzz == 'on' && '-fuzz' || '' }}
     strategy:
       matrix:
         mode: ["asan", "msan", "tsan", "ubsan"]
+        fuzz: ["off"]
+        include:
+          - mode: "asan"
+            fuzz: "on"
       fail-fast: false
     runs-on: ubuntu-24.04
     if: github.event.review.state == 'APPROVED'
@@ -30,10 +34,11 @@ jobs:
           openjdk-21-jre-headless mysql-server-core-8.0
           sudo apt-get autoremove
           sudo apt-get autoclean
-      - name: Build [${{ matrix.mode }}]
-        run: | 
+      - name: Build [${{ github.job }}]
+        run: |
           docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
-          --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} \
-          -t sanitizer-${{ matrix.mode }} .
-      - name: UT [c++,${{ matrix.mode }}]
-        run: docker run --rm sanitizer-${{ matrix.mode }}
+          --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} --build-arg \
+          FUZZER=${{ matrix.fuzz }} -t sanitizer-${{ github.job }} .
+      - name: UT [c++,${{ github.job }}]
+        if: ${{ matrix.fuzz == 'off' }}
+        run: docker run --rm sanitizer-${{ github.job }}
