@@ -57,7 +57,7 @@ class SessionEventProcessor;
 class Cluster;
 class Session;
 class AuthenticationContext;
-struct NegotiationContext;
+class NegotiationContext;
 
 // =====================
 // struct ConnectionType
