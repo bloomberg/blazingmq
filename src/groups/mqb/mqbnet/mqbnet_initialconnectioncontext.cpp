@@ -82,6 +82,13 @@ InitialConnectionContext::setAuthenticationEncodingType(
     return *this;
 }
 
+InitialConnectionContext&
+InitialConnectionContext::setNegotiationCb(const NegotiationCb& value)
+{
+    d_negotiationCb = value;
+    return *this;
+}
+
 InitialConnectionContext& InitialConnectionContext::setAuthenticationContext(
     const bsl::shared_ptr<AuthenticationContext>& value)
 {
@@ -130,6 +137,12 @@ void InitialConnectionContext::complete(
     BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
 
     d_initialConnectionCompleteCb(rc, error, session, channel(), this);
+}
+
+const InitialConnectionContext::NegotiationCb&
+InitialConnectionContext::negotiationCb() const
+{
+    return d_negotiationCb;
 }
 
 const bsl::shared_ptr<AuthenticationContext>&

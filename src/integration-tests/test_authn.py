@@ -162,3 +162,26 @@ def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
         nego_resp = client.send_negotiation_request()
 
     client.stop()
+
+
+@tweak.broker.app_config.plugins.enabled(
+    ["PassAuthenticator"],
+)
+@libraries
+@config_authentication
+def test_authenticate_default(single_node: Cluster) -> None:
+    """
+    This test sends a negotiation request without prior authentication.
+    After default credential is fully implemented, this test should succeed without
+    enabling any authentication plugin.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Pass: Sending negotiation request without prior authentication
+    nego_resp = client.send_negotiation_request()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client.stop()

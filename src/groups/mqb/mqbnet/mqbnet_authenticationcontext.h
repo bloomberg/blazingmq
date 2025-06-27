@@ -30,6 +30,7 @@
 #include <bmqp_protocol.h>
 
 // BDE
+#include <bslma_allocator.h>
 #include <bslmt_mutex.h>
 #include <bsls_atomic.h>
 
@@ -88,7 +89,7 @@ class AuthenticationContext {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticationContext,
                                    bslma::UsesBslmaAllocator)
     // CREATORS
     AuthenticationContext(
@@ -97,7 +98,8 @@ class AuthenticationContext {
         bmqp::EncodingType::Enum                   authenticationEncodingType,
         const ReauthenticateCb&                    reauthenticateCb,
         State                                      state,
-        ConnectionType::Enum connectionType = ConnectionType::e_UNKNOWN);
+        ConnectionType::Enum                       connectionType,
+        bslma::Allocator*                          allocator = 0);
 
     // MANIPULATORS
     AuthenticationContext& setAuthenticationResult(
@@ -108,8 +110,7 @@ class AuthenticationContext {
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
     AuthenticationContext&
     setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
-    AuthenticationContext&
-    setAuthenticateCallback(const ReauthenticateCb& value);
+    AuthenticationContext& setAuthenticateCb(const ReauthenticateCb& value);
     AuthenticationContext& setConnectionType(ConnectionType::Enum value);
 
     bsls::AtomicInt& state();
