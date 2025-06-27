@@ -229,8 +229,8 @@ static void test3_print()
                                           bmqtst::TestHelperUtil::allocator());
     const bmqt::OpenQueueResult::Enum result =
         bmqt::OpenQueueResult::e_SUCCESS;
-    const bsl::string errorDescription =
-        bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
+    const bsl::string errorDescription("ERROR",
+                                       bmqtst::TestHelperUtil::allocator());
 
     // Set URI on the queueId
     bsl::shared_ptr<bmqimp::Queue>& queue =

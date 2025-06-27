@@ -273,8 +273,8 @@ static void test2_loadMessageFromFileTest()
         const Test& test = k_DATA[idx];
 
         // Create temp file and write content
-        bmqu::TempFile    tempFile(bmqtst::TestHelperUtil::allocator());
-        const bsl::string filePath = tempFile.path();
+        bmqu::TempFile     tempFile(bmqtst::TestHelperUtil::allocator());
+        const bsl::string& filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
             BMQTST_ASSERT_EQ(ofs.is_open(), true);
@@ -282,7 +282,7 @@ static void test2_loadMessageFromFileTest()
         }
 
         bmqu::MemOutStream payload(bmqtst::TestHelperUtil::allocator());
-        bsl::ostringstream properties(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream properties(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
         const bool         rc = InputUtil::loadMessageFromFile(
             &payload,
@@ -304,7 +304,7 @@ static void test2_loadMessageFromFileTest()
         bmqa::MessageProperties messageProperties(
             bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob,
-                                properties.str().c_str(),
+                                properties.str().data(),
                                 static_cast<int>(properties.str().size()));
         BMQTST_ASSERT_EQ_D(test.d_line, messageProperties.streamIn(blob), 0);
     }
