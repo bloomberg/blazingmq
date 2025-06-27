@@ -249,7 +249,7 @@ int SessionNegotiator::createSessionOnMsgType(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
     bool*                             isContinueRead,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT(session);
@@ -345,7 +345,7 @@ int SessionNegotiator::createSessionOnMsgType(
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context);
@@ -507,14 +507,14 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                            clientIdentity,
                            *(context->channel().get()));
 
-    createSession(&session, context.get(), description);
+    createSession(&session, context, description);
 
     return session;
 }
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context);
@@ -556,7 +556,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     if (rc != 0) {
         return session;  // RETURN
     }
-    createSession(&session, context.get(), description);
+    createSession(&session, context, description);
 
     return session;
 }
@@ -628,7 +628,7 @@ int SessionNegotiator::sendNegotiationMessage(
 
 int SessionNegotiator::populateNegotiationContext(
     bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -696,7 +696,7 @@ int SessionNegotiator::populateNegotiationContext(
         mqbnet::ClusterNode* clusterNode = 0;
         clusterNode = d_clusterCatalog_p->onNegotiationForClusterSession(
             errorDescription,
-            context.get(),
+            context,
             peerIdentity.clusterName(),
             peerIdentity.clusterNodeId());
 
