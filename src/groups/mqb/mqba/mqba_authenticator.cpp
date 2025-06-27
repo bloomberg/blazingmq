@@ -56,8 +56,6 @@ namespace mqba {
 namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.AUTHENTICATOR");
 
-const int k_AUTHENTICATION_READTIMEOUT = 3 * 60;  // 3 minutes
-
 }
 
 // -------------------
@@ -91,11 +89,11 @@ int Authenticator::onAuthenticationRequest(
                                  bdlf::PlaceHolders::_2,  // context,
                                  bdlf::PlaceHolders::_3   // channel
                                  ),                       // reauthenticateCb
-            State::e_AUTHENTICATING                       // state
+            State::e_AUTHENTICATING,                      // state
+            mqbnet::ConnectionType::e_UNKNOWN             // connectionType
         );
 
     context->setAuthenticationContext(authenticationContext);
-    authenticationContext->setInitialConnectionContext(context.get());
 
     // Authenticate
     int rc = authenticateAsync(errorDescription,
@@ -177,8 +175,9 @@ int Authenticator::authenticateAsync(
     return rc;
 }
 
-int Authenticator::authenticate(const AuthenticationContextSp&         context,
-                                const bsl::shared_ptr<bmqio::Channel>& channel)
+void Authenticator::authenticate(
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // PRECONDITIONS
     BSLS_ASSERT(context);
@@ -220,19 +219,6 @@ int Authenticator::authenticate(const AuthenticationContextSp&         context,
         response.status().code()     = rc;
         response.status().category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
         response.status().message()  = authenticationErrorStream.str();
-
-        // send the error response back to the client before calling the
-        // completion callback
-        bmqu::MemOutStream sendResponseErrorStream;
-        sendAuthenticationMessage(sendResponseErrorStream,
-                                  authenticationResponse,
-                                  channel,
-                                  context->authenticationEncodingType());
-
-        initialConnectionContext->complete(rc,
-                                           authenticationErrorStream.str() +
-                                               sendResponseErrorStream.str(),
-                                           bsl::shared_ptr<mqbnet::Session>());
     }
     else {
         response.status().code()     = 0;
@@ -252,25 +238,51 @@ int Authenticator::authenticate(const AuthenticationContextSp&         context,
                 rc,
                 authenticationErrorStream.str(),
                 bsl::shared_ptr<mqbnet::Session>());
-            return rc;  // RETURN
-        }
-
-        // send the success response back to the client
-        bmqu::MemOutStream sendResponseErrorStream;
-        rc = sendAuthenticationMessage(sendResponseErrorStream,
-                                       authenticationResponse,
-                                       channel,
-                                       context->authenticationEncodingType());
-
-        if (rc != 0) {
-            initialConnectionContext->complete(
-                rc,
-                sendResponseErrorStream.str(),
-                bsl::shared_ptr<mqbnet::Session>());
+            return;  // RETURN
         }
     }
 
-    return rc;
+    // This is when we authenticate with default credentials
+    // No need to send authentication response
+    if (initialConnectionContext->negotiationContext()) {
+        bsl::shared_ptr<mqbnet::Session> session;
+        bmqu::MemOutStream               errStream;
+        bsl::string                      error;
+        bool                             isContinueRead;
+        rc = initialConnectionContext->negotiationCb()(
+            errStream,
+            &session,
+            &isContinueRead,
+            initialConnectionContext);
+
+        if (rc != 0) {
+            error = bsl::string(errStream.str().data(),
+                                errStream.str().length());
+        }
+
+        initialConnectionContext->complete(rc, error, session);
+
+        return;  // RETURN
+    }
+
+    // Send authentication response back to the client
+    bmqu::MemOutStream sendResponseErrorStream;
+    rc = sendAuthenticationMessage(sendResponseErrorStream,
+                                   authenticationResponse,
+                                   channel,
+                                   context->authenticationEncodingType());
+    if (response.status().code() != 0) {
+        initialConnectionContext->complete(rc,
+                                           authenticationErrorStream.str(),
+                                           bsl::shared_ptr<mqbnet::Session>());
+    }
+    else if (rc != 0) {
+        initialConnectionContext->complete(rc,
+                                           sendResponseErrorStream.str(),
+                                           bsl::shared_ptr<mqbnet::Session>());
+    }
+
+    return;
 }
 
 int Authenticator::reauthenticateAsync(
