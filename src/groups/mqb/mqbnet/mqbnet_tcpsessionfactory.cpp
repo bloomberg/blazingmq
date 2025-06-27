@@ -532,13 +532,14 @@ void TCPSessionFactory::initialConnectionComplete(
     BSLS_ASSERT_SAFE(initialConnectionContext_p);
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "' successfully negotiated a session [session: '"
-                  << session->description() << "', channel: '" << channel.get()
-                  << "', maxMissedHeartbeat: "
-                  << initialConnectionContext_p->negotiationContext()
-                         ->d_maxMissedHeartbeats
-                  << "]";
+    BALL_LOG_INFO
+        << "TCPSessionFactory '" << d_config.name()
+        << "' successfully authenticated and negotiated a session [session: '"
+        << session->description() << "', channel: '" << channel.get()
+        << "', maxMissedHeartbeat: "
+        << initialConnectionContext_p->negotiationContext()
+               ->maxMissedHeartbeats()
+        << "]";
 
     // Session is established; keep a hold to it.
 
@@ -585,15 +586,15 @@ void TCPSessionFactory::initialConnectionComplete(
             return;  // RETURN
         }
 
-        info.createInplace(d_allocator_p,
-                           channel,
-                           initialConnectionContext_p->authenticationContext(),
-                           monitoredSession,
-                           initialConnectionContext_p->negotiationContext()
-                               ->d_eventProcessor_p,
-                           initialConnectionContext_p->negotiationContext()
-                               ->d_maxMissedHeartbeats,
-                           d_initialMissedHeartbeatCounter);
+        info.createInplace(
+            d_allocator_p,
+            channel,
+            initialConnectionContext_p->authenticationContext(),
+            monitoredSession,
+            initialConnectionContext_p->negotiationContext()->eventProcessor(),
+            initialConnectionContext_p->negotiationContext()
+                ->maxMissedHeartbeats(),
+            d_initialMissedHeartbeatCounter);
         // See comments in 'calculateInitialMissedHbCounter'.
 
         bsl::pair<bmqio::Channel*, ChannelInfoSp> toInsert(channel.get(),
@@ -621,7 +622,7 @@ void TCPSessionFactory::initialConnectionComplete(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext_p->negotiationContext()->d_cluster_p,
+        initialConnectionContext_p->negotiationContext()->cluster(),
         initialConnectionContext_p->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
