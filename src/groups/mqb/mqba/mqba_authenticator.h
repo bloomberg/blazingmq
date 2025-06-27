@@ -168,8 +168,8 @@ class Authenticator : public mqbnet::Authenticator {
     /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
     /// state of `context` as appropriate. Return 0 on success, or a
     /// non-zero error code otherwise.
-    int authenticate(const AuthenticationContextSp&         context,
-                     const bsl::shared_ptr<bmqio::Channel>& channel);
+    void authenticate(const AuthenticationContextSp&         context,
+                      const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Reauthenticate the connection using the `AuthenticationMessage`
     /// stored in `context`.  If re-authentication fails, invoke

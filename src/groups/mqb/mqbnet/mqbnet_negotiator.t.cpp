@@ -56,11 +56,10 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    int createSessionOnMsgType(
-        bsl::ostream&                     errorDescription,
-        bsl::shared_ptr<mqbnet::Session>* session,
-        bool*                             isContinueRead,
-        const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context)
+    int createSessionOnMsgType(bsl::ostream& errorDescription,
+                               bsl::shared_ptr<mqbnet::Session>* session,
+                               bool* isContinueRead,
+                               mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
@@ -154,7 +153,7 @@ static void test1_Negotiator()
             createSessionOnMsgType(errStream,
                                    &dummySessionSp,
                                    &isContinueRead,
-                                   dummyInitialConnectionContextSp));
+                                   dummyInitialConnectionContextSp.get()));
     }
 }
 
