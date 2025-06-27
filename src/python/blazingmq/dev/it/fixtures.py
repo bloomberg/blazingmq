@@ -236,8 +236,6 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 log_file_handler.setLevel(log_file_level)
                 logging.getLogger().setLevel(log_file_level)
 
-            failures = 0
-
             def remove_log_file_handler():
                 logging.getLogger().removeHandler(log_file_handler)
                 log_file_handler.close()
@@ -387,10 +385,6 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 tool_extra_args=tool_extra_args,
                 **extra_cluster_kw_args,
             ) as cluster:
-                failures = (
-                    0 + request.session.testsfailed
-                )  # it doesn't work without the `0 +`, why?
-
                 try:
                     with internal_use(cluster):
                         logger.debug("starting cluster")
@@ -629,6 +623,83 @@ multi_node_cluster_params = [
 
 @pytest.fixture(params=multi_node_cluster_params)
 def multi_node(request):
+    yield from cluster_fixture(request, request.param)
+
+
+###############################################################################
+# multi7_node cluster
+
+
+def multi7_node_cluster_config(
+    configurator: cfg.Configurator,
+    port_allocator: Iterator[int],
+    mode: Mode,
+) -> None:
+    """A factory for cluster configurations containing multiple open TCP interfaces.
+
+    This function generates configuration for a 7-node BlazingMQ cluster, a proxy in
+    each data center region, and adds domains to the cluster to be used by tests.
+
+    Cluster: east1, east2, west1, west2, north1, north2, south1
+    Proxies: eastp, westp, northp, southp
+
+    Args:
+        configurator: The Configurator used to generate and manage cluster and broker
+            configuration definitions
+        port_allocator: An iterator providing port numbers for brokers
+        mode: The cluster operation mode
+    """
+    mode.tweak(configurator.proto.cluster)
+
+    data_centers = {
+        "east": 2,
+        "west": 2,
+        "north": 2,
+        "south": 1,
+    }
+
+    cluster = configurator.cluster(
+        name="itCluster",
+        nodes=[
+            configurator.broker(
+                name=f"{data_center}{broker}",
+                tcp_host="localhost",
+                tcp_port=next(port_allocator),
+                data_center=data_center,
+            )
+            for data_center, num_brokers in data_centers.items()
+            for broker in range(1, num_brokers + 1)
+        ],
+    )
+
+    add_test_domains(cluster)
+
+    for data_center in data_centers:
+        configurator.broker(
+            name=f"{data_center}p",
+            tcp_host="localhost",
+            tcp_port=next(port_allocator),
+            data_center=data_center,
+        ).proxy(cluster)
+
+
+multi7_node_cluster_params = [
+    pytest.param(
+        functools.partial(multi7_node_cluster_config, mode=mode),
+        id=f"multi7_node{mode.suffix}",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.multi7,
+            *mode.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+
+@pytest.fixture(params=multi7_node_cluster_params)
+def multi7_node(request):
     yield from cluster_fixture(request, request.param)
 
 
