@@ -2491,12 +2491,11 @@ void ClientSession::processEvent(const bmqp::Event& event,
 {
     // executed by the *IO* thread
 
-    // TODO: uncomment when default credential support is implemented
-    // if (!event.isAuthenticationEvent() && !d_authenticationContext) {
-    //     BALL_LOG_ERROR << "The authentication lifetime has expired.  Need to
-    //     reauthenticate.";
-    //     return;  // RETURN
-    // }
+    if (!event.isAuthenticationEvent() && !d_authenticationContext) {
+        BALL_LOG_ERROR << "The authentication lifetime has expired.  Need to "
+                          "reauthenticate.";
+        return;  // RETURN
+    }
 
     if (event.isAuthenticationEvent()) {
         if (d_authenticationContext->state().testAndSwap(

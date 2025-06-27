@@ -67,11 +67,11 @@ class Negotiator {
     /// continue reading instead of creating a session just yet.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
-    virtual int createSessionOnMsgType(
-        bsl::ostream&                                    errorDescription,
-        bsl::shared_ptr<mqbnet::Session>*                session,
-        bool*                                            isContinueRead,
-        const bsl::shared_ptr<InitialConnectionContext>& context) = 0;
+    virtual int
+    createSessionOnMsgType(bsl::ostream&                     errorDescription,
+                           bsl::shared_ptr<mqbnet::Session>* session,
+                           bool*                             isContinueRead,
+                           InitialConnectionContext*         context) = 0;
 
     /// Send out outbound negotiation message with the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
