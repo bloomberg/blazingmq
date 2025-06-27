@@ -278,6 +278,9 @@
 //  }
 //..
 
+// BMQ
+#include <bmqtst_loggingallocator.h>
+
 // BDE
 #include <ball_attributecontext.h>
 #include <ball_fileobserver.h>
@@ -637,7 +640,8 @@
     bslma::TestAllocator _defAlloc(                                           \
         "default",                                                            \
         (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
-    bslma::DefaultAllocatorGuard _defAllocGuard(&_defAlloc);                  \
+    bmqtst::LoggingAllocator     _loggingAlloc(&_defAlloc);                   \
+    bslma::DefaultAllocatorGuard _defAllocGuard(&_loggingAlloc);              \
                                                                               \
     /* Test driver allocator */                                               \
     bslma::TestAllocator _testAlloc(                                          \
@@ -648,7 +652,7 @@
     balst::StackTraceTestAllocator _stTestAlloc;                              \
     _stTestAlloc.setName("test");                                             \
                                                                               \
-    if ((F) & bmqtst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {               \
+    if ((F)&bmqtst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {                 \
         bmqtst::TestHelperUtil::allocator() = &_stTestAlloc;                  \
     }                                                                         \
     else {                                                                    \

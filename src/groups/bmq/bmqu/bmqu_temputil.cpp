@@ -34,7 +34,7 @@ namespace bmqu {
 // struct TempUtil
 // ---------------
 
-bsl::string TempUtil::tempDir()
+bsl::string TempUtil::tempDir(bslma::Allocator* allocator)
 {
 #if defined(BSLS_PLATFORM_OS_UNIX)
 
@@ -58,13 +58,13 @@ bsl::string TempUtil::tempDir()
     std::memcpy(buffer, tmp, length);
     buffer[length] = 0;
 
-    bsl::string result(buffer);
+    bsl::string result(buffer, allocator);
 
     if (result.empty()) {
         result = ".";
     }
 
-    if (result[result.size() - 1] != '/') {
+    if (!result.ends_with("/")) {
         result.push_back('/');
     }
 
@@ -89,7 +89,7 @@ bsl::string TempUtil::tempDir()
         BSLS_ASSERT_OPT(0 != rc);
     }
 
-    bsl::string result(buffer);
+    bsl::string result(buffer, allocator);
 
     if (result.empty()) {
         result = ".";
@@ -107,11 +107,11 @@ bsl::string TempUtil::tempDir()
 #endif
 }
 
-bsl::string TempUtil::tempDirDefault()
+bsl::string TempUtil::tempDirDefault(bslma::Allocator* allocator)
 {
 #if defined(BSLS_PLATFORM_OS_UNIX)
 
-    return bsl::string("/tmp/");
+    return bsl::string("/tmp/", allocator);
 
 #elif defined(BSLS_PLATFORM_OS_WINDOWS)
 
@@ -119,7 +119,7 @@ bsl::string TempUtil::tempDirDefault()
     DWORD rc = GetWindowsDirectoryA(buffer, static_cast<UINT>(sizeof buffer));
     BSLS_ASSERT_OPT(0 != rc);
 
-    bsl::string result(buffer);
+    bsl::string result(buffer, allocator);
 
     if (result.empty()) {
         result = ".";

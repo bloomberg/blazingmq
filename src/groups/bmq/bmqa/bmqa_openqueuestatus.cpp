@@ -21,6 +21,7 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bdlma_localsequentialallocator.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {
@@ -38,9 +39,11 @@ bsl::ostream& OpenQueueStatus::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("queueId", queueId());
+
     bmqu::MemOutStream out;
     out << result() << " (" << static_cast<int>(result()) << ")";
-    printer.printAttribute("result", out.str());
+    printer.printAttribute("result", result());
+
     if (!errorDescription().empty()) {
         printer.printAttribute("errorDescription", errorDescription());
     }

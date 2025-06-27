@@ -67,12 +67,14 @@ struct TempUtil {
     /// the system.  The result is guaranteed to have a trailing path
     /// separator, even if the definition of the environment variable does
     /// not.
-    static bsl::string tempDir();
+    /// @param allocator Allocator to use.
+    static bsl::string tempDir(bslma::Allocator* allocator = 0);
 
     /// Return the default temporary directory when no environment variables
     /// are defined.  The result is guaranteed to have a trailing path
     /// separator.
-    static bsl::string tempDirDefault();
+    /// @param allocator Allocator to use.
+    static bsl::string tempDirDefault(bslma::Allocator* allocator = 0);
 };
 
 }  // close package namespace

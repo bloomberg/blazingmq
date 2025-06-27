@@ -106,6 +106,7 @@ Test::Test()
             bmqtst::TestHelperUtil::allocator())
 , d_storage(d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
+            &d_domain,
             mqbs::DataStore::k_INVALID_PARTITION_ID,
             getDomainConfig(),
             d_domain.capacityMeter(),
