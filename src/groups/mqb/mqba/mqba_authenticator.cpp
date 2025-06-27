@@ -29,27 +29,32 @@
 #include <mqbblp_clustercatalog.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_initialconnectioncontext.h>
+#include <mqbplug_authenticator.h>
 
 // BMQ
+#include <bmqio_channel.h>
 #include <bmqio_status.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqsys_threadutil.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
+#include <bdlf_bind.h>
 #include <bdlma_sequentialallocator.h>
+#include <bdlmt_threadpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsls_nullptr.h>
+#include <bsls_timeinterval.h>
 
 namespace BloombergLP {
 namespace mqba {
 
 namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.AUTHENTICATOR");
-
-const int k_AUTHENTICATION_READTIMEOUT = 3 * 60;  // 3 minutes
 
 }
 
@@ -70,36 +75,30 @@ int Authenticator::onAuthenticationRequest(
                    << context->channel()->peerUri()
                    << "': " << authenticationMsg;
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
-    bmqp_ctrlmsg::AuthenticateResponse& response =
-        authenticationResponse.makeAuthenticateResponse();
-
     // Create an AuthenticationContext for that connection
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
         bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
-            context.get(),           // initialConnectionContext
-            authenticationMsg,       // authenticationMessage
-            State::e_AUTHENTICATING  // state
+            context.get(),      // initialConnectionContext
+            authenticationMsg,  // authenticationMessage
+            context
+                ->authenticationEncodingType(),  // authenticationEncodingType
+            bdlf::BindUtil::bind(&Authenticator::reauthenticateAsync,
+                                 this,                    // authenticator
+                                 bdlf::PlaceHolders::_1,  // errorDescription,
+                                 bdlf::PlaceHolders::_2,  // context,
+                                 bdlf::PlaceHolders::_3   // channel
+                                 ),                       // reauthenticateCb
+            State::e_AUTHENTICATING,                      // state
+            mqbnet::ConnectionType::e_UNKNOWN             // connectionType
         );
 
     context->setAuthenticationContext(authenticationContext);
 
-    // Always succeeds for now
-    // TODO: For later implementation, plugins will perform authentication,
-    // taking the `AuthenticationContext` and updates it with the
-    // authentication result.
-    response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-    response.status().code()     = 0;
-    response.lifetimeMs()        = 10 * 60 * 1000;
-
-    authenticationContext->state().testAndSwap(
-        mqbnet::AuthenticationContext::State::e_AUTHENTICATING,
-        mqbnet::AuthenticationContext::State::e_AUTHENTICATED);
-
-    int rc = sendAuthenticationMessage(errorDescription,
-                                       authenticationResponse,
-                                       authenticationContext);
+    // Authenticate
+    int rc = authenticateAsync(errorDescription,
+                               authenticationContext,
+                               context->channel());
 
     return rc;
 }
@@ -117,7 +116,8 @@ int Authenticator::onAuthenticationResponse(
 int Authenticator::sendAuthenticationMessage(
     bsl::ostream&                              errorDescription,
     const bmqp_ctrlmsg::AuthenticationMessage& message,
-    const AuthenticationContextSp&             context)
+    const bsl::shared_ptr<bmqio::Channel>&     channel,
+    bmqp::EncodingType::Enum                   authenticationEncodingType)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -126,12 +126,10 @@ int Authenticator::sendAuthenticationMessage(
         rc_WRITE_FAILURE = -2
     };
 
-    bmqp::EncodingType::Enum encodingType = bmqp::EncodingType::e_BER;
-
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
-                                     encodingType,
+                                     authenticationEncodingType,
                                      &localAllocator);
 
     int rc = builder.setMessage(message, bmqp::EventType::e_AUTHENTICATION);
@@ -143,8 +141,9 @@ int Authenticator::sendAuthenticationMessage(
 
     // Send response event
     bmqio::Status status;
-    context->initialConnectionContext()->channel()->write(&status,
-                                                          *builder.blob());
+
+    channel->write(&status, *builder.blob());
+
     if (!status) {
         errorDescription << "Failed sending AuthenticationMessage "
                          << "[status: " << status << ", message: " << message
@@ -155,11 +154,264 @@ int Authenticator::sendAuthenticationMessage(
     return rc_SUCCESS;
 }
 
+int Authenticator::authenticateAsync(
+    bsl::ostream&                          errorDescription,
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    int rc = d_threadPool.enqueueJob(
+        bdlf::BindUtil::bind(&Authenticator::authenticate,
+                             this,
+                             context,
+                             channel));
+
+    if (rc != 0) {
+        errorDescription << "Failed to enqueue authentication job for '"
+                         << channel->peerUri() << "' [rc: " << rc
+                         << ", message: " << context->authenticationMessage()
+                         << "]";
+    }
+
+    return rc;
+}
+
+void Authenticator::authenticate(
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(context);
+    BSLS_ASSERT(context->initialConnectionContext());
+
+    mqbnet::InitialConnectionContext* initialConnectionContext =
+        context->initialConnectionContext();
+
+    const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
+        context->authenticationMessage().authenticateRequest();
+
+    bsl::shared_ptr<mqbplug::AuthenticationResult> result;
+    mqbplug::AuthenticationData                    authenticationData(
+        authenticateRequest.data().value(),
+        channel->peerUri());
+
+    bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
+    bmqp_ctrlmsg::AuthenticateResponse& response =
+        authenticationResponse.makeAuthenticateResponse();
+
+    bmqu::MemOutStream authenticationErrorStream;
+
+    BALL_LOG_INFO << "Authenticating connection '" << channel->peerUri()
+                  << "' with mechanism '" << authenticateRequest.mechanism()
+                  << "'";
+
+    int rc = d_authnController_p->authenticate(authenticationErrorStream,
+                                               &result,
+                                               authenticateRequest.mechanism(),
+                                               authenticationData);
+
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Authentication failed for connection '"
+                       << channel->peerUri() << "' with mechanism '"
+                       << authenticateRequest.mechanism() << "' [rc: " << rc
+                       << ", error: " << authenticationErrorStream.str()
+                       << "]";
+
+        response.status().code()     = rc;
+        response.status().category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.status().message()  = authenticationErrorStream.str();
+    }
+    else {
+        response.status().code()     = 0;
+        response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+        response.lifetimeMs()        = result->lifetimeMs();
+
+        context->setAuthenticationResult(result);
+
+        if (context->state().testAndSwap(State::e_AUTHENTICATING,
+                                         State::e_AUTHENTICATED) !=
+            State::e_AUTHENTICATING) {
+            authenticationErrorStream
+                << "Failed to set authentication state for '"
+                << channel->peerUri()
+                << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
+            initialConnectionContext->complete(
+                rc,
+                authenticationErrorStream.str(),
+                bsl::shared_ptr<mqbnet::Session>());
+            return;  // RETURN
+        }
+    }
+
+    // This is when we authenticate with default credentials
+    // No need to send authentication response
+    if (initialConnectionContext->negotiationContext()) {
+        bsl::shared_ptr<mqbnet::Session> session;
+        bmqu::MemOutStream               errStream;
+        bsl::string                      error;
+        bool                             isContinueRead;
+        rc = initialConnectionContext->negotiationCb()(
+            errStream,
+            &session,
+            &isContinueRead,
+            initialConnectionContext);
+
+        if (rc != 0) {
+            error = bsl::string(errStream.str().data(),
+                                errStream.str().length());
+        }
+
+        initialConnectionContext->complete(rc, error, session);
+
+        return;  // RETURN
+    }
+
+    // Send authentication response back to the client
+    bmqu::MemOutStream sendResponseErrorStream;
+    rc = sendAuthenticationMessage(sendResponseErrorStream,
+                                   authenticationResponse,
+                                   channel,
+                                   context->authenticationEncodingType());
+    if (response.status().code() != 0) {
+        initialConnectionContext->complete(rc,
+                                           authenticationErrorStream.str(),
+                                           bsl::shared_ptr<mqbnet::Session>());
+    }
+    else if (rc != 0) {
+        initialConnectionContext->complete(rc,
+                                           sendResponseErrorStream.str(),
+                                           bsl::shared_ptr<mqbnet::Session>());
+    }
+
+    return;
+}
+
+int Authenticator::reauthenticateAsync(
+    bsl::ostream&                          errorDescription,
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    int rc = d_threadPool.enqueueJob(
+        bdlf::BindUtil::bind(&Authenticator::reauthenticate,
+                             this,
+                             context,
+                             channel));
+
+    if (rc != 0) {
+        errorDescription << "Failed to enqueue authentication job for '"
+                         << channel->peerUri() << "' [rc: " << rc
+                         << ", message: " << context->authenticationMessage()
+                         << "]";
+    }
+
+    return rc;
+}
+
+void Authenticator::reauthenticate(
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(context);
+    BSLS_ASSERT(context->initialConnectionContext());
+
+    const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
+        context->authenticationMessage().authenticateRequest();
+
+    bsl::shared_ptr<mqbplug::AuthenticationResult> result;
+    mqbplug::AuthenticationData                    authenticationData(
+        authenticateRequest.data().value(),
+        channel->peerUri());
+
+    bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
+    bmqp_ctrlmsg::AuthenticateResponse& response =
+        authenticationResponse.makeAuthenticateResponse();
+
+    bmqu::MemOutStream authenticationErrorStream;
+
+    BALL_LOG_INFO << "Reauthenticating connection '" << channel->peerUri()
+                  << "' with mechanism '" << authenticateRequest.mechanism()
+                  << "'";
+
+    int rc = d_authnController_p->authenticate(authenticationErrorStream,
+                                               &result,
+                                               authenticateRequest.mechanism(),
+                                               authenticationData);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Authentication failed for connection '"
+                       << channel->peerUri() << "' with mechanism '"
+                       << authenticateRequest.mechanism() << "' [rc: " << rc
+                       << ", error: " << authenticationErrorStream.str()
+                       << "]";
+
+        response.status().code()     = rc;
+        response.status().category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.status().message()  = authenticationErrorStream.str();
+
+        // send the error response back to the client before calling the
+        // completion callback
+        bmqu::MemOutStream sendResponseErrorStream;
+        sendAuthenticationMessage(sendResponseErrorStream,
+                                  authenticationResponse,
+                                  channel,
+                                  context->authenticationEncodingType());
+
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                             "reauthenticationError",
+                             rc,
+                             d_allocator_p);
+        channel->close(status);
+    }
+    else {
+        response.status().code()     = 0;
+        response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+        response.lifetimeMs()        = result->lifetimeMs();
+
+        context->setAuthenticationResult(result);
+
+        if (context->state().testAndSwap(State::e_AUTHENTICATING,
+                                         State::e_AUTHENTICATED) !=
+            State::e_AUTHENTICATING) {
+            BALL_LOG_ERROR << "Failed to set (re)authentication state for '"
+                           << channel->peerUri()
+                           << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
+            bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                                 "reauthenticationError",
+                                 rc,
+                                 d_allocator_p);
+            channel->close(status);
+            return;  // RETURN
+        }
+
+        // send the success response back to the client
+        bmqu::MemOutStream sendResponseErrorStream;
+        rc = sendAuthenticationMessage(sendResponseErrorStream,
+                                       authenticationResponse,
+                                       channel,
+                                       context->authenticationEncodingType());
+
+        if (rc != 0) {
+            bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                                 "reauthenticationError",
+                                 rc,
+                                 d_allocator_p);
+            channel->close(status);
+        }
+    }
+}
+
 // CREATORS
-Authenticator::Authenticator(BlobSpPool*       blobSpPool,
-                             bslma::Allocator* allocator)
-: d_allocator_p(allocator)
+Authenticator::Authenticator(
+    mqbauthn::AuthenticationController* authnController,
+    BlobSpPool*                         blobSpPool,
+    bslma::Allocator*                   allocator)
+: d_authnController_p(authnController)
+, d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
+               0,                                            // min threads
+               100,                                          // max threads
+               bsls::TimeInterval(120).totalMilliseconds(),  // idle time
+               allocator)
 , d_blobSpPool_p(blobSpPool)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -168,6 +420,23 @@ Authenticator::Authenticator(BlobSpPool*       blobSpPool,
 Authenticator::~Authenticator()
 {
     // NOTHING: (required because of inheritance)
+}
+
+int Authenticator::start(bsl::ostream& errorDescription)
+{
+    int rc = d_threadPool.start();
+    if (rc != 0) {
+        errorDescription << "Failed to start thread pool for Authenticator"
+                         << "[rc: " << rc << "]";
+        return rc;  // RETURN
+    }
+
+    return 0;
+}
+
+void Authenticator::stop()
+{
+    d_threadPool.stop();
 }
 
 int Authenticator::handleAuthentication(
@@ -215,6 +484,12 @@ int Authenticator::authenticationOutbound(
     BALL_LOG_ERROR << "Not Implemented";
 
     return -1;
+}
+
+// ACCESSORS
+const bsl::optional<bsl::string>& Authenticator::defaultCredential()
+{
+    return d_authnController_p->defaultCredential();
 }
 
 }  // close package namespace
