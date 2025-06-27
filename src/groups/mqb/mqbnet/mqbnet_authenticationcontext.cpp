@@ -21,6 +21,7 @@
 #include <mqbnet_initialconnectioncontext.h>
 
 // BDE
+#include <bsla_annotations.h>
 #include <bslmt_lockguard.h>
 #include <bsls_atomic.h>
 
@@ -37,7 +38,8 @@ AuthenticationContext::AuthenticationContext(
     bmqp::EncodingType::Enum                   authenticationEncodingType,
     const ReauthenticateCb&                    reauthenticateCb,
     State                                      state,
-    ConnectionType::Enum                       connectionType)
+    ConnectionType::Enum                       connectionType,
+    BSLA_UNUSED bslma::Allocator* allocator)
 : d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
 , d_authenticationEncodingType(authenticationEncodingType)
@@ -79,7 +81,7 @@ AuthenticationContext& AuthenticationContext::setAuthenticationEncodingType(
 }
 
 AuthenticationContext&
-AuthenticationContext::setAuthenticateCallback(const ReauthenticateCb& value)
+AuthenticationContext::setAuthenticateCb(const ReauthenticateCb& value)
 {
     d_reauthenticateCb = value;
     return *this;

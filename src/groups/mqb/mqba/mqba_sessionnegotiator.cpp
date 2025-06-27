@@ -249,7 +249,7 @@ int SessionNegotiator::createSessionOnMsgType(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
     bool*                             isContinueRead,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT(session);
@@ -345,7 +345,7 @@ int SessionNegotiator::createSessionOnMsgType(
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context);
@@ -508,7 +508,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context);
@@ -619,7 +619,7 @@ int SessionNegotiator::sendNegotiationMessage(
 void SessionNegotiator::createSession(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* out,
-    const InitialConnectionContextSp& context,
+    mqbnet::InitialConnectionContext* context,
     const bsl::string&                description)
 {
     // PRECONDITIONS
