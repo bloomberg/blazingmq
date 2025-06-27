@@ -21,6 +21,7 @@
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbnet_authenticationcontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 
 // BMQ
@@ -38,6 +39,8 @@
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_memory.h>
+#include <bsl_string.h>
+#include <bsls_nullptr.h>
 #include <bsls_timeinterval.h>
 #include <bslstl_variant.h>
 
@@ -230,11 +233,22 @@ int InitialConnectionHandler::processBlob(
         // In order not to block the IO thread, for default credential, we do
         // negotiation in authentication threads
         if (!context->authenticationContext()) {
+            context->setNegotiationCb(bdlf::BindUtil::bind(
+                &mqbnet::Negotiator::createSessionOnMsgType,
+                d_negotiator_mp.get(),
+                bdlf::PlaceHolders::_1,  // errorDescription
+                bdlf::PlaceHolders::_2,  // session
+                bdlf::PlaceHolders::_3,  // isContinueRead
+                bdlf::PlaceHolders::_4   // context
+                ));
+
             bmqp_ctrlmsg::AuthenticationMessage authenticationMsg;
             bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
                 authenticationMsg.makeAuthenticateRequest();
-            authenticateRequest.mechanism()    = "Anonymous";
-            authenticateRequest.data().value() = bsl::vector<char>(
+
+            // Set the default authentication mechanism to "Basic" for now
+            authenticateRequest.mechanism() = "Basic";
+            authenticateRequest.data()      = bsl::vector<char>(
                 d_authenticator_mp->defaultCredential().value().begin(),
                 d_authenticator_mp->defaultCredential().value().end());
 
@@ -249,7 +263,7 @@ int InitialConnectionHandler::processBlob(
         rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
                                                      session,
                                                      isContinueRead,
-                                                     context);
+                                                     context.get());
     }
 
     return rc;

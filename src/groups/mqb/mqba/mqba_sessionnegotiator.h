@@ -145,7 +145,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// `errorDescription` with a description of the error on failure.
     bsl::shared_ptr<mqbnet::Session>
     onClientIdentityMessage(bsl::ostream&                     errorDescription,
-                            const InitialConnectionContextSp& context);
+                            mqbnet::InitialConnectionContext* context);
 
     /// Invoked when received a `BrokerResponse` negotiation message with
     /// the specified `context`.  Creates and return a Session on success,
@@ -153,7 +153,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// `errorDescription` with a description of the error on failure.
     bsl::shared_ptr<mqbnet::Session>
     onBrokerResponseMessage(bsl::ostream&                     errorDescription,
-                            const InitialConnectionContextSp& context);
+                            mqbnet::InitialConnectionContext* context);
 
     /// Send the specified `message` to the peer associated with the
     /// specified `context` and return 0 on success, or return a non-zero
@@ -169,7 +169,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// error in case of failure.
     void createSession(bsl::ostream&                     errorDescription,
                        bsl::shared_ptr<mqbnet::Session>* out,
-                       const InitialConnectionContextSp& context,
+                       mqbnet::InitialConnectionContext* context,
                        const bsl::string&                description);
 
     /// Return true if the negotiation message in the specified `context` is
@@ -236,7 +236,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     int createSessionOnMsgType(bsl::ostream& errorDescription,
                                bsl::shared_ptr<mqbnet::Session>* session,
                                bool* isContinueRead,
-                               const InitialConnectionContextSp& context)
+                               mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound negotiation message with the specified `context`.
