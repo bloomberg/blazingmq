@@ -124,7 +124,8 @@ static void test2_iterations()
     bmqt::Uri        dummyUri("dummy", bmqtst::TestHelperUtil::allocator());
     mqbconfm::Domain dummyDomain(bmqtst::TestHelperUtil::allocator());
 
-    mqbs::InMemoryStorage dummyStorage(dummyUri,
+    mqbs::InMemoryStorage dummyStorage(0,  // No FileStore
+                                       dummyUri,
                                        mqbu::StorageKey::k_NULL_KEY,
                                        mqbs::DataStore::k_INVALID_PARTITION_ID,
                                        dummyDomain,

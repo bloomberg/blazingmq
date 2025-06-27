@@ -171,9 +171,9 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
     d_isStopping = true;
 
     if (supportShutdownV2) {
-        d_queueHelper.requestToStopPushing();
+        d_queueHelper.requestToStopQueues();
         // 'checkUnconfirmedV2' serves as synchronization.
-        // It makes sure stopPushing() gets executed before the return.
+        // It makes sure `setStopping()` gets executed before the return.
         bsls::TimeInterval whenToStop(
             bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
         whenToStop.addMilliseconds(d_clusterData.clusterConfig()
