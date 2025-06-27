@@ -1062,14 +1062,6 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
 
         BSLS_ASSERT_SAFE(queueAdvisory.queues().size() == 1);
 
-        bmqp_ctrlmsg::QueueInfo& queueInfo = queueAdvisory.queues().back();
-
-        BSLA_MAYBE_UNUSED const bool assignRc = clusterState->assignQueue(
-            queueInfo);
-        BSLS_ASSERT_SAFE(assignRc);
-
-        BALL_LOG_INFO << cluster->description()
-                      << ": Queue assigned: " << queueAdvisory;
         //
         // NOTE: We must broadcast this control message before applying to CSL,
         // because if CSL is running in eventual consistency it will
