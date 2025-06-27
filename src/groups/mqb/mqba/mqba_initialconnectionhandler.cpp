@@ -210,9 +210,21 @@ int InitialConnectionHandler::processBlob(
     }
     else if (bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
                  message.value())) {
-        // Store NegotiationMessage in the context
-        context->negotiationContext()->d_negotiationMessage =
-            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
+        // Create NegotiationContext
+        bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
+            bsl::allocate_shared<mqbnet::NegotiationContext>(
+                d_allocator_p,
+                context.get(),  // initialConnectionContext
+                bsl::get<bmqp_ctrlmsg::NegotiationMessage>(
+                    message.value()),               // negotiationMessage
+                bsl::string(),                      // clusterName
+                mqbnet::ConnectionType::e_UNKNOWN,  // connectionType
+                0,                                  // maxMissedHeartbeat
+                bsl::nullptr_t(),                   // eventProcessor
+                bsl::nullptr_t()                    // cluster
+            );
+
+        context->setNegotiationContext(negotiationContext);
 
         // Received a NegotiationMessage before an AuthenticationMessage,
         // use the default authentication credential to authenticate.
@@ -370,32 +382,6 @@ InitialConnectionHandler::~InitialConnectionHandler()
 {
 }
 
-void InitialConnectionHandler::setupContext(
-    const InitialConnectionContextSp& context)
-{
-    // The only counted references to 'InitialConnectionContextSp' are two
-    // callbacks:
-    //  1.  'InitialConnectionHandler::complete' which is constructed and
-    //      destructed on stack.
-    //  2.  'InitialConnectionHandler::readCallback' which the channel holds
-    //      (see 'InitialConnectionHandler::scheduleRead').
-    // That means 'InitialConnectionContext' lives as long as there is the need
-    // to read from the channel.  As soon as it sets '*numNeeded = 0', it gets
-    // destructed after 'InitialConnectionHandler::readCallback' returns.
-    // If there is a need to keep 'InitialConnectionContext' longer, there
-    // should be explicit 'bsl::shared_ptr<mqbnet::InitialConnectionContext>'.
-
-    // Create an NegotiationContext for that connection
-    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext;
-    negotiationContext.createInplace(d_allocator_p);
-
-    negotiationContext->d_initialConnectionContext_p = context.get();
-    negotiationContext->d_clusterName                = "";
-    negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
-
-    context->setNegotiationContext(negotiationContext);
-}
-
 void InitialConnectionHandler::handleConnectionFlow(
     const InitialConnectionContextSp& context)
 {
@@ -442,7 +428,17 @@ void InitialConnectionHandler::handleConnectionFlow(
 void InitialConnectionHandler::handleInitialConnection(
     const InitialConnectionContextSp& context)
 {
-    setupContext(context);
+    // The only counted references to 'InitialConnectionContextSp' are two
+    // callbacks:
+    //  1.  'InitialConnectionHandler::complete' which is constructed and
+    //      destructed on stack.
+    //  2.  'InitialConnectionHandler::readCallback' which the channel holds
+    //      (see 'InitialConnectionHandler::scheduleRead').
+    // That means 'InitialConnectionContext' lives as long as there is the need
+    // to read from the channel.  As soon as it sets '*numNeeded = 0', it gets
+    // destructed after 'InitialConnectionHandler::readCallback' returns.
+    // If there is a need to keep 'InitialConnectionContext' longer, there
+    // should be explicit 'bsl::shared_ptr<mqbnet::InitialConnectionContext>'.
     handleConnectionFlow(context);
 }
 

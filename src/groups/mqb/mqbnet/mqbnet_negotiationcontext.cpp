@@ -18,9 +18,116 @@
 
 #include <mqbscm_version.h>
 namespace BloombergLP {
-namespace mqba {
+namespace mqbnet {
 
-// NOTHING
+// ------------------------
+// class NegotiationContext
+// ------------------------
+
+NegotiationContext::NegotiationContext(
+    InitialConnectionContext*               initialConnectionContext,
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+    const bsl::string&                      clusterName,
+    ConnectionType::Enum                    connectionType,
+    int                                     maxMissedHeartbeat,
+    SessionEventProcessor*                  eventProcessor,
+    Cluster*                                cluster,
+    bslma::Allocator*                       allocator)
+: d_initialConnectionContext_p(initialConnectionContext)
+, d_negotiationMessage(negotiationMessage)
+, d_clusterName(clusterName, allocator)
+, d_connectionType(connectionType)
+, d_maxMissedHeartbeats(maxMissedHeartbeat)
+, d_eventProcessor_p(eventProcessor)
+, d_cluster_p(cluster)
+{
+    // NOTHING
+}
+
+NegotiationContext& NegotiationContext::setInitialConnectionContext(
+    InitialConnectionContext* value)
+{
+    d_initialConnectionContext_p = value;
+    return *this;
+}
+
+NegotiationContext& NegotiationContext::setNegotiationMessage(
+    const bmqp_ctrlmsg::NegotiationMessage& value)
+{
+    d_negotiationMessage = value;
+    return *this;
+}
+
+NegotiationContext&
+NegotiationContext::setClusterName(const bsl::string& value)
+{
+    d_clusterName = value;
+    return *this;
+}
+
+NegotiationContext&
+NegotiationContext::setConnectionType(ConnectionType::Enum value)
+{
+    d_connectionType = value;
+    return *this;
+}
+
+NegotiationContext& NegotiationContext::setMaxMissedHeartbeats(int value)
+{
+    d_maxMissedHeartbeats = value;
+    return *this;
+}
+
+NegotiationContext&
+NegotiationContext::setEventProcessor(SessionEventProcessor* value)
+{
+    d_eventProcessor_p = value;
+    return *this;
+}
+
+NegotiationContext& NegotiationContext::setCluster(Cluster* value)
+{
+    d_cluster_p = value;
+    return *this;
+}
+
+// ACCESSORS
+
+InitialConnectionContext* NegotiationContext::initialConnectionContext() const
+{
+    return d_initialConnectionContext_p;
+}
+
+const bmqp_ctrlmsg::NegotiationMessage&
+NegotiationContext::negotiationMessage() const
+{
+    return d_negotiationMessage;
+}
+
+const bsl::string& NegotiationContext::clusterName() const
+{
+    return d_clusterName;
+}
+
+ConnectionType::Enum NegotiationContext::connectionType() const
+{
+    return d_connectionType;
+}
+
+int NegotiationContext::maxMissedHeartbeats() const
+{
+    return d_maxMissedHeartbeats;
+}
+
+SessionEventProcessor* NegotiationContext::eventProcessor() const
+{
+    return d_eventProcessor_p;
+}
+
+Cluster* NegotiationContext::cluster() const
+{
+    return d_cluster_p;
+}
 
 }  // close package namespace
 }  // close enterprise namespace
