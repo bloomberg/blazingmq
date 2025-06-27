@@ -86,13 +86,22 @@ class ClusterDataIdentity {
     bmqp_ctrlmsg::ClientIdentity d_identity;
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ClusterDataIdentity,
+                                   bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Create a @bbref{mqbc::ClusterDataIdentity} with the specified `name`,
-    /// `description` and `identity`.
-    ClusterDataIdentity(const bsl::string&                  name,
-                        const bsl::string&                  description,
-                        const bmqp_ctrlmsg::ClientIdentity& identity);
+    /// Create a @bbref{mqbc::ClusterDataIdentity}.
+    /// @param name The cluster name.
+    /// @param description The cluster description.
+    /// @param identity The cluster identity.
+    /// @param allocator Allocator to use, or use the default allocator if it
+    ///                  is null.
+    explicit ClusterDataIdentity(const bslstl::StringRef& name,
+                                 const bslstl::StringRef& description,
+                                 const bmqp_ctrlmsg::ClientIdentity& identity,
+                                 bslma::Allocator* allocator = 0);
 
     // ACCESSORS
 
@@ -303,12 +312,13 @@ class ClusterData {
 
 // CREATORS
 inline ClusterDataIdentity::ClusterDataIdentity(
-    const bsl::string&                  name,
-    const bsl::string&                  description,
-    const bmqp_ctrlmsg::ClientIdentity& identity)
-: d_name(name)
-, d_description(description)
-, d_identity(identity)
+    const bslstl::StringRef&            name,
+    const bslstl::StringRef&            description,
+    const bmqp_ctrlmsg::ClientIdentity& identity,
+    bslma::Allocator*                   allocator)
+: d_name(name, allocator)
+, d_description(description, allocator)
+, d_identity(identity, allocator)
 {
     // NOTHING
 }
