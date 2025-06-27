@@ -278,6 +278,9 @@
 //  }
 //..
 
+// BMQ
+#include <bmqtst_loggingallocator.h>
+
 // BDE
 #include <ball_attributecontext.h>
 #include <ball_fileobserver.h>
@@ -638,7 +641,10 @@
     bslma::TestAllocator _defAlloc(                                           \
         "default",                                                            \
         (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
-    bslma::DefaultAllocatorGuard _defAllocGuard(&_defAlloc);                  \
+    bmqtst::LoggingAllocator _loggingAlloc(                                   \
+        (F) & bmqtst::TestHelper::e_INSTANT_DEF_ALLOC_FAIL,                   \
+        &_defAlloc);                                                          \
+    bslma::DefaultAllocatorGuard _defAllocGuard(&_loggingAlloc);              \
                                                                               \
     /* Test driver allocator */                                               \
     bslma::TestAllocator _testAlloc(                                          \
@@ -664,13 +670,14 @@
     BMQTST_ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                         \
                                                                               \
     /* Verify no default allocator usage */                                   \
-    if (F & bmqtst::TestHelper::e_CHECK_DEF_ALLOC &&                          \
+    if ((F) & bmqtst::TestHelper::e_CHECK_DEF_ALLOC &&                        \
         !bmqtst::TestHelperUtil::ignoreCheckDefAlloc()) {                     \
+        _loggingAlloc.checkNoAllocations();                                   \
         BMQTST_ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
                                                                               \
     /* Verify no global allocator usage */                                    \
-    if (F & bmqtst::TestHelper::e_CHECK_GBL_ALLOC &&                          \
+    if ((F) & bmqtst::TestHelper::e_CHECK_GBL_ALLOC &&                        \
         !bmqtst::TestHelperUtil::ignoreCheckGblAlloc()) {                     \
         BMQTST_ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
@@ -896,14 +903,16 @@ struct TestHelper {
     // TYPES
     enum e_FLAGS {
         /// Flags to provide to `TEST_PROLOG` and `TEST_EPILOG` macros.
-        e_DEFAULT = 0
+        e_DEFAULT = 0,
 
-        // PROLOG FLAGS
-        ,
-        e_USE_STACKTRACE_ALLOCATOR = 1 << 0
+        /// ==== PROLOG FLAGS ====
+        /// Use `balst::StackTraceTestAllocator` to search for memory leaks.
+        e_USE_STACKTRACE_ALLOCATOR = 1 << 0,
+        /// Raise an exception instantly if any unneeded default allocation
+        /// happens.
+        e_INSTANT_DEF_ALLOC_FAIL = 1 << 1,
 
-        // EPILOG FLAGS
-        ,
+        /// ==== EPILOG FLAGS ====
         e_CHECK_DEF_ALLOC     = 1 << 0,
         e_CHECK_GBL_ALLOC     = 1 << 1,
         e_CHECK_DEF_GBL_ALLOC = e_CHECK_DEF_ALLOC | e_CHECK_GBL_ALLOC
