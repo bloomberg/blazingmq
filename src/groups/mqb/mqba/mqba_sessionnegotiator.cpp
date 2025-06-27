@@ -60,13 +60,13 @@
 #include <mqbu_sdkversionutil.h>
 
 // BMQ
+#include <bmqio_channelutil.h>
+#include <bmqio_tcpendpoint.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
 #include <bmqscm_version.h>
-
-#include <bmqio_channelutil.h>
-#include <bmqio_tcpendpoint.h>
 #include <bmqst_statcontext.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
@@ -272,7 +272,7 @@ int SessionNegotiator::createSessionOnMsgType(
     const NegotiationContextSp& negotiationContext =
         context->negotiationContext();
 
-    switch (negotiationContext->d_negotiationMessage.selectionId()) {
+    switch (negotiationContext->negotiationMessage().selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
         // This is the first message of the negotiation protocol; can either
         // represent:
@@ -281,11 +281,12 @@ int SessionNegotiator::createSessionOnMsgType(
         // - a cluster peer connecting to us (implying we are a cluster member)
         // - an admin client connecting to us
 
-        if (negotiationContext->d_negotiationMessage.clientIdentity()
+        if (negotiationContext->negotiationMessage()
+                .clientIdentity()
                 .clientType() == bmqp_ctrlmsg::ClientType::E_TCPADMIN) {
             // Remote client is connecting to us as an admin.
-            negotiationContext->d_connectionType =
-                mqbnet::ConnectionType::e_ADMIN;
+            negotiationContext->setConnectionType(
+                mqbnet::ConnectionType::e_ADMIN);
 
             if (!d_adminCb) {
                 errorDescription
@@ -295,20 +296,20 @@ int SessionNegotiator::createSessionOnMsgType(
             }
         }
         else if (mqbnet::ClusterUtil::isClientOrProxy(
-                     negotiationContext->d_negotiationMessage)) {
+                     negotiationContext->negotiationMessage())) {
             // - clusterName empty implies the remote peer is a regular client
             // - clusterName non empty but nodeId invalid means remote side is
             //   connecting to us as a proxy to 'clusterName' (with nodeId
             //   being invalid because remote peer is NOT part of the cluster,
             //   hence it's a proxy).
-            negotiationContext->d_connectionType =
-                mqbnet::ConnectionType::e_CLIENT;
+            negotiationContext->setConnectionType(
+                mqbnet::ConnectionType::e_CLIENT);
         }
         else {
             // Remote peer provided a valid clusterName and nodeId, those are
             // its identity inside the cluster.
-            negotiationContext->d_connectionType =
-                mqbnet::ConnectionType::e_CLUSTER_MEMBER;
+            negotiationContext->setConnectionType(
+                mqbnet::ConnectionType::e_CLUSTER_MEMBER);
         }
         *session = onClientIdentityMessage(errorDescription, context);
     } break;
@@ -317,7 +318,7 @@ int SessionNegotiator::createSessionOnMsgType(
         // yet made a 'connectionType' decision, this means we are a cluster
         // member.
         // TBD: should find a better way to detect that situation
-        if (negotiationContext->d_connectionType ==
+        if (negotiationContext->connectionType() ==
             mqbnet::ConnectionType::e_UNKNOWN) {
             errorDescription
                 << "Received BrokerResponse message, but haven't sent a "
@@ -330,7 +331,7 @@ int SessionNegotiator::createSessionOnMsgType(
     default: {
         errorDescription
             << "Invalid negotiation message received (unknown type): "
-            << negotiationContext->d_negotiationMessage;
+            << negotiationContext->negotiationMessage();
         return rc_INVALID_NEGOTIATION_TYPE;  // RETURN
     }
     }
@@ -350,16 +351,18 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(context->negotiationContext());
     BSLS_ASSERT_SAFE(context->negotiationContext()
-                         ->d_negotiationMessage.isClientIdentityValue());
+                         ->negotiationMessage()
+                         .isClientIdentityValue());
     BSLS_ASSERT_SAFE(context->isIncoming());
     // We should be receiving a ClientIdentity message only if this is a
     // 'listen'-established connection.
 
     const NegotiationContextSp& negotiationContext =
         context->negotiationContext();
-
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage =
+        negotiationContext->negotiationMessage();
     bmqp_ctrlmsg::ClientIdentity& clientIdentity =
-        negotiationContext->d_negotiationMessage.clientIdentity();
+        negotiationMessage.clientIdentity();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
                    << context->channel()->peerUri() << "': " << clientIdentity;
@@ -374,6 +377,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     case bmqp_ctrlmsg::ClientType::E_TCPADMIN: {
         if (clientIdentity.hostName().empty()) {
             clientIdentity.hostName() = context->channel()->peerUri();
+            negotiationContext->setNegotiationMessage(negotiationMessage);
         }
     } break;
     case bmqp_ctrlmsg::ClientType::E_UNKNOWN:
@@ -485,7 +489,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     // Communicate heartbeat settings.  Currently, only for SDK use
     const mqbcfg::NetworkInterfaces& niConfig = appConfig.networkInterfaces();
 
-    response.maxMissedHeartbeats() = negotiationContext->d_maxMissedHeartbeat;
+    response.maxMissedHeartbeats() = negotiationContext->maxMissedHeartbeat();
 
     if (niConfig.tcpInterface().has_value()) {
         response.heartbeatIntervalMs() =
@@ -510,13 +514,15 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(context->negotiationContext());
     BSLS_ASSERT_OPT(context->negotiationContext()
-                        ->d_negotiationMessage.isBrokerResponseValue());
+                        ->negotiationMessage()
+                        .isBrokerResponseValue());
 
     const NegotiationContextSp& negotiateContext =
         context->negotiationContext();
-
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage =
+        negotiateContext->negotiationMessage();
     bmqp_ctrlmsg::BrokerResponse& brokerResponse =
-        negotiateContext->d_negotiationMessage.brokerResponse();
+        negotiationMessage.brokerResponse();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
                    << context->channel()->peerUri() << "': " << brokerResponse;
@@ -533,6 +539,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     // Resolve 'hostName' of the brokerIdentity
     bmqio::TCPEndpoint endpoint(context->channel()->peerUri());
     brokerResponse.brokerIdentity().hostName() = endpoint.host();
+    negotiateContext->setNegotiationMessage(negotiationMessage);
 
     bsl::string description;
     loadSessionDescription(&description,
@@ -566,16 +573,16 @@ int SessionNegotiator::sendNegotiationMessage(
     bmqp::EncodingType::Enum encodingType = bmqp::EncodingType::e_BER;
 
     if (message.isBrokerResponseValue() &&
-        context->d_negotiationMessage.isClientIdentityValue()) {
+        context->negotiationMessage().isClientIdentityValue()) {
         encodingType = bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
-            context->d_negotiationMessage.clientIdentity().features());
+            context->negotiationMessage().clientIdentity().features());
 
         if (encodingType == bmqp::EncodingType::e_UNKNOWN) {
             errorDescription
                 << "Failed building NegotiationMessage: client "
                 << "did not advertise a supported encoding type. "
                 << "Client features: '"
-                << context->d_negotiationMessage.clientIdentity().features()
+                << context->negotiationMessage().clientIdentity().features()
                 << "'";
             return rc_BUILD_FAILURE;  // RETURN
         }
@@ -597,8 +604,8 @@ int SessionNegotiator::sendNegotiationMessage(
 
     // Send response event
     bmqio::Status status;
-    context->d_initialConnectionContext_p->channel()->write(&status,
-                                                            *builder.blob());
+    context->initialConnectionContext()->channel()->write(&status,
+                                                          *builder.blob());
     if (!status) {
         errorDescription << "Failed sending NegotiationMessage "
                          << "[status: " << status << ", message: " << message
@@ -619,16 +626,17 @@ void SessionNegotiator::createSession(
     BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(context->negotiationContext());
-    BSLS_ASSERT_SAFE(context->negotiationContext()->d_connectionType !=
+    BSLS_ASSERT_SAFE(context->negotiationContext()->connectionType() !=
                      mqbnet::ConnectionType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(!context->negotiationContext()
-                          ->d_negotiationMessage.isUndefinedValue());
+                          ->negotiationMessage()
+                          .isUndefinedValue());
 
     const NegotiationContextSp& negotiationContext =
         context->negotiationContext();
 
     const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
-        negotiationContext->d_negotiationMessage;
+        negotiationContext->negotiationMessage();
     const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
         negoMsg.isClientIdentityValue()
             ? negoMsg.clientIdentity()
@@ -637,7 +645,7 @@ void SessionNegotiator::createSession(
     const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
     int                              maxMissedHeartbeats = 0;
 
-    if (negotiationContext->d_connectionType ==
+    if (negotiationContext->connectionType() ==
         mqbnet::ConnectionType::e_ADMIN) {
         mqba::AdminSession* session = new (*d_allocator_p)
             AdminSession(context->channel(),
@@ -651,7 +659,7 @@ void SessionNegotiator::createSession(
 
         out->reset(session, d_allocator_p);
     }
-    else if (negotiationContext->d_connectionType ==
+    else if (negotiationContext->connectionType() ==
              mqbnet::ConnectionType::e_CLIENT) {
         // Create a dedicated stats subcontext for this client
         bmqst::StatContextConfiguration statContextCfg(description);
@@ -692,7 +700,7 @@ void SessionNegotiator::createSession(
             bsl::shared_ptr<mqbi::Cluster> cluster;
 
             if (d_clusterCatalog_p->findCluster(&cluster, clusterName)) {
-                negotiationContext->d_cluster_p = &cluster->netCluster();
+                negotiationContext->setCluster(&cluster->netCluster());
             }
         }
     }
@@ -706,7 +714,7 @@ void SessionNegotiator::createSession(
         mqbnet::ClusterNode* clusterNode = 0;
         clusterNode = d_clusterCatalog_p->onNegotiationForClusterSession(
             errorDescription,
-            context.get(),
+            context,
             peerIdentity.clusterName(),
             peerIdentity.clusterNodeId());
 
@@ -732,17 +740,17 @@ void SessionNegotiator::createSession(
         }
     }
 
-    negotiationContext->d_maxMissedHeartbeat = maxMissedHeartbeats;
+    negotiationContext->setMaxMissedHeartbeat(maxMissedHeartbeats);
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(
     const mqbnet::NegotiationContext& context)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(context.d_negotiationMessage.isClientIdentityValue());
+    BSLS_ASSERT_OPT(context.negotiationMessage().isClientIdentityValue());
 
     const bmqp_ctrlmsg::ClientIdentity& clientIdentity =
-        context.d_negotiationMessage.clientIdentity();
+        context.negotiationMessage().clientIdentity();
     if (!mqbu::SDKVersionUtil::isDeprecatedSdkVersion(
             clientIdentity.sdkLanguage(),
             clientIdentity.sdkVersion())) {
@@ -767,10 +775,10 @@ bool SessionNegotiator::checkIsUnsupportedSdkVersion(
     const mqbnet::NegotiationContext& context)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(context.d_negotiationMessage.isClientIdentityValue());
+    BSLS_ASSERT_OPT(context.negotiationMessage().isClientIdentityValue());
 
     const bmqp_ctrlmsg::ClientIdentity& clientIdentity =
-        context.d_negotiationMessage.clientIdentity();
+        context.negotiationMessage().clientIdentity();
     if (mqbu::SDKVersionUtil::isSupportedSdkVersion(
             clientIdentity.sdkLanguage(),
             clientIdentity.sdkVersion())) {
@@ -822,15 +830,15 @@ int SessionNegotiator::initiateOutboundNegotiation(
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
 
     int nodeId = d_clusterCatalog_p->selfNodeIdInCluster(
-        context->d_clusterName);
+        context->clusterName());
     bool isVirtual = d_clusterCatalog_p->isClusterVirtual(
-        context->d_clusterName);
+        context->clusterName());
 
     // Virtual clusters do not advertise node status.  Therefore, the
     // identity should not advertise k_BROADCAST_TO_PROXIES feature.
     loadBrokerIdentity(&negotiationMessage.makeClientIdentity(),
                        !isVirtual,
-                       context->d_clusterName,
+                       context->clusterName(),
                        nodeId);
 
     int rc = sendNegotiationMessage(errorDescription,
@@ -853,15 +861,15 @@ int SessionNegotiator::negotiateOutbound(
 
     BSLS_ASSERT_SAFE(userData);
 
-    context->negotiationContext()->d_clusterName = userData->d_clusterName;
+    context->negotiationContext()->setClusterName(userData->d_clusterName);
     if (d_clusterCatalog_p->isMemberOf(
-            context->negotiationContext()->d_clusterName)) {
-        context->negotiationContext()->d_connectionType =
-            mqbnet::ConnectionType::e_CLUSTER_MEMBER;
+            context->negotiationContext()->clusterName())) {
+        context->negotiationContext()->setConnectionType(
+            mqbnet::ConnectionType::e_CLUSTER_MEMBER);
     }
     else {
-        context->negotiationContext()->d_connectionType =
-            mqbnet::ConnectionType::e_CLUSTER_PROXY;
+        context->negotiationContext()->setConnectionType(
+            mqbnet::ConnectionType::e_CLUSTER_PROXY);
     }
 
     int rc = initiateOutboundNegotiation(errorDescription,

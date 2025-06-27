@@ -529,7 +529,7 @@ void TCPSessionFactory::initialConnectionComplete(
         << session->description() << "', channel: '" << channel.get()
         << "', maxMissedHeartbeat: "
         << initialConnectionContext_p->negotiationContext()
-               ->d_maxMissedHeartbeat
+               ->maxMissedHeartbeat()
         << "]";
 
     // Session is established; keep a hold to it.
@@ -582,7 +582,7 @@ void TCPSessionFactory::initialConnectionComplete(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext_p->negotiationContext()->d_cluster_p,
+        initialConnectionContext_p->negotiationContext()->cluster(),
         initialConnectionContext_p->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
@@ -1513,8 +1513,8 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
 : d_channel_p(channel.get())
 , d_authenticationCtx_sp(context.authenticationContext())
 , d_session_sp(monitoredSession)
-, d_eventProcessor_p(context.negotiationContext()->d_eventProcessor_p)
-, d_monitor(context.negotiationContext()->d_maxMissedHeartbeat,
+, d_eventProcessor_p(context.negotiationContext()->eventProcessor())
+, d_monitor(context.negotiationContext()->maxMissedHeartbeat(),
             initialMissedHeartbeatCounter)
 {
     if (!d_eventProcessor_p) {
