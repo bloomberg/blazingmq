@@ -29,6 +29,7 @@
 #include <mqbu_messageguidutil.h>
 
 // BMQ
+#include <bmqp_protocolutil.h>
 #include <bmqu_memoutstream.h>
 
 // BDE

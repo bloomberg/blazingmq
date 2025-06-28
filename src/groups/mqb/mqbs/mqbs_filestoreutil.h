@@ -50,6 +50,11 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
+
+namespace bmqu {
+class BlobPosition;
+}
+
 namespace mqbs {
 
 // FORWARD DECLARATIONS
