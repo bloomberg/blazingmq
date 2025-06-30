@@ -552,24 +552,19 @@ class Storage {
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() = 0;
 
-    /// Attempt to garbage-collect messages for which TTL has expired, and
-    /// return the number of messages garbage-collected.  Populate the
-    /// specified `latestGcMsgTimestampEpoch` with the timestamp, as seconds
-    /// from epoch, of the oldest encountered message, and the specified
-    /// `configuredTtlValue` with the TTL value (in seconds) with which this
-    /// storage instance is configured.
-    virtual int gcExpiredMessages(bsls::Types::Uint64* latestMsgTimestampEpoch,
-                                  bsls::Types::Int64*  configuredTtlValue,
-                                  bsls::Types::Uint64  secondsFromEpoch) = 0;
+    /// Attempt to garbage-collect messages for which TTL has expired.
+    /// @param currentTimeUtc The current time.
+    /// @param secondsFromEpoch The time in seconds from the epoch start.
+    /// @param limit The maximum number of messages to expire, negative value
+    /// means "no limit".
+    /// @return The number of expired messages.
+    virtual int gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
+                                  bsls::Types::Uint64   secondsFromEpoch,
+                                  int                   limit = -1) = 0;
 
     /// Garbage collect a batch of expired messages from the deduplication
     /// history, using the specified `now` as the current timestamp.
-    /// Return rc == 0, if no messages were GCed.
-    /// Return rc > 0, if all the needed messages were GCed and there is
-    ///                nothing more to do now.
-    /// Return rc < 0, if the maximum batch of elements was GCed, but there
-    ///                are more messages to GC.
-    virtual int gcHistory(bsls::Types::Int64 now) = 0;
+    virtual void gcHistory(bsls::Types::Int64 now) = 0;
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified `appId` and `appKey`.  Return zero upon success and a

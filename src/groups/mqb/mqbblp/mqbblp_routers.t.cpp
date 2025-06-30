@@ -67,7 +67,8 @@ struct TestStorage {
     , d_domainCfg(allocator)
     , d_capacityMeter("cm", allocator)
     , d_storageKey(d_subQueueId)
-    , d_storage(bmqt::Uri("uri", allocator),
+    , d_storage(0,  // No FileStore
+                bmqt::Uri("uri", allocator),
                 d_storageKey,
                 1,
                 d_domainCfg,

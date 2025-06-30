@@ -251,7 +251,7 @@ bsls::Types::Int64 Queue::countUnconfirmed(BSLA_UNUSED unsigned int subId)
     return 0;
 }
 
-void Queue::stopPushing()
+void Queue::setStopping()
 {
     // NOT IMPLENTED
 }
