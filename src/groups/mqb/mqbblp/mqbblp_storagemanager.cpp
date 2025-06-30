@@ -391,8 +391,7 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         &d_unrecognizedDomains[partitionId],
         d_clusterData_p->identity().description(),
         partitionId,
-        queueKeyInfoMap,
-        d_cluster_p->isCSLModeEnabled());
+        queueKeyInfoMap);
 
     if (++d_numPartitionsRecoveredQueues < numPartitions) {
         return;  // RETURN
