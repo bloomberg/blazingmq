@@ -97,7 +97,6 @@ class InitialConnectionContext {
 
     typedef bsl::function<int(bsl::ostream& errorDescription,
                               bsl::shared_ptr<mqbnet::Session>* session,
-                              bool*                             isContinueRead,
                               InitialConnectionContext*         context)>
         NegotiationCb;
 

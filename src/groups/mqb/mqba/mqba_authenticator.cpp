@@ -248,11 +248,9 @@ void Authenticator::authenticate(
         bsl::shared_ptr<mqbnet::Session> session;
         bmqu::MemOutStream               errStream;
         bsl::string                      error;
-        bool                             isContinueRead;
         rc = initialConnectionContext->negotiationCb()(
             errStream,
             &session,
-            &isContinueRead,
             initialConnectionContext);
 
         if (rc != 0) {
