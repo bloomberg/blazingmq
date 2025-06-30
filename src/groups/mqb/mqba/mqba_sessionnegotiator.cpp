@@ -248,12 +248,10 @@ void loadSessionDescription(bsl::string*                        out,
 int SessionNegotiator::createSessionOnMsgType(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
-    bool*                             isContinueRead,
     mqbnet::InitialConnectionContext* context)
 {
     // PRECONDITIONS
     BSLS_ASSERT(session);
-    BSLS_ASSERT(isContinueRead);
     BSLS_ASSERT(context);
     BSLS_ASSERT(context->negotiationContext());
 

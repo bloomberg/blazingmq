@@ -239,7 +239,6 @@ int InitialConnectionHandler::processBlob(
                 d_negotiator_mp.get(),
                 bdlf::PlaceHolders::_1,  // errorDescription
                 bdlf::PlaceHolders::_2,  // session
-                bdlf::PlaceHolders::_3,  // isContinueRead
                 bdlf::PlaceHolders::_4   // context
                 ));
 
@@ -263,7 +262,6 @@ int InitialConnectionHandler::processBlob(
 
         rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
                                                      session,
-                                                     isContinueRead,
                                                      context.get());
     }
 
