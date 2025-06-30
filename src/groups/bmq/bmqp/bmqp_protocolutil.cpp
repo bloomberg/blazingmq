@@ -76,31 +76,6 @@ int g_initialized = 0;
 /// `g_initialized` counter.
 bslmt::QLock g_initLock = BSLMT_QLOCK_INITIALIZER;
 
-/// Conversion table used to convert an int number to its hexadecimal
-/// representation.
-const char k_INT_TO_HEX_TABLE[16] = {'0',
-                                     '1',
-                                     '2',
-                                     '3',
-                                     '4',
-                                     '5',
-                                     '6',
-                                     '7',
-                                     '8',
-                                     '9',
-                                     'A',
-                                     'B',
-                                     'C',
-                                     'D',
-                                     'E',
-                                     'F'};
-
-/// Conversion table used to convert a hexadecimal value to it's int
-/// representation. (99 is because in the ASCII table, `9` is 57 and `A` is
-/// 65, so the 99 represents unexpected invalid value in the input).
-const char k_HEX_TO_INT_TABLE[24] = {0,  1,  2,  3,  4,  5,  6,  7,
-                                     8,  9,  99, 99, 99, 99, 99, 99,
-                                     99, 10, 11, 12, 13, 14, 15, 99};
 }  // close unnamed namespace
 
 // -------------------
@@ -242,40 +217,6 @@ int ProtocolUtil::calcUnpaddedLength(const bdlbb::Blob& blob, int length)
     return length - buf.data()[pos.second];
 }
 
-bool ProtocolUtil::isValidWordPaddingByte(char value)
-{
-    switch (value) {
-    case 1:
-    case 2:
-    case 3:
-    case 4: {
-        return true;  // RETURN
-    }
-    default: {
-        return false;  // RETURN
-    }
-    }
-}
-
-bool ProtocolUtil::isValidDWordPaddingByte(char value)
-{
-    switch (value) {
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-    case 8: {
-        return true;  // RETURN
-    }
-    default: {
-        return false;  // RETURN
-    }
-    }
-}
-
 const bdlbb::Blob& ProtocolUtil::heartbeatReqBlob()
 {
     return g_heartbeatReqBlob.object();
@@ -284,30 +225,6 @@ const bdlbb::Blob& ProtocolUtil::heartbeatReqBlob()
 const bdlbb::Blob& ProtocolUtil::heartbeatRspBlob()
 {
     return g_heartbeatRspBlob.object();
-}
-
-void ProtocolUtil::hexToBinary(char* buffer, int length, const char* hex)
-{
-    for (int i = 0; i < length; ++i) {
-        const int index = 2 * i;
-        const int ch1   = hex[index + 0] - '0';
-        const int ch2   = hex[index + 1] - '0';
-
-        buffer[i] = (k_HEX_TO_INT_TABLE[ch1] << 4) | (k_HEX_TO_INT_TABLE[ch2]);
-    }
-}
-
-void ProtocolUtil::binaryToHex(char*       buffer,
-                               const char* binary,
-                               int         binaryBufferlength)
-{
-    for (int i = 0; i < binaryBufferlength; ++i) {
-        const int           index = 2 * i;
-        const unsigned char ch    = binary[i];
-
-        buffer[index]     = k_INT_TO_HEX_TABLE[ch >> 4];
-        buffer[index + 1] = k_INT_TO_HEX_TABLE[ch & 0xF];
-    }
 }
 
 int ProtocolUtil::ackResultToCode(bmqt::AckResult::Enum value)

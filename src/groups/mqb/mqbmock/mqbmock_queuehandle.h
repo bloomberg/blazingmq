@@ -48,12 +48,12 @@
 #include <mqbu_resourceusagemonitor.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_queueid.h>
-#include <bmqt_messageguid.h>
-
 #include <bmqc_orderedhashmap.h>
 #include <bmqc_twokeyhashmap.h>
+#include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocolutil.h>
+#include <bmqp_queueid.h>
+#include <bmqt_messageguid.h>
 
 // BDE
 #include <bdlbb_blob.h>

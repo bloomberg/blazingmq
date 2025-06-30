@@ -267,14 +267,6 @@ struct ProtocolUtil {
     /// `length`.  Note that `length` can be less than length of the `blob`.
     static int calcUnpaddedLength(const bdlbb::Blob& blob, int length);
 
-    /// Return true if the specified `value` is a valid padding byte for a
-    /// word sized alignment and false otherwise.
-    static bool isValidWordPaddingByte(char value);
-
-    /// Return true if the specified `value` is a valid padding byte for a
-    /// double word sized alignment and false otherwise.
-    static bool isValidDWordPaddingByte(char value);
-
     /// HEARTBEAT
     ///---------
     static const bdlbb::Blob& heartbeatReqBlob();
@@ -283,22 +275,6 @@ struct ProtocolUtil {
     /// blob corresponding to a heartbeat request or heartbeat response
     /// event.
     static const bdlbb::Blob& heartbeatRspBlob();
-
-    /// Hex/Binary conversion
-    ///---------------------
-
-    /// Load into the specified `buffer` of specified `length` the binary
-    /// representation of the specified hexadecimal `hex` buffer.  The
-    /// behavior is undefined unless length of `hex` buffer is twice
-    /// `length`.
-    static void hexToBinary(char* buffer, int length, const char* hex);
-
-    /// Load into the specified `buffer` the hex representation of the
-    /// specified `binary` buffer of the specified `binaryBufferlength`
-    /// size.  The behavior is undefined unless the length of `buffer` is
-    /// twice `binaryBufferlength`.
-    static void
-    binaryToHex(char* buffer, const char* binary, int binaryBufferlength);
 
     /// Message encoding/decoding
     ///-------------------------

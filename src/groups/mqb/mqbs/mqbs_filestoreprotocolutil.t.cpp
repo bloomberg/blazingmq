@@ -21,6 +21,9 @@
 #include <mqbs_memoryblock.h>
 #include <mqbs_offsetptr.h>
 
+// BMQ
+#include <bmqp_protocolutil.h>
+
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>

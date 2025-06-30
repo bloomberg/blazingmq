@@ -30,6 +30,7 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqu_atomicvalidator.h>
 
