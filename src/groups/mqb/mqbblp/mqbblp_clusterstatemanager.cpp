@@ -1819,14 +1819,6 @@ void ClusterStateManager::processLeaderAdvisory(
         return;  // RETURN
     }
 
-    // Process partition-primary mapping.  It's ok to process partition-primary
-    // mapping advisory irrespective of self's status.
-
-    processPartitionPrimaryAdvisoryRaw(advisory.partitions(), source);
-
-    // Process (QueueUri, QueueKey, PartitionId) mapping (removed)
-    // this has been done through CSL
-
     // Leader status and sequence number are updated unconditionally.  It may
     // have been updated by one of the routines called earlier in this method,
     // but there is no harm in setting these values again.

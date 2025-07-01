@@ -1441,6 +1441,19 @@ void ClusterUtil::sendClusterState(
         loadQueuesInfo(&advisory.queues(), clusterState);
     }
 
+    // Need to broadcast for leader advisory since we need to trigger
+    // processLeaderAdvisory for the followers in order to update the status of
+    // the leader to be active.
+    if (!clusterData->cluster().isCSLModeEnabled()) {
+        if (node) {
+            clusterData->messageTransmitter().sendMessage(controlMessage,
+                                                          node);
+        }
+        else {
+            clusterData->messageTransmitter().broadcastMessage(controlMessage);
+        }
+    }
+
     const int rc = ledger->apply(clusterMessage);
     if (rc != 0) {
         BALL_LOG_ERROR << clusterData->identity().description()
