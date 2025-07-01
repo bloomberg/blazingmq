@@ -263,11 +263,11 @@ struct Tester {
         QueueKeyGuidsMap queueKeyGuidsMap(bmqtst::TestHelperUtil::allocator());
         QueueKeyGuidsMap queueKeyConfGuidsMap(
             bmqtst::TestHelperUtil::allocator());
-        bsl::string      uriBase("bmq://si.amw.bmq.stats/",
+        bsl::string  uriBase("bmq://si.amw.bmq.stats/",
                             bmqtst::TestHelperUtil::allocator());
-        const size_t     k_DIVISOR = 7;
-        int              rc        = 0;
-        int              seed      = 58133;
+        const size_t k_DIVISOR = 7;
+        int          rc        = 0;
+        int          seed      = 58133;
         // initial seed for bdlb::Random
 
         for (size_t i = 0; i < numRecords; ++i) {
