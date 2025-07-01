@@ -1050,24 +1050,15 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
 
     if (!cluster->isCSLModeEnabled()) {
         // Broadcast 'queueAssignmentAdvisory' to all followers
-        // Do it before 'assignQueue' so that Replicas receive CSL before
-        // QueueCreationRecord
-        clusterData->messageTransmitter().broadcastMessage(controlMsg);
 
-        // In CSL mode, we assign the queue to ClusterState upon CSL commit
-        // callback of QueueAssignmentAdvisory, so we don't assign it here.
-
-        // In non-CSL mode this is the shortcut to call Primary CQH instead of
-        // waiting for the quorum of acks in the ledger.
-
-        BSLS_ASSERT_SAFE(queueAdvisory.queues().size() == 1);
-
-        //
         // NOTE: We must broadcast this control message before applying to CSL,
         // because if CSL is running in eventual consistency it will
         // immediately apply a commit with a higher seqeuence number than the
         // QueueAssignmentAdvisory.  If we ever receive the commit before the
         // QAA, we will alarm due to out-of-sequence advisory.
+        clusterData->messageTransmitter().broadcastMessage(controlMsg);
+
+        BSLS_ASSERT_SAFE(queueAdvisory.queues().size() == 1);
     }
 
     // Apply 'queueAssignmentAdvisory' to CSL
