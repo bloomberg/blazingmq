@@ -135,7 +135,7 @@ struct StorageUtil {
     ///       iterators don't get invalidated, because `onDomain` routine
     ///       implementation depends on this assumption.
     typedef bsl::map<bsl::string, mqbi::Domain*> DomainMap;
-    typedef DomainMap::iterator DomainMapIter;
+    typedef DomainMap::iterator                  DomainMapIter;
 
     typedef mqbs::StorageUtil::DomainQueueMessagesCountMap
         DomainQueueMessagesCountMap;
@@ -563,8 +563,7 @@ struct StorageUtil {
                       DomainQueueMessagesCountMap* unrecognizedDomains,
                       const bsl::string&           clusterDescription,
                       int                          partitionId,
-                      const QueueKeyInfoMap&       queueKeyInfoMap,
-                      bool                         isCSLMode);
+                      const QueueKeyInfoMap&       queueKeyInfoMap);
 
     /// Print statistics regarding the specified 'unrecognizedDomains',
     /// protected by the specified 'unrecognizedDomainsLock', encountered

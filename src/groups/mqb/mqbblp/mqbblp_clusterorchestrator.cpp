@@ -1270,18 +1270,6 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
     d_stateManager_mp->processQueueAssignmentRequest(request, requester);
 }
 
-void ClusterOrchestrator::processQueueAssignmentAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processQueueAssignmentAdvisory(message, source);
-}
-
 void ClusterOrchestrator::processQueueUnassignedAdvisory(
     const bmqp_ctrlmsg::ControlMessage& msg,
     mqbnet::ClusterNode*                source)
