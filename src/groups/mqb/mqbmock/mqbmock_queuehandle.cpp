@@ -25,7 +25,6 @@
 
 // BMQ
 #include <bmqt_queueflags.h>
-
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>

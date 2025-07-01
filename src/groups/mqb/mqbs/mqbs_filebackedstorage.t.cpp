@@ -44,7 +44,6 @@
 #include <ball_severity.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_algorithm.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -193,10 +192,10 @@ class MockDataStore : public mqbs::DataStore {
 
   public:
     MockDataStore(bslma::Allocator* allocator, int partitionId)
-    : d_allocator_p(allocator)
-    , d_attributes(allocator)
-    , d_appData(allocator)
-    , d_options(allocator)
+    : d_allocator_p(bslma::Default::allocator(allocator))
+    , d_attributes(d_allocator_p)
+    , d_appData(d_allocator_p)
+    , d_options(d_allocator_p)
     {
         d_message_counter  = 0ULL;
         d_confirm_counter  = 0ULL;
@@ -478,7 +477,6 @@ struct Tester {
 
   private:
     // DATA
-    bdlbb::PooledBlobBufferFactory             d_bufferFactory;
     mqbmock::Cluster                           d_mockCluster;
     mqbmock::Domain                            d_mockDomain;
     mqbmock::Queue                             d_mockQueue;
@@ -495,8 +493,7 @@ struct Tester {
            const bslstl::StringRef& uri         = k_URI_STR,
            const mqbu::StorageKey&  queueKey    = k_QUEUE_KEY,
            bsls::Types::Int64       ttlSeconds  = k_INT64_MAX)
-    : d_bufferFactory(1024, allocator)
-    , d_mockCluster(&d_bufferFactory, allocator)
+    : d_mockCluster(allocator)
     , d_mockDomain(&d_mockCluster, allocator)
     , d_mockQueue(&d_mockDomain, allocator)
     , d_mockQueueEngine(allocator)
@@ -604,7 +601,7 @@ struct Tester {
 
             const bsl::shared_ptr<bdlbb::Blob> appDataPtr(
                 new (*bmqtst::TestHelperUtil::allocator())
-                    bdlbb::Blob(&d_bufferFactory,
+                    bdlbb::Blob(d_mockCluster.bufferFactory(),
                                 bmqtst::TestHelperUtil::allocator()),
                 bmqtst::TestHelperUtil::allocator());
 

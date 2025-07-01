@@ -57,6 +57,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
@@ -156,7 +157,7 @@ class Cluster : public mqbi::Cluster {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    bdlbb::PooledBlobBufferFactory d_bufferFactory;
     // Buffer factory to use
 
     BlobSpPool d_blobSpPool;
@@ -227,14 +228,15 @@ class Cluster : public mqbi::Cluster {
     // PRIVATE MANIPULATORS
 
     /// Initialize the internal cluster definition with the specified
-    /// `name`, `location`, `archive` location, `nodes`, `isCSLMode` and
-    /// `isFSMWorkflow`.
+    /// `name`, `location`, `archive` location, `nodes`, `isCSLMode`,
+    /// `isFSMWorkflow` and `doesFSMwriteQLIST`.
     void _initializeClusterDefinition(const bslstl::StringRef& name,
                                       const bslstl::StringRef& location,
                                       const bslstl::StringRef& archive,
                                       const ClusterNodeDefs&   nodes,
                                       bool                     isCSLMode,
-                                      bool                     isFSMWorkflow);
+                                      bool                     isFSMWorkflow,
+                                      bool doesFSMwriteQLIST);
 
     /// Initialize the net cluster.
     void _initializeNetcluster();
@@ -249,22 +251,23 @@ class Cluster : public mqbi::Cluster {
     // CREATORS
 
     /// Create a `mqbmock::Cluster` object having the optionally specified
-    /// `name`, `location`, `archive`, `clusterNodeDefs`, `isCSLMode` and
-    /// `isFSMWorkflow`, and using the specified `bufferFactory` and
-    /// `allocator`.  If the optionally specified `isClusterMember` is true,
-    /// self will be a member of the cluster.  If the optionally specified
-    /// `isLeader` is true, self will become the leader of the cluster.
-    /// Note that if `isClusterMember` is false, `isLeader` cannot be true.
-    Cluster(bdlbb::BlobBufferFactory* bufferFactory,
-            bslma::Allocator*         allocator,
-            bool                      isClusterMember = false,
-            bool                      isLeader        = false,
-            bool                      isCSLMode       = false,
-            bool                      isFSMWorkflow   = false,
-            const ClusterNodeDefs&    clusterNodeDefs = ClusterNodeDefs(),
-            const bslstl::StringRef&  name            = "testCluster",
-            const bslstl::StringRef&  location        = "",
-            const bslstl::StringRef&  archive         = "");
+    /// `name`, `location`, `archive`, `clusterNodeDefs`, `isCSLMode`,
+    /// `isFSMWorkflow` and `doesFSMwriteQLIST`, and using the specified
+    /// `bufferFactory` and `allocator`.  If the optionally specified
+    /// `isClusterMember` is true, self will be a member of the cluster.  If
+    /// the optionally specified `isLeader` is true, self will become the
+    /// leader of the cluster.  Note that if `isClusterMember` is false,
+    /// `isLeader` cannot be true.
+    Cluster(bslma::Allocator*        allocator,
+            bool                     isClusterMember   = false,
+            bool                     isLeader          = false,
+            bool                     isCSLMode         = false,
+            bool                     isFSMWorkflow     = false,
+            bool                     doesFSMwriteQLIST = false,
+            const ClusterNodeDefs&   clusterNodeDefs   = ClusterNodeDefs(),
+            const bslstl::StringRef& name              = "testCluster",
+            const bslstl::StringRef& location          = "",
+            const bslstl::StringRef& archive           = "");
 
     /// Destructor
     ~Cluster() BSLS_KEYWORD_OVERRIDE;
@@ -423,7 +426,7 @@ class Cluster : public mqbi::Cluster {
     Cluster& _setIsRestoringState(bool value);
 
     /// Get a modifiable reference to this object's buffer factory.
-    bdlbb::BlobBufferFactory* _bufferFactory();
+    bdlbb::BlobBufferFactory* bufferFactory();
 
     /// Get a modifiable reference to this object's blob shared pointer pool.
     BlobSpPool* _blobSpPool();
@@ -521,6 +524,10 @@ class Cluster : public mqbi::Cluster {
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return boolean flag indicating whether the broker still writes to the
+    /// to-be-deprecated QLIST file when FSM workflow is enabled.
+    bool doesFSMwriteQLIST() const BSLS_KEYWORD_OVERRIDE;
+
     const mqbcfg::ClusterDefinition*
     clusterConfig() const BSLS_KEYWORD_OVERRIDE;
     // Returns a pointer to cluster config if this `mqbi::Cluster` represents
@@ -576,11 +583,6 @@ inline void Cluster::_setEventProcessor(const EventProcessor& processor)
     d_processor = processor;
 }
 
-inline bdlbb::BlobBufferFactory* Cluster::_bufferFactory()
-{
-    return d_bufferFactory_p;
-}
-
 inline Cluster::BlobSpPool* Cluster::_blobSpPool()
 {
     return &d_blobSpPool;
@@ -604,6 +606,11 @@ inline mqbc::ClusterData* Cluster::_clusterData()
 inline mqbc::ClusterState& Cluster::_state()
 {
     return d_state;
+}
+
+inline bdlbb::BlobBufferFactory* Cluster::bufferFactory()
+{
+    return &d_bufferFactory;
 }
 
 inline void Cluster::advanceTime(int seconds)
@@ -645,6 +652,11 @@ inline bool Cluster::isCSLModeEnabled() const
 inline bool Cluster::isFSMWorkflow() const
 {
     return d_clusterDefinition.clusterAttributes().isFSMWorkflow();
+}
+
+inline bool Cluster::doesFSMwriteQLIST() const
+{
+    return d_clusterDefinition.clusterAttributes().doesFSMwriteQLIST();
 }
 
 // ACCESSORS

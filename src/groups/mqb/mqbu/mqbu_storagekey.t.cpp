@@ -36,7 +36,7 @@
 #include <bsls_types.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
 
@@ -103,7 +103,114 @@ void generateStorageKeys(bsl::unordered_set<mqbu::StorageKey>* keys,
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-void test1_breathingTest()
+static void test1_StorageKeyHexUtil()
+// ------------------------------------------------------------------------
+//                       HEX/BINARY CONVERSIONS
+// ------------------------------------------------------------------------
+//
+// Concerns:
+//   Verify the correctness of binary to hex and hex to binary conversion.
+//
+// Testing: mqbu::StorageKeyHexUtil
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("HEX/BINARY CONVERSIONS");
+
+    PV("hexToBinary");
+    {
+        struct Test {
+            int                 d_line;
+            const char*         d_hex;
+            const unsigned char d_expected[8];
+        } k_DATA[] = {
+            {L_, "0000000000000000", {0, 0, 0, 0, 0, 0, 0, 0}},
+            {L_, "FFFFFFFFFFFFFFFF", {255, 255, 255, 255, 255, 255, 255, 255}},
+            {L_,
+             "0011223344556677",
+             {0x0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77}},
+            {L_,
+             "8899AABBCCDDEEFF",
+             {0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}},
+            {L_,
+             "0123456789ABCDEF",
+             {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}},
+        };
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << ": converting '" << test.d_hex << "' to bin");
+            char buffer[8] = {0};
+            mqbu::StorageKeyHexUtil::hexToBinary(buffer, 8, test.d_hex);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               0,
+                               bsl::memcmp(test.d_expected, buffer, 8));
+        }
+    }
+
+    PV("binaryToHex");
+    {
+        struct Test {
+            int                 d_line;
+            const unsigned char d_binary[8];
+            const char*         d_expected;
+        } k_DATA[] = {
+            {L_, {0, 0, 0, 0, 0, 0, 0, 0}, "0000000000000000"},
+            {L_, {255, 255, 255, 255, 255, 255, 255, 255}, "FFFFFFFFFFFFFFFF"},
+            {L_,
+             {0x0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77},
+             "0011223344556677"},
+            {L_,
+             {0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
+             "8899AABBCCDDEEFF"},
+            {L_,
+             {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
+             "0123456789ABCDEF"},
+            {L_, {0x01, 0x02, 0x03}, "010203"},
+        };
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << ": converting to hex (expected: "
+                            << test.d_expected << ")");
+            char   buffer[16] = {0};
+            size_t l          = strlen(test.d_expected) / 2;
+            mqbu::StorageKeyHexUtil::binaryToHex(
+                buffer,
+                reinterpret_cast<const char*>(test.d_binary),
+                l);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               0,
+                               bsl::memcmp(test.d_expected, buffer, l * 2));
+        }
+    }
+
+    PV("Isomorphism");
+    {
+        const char k_HEX[]               = "0123456789ABCDEF";
+        const char k_BINARY[]            = {4, 'a', '?', '1', 0, 22, 127, '*'};
+        const int  k_SIZE                = 8;
+        char       binaryToFill[k_SIZE]  = {0};
+        char       hexToFill[2 * k_SIZE] = {0};
+
+        PVV("binaryToHex(hexToBinary(x))");
+        mqbu::StorageKeyHexUtil::hexToBinary(binaryToFill, k_SIZE, k_HEX);
+        mqbu::StorageKeyHexUtil::binaryToHex(hexToFill, binaryToFill, k_SIZE);
+        BMQTST_ASSERT_EQ(0, bsl::memcmp(k_HEX, hexToFill, k_SIZE * 2));
+
+        PVV("hexToBinary(binaryToHex(x))");
+        mqbu::StorageKeyHexUtil::binaryToHex(hexToFill, k_BINARY, k_SIZE);
+        mqbu::StorageKeyHexUtil::hexToBinary(binaryToFill, k_SIZE, hexToFill);
+        BMQTST_ASSERT_EQ(0, bsl::memcmp(k_BINARY, binaryToFill, k_SIZE));
+    }
+}
+
+void test2_breathingTest()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -241,7 +348,7 @@ void test1_breathingTest()
     BMQTST_ASSERT_EQ(1u, myMap.count(s6));
 }
 
-void test2_streamout()
+void test3_streamout()
 {
     bmqtst::TestHelper::printTestName("STREAM OUT");
 
@@ -260,7 +367,7 @@ void test2_streamout()
     PV("StorageKey [" << osstr.str() << "]");
 }
 
-void test3_defaultHashUniqueness()
+void test4_defaultHashUniqueness()
 // ------------------------------------------------------------------------
 // DEFAULT HASH UNIQUENESS
 //
@@ -347,7 +454,7 @@ void test3_defaultHashUniqueness()
     }
 }
 
-void test4_customHashUniqueness()
+void test5_customHashUniqueness()
 // ------------------------------------------------------------------------
 // DEFAULT HASH UNIQUENESS
 //
@@ -728,7 +835,7 @@ void testN6_orderedMapWithCustomHashBenchmark()
 }
 
 // Begin Google Benchmark Tests
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void
 testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -954,7 +1061,7 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     // </time>
 }
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 }  // close unnamed namespace
 
@@ -970,10 +1077,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 4: test4_customHashUniqueness(); break;
-    case 3: test3_defaultHashUniqueness(); break;
-    case 2: test2_streamout(); break;
-    case 1: test1_breathingTest(); break;
+    case 5: test5_customHashUniqueness(); break;
+    case 4: test4_defaultHashUniqueness(); break;
+    case 3: test3_streamout(); break;
+    case 2: test2_breathingTest(); break;
+    case 1: test1_StorageKeyHexUtil(); break;
     case -1:
         BMQTST_BENCHMARK_WITH_ARGS(testN1_defaultHashBenchmark,
                                    RangeMultiplier(10)
@@ -1011,7 +1119,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

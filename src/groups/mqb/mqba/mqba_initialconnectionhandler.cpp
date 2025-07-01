@@ -328,7 +328,6 @@ void InitialConnectionHandler::handleInitialConnection(
     negotiationContext.createInplace(d_allocator_p);
 
     negotiationContext->d_initialConnectionContext_p = context.get();
-    negotiationContext->d_isReversed                 = false;
     negotiationContext->d_clusterName                = "";
     negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
 
@@ -355,9 +354,8 @@ void InitialConnectionHandler::handleInitialConnection(
         rc = scheduleRead(errStream, context);
     }
     else {
-        rc = d_negotiator_mp->negotiateOutboundOrReverse(
-            errStream,
-            context->negotiationContext());
+        rc = d_negotiator_mp->negotiateOutbound(errStream,
+                                                context->negotiationContext());
 
         // Send outbound request success, continue to read
         if (rc == 0) {

@@ -265,7 +265,7 @@ class PartitionStateTableActions {
 
     virtual void do_resetReceiveDataCtx(const ARGS& args) = 0;
 
-    virtual void do_openStorage(const ARGS& args) = 0;
+    virtual void do_attemptOpenStorage(const ARGS& args) = 0;
 
     virtual void do_updateStorage(const ARGS& args) = 0;
 
@@ -326,17 +326,17 @@ class PartitionStateTableActions {
 
     void do_resetReceiveDataCtx_closeRecoveryFileSet(const ARGS& args);
 
-    void
-    do_closeRecoveryFileSet_openStorage_startSendDataChunks(const ARGS& args);
+    void do_closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks(
+        const ARGS& args);
 
     void
-    do_closeRecoveryFileSet_openStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
 
     void
-    do_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void
@@ -377,7 +377,7 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
+    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
         const ARGS& args);
 
     void
@@ -473,7 +473,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             SELF_HIGHEST_SEQ,
-            closeRecoveryFileSet_openStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG1,
                 REPLICA_HIGHEST_SEQ,
@@ -515,17 +515,13 @@ class PartitionStateTable
                 updateStorage,
                 PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
-                DONE_RECEIVING_DATA_CHUNKS,
-                resetReceiveDataCtx_closeRecoveryFileSet,
-                PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG2,
                 ERROR_RECEIVING_DATA_CHUNKS,
                 cleanupSeqnums_resetReceiveDataCtx_reapplyDetectSelfPrimary,
                 UNKNOWN);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_DATA_RSPN_PULL,
-            storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_DATA_RSPN_PUSH,
@@ -572,7 +568,7 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_PULL,
-                closeRecoveryFileSet_openStorage_startSendDataChunks,
+                closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks,
                 REPLICA_HEALING);
         PST_CFG(
             REPLICA_HEALING,
@@ -599,7 +595,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             DONE_RECEIVING_DATA_CHUNKS,
-            replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog,
+            replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog,
             REPLICA_HEALED);
         PST_CFG(
             REPLICA_HEALING,
@@ -820,20 +816,21 @@ void PartitionStateTableActions<
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_openStorage_startSendDataChunks(const ARGS& args)
+    do_closeRecoveryFileSet_attemptOpenStorage_startSendDataChunks(
+        const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
-    do_openStorage(args);
+    do_attemptOpenStorage(args);
     do_startSendDataChunks(args);
 }
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_openStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
-    do_openStorage(args);
+    do_attemptOpenStorage(args);
     do_replicaDataRequestPush(args);
     do_startSendDataChunks(args);
     do_incrementNumRplcaDataRspn(args);
@@ -850,11 +847,13 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
+    do_resetReceiveDataCtx(args);
+    do_closeRecoveryFileSet(args);
     do_storeSelfSeq(args);
-    do_openStorage(args);
+    do_attemptOpenStorage(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
     do_startSendDataChunks(args);
@@ -977,13 +976,13 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
+    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
         const ARGS& args)
 {
     do_replicaDataResponsePush(args);
     do_resetReceiveDataCtx(args);
     do_closeRecoveryFileSet(args);
-    do_openStorage(args);
+    do_attemptOpenStorage(args);
     do_processBufferedLiveData(args);
     do_processBufferedPrimaryStatusAdvisories(args);
     do_stopWatchDog(args);

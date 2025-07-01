@@ -40,7 +40,6 @@
 #include <bmqu_tempdirectory.h>
 
 // BDE
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bsl_memory.h>
 #include <bslma_managedptr.h>
@@ -87,7 +86,6 @@ struct Tester {
   public:
     // PUBLIC DATA
     bool                                         d_isLeader;
-    bdlbb::PooledBlobBufferFactory               d_bufferFactory;
     bmqu::TempDirectory                          d_tempDir;
     bslma::ManagedPtr<mqbmock::Cluster>          d_cluster_mp;
     mqbmock::ClusterStateLedger*                 d_clusterStateLedger_p;
@@ -98,7 +96,6 @@ struct Tester {
     // CREATORS
     Tester(bool isLeader)
     : d_isLeader(isLeader)
-    , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
     , d_clusterStateLedger_p(0)
@@ -139,12 +136,12 @@ struct Tester {
 
         d_cluster_mp.load(
             new (*bmqtst::TestHelperUtil::allocator())
-                mqbmock::Cluster(&d_bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator(),
+                mqbmock::Cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,  // isClusterMember
                                  d_isLeader,
-                                 true,  // isCSLMode
-                                 true,  // isFSMWorkflow
+                                 true,   // isCSLMode
+                                 true,   // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
                                  d_tempDir.path()),

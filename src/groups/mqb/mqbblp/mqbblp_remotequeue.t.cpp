@@ -36,7 +36,6 @@
 #include <bmqu_atomicstate.h>
 
 // BDE
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_queue.h>
@@ -129,7 +128,6 @@ class TestBench {
     };
 
   public:
-    bdlbb::PooledBlobBufferFactory      d_bufferFactory;
     mqbmock::Dispatcher                 d_dispatcher;
     mqbmock::Cluster                    d_cluster;
     mqbmock::Domain                     d_domain;
@@ -162,9 +160,8 @@ class TestBench {
 };
 
 TestBench::TestBench(bslma::Allocator* allocator_p)
-: d_bufferFactory(256, allocator_p)
-, d_dispatcher(allocator_p)
-, d_cluster(&d_bufferFactory, allocator_p)
+: d_dispatcher(allocator_p)
+, d_cluster(allocator_p)
 , d_domain(&d_cluster, allocator_p)
 , d_event(allocator_p)
 , d_event_sp(d_dispatcher._withEvent(&d_cluster, &d_event))
@@ -374,7 +371,8 @@ void TestQueueHandle::postOneMessage(mqbblp::RemoteQueue* queue_p)
 {
     bsl::shared_ptr<bdlbb::Blob> data_sp;
 
-    data_sp.createInplace(d_bench.d_allocator_p, &d_bench.d_bufferFactory);
+    data_sp.createInplace(d_bench.d_allocator_p,
+                          d_bench.d_cluster.bufferFactory());
     d_data.push(data_sp);
 
     // save data and options for future checks
@@ -387,7 +385,8 @@ void TestQueueHandle::postOneMessage(mqbblp::RemoteQueue* queue_p)
 
     bsl::shared_ptr<bdlbb::Blob> options_sp;
 
-    options_sp.createInplace(d_bench.d_allocator_p, &d_bench.d_bufferFactory);
+    options_sp.createInplace(d_bench.d_allocator_p,
+                             d_bench.d_cluster.bufferFactory());
 
     d_options.push(options_sp);
 

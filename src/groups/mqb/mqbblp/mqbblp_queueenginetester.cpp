@@ -370,7 +370,6 @@ QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
                                      bool                    startScheduler,
                                      bslma::Allocator*       allocator)
 : d_invalidGuid()
-, d_bufferFactory(1024, allocator)
 , d_handles(allocator)
 , d_subIds(allocator)
 , d_clientContexts(allocator)
@@ -433,9 +432,8 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     d_mockDispatcherClient_mp->_setDescription("test.tsk:1");
 
     // Cluster
-    d_mockCluster_mp.load(
-        new (*d_allocator_p) mqbmock::Cluster(&d_bufferFactory, d_allocator_p),
-        d_allocator_p);
+    d_mockCluster_mp.load(new (*d_allocator_p) mqbmock::Cluster(d_allocator_p),
+                          d_allocator_p);
     d_mockCluster_mp->_setIsClusterMember(true);
 
     BSLS_ASSERT_OPT(d_mockCluster_mp->isClusterMember());
@@ -947,7 +945,9 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
 
         mqbu::MessageGUIDUtil::generateGUID(&msgGUID);
 
-        appData.createInplace(d_allocator_p, &d_bufferFactory, d_allocator_p);
+        appData.createInplace(d_allocator_p,
+                              d_mockCluster_mp->bufferFactory(),
+                              d_allocator_p);
         bdlbb::BlobUtil::append(appData.get(),
                                 msgs[i].data(),
                                 msgs[i].length());

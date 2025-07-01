@@ -208,6 +208,7 @@ jobs:
             --junitxml=integration-tests.xml    \
             --tb long                           \
             --reruns=3                          \
+            --durations=0                       \
             -n logical -v
 
       - name: Print core information
@@ -254,12 +255,27 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
+      
+      - name: Setup core_pattern
+        run: |
+          sudo mkdir /cores
+          sudo chmod 777 /cores
+          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
 
       - name: Run Fuzz Test
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
+      
+      - name: Print core information
+        if: failure()
+        run: |
+          sudo apt-get install -qy gdb
+
+          python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
+          --cores-dir=/cores \
+          --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
 
   integration_tests_storagetool_ubuntu:
     name: IT [Storage tool]

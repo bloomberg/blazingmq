@@ -2971,29 +2971,6 @@ void Cluster::processControlMessage(
     }
 }
 
-void Cluster::processClusterSyncRequest(
-    const bmqp_ctrlmsg::ControlMessage& request,
-    mqbnet::ClusterNode*                requester)
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(request.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(request.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterSyncRequestValue());
-
-    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
-    response.rId() = request.rId();
-    response.choice().makeClusterMessage().choice().makeClusterSyncResponse();
-
-    // Send the response to the requester
-    d_clusterData.messageTransmitter().sendMessage(response, requester);
-}
-
 void Cluster::processClusterControlMessage(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
@@ -3140,14 +3117,6 @@ void Cluster::processClusterControlMessage(
                 &d_clusterOrchestrator,
                 message,
                 source),
-            this);
-    } break;  // BREAK
-    case MsgChoice::SELECTION_ID_CLUSTER_SYNC_REQUEST: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(&Cluster::processClusterSyncRequest,
-                                 this,
-                                 message,
-                                 source),
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
@@ -3734,6 +3703,13 @@ bool Cluster::isCSLModeEnabled() const
 bool Cluster::isFSMWorkflow() const
 {
     return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow();
+}
+
+bool Cluster::doesFSMwriteQLIST() const
+{
+    return d_clusterData.clusterConfig()
+        .clusterAttributes()
+        .doesFSMwriteQLIST();
 }
 
 bmqt::GenericResult::Enum

@@ -376,9 +376,12 @@ void LocalQueue::flush()
     // until it gets rolled back.  If 'flush' gets called in between, the queue
     // may have no storage.
     if (d_state_p->storage()) {
-        d_state_p->storage()->flushStorage();
+        const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
+        d_state_p->storage()->gcHistory(now);
+
         // See notes in 'FileStore::flushStorage' for motivation behind
-        // this flush.
+        // this flush:
+        d_state_p->storage()->flushStorage();
     }
 
     deliverIfNeeded();

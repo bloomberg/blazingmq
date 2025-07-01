@@ -29,7 +29,7 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
-
+#include <bmqp_protocolutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_tempdirectory.h>
 

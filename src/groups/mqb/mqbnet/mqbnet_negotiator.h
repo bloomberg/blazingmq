@@ -82,13 +82,12 @@ class Negotiator {
         bool*                                      isContinueRead,
         const bsl::shared_ptr<NegotiationContext>& context) = 0;
 
-    /// Send out outbound negotiation message or reverse connection request
-    /// with the specified `context`.
+    /// Send out outbound negotiation message with the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
-    virtual int negotiateOutboundOrReverse(
-        bsl::ostream&                              errorDescription,
-        const bsl::shared_ptr<NegotiationContext>& context) = 0;
+    virtual int
+    negotiateOutbound(bsl::ostream& errorDescription,
+                      const bsl::shared_ptr<NegotiationContext>& context) = 0;
 };
 
 }  // close package namespace

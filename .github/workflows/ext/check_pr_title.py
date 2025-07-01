@@ -32,18 +32,23 @@ def check_pr_title():
         )
     title = title.lower()
     valid_prefixes = [
+        "build",
+        "ci",
+        "cleanup",
+        "deprecate",
+        "doc",
         "fix",
         "feat",
-        "perf",
-        "ci",
-        "build",
-        "revert",
-        "ut",
         "it",
-        "doc",
-        "refactor",
         "misc",
+        "perf",
+        "refactor",
+        "remove",
+        "revert",
+        "style",
+        "rm",
         "test",
+        "ut",
     ]
     if not any(title.startswith(prefix.lower()) for prefix in valid_prefixes):
         raise RuntimeError(

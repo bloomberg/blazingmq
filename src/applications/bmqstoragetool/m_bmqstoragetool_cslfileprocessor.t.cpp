@@ -33,6 +33,7 @@
 // BMQ
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocolutil.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>

@@ -26,7 +26,8 @@
           queues = [
             [
               uri = "bmq://bmq.test.persistent.priority/my-first-queue"
- key = [ 26DACDC974 ]              partitionId = 0
+key = [ 26DACDC974 ]
+              partitionId = 0
               appIds = [
               ]
             ]
