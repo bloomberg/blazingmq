@@ -1049,6 +1049,10 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
 
     d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
         appData->length());
+
+    if (d_queueEngine_mp) {
+        d_queueEngine_mp->afterPostMessage();
+    }
 }
 
 void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,

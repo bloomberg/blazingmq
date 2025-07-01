@@ -189,11 +189,11 @@ class QueueEngine {
     virtual void afterQueuePurged(const bsl::string&      appId,
                                   const mqbu::StorageKey& appKey) = 0;
 
-    /// Periodically invoked with the current time provided in the specified
-    /// `currentTimer`; can be used for regular status check, such as for
-    /// ensuring messages on the queue are flowing and not accumulating.
-    /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void onTimer(bsls::Types::Int64 currentTimer) = 0;
+    /// Notify this queue engine that a message has been posted and
+    /// saved in the storage.
+    /// See also: `mqbblp::LocalQueue::postMessage`,
+    ///           `mqbblp::RemoteQueue::postMessage`
+    virtual void afterPostMessage() = 0;
 
     /// Called after the specified `addedAppIds` have been dynamically
     /// registered.

@@ -528,6 +528,13 @@ struct QueueEngineUtil_AppState {
     /// purge operation, or Replica / Proxy losing last consumer.
     void clear();
 
+    /// Load into the specified `out` a storage iterator pointing to the oldest
+    /// message. First look in the redelivery list, then in the put aside list,
+    /// and finally in the resume point.  Return `true` if the iterator is
+    /// loaded successfully, otherwise return `false`.
+    bool
+    getOldestMessageIterator(bslma::ManagedPtr<mqbi::StorageIterator>* out);
+
     // ACCESSORS
 
     /// Return `true` if this App is not behind: authorized, empty Redelivery
@@ -573,6 +580,14 @@ struct QueueEngineUtil_AppState {
 
     /// Report queue stats upon delivery of the specified `message`.
     void reportStats(const mqbi::StorageIterator* message) const;
+
+  private:
+    /// Load into the specified `out` a storage iterator pointing to the oldest
+    /// message from the specified `list`.  Return `true` if the iterator is
+    /// loaded successfully, `false` otherwise.
+    bool getOldestMessageIteratorFromList(
+        bslma::ManagedPtr<mqbi::StorageIterator>* out,
+        RedeliveryList&                           list);
 };
 
 // ==========================================
