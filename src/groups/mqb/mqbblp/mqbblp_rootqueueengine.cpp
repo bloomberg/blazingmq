@@ -1745,6 +1745,7 @@ RootQueueEngine::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(alarmTime_p);
 
     // Get AppState by appKey.
     Apps::const_iterator cItApp = d_apps.find(appId);
@@ -1763,9 +1764,7 @@ RootQueueEngine::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
         // Calculate alarm time
         const bsls::TimeInterval alarmTime =
             d_consumptionMonitor.calculateAlarmTime(arrivaTimelDelta, now);
-        if (alarmTime_p) {
-            *alarmTime_p = alarmTime;
-        }
+        *alarmTime_p = alarmTime;
     }
 
     return headIt;

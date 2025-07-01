@@ -184,6 +184,7 @@ def test_priority_alarm_when_consumer_dropped(
     # Wait more than max idle and check that alarm is triggered
     assert leader.alarms("QUEUE_STUCK", 2)
     assert leader.capture(r"For appId: __default")
+    assert leader.capture(r"Redelivery list size: 1")
 
 
 @tweak.domain.max_idle_time(1)
