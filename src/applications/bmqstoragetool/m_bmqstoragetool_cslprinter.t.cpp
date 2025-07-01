@@ -23,6 +23,7 @@
 
 // BDE
 #include <bdljsn_jsonutil.h>
+#include <bslim_printer.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
