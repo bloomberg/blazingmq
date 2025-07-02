@@ -1441,9 +1441,14 @@ void ClusterUtil::sendClusterState(
         loadQueuesInfo(&advisory.queues(), clusterState);
     }
 
-    // Need to broadcast for leader advisory since we need to trigger
-    // processLeaderAdvisory for the followers in order to update the status of
-    // the leader to be active.
+    // Need to send the control message.
+    // Reason 1: The old version brokers should still receive the messages.
+    // Reason 2: For the new version brokers, `PartitionPrimary` and
+    // `QueueAssignmentAdvisory` won't be processed since we made the
+    // corresponding case in `processClusterControlMessage` to be noop,
+    // and `LeaderAdvisory` needs to be sent by the leader to trigger
+    // `processLeaderAdvisory` for the followers in order to update the status
+    // of the leader to be active.
     if (!clusterData->cluster().isCSLModeEnabled()) {
         if (node) {
             clusterData->messageTransmitter().sendMessage(controlMessage,
