@@ -1966,10 +1966,10 @@ static void test4_manipulators_two()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::PutEventBuilder          obj(blobSpPool.get(),
+    bmqp::PutEventBuilder obj(blobSpPool.get(),
                               bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    const size_t                   k_NUM_MSGS = 1000;
+    bsl::vector<Data>     data(bmqtst::TestHelperUtil::allocator());
+    const size_t          k_NUM_MSGS = 1000;
 
     for (size_t dataIdx = 0; dataIdx < k_NUM_MSGS; ++dataIdx) {
         bmqt::EventBuilderResult::Enum rc = appendMessage(
@@ -2458,10 +2458,10 @@ static void testN1_decodeFromFile()
             bmqtst::TestHelperUtil::allocator()));
     bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
-    bmqu::MemOutStream             os(bmqtst::TestHelperUtil::allocator());
-    bmqp::PutMessageIterator       putIter(&bufferFactory,
+    bmqu::MemOutStream       os(bmqtst::TestHelperUtil::allocator());
+    bmqp::PutMessageIterator putIter(&bufferFactory,
                                      bmqtst::TestHelperUtil::allocator());
-    bdlb::Guid                     guid = bdlb::GuidUtil::generate();
+    bdlb::Guid               guid = bdlb::GuidUtil::generate();
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
@@ -2610,7 +2610,6 @@ static void testN1_decodeFromFile()
 
 int main(int argc, char* argv[])
 {
-    bmqp::Crc32c::initialize();
     // We explicitly initialize before the 'TEST_PROLOG' to circumvent a
     // case where the associated logging infrastructure triggers a default
     // allocation violation for no apparent reason.
@@ -2628,9 +2627,6 @@ int main(int argc, char* argv[])
             dummy));
 
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
 
     PV("Seed: " << s_seed);
 

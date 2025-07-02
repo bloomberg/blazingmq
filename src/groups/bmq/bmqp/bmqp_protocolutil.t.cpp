@@ -625,8 +625,8 @@ static void test8_loadFieldValues()
 template <typename E>
 static void encodeDecodeHelper(E encodingType)
 {
-    bmqu::MemOutStream                 ms;
-    bdlbb::PooledBlobBufferFactory     bufferFactory(
+    bmqu::MemOutStream             ms;
+    bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -827,8 +827,6 @@ static void test10_parseMessageProperties()
 
 int main(int argc, char* argv[])
 {
-    bmqp::Crc32c::initialize();
-
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {

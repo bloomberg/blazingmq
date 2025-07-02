@@ -170,7 +170,7 @@ static void test2_validPushMessagePrint()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqa::Event                    event;
+    bmqa::Event event;
 
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
     implPtr              = bsl::make_shared<bmqimp::Event>(
@@ -415,9 +415,6 @@ static void test4_subscriptionHandle()
     // allocate memory for an automatically generated CorrelationId.
 
     bmqtst::TestHelper::printTestName("SUBSCRIPTION HANDLE ACCESSOR TEST");
-
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
 
     typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
 
