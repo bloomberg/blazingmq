@@ -102,8 +102,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const bool d_isFanout;
 
-    /// Event scheduler currently used for message throttling.  Held, not
-    /// owned.
+    /// Event scheduler currently used for message throttling and consumption
+    /// monitor.  Held, not owned.
     bdlmt::EventScheduler* d_scheduler_p;
 
     /// Thread pool for any standalone work that can be offloaded to
@@ -182,11 +182,23 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
-    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
-    /// If there are un-delivered messages for the specified `appKey` and
-    /// `enableLog` is `true` it logs alarm data. Return `true` if there are
-    /// un-delivered messages and `false` otherwise.
-    bool logAlarmCb(const bsl::string& appId, bool enableLog) const;
+    /// Callback called by `d_consumptionMonitor` to check un-delivered
+    /// messages. Return managed pointer with iterator pointing to the oldest
+    /// un-delivered message if there are un-delivered messages for the
+    /// specified `appId`, or empty managed pointer otherwise.  If there are
+    /// un-delivered messages for the specified `appId` it sets in the
+    /// specified `alarmTime_p` calculated alarm time for the oldest
+    /// un-delivered message.
+    bslma::ManagedPtr<mqbi::StorageIterator>
+    haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
+                      const bsl::string&        appId,
+                      const bsls::TimeInterval& now) const;
+
+    /// Callback called by `d_consumptionMonitor` to log the alarm for the
+    /// specified `appId` and `oldestMsgIt`.
+    void logAlarmCb(
+        const bsl::string&                              appId,
+        const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const;
 
   public:
     // TRAITS
@@ -364,11 +376,13 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Periodically invoked with the current time provided in the specified
-    /// `currentTimer`; can be used for regular status check, such as for
-    /// ensuring messages on the queue are flowing and not accumulating.
+    /// Notify this queue engine that a message has been posted and
+    /// saved in the storage.
+    /// See also: `mqbblp::LocalQueue::postMessage`,
+    ///           `mqbblp::RemoteQueue::postMessage`
+    ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
+    void afterPostMessage() BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `addedAppIds` have been dynamically
     /// registered.

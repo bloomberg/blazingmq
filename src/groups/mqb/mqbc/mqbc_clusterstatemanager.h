@@ -563,21 +563,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         const bmqp_ctrlmsg::ControlMessage& request,
         mqbnet::ClusterNode*                requester) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified queue assignment advisory `message` from the
-    /// specified `source`.  If the specified `delayed` is true, the
-    /// advisory has previously been delayed for processing.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    ///
-    /// TODO_CSL: This is the current workflow which we should be able to
-    /// remove after the new workflow via
-    /// ClusterQueueHelper::onQueueAssigned() is stable.
-    void
-    processQueueAssignmentAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
-                                   mqbnet::ClusterNode*                source,
-                                   bool delayed = false) BSLS_KEYWORD_OVERRIDE;
-
     /// Process the queue unAssigned advisory in the specified `message`
     /// received from the specified `source`.
     ///
