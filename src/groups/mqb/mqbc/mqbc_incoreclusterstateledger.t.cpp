@@ -2021,7 +2021,6 @@ int main(int argc, char* argv[])
 
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqp::Crc32c::initialize();
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {

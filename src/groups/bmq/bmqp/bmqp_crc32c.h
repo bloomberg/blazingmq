@@ -183,11 +183,7 @@
 // The following code illustrates how to calculate and update a CRC32-C
 // checksum for a message over the course of building the full message.
 //
-// First, let's initialize the utility.
-//..
-//  bmqp::Crc32c::initialize();
-//..
-// Now, compute a checksum.
+// First, let's compute a checksum.
 //..
 //  // Prepare a message
 //  bsl::string message = "This is a test message.";
@@ -215,6 +211,8 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsla_annotations.h>
+#include <bsla_deprecated.h>
 
 namespace BloombergLP {
 namespace bmqp {
@@ -229,24 +227,13 @@ struct Crc32c {
   public:
     // TYPES
 
-    /// Signature of the function for the calculation of CRC32-C in the
-    /// default implementation methods (`calculate`) .
-    typedef unsigned int (*Crc32cFn)(const unsigned char* data,
-                                     unsigned int         length,
-                                     unsigned int         crc);
-
     // CONSTANTS
 
     /// CRC32-C value for a 0 length input.  Note that a buffer with this
     /// CRC32-C value need not be a 0 length input.
-    static const unsigned int k_NULL_CRC32C = 0U;
+    static const unsigned int k_NULL_CRC32C;
 
     // CLASS METHODS
-
-    /// Initialize the utilities with a platform-dependent mechanism to
-    /// compute crc32c checksums.  This method only needs to be called once
-    /// before any other method, but can be called multiple times.
-    static void initialize();
 
     /// Return the CRC32-C value calculated for the specified `data` over
     /// the specified `length` number of bytes, using the optionally
@@ -268,51 +255,6 @@ struct Crc32c {
     /// at least once.
     static unsigned int calculate(const bdlbb::Blob& blob,
                                   unsigned int       crc = k_NULL_CRC32C);
-};
-
-// ==================
-// struct Crc32c_Impl
-// ==================
-
-/// This class provides alternative implementations of utilities to
-/// calculate a CRC32-C checksum.
-struct Crc32c_Impl {
-  public:
-    // CLASS METHODS
-
-    /// Return the CRC32-C value calculated for the specified `data` over
-    /// the specified `length` number of bytes, using the optionally
-    /// specified `crc` value as the starting point for the calculation.
-    /// This utilizes a portable software-based implementation to perform
-    /// the calculation.  Note that if `data` is 0, then `length` must also
-    /// be 0.
-    static unsigned int
-    calculateSoftware(const void*  data,
-                      unsigned int length,
-                      unsigned int crc = Crc32c::k_NULL_CRC32C);
-
-    /// Return the CRC32-C value calculated over all the buffers in the
-    /// specified `blob` (in order of `blob.buffer(idx)` for increasing
-    /// values of `idx`), using the optionally specified `crc` value as the
-    /// starting point for the calculation.  This utilizes a portable
-    /// software-based implementation to perform the calculation.
-    static unsigned int
-    calculateSoftware(const bdlbb::Blob& blob,
-                      unsigned int       crc = Crc32c::k_NULL_CRC32C);
-
-    /// Return the CRC32-C value calculated for the specified `data` over
-    /// the specified `length` number of bytes, using the optionally
-    /// specified `crc` value as the starting point for the calculation.
-    /// This utilizes a hardware-based implementation that does not leverage
-    /// instruction level parallelism to perform the calculation (hence it
-    /// calculates the crc32c in "serial").  Note that this function will
-    /// fall back to the software version when running on unsupported
-    /// platforms.  Also note that if `data` is 0, then `length` must also
-    /// be 0.
-    static unsigned int
-    calculateHardwareSerial(const void*  data,
-                            unsigned int length,
-                            unsigned int crc = Crc32c::k_NULL_CRC32C);
 };
 
 }  // close package namespace
