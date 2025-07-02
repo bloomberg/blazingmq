@@ -488,30 +488,6 @@ void ClusterUtil::assignPartitions(
         for (unsigned int i = 0; i < cit->second; ++i) {
             const mqbc::ClusterStatePartitionInfo& pinfo = *cit2;
 
-            // In CSL mode, we apply the new partition assignments at the
-            // commit callback of 'PartitionPrimaryAdvisory' or
-            // 'LeaderAdvisory' instead.
-            if (!isCSLMode) {
-                if (pinfo.primaryNode()) {
-                    mqbc::ClusterNodeSession* ns =
-                        clusterData.membership().getClusterNodeSession(
-                            pinfo.primaryNode());
-                    BSLS_ASSERT_SAFE(ns);
-
-                    // Currently assigned primary node is not AVAILABLE.
-                    // Remove this partition from this node.
-                    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-                                     ns->nodeStatus());
-                    ns->removePartitionRaw(pinfo.partitionId());
-                }
-
-                primaryNs->addPartitionRaw(pinfo.partitionId());
-
-                clusterState->setPartitionPrimary(pinfo.partitionId(),
-                                                  pinfo.primaryLeaseId() + 1,
-                                                  primary);
-            }
-
             BALL_LOG_INFO << clusterData.identity().description()
                           << ": Partition [" << pinfo.partitionId()
                           << "]: Leader (self) has assigned "
@@ -1465,6 +1441,14 @@ void ClusterUtil::sendClusterState(
         loadQueuesInfo(&advisory.queues(), clusterState);
     }
 
+    // Need to send the control message.
+    // Reason 1: The old version brokers should still receive the messages.
+    // Reason 2: For the new version brokers, `PartitionPrimary` and
+    // `QueueAssignmentAdvisory` won't be processed since we made the
+    // corresponding case in `processClusterControlMessage` to be noop,
+    // and `LeaderAdvisory` needs to be sent by the leader to trigger
+    // `processLeaderAdvisory` for the followers in order to update the status
+    // of the leader to be active.
     if (!clusterData->cluster().isCSLModeEnabled()) {
         if (node) {
             clusterData->messageTransmitter().sendMessage(controlMessage,
@@ -1472,22 +1456,6 @@ void ClusterUtil::sendClusterState(
         }
         else {
             clusterData->messageTransmitter().broadcastMessage(controlMessage);
-
-            // Inform local storage.  This should be done after broadcasting
-            // advisory above, because storageMgr or its partitions may also
-            // send some events to peer nodes in
-            // StorageManager::setPrimaryForPartition() below.
-            // TBD: This should be done in the caller of this routine.
-            BSLS_ASSERT_SAFE(storageManager);
-
-            for (unsigned int i = 0; i < partitions.size(); ++i) {
-                const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
-                storageManager->setPrimaryForPartition(
-                    info.partitionId(),
-                    clusterData->membership().netCluster()->lookupNode(
-                        info.primaryNodeId()),
-                    info.primaryLeaseId());
-            }
         }
     }
 
