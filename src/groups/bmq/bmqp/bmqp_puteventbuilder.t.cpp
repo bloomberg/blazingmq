@@ -2612,7 +2612,6 @@ static void testN1_decodeFromFile()
 
 int main(int argc, char* argv[])
 {
-    bmqp::Crc32c::initialize();
     // We explicitly initialize before the 'TEST_PROLOG' to circumvent a
     // case where the associated logging infrastructure triggers a default
     // allocation violation for no apparent reason.
@@ -2630,9 +2629,6 @@ int main(int argc, char* argv[])
             dummy));
 
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
 
     PV("Seed: " << s_seed);
 

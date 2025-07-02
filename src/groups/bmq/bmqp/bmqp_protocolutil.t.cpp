@@ -828,8 +828,6 @@ static void test10_parseMessageProperties()
 
 int main(int argc, char* argv[])
 {
-    bmqp::Crc32c::initialize();
-
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {

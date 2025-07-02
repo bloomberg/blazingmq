@@ -531,9 +531,6 @@ static void test4_generate()
 
 int main(int argc, char* argv[])
 {
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
-
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
