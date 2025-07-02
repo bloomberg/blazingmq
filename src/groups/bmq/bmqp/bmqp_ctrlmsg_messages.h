@@ -276,9 +276,6 @@ namespace bmqp_ctrlmsg {
 class QueueUnAssignmentAdvisory;
 }
 namespace bmqp_ctrlmsg {
-class QueueUnassignedAdvisory;
-}
-namespace bmqp_ctrlmsg {
 class QueueUpdateAdvisory;
 }
 namespace bmqp_ctrlmsg {
@@ -15904,16 +15901,18 @@ namespace bmqp_ctrlmsg {
 // ===============================
 
 class QueueUnAssignmentAdvisory {
-    // This type represents a one way message sent by the primary of a
-    // partition to all peers when queues are unmapped from that partition.
-    // NOTE: The 'partitionId' member of 'QueueInfo' is unused (superseeded by
-    // the 'partitionId' at this level of the data structure).
+    // This type represents a one way message sent by the leader to all peers
+    // when queues are unmapped from that partition.  Once the logic is updated
+    // such that leader broadcasts queue unassigned advisories, primary node
+    // will no longer broadcastthem, and the other similar type
+    // 'QueueUnAssignmentAdvisory' will be removed.
 
     // INSTANCE DATA
     bsl::vector<QueueInfo> d_queues;
+    LeaderMessageSequence  d_sequenceNumber;
     unsigned int           d_primaryLeaseId;
-    int                    d_primaryNodeId;
     int                    d_partitionId;
+    int                    d_primaryNodeId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -15924,19 +15923,21 @@ class QueueUnAssignmentAdvisory {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_PRIMARY_NODE_ID  = 0,
-        ATTRIBUTE_ID_PRIMARY_LEASE_ID = 1,
-        ATTRIBUTE_ID_PARTITION_ID     = 2,
-        ATTRIBUTE_ID_QUEUES           = 3
+        ATTRIBUTE_ID_SEQUENCE_NUMBER  = 0,
+        ATTRIBUTE_ID_PARTITION_ID     = 1,
+        ATTRIBUTE_ID_PRIMARY_LEASE_ID = 2,
+        ATTRIBUTE_ID_PRIMARY_NODE_ID  = 3,
+        ATTRIBUTE_ID_QUEUES           = 4
     };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_PRIMARY_NODE_ID  = 0,
-        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID = 1,
-        ATTRIBUTE_INDEX_PARTITION_ID     = 2,
-        ATTRIBUTE_INDEX_QUEUES           = 3
+        ATTRIBUTE_INDEX_SEQUENCE_NUMBER  = 0,
+        ATTRIBUTE_INDEX_PARTITION_ID     = 1,
+        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID = 2,
+        ATTRIBUTE_INDEX_PRIMARY_NODE_ID  = 3,
+        ATTRIBUTE_INDEX_QUEUES           = 4
     };
 
     // CONSTANTS
@@ -15998,265 +15999,6 @@ class QueueUnAssignmentAdvisory {
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
     QueueUnAssignmentAdvisory& operator=(QueueUnAssignmentAdvisory&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    int& primaryNodeId();
-    // Return a reference to the modifiable "PrimaryNodeId" attribute of
-    // this object.
-
-    unsigned int& primaryLeaseId();
-    // Return a reference to the modifiable "PrimaryLeaseId" attribute of
-    // this object.
-
-    int& partitionId();
-    // Return a reference to the modifiable "PartitionId" attribute of this
-    // object.
-
-    bsl::vector<QueueInfo>& queues();
-    // Return a reference to the modifiable "Queues" attribute of this
-    // object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    int primaryNodeId() const;
-    // Return the value of the "PrimaryNodeId" attribute of this object.
-
-    unsigned int primaryLeaseId() const;
-    // Return the value of the "PrimaryLeaseId" attribute of this object.
-
-    int partitionId() const;
-    // Return the value of the "PartitionId" attribute of this object.
-
-    const bsl::vector<QueueInfo>& queues() const;
-    // Return a reference offering non-modifiable access to the "Queues"
-    // attribute of this object.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const QueueUnAssignmentAdvisory& lhs,
-                           const QueueUnAssignmentAdvisory& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
-    // have the same value, and 'false' otherwise.  Two attribute objects
-    // have the same value if each respective attribute has the same value.
-    {
-        return lhs.isEqualTo(rhs);
-    }
-
-    friend bool operator!=(const QueueUnAssignmentAdvisory& lhs,
-                           const QueueUnAssignmentAdvisory& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&                    stream,
-                                    const QueueUnAssignmentAdvisory& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                           const QueueUnAssignmentAdvisory& object)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'QueueUnAssignmentAdvisory'.
-    {
-        object.hashAppendImpl(hashAlg);
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueUnAssignmentAdvisory)
-
-namespace bmqp_ctrlmsg {
-
-// =============================
-// class QueueUnassignedAdvisory
-// =============================
-
-class QueueUnassignedAdvisory {
-    // This type represents a one way message sent by the leader to all peers
-    // when queues are unmapped from that partition.  Once the logic is updated
-    // such that leader broadcasts queue unassigned advisories, primary node
-    // will no longer broadcastthem, and the other similar type
-    // 'QueueUnAssignmentAdvisory' will be removed.
-
-    // INSTANCE DATA
-    bsl::vector<QueueInfo> d_queues;
-    LeaderMessageSequence  d_sequenceNumber;
-    unsigned int           d_primaryLeaseId;
-    int                    d_partitionId;
-    int                    d_primaryNodeId;
-
-    // PRIVATE ACCESSORS
-    template <typename t_HASH_ALGORITHM>
-    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
-
-    bool isEqualTo(const QueueUnassignedAdvisory& rhs) const;
-
-  public:
-    // TYPES
-    enum {
-        ATTRIBUTE_ID_SEQUENCE_NUMBER  = 0,
-        ATTRIBUTE_ID_PARTITION_ID     = 1,
-        ATTRIBUTE_ID_PRIMARY_LEASE_ID = 2,
-        ATTRIBUTE_ID_PRIMARY_NODE_ID  = 3,
-        ATTRIBUTE_ID_QUEUES           = 4
-    };
-
-    enum { NUM_ATTRIBUTES = 5 };
-
-    enum {
-        ATTRIBUTE_INDEX_SEQUENCE_NUMBER  = 0,
-        ATTRIBUTE_INDEX_PARTITION_ID     = 1,
-        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID = 2,
-        ATTRIBUTE_INDEX_PRIMARY_NODE_ID  = 3,
-        ATTRIBUTE_INDEX_QUEUES           = 4
-    };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit QueueUnassignedAdvisory(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'QueueUnassignedAdvisory' having the
-    // default value.  Use the optionally specified 'basicAllocator' to
-    // supply memory.  If 'basicAllocator' is 0, the currently installed
-    // default allocator is used.
-
-    QueueUnassignedAdvisory(const QueueUnassignedAdvisory& original,
-                            bslma::Allocator*              basicAllocator = 0);
-    // Create an object of type 'QueueUnassignedAdvisory' having the value
-    // of the specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueUnassignedAdvisory(QueueUnassignedAdvisory&& original) noexcept;
-    // Create an object of type 'QueueUnassignedAdvisory' having the value
-    // of the specified 'original' object.  After performing this action,
-    // the 'original' object will be left in a valid, but unspecified
-    // state.
-
-    QueueUnassignedAdvisory(QueueUnassignedAdvisory&& original,
-                            bslma::Allocator*         basicAllocator);
-    // Create an object of type 'QueueUnassignedAdvisory' having the value
-    // of the specified 'original' object.  After performing this action,
-    // the 'original' object will be left in a valid, but unspecified
-    // state.  Use the optionally specified 'basicAllocator' to supply
-    // memory.  If 'basicAllocator' is 0, the currently installed default
-    // allocator is used.
-#endif
-
-    ~QueueUnassignedAdvisory();
-    // Destroy this object.
-
-    // MANIPULATORS
-    QueueUnassignedAdvisory& operator=(const QueueUnassignedAdvisory& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueUnassignedAdvisory& operator=(QueueUnassignedAdvisory&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
@@ -16376,8 +16118,8 @@ class QueueUnassignedAdvisory {
     // attribute of this object.
 
     // HIDDEN FRIENDS
-    friend bool operator==(const QueueUnassignedAdvisory& lhs,
-                           const QueueUnassignedAdvisory& rhs)
+    friend bool operator==(const QueueUnAssignmentAdvisory& lhs,
+                           const QueueUnAssignmentAdvisory& rhs)
     // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
@@ -16385,15 +16127,15 @@ class QueueUnassignedAdvisory {
         return lhs.isEqualTo(rhs);
     }
 
-    friend bool operator!=(const QueueUnassignedAdvisory& lhs,
-                           const QueueUnassignedAdvisory& rhs)
+    friend bool operator!=(const QueueUnAssignmentAdvisory& lhs,
+                           const QueueUnAssignmentAdvisory& rhs)
     // Returns '!(lhs == rhs)'
     {
         return !(lhs == rhs);
     }
 
-    friend bsl::ostream& operator<<(bsl::ostream&                  stream,
-                                    const QueueUnassignedAdvisory& rhs)
+    friend bsl::ostream& operator<<(bsl::ostream&                    stream,
+                                    const QueueUnAssignmentAdvisory& rhs)
     // Format the specified 'rhs' to the specified output 'stream' and
     // return a reference to the modifiable 'stream'.
     {
@@ -16401,12 +16143,12 @@ class QueueUnassignedAdvisory {
     }
 
     template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&              hashAlg,
-                           const QueueUnassignedAdvisory& object)
+    friend void hashAppend(t_HASH_ALGORITHM&                hashAlg,
+                           const QueueUnAssignmentAdvisory& object)
     // Pass the specified 'object' to the specified 'hashAlg'.  This
     // function integrates with the 'bslh' modular hashing system and
     // effectively provides a 'bsl::hash' specialization for
-    // 'QueueUnassignedAdvisory'.
+    // 'QueueUnAssignmentAdvisory'.
     {
         object.hashAppendImpl(hashAlg);
     }
@@ -16417,7 +16159,7 @@ class QueueUnassignedAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueUnassignedAdvisory)
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -19960,14 +19702,14 @@ class ClusterMessageChoice {
         bsls::ObjectBuffer<PrimaryStatusAdvisory> d_primaryStatusAdvisory;
         bsls::ObjectBuffer<DummyType>             d_clusterSyncRequest;
         bsls::ObjectBuffer<DummyType>             d_clusterSyncResponse;
+        bsls::ObjectBuffer<DummyType>             d_queueUnassignedAdvisory;
         bsls::ObjectBuffer<QueueUnAssignmentAdvisory>
-            d_queueUnAssignmentAdvisory;
-        bsls::ObjectBuffer<QueueUnassignedAdvisory> d_queueUnassignedAdvisory;
-        bsls::ObjectBuffer<LeaderAdvisoryAck>       d_leaderAdvisoryAck;
-        bsls::ObjectBuffer<LeaderAdvisoryCommit>    d_leaderAdvisoryCommit;
-        bsls::ObjectBuffer<StateNotification>       d_stateNotification;
-        bsls::ObjectBuffer<StopRequest>             d_stopRequest;
-        bsls::ObjectBuffer<StopResponse>            d_stopResponse;
+                                                 d_queueUnAssignmentAdvisory;
+        bsls::ObjectBuffer<LeaderAdvisoryAck>    d_leaderAdvisoryAck;
+        bsls::ObjectBuffer<LeaderAdvisoryCommit> d_leaderAdvisoryCommit;
+        bsls::ObjectBuffer<StateNotification>    d_stateNotification;
+        bsls::ObjectBuffer<StopRequest>          d_stopRequest;
+        bsls::ObjectBuffer<StopResponse>         d_stopResponse;
         bsls::ObjectBuffer<QueueUnassignmentRequest>
                                                    d_queueUnassignmentRequest;
         bsls::ObjectBuffer<QueueUpdateAdvisory>    d_queueUpdateAdvisory;
@@ -20008,8 +19750,8 @@ class ClusterMessageChoice {
         SELECTION_ID_PRIMARY_STATUS_ADVISORY             = 16,
         SELECTION_ID_CLUSTER_SYNC_REQUEST                = 17,
         SELECTION_ID_CLUSTER_SYNC_RESPONSE               = 18,
-        SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY        = 19,
-        SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY           = 20,
+        SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY           = 19,
+        SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY        = 20,
         SELECTION_ID_LEADER_ADVISORY_ACK                 = 21,
         SELECTION_ID_LEADER_ADVISORY_COMMIT              = 22,
         SELECTION_ID_STATE_NOTIFICATION                  = 23,
@@ -20043,8 +19785,8 @@ class ClusterMessageChoice {
         SELECTION_INDEX_PRIMARY_STATUS_ADVISORY             = 16,
         SELECTION_INDEX_CLUSTER_SYNC_REQUEST                = 17,
         SELECTION_INDEX_CLUSTER_SYNC_RESPONSE               = 18,
-        SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY        = 19,
-        SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY           = 20,
+        SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY           = 19,
+        SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY        = 20,
         SELECTION_INDEX_LEADER_ADVISORY_ACK                 = 21,
         SELECTION_INDEX_LEADER_ADVISORY_COMMIT              = 22,
         SELECTION_INDEX_STATE_NOTIFICATION                  = 23,
@@ -20371,6 +20113,17 @@ class ClusterMessageChoice {
     // 'value' is not specified, the default "ClusterSyncResponse" value is
     // used.
 
+    DummyType& makeQueueUnassignedAdvisory();
+    DummyType& makeQueueUnassignedAdvisory(const DummyType& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    DummyType& makeQueueUnassignedAdvisory(DummyType&& value);
+#endif
+    // Set the value of this object to be a "QueueUnassignedAdvisory"
+    // value.  Optionally specify the 'value' of the
+    // "QueueUnassignedAdvisory".  If 'value' is not specified, the default
+    // "QueueUnassignedAdvisory" value is used.
+
     QueueUnAssignmentAdvisory& makeQueueUnAssignmentAdvisory();
     QueueUnAssignmentAdvisory&
     makeQueueUnAssignmentAdvisory(const QueueUnAssignmentAdvisory& value);
@@ -20383,19 +20136,6 @@ class ClusterMessageChoice {
     // value.  Optionally specify the 'value' of the
     // "QueueUnAssignmentAdvisory".  If 'value' is not specified, the
     // default "QueueUnAssignmentAdvisory" value is used.
-
-    QueueUnassignedAdvisory& makeQueueUnassignedAdvisory();
-    QueueUnassignedAdvisory&
-    makeQueueUnassignedAdvisory(const QueueUnassignedAdvisory& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueUnassignedAdvisory&
-    makeQueueUnassignedAdvisory(QueueUnassignedAdvisory&& value);
-#endif
-    // Set the value of this object to be a "QueueUnassignedAdvisory"
-    // value.  Optionally specify the 'value' of the
-    // "QueueUnassignedAdvisory".  If 'value' is not specified, the default
-    // "QueueUnassignedAdvisory" value is used.
 
     LeaderAdvisoryAck& makeLeaderAdvisoryAck();
     LeaderAdvisoryAck& makeLeaderAdvisoryAck(const LeaderAdvisoryAck& value);
@@ -20625,17 +20365,17 @@ class ClusterMessageChoice {
     // The behavior is undefined unless "ClusterSyncResponse" is the
     // selection of this object.
 
+    DummyType& queueUnassignedAdvisory();
+    // Return a reference to the modifiable "QueueUnassignedAdvisory"
+    // selection of this object if "QueueUnassignedAdvisory" is the current
+    // selection.  The behavior is undefined unless
+    // "QueueUnassignedAdvisory" is the selection of this object.
+
     QueueUnAssignmentAdvisory& queueUnAssignmentAdvisory();
     // Return a reference to the modifiable "QueueUnAssignmentAdvisory"
     // selection of this object if "QueueUnAssignmentAdvisory" is the
     // current selection.  The behavior is undefined unless
     // "QueueUnAssignmentAdvisory" is the selection of this object.
-
-    QueueUnassignedAdvisory& queueUnassignedAdvisory();
-    // Return a reference to the modifiable "QueueUnassignedAdvisory"
-    // selection of this object if "QueueUnassignedAdvisory" is the current
-    // selection.  The behavior is undefined unless
-    // "QueueUnassignedAdvisory" is the selection of this object.
 
     LeaderAdvisoryAck& leaderAdvisoryAck();
     // Return a reference to the modifiable "LeaderAdvisoryAck" selection
@@ -20837,17 +20577,17 @@ class ClusterMessageChoice {
     // selection.  The behavior is undefined unless "ClusterSyncResponse"
     // is the selection of this object.
 
+    const DummyType& queueUnassignedAdvisory() const;
+    // Return a reference to the non-modifiable "QueueUnassignedAdvisory"
+    // selection of this object if "QueueUnassignedAdvisory" is the current
+    // selection.  The behavior is undefined unless
+    // "QueueUnassignedAdvisory" is the selection of this object.
+
     const QueueUnAssignmentAdvisory& queueUnAssignmentAdvisory() const;
     // Return a reference to the non-modifiable "QueueUnAssignmentAdvisory"
     // selection of this object if "QueueUnAssignmentAdvisory" is the
     // current selection.  The behavior is undefined unless
     // "QueueUnAssignmentAdvisory" is the selection of this object.
-
-    const QueueUnassignedAdvisory& queueUnassignedAdvisory() const;
-    // Return a reference to the non-modifiable "QueueUnassignedAdvisory"
-    // selection of this object if "QueueUnassignedAdvisory" is the current
-    // selection.  The behavior is undefined unless
-    // "QueueUnassignedAdvisory" is the selection of this object.
 
     const LeaderAdvisoryAck& leaderAdvisoryAck() const;
     // Return a reference to the non-modifiable "LeaderAdvisoryAck"
@@ -20980,13 +20720,13 @@ class ClusterMessageChoice {
     // Return 'true' if the value of this object is a "ClusterSyncResponse"
     // value, and return 'false' otherwise.
 
-    bool isQueueUnAssignmentAdvisoryValue() const;
-    // Return 'true' if the value of this object is a
-    // "QueueUnAssignmentAdvisory" value, and return 'false' otherwise.
-
     bool isQueueUnassignedAdvisoryValue() const;
     // Return 'true' if the value of this object is a
     // "QueueUnassignedAdvisory" value, and return 'false' otherwise.
+
+    bool isQueueUnAssignmentAdvisoryValue() const;
+    // Return 'true' if the value of this object is a
+    // "QueueUnAssignmentAdvisory" value, and return 'false' otherwise.
 
     bool isLeaderAdvisoryAckValue() const;
     // Return 'true' if the value of this object is a "LeaderAdvisoryAck"
@@ -33063,225 +32803,6 @@ void QueueUnAssignmentAdvisory::hashAppendImpl(
     t_HASH_ALGORITHM& hashAlgorithm) const
 {
     using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->primaryNodeId());
-    hashAppend(hashAlgorithm, this->primaryLeaseId());
-    hashAppend(hashAlgorithm, this->partitionId());
-    hashAppend(hashAlgorithm, this->queues());
-}
-
-inline bool QueueUnAssignmentAdvisory::isEqualTo(
-    const QueueUnAssignmentAdvisory& rhs) const
-{
-    return this->primaryNodeId() == rhs.primaryNodeId() &&
-           this->primaryLeaseId() == rhs.primaryLeaseId() &&
-           this->partitionId() == rhs.partitionId() &&
-           this->queues() == rhs.queues();
-}
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int QueueUnAssignmentAdvisory::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(&d_primaryNodeId,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_NODE_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_primaryLeaseId,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_partitionId,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_queues, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUES]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int QueueUnAssignmentAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                   int            id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_PRIMARY_NODE_ID: {
-        return manipulator(
-            &d_primaryNodeId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_NODE_ID]);
-    }
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
-        return manipulator(
-            &d_primaryLeaseId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    }
-    case ATTRIBUTE_ID_PARTITION_ID: {
-        return manipulator(&d_partitionId,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    }
-    case ATTRIBUTE_ID_QUEUES: {
-        return manipulator(&d_queues,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUES]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int QueueUnAssignmentAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                   const char*    name,
-                                                   int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline int& QueueUnAssignmentAdvisory::primaryNodeId()
-{
-    return d_primaryNodeId;
-}
-
-inline unsigned int& QueueUnAssignmentAdvisory::primaryLeaseId()
-{
-    return d_primaryLeaseId;
-}
-
-inline int& QueueUnAssignmentAdvisory::partitionId()
-{
-    return d_partitionId;
-}
-
-inline bsl::vector<QueueInfo>& QueueUnAssignmentAdvisory::queues()
-{
-    return d_queues;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int QueueUnAssignmentAdvisory::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_primaryNodeId,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_NODE_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_primaryLeaseId,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_partitionId,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_queues, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUES]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int QueueUnAssignmentAdvisory::accessAttribute(t_ACCESSOR& accessor,
-                                               int         id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_PRIMARY_NODE_ID: {
-        return accessor(d_primaryNodeId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_NODE_ID]);
-    }
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
-        return accessor(
-            d_primaryLeaseId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    }
-    case ATTRIBUTE_ID_PARTITION_ID: {
-        return accessor(d_partitionId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    }
-    case ATTRIBUTE_ID_QUEUES: {
-        return accessor(d_queues,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUES]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int QueueUnAssignmentAdvisory::accessAttribute(t_ACCESSOR& accessor,
-                                               const char* name,
-                                               int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline int QueueUnAssignmentAdvisory::primaryNodeId() const
-{
-    return d_primaryNodeId;
-}
-
-inline unsigned int QueueUnAssignmentAdvisory::primaryLeaseId() const
-{
-    return d_primaryLeaseId;
-}
-
-inline int QueueUnAssignmentAdvisory::partitionId() const
-{
-    return d_partitionId;
-}
-
-inline const bsl::vector<QueueInfo>& QueueUnAssignmentAdvisory::queues() const
-{
-    return d_queues;
-}
-
-// -----------------------------
-// class QueueUnassignedAdvisory
-// -----------------------------
-
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void QueueUnassignedAdvisory::hashAppendImpl(
-    t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->sequenceNumber());
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->primaryLeaseId());
@@ -33289,8 +32810,8 @@ void QueueUnassignedAdvisory::hashAppendImpl(
     hashAppend(hashAlgorithm, this->queues());
 }
 
-inline bool
-QueueUnassignedAdvisory::isEqualTo(const QueueUnassignedAdvisory& rhs) const
+inline bool QueueUnAssignmentAdvisory::isEqualTo(
+    const QueueUnAssignmentAdvisory& rhs) const
 {
     return this->sequenceNumber() == rhs.sequenceNumber() &&
            this->partitionId() == rhs.partitionId() &&
@@ -33302,7 +32823,7 @@ QueueUnassignedAdvisory::isEqualTo(const QueueUnassignedAdvisory& rhs) const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int QueueUnassignedAdvisory::manipulateAttributes(t_MANIPULATOR& manipulator)
+int QueueUnAssignmentAdvisory::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
@@ -33339,8 +32860,8 @@ int QueueUnassignedAdvisory::manipulateAttributes(t_MANIPULATOR& manipulator)
 }
 
 template <typename t_MANIPULATOR>
-int QueueUnassignedAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                 int            id)
+int QueueUnAssignmentAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                   int            id)
 {
     enum { NOT_FOUND = -1 };
 
@@ -33373,9 +32894,9 @@ int QueueUnassignedAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
 }
 
 template <typename t_MANIPULATOR>
-int QueueUnassignedAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                 const char*    name,
-                                                 int            nameLength)
+int QueueUnAssignmentAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                   const char*    name,
+                                                   int            nameLength)
 {
     enum { NOT_FOUND = -1 };
 
@@ -33388,34 +32909,34 @@ int QueueUnassignedAdvisory::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline LeaderMessageSequence& QueueUnassignedAdvisory::sequenceNumber()
+inline LeaderMessageSequence& QueueUnAssignmentAdvisory::sequenceNumber()
 {
     return d_sequenceNumber;
 }
 
-inline int& QueueUnassignedAdvisory::partitionId()
+inline int& QueueUnAssignmentAdvisory::partitionId()
 {
     return d_partitionId;
 }
 
-inline unsigned int& QueueUnassignedAdvisory::primaryLeaseId()
+inline unsigned int& QueueUnAssignmentAdvisory::primaryLeaseId()
 {
     return d_primaryLeaseId;
 }
 
-inline int& QueueUnassignedAdvisory::primaryNodeId()
+inline int& QueueUnAssignmentAdvisory::primaryNodeId()
 {
     return d_primaryNodeId;
 }
 
-inline bsl::vector<QueueInfo>& QueueUnassignedAdvisory::queues()
+inline bsl::vector<QueueInfo>& QueueUnAssignmentAdvisory::queues()
 {
     return d_queues;
 }
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int QueueUnassignedAdvisory::accessAttributes(t_ACCESSOR& accessor) const
+int QueueUnAssignmentAdvisory::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
@@ -33452,8 +32973,8 @@ int QueueUnassignedAdvisory::accessAttributes(t_ACCESSOR& accessor) const
 }
 
 template <typename t_ACCESSOR>
-int QueueUnassignedAdvisory::accessAttribute(t_ACCESSOR& accessor,
-                                             int         id) const
+int QueueUnAssignmentAdvisory::accessAttribute(t_ACCESSOR& accessor,
+                                               int         id) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -33484,9 +33005,9 @@ int QueueUnassignedAdvisory::accessAttribute(t_ACCESSOR& accessor,
 }
 
 template <typename t_ACCESSOR>
-int QueueUnassignedAdvisory::accessAttribute(t_ACCESSOR& accessor,
-                                             const char* name,
-                                             int         nameLength) const
+int QueueUnAssignmentAdvisory::accessAttribute(t_ACCESSOR& accessor,
+                                               const char* name,
+                                               int         nameLength) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -33500,27 +33021,27 @@ int QueueUnassignedAdvisory::accessAttribute(t_ACCESSOR& accessor,
 }
 
 inline const LeaderMessageSequence&
-QueueUnassignedAdvisory::sequenceNumber() const
+QueueUnAssignmentAdvisory::sequenceNumber() const
 {
     return d_sequenceNumber;
 }
 
-inline int QueueUnassignedAdvisory::partitionId() const
+inline int QueueUnAssignmentAdvisory::partitionId() const
 {
     return d_partitionId;
 }
 
-inline unsigned int QueueUnassignedAdvisory::primaryLeaseId() const
+inline unsigned int QueueUnAssignmentAdvisory::primaryLeaseId() const
 {
     return d_primaryLeaseId;
 }
 
-inline int QueueUnassignedAdvisory::primaryNodeId() const
+inline int QueueUnAssignmentAdvisory::primaryNodeId() const
 {
     return d_primaryNodeId;
 }
 
-inline const bsl::vector<QueueInfo>& QueueUnassignedAdvisory::queues() const
+inline const bsl::vector<QueueInfo>& QueueUnAssignmentAdvisory::queues() const
 {
     return d_queues;
 }
@@ -35737,11 +35258,11 @@ void ClusterMessageChoice::hashAppendImpl(
     case Class::SELECTION_ID_CLUSTER_SYNC_RESPONSE:
         hashAppend(hashAlgorithm, this->clusterSyncResponse());
         break;
-    case Class::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
-        hashAppend(hashAlgorithm, this->queueUnAssignmentAdvisory());
-        break;
     case Class::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
         hashAppend(hashAlgorithm, this->queueUnassignedAdvisory());
+        break;
+    case Class::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
+        hashAppend(hashAlgorithm, this->queueUnAssignmentAdvisory());
         break;
     case Class::SELECTION_ID_LEADER_ADVISORY_ACK:
         hashAppend(hashAlgorithm, this->leaderAdvisoryAck());
@@ -35829,12 +35350,12 @@ ClusterMessageChoice::isEqualTo(const ClusterMessageChoice& rhs) const
             return this->clusterSyncRequest() == rhs.clusterSyncRequest();
         case Class::SELECTION_ID_CLUSTER_SYNC_RESPONSE:
             return this->clusterSyncResponse() == rhs.clusterSyncResponse();
-        case Class::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
-            return this->queueUnAssignmentAdvisory() ==
-                   rhs.queueUnAssignmentAdvisory();
         case Class::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
             return this->queueUnassignedAdvisory() ==
                    rhs.queueUnassignedAdvisory();
+        case Class::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
+            return this->queueUnAssignmentAdvisory() ==
+                   rhs.queueUnAssignmentAdvisory();
         case Class::SELECTION_ID_LEADER_ADVISORY_ACK:
             return this->leaderAdvisoryAck() == rhs.leaderAdvisoryAck();
         case Class::SELECTION_ID_LEADER_ADVISORY_COMMIT:
@@ -35965,14 +35486,14 @@ int ClusterMessageChoice::manipulateSelection(t_MANIPULATOR& manipulator)
         return manipulator(
             &d_clusterSyncResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER_SYNC_RESPONSE]);
-    case ClusterMessageChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
-        return manipulator(&d_queueUnAssignmentAdvisory.object(),
-                           SELECTION_INFO_ARRAY
-                               [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY]);
     case ClusterMessageChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
         return manipulator(
             &d_queueUnassignedAdvisory.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY]);
+    case ClusterMessageChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
+        return manipulator(&d_queueUnAssignmentAdvisory.object(),
+                           SELECTION_INFO_ARRAY
+                               [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY]);
     case ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY_ACK:
         return manipulator(
             &d_leaderAdvisoryAck.object(),
@@ -36139,17 +35660,17 @@ inline DummyType& ClusterMessageChoice::clusterSyncResponse()
     return d_clusterSyncResponse.object();
 }
 
+inline DummyType& ClusterMessageChoice::queueUnassignedAdvisory()
+{
+    BSLS_ASSERT(SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId);
+    return d_queueUnassignedAdvisory.object();
+}
+
 inline QueueUnAssignmentAdvisory&
 ClusterMessageChoice::queueUnAssignmentAdvisory()
 {
     BSLS_ASSERT(SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY == d_selectionId);
     return d_queueUnAssignmentAdvisory.object();
-}
-
-inline QueueUnassignedAdvisory& ClusterMessageChoice::queueUnassignedAdvisory()
-{
-    BSLS_ASSERT(SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId);
-    return d_queueUnassignedAdvisory.object();
 }
 
 inline LeaderAdvisoryAck& ClusterMessageChoice::leaderAdvisoryAck()
@@ -36296,14 +35817,14 @@ int ClusterMessageChoice::accessSelection(t_ACCESSOR& accessor) const
         return accessor(
             d_clusterSyncResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER_SYNC_RESPONSE]);
-    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
-        return accessor(d_queueUnAssignmentAdvisory.object(),
-                        SELECTION_INFO_ARRAY
-                            [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY]);
     case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
         return accessor(
             d_queueUnassignedAdvisory.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY]);
+    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
+        return accessor(d_queueUnAssignmentAdvisory.object(),
+                        SELECTION_INFO_ARRAY
+                            [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY]);
     case SELECTION_ID_LEADER_ADVISORY_ACK:
         return accessor(
             d_leaderAdvisoryAck.object(),
@@ -36476,18 +35997,17 @@ inline const DummyType& ClusterMessageChoice::clusterSyncResponse() const
     return d_clusterSyncResponse.object();
 }
 
+inline const DummyType& ClusterMessageChoice::queueUnassignedAdvisory() const
+{
+    BSLS_ASSERT(SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId);
+    return d_queueUnassignedAdvisory.object();
+}
+
 inline const QueueUnAssignmentAdvisory&
 ClusterMessageChoice::queueUnAssignmentAdvisory() const
 {
     BSLS_ASSERT(SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY == d_selectionId);
     return d_queueUnAssignmentAdvisory.object();
-}
-
-inline const QueueUnassignedAdvisory&
-ClusterMessageChoice::queueUnassignedAdvisory() const
-{
-    BSLS_ASSERT(SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId);
-    return d_queueUnassignedAdvisory.object();
 }
 
 inline const LeaderAdvisoryAck& ClusterMessageChoice::leaderAdvisoryAck() const
@@ -36644,14 +36164,14 @@ inline bool ClusterMessageChoice::isClusterSyncResponseValue() const
     return SELECTION_ID_CLUSTER_SYNC_RESPONSE == d_selectionId;
 }
 
-inline bool ClusterMessageChoice::isQueueUnAssignmentAdvisoryValue() const
-{
-    return SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY == d_selectionId;
-}
-
 inline bool ClusterMessageChoice::isQueueUnassignedAdvisoryValue() const
 {
     return SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId;
+}
+
+inline bool ClusterMessageChoice::isQueueUnAssignmentAdvisoryValue() const
+{
+    return SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY == d_selectionId;
 }
 
 inline bool ClusterMessageChoice::isLeaderAdvisoryAckValue() const

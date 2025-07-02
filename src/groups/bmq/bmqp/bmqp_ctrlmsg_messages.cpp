@@ -9295,173 +9295,6 @@ const char QueueUnAssignmentAdvisory::CLASS_NAME[] =
     "QueueUnAssignmentAdvisory";
 
 const bdlat_AttributeInfo QueueUnAssignmentAdvisory::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_PRIMARY_NODE_ID,
-     "primaryNodeId",
-     sizeof("primaryNodeId") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
-     "primaryLeaseId",
-     sizeof("primaryLeaseId") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_PARTITION_ID,
-     "partitionId",
-     sizeof("partitionId") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_QUEUES,
-     "queues",
-     sizeof("queues") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-QueueUnAssignmentAdvisory::lookupAttributeInfo(const char* name,
-                                               int         nameLength)
-{
-    for (int i = 0; i < 4; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            QueueUnAssignmentAdvisory::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo*
-QueueUnAssignmentAdvisory::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_PRIMARY_NODE_ID:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_NODE_ID];
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
-    case ATTRIBUTE_ID_PARTITION_ID:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
-    case ATTRIBUTE_ID_QUEUES:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUES];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
-    bslma::Allocator* basicAllocator)
-: d_queues(basicAllocator)
-, d_primaryLeaseId()
-, d_primaryNodeId()
-, d_partitionId()
-{
-}
-
-QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
-    const QueueUnAssignmentAdvisory& original,
-    bslma::Allocator*                basicAllocator)
-: d_queues(original.d_queues, basicAllocator)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-, d_primaryNodeId(original.d_primaryNodeId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
-    QueueUnAssignmentAdvisory&& original) noexcept
-: d_queues(bsl::move(original.d_queues)),
-  d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
-  d_primaryNodeId(bsl::move(original.d_primaryNodeId)),
-  d_partitionId(bsl::move(original.d_partitionId))
-{
-}
-
-QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
-    QueueUnAssignmentAdvisory&& original,
-    bslma::Allocator*           basicAllocator)
-: d_queues(bsl::move(original.d_queues), basicAllocator)
-, d_primaryLeaseId(bsl::move(original.d_primaryLeaseId))
-, d_primaryNodeId(bsl::move(original.d_primaryNodeId))
-, d_partitionId(bsl::move(original.d_partitionId))
-{
-}
-#endif
-
-QueueUnAssignmentAdvisory::~QueueUnAssignmentAdvisory()
-{
-}
-
-// MANIPULATORS
-
-QueueUnAssignmentAdvisory&
-QueueUnAssignmentAdvisory::operator=(const QueueUnAssignmentAdvisory& rhs)
-{
-    if (this != &rhs) {
-        d_primaryNodeId  = rhs.d_primaryNodeId;
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-        d_partitionId    = rhs.d_partitionId;
-        d_queues         = rhs.d_queues;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnAssignmentAdvisory&
-QueueUnAssignmentAdvisory::operator=(QueueUnAssignmentAdvisory&& rhs)
-{
-    if (this != &rhs) {
-        d_primaryNodeId  = bsl::move(rhs.d_primaryNodeId);
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_queues         = bsl::move(rhs.d_queues);
-    }
-
-    return *this;
-}
-#endif
-
-void QueueUnAssignmentAdvisory::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_primaryNodeId);
-    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
-    bdlat_ValueTypeFunctions::reset(&d_partitionId);
-    bdlat_ValueTypeFunctions::reset(&d_queues);
-}
-
-// ACCESSORS
-
-bsl::ostream& QueueUnAssignmentAdvisory::print(bsl::ostream& stream,
-                                               int           level,
-                                               int spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("primaryNodeId", this->primaryNodeId());
-    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
-    printer.printAttribute("partitionId", this->partitionId());
-    printer.printAttribute("queues", this->queues());
-    printer.end();
-    return stream;
-}
-
-// -----------------------------
-// class QueueUnassignedAdvisory
-// -----------------------------
-
-// CONSTANTS
-
-const char QueueUnassignedAdvisory::CLASS_NAME[] = "QueueUnassignedAdvisory";
-
-const bdlat_AttributeInfo QueueUnassignedAdvisory::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_SEQUENCE_NUMBER,
      "sequenceNumber",
      sizeof("sequenceNumber") - 1,
@@ -9491,11 +9324,12 @@ const bdlat_AttributeInfo QueueUnassignedAdvisory::ATTRIBUTE_INFO_ARRAY[] = {
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-QueueUnassignedAdvisory::lookupAttributeInfo(const char* name, int nameLength)
+QueueUnAssignmentAdvisory::lookupAttributeInfo(const char* name,
+                                               int         nameLength)
 {
     for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
-            QueueUnassignedAdvisory::ATTRIBUTE_INFO_ARRAY[i];
+            QueueUnAssignmentAdvisory::ATTRIBUTE_INFO_ARRAY[i];
 
         if (nameLength == attributeInfo.d_nameLength &&
             0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
@@ -9506,7 +9340,8 @@ QueueUnassignedAdvisory::lookupAttributeInfo(const char* name, int nameLength)
     return 0;
 }
 
-const bdlat_AttributeInfo* QueueUnassignedAdvisory::lookupAttributeInfo(int id)
+const bdlat_AttributeInfo*
+QueueUnAssignmentAdvisory::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_SEQUENCE_NUMBER:
@@ -9525,7 +9360,7 @@ const bdlat_AttributeInfo* QueueUnassignedAdvisory::lookupAttributeInfo(int id)
 
 // CREATORS
 
-QueueUnassignedAdvisory::QueueUnassignedAdvisory(
+QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
     bslma::Allocator* basicAllocator)
 : d_queues(basicAllocator)
 , d_sequenceNumber()
@@ -9535,9 +9370,9 @@ QueueUnassignedAdvisory::QueueUnassignedAdvisory(
 {
 }
 
-QueueUnassignedAdvisory::QueueUnassignedAdvisory(
-    const QueueUnassignedAdvisory& original,
-    bslma::Allocator*              basicAllocator)
+QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
+    const QueueUnAssignmentAdvisory& original,
+    bslma::Allocator*                basicAllocator)
 : d_queues(original.d_queues, basicAllocator)
 , d_sequenceNumber(original.d_sequenceNumber)
 , d_primaryLeaseId(original.d_primaryLeaseId)
@@ -9548,8 +9383,8 @@ QueueUnassignedAdvisory::QueueUnassignedAdvisory(
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnassignedAdvisory::QueueUnassignedAdvisory(
-    QueueUnassignedAdvisory&& original) noexcept
+QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
+    QueueUnAssignmentAdvisory&& original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber)),
   d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
@@ -9558,9 +9393,9 @@ QueueUnassignedAdvisory::QueueUnassignedAdvisory(
 {
 }
 
-QueueUnassignedAdvisory::QueueUnassignedAdvisory(
-    QueueUnassignedAdvisory&& original,
-    bslma::Allocator*         basicAllocator)
+QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
+    QueueUnAssignmentAdvisory&& original,
+    bslma::Allocator*           basicAllocator)
 : d_queues(bsl::move(original.d_queues), basicAllocator)
 , d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 , d_primaryLeaseId(bsl::move(original.d_primaryLeaseId))
@@ -9570,14 +9405,14 @@ QueueUnassignedAdvisory::QueueUnassignedAdvisory(
 }
 #endif
 
-QueueUnassignedAdvisory::~QueueUnassignedAdvisory()
+QueueUnAssignmentAdvisory::~QueueUnAssignmentAdvisory()
 {
 }
 
 // MANIPULATORS
 
-QueueUnassignedAdvisory&
-QueueUnassignedAdvisory::operator=(const QueueUnassignedAdvisory& rhs)
+QueueUnAssignmentAdvisory&
+QueueUnAssignmentAdvisory::operator=(const QueueUnAssignmentAdvisory& rhs)
 {
     if (this != &rhs) {
         d_sequenceNumber = rhs.d_sequenceNumber;
@@ -9592,8 +9427,8 @@ QueueUnassignedAdvisory::operator=(const QueueUnassignedAdvisory& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnassignedAdvisory&
-QueueUnassignedAdvisory::operator=(QueueUnassignedAdvisory&& rhs)
+QueueUnAssignmentAdvisory&
+QueueUnAssignmentAdvisory::operator=(QueueUnAssignmentAdvisory&& rhs)
 {
     if (this != &rhs) {
         d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
@@ -9607,7 +9442,7 @@ QueueUnassignedAdvisory::operator=(QueueUnassignedAdvisory&& rhs)
 }
 #endif
 
-void QueueUnassignedAdvisory::reset()
+void QueueUnAssignmentAdvisory::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_sequenceNumber);
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
@@ -9618,9 +9453,9 @@ void QueueUnassignedAdvisory::reset()
 
 // ACCESSORS
 
-bsl::ostream& QueueUnassignedAdvisory::print(bsl::ostream& stream,
-                                             int           level,
-                                             int spacesPerLevel) const
+bsl::ostream& QueueUnAssignmentAdvisory::print(bsl::ostream& stream,
+                                               int           level,
+                                               int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
@@ -12458,14 +12293,14 @@ const bdlat_SelectionInfo ClusterMessageChoice::SELECTION_INFO_ARRAY[] = {
      sizeof("clusterSyncResponse") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY,
-     "queueUnAssignmentAdvisory",
-     sizeof("queueUnAssignmentAdvisory") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY,
      "queueUnassignedAdvisory",
      sizeof("queueUnassignedAdvisory") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY,
+     "queueUnAssignmentAdvisory",
+     sizeof("queueUnAssignmentAdvisory") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_LEADER_ADVISORY_ACK,
@@ -12582,12 +12417,12 @@ const bdlat_SelectionInfo* ClusterMessageChoice::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER_SYNC_REQUEST];
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER_SYNC_RESPONSE];
-    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
-        return &SELECTION_INFO_ARRAY
-            [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY];
     case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
         return &SELECTION_INFO_ARRAY
             [SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY];
+    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
+        return &SELECTION_INFO_ARRAY
+            [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY];
     case SELECTION_ID_LEADER_ADVISORY_ACK:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_LEADER_ADVISORY_ACK];
     case SELECTION_ID_LEADER_ADVISORY_COMMIT:
@@ -12707,14 +12542,13 @@ ClusterMessageChoice::ClusterMessageChoice(
         new (d_clusterSyncResponse.buffer())
             DummyType(original.d_clusterSyncResponse.object());
     } break;
+    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
+        new (d_queueUnassignedAdvisory.buffer())
+            DummyType(original.d_queueUnassignedAdvisory.object());
+    } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         new (d_queueUnAssignmentAdvisory.buffer()) QueueUnAssignmentAdvisory(
             original.d_queueUnAssignmentAdvisory.object(),
-            d_allocator_p);
-    } break;
-    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        new (d_queueUnassignedAdvisory.buffer()) QueueUnassignedAdvisory(
-            original.d_queueUnassignedAdvisory.object(),
             d_allocator_p);
     } break;
     case SELECTION_ID_LEADER_ADVISORY_ACK: {
@@ -12854,14 +12688,13 @@ ClusterMessageChoice::ClusterMessageChoice(ClusterMessageChoice&& original)
         new (d_clusterSyncResponse.buffer())
             DummyType(bsl::move(original.d_clusterSyncResponse.object()));
     } break;
+    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
+        new (d_queueUnassignedAdvisory.buffer())
+            DummyType(bsl::move(original.d_queueUnassignedAdvisory.object()));
+    } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         new (d_queueUnAssignmentAdvisory.buffer()) QueueUnAssignmentAdvisory(
             bsl::move(original.d_queueUnAssignmentAdvisory.object()),
-            d_allocator_p);
-    } break;
-    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        new (d_queueUnassignedAdvisory.buffer()) QueueUnassignedAdvisory(
-            bsl::move(original.d_queueUnassignedAdvisory.object()),
             d_allocator_p);
     } break;
     case SELECTION_ID_LEADER_ADVISORY_ACK: {
@@ -13002,14 +12835,13 @@ ClusterMessageChoice::ClusterMessageChoice(ClusterMessageChoice&& original,
         new (d_clusterSyncResponse.buffer())
             DummyType(bsl::move(original.d_clusterSyncResponse.object()));
     } break;
+    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
+        new (d_queueUnassignedAdvisory.buffer())
+            DummyType(bsl::move(original.d_queueUnassignedAdvisory.object()));
+    } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         new (d_queueUnAssignmentAdvisory.buffer()) QueueUnAssignmentAdvisory(
             bsl::move(original.d_queueUnAssignmentAdvisory.object()),
-            d_allocator_p);
-    } break;
-    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        new (d_queueUnassignedAdvisory.buffer()) QueueUnassignedAdvisory(
-            bsl::move(original.d_queueUnassignedAdvisory.object()),
             d_allocator_p);
     } break;
     case SELECTION_ID_LEADER_ADVISORY_ACK: {
@@ -13130,13 +12962,13 @@ ClusterMessageChoice::operator=(const ClusterMessageChoice& rhs)
         case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
             makeClusterSyncResponse(rhs.d_clusterSyncResponse.object());
         } break;
-        case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-            makeQueueUnAssignmentAdvisory(
-                rhs.d_queueUnAssignmentAdvisory.object());
-        } break;
         case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
             makeQueueUnassignedAdvisory(
                 rhs.d_queueUnassignedAdvisory.object());
+        } break;
+        case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+            makeQueueUnAssignmentAdvisory(
+                rhs.d_queueUnAssignmentAdvisory.object());
         } break;
         case SELECTION_ID_LEADER_ADVISORY_ACK: {
             makeLeaderAdvisoryAck(rhs.d_leaderAdvisoryAck.object());
@@ -13257,13 +13089,13 @@ ClusterMessageChoice::operator=(ClusterMessageChoice&& rhs)
             makeClusterSyncResponse(
                 bsl::move(rhs.d_clusterSyncResponse.object()));
         } break;
-        case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-            makeQueueUnAssignmentAdvisory(
-                bsl::move(rhs.d_queueUnAssignmentAdvisory.object()));
-        } break;
         case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
             makeQueueUnassignedAdvisory(
                 bsl::move(rhs.d_queueUnassignedAdvisory.object()));
+        } break;
+        case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+            makeQueueUnAssignmentAdvisory(
+                bsl::move(rhs.d_queueUnAssignmentAdvisory.object()));
         } break;
         case SELECTION_ID_LEADER_ADVISORY_ACK: {
             makeLeaderAdvisoryAck(bsl::move(rhs.d_leaderAdvisoryAck.object()));
@@ -13370,11 +13202,11 @@ void ClusterMessageChoice::reset()
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
         d_clusterSyncResponse.object().~DummyType();
     } break;
+    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
+        d_queueUnassignedAdvisory.object().~DummyType();
+    } break;
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         d_queueUnAssignmentAdvisory.object().~QueueUnAssignmentAdvisory();
-    } break;
-    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        d_queueUnassignedAdvisory.object().~QueueUnassignedAdvisory();
     } break;
     case SELECTION_ID_LEADER_ADVISORY_ACK: {
         d_leaderAdvisoryAck.object().~LeaderAdvisoryAck();
@@ -13469,11 +13301,11 @@ int ClusterMessageChoice::makeSelection(int selectionId)
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
         makeClusterSyncResponse();
     } break;
-    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-        makeQueueUnAssignmentAdvisory();
-    } break;
     case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
         makeQueueUnassignedAdvisory();
+    } break;
+    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        makeQueueUnAssignmentAdvisory();
     } break;
     case SELECTION_ID_LEADER_ADVISORY_ACK: {
         makeLeaderAdvisoryAck();
@@ -14465,6 +14297,52 @@ DummyType& ClusterMessageChoice::makeClusterSyncResponse(DummyType&& value)
 }
 #endif
 
+DummyType& ClusterMessageChoice::makeQueueUnassignedAdvisory()
+{
+    if (SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_queueUnassignedAdvisory.object());
+    }
+    else {
+        reset();
+        new (d_queueUnassignedAdvisory.buffer()) DummyType();
+        d_selectionId = SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY;
+    }
+
+    return d_queueUnassignedAdvisory.object();
+}
+
+DummyType&
+ClusterMessageChoice::makeQueueUnassignedAdvisory(const DummyType& value)
+{
+    if (SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId) {
+        d_queueUnassignedAdvisory.object() = value;
+    }
+    else {
+        reset();
+        new (d_queueUnassignedAdvisory.buffer()) DummyType(value);
+        d_selectionId = SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY;
+    }
+
+    return d_queueUnassignedAdvisory.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+DummyType& ClusterMessageChoice::makeQueueUnassignedAdvisory(DummyType&& value)
+{
+    if (SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId) {
+        d_queueUnassignedAdvisory.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_queueUnassignedAdvisory.buffer()) DummyType(bsl::move(value));
+        d_selectionId = SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY;
+    }
+
+    return d_queueUnassignedAdvisory.object();
+}
+#endif
+
 QueueUnAssignmentAdvisory&
 ClusterMessageChoice::makeQueueUnAssignmentAdvisory()
 {
@@ -14513,56 +14391,6 @@ QueueUnAssignmentAdvisory& ClusterMessageChoice::makeQueueUnAssignmentAdvisory(
     }
 
     return d_queueUnAssignmentAdvisory.object();
-}
-#endif
-
-QueueUnassignedAdvisory& ClusterMessageChoice::makeQueueUnassignedAdvisory()
-{
-    if (SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_queueUnassignedAdvisory.object());
-    }
-    else {
-        reset();
-        new (d_queueUnassignedAdvisory.buffer())
-            QueueUnassignedAdvisory(d_allocator_p);
-        d_selectionId = SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY;
-    }
-
-    return d_queueUnassignedAdvisory.object();
-}
-
-QueueUnassignedAdvisory& ClusterMessageChoice::makeQueueUnassignedAdvisory(
-    const QueueUnassignedAdvisory& value)
-{
-    if (SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId) {
-        d_queueUnassignedAdvisory.object() = value;
-    }
-    else {
-        reset();
-        new (d_queueUnassignedAdvisory.buffer())
-            QueueUnassignedAdvisory(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY;
-    }
-
-    return d_queueUnassignedAdvisory.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnassignedAdvisory& ClusterMessageChoice::makeQueueUnassignedAdvisory(
-    QueueUnassignedAdvisory&& value)
-{
-    if (SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY == d_selectionId) {
-        d_queueUnassignedAdvisory.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_queueUnassignedAdvisory.buffer())
-            QueueUnassignedAdvisory(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY;
-    }
-
-    return d_queueUnassignedAdvisory.object();
 }
 #endif
 
@@ -15081,13 +14909,13 @@ bsl::ostream& ClusterMessageChoice::print(bsl::ostream& stream,
         printer.printAttribute("clusterSyncResponse",
                                d_clusterSyncResponse.object());
     } break;
-    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-        printer.printAttribute("queueUnAssignmentAdvisory",
-                               d_queueUnAssignmentAdvisory.object());
-    } break;
     case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
         printer.printAttribute("queueUnassignedAdvisory",
                                d_queueUnassignedAdvisory.object());
+    } break;
+    case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        printer.printAttribute("queueUnAssignmentAdvisory",
+                               d_queueUnAssignmentAdvisory.object());
     } break;
     case SELECTION_ID_LEADER_ADVISORY_ACK: {
         printer.printAttribute("leaderAdvisoryAck",
@@ -15193,13 +15021,13 @@ const char* ClusterMessageChoice::selectionName() const
     case SELECTION_ID_CLUSTER_SYNC_RESPONSE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTER_SYNC_RESPONSE]
             .name();
+    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY]
+            .name();
     case SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
         return SELECTION_INFO_ARRAY
             [SELECTION_INDEX_QUEUE_UN_ASSIGNMENT_ADVISORY]
                 .name();
-    case SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_QUEUE_UNASSIGNED_ADVISORY]
-            .name();
     case SELECTION_ID_LEADER_ADVISORY_ACK:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_LEADER_ADVISORY_ACK]
             .name();
@@ -15362,13 +15190,13 @@ ClusterMessage::lookupAttributeInfo(const char* name, int nameLength)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
     }
 
-    if (bdlb::String::areEqualCaseless("queueUnAssignmentAdvisory",
+    if (bdlb::String::areEqualCaseless("queueUnassignedAdvisory",
                                        name,
                                        nameLength)) {
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
     }
 
-    if (bdlb::String::areEqualCaseless("queueUnassignedAdvisory",
+    if (bdlb::String::areEqualCaseless("queueUnAssignmentAdvisory",
                                        name,
                                        nameLength)) {
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];

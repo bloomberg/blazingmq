@@ -1520,7 +1520,7 @@ void ClusterStateManager::registerQueueInfo(
 }
 
 void ClusterStateManager::unassignQueue(
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1762,14 +1762,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         request,
         requester,
         d_allocator_p);
-}
-
-void ClusterStateManager::processQueueUnassignedAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processQueueUnAssignmentAdvisory(

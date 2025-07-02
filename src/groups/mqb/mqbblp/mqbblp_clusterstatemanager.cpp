@@ -931,7 +931,7 @@ void ClusterStateManager::registerQueueInfo(
 }
 
 void ClusterStateManager::unassignQueue(
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *DISPATCHER* thread
 
@@ -940,34 +940,15 @@ void ClusterStateManager::unassignQueue(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfActiveLeader());
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
 
-    BALL_LOG_DEBUG << d_clusterData_p->identity().description()
-                   << ": 'QueueUnAssignmentAdvisory' will be applied to "
-                   << "cluster state ledger: " << advisory;
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": 'QueueUnAssignmentAdvisory' will be applied to "
+                  << "cluster state ledger: " << advisory;
 
     const int rc = d_clusterStateLedger_mp->apply(advisory);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to apply queue unassignment advisory: "
                        << advisory << ", rc: " << rc;
-    }
-    else {
-        // In non-CSL mode this is the shortcut to call Primary CQH instead of
-        // waiting for the quorum of acks in the ledger.
-        for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator cit =
-                 advisory.queues().begin();
-             cit != advisory.queues().end();
-             ++cit) {
-            const bmqp_ctrlmsg::QueueInfo& queueInfo = *cit;
-
-            if (d_state_p->unassignQueue(queueInfo.uri())) {
-                BALL_LOG_INFO << d_clusterData_p->identity().description()
-                              << ": Queue unassigned: " << queueInfo;
-            }
-            else {
-                BALL_LOG_INFO << d_clusterData_p->identity().description()
-                              << ": Failed to unassign Queue: " << queueInfo;
-            }
-        }
     }
 }
 
@@ -1206,52 +1187,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         d_allocator_p);
 }
 
-void ClusterStateManager::processQueueUnassignedAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isQueueUnassignedAdvisoryValue());
-    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-
-    // TODO: For now, the leader sequence number in the message is not
-    //       validated because unassignment advisories are sent by the primary.
-    //       In the future, they will be sent by the leader, and should be
-    //       validated then.
-
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& adv =
-        message.choice().clusterMessage().choice().queueUnassignedAdvisory();
-
-    if (d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "Received legacy queueUnassignedAdvisory: " << adv
-                       << " from: " << source << " in CSL mode.";
-
-        return;  // RETURN
-    }
-
-    bmqp_ctrlmsg::ControlMessage             legacyMsg;
-    bmqp_ctrlmsg::QueueUnAssignmentAdvisory& legacyAdv =
-        legacyMsg.choice()
-            .makeClusterMessage()
-            .choice()
-            .makeQueueUnAssignmentAdvisory();
-
-    legacyAdv.partitionId()    = adv.partitionId();
-    legacyAdv.primaryLeaseId() = adv.primaryLeaseId();
-    legacyAdv.primaryNodeId()  = adv.primaryNodeId();
-    legacyAdv.queues()         = adv.queues();
-
-    processQueueUnAssignmentAdvisory(legacyMsg, source);
-}
-
 void ClusterStateManager::processQueueUnAssignmentAdvisory(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source,
@@ -1268,13 +1203,18 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
                          .isQueueUnAssignmentAdvisoryValue());
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
 
-    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory =
+    // TODO: For now, the leader sequence number in the message is not
+    //       validated because unassignment advisories are sent by the primary.
+    //       In the future, they will be sent by the leader, and should be
+    //       validated then.
+
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& adv =
         message.choice().clusterMessage().choice().queueUnAssignmentAdvisory();
 
     if (d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "Received legacy " << (delayed ? "buffered " : "")
-                       << "queueUnAssignmentAdvisory: " << advisory
+        BALL_LOG_ERROR << "#CSL_MODE_MIX Received legacy "
+                       << (delayed ? "buffered " : "")
+                       << "queueUnAssignmentAdvisory: " << adv
                        << " from: " << source << " in CSL mode.";
 
         return;  // RETURN
@@ -1286,17 +1226,17 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
                   << ", from " << source->nodeDescription();
 
     const mqbc::ClusterStatePartitionInfo& pi = d_state_p->partition(
-        advisory.partitionId());
+        adv.partitionId());
     if (!delayed) {
         // Source (primary) and leaseId should not be validated for delayed
         // (aka buffered) advisories.  Those attributes were validated when
         // buffered advisories were received.
         if (!pi.primaryNode() ||
-            advisory.primaryNodeId() != pi.primaryNode()->nodeId()) {
+            adv.primaryNodeId() != pi.primaryNode()->nodeId()) {
             // Different primary.  Ignore message.
             BALL_LOG_WARN << d_cluster_p->description()
-                          << ": ignoring queueUnAssignmentAdvisory: "
-                          << advisory << " from: " << source->nodeDescription()
+                          << ": ignoring queueUnAssignmentAdvisory: " << adv
+                          << " from: " << source->nodeDescription()
                           << ", because the primary mismatch [currentPrimary: "
                           << (pi.primaryNode()
                                   ? pi.primaryNode()->nodeDescription()
@@ -1306,12 +1246,12 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
         }
 
         // Verify 'stale' primary leaseId
-        if (advisory.primaryLeaseId() < pi.primaryLeaseId()) {
+        if (adv.primaryLeaseId() < pi.primaryLeaseId()) {
             BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
-                << ": got queueUnAssignmentAdvisory: " << advisory
+                << ": got queueUnAssignmentAdvisory: " << adv
                 << " from current primary: " << source->nodeDescription()
-                << ", with smaller leaseId: " << advisory.primaryLeaseId()
+                << ", with smaller leaseId: " << adv.primaryLeaseId()
                 << ", current: " << pi.primaryLeaseId()
                 << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
@@ -1337,14 +1277,14 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
     }
 
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-             advisory.queues().begin();
-         it != advisory.queues().end();
+             adv.queues().begin();
+         it != adv.queues().end();
          ++it) {
         const bmqp_ctrlmsg::QueueInfo& queueInfo = *it;
 
         // Ensure the partitionId of the QueueInfo matches the one at the top
         // level advisory message.
-        BSLS_ASSERT_SAFE(advisory.partitionId() == queueInfo.partitionId());
+        BSLS_ASSERT_SAFE(adv.partitionId() == queueInfo.partitionId());
 
         bmqt::Uri        uri(queueInfo.uri());
         mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
@@ -1369,7 +1309,7 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
         // Self node sees queue as assigned.  Validate that the key/partition
         // from the unassignment match the internal state.
 
-        if ((assigned->partitionId() != advisory.partitionId()) ||
+        if ((assigned->partitionId() != adv.partitionId()) ||
             (assigned->key() != key)) {
             // This can occur if a queue is deleted by the primary and created
             // immediately by the client.  Primary broadcasts queue
@@ -1389,8 +1329,7 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
                            << "] from '" << source->nodeDescription()
                            << "' for mismatched "
                            << "queueInfo: [advisoryPartitionId: "
-                           << advisory.partitionId()
-                           << ", advisoryKey: " << key
+                           << adv.partitionId() << ", advisoryKey: " << key
                            << ", internalPartitionId: "
                            << assigned->partitionId()
                            << ", internalKey: " << assigned->key() << "]";

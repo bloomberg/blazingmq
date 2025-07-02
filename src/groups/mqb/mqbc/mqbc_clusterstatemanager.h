@@ -457,7 +457,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void unassignQueue(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    void unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send the current cluster state to follower nodes.  If the specified
@@ -562,19 +562,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void processQueueAssignmentRequest(
         const bmqp_ctrlmsg::ControlMessage& request,
         mqbnet::ClusterNode*                requester) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process the queue unAssigned advisory in the specified `message`
-    /// received from the specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    ///
-    /// TODO_CSL: This is the current workflow which we should be able to
-    /// remove after the new workflow via
-    /// ClusterQueueHelper::onQueueUnassigned() is stable.
-    void processQueueUnassignedAdvisory(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the queue unAssignment advisory in the specified `message`
     /// received from the specified `source`.  If the specified `delayed` is

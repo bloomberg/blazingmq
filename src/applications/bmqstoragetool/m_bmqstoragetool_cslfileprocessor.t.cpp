@@ -71,9 +71,8 @@ struct AdvisoryType {
         e_PARTITION_PRIMARY  = 1,
         e_QUEUE_ASSIGNMENT   = 2,
         e_QUEUE_UNASSIGNMENT = 3,
-        e_QUEUE_UNASSIGNED   = 4,
-        e_COMMIT             = 5,
-        e_ACK                = 6
+        e_COMMIT             = 4,
+        e_ACK                = 5
     };
 };
 
@@ -164,26 +163,6 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
         advisory.queues().push_back(qinfo);
 
         message->choice().makeQueueUnAssignmentAdvisory(advisory);
-
-        return mqbc::ClusterStateRecordType::e_UPDATE;
-    }
-    case AdvisoryType::e_QUEUE_UNASSIGNED: {
-        bmqp_ctrlmsg::QueueInfo qinfo;
-        qinfo.partitionId() = 1U;
-        qinfo.uri()         = queueUri;
-
-        const mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(),
-                                   queueKey.c_str());
-        key.loadBinary(&qinfo.key());
-
-        bmqp_ctrlmsg::QueueUnassignedAdvisory advisory;
-        advisory.sequenceNumber() = sequenceNumber;
-        advisory.primaryNodeId()  = 1;
-        advisory.partitionId()    = 1U;
-        advisory.primaryLeaseId() = 1U;
-        advisory.queues().push_back(qinfo);
-
-        message->choice().makeQueueUnassignedAdvisory(advisory);
 
         return mqbc::ClusterStateRecordType::e_UPDATE;
     }
@@ -455,14 +434,6 @@ static void test1_breathingTest()
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
-                   3U,
-                   123567U,
-                   "bmq://bmq.random.y/q2",
-                   "1111111111",
-                   AdvisoryType::e_QUEUE_UNASSIGNED,
-                   mqbc::ClusterStateRecordType::e_UPDATE},
-                  {L_,
-                   3U,
                    4U,
                    123678U,
                    "bmq://bmq.random.y/q2",
@@ -633,7 +604,7 @@ static void test2_searchRecordsByTypeTest()
                    123567U,
                    "bmq://bmq.random.y/q2",
                    "1111111111",
-                   AdvisoryType::e_QUEUE_UNASSIGNED,
+                   AdvisoryType::e_QUEUE_UNASSIGNMENT,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
@@ -793,7 +764,7 @@ static void test3_searchRecordsByQueueKeyTest()
                    123567U,
                    "bmq://bmq.random.y/q1",
                    "1111111111",
-                   AdvisoryType::e_QUEUE_UNASSIGNED,
+                   AdvisoryType::e_QUEUE_UNASSIGNMENT,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
@@ -810,14 +781,6 @@ static void test3_searchRecordsByQueueKeyTest()
                    "bmq://bmq.random.y/q3",
                    "3333333333",
                    AdvisoryType::e_QUEUE_UNASSIGNMENT,
-                   mqbc::ClusterStateRecordType::e_UPDATE},
-                  {L_,
-                   3U,
-                   3U,
-                   123567U,
-                   "bmq://bmq.random.y/q3",
-                   "3333333333",
-                   AdvisoryType::e_QUEUE_UNASSIGNED,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
@@ -1715,14 +1678,6 @@ static void test9_summaryTest()
                    "bmq://bmq.random.y/q2",
                    "1111111111",
                    AdvisoryType::e_QUEUE_UNASSIGNMENT,
-                   mqbc::ClusterStateRecordType::e_UPDATE},
-                  {L_,
-                   3U,
-                   3U,
-                   123567U,
-                   "bmq://bmq.random.y/q2",
-                   "1111111111",
-                   AdvisoryType::e_QUEUE_UNASSIGNED,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,

@@ -77,7 +77,7 @@ struct ClusterStateLedgerTestImp
         return markDone();
     }
 
-    int apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    int apply(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
@@ -190,7 +190,7 @@ static void test1_clusterStateLedger_protocol()
             apply(bmqp_ctrlmsg::QueueAssignmentAdvisory()));
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
-            apply(bmqp_ctrlmsg::QueueUnassignedAdvisory()));
+            apply(bmqp_ctrlmsg::QueueUnAssignmentAdvisory()));
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  apply(bmqp_ctrlmsg::QueueUpdateAdvisory()));
         BSLS_PROTOCOLTEST_ASSERT(testObj,

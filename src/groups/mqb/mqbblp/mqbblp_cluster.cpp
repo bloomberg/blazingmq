@@ -3111,15 +3111,6 @@ void Cluster::processClusterControlMessage(
                 source),
             this);
     } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processQueueUnassignedAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
-    } break;  // BREAK
     case MsgChoice::SELECTION_ID_STATE_NOTIFICATION: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(
