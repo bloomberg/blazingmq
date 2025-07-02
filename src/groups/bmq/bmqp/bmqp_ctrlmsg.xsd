@@ -562,8 +562,8 @@
         <element name='primaryStatusAdvisory'           type='tns:PrimaryStatusAdvisory'/>
         <element name='clusterSyncRequest'              type='tns:DummyType'/>
         <element name='clusterSyncResponse'             type='tns:DummyType'/>
+        <element name='queueUnassignedAdvisory'         type='tns:DummyType'/>        
         <element name='queueUnAssignmentAdvisory'       type='tns:QueueUnAssignmentAdvisory'/>
-        <element name='queueUnassignedAdvisory'         type='tns:QueueUnassignedAdvisory'/>
         <element name='leaderAdvisoryAck'               type='tns:LeaderAdvisoryAck'/>
         <element name='leaderAdvisoryCommit'            type='tns:LeaderAdvisoryCommit'/>
         <element name='stateNotification'               type='tns:StateNotification'/>
@@ -949,23 +949,6 @@
   </complexType>
 
   <complexType name='QueueUnAssignmentAdvisory'>
-    <annotation>
-      <documentation>
-        This type represents a one way message sent by the primary of a
-        partition to all peers when queues are unmapped from that partition.
-        NOTE: The 'partitionId' member of 'QueueInfo' is unused (superseeded by
-              the 'partitionId' at this level of the data structure).
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='primaryNodeId'  type='int'/>
-      <element name='primaryLeaseId' type='unsignedInt'/>
-      <element name='partitionId'    type='int'/>
-      <element name='queues'         type='tns:QueueInfo' maxOccurs='unbounded'/>
-    </sequence>
-  </complexType>
-
-  <complexType name='QueueUnassignedAdvisory'>
     <annotation>
       <documentation>
         This type represents a one way message sent by the leader to all peers

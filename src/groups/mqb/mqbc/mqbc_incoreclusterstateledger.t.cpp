@@ -72,7 +72,7 @@ using namespace bsl;
 // - apply (leader + follower):
 //     o PartitionPrimaryAdvisory,
 //       QueueAssignmentAdvisory,
-//       QueueUnassignedAdvisory
+//       QueueUnAssignmentAdvisory
 //       QueueUpdateAdvisory
 //       LeaderAdvisory
 //     o LeaderAdvisoryAck (at leader)
@@ -676,11 +676,11 @@ static void test4_apply_QueueUnassignedAdvisory()
 // QUEUE UNASSIGNED ADVISORY
 //
 // Concerns:
-//   Applying 'QueueUnassignedAdvisory' (only at leader), receive a quorum of
+//   Applying 'QueueUnAssignmentAdvisory' (only at leader), receive a quorum of
 //   acks, then commit the advisory.
 //
 // Testing:
-//   int apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory);
+//   int apply(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory);
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("APPLY - QUEUE UNASSIGNED ADVISORY");
@@ -689,8 +689,8 @@ static void test4_apply_QueueUnassignedAdvisory()
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
     BSLS_ASSERT_OPT(obj->open() == 0);
 
-    // Apply 'QueueUnassignedAdvisory'
-    bmqp_ctrlmsg::QueueUnassignedAdvisory qadvisory;
+    // Apply 'QueueUnAssignmentAdvisory'
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory qadvisory;
     tester.d_cluster_mp->_clusterData()
         ->electorInfo()
         .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
@@ -707,7 +707,7 @@ static void test4_apply_QueueUnassignedAdvisory()
     expected.choice()
         .makeClusterMessage()
         .choice()
-        .makeQueueUnassignedAdvisory(qadvisory);
+        .makeQueueUnAssignmentAdvisory(qadvisory);
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(1));
     BMQTST_ASSERT_EQ(tester.broadcastedMessage(0), expected);
@@ -1165,8 +1165,8 @@ static void test9_persistanceLeader()
     BSLS_ASSERT_OPT(tester.numCommittedMessages() == 3U);
     BMQTST_ASSERT(tester.hasBroadcastedMessages(6));
 
-    // Apply and commit 'QueueUnassignedAdvisory'
-    bmqp_ctrlmsg::QueueUnassignedAdvisory qUnassignedAdvisory;
+    // Apply and commit 'QueueUnAssignmentAdvisory'
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory qUnassignedAdvisory;
     tester.d_cluster_mp->_clusterData()
         ->electorInfo()
         .nextLeaderMessageSequence(&qUnassignedAdvisory.sequenceNumber());
@@ -1264,7 +1264,7 @@ static void test9_persistanceLeader()
 
     verifyLeaderAdvisoryCommit(*cslIter, qUpdateAdvisory.sequenceNumber());
 
-    // Verify 'QueueUnassignedAdvisory' and its commit
+    // Verify 'QueueUnAssignmentAdvisory' and its commit
     BMQTST_ASSERT_EQ(cslIter->next(), 0);
     BMQTST_ASSERT(cslIter->isValid());
     verifyRecordHeader(*cslIter,
@@ -1273,8 +1273,8 @@ static void test9_persistanceLeader()
 
     rc = cslIter->loadClusterMessage(&msg);
     BMQTST_ASSERT_EQ(rc, 0);
-    BMQTST_ASSERT(msg.choice().isQueueUnassignedAdvisoryValue());
-    BMQTST_ASSERT_EQ(msg.choice().queueUnassignedAdvisory(),
+    BMQTST_ASSERT(msg.choice().isQueueUnAssignmentAdvisoryValue());
+    BMQTST_ASSERT_EQ(msg.choice().queueUnAssignmentAdvisory(),
                      qUnassignedAdvisory);
 
     BMQTST_ASSERT_EQ(cslIter->next(), 0);
@@ -1384,10 +1384,10 @@ static void test10_persistanceFollower()
                                tester.d_cluster_mp->netCluster().lookupNode(
                                    mqbmock::Cluster::k_LEADER_NODE_ID)) == 0);
 
-    // Apply 'QueueUnassignedAdvisory'
+    // Apply 'QueueUnAssignmentAdvisory'
     bmqp_ctrlmsg::ClusterMessage           qUnassignedAdvisoryMsg;
-    bmqp_ctrlmsg::QueueUnassignedAdvisory& qUnassignedAdvisory =
-        qUnassignedAdvisoryMsg.choice().makeQueueUnassignedAdvisory();
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory& qUnassignedAdvisory =
+        qUnassignedAdvisoryMsg.choice().makeQueueUnAssignmentAdvisory();
     tester.d_cluster_mp->_clusterData()
         ->electorInfo()
         .nextLeaderMessageSequence(&qUnassignedAdvisory.sequenceNumber());
@@ -1544,7 +1544,7 @@ static void test10_persistanceFollower()
     BMQTST_ASSERT(msg.choice().isQueueAssignmentAdvisoryValue());
     BMQTST_ASSERT_EQ(msg.choice().queueAssignmentAdvisory(), qAssignAdvisory);
 
-    // Verify 'QueueUnassignedAdvisory'
+    // Verify 'QueueUnAssignmentAdvisory'
     BMQTST_ASSERT_EQ(cslIter->next(), 0);
     BMQTST_ASSERT(cslIter->isValid());
     verifyRecordHeader(*cslIter,
@@ -1554,8 +1554,8 @@ static void test10_persistanceFollower()
 
     rc = cslIter->loadClusterMessage(&msg);
     BMQTST_ASSERT_EQ(rc, 0);
-    BMQTST_ASSERT(msg.choice().isQueueUnassignedAdvisoryValue());
-    BMQTST_ASSERT_EQ(msg.choice().queueUnassignedAdvisory(),
+    BMQTST_ASSERT(msg.choice().isQueueUnAssignmentAdvisoryValue());
+    BMQTST_ASSERT_EQ(msg.choice().queueUnAssignmentAdvisory(),
                      qUnassignedAdvisory);
 
     // Verify 'QueueUpdateAdvisory'
@@ -1659,10 +1659,10 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(tester.hasBroadcastedMessages(1));
     BSLS_ASSERT_OPT(tester.broadcastedMessage(0) == expectedPmAdvisory);
 
-    // Apply 'QueueUnassignedAdvisory'
+    // Apply 'QueueUnAssignmentAdvisory'
     bmqp_ctrlmsg::ClusterMessage           qUnassignedAdvisoryMsg;
-    bmqp_ctrlmsg::QueueUnassignedAdvisory& qUnassignedAdvisory =
-        qUnassignedAdvisoryMsg.choice().makeQueueUnassignedAdvisory();
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory& qUnassignedAdvisory =
+        qUnassignedAdvisoryMsg.choice().makeQueueUnAssignmentAdvisory();
     tester.d_cluster_mp->_clusterData()
         ->electorInfo()
         .nextLeaderMessageSequence(&qUnassignedAdvisory.sequenceNumber());
@@ -1682,7 +1682,7 @@ static void test11_persistanceAcrossRolloverLeader()
     expectedQUnassignedAdvisory.choice()
         .makeClusterMessage()
         .choice()
-        .makeQueueUnassignedAdvisory(qUnassignedAdvisory);
+        .makeQueueUnAssignmentAdvisory(qUnassignedAdvisory);
     uncommittedAdvisories.push_back(
         AdvisoryInfo(expectedQUnassignedAdvisory,
                      qUnassignedAdvisory.sequenceNumber(),
@@ -1850,8 +1850,8 @@ static void test11_persistanceAcrossRolloverLeader()
                      pmAdvisory2.sequenceNumber(),
                      mqbc::ClusterStateRecordType::e_UPDATE));
 
-    // Apply 'QueueUnassignedAdvisory'
-    bmqp_ctrlmsg::QueueUnassignedAdvisory qUnassignedAdvisory2;
+    // Apply 'QueueUnAssignmentAdvisory'
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory qUnassignedAdvisory2;
     tester.d_cluster_mp->_clusterData()
         ->electorInfo()
         .nextLeaderMessageSequence(&qUnassignedAdvisory2.sequenceNumber());
@@ -1874,7 +1874,7 @@ static void test11_persistanceAcrossRolloverLeader()
     expectedQUnassignedAdvisory2.choice()
         .makeClusterMessage()
         .choice()
-        .makeQueueUnassignedAdvisory(qUnassignedAdvisory2);
+        .makeQueueUnAssignmentAdvisory(qUnassignedAdvisory2);
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), i + 3);
     BMQTST_ASSERT_EQ(tester.committedMessage(i + 2),
                      expectedQUnassignedAdvisory2);

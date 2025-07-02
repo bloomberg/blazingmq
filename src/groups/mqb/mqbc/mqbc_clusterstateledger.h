@@ -282,7 +282,7 @@ class ClusterStateLedger : public ElectorInfoObserver {
     virtual int
     apply(const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory) = 0;
     virtual int
-    apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)         = 0;
+    apply(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)       = 0;
     virtual int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory) = 0;
     virtual int apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory)      = 0;
     /// @}
@@ -292,7 +292,7 @@ class ClusterStateLedger : public ElectorInfoObserver {
     /// consistency level has been achieved.  Note that *only* a leader node
     /// may invoke this routine.  Behavior is undefined unless the contained
     /// advisory is one of `PartitionPrimaryAdvisory`,
-    /// `QueueAssignmentAdvisory`, `QueueUnassignedAdvisory`.
+    /// `QueueAssignmentAdvisory`, `isQueueUnAssignmentAdvisoryValue`.
     /// `QueueUpdateAdvisory` or `LeaderAdvisory`.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's

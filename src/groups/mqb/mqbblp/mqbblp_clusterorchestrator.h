@@ -353,15 +353,6 @@ class ClusterOrchestrator {
     processQueueAssignmentRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                   mqbnet::ClusterNode* requester);
 
-    /// Process the queue unAssigned advisory in the specified `msg`
-    /// received from the specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void
-    processQueueUnassignedAdvisory(const bmqp_ctrlmsg::ControlMessage& msg,
-                                   mqbnet::ClusterNode*                source);
-
     /// Process the queue unAssignment advisory in the specified `msg`
     /// received from the specified `source`.
     ///
