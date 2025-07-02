@@ -1108,9 +1108,6 @@ static void test8_putEventBuilder()
 
     bmqtst::TestHelper::printTestName("PUT EVENT BUILDER TEST");
 
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
-
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());

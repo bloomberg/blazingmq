@@ -651,7 +651,6 @@ Application::Application(
         // For calls to 'rand()' in the reconnecting channel factory
 
         bmqsys::Time::initialize();
-        bmqp::Crc32c::initialize();
     }
 
     // UriParser and ProtocolUtil initialization/shutdown are thread-safe and

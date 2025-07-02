@@ -2703,7 +2703,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqp::Crc32c::initialize();
 
     {
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());

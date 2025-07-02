@@ -226,9 +226,6 @@ static void test3_putMessageIteratorTest()
 
     bmqtst::TestHelper::printTestName("PUT MESAGE ITERATOR TEST");
 
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
-
     PV("Creating an event with a few messages");
 
     const int k_NUM_MSGS = 5;

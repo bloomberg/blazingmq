@@ -119,7 +119,6 @@ void Application::oneTimeInit()
         // Make MessageGUID generation thread-safe by calling initialize
         mqbu::MessageGUIDUtil::initialize();
 
-        bmqp::Crc32c::initialize();
         bmqt::UriParser::initialize();
         bmqp::ProtocolUtil::initialize();
     }
