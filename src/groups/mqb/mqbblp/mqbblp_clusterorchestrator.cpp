@@ -1512,6 +1512,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
     // This routine is invoked when the status of a primary 'source' node has
     // changed.
 
+    BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
     BSLS_ASSERT_SAFE(message.choice()
                          .clusterMessage()
@@ -1654,7 +1655,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
                       << ". Self node status: "
                       << d_clusterData_p->membership().selfNodeStatus();
 
-        if (pinfo.primaryNode() == source) {
+        if (pinfo.primaryNodeId() == source->nodeId()) {
             // Self node is receiving primary status advisory the second time.
 
             BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() ==
@@ -1664,9 +1665,6 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
                 ns->isPrimaryForPartition(primaryAdv.partitionId()));
         }
         else {
-            if (!d_cluster_p->isCSLModeEnabled()) {
-                ns->addPartitionRaw(primaryAdv.partitionId());
-            }
             d_stateManager_mp->setPrimary(primaryAdv.partitionId(),
                                           primaryAdv.primaryLeaseId(),
                                           source);

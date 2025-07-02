@@ -211,14 +211,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     onLeaderSyncDataQueryResponse(const RequestManagerType::RequestSp& context,
                                   const mqbnet::ClusterNode* responder);
 
-    /// Process the specified `partitions` from the specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void processPartitionPrimaryAdvisoryRaw(
-        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
-        const mqbnet::ClusterNode*                             source);
-
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ElectorInfoObserver)
 
