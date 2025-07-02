@@ -24,6 +24,7 @@
 #include <bmqimp_queue.h>
 #include <bmqp_event.h>
 #include <bmqp_eventutil.h>
+#include <bmqp_messageproperties.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqt_resultcode.h>
