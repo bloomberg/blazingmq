@@ -50,7 +50,10 @@
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_throttle.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_functional.h>
+#include <bsl_list.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

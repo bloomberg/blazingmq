@@ -36,6 +36,8 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstring.h>
+#include <bsl_limits.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -240,8 +242,8 @@ static void test1_breathingTest()
         bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    bmqt::MessageGUID              guid;
+    bmqp::EventHeader eventHeader;
+    bmqt::MessageGUID guid;
     guid.fromHex(k_HEX_REP);
 
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
@@ -491,9 +493,9 @@ static void test4_messageEvent_setterGetterTest()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    bmqt::MessageGUID              guid;
-    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader eventHeader;
+    bmqt::MessageGUID guid;
+    bmqimp::Event     obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED)
 
@@ -780,7 +782,7 @@ static void test6_comparisonOperatorTest()
             bmqtst::TestHelperUtil::allocator()));
     bmqimp::Event obj1(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqt::SessionEventType::Enum   sessionType =
+    bmqt::SessionEventType::Enum sessionType =
         bmqt::SessionEventType::e_TIMEOUT;
     bmqimp::Event::EventType::Enum eventType =
         bmqimp::Event::EventType::e_SESSION;
@@ -788,8 +790,8 @@ static void test6_comparisonOperatorTest()
     bmqt::CorrelationId correlationId(123);
     bsl::string         errorDescription("testing");
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader   eventHeader;
-    bmqt::MessageGUID   guid;
+    bmqp::EventHeader eventHeader;
+    bmqt::MessageGUID guid;
     guid.fromHex(k_HEX_REP);
 
     PV("Configure as SessionEvent");
@@ -875,8 +877,8 @@ static void test7_printing()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    bmqt::MessageGUID              guid;
+    bmqp::EventHeader eventHeader;
+    bmqt::MessageGUID guid;
     guid.fromHex(k_HEX_REP);
 
     struct Test {
@@ -1331,8 +1333,8 @@ static void test9_copyTest()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    bmqt::MessageGUID              guid;
+    bmqp::EventHeader eventHeader;
+    bmqt::MessageGUID guid;
     guid.fromHex(k_HEX_REP);
 
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -1421,8 +1423,8 @@ static void test10_assignmentTest()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    bmqt::MessageGUID              guid;
+    bmqp::EventHeader eventHeader;
+    bmqt::MessageGUID guid;
     guid.fromHex(k_HEX_REP);
 
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());

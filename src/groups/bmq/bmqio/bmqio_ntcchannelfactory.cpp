@@ -27,6 +27,7 @@
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
 #include <bsl_iomanip.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bslma_allocator.h>

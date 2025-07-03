@@ -20,6 +20,8 @@
 #include <bmqtst_testhelper.h>
 
 // BDE
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bsls_assert.h>
 #include <bsls_keyword.h>

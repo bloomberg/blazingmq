@@ -93,6 +93,7 @@
 // BDE
 #include <balb_performancemonitor.h>
 #include <ball_log.h>
+#include <bsl_ostream.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

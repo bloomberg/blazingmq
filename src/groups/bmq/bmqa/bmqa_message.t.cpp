@@ -39,6 +39,8 @@
 #include <bmqp_pusheventbuilder.h>
 #include <bmqp_puteventbuilder.h>
 #include <bmqt_subscription.h>
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

@@ -28,6 +28,7 @@
 #include <bdlf_bind.h>
 #include <bsl_cstdlib.h>
 #include <bsl_list.h>
+#include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmt_lockguard.h>

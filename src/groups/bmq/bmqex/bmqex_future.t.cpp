@@ -23,7 +23,9 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_exception.h>
+#include <bsl_iostream.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_utility.h>  // bsl::pair
 #include <bsla_annotations.h>
 #include <bslma_testallocator.h>

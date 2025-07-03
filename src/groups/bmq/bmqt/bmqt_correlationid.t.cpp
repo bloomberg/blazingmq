@@ -28,6 +28,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_functional.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -324,11 +325,11 @@ static void test6_hashAppend()
 
     PV("HASH FUNCTION DETERMINISTIC");
 
-    bsl::string foo("foo", bmqtst::TestHelperUtil::allocator());
-    bsl::string*                        fooPtr           = &foo;
-    bsls::Types::Int64                  numeric          = 0xA5A5A5A5A5A5A5A5;
-    const size_t                        k_NUM_ITERATIONS = 1000;
-    size_t                              t = bmqt::CorrelationId::e_NUMERIC;
+    bsl::string        foo("foo", bmqtst::TestHelperUtil::allocator());
+    bsl::string*       fooPtr           = &foo;
+    bsls::Types::Int64 numeric          = 0xA5A5A5A5A5A5A5A5;
+    const size_t       k_NUM_ITERATIONS = 1000;
+    size_t             t                = bmqt::CorrelationId::e_NUMERIC;
     bsl::shared_ptr<bsls::Types::Int64> intPtr;
 
     intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);
@@ -377,10 +378,10 @@ static void test7_printTest()
 
     PV("Testing print");
 
-    bsl::string foo("foo", bmqtst::TestHelperUtil::allocator());
-    bsl::string*                        fooPtr  = &foo;
-    bsls::Types::Int64                  numeric = 0x5a5a5a5a5a5a5a5a;
-    size_t                              t = bmqt::CorrelationId::e_NUMERIC;
+    bsl::string        foo("foo", bmqtst::TestHelperUtil::allocator());
+    bsl::string*       fooPtr  = &foo;
+    bsls::Types::Int64 numeric = 0x5a5a5a5a5a5a5a5a;
+    size_t             t       = bmqt::CorrelationId::e_NUMERIC;
     bsl::shared_ptr<bsls::Types::Int64> intPtr;
 
     intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);

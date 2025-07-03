@@ -60,6 +60,9 @@
 #include <bsls_timeinterval.h>
 
 // SYS
+#include <bsl_functional.h>
+#include <bsl_limits.h>
+#include <bsl_memory.h>
 #include <sys/stat.h>
 
 namespace BloombergLP {

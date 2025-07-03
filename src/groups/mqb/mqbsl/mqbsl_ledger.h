@@ -41,6 +41,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_memory.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_istriviallycopyable.h>
 #include <bslmf_nestedtraitdeclaration.h>

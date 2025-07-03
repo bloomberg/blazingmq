@@ -74,6 +74,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>  // for bsl::exit()
 #include <bsl_cstring.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsla_annotations.h>

@@ -69,6 +69,7 @@
 #include <bsls_types.h>
 
 #include <bmqu_memoutstream.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 

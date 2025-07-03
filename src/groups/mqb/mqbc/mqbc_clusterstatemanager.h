@@ -48,7 +48,9 @@
 // BDE
 #include <ball_log.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_vector.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

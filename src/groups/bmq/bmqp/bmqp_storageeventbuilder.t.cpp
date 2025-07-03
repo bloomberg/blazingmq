@@ -32,6 +32,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -191,9 +192,9 @@ static void test1_breathingTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    const char*                    PAYLOAD     = "abcdefghijklmnopqrstuvwx";
-    const unsigned int             PAYLOAD_LEN = bsl::strlen(PAYLOAD);  // 24
-    const char*                    JOURNAL_REC = "12345678";
+    const char*        PAYLOAD         = "abcdefghijklmnopqrstuvwx";
+    const unsigned int PAYLOAD_LEN     = bsl::strlen(PAYLOAD);  // 24
+    const char*        JOURNAL_REC     = "12345678";
     const unsigned int JOURNAL_REC_LEN = bsl::strlen(JOURNAL_REC);  // 8
 
     // Note that payload and journal record must be word aligned (per
@@ -212,7 +213,7 @@ static void test1_breathingTest()
         const_cast<char*>(JOURNAL_REC),
         bslstl::SharedPtrNilDeleter(),
         bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     journalRecordBlobBuffer(journalRecordBufferSp,
+    bdlbb::BlobBuffer journalRecordBlobBuffer(journalRecordBufferSp,
                                               JOURNAL_REC_LEN);
 
     bsl::shared_ptr<char> dataBufferSp(const_cast<char*>(PAYLOAD),
@@ -300,12 +301,12 @@ static void test2_storageEventHavingMultipleMessages()
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
 
-    bmqp::StorageEventBuilder      seb(k_SPV,
+    bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
                                   blobSpPool.get(),
                                   bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    const size_t                   NUM_MSGS = 1000;
+    bsl::vector<Data>         data(bmqtst::TestHelperUtil::allocator());
+    const size_t              NUM_MSGS = 1000;
     data.reserve(NUM_MSGS);
 
     for (size_t dataIdx = 0; dataIdx < NUM_MSGS; ++dataIdx) {
@@ -540,12 +541,12 @@ static void test4_packMessageRaw()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::StorageEventBuilder      sebA(k_SPV,
+    bmqp::StorageEventBuilder sebA(k_SPV,
                                    bmqp::EventType::e_STORAGE,
                                    blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    const size_t                   NUM_MSGS = 1000;
+    bsl::vector<Data>         data(bmqtst::TestHelperUtil::allocator());
+    const size_t              NUM_MSGS = 1000;
     data.reserve(NUM_MSGS);
 
     for (size_t dataIdx = 0; dataIdx < NUM_MSGS; ++dataIdx) {

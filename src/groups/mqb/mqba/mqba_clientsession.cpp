@@ -191,6 +191,7 @@
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>

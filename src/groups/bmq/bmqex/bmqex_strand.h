@@ -73,6 +73,7 @@
 #include <bdlf_memfn.h>
 #include <bsl_algorithm.h>  // bsl::swap
 #include <bsl_deque.h>
+#include <bsl_type_traits.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>

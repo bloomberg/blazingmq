@@ -30,6 +30,7 @@
 #ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
+#include <bsl_functional.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

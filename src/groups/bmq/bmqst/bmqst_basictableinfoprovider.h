@@ -31,6 +31,7 @@
 #include <bmqst_tableinfoprovider.h>
 
 #include <bdlb_nullablevalue.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>

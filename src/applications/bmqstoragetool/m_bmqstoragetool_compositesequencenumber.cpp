@@ -19,6 +19,7 @@
 // BDE
 #include <bdlb_print.h>
 #include <bsl_stdexcept.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

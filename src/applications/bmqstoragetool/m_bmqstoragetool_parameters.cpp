@@ -38,9 +38,12 @@
 #include <bdls_pathutil.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_cctype.h>  // bsl::isxdigit
+#include <bsl_cstddef.h>
+#include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 #include <bsl_stdexcept.h>
+#include <bsl_vector.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>

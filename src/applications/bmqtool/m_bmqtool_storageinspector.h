@@ -40,6 +40,7 @@
 #include <ball_log.h>
 #include <bsl_map.h>
 #include <bsl_string.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 

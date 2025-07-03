@@ -28,7 +28,11 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_algorithm.h>
 #include <bsl_cmath.h>
+#include <bsl_cstddef.h>
+#include <bsl_memory.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

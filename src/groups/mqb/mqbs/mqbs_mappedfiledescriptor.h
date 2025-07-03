@@ -32,6 +32,7 @@
 #include <mqbs_memoryblock.h>
 
 // BDE
+#include <bsl_type_traits.h>
 #include <bslmf_isbitwiseequalitycomparable.h>
 #include <bslmf_istriviallycopyable.h>
 #include <bslmf_nestedtraitdeclaration.h>

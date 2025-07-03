@@ -18,6 +18,7 @@
 
 #include <mqbscm_version.h>
 // BDE
+#include <bsl_ostream.h>
 #include <bslim_printer.h>
 #include <bslma_default.h>
 

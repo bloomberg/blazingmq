@@ -110,6 +110,7 @@
 
 // BDE
 #include <bdlb_nullablevalue.h>
+#include <bsl_iosfwd.h>
 #include <bsl_iostream.h>
 
 namespace BloombergLP {

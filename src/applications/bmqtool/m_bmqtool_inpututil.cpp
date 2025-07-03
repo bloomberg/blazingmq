@@ -27,6 +27,7 @@
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {
@@ -311,8 +312,8 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
 
         bsl::string error;
         if (!out->addOrUpdateSubscription(&error, handle, to)) {
-            // It is possible to make early return here, but we want to log all
-            // the failed expressions, not only the first failure.
+            // It is possible to make early return here, but we want to log
+            // all the failed expressions, not only the first failure.
             BALL_LOG_ERROR << "#INVALID_SUBSCRIPTION " << error;
             failed = true;
         }
@@ -410,7 +411,8 @@ bool InputUtil::loadMessageFromFile(bsl::ostream*      payload,
     if (line == "Message Properties:") {
         fileStream.read(tmpBuffer, 1);  // skip empty line
 
-        // Read human readable properties lines to check surrounding markers [
+        // Read human readable properties lines to check surrounding
+        // markers [
         // ]
         bsl::getline(fileStream, line);
         if (line.front() != '[') {
@@ -418,7 +420,8 @@ bool InputUtil::loadMessageFromFile(bsl::ostream*      payload,
             return false;  // RETURN
         }
         if (line.back() != ']') {
-            // Binary properties are multiline, read lines until close marker
+            // Binary properties are multiline, read lines until close
+            // marker
             // ']'
             while (!fileStream.eof()) {
                 bsl::getline(fileStream, line);

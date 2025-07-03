@@ -36,6 +36,7 @@
 
 // BDE
 #include <bdlmt_signaler.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bslma_allocator.h>
 #include <bsls_keyword.h>

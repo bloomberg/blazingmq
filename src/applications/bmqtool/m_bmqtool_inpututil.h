@@ -37,6 +37,9 @@
 // BMQ
 #include <bmqa_messageproperties.h>
 #include <bmqt_queueoptions.h>
+#include <bsl_istream.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {

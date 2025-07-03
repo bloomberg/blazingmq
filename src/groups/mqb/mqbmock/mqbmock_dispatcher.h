@@ -45,6 +45,7 @@
 #include <bmqex_executor.h>
 
 // BDE
+#include <bsl_memory.h>
 #include <bsl_unordered_map.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

@@ -18,6 +18,7 @@
 
 #include <mqbscm_version.h>
 // BDE
+#include <bsl_limits.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {

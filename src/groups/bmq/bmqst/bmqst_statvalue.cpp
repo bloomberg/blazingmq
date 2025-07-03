@@ -21,6 +21,7 @@
 #include <bsl_algorithm.h>
 
 #include <bmqstm_values.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {

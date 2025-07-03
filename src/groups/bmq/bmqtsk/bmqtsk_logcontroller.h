@@ -129,6 +129,7 @@
 #include <ball_multiplexobserver.h>
 #include <ball_severity.h>
 #include <ball_severityutil.h>
+#include <bsl_istream.h>
 #include <bsl_map.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>

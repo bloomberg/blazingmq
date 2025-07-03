@@ -74,6 +74,7 @@
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>

@@ -33,6 +33,7 @@
 #include <bdlbb_blob.h>
 #include <bdls_processutil.h>
 #include <bdlt_currenttime.h>
+#include <bsl_ostream.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 

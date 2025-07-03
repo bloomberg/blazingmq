@@ -22,8 +22,10 @@
 
 #include <bmqst_value.h>
 
+#include <bsl_iomanip.h>
 #include <bsl_ios.h>
 #include <bsl_limits.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {

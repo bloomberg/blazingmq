@@ -32,6 +32,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -462,8 +463,9 @@ static void test3_corruptedStorageEvent_part1()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    const char*                    p    = "abcdefgh";
-    unsigned int                   pLen = bsl::strlen(p);
+
+    const char*  p    = "abcdefgh";
+    unsigned int pLen = bsl::strlen(p);
 
     // BUILD the event blob ...
     // EventHeader

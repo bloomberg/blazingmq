@@ -14,6 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <bsl_algorithm.h>
+#include <bsl_vector.h>
 #include <m_bmqstoragetool_filters.h>
 
 namespace BloombergLP {

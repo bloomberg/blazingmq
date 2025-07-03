@@ -23,9 +23,11 @@
 #include <bdlf_bind.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>  // bsl::allocator_arg
 #include <bsl_numeric.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_testallocator.h>

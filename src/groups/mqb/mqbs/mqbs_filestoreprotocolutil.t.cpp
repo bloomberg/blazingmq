@@ -38,6 +38,9 @@
 #include <bmqtst_testhelper.h>
 
 // BDE
+#include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_cstring.h>
 #include <bsl_limits.h>
 
 // CONVENIENCE

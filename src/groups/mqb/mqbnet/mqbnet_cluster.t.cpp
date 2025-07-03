@@ -23,6 +23,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_limits.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -387,9 +388,9 @@ static void test3_Cluster()
     {
         PV("Verify that methods are public and virtual");
 
-        mqbnet::ClusterObserver* dummyClusterObserver_p = 0;
+        mqbnet::ClusterObserver*     dummyClusterObserver_p = 0;
         bsl::shared_ptr<bdlbb::Blob> dummyBlob_sp;
-        int                      dummyInt = 0;
+        int                          dummyInt = 0;
 
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  registerObserver(dummyClusterObserver_p));

@@ -24,6 +24,8 @@
 #include <bmqp_queueid.h>
 
 // BDE
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsls_performancehint.h>
 
 namespace BloombergLP {

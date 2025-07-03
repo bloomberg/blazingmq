@@ -41,6 +41,8 @@
 #include <bsls_types.h>
 
 // SYS
+#include <bsl_cstring.h>
+#include <bsl_memory.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>

@@ -30,6 +30,7 @@
 #include <bdld_manageddatum.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
+#include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>

@@ -39,6 +39,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -258,10 +259,10 @@ static void test1_breathingTest()
     bmqp::PushEventBuilder pushEventBuilder(
         blobSpPool.get(),
         bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>      data(bmqtst::TestHelperUtil::allocator());
-    int                    payloadLength    = 0;
-    int                    numSubQueueInfos = 0;
-    int                    rc               = 0;
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
+    int               payloadLength    = 0;
+    int               numSubQueueInfos = 0;
+    int               rc               = 0;
 
     // 1) Event composed of 5 messages
     // Msg1
@@ -465,10 +466,10 @@ static void test2_flattenExplodesEvent()
     bmqp::PushEventBuilder pushEventBuilder(
         blobSpPool.get(),
         bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>      data(bmqtst::TestHelperUtil::allocator());
-    int                    payloadLength  = 0;
-    int                    numSubQueueIds = 0;
-    int                    rc             = 0;
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
+    int               payloadLength  = 0;
+    int               numSubQueueIds = 0;
+    int               rc             = 0;
 
     // 1) Event composed of one message having a payload of size one third the
     //    maximum enforced size and four SubQueueIds.

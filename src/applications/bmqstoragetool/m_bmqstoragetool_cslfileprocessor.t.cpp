@@ -42,6 +42,10 @@
 #include <bmqsys_time.h>
 #include <bmqtst_testhelper.h>
 #include <bmqu_tempdirectory.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

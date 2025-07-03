@@ -47,6 +47,8 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_algorithm.h>
+#include <bsl_memory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -774,12 +776,12 @@ static void test5_buildEventWithPayloadTooBig()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    const bmqt::MessageGUID        guid;
+    const bmqt::MessageGUID            guid;
     bdlbb::Blob                        bigMsgPayload(&bufferFactory,
                               bmqtst::TestHelperUtil::allocator());
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         bmqtst::TestHelperUtil::allocator());
-    const int                          queueId = 4321;
+    const int queueId    = 4321;
     int numSubQueueInfos = bmqp::Protocol::SubQueueInfosArray::static_size + 4;
     // Use a value for 'numSubQueueInfos' which extends beyond 'static' part of
     // the 'SubQueueInfosArray'.
@@ -898,9 +900,9 @@ static void test6_buildEventWithImplicitPayload()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    const bmqt::MessageGUID        guid;
-    const int                      queueId = 4321;
-    const int flags = bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD;
+    const bmqt::MessageGUID guid;
+    const int               queueId = 4321;
+    const int               flags = bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD;
 
     // Create PutEventBuilder
     bmqp::PushEventBuilder         peb(blobSpPool.get(),
@@ -1168,12 +1170,12 @@ static void test8_buildEventTooBig()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    const bmqt::MessageGUID        guid;
-    bdlbb::Blob                    validPayload1(&bufferFactory,
+    const bmqt::MessageGUID guid;
+    bdlbb::Blob             validPayload1(&bufferFactory,
                               bmqtst::TestHelperUtil::allocator());
-    const int   queueId  = 4321;
-    int         validLen = 0;
-    const int   flags    = 0;
+    const int               queueId  = 4321;
+    int                     validLen = 0;
+    const int               flags    = 0;
 
     validLen = bmqp::PushHeader::k_MAX_PAYLOAD_SIZE_SOFT -
                sizeof(bmqp::EventHeader) - sizeof(bmqp::PushHeader) -
@@ -1263,11 +1265,11 @@ static void testN1_decodeFromFile()
     bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payloadBlob(&bufferFactory,
                             bmqtst::TestHelperUtil::allocator());
-    bmqu::MemOutStream             os(bmqtst::TestHelperUtil::allocator());
-    bmqp::PushMessageIterator      pushIter(&bufferFactory,
+    bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
+    bmqp::PushMessageIterator pushIter(&bufferFactory,
                                        bmqtst::TestHelperUtil::allocator());
-    bmqt::MessageGUID              messageGUID;
-    bdlb::Guid                     guid;
+    bmqt::MessageGUID         messageGUID;
+    bdlb::Guid                guid;
 
     messageGUID.fromHex(k_VALID_HEX_REP);
     bdlbb::BlobUtil::append(&payloadBlob, k_PAYLOAD, k_PAYLOAD_LEN);

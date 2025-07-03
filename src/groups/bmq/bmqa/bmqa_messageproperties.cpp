@@ -24,6 +24,8 @@
 // BSL
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 #include <bslma_default.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>

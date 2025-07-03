@@ -26,7 +26,12 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsls_alignedbuffer.h>
 
+#include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_iomanip.h>
 #include <bsl_ios.h>
+#include <bsl_limits.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {

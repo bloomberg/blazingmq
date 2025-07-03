@@ -44,6 +44,7 @@
 #include <mqbsi_log.h>
 
 // BDE
+#include <bsl_ostream.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {

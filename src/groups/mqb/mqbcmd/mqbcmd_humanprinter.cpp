@@ -31,6 +31,9 @@
 #include <bdlb_print.h>
 #include <bdlb_string.h>
 #include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_iomanip.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>

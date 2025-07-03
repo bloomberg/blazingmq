@@ -34,6 +34,7 @@
 #include <bmqp_event.h>
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsls_timeinterval.h>

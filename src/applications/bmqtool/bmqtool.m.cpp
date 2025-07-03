@@ -51,6 +51,7 @@
 #include <termios.h>
 #include <unistd.h>
 #endif
+#include <bsl_cstdlib.h>
 
 using namespace BloombergLP;
 using namespace m_bmqtool;

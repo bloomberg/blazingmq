@@ -32,6 +32,10 @@
 // BDE
 #include <bdls_filesystemutil.h>
 #include <bdls_pathutil.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_stdexcept.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {

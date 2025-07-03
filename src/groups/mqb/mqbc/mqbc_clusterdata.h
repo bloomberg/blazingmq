@@ -54,6 +54,7 @@
 #include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_default.h>

@@ -64,6 +64,7 @@
 #include <bsl_ctime.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>

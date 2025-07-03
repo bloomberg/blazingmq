@@ -40,6 +40,7 @@
 #pragma push_macro("TEST_F")
 #pragma push_macro("TEST")
 
+#include <bsl_cstddef.h>
 #include <gmock/gmock.h>
 
 #undef ASSERT_EQ

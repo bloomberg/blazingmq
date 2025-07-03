@@ -58,6 +58,7 @@
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
