@@ -26,6 +26,7 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <bsl_vector.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {

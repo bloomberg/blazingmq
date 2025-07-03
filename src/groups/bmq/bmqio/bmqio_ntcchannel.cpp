@@ -30,7 +30,9 @@
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
+#include <bsl_cstddef.h>
 #include <bsl_iomanip.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>

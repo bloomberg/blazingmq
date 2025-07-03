@@ -18,6 +18,7 @@
 
 #include <bmqscm_version.h>
 // BDE
+#include <bsl_cstddef.h>
 #include <bslma_sharedptroutofplacerep.h>
 
 namespace BloombergLP {

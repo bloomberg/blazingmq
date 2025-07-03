@@ -30,6 +30,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_functional.h>
+#include <bsl_utility.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_timeinterval.h>

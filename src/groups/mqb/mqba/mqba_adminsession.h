@@ -43,6 +43,7 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>

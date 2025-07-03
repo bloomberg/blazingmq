@@ -42,6 +42,7 @@
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>

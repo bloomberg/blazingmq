@@ -21,6 +21,7 @@
 #include <bdlbb_blobutil.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstring.h>
+#include <bsl_memory.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {

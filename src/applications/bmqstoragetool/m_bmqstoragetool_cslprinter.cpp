@@ -24,6 +24,11 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_cstring.h>
+#include <bsl_iomanip.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {

@@ -39,6 +39,8 @@
 #include <bmqp_pusheventbuilder.h>
 #include <bmqp_puteventbuilder.h>
 #include <bmqt_subscription.h>
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -170,7 +172,7 @@ static void test2_validPushMessagePrint()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqa::Event                    event;
+    bmqa::Event event;
 
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
     implPtr              = bsl::make_shared<bmqimp::Event>(

@@ -25,6 +25,7 @@
 // BDE
 #include <balcl_commandline.h>
 #include <bdls_filesystemutil.h>
+#include <bsl_exception.h>
 #include <bsl_iostream.h>
 #include <bslma_managedptr.h>
 

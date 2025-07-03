@@ -44,6 +44,7 @@
 #include <bsl_functional.h>
 #include <bslmf_movableref.h>
 #endif
+#include <bsl_type_traits.h>
 
 namespace BloombergLP {
 namespace bmqex {

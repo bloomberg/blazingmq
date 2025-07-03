@@ -74,6 +74,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>  // for bsl::exit()
 #include <bsl_cstring.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsla_annotations.h>
@@ -1914,9 +1915,9 @@ bool ClusterQueueHelper::createQueue(
             context->d_handleParameters),
         d_allocator_p);
 
-    bdlma::LocalSequentialAllocator<1024>      la(d_allocator_p);
-    bmqu::MemOutStream                         errorDescription(&la);
-    bmqp_ctrlmsg::Status                       status;
+    bdlma::LocalSequentialAllocator<1024> la(d_allocator_p);
+    bmqu::MemOutStream                    errorDescription(&la);
+    bmqp_ctrlmsg::Status                  status;
 
     bsl::shared_ptr<mqbi::Queue> queue = createQueueFactory(errorDescription,
                                                             *context,
@@ -4675,7 +4676,7 @@ void ClusterQueueHelper::openQueue(
         QueueContextSp queueContext;
         queueContext.createInplace(d_allocator_p, uriKey, d_allocator_p);
 
-        d_queues[uriKey]         = queueContext;
+        d_queues[uriKey] = queueContext;
         context->setQueueContext(queueContext.get());
 
         // Register the context to the pending list.
@@ -6402,7 +6403,7 @@ void ClusterQueueHelper::loadState(
     int qIdx = 0;
     for (QueueContextMapConstIter it = d_queues.begin(); it != d_queues.end();
          ++it, ++qIdx) {
-        const QueueLiveState&                info = it->second->d_liveQInfo;
+        const QueueLiveState&                  info = it->second->d_liveQInfo;
         const bsl::vector<OpenQueueContextSp>& contexts =
             it->second->d_liveQInfo.d_pending;
         const int pid = it->second->partitionId();

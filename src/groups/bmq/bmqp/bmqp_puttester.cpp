@@ -28,6 +28,8 @@
 #include <bdlbb_blobutil.h>
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
+#include <bsl_vector.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

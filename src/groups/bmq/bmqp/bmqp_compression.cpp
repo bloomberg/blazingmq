@@ -34,6 +34,7 @@
 #include <sanitizer/msan_interface.h>
 #endif
 #endif
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace bmqp {

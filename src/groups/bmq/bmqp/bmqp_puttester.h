@@ -43,6 +43,7 @@
 #include <bdlb_random.h>
 #include <bdlbb_blob.h>
 #include <bsl_cstddef.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

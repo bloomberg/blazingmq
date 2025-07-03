@@ -48,6 +48,8 @@
 #ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
+#include <bsl_ios.h>
+#include <bsl_memory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

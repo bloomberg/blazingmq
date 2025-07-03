@@ -44,6 +44,8 @@
 #include <bdlt_datetime.h>
 #include <bdlt_epochutil.h>
 #include <bsl_algorithm.h>
+#include <bsl_ostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

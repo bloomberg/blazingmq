@@ -39,6 +39,14 @@
 #ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
+#include <bsl_algorithm.h>
+#include <bsl_cstring.h>
+#include <bsl_iomanip.h>
+#include <bsl_ios.h>
+#include <bsl_iostream.h>
+#include <bsl_iterator.h>
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -320,12 +328,12 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
         -1,
         &error,
         bmqtst::TestHelperUtil::allocator());
-    *compressionTime      = bsls::TimeUtil::getTimer() - startTime;
+    *compressionTime = bsls::TimeUtil::getTimer() - startTime;
 
     BMQTST_ASSERT_EQ(rc, 0);
 
-    startTime          = bsls::TimeUtil::getTimer();
-    rc                 = bmqp::Compression_Impl::decompressZlib(
+    startTime = bsls::TimeUtil::getTimer();
+    rc        = bmqp::Compression_Impl::decompressZlib(
         &decompressed,
         &bufferFactory,
         compressed,
@@ -556,7 +564,7 @@ static void test1_breathingTest()
                                bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob decompressed(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        char                  one[] = "one";
+        char        one[] = "one";
         bsl::shared_ptr<char> onePtr;
         onePtr.reset(one,
                      bslstl::SharedPtrNilDeleter(),

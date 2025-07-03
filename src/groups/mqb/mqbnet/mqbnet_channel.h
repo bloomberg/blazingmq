@@ -92,6 +92,7 @@
 #include <bdlcc_singleconsumerqueue.h>
 #include <bdlma_concurrentpool.h>
 #include <bsl_deque.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -224,9 +225,9 @@ class Channel {
     /// This struct also simulates a (one-time) Builder since there is no
     /// `control` builder.
     struct ControlArgs {
-        bmqp::EventType::Enum d_type;
+        bmqp::EventType::Enum               d_type;
         const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
-        int                   d_messageCount;
+        int                                 d_messageCount;
 
         ControlArgs(Item& item);
 

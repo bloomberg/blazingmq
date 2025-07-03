@@ -22,6 +22,7 @@
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace bmqp {

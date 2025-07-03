@@ -76,6 +76,7 @@
 #include <bsl_cstring.h>  // for bsl::memset, bsl::memcmp
 
 #include <bsl_iosfwd.h>
+#include <bsl_type_traits.h>
 #include <bsla_annotations.h>
 #include <bslh_hash.h>
 #include <bslmf_isbitwiseequalitycomparable.h>

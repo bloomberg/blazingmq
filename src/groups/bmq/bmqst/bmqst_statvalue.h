@@ -74,6 +74,7 @@
 #ifndef INCLUDED_BSL_VECTOR
 #include <bsl_vector.h>
 #endif
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 

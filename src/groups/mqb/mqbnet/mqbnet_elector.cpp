@@ -37,6 +37,7 @@
 #include <bsl_cstdlib.h>  // for bsl::rand()
 #include <bsl_iostream.h>
 #include <bsl_list.h>
+#include <bsl_memory.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslim_printer.h>

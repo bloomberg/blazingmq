@@ -22,6 +22,7 @@
 #include <baljsn_decoder.h>
 #include <baljsn_encoder.h>
 #include <ball_log.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace mqbcmd {

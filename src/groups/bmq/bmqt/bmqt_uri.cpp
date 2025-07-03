@@ -28,7 +28,9 @@
 #include <bsl_cstddef.h>
 #include <bsl_cstring.h>  // for 'strncmp'
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_default.h>
 #include <bslmt_once.h>

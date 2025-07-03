@@ -105,6 +105,7 @@
 #include <ball_log.h>
 #include <ball_observeradapter.h>
 #include <ball_record.h>
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bslma_usesbslmaallocator.h>

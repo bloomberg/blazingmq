@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <bsl_memory.h>
 #include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_printer.h>
 #include <m_bmqstoragetool_searchresultfactory.h>

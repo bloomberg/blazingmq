@@ -29,6 +29,8 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -87,11 +89,11 @@ static void test2_readingTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   queueEngine(theLearner.createContext());
-    bmqp::SchemaLearner::Context   clientSession(theLearner.createContext());
-    bmqp::MessageProperties        in(bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    input(true, 1, false);
-    bmqp::MessagePropertiesInfo    recycledInput(true, 1, true);
+    bmqp::SchemaLearner::Context queueEngine(theLearner.createContext());
+    bmqp::SchemaLearner::Context clientSession(theLearner.createContext());
+    bmqp::MessageProperties      in(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessagePropertiesInfo  input(true, 1, false);
+    bmqp::MessagePropertiesInfo  recycledInput(true, 1, true);
 
     const int num = bmqp::MessageProperties::k_MAX_NUM_PROPERTIES;
 
@@ -178,7 +180,7 @@ static void test3_observingTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   server(theLearner.createContext());
+    bmqp::SchemaLearner::Context server(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
@@ -227,7 +229,7 @@ static void test4_demultiplexingTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   queueHandle(theLearner.createContext());
+    bmqp::SchemaLearner::Context queueHandle(theLearner.createContext());
 
     bmqp::MessagePropertiesInfo muxIn(true, 1, false);
     bmqp::MessagePropertiesInfo recycledMuxIn(true, 1, true);
@@ -259,7 +261,7 @@ static void test5_emptyMPs()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   context(theLearner.createContext());
+    bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -285,7 +287,7 @@ static void test6_partialRead()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   context(theLearner.createContext());
+    bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
@@ -366,7 +368,7 @@ static void test7_removeBeforeRead()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   context(theLearner.createContext());
+    bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);

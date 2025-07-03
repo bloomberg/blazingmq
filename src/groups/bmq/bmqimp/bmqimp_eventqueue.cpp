@@ -36,6 +36,7 @@
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslmt_threadutil.h>

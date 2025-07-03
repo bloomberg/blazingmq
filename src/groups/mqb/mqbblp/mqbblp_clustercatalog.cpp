@@ -40,7 +40,9 @@
 #include <bdlmt_eventscheduler.h>
 #include <bdls_pathutil.h>
 #include <bdlsb_fixedmeminstreambuf.h>
+#include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
+#include <bsl_fstream.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bslmt_mutexassert.h>

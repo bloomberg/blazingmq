@@ -22,8 +22,10 @@
 #include <bmqimp_queue.h>
 
 // BDE
+#include <bsl_cstddef.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
+#include <bsl_utility.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bsls_performancehint.h>

@@ -44,8 +44,11 @@
 #include <bdlt_epochutil.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

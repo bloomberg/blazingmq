@@ -22,6 +22,7 @@
 
 // BDE
 #include <bsl_limits.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>

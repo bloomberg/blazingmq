@@ -154,8 +154,8 @@
 // Include version that can be compiled with C++03
 // Generated on Wed Jun 18 14:44:15 2025
 // Command line: sim_cpp11_features.pl bmqex_bindutil.h
-# define COMPILING_BMQEX_BINDUTIL_H
-# include <bmqex_bindutil_cpp03.h>
+#define COMPILING_BMQEX_BINDUTIL_H
+#include <bmqex_bindutil_cpp03.h>
 #undef COMPILING_BMQEX_BINDUTIL_H
 #else
 
@@ -419,5 +419,6 @@ BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
 }  // close enterprise namespace
 
 #endif  // End C++11 code
+#include <bsl_type_traits.h>
 
 #endif

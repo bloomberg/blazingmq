@@ -44,6 +44,9 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstring.h>
+#include <bsl_limits.h>
+#include <bsl_memory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -443,10 +446,10 @@ inline void Tester<Builder>::test()
 template <>
 inline bmqt::EventBuilderResult::Enum Tester<bmqp::PutEventBuilder>::build()
 {
-    static int                   id      = 0;
-    static int                   queueId = 0;
-    bmqp::PutHeader              ph;
-    const int                    flags = 0;
+    static int                         id      = 0;
+    static int                         queueId = 0;
+    bmqp::PutHeader                    ph;
+    const int                          flags      = 0;
     bsl::shared_ptr<bdlbb::Blob>       payload_sp = d_blobSpPool.getObject();
     bdlbb::BlobBuffer                  blobBuffer;
     bsl::shared_ptr<bmqu::AtomicState> state(new (*d_allocator_p)
@@ -515,7 +518,7 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PushEventBuilder>::build()
     }
     else {
         bsl::shared_ptr<bdlbb::Blob> payload_sp = d_blobSpPool.getObject();
-        bdlbb::BlobBuffer blobBuffer;
+        bdlbb::BlobBuffer            blobBuffer;
 
         BMQTST_ASSERT(0 != payload_sp->factory());
         payload_sp->factory()->allocate(&blobBuffer);
@@ -645,8 +648,8 @@ inline size_t Tester<Builder>::verify(
          itHistory != d_history.end();
          ++itHistory) {
         const bsl::shared_ptr<BloombergLP::bdlbb::Blob>& blob_sp = *itHistory;
-        bmqp::Event        eventHistory(blob_sp.get(), d_allocator_p);
-        Iterator<Builder>  itHistoryEvents(&d_bufferFactory, d_allocator_p);
+        bmqp::Event       eventHistory(blob_sp.get(), d_allocator_p);
+        Iterator<Builder> itHistoryEvents(&d_bufferFactory, d_allocator_p);
 
         itHistoryEvents.load(eventHistory);
 
@@ -1114,7 +1117,7 @@ static void test4_controlBlob()
     // cannot assert 'writeCalls().size() == 0' because of auto-flushing
 
     bsl::shared_ptr<bdlbb::Blob> payload_sp = blobSpPool->getObject();
-    bdlbb::BlobBuffer blobBuffer;
+    bdlbb::BlobBuffer            blobBuffer;
 
     bufferFactory.allocate(&blobBuffer);
     bsl::memset(blobBuffer.data(), 0, blobBuffer.size());
@@ -1177,7 +1180,7 @@ static void test5_reconnect()
 
     {
         bsl::shared_ptr<bdlbb::Blob> payload_sp = blobSpPool->getObject();
-        bdlbb::BlobBuffer blobBuffer;
+        bdlbb::BlobBuffer            blobBuffer;
 
         bufferFactory.allocate(&blobBuffer);
         setContent(&blobBuffer);
@@ -1199,7 +1202,7 @@ static void test5_reconnect()
 
     {
         bsl::shared_ptr<bdlbb::Blob> payload_sp = blobSpPool->getObject();
-        bdlbb::BlobBuffer blobBuffer;
+        bdlbb::BlobBuffer            blobBuffer;
 
         bufferFactory.allocate(&blobBuffer);
         setContent(&blobBuffer);
@@ -1219,7 +1222,7 @@ static void test5_reconnect()
 
     {
         bsl::shared_ptr<bdlbb::Blob> payload_sp = blobSpPool->getObject();
-        bdlbb::BlobBuffer blobBuffer;
+        bdlbb::BlobBuffer            blobBuffer;
 
         bufferFactory.allocate(&blobBuffer);
         setContent(&blobBuffer);

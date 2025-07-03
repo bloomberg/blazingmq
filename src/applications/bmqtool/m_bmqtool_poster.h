@@ -41,6 +41,7 @@
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bsl_memory.h>
 #include <bsl_string.h>
 
 namespace BloombergLP {

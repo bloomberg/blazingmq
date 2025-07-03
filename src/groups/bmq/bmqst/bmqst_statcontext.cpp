@@ -37,6 +37,9 @@
 #include <bsls_timeutil.h>
 
 #include <bmqstm_values.h>
+#include <bsl_cstddef.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace bmqst {

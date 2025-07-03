@@ -34,7 +34,9 @@
 
 // BDE
 #include <bdlt_epochutil.h>
+#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 
 namespace BloombergLP {

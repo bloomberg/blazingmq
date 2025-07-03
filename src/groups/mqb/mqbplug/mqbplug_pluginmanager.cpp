@@ -40,6 +40,7 @@
 #include <bsls_platform.h>
 
 // POSIX
+#include <bsl_utility.h>
 #include <dlfcn.h>
 
 namespace BloombergLP {

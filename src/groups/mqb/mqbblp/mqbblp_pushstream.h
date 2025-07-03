@@ -62,7 +62,9 @@
 #include <ball_log.h>
 #include <bdlmt_throttle.h>
 #include <bsl_list.h>
+#include <bsl_memory.h>
 #include <bsl_unordered_map.h>
+#include <bsl_utility.h>
 #include <bslma_allocator.h>
 
 namespace BloombergLP {
@@ -109,7 +111,7 @@ struct PushStream {
         void remove(Element* element, ElementList where);
 
         /// Return the first Element in the list
-        Element*     front() const;
+        Element* front() const;
 
         /// Return the last Element in the list
         Element* back() const;
@@ -143,7 +145,7 @@ struct PushStream {
     typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  Elements,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
-                                                  Stream;
+        Stream;
 
     typedef Stream::iterator                      iterator;
     typedef bsl::unordered_map<unsigned int, App> Apps;

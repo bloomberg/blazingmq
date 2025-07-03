@@ -34,6 +34,8 @@
 
 // BDE
 #include <bsl_deque.h>
+#include <bsl_limits.h>
+#include <bsl_memory.h>
 #include <bslmt_condition.h>
 #include <bslmt_mutex.h>
 #include <bsls_systemtime.h>

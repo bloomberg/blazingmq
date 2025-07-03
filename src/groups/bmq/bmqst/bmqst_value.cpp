@@ -22,6 +22,8 @@
 #include <bmqscm_version.h>
 
 #include <bsl_cstring.h>
+#include <bsl_functional.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {

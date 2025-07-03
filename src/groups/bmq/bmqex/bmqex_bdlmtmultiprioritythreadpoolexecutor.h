@@ -54,6 +54,7 @@
 // BDE
 #include <bsl_algorithm.h>  // bsl::swap
 #include <bsl_functional.h>
+#include <bsl_type_traits.h>
 #include <bslmf_istriviallycopyable.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>

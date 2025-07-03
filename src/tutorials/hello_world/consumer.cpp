@@ -59,6 +59,7 @@
 #include <bsls_timeinterval.h>
 
 // SYSTEM
+#include <bsl_functional.h>
 #include <signal.h>
 
 using namespace BloombergLP;

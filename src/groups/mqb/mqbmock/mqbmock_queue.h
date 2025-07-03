@@ -55,6 +55,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_functional.h>
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>

@@ -165,6 +165,7 @@
 #include <bsl_memory.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslma_usesbslmaallocator.h>

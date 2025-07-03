@@ -22,7 +22,9 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
 #include <bsl_memory.h>  // bsl::allocator_arg
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bslma_testallocator.h>
 #include <bslmt_semaphore.h>

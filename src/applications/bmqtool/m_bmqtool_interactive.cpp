@@ -41,7 +41,11 @@
 #include <bdlf_memfn.h>
 #include <bdls_processutil.h>
 #include <bdlt_currenttime.h>
+#include <bsl_algorithm.h>
+#include <bsl_iomanip.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
+#include <bsl_utility.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_turnstile.h>
 

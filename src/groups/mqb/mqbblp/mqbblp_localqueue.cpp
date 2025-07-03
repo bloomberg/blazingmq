@@ -48,6 +48,7 @@
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bsls_performancehint.h>

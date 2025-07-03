@@ -26,6 +26,8 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_limits.h>
+#include <bsl_memory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -45,7 +47,7 @@ static void test1_basic()
 
     mqbblp::PushStream                                 ps(&pushElementsPool,
                           bmqtst::TestHelperUtil::allocator());
-    unsigned int       subQueueId = 0;
+    unsigned int                                       subQueueId = 0;
     bsl::shared_ptr<mqbblp::RelayQueueEngine_AppState> app;  // unused
     bmqp::SubQueueInfo                                 subscription;
 

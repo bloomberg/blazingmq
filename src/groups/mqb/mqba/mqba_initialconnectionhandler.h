@@ -31,7 +31,9 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlmt_fixedthreadpool.h>
+#include <bsl_memory.h>
 #include <bsl_optional.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 

@@ -27,6 +27,8 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blobutil.h>
+#include <bsl_cstring.h>
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -142,7 +144,7 @@ void PostingContext::postNext()
 
             if (!d_parameters.sequentialMessagePattern().empty()) {
                 char buffer[16];
-                length      = snprintf(buffer,
+                length = snprintf(buffer,
                                   sizeof(buffer),
                                   "%09d",
                                   d_numMessagesPosted);

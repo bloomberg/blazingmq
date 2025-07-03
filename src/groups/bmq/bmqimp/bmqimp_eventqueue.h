@@ -150,6 +150,8 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bdlt_currenttime.h>
 #include <bsl_functional.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>

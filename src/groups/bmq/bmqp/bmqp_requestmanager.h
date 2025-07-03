@@ -347,6 +347,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>

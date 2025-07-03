@@ -22,6 +22,8 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bdlmt_fixedthreadpool.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bsls_assert.h>
 

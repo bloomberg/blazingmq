@@ -17,6 +17,8 @@
 #include <m_bmqstoragetool_journalfile.h>
 
 // MQB
+#include <bsl_cstring.h>
+#include <bsl_utility.h>
 #include <mqbs_memoryblock.h>
 #include <mqbs_offsetptr.h>
 #include <mqbu_messageguidutil.h>

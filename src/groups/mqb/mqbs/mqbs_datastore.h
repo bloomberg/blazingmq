@@ -52,9 +52,13 @@
 #include <bdlmt_eventscheduler.h>
 #include <bdlt_datetime.h>
 #include <bsl_cstring.h>
+#include <bsl_functional.h>
 #include <bsl_list.h>
+#include <bsl_map.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_type_traits.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>

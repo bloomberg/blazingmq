@@ -46,7 +46,10 @@
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
+#include <bsl_limits.h>
+#include <bsl_memory.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bslmt_once.h>
 #include <bsls_types.h>
 #include <bslstl_stringref.h>

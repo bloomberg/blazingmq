@@ -50,6 +50,7 @@
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_functional.h>  // for bsl::ref()
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>

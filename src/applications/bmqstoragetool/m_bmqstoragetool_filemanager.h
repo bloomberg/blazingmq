@@ -40,6 +40,7 @@
 #include <m_bmqstoragetool_queuemap.h>
 
 // MQB
+#include <bsl_ostream.h>
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbmock_logidgenerator.h>

@@ -27,6 +27,8 @@
 #include <m_bmqstoragetool_cslrecordprinter.h>
 
 // BMQ
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
 

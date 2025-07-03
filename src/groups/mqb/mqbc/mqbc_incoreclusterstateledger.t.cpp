@@ -59,6 +59,7 @@
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 #include <bmqu_tempdirectory.h>
+#include <bsl_deque.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

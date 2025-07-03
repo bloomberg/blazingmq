@@ -34,6 +34,7 @@
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsls_types.h>
 

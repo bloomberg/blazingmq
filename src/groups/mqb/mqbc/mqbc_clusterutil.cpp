@@ -47,6 +47,7 @@
 #include <bdlb_print.h>
 #include <bdlde_md5.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_limits.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bslma_managedptr.h>

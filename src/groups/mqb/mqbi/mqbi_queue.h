@@ -71,6 +71,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_set.h>
+#include <bsl_vector.h>
 #include <bslh_hash.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

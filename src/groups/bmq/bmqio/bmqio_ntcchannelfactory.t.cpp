@@ -38,6 +38,8 @@
 #include <bsls_types.h>
 
 #include <bmqtst_testhelper.h>
+#include <bsl_iostream.h>
+#include <bsl_map.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

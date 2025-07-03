@@ -80,6 +80,7 @@
 #include <bsls_types.h>
 
 // NTC
+#include <bsl_vector.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
 

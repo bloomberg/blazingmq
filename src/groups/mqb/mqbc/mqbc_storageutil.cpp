@@ -48,7 +48,10 @@
 #include <bdls_filesystemutil.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
+#include <bsl_ios.h>
+#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_lockguard.h>

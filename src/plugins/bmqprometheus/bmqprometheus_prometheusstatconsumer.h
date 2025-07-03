@@ -50,6 +50,7 @@
 #include <bslstl_stringref.h>
 
 // PROMETHEUS
+#include <bsl_ostream.h>
 #include <prometheus/labels.h>
 #include <prometheus/registry.h>
 

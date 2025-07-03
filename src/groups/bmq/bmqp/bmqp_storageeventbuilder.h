@@ -74,6 +74,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

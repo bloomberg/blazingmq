@@ -1,4 +1,5 @@
 // Copyright 2019-2023 Bloomberg Finance L.P.
+#include <bsl_type_traits.h>
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

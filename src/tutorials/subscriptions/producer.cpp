@@ -49,6 +49,9 @@
 #include <bdlt_epochutil.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
+#include <bsl_unordered_map.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_spinlock.h>

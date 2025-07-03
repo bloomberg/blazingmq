@@ -26,6 +26,7 @@
 
 #include <bmqsys_threadutil.h>
 #include <bmqu_printutil.h>
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace mqbnet {

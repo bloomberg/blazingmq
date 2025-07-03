@@ -51,6 +51,7 @@
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_throttle.h>
 #include <bsl_list.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmt_threadutil.h>

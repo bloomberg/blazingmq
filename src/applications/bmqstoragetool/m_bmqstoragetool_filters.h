@@ -33,6 +33,7 @@
 
 // BDE
 #include <bsl_unordered_set.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

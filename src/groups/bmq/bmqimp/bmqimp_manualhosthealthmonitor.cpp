@@ -17,6 +17,7 @@
 #include <bmqimp_manualhosthealthmonitor.h>
 
 #include <bmqscm_version.h>
+#include <bsl_cstddef.h>
 namespace BloombergLP {
 namespace bmqimp {
 
