@@ -22,6 +22,8 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bdlmt_multiprioritythreadpool.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bslma_testallocator.h>
 

@@ -26,6 +26,9 @@
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlmt_threadpool.h>
+#include <bsl_cstddef.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>

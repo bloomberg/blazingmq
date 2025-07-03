@@ -43,6 +43,7 @@
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
 #include <bsl_algorithm.h>
+#include <bsl_queue.h>
 #include <bsla_annotations.h>
 #include <bsls_performancehint.h>
 

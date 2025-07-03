@@ -42,6 +42,7 @@
 
 // BMQ
 #include <bmqu_stringutil.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 

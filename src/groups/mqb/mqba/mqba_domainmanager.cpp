@@ -46,6 +46,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_cstddef.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>

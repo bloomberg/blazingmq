@@ -19,6 +19,7 @@
 #include <mqbscm_version.h>
 // BDE
 #include <bdlb_string.h>
+#include <bsl_ostream.h>
 #include <bslim_printer.h>
 #include <bslmf_allocatorargt.h>
 

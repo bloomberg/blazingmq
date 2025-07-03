@@ -33,6 +33,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bmqp_protocol.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>

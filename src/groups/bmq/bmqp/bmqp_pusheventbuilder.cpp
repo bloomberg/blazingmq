@@ -25,6 +25,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstring.h>
+#include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>

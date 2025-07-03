@@ -43,6 +43,7 @@
 #include <ball_severity.h>
 #include <bdlb_string.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_set.h>
 
@@ -173,16 +174,16 @@ struct MockStorageIterator : public mqbi::StorageIterator {
 
 struct Test : bmqtst::Test {
     // PUBLIC DATA
-    bslma::Allocator*              d_allocator_p;
-    bsl::string                    d_id;
-    mqbmock::Dispatcher            d_dispatcher;
-    mqbmock::Cluster               d_cluster;
-    mqbmock::Domain                d_domain;
-    mqbmock::Queue                 d_queue;
-    QueueState                     d_queueState;
-    QueueConsumptionMonitorTest    d_monitor;
-    mqbs::InMemoryStorage          d_storage;
-    bsl::set<bsl::string>          d_haveUndelivered;
+    bslma::Allocator*           d_allocator_p;
+    bsl::string                 d_id;
+    mqbmock::Dispatcher         d_dispatcher;
+    mqbmock::Cluster            d_cluster;
+    mqbmock::Domain             d_domain;
+    mqbmock::Queue              d_queue;
+    QueueState                  d_queueState;
+    QueueConsumptionMonitorTest d_monitor;
+    mqbs::InMemoryStorage       d_storage;
+    bsl::set<bsl::string>       d_haveUndelivered;
 
     // CREATORS
     Test();

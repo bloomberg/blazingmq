@@ -68,6 +68,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -100,8 +101,8 @@ class AckEventBuilder BSLS_CPP11_FINAL {
     /// Empty blob to be returned when no messages were added to this builder.
     bsl::shared_ptr<bdlbb::Blob> d_emptyBlob_sp;
 
-    int d_msgCount;              // number of messages currently in the
-                                 // event
+    int d_msgCount;  // number of messages currently in the
+                     // event
 
   private:
     // NOT IMPLEMENTED

@@ -40,6 +40,7 @@
 #include <bdlt_datetimetz.h>
 #include <bdlt_datetz.h>
 #include <bdlt_timetz.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

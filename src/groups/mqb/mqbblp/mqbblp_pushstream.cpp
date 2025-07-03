@@ -17,6 +17,7 @@
 
 #include <mqbblp_pushstream.h>
 
+#include <bsl_memory.h>
 #include <mqbscm_version.h>
 
 // BDE

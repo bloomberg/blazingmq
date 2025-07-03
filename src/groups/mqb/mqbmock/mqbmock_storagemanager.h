@@ -33,6 +33,8 @@
 #include <mqbi_storagemanager.h>
 
 // BDE
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {

@@ -33,6 +33,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -609,8 +610,8 @@ static void test5_dumpBlob()
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader              eventHeader;
-    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader eventHeader;
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     populateBlob(&blob,

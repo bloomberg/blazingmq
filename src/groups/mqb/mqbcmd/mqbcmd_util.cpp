@@ -21,6 +21,7 @@
 #include <mqbscm_version.h>
 // BDE
 #include <ball_log.h>
+#include <bsl_vector.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

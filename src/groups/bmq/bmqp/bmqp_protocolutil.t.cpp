@@ -39,6 +39,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -625,8 +626,8 @@ static void test8_loadFieldValues()
 template <typename E>
 static void encodeDecodeHelper(E encodingType)
 {
-    bmqu::MemOutStream                 ms;
-    bdlbb::PooledBlobBufferFactory     bufferFactory(
+    bmqu::MemOutStream             ms;
+    bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());

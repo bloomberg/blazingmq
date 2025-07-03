@@ -31,6 +31,7 @@
 #include <m_bmqstoragetool_searchresult.h>
 
 // BDE
+#include <bsl_memory.h>
 #include <bslma_managedptr.h>
 
 namespace BloombergLP {

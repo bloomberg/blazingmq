@@ -36,6 +36,7 @@
 #include <bsl_numeric.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {

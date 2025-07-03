@@ -88,6 +88,8 @@
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_sstream.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslim_printer.h>
 

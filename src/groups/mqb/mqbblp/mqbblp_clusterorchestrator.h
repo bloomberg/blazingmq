@@ -51,6 +51,8 @@
 #include <bdld_manageddatum.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

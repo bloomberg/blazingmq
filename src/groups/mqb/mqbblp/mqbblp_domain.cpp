@@ -44,6 +44,7 @@
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>

@@ -41,6 +41,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_memory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -208,8 +209,8 @@ static void test2_priority()
     const bmqp_ctrlmsg::StreamParameters streamParameters(
         bmqtst::TestHelperUtil::allocator());
     mqbblp::Routers::Consumers consumers(bmqtst::TestHelperUtil::allocator());
-    const unsigned int                     subQueueId = 13;
-    mqbblp::Routers::Consumers::SharedItem consumer   = consumers.record(
+    const unsigned int         subQueueId           = 13;
+    mqbblp::Routers::Consumers::SharedItem consumer = consumers.record(
         handle,
         mqbblp::Routers::Consumer(streamParameters,
                                   subQueueId,
@@ -240,8 +241,8 @@ static void test3_parse()
     mqbblp::Routers::QueueRoutingContext queueContext(
         schemaLearner,
         bmqtst::TestHelperUtil::allocator());
-    unsigned int                         subQueueId = 13;
-    TestStorage storage(subQueueId, bmqtst::TestHelperUtil::allocator());
+    unsigned int subQueueId = 13;
+    TestStorage  storage(subQueueId, bmqtst::TestHelperUtil::allocator());
 
     mqbmock::QueueHandle handle1 = storage.getHandle();
 
@@ -455,8 +456,8 @@ static void test4_generate()
     mqbblp::Routers::QueueRoutingContext queueContext(
         schemaLearner,
         bmqtst::TestHelperUtil::allocator());
-    unsigned int                         upstreamSubQueueId = 1;
-    mqbblp::Routers::AppContext          appContext(
+    unsigned int                upstreamSubQueueId = 1;
+    mqbblp::Routers::AppContext appContext(
         queueContext,
         bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream errorStream(bmqtst::TestHelperUtil::allocator());

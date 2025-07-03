@@ -155,6 +155,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_functional.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>

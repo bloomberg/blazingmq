@@ -31,6 +31,7 @@
 
 // BDE
 #include <bsl_list.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslstl_pair.h>
 

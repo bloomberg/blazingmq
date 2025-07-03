@@ -40,6 +40,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlmt_signaler.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>

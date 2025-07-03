@@ -48,7 +48,9 @@
 #include <bdls_processutil.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_cstdio.h>
+#include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
+#include <bsl_type_traits.h>
 #include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>

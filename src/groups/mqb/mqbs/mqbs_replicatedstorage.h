@@ -39,6 +39,7 @@
 
 // BMQ
 #include <bmqt_messageguid.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace mqbs {

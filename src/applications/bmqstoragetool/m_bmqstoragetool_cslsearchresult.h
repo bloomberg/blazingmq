@@ -44,6 +44,8 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // MQB
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
 

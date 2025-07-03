@@ -23,6 +23,8 @@
 
 // BDE
 #include <bsl_functional.h>  // bsl::reference_wrapper
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bslmf_assert.h>
 #include <bslmf_movableref.h>

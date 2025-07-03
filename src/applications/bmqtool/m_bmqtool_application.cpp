@@ -54,7 +54,13 @@
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_algorithm.h>
+#include <bsl_fstream.h>
+#include <bsl_iomanip.h>
+#include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_numeric.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>

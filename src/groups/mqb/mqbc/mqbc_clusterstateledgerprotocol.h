@@ -33,6 +33,7 @@
 #include <bmqp_protocol.h>  // for bmqp::Protocol::k_WORD_SIZE, etc.
 
 // BDE
+#include <bsl_cstring.h>
 #include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>

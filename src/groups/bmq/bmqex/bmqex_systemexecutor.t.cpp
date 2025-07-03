@@ -24,6 +24,8 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bsl_functional.h>  // bsl::cref
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bslmt_semaphore.h>
 #include <bslmt_threadattributes.h>

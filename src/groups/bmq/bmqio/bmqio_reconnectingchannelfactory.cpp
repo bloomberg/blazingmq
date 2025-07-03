@@ -43,6 +43,7 @@
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_BASELINE_LIBRARY
 #include <bsl_random.h>
 #endif
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace bmqio {

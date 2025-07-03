@@ -49,6 +49,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_list.h>
 #include <bsl_utility.h>

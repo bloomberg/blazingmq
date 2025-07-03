@@ -27,6 +27,8 @@
 #include <bdlf_placeholder.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bslmf_movableref.h>
 #include <bslmt_semaphore.h>

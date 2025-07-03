@@ -21,6 +21,8 @@
 
 // BDE
 #include <bdlf_memfn.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 

@@ -41,6 +41,7 @@
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>

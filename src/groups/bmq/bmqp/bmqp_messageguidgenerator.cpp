@@ -37,6 +37,7 @@
 #include <bsls_timeutil.h>
 
 // NTC
+#include <bsl_ios.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
 

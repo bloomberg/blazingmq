@@ -29,6 +29,7 @@
 // BDE
 #include <bdlb_bitutil.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_sstream.h>
 #include <bsl_vector.h>
 #include <bslma_default.h>

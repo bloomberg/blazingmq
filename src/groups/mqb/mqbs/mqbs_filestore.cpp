@@ -84,6 +84,7 @@
 #include <bsls_timeinterval.h>
 
 // SYS
+#include <bsl_ios.h>
 #include <unistd.h>
 
 namespace BloombergLP {

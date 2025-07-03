@@ -23,6 +23,7 @@
 
 // BDE
 #include <bsl_ostream.h>
+#include <bsl_type_traits.h>
 #include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bslmf_ispolymorphic.h>

@@ -42,6 +42,7 @@
 #include <bsl_algorithm.h>
 #include <bsl_ctime.h>
 #include <bsl_iostream.h>
+#include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>

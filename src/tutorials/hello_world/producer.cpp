@@ -43,6 +43,7 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 
 using namespace BloombergLP;

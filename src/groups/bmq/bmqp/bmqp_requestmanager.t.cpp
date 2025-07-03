@@ -40,6 +40,7 @@
 // TEST DRIVER
 #include <bmqio_testchannel.h>
 #include <bmqtst_testhelper.h>
+#include <bsl_cstddef.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -1009,7 +1010,7 @@ static void test7_requestBreathingTest()
         bdld::Datum datum = bdld::Datum::createStringRef(
             test.c_str(),
             bmqtst::TestHelperUtil::allocator());
-        ReqSp       request;
+        ReqSp request;
         request.createInplace(bmqtst::TestHelperUtil::allocator(),
                               bmqtst::TestHelperUtil::allocator());
         request->adoptUserData(datum);

@@ -34,6 +34,8 @@
 #include <bmqu_memoutstream.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_stringutil.h>
+#include <bsl_algorithm.h>
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

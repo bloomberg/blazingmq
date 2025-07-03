@@ -39,6 +39,7 @@
 
 // BDE
 #include <bdlf_noop.h>
+#include <bsl_type_traits.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>

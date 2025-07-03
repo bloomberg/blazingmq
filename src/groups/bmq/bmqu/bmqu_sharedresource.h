@@ -192,6 +192,7 @@
 
 // BDE
 #include <bdlma_deleter.h>
+#include <bsl_cstddef.h>
 #include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>

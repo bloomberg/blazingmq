@@ -48,6 +48,7 @@
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
 #include <bsl_iostream.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslmf_allocatorargt.h>
