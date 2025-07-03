@@ -109,7 +109,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Signature of a callback invoked upon un-assignment of a queue by
     /// this leader.
-    typedef bsl::function<void(const bmqp_ctrlmsg::QueueUnassignedAdvisory&)>
+    typedef bsl::function<void(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory&)>
         OnQueueUnassignedCb;
 
   private:

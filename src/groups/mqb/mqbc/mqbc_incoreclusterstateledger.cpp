@@ -982,7 +982,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     }
 
     BSLS_ASSERT_SAFE(message.choice().isQueueAssignmentAdvisoryValue() ||
-                     message.choice().isQueueUnassignedAdvisoryValue() ||
+                     message.choice().isQueueUnAssignmentAdvisoryValue() ||
                      message.choice().isQueueUpdateAdvisoryValue() ||
                      message.choice().isPartitionPrimaryAdvisoryValue() ||
                      message.choice().isLeaderAdvisoryValue() ||
@@ -1357,7 +1357,7 @@ int IncoreClusterStateLedger::apply(
 }
 
 int IncoreClusterStateLedger::apply(
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1368,7 +1368,7 @@ int IncoreClusterStateLedger::apply(
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
-    clusterMessage.choice().makeQueueUnassignedAdvisory(advisory);
+    clusterMessage.choice().makeQueueUnAssignmentAdvisory(advisory);
 
     return applyAdvisoryInternal(clusterMessage,
                                  advisory.sequenceNumber(),
@@ -1437,8 +1437,8 @@ int IncoreClusterStateLedger::apply(
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
         return apply(choice.queueAssignmentAdvisory());  // RETURN
     }
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        return apply(choice.queueUnassignedAdvisory());  // RETURN
+    case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        return apply(choice.queueUnAssignmentAdvisory());  // RETURN
     }
     case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
         return apply(choice.queueUpdateAdvisory());  // RETURN

@@ -208,7 +208,7 @@ class ClusterStateManager {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     virtual void
-    unassignQueue(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory) = 0;
+    unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory) = 0;
 
     /// Send the current cluster state to follower nodes.  If the specified
     /// `sendPartitionPrimaryInfo` is true, the specified partition-primary
@@ -311,19 +311,6 @@ class ClusterStateManager {
     virtual void
     processQueueAssignmentRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                   mqbnet::ClusterNode* requester) = 0;
-
-    /// Process the queue unAssigned advisory in the specified `message`
-    /// received from the specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    ///
-    /// TODO_CSL: This is the current workflow which we should be able to
-    /// remove after the new workflow via
-    /// ClusterQueueHelper::onQueueUnassigned() is stable.
-    virtual void
-    processQueueUnassignedAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
-                                   mqbnet::ClusterNode* source) = 0;
 
     /// Process the queue unAssignment advisory in the specified `message`
     /// received from the specified `source`.  If the specified `delayed` is

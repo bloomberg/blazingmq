@@ -217,13 +217,13 @@ struct ClusterUtil {
     /// queue unassignment of the specified `uri` having the specified `key`
     /// and `partitionId`, using the specified `clusterData` and and
     /// `clusterState`.
-    static void populateQueueUnassignedAdvisory(
-        bmqp_ctrlmsg::QueueUnassignedAdvisory* advisory,
-        ClusterData*                           clusterData,
-        const bmqt::Uri&                       uri,
-        const mqbu::StorageKey&                key,
-        int                                    partitionId,
-        const ClusterState&                    clusterState);
+    static void populateQueueUnAssignmentAdvisory(
+        bmqp_ctrlmsg::QueueUnAssignmentAdvisory* advisory,
+        ClusterData*                             clusterData,
+        const bmqt::Uri&                         uri,
+        const mqbu::StorageKey&                  key,
+        int                                      partitionId,
+        const ClusterState&                      clusterState);
 
     /// Perform the actual assignment of the queue represented by the
     /// specified `uri` for a cluster member queue, that is assign it a

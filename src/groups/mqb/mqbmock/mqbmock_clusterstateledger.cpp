@@ -131,7 +131,7 @@ int ClusterStateLedger::apply(
 }
 
 int ClusterStateLedger::apply(
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -142,7 +142,7 @@ int ClusterStateLedger::apply(
     BSLS_ASSERT_SAFE(isSelfLeader());
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
-    clusterMessage.choice().makeQueueUnassignedAdvisory(advisory);
+    clusterMessage.choice().makeQueueUnAssignmentAdvisory(advisory);
 
     return applyAdvisoryInternal(clusterMessage);
 }
@@ -205,8 +205,8 @@ int ClusterStateLedger::apply(
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
         return apply(choice.queueAssignmentAdvisory());  // RETURN
     }
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        return apply(choice.queueUnassignedAdvisory());  // RETURN
+    case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        return apply(choice.queueUnAssignmentAdvisory());  // RETURN
     }
     case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
         return apply(choice.queueUpdateAdvisory());  // RETURN
@@ -276,9 +276,9 @@ void ClusterStateLedger::_commitAdvisories(
                 commit.sequenceNumberCommitted() =
                     choice.queueAssignmentAdvisory().sequenceNumber();
             } break;  // BREAK
-            case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
+            case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
                 commit.sequenceNumberCommitted() =
-                    choice.queueUnassignedAdvisory().sequenceNumber();
+                    choice.queueUnAssignmentAdvisory().sequenceNumber();
             } break;  // BREAK
             case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
                 commit.sequenceNumberCommitted() =
