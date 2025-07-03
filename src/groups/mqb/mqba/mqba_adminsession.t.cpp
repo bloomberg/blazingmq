@@ -244,7 +244,7 @@ static void test1_watermark()
     // Prepare sample admin command control message event
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         bmqtst::TestHelperUtil::allocator());
-    bmqp_ctrlmsg::ControlMessage          admin(&localAllocator);
+    bmqp_ctrlmsg::ControlMessage admin(&localAllocator);
 
     admin.rId() = rId;
     admin.choice().makeAdminCommand();
@@ -301,7 +301,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqp::Crc32c::initialize();
 
     {
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());

@@ -199,8 +199,6 @@ FileManagerImpl::CslFileHandler::CslFileHandler(const bsl::string& path,
 , d_cslFromBegin(cslFromBegin)
 , d_allocator(allocator)
 {
-    // Required for ledger operations
-    bmqp::Crc32c::initialize();
 }
 
 FileManagerImpl::CslFileHandler::~CslFileHandler()
