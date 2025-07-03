@@ -64,8 +64,10 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_list.h>
+#include <bsl_memory.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsls_keyword.h>
 

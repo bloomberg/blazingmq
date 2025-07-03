@@ -57,6 +57,7 @@
 #include <bdlbb_blob.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iterator.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>

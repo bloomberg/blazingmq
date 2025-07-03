@@ -35,6 +35,7 @@
 
 // BDE
 #include <bsl_deque.h>
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace bmqio {

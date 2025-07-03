@@ -66,6 +66,7 @@
 #include <bsl_ostream.h>
 #include <bsl_streambuf.h>
 #include <bsl_string.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>

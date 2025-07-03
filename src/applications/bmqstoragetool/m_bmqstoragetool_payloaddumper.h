@@ -24,6 +24,7 @@
 //@DESCRIPTION: 'PayloadDumper' provides a message payload dumping.
 
 // MQB
+#include <bsl_ostream.h>
 #include <mqbs_datafileiterator.h>
 
 namespace BloombergLP {

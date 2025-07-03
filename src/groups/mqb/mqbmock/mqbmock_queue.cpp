@@ -33,6 +33,7 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsls_assert.h>
 

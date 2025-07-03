@@ -37,6 +37,10 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_iostream.h>
+#include <bsl_limits.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -569,8 +573,8 @@ static void test6_workingStatsTest()
     // NOTE an extra item will be internally enqueued by the object for the
     //      HighWatermark and another one for the LowWatermark
 
-    TestClock                      testClock;
-    bmqu::MemOutStream             out(bmqtst::TestHelperUtil::allocator());
+    TestClock          testClock;
+    bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,

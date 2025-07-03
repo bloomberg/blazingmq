@@ -32,6 +32,7 @@
 
 // BDE
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>

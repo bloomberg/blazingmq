@@ -19,7 +19,11 @@
 #include <bdlb_tokenizer.h>
 #include <bdlbb_blobutil.h>
 #include <bmqscm_version.h>
+#include <bsl_algorithm.h>
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsl_vector.h>
 #include <stdlib.h>
 
 namespace BloombergLP {

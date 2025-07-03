@@ -28,6 +28,9 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstring.h>
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -119,7 +122,7 @@ static void test1_breathingTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    const char*                    CHUNK = "abcdefghijklmnopqrstuvwx";
+    const char* CHUNK = "abcdefghijklmnopqrstuvwx";
 
     // Note that chunk must be word aligned per RecoveryEventBuilder's
     // contract.
@@ -215,10 +218,10 @@ static void test2_multipleMessagesTest()
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::RecoveryEventBuilder     reb(blobSpPool.get(),
+    bmqp::RecoveryEventBuilder reb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    const size_t                   NUM_MSGS = 1000;
+    bsl::vector<Data>          data(bmqtst::TestHelperUtil::allocator());
+    const size_t               NUM_MSGS = 1000;
     data.reserve(NUM_MSGS);
 
     for (size_t dataIdx = 0; dataIdx < NUM_MSGS; ++dataIdx) {

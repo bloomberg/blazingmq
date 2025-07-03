@@ -53,6 +53,7 @@
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
 #include <bsl_exception.h>
+#include <bsl_fstream.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_list.h>

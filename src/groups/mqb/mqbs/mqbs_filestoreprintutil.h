@@ -34,6 +34,7 @@
 #include <mqbs_storagecollectionutil.h>
 
 // BDE
+#include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bsls_types.h>
 

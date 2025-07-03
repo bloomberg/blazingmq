@@ -23,6 +23,7 @@
 
 // BDE
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
 

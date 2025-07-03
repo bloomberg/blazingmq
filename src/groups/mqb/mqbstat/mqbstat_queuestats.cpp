@@ -38,6 +38,9 @@
 #include <bdld_manageddatum.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
+#include <bsl_ostream.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bslmf_movableref.h>
 #include <bsls_assert.h>
 

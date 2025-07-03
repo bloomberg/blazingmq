@@ -17,6 +17,7 @@
 #include <bmqst_testtableinfoprovider.h>
 
 #include <bmqscm_version.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {

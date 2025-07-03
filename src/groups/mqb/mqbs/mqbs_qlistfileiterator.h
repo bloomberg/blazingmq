@@ -35,6 +35,8 @@
 #include <mqbs_offsetptr.h>
 
 // BDE
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 

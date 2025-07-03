@@ -103,7 +103,9 @@
 #include <bdlma_pool.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
+#include <bsl_functional.h>
 #include <bsl_stdexcept.h>
+#include <bsl_type_traits.h>
 #include <bsl_utility.h>
 #include <bslalg_hasstliterators.h>
 #include <bslalg_scalarprimitives.h>

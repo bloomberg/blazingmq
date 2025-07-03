@@ -29,6 +29,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>

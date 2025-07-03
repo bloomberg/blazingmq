@@ -22,6 +22,8 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>

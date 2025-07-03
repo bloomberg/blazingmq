@@ -55,9 +55,11 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_algorithm.h>
 #include <bsl_functional.h>
+#include <bsl_limits.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_numeric.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>

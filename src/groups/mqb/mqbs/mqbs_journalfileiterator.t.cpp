@@ -36,6 +36,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -446,8 +447,8 @@ static void test2_forwardIteration()
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
+    MemoryBlock         block(p, totalSize);
+    FileHeader          fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
 

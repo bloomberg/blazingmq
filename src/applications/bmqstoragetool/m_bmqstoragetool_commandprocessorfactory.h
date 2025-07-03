@@ -29,6 +29,7 @@
 #include <m_bmqstoragetool_parameters.h>
 
 // BDE
+#include <bsl_ostream.h>
 #include <bslma_managedptr.h>
 
 namespace BloombergLP {

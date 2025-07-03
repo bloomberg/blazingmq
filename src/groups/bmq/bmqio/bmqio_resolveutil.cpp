@@ -22,6 +22,7 @@
 #include <bsls_assert.h>
 
 // NTC
+#include <bsl_memory.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
 #include <ntsf_system.h>

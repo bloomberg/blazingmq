@@ -23,7 +23,9 @@
 
 // BDE
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
 #include <bsl_memory.h>  // bsl::allocator_arg
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bslmf_movableref.h>
 #include <bsls_assert.h>

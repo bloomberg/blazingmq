@@ -52,6 +52,7 @@
 #include <bsls_timeinterval.h>
 
 // SYS
+#include <bsl_algorithm.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>

@@ -27,6 +27,7 @@
 #include <bdlbb_blobutil.h>
 #include <bdlde_md5.h>
 #include <bsl_cstring.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>

@@ -35,6 +35,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -115,7 +116,7 @@ static void test1_breathingTest()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob expectedBlob(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        int                expectedBlobLength = 0;
+        int         expectedBlobLength = 0;
         bmqu::BlobPosition expectedHeaderPos;
         bmqu::BlobPosition expectedPayloadPos;
         bmqu::BlobPosition retrievedPayloadPos;
@@ -223,7 +224,7 @@ static void test1_breathingTest()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob expectedBlob(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        int                expectedBlobLength = 0;
+        int         expectedBlobLength = 0;
         bmqu::BlobPosition expectedHeaderPos;
         bmqu::BlobPosition expectedPayloadPos;
         bmqu::BlobPosition retrievedPayloadPos;
@@ -331,7 +332,7 @@ static void test1_breathingTest()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob expectedBlob(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        int                expectedBlobLength = 0;
+        int         expectedBlobLength = 0;
         bmqu::BlobPosition expectedHeaderPos;
         bmqu::BlobPosition expectedPayloadPos;
         bmqu::BlobPosition retrievedPayloadPos;
@@ -467,7 +468,7 @@ static void test1_breathingTest()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob expectedBlob(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        int                expectedBlobLength = 0;
+        int         expectedBlobLength = 0;
         bmqu::BlobPosition expectedHeaderPos;
         bmqu::BlobPosition expectedPayloadPos;
         bmqu::BlobPosition retrievedPayloadPos;
@@ -623,17 +624,17 @@ static void test2_reset()
         PVV("NO COMPRESSION, DECOMPRESS FLAG FALSE");
         bmqp::PutMessageIterator pmt(&bufferFactory,
                                      bmqtst::TestHelperUtil::allocator());
-        bdlbb::Blob copiedBlob(bmqtst::TestHelperUtil::allocator());
-        bdlbb::Blob expectedBlob(&bufferFactory,
+        bdlbb::Blob        copiedBlob(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        expectedBlob(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        int                      expectedBlobLength = 0;
-        bmqu::BlobPosition       headerPosition;
-        bmqu::BlobPosition       payloadPosition;
-        const int                queueId = 123;
-        bmqp::EventHeader        eventHeader;
-        bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
-        bdlbb::Blob appDataBlob(bmqtst::TestHelperUtil::allocator());
-        bmqt::MessageGUID        guid = bmqp::MessageGUIDGenerator::testGUID();
+        int                expectedBlobLength = 0;
+        bmqu::BlobPosition headerPosition;
+        bmqu::BlobPosition payloadPosition;
+        const int          queueId = 123;
+        bmqp::EventHeader  eventHeader;
+        bdlbb::Blob        payloadBlob(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        appDataBlob(bmqtst::TestHelperUtil::allocator());
+        bmqt::MessageGUID  guid = bmqp::MessageGUIDGenerator::testGUID();
 
         {
             bdlbb::Blob blob(&bufferFactory,
@@ -685,17 +686,17 @@ static void test2_reset()
         PVV("ZLIB COMPRESSION, DECOMPRESS FLAG TRUE");
         bmqp::PutMessageIterator pmt(&bufferFactory,
                                      bmqtst::TestHelperUtil::allocator());
-        bdlbb::Blob copiedBlob(bmqtst::TestHelperUtil::allocator());
-        bdlbb::Blob expectedBlob(&bufferFactory,
+        bdlbb::Blob        copiedBlob(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        expectedBlob(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        int                      expectedBlobLength = 0;
-        bmqu::BlobPosition       headerPosition;
-        bmqu::BlobPosition       payloadPosition;
-        const int                queueId = 123;
-        bmqp::EventHeader        eventHeader;
-        bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
-        bdlbb::Blob appDataBlob(bmqtst::TestHelperUtil::allocator());
-        bmqt::MessageGUID        guid = bmqp::MessageGUIDGenerator::testGUID();
+        int                expectedBlobLength = 0;
+        bmqu::BlobPosition headerPosition;
+        bmqu::BlobPosition payloadPosition;
+        const int          queueId = 123;
+        bmqp::EventHeader  eventHeader;
+        bdlbb::Blob        payloadBlob(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        appDataBlob(bmqtst::TestHelperUtil::allocator());
+        bmqt::MessageGUID  guid = bmqp::MessageGUIDGenerator::testGUID();
 
         {
             bdlbb::Blob blob(&bufferFactory,
@@ -772,7 +773,7 @@ static void test3_putEventWithNoMessages()
 
     bsl::vector<bmqp::PutTester::Data> data(
         bmqtst::TestHelperUtil::allocator());
-    bmqp::EventHeader                  eventHeader;
+    bmqp::EventHeader eventHeader;
 
     bmqp::PutTester::populateBlob(&eventBlob,
                                   &eventHeader,
@@ -811,7 +812,7 @@ static void test4_invalidPutEvent()
                               bmqtst::TestHelperUtil::allocator());
         bsl::vector<bmqp::PutTester::Data> data(
             bmqtst::TestHelperUtil::allocator());
-        bmqp::EventHeader                  eventHeader;
+        bmqp::EventHeader eventHeader;
 
         bmqp::PutTester::populateBlob(&eventBlob,
                                       &eventHeader,
@@ -847,7 +848,7 @@ static void test4_invalidPutEvent()
                               bmqtst::TestHelperUtil::allocator());
         bsl::vector<bmqp::PutTester::Data> data(
             bmqtst::TestHelperUtil::allocator());
-        bmqp::EventHeader                  eventHeader;
+        bmqp::EventHeader eventHeader;
 
         bmqp::PutTester::populateBlob(&eventBlob,
                                       &eventHeader,
@@ -900,8 +901,8 @@ static void test5_putEventWithMultipleMessages()
                               bmqtst::TestHelperUtil::allocator());
         bsl::vector<bmqp::PutTester::Data> data(
             bmqtst::TestHelperUtil::allocator());
-        bmqp::EventHeader                  eventHeader;
-        const size_t                       k_NUM_MSGS = 1000;
+        bmqp::EventHeader eventHeader;
+        const size_t      k_NUM_MSGS = 1000;
 
         bmqp::PutTester::populateBlob(&eventBlob,
                                       &eventHeader,
@@ -1014,8 +1015,8 @@ static void test5_putEventWithMultipleMessages()
                               bmqtst::TestHelperUtil::allocator());
         bsl::vector<bmqp::PutTester::Data> data(
             bmqtst::TestHelperUtil::allocator());
-        bmqp::EventHeader                  eventHeader;
-        const size_t                       k_NUM_MSGS = 1000;
+        bmqp::EventHeader eventHeader;
+        const size_t      k_NUM_MSGS = 1000;
 
         bmqp::PutTester::populateBlob(&eventBlob,
                                       &eventHeader,
@@ -1144,8 +1145,8 @@ static void test6_putEventWithZeroLengthPutMessages()
                               bmqtst::TestHelperUtil::allocator());
         bsl::vector<bmqp::PutTester::Data> data(
             bmqtst::TestHelperUtil::allocator());
-        bmqp::EventHeader                  eventHeader;
-        const size_t                       k_NUM_MSGS = 1000;
+        bmqp::EventHeader eventHeader;
+        const size_t      k_NUM_MSGS = 1000;
 
         bmqp::PutTester::populateBlob(&eventBlob,
                                       &eventHeader,

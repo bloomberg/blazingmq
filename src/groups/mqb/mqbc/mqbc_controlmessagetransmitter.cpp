@@ -25,6 +25,8 @@
 #include <bmqio_status.h>
 
 // BDE
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

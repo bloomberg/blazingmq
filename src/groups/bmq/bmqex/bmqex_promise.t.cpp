@@ -21,6 +21,8 @@
 
 // BDE
 #include <bsl_cstring.h>  // bsl::strcmp
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_testallocator.h>
 #include <bslmf_movableref.h>
 #include <bsls_systemclocktype.h>

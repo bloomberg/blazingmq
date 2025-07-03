@@ -27,6 +27,11 @@
 #include <mqbs_filestoreprotocolprinter.h>
 
 // BDE
+#include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_iomanip.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 
 namespace BloombergLP {

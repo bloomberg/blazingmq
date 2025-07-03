@@ -41,6 +41,8 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_threadpool.h>
+#include <bsl_functional.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
@@ -108,7 +110,7 @@ class Application {
         bdlbb::Blob,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
+                                                           BlobSpPool;
     typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > Sessions;
 
     // Data members

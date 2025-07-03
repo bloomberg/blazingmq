@@ -39,6 +39,9 @@
 #include <mqbsi_ledger.h>
 
 // BDE
+#include <bsl_ostream.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 
 namespace BloombergLP {

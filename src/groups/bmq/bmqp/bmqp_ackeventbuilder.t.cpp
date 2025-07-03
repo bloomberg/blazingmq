@@ -36,6 +36,9 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_algorithm.h>
+#include <bsl_cstring.h>
+#include <bsl_memory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -300,11 +303,11 @@ static void testN1_decodeFromFile()
                               bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>     messages(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqu::MemOutStream             os(bmqtst::TestHelperUtil::allocator());
-    bdlb::Guid                     guid        = bdlb::GuidUtil::generate();
-    const int                      k_NUM_MSGS  = 10;
-    const int                      k_SIZE      = 256;
-    char                           buf[k_SIZE] = {0};
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
+    bdlb::Guid         guid        = bdlb::GuidUtil::generate();
+    const int          k_NUM_MSGS  = 10;
+    const int          k_SIZE      = 256;
+    char               buf[k_SIZE] = {0};
 
     PVV("Appending messages");
     appendMessages(&obj, &messages, k_NUM_MSGS);

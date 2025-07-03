@@ -16,6 +16,7 @@
 // mqbplug_statconsumer.cpp                                           -*-C++-*-
 #include <mqbplug_statconsumer.h>
 
+#include <bsl_vector.h>
 #include <mqbscm_version.h>
 
 namespace BloombergLP {

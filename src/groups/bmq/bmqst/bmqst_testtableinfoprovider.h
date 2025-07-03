@@ -30,6 +30,7 @@
 // user to specify the values returned by the TIP.
 
 #include <bmqst_tableinfoprovider.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 

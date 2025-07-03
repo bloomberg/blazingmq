@@ -43,12 +43,14 @@
 #include <bdlf_bind.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_cmath.h>
+#include <bsl_functional.h>
 #include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_numeric.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>

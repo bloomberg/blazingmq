@@ -60,6 +60,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlmt_threadpool.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_vector.h>

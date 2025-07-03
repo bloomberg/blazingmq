@@ -299,6 +299,7 @@
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_default.h>
 #include <bslma_defaultallocatorguard.h>

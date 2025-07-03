@@ -33,6 +33,7 @@
 #include <bmqio_channel.h>
 
 // BDE
+#include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_usesbslmaallocator.h>

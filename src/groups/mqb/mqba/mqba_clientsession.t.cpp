@@ -64,6 +64,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_iostream.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -2125,7 +2126,7 @@ static void test11_initiateShutdown()
         100000000);  // 100 ms
     bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    const unsigned int             subscriptionId =
+    const unsigned int         subscriptionId =
         bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
     const unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
 
@@ -2376,11 +2377,11 @@ static void test11_initiateShutdown()
 
     PV("Confirm multiple messsages while shutting down");
     {
-        const int       NUM_MESSAGES = 5;
+        const int                      NUM_MESSAGES = 5;
         TestBench                      tb(client(e_FirstHop),
                      isAtMostOnce,
                      bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt callbackCounter(0);
+        bsls::AtomicInt                callbackCounter(0);
         bsl::vector<bmqt::MessageGUID> guids(
             bmqtst::TestHelperUtil::allocator());
         guids.reserve(NUM_MESSAGES);

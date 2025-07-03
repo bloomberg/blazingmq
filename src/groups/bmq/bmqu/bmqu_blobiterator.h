@@ -32,6 +32,8 @@
 
 // BDE
 #include <bsl_cstddef.h>
+#include <bsl_iterator.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqu {

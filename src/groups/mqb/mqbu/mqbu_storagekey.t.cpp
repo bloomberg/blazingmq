@@ -39,6 +39,11 @@
 #ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif
+#include <bsl_functional.h>
+#include <bsl_limits.h>
+#include <bsl_map.h>
+#include <bsl_unordered_map.h>
+#include <bsl_utility.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -647,8 +652,8 @@ void testN3_hashTableWithDefaultHashBenchmark()
 
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
-    const size_t                                 k_NUM_ELEMS = 10000;  // 10K
-    bsl::unordered_set<mqbu::StorageKey>         keySet(
+    const size_t                         k_NUM_ELEMS = 10000;  // 10K
+    bsl::unordered_set<mqbu::StorageKey> keySet(
         bmqtst::TestHelperUtil::allocator());
     bsl::unordered_map<mqbu::StorageKey, size_t> ht(
         16843,
@@ -916,8 +921,8 @@ static void testN3_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
 
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
-    const size_t                                 k_NUM_ELEMS = state.range(0);
-    bsl::unordered_set<mqbu::StorageKey>         keySet(
+    const size_t                         k_NUM_ELEMS = state.range(0);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
         bmqtst::TestHelperUtil::allocator());
     bsl::unordered_map<mqbu::StorageKey, size_t> ht(
         16843,

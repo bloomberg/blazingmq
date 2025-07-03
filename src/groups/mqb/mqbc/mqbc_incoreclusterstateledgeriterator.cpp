@@ -26,6 +26,7 @@
 // BDE
 #include <bdlb_scopeexit.h>
 #include <bdlf_bind.h>
+#include <bsl_ostream.h>
 #include <bslim_printer.h>
 #include <bsls_assert.h>
 

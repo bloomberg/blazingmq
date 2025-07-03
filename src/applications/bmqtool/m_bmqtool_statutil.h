@@ -31,6 +31,7 @@
 #include <m_bmqtool_parameters.h>
 
 // BDe
+#include <bsl_vector.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {

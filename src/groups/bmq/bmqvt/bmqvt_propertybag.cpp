@@ -19,6 +19,7 @@
 #include <bmqscm_version.h>
 // BDE
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_vector.h>
 #include <bslim_printer.h>
 #include <bslmf_movableref.h>
 

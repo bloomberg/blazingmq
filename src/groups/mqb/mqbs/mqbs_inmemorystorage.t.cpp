@@ -56,6 +56,8 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_limits.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -108,13 +110,13 @@ const char               k_APP_ID1[]            = "app1";
 const char               k_APP_ID2[]            = "app2";
 const char               k_APP_ID3[]            = "app3";
 
-const mqbu::StorageKey   k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
                                    k_HEX_QUEUE);
-const mqbu::StorageKey   k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF1111");
-const mqbu::StorageKey   k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF2222");
-const mqbu::StorageKey   k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF3333");
 
 // ALIASES

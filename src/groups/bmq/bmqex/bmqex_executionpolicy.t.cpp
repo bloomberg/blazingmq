@@ -22,6 +22,8 @@
 #include <bmqex_executionproperty.h>
 
 // BDE
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bslma_default.h>
 #include <bslma_testallocator.h>
 

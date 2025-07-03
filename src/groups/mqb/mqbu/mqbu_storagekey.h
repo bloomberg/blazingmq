@@ -32,6 +32,7 @@
 #include <bsl_cstring.h>  // for bsl::memcpy, etc
 #include <bsl_ostream.h>
 
+#include <bsl_type_traits.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslh_hash.h>

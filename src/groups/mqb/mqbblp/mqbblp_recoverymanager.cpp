@@ -61,6 +61,7 @@
 #include <bsl_cstdlib.h>  // for bsl::rand()
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>

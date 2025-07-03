@@ -42,6 +42,8 @@
 // BDE
 #include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
+#include <bsl_functional.h>
+#include <bsl_type_traits.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslmf_nestedtraitdeclaration.h>

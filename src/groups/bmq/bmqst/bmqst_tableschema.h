@@ -34,6 +34,7 @@
 #include <bmqst_statvalue.h>
 #include <bmqst_value.h>
 
+#include <bsl_functional.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bslma_usesbslmaallocator.h>

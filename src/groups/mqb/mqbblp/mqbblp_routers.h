@@ -167,10 +167,15 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bsl_functional.h>
+#include <bsl_limits.h>
 #include <bsl_list.h>
 #include <bsl_map.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -406,8 +411,8 @@ class Routers {
     struct SubscriptionId {
         /// The Expression.
         const Expressions::SharedItem d_itExpression;
-        const unsigned int d_upstreamSubQueueId;
-        PriorityGroup*     d_priorityGroup;
+        const unsigned int            d_upstreamSubQueueId;
+        PriorityGroup*                d_priorityGroup;
 
         SubscriptionId(const Expressions::SharedItem& itExpression,
                        const unsigned int             upstreamSubQueueId);
