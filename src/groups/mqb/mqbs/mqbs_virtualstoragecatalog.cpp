@@ -92,11 +92,10 @@ namespace mqbs {
 //
 
 // CREATORS
-VirtualStorageCatalog::VirtualStorageCatalog(
-    mqbi::Storage*                                    storage,
-    const bsl::shared_ptr<mqbstat::QueueStatsDomain>& queueStats_sp,
-    bslma::Allocator*                                 allocator)
-: d_storage_p(storage)
+VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
+                                             bslma::Allocator* allocator)
+: d_allocator_p(allocator)
+, d_storage_p(storage)
 , d_virtualStorages(allocator)
 , d_dataStream(allocator)
 , d_totalBytes(0)
@@ -105,12 +104,11 @@ VirtualStorageCatalog::VirtualStorageCatalog(
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
 , d_isProxy(false)
 , d_queue_p(0)
-, d_queueStats_sp(queueStats_sp)
-, d_allocator_p(allocator)
+, d_queueStats_sp(
+      bsl::allocate_shared<mqbstat::QueueStatsDomain>(d_allocator_p))
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
-    BSLS_ASSERT_SAFE(queueStats_sp);
     BSLS_ASSERT_SAFE(allocator);
 
     d_defaultNonApplicableAppMessage.setRemovedState();
@@ -123,6 +121,15 @@ VirtualStorageCatalog::~VirtualStorageCatalog()
 }
 
 // MANIPULATORS
+void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
+{
+    d_queue_p = queue;
+
+    if (d_queue_p) {
+        d_queue_p->setStats(d_queueStats_sp);
+    }
+}
+
 VirtualStorageCatalog::DataStreamIterator
 VirtualStorageCatalog::begin(const bmqt::MessageGUID& where)
 {
@@ -302,8 +309,8 @@ VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID)
 
     const mqbi::DataStreamMessage& appStates = it->second;
 
-    const size_t numOrdinals =
-        bsl::min(static_cast<size_t>(appStates.d_numApps), d_ordinals.size());
+    const size_t numOrdinals = bsl::min(appStates.d_apps.size(),
+                                        d_ordinals.size());
     for (size_t i = 0; i < numOrdinals; i++) {
         const mqbi::AppMessage& appMessage = appStates.app(i);
         if (appMessage.isPending()) {
@@ -313,7 +320,7 @@ VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID)
         }
     }
 
-    for (size_t i = numOrdinals; i < d_ordinals.size(); i++) {
+    for (size_t i = numOrdinals; i < appStates.d_numApps; i++) {
         // We might have uninitialized state for some apps in the stored state.
         // In this case, the default state is `pending`, and we updated
         // the corresponding virtual storages.
