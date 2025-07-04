@@ -422,8 +422,8 @@ static void test3_URIBuilderMultiThreaded()
 
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    const size_t       k_NUM_THREADS    = 6;
-    const size_t       k_NUM_ITERATIONS = 10000;
+    const size_t k_NUM_THREADS    = 6;
+    const size_t k_NUM_ITERATIONS = 10000;
 
     struct Local {
         static void threadFunction(size_t                  threadId,
