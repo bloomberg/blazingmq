@@ -47,6 +47,11 @@
 
 namespace BloombergLP {
 
+// FORWARD DECLARATION
+namespace mqbstat {
+class QueueStatsDomain;
+}
+
 namespace mqbs {
 
 // ===========================
@@ -68,7 +73,7 @@ namespace mqbs {
 // offset in the consecutive memory ('VirtualStorage::DataStreamMessage')
 // holding all Apps states ('mqbi::AppMessage') for each guid.
 
-class VirtualStorageCatalog {
+class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBS.VIRTUALSTORAGE");
@@ -112,6 +117,9 @@ class VirtualStorageCatalog {
 
   private:
     // DATA
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
     /// Physical storage underlying all virtual storages known to this object
     mqbi::Storage* d_storage_p;
 
@@ -149,8 +157,10 @@ class VirtualStorageCatalog {
     /// queue instance has not been created.
     mqbi::Queue* d_queue_p;
 
-    /// Allocator to use
-    bslma::Allocator* d_allocator_p;
+    /// Statistics of the queue associated to this storage.
+    /// Must exist even if `d_queue_p` is null to ensure correct queue stats if
+    /// this cluster node changes its role to PRIMARY.
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
 
   private:
     // NOT IMPLEMENTED
@@ -171,9 +181,11 @@ class VirtualStorageCatalog {
   public:
     // CREATORS
 
-    /// Create an instance of virtual storage catalog with the specified
-    /// 'defaultRdaInfo' and 'allocator'.
-    VirtualStorageCatalog(mqbi::Storage* storage, bslma::Allocator* allocator);
+    /// Create an instance of virtual storage catalog.
+    /// @param storage Storage associated with this catalog.
+    /// @param allocator Allocator to use.
+    explicit VirtualStorageCatalog(mqbi::Storage*    storage,
+                                   bslma::Allocator* allocator);
 
     /// Destructor
     ~VirtualStorageCatalog();
@@ -292,6 +304,9 @@ class VirtualStorageCatalog {
     /// 'appKey'.
     VirtualStorage* virtualStorage(const mqbu::StorageKey& appKey);
 
+    /// @return Stat context associated with this storage.
+    bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats();
+
     /// (Auto)Confirm the specified 'msgGUID' for the specified 'appKey'.
     /// Behavior is undefined unless there is an App with the 'appKey'.
     void autoConfirm(mqbi::DataStreamMessage* dataStreamMessage,
@@ -371,6 +386,12 @@ class VirtualStorageCatalog {
 // class VirtualStorageCatalog
 // ---------------------------
 
+inline bsl::shared_ptr<mqbstat::QueueStatsDomain>&
+VirtualStorageCatalog::stats()
+{
+    return d_queueStats_sp;
+}
+
 inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
 {
     if (maxDeliveryAttempts > 0) {
@@ -384,11 +405,6 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
 inline void VirtualStorageCatalog::configureAsProxy()
 {
     d_isProxy = true;
-}
-
-inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
-{
-    d_queue_p = queue;
 }
 
 // ACCESSORS

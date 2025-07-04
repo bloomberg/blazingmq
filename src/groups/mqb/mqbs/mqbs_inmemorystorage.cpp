@@ -50,6 +50,7 @@ const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
 // CREATORS
 InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
+                                 mqbi::Domain*           domain,
                                  int                     partitionId,
                                  const mqbconfm::Domain& config,
                                  mqbu::CapacityMeter*    parentCapacityMeter,
@@ -82,6 +83,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
 {
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
 
+    d_virtualStorageCatalog.stats()->initialize(d_uri, domain);
     d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
 
     if (isProxy()) {
@@ -237,13 +239,10 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 
         d_currentlyAutoConfirming = bmqt::MessageGUID();
 
-        if (queue()) {
-            queue()
-                ->stats()
-                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
+        d_virtualStorageCatalog.stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
 
-                    msgSize);
-        }
+                msgSize);
 
         d_isEmpty.storeRelaxed(0);
 
@@ -337,12 +336,10 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
             d_capacityMeter.remove(1, msgLen);
             if (queue()) {
                 queue()->queueEngine()->beforeMessageRemoved(guid);
-                queue()
-                    ->stats()
-                    ->onEvent<
-                        mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                        msgLen);
             }
+            d_virtualStorageCatalog.stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
 
             // There is not really a need to remove the guid from all virtual
             // storages, because we can be here only if guid doesn't exist in
@@ -353,12 +350,10 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
 
             d_items.erase(it);
 
-            if (queue()) {
-                queue()
-                    ->stats()
-                    ->onEvent<mqbstat::QueueStatsDomain::EventType::
-                                  e_UPDATE_HISTORY>(d_items.historySize());
-            }
+            d_virtualStorageCatalog.stats()
+                ->onEvent<
+                    mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                    d_items.historySize());
         }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
@@ -384,16 +379,11 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
     // Update resource usage
     d_capacityMeter.remove(1, msgLen);
 
-    if (queue()) {
-        queue()
-            ->stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                msgLen);
-        queue()
-            ->stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-                d_items.historySize());
-    }
+    d_virtualStorageCatalog.stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(msgLen);
+    d_virtualStorageCatalog.stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_items.historySize());
 
     if (msgSize) {
         *msgSize = msgLen;
@@ -416,11 +406,8 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         d_items.clear();
         d_capacityMeter.clear();
 
-        if (queue()) {
-            queue()
-                ->stats()
-                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PURGE>(0);
-        }
+        d_virtualStorageCatalog.stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PURGE>(0);
 
         d_isEmpty.storeRelaxed(1);
 
@@ -450,12 +437,9 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         d_isEmpty.storeRelaxed(1);
     }
 
-    if (queue()) {
-        queue()
-            ->stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-                d_items.historySize());
-    }
+    d_virtualStorageCatalog.stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_items.historySize());
 
     return mqbi::StorageResult::e_SUCCESS;
 }
@@ -493,11 +477,10 @@ int InMemoryStorage::gcExpiredMessages(
         d_capacityMeter.remove(1, msgLen);
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(cit->first);
-            queue()
-                ->stats()
-                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                    msgLen);
         }
+        d_virtualStorageCatalog.stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                msgLen);
 
         // Remove message from all virtual storages and the physical (this)
         // storage.
@@ -506,13 +489,11 @@ int InMemoryStorage::gcExpiredMessages(
         ++numMsgsDeleted;
     }
 
-    if (queue() && (numMsgsDeleted > 0)) {
-        queue()
-            ->stats()
+    if (numMsgsDeleted > 0) {
+        d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE>(
                 numMsgsDeleted);
-        queue()
-            ->stats()
+        d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
     }
@@ -527,9 +508,8 @@ int InMemoryStorage::gcExpiredMessages(
 int InMemoryStorage::gcHistory(bsls::Types::Int64 now)
 {
     const int rc = d_items.gc(now, k_GC_MESSAGES_BATCH_SIZE);
-    if (0 != rc && queue()) {
-        queue()
-            ->stats()
+    if (0 != rc) {
+        d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
     }
