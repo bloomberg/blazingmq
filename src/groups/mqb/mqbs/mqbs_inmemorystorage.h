@@ -188,9 +188,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     ItemsMap d_items;
 
-    /// Statistics of the queue associated to this storage.
-    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
-
     VirtualStorageCatalog d_virtualStorageCatalog;
 
     RecordHandles d_queueOpRecordHandles;
