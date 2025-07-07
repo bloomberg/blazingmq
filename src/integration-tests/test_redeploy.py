@@ -19,14 +19,18 @@ in the middle of things.  Note that this test does not test the HA
 functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 """
 
+import json
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     multi7_node,
     start_cluster,
+    tweak,
 )
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
+
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
 CONSUMER_WAIT_TIMEOUT_SEC = 60
@@ -112,7 +116,10 @@ def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     messagesCounter.assert_posted(consumer, uri_priority)
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=True)
+# Ensure the leader is not changing during cluster restart.
+# Otherwise cluster gets stuck on leader reelection (in legacy mode)
+@start_cluster(False)
+@tweak.cluster.elector.quorum(7)
 def test_redeploy_whole_cluster_restart(
     multi7_node: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -121,12 +128,23 @@ def test_redeploy_whole_cluster_restart(
     Every time a node is upgraded, all the nodes are restarted.
     """
 
-    # Ensure the leader is not changing during cluster restart.
-    # Otherwise cluster gets stuck on leader reelection (in legacy mode)
-    QUORUM_TO_ENSURE_NOT_LEADER = 100
-    for node in multi7_node.nodes():
-        if node is not multi7_node.last_known_leader:
-            node.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
+    # Modify cluster config for node "east1".
+    # Set quorum to 1 to make sure it is the leader
+    cluster = multi7_node
+    with open(
+        cluster.work_dir.joinpath(
+            cluster.config.nodes["east1"].config_dir, "clusters.json"
+        ),
+        "r+",
+        encoding="utf-8",
+    ) as f:
+        data = json.load(f)
+        data["myClusters"][0]["elector"]["quorum"] = 1
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
+
+    cluster.start(wait_leader=True, wait_ready=True)
 
     uri_priority = domain_urls.uri_priority
 
