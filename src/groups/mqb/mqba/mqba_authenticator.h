@@ -151,8 +151,8 @@ class Authenticator : public mqbnet::Authenticator {
     /// specified `context` and `channel`.  Return 0 on success, or a
     /// non-zero error code and populate the specified `errorDescription`
     /// with a description of the error otherwise.
-    int authenticateAsync(bsl::ostream&                  errorDescription,
-                          const AuthenticationContextSp& context,
+    int authenticateAsync(bsl::ostream&                     errorDescription,
+                          const InitialConnectionContextSp& context,
                           const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Schedule a re-authentication job in the thread pool using the
@@ -168,7 +168,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
     /// state of `context` as appropriate. Return 0 on success, or a
     /// non-zero error code otherwise.
-    void authenticate(const AuthenticationContextSp&         context,
+    void authenticate(const InitialConnectionContextSp&      context,
                       const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Reauthenticate the connection using the `AuthenticationMessage`
