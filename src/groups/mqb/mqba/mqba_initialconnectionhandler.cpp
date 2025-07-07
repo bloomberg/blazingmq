@@ -239,7 +239,7 @@ int InitialConnectionHandler::processBlob(
                 d_negotiator_mp.get(),
                 bdlf::PlaceHolders::_1,  // errorDescription
                 bdlf::PlaceHolders::_2,  // session
-                bdlf::PlaceHolders::_4   // context
+                bdlf::PlaceHolders::_3   // context
                 ));
 
             bmqp_ctrlmsg::AuthenticationMessage authenticationMsg;
@@ -256,6 +256,8 @@ int InitialConnectionHandler::processBlob(
                                                           isContinueRead,
                                                           context,
                                                           authenticationMsg);
+
+            *isContinueRead = false;
 
             return rc;  // RETURN
         }
