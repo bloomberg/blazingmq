@@ -100,8 +100,8 @@ if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
     pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
 else
-  echo "Virtual environment not found."
-  exit 1
+    echo "Virtual environment not found."
+    exit 1
 fi
 
 # Parse sanitizers config
