@@ -211,14 +211,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     onLeaderSyncDataQueryResponse(const RequestManagerType::RequestSp& context,
                                   const mqbnet::ClusterNode* responder);
 
-    /// Process the specified `partitions` from the specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void processPartitionPrimaryAdvisoryRaw(
-        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
-        const mqbnet::ClusterNode*                             source);
-
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ElectorInfoObserver)
 
@@ -510,15 +502,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source,
         bool delayed = false) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process the specified partition primary advisory `message` from the
-    /// specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void processPartitionPrimaryAdvisory(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified leader advisory `message` from the specified
     /// `source`.
