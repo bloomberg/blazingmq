@@ -1,0 +1,3 @@
+s_bmqfuzz_bmqt_uri.fuzz
+s_bmqfuzz_eval.fuzz
+s_bmqfuzz_parseutil.fuzz

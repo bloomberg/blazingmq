@@ -50,7 +50,6 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bdlmt_fixedthreadpool.h>
 #include <bdlt_currenttime.h>
@@ -125,8 +124,6 @@ struct TestHelper {
 
   public:
     // PUBLIC DATA
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
-
     bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
 
     bmqu::TempDirectory d_tempDir;
@@ -135,8 +132,7 @@ struct TestHelper {
 
     // CREATORS
     TestHelper()
-    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
-    , d_cluster_mp(0)
+    : d_cluster_mp(0)
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_tempArchiveDir(bmqtst::TestHelperUtil::allocator())
     {
@@ -174,12 +170,12 @@ struct TestHelper {
 
         d_cluster_mp.load(
             new (*bmqtst::TestHelperUtil::allocator())
-                mqbmock::Cluster(&d_bufferFactory,
-                                 bmqtst::TestHelperUtil::allocator(),
+                mqbmock::Cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
                                  false,  // isLeader
                                  true,   // isCSLMode
                                  true,   // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
                                  d_tempDir.path(),
@@ -818,7 +814,7 @@ struct TestHelper {
         // crc value
         mqbu::MessageGUIDUtil::generateGUID(&rec.d_guid);
         rec.d_appData_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
-                                       &d_bufferFactory,
+                                       d_cluster_mp->bufferFactory(),
                                        bmqtst::TestHelperUtil::allocator());
         bsl::string payloadStr(recNum * 10,
                                'x',
@@ -907,6 +903,7 @@ struct TestHelper {
                            &threadPool,
                            d_cluster_mp->isCSLModeEnabled(),
                            d_cluster_mp->isFSMWorkflow(),
+                           d_cluster_mp->doesFSMwriteQLIST(),
                            1,  // replicationFactor
                            bmqtst::TestHelperUtil::allocator());
 

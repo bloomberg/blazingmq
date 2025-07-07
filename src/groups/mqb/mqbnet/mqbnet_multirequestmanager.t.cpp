@@ -119,33 +119,29 @@ struct Caller {
 
 class TestContext {
   private:
-    bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
-    // Buffer factory provided to the various builders
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
+    /// Temp directory needed for Cluster object
+    bmqu::TempDirectory d_tempDir;
+
+    /// Cluster object used for generating mock nodes
+    bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
+
+    /// Cluster nodes used to send them request by MultiRequestManager
+    Nodes d_nodes;
 
     /// Blob shared pointer pool used in event builders.
     bmqp::BlobPoolUtil::BlobSpPoolSp d_blobSpPool_sp;
 
+    /// RequestManager object under testing
     ReqManagerTypeSp d_requestManager;
-    // RequestManager object under testing
 
+    /// MultiRequestManager object under testing
     MultiReqManagerTypeSp d_multiRequestManager;
-    // MultiRequestManager object under testing
 
+    /// Context object used to collect responses from the nodes
     ReqContextSp d_requestContextSp;
-    // MultiRequestManagerRequestContext object used to collect responses from
-    // the nodes
-
-    bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
-    // Cluster object used for generating mock nodes
-
-    Nodes d_nodes;
-    // Cluster nodes used to send them request by MultiRequestManager
-
-    bmqu::TempDirectory d_tempDir;
-    // Temp directory needed for Cluster object
-
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   public:
     // TRAITS
@@ -169,9 +165,6 @@ class TestContext {
     /// Return shared pointer to the MultiRequestManagerRequestContext
     /// object.
     ReqContextSp& context();
-
-    /// Return reference to the buffer factory
-    bdlbb::PooledBlobBufferFactory& factory();
 
     /// Return shared pointer to the RequestManager object
     ReqManagerTypeSp manager();
@@ -235,47 +228,34 @@ class TestContext {
 };
 
 TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
-: d_blobBufferFactory(1024, allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_tempDir(d_allocator_p)
+, d_cluster_mp(new(*d_allocator_p) mqbmock::Cluster(
+                   d_allocator_p,
+                   true,   // isClusterMember
+                   false,  // isLeader
+                   false,  // isCSLMode
+                   false,  // isFSMWorkflow
+                   false,  // doesFSMwriteQLIST
+                   generateNodeDefs(nodesCount, d_allocator_p),
+                   "testCluster",
+                   d_tempDir.path()),
+               d_allocator_p)
+, d_nodes(clusterNodes(d_cluster_mp.get(), d_allocator_p), d_allocator_p)
 , d_blobSpPool_sp(
-      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
-                                         bmqtst::TestHelperUtil::allocator()))
-, d_requestManager(0)
-, d_multiRequestManager(0)
-, d_requestContextSp(0)
-, d_cluster_mp(0)
-, d_nodes(allocator)
-, d_tempDir(allocator)
-, d_allocator_p(allocator)
+      bmqp::BlobPoolUtil::createBlobPool(d_cluster_mp->bufferFactory(),
+                                         d_allocator_p))
+, d_requestManager(
+      bsl::make_shared<ReqManagerType>(bmqp::EventType::e_CONTROL,
+                                       d_blobSpPool_sp.get(),
+                                       &d_cluster_mp->_scheduler(),
+                                       false,  // lateResponseMode
+                                       d_allocator_p))
+, d_multiRequestManager(
+      bsl::make_shared<MultiReqManagerType>(d_requestManager.get(),
+                                            d_allocator_p))
+, d_requestContextSp(d_multiRequestManager->createRequestContext())
 {
-    mqbmock::Cluster::ClusterNodeDefs defs = generateNodeDefs(nodesCount,
-                                                              d_allocator_p);
-
-    d_cluster_mp.load(new (*d_allocator_p)
-                          mqbmock::Cluster(&d_blobBufferFactory,
-                                           d_allocator_p,
-                                           true,   // isClusterMember
-                                           false,  // isLeader
-                                           false,  // isCSLMode
-                                           false,  // isFSMWorkflow
-                                           defs,
-                                           "testCluster",
-                                           d_tempDir.path()),
-                      d_allocator_p);
-
-    d_nodes = clusterNodes(d_cluster_mp.get(), d_allocator_p);
-
-    d_requestManager = bsl::make_shared<ReqManagerType>(
-        bmqp::EventType::e_CONTROL,
-        d_blobSpPool_sp.get(),
-        &d_cluster_mp->_scheduler(),
-        false,  // lateResponseMode
-        d_allocator_p);
-
-    d_multiRequestManager = bsl::make_shared<MultiReqManagerType>(
-        d_requestManager.get(),
-        d_allocator_p);
-
-    d_requestContextSp = d_multiRequestManager->createRequestContext();
     d_requestContextSp->setDestinationNodes(d_nodes);
 
     bmqsys::Time::shutdown();
@@ -311,11 +291,6 @@ bslma::Allocator* TestContext::allocator() const
 ReqContextSp& TestContext::context()
 {
     return d_requestContextSp;
-}
-
-bdlbb::PooledBlobBufferFactory& TestContext::factory()
-{
-    return d_blobBufferFactory;
 }
 
 ReqManagerTypeSp TestContext::manager()
@@ -476,16 +451,13 @@ static void test1_contextTest()
         mqbmock::Cluster::ClusterNodeDefs defs = TestContext::generateNodeDefs(
             5,
             bmqtst::TestHelperUtil::allocator());
-        bdlbb::PooledBlobBufferFactory blobBufferFactory(
-            1024,
-            bmqtst::TestHelperUtil::allocator());
         bmqu::TempDirectory tempDir(bmqtst::TestHelperUtil::allocator());
-        mqbmock::Cluster    cluster(&blobBufferFactory,
-                                 bmqtst::TestHelperUtil::allocator(),
+        mqbmock::Cluster    cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
                                  false,  // isLeader
                                  false,  // isCSLMode
                                  false,  // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  defs,
                                  "testCluster",
                                  tempDir.path());

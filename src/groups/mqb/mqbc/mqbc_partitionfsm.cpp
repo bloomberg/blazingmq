@@ -54,13 +54,13 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
     return *this;
 }
 
-void PartitionFSM::applyEvent(
-    const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueueSp)
+void PartitionFSM::popEventAndProcess(
+    const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueue)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!eventsQueueSp->empty());
+    BSLS_ASSERT_SAFE(!eventsQueue->empty());
 
-    EventWithData eventWithData = eventsQueueSp->front();
+    EventWithData eventWithData = eventsQueue->front();
     BSLS_ASSERT_SAFE(!eventWithData.second.empty());
     const int partitionId = eventWithData.second[0].partitionId();
 
@@ -81,7 +81,7 @@ void PartitionFSM::applyEvent(
 
     // Perform action
     PartitionFSMArgsSp argsSp(new (*d_allocator_p)
-                                  PartitionFSMArgs(eventsQueueSp.get()),
+                                  PartitionFSMArgs(eventsQueue.get()),
                               d_allocator_p);
     (d_actions.*(transition.second))(argsSp);
 
@@ -129,9 +129,9 @@ void PartitionFSM::applyEvent(
         }
     }
 
-    eventsQueueSp->pop();
-    if (!eventsQueueSp->empty()) {
-        applyEvent(eventsQueueSp);
+    eventsQueue->pop();
+    if (!eventsQueue->empty()) {
+        popEventAndProcess(eventsQueue);
     }
     else {
         // NOTHING

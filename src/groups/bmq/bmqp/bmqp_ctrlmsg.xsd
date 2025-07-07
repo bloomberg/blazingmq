@@ -560,8 +560,8 @@
         <element name='partitionSyncDataQueryResponse'  type='tns:PartitionSyncDataQueryResponse'/>
         <element name='partitionSyncDataQueryStatus'    type='tns:PartitionSyncDataQueryStatus'/>
         <element name='primaryStatusAdvisory'           type='tns:PrimaryStatusAdvisory'/>
-        <element name='clusterSyncRequest'              type='tns:ClusterSyncRequest'/>
-        <element name='clusterSyncResponse'             type='tns:ClusterSyncResponse'/>
+        <element name='clusterSyncRequest'              type='tns:DummyType'/>
+        <element name='clusterSyncResponse'             type='tns:DummyType'/>
         <element name='queueUnAssignmentAdvisory'       type='tns:QueueUnAssignmentAdvisory'/>
         <element name='queueUnassignedAdvisory'         type='tns:QueueUnassignedAdvisory'/>
         <element name='leaderAdvisoryAck'               type='tns:LeaderAdvisoryAck'/>
@@ -1369,32 +1369,6 @@
     </sequence>
   </complexType>
 
-  <complexType name='ClusterSyncRequest'>
-    <annotation>
-      <documentation>
-        This type represents a message sent by a cluster member node to all
-        peers, in order to ensure sync (think of it as a distributed latch
-        between all nodes in the cluster).  Each peer, upon reception of this
-        request, is expected to reply with a 'ClusterSyncResponse' message.
-      </documentation>
-    </annotation>
-    <sequence>
-      <!-- Reserved for future use -->
-    </sequence>
-  </complexType>
-
-  <complexType name='ClusterSyncResponse'>
-    <annotation>
-      <documentation>
-        This type represents a message sent by a cluster member node, in
-        response to a 'ClusterSyncRequest'.
-      </documentation>
-    </annotation>
-    <sequence>
-      <!-- Reserved for future use -->
-    </sequence>
-  </complexType>
-
   <complexType name='StopRequest'>
     <annotation>
       <documentation>
@@ -1602,16 +1576,13 @@
         During negotiation, the process (whether a client using the libbmq SDK,
         or a bmqbrkr) sends a 'clientIdentity' message; to which the remote
         peer will reply with a 'brokerResponse' message, embedding a
-        'clientIdentity' representing its own identity.  In order to support
-        reverse connection, the negotiation will be 3 steps: first, a
-        'reverseConnectionRequest' will be sent, which will trigger the
-        'normal' 2-steps negotiation to be initiated by the remote peer.
+        'clientIdentity' representing its own identity.
       </documentation>
     </annotation>
     <choice>
       <element name='clientIdentity'           type='tns:ClientIdentity'/>
       <element name='brokerResponse'           type='tns:BrokerResponse'/>
-      <element name='reverseConnectionRequest' type='tns:ReverseConnectionRequest'/>
+      <element name="placeHolder"              type='tns:DummyType'/>
     </choice>
   </complexType>
 
@@ -1733,26 +1704,12 @@
     </sequence>
   </complexType>
 
-  <complexType name='ReverseConnectionRequest'>
+  <complexType name="DummyType">
     <annotation>
       <documentation>
-        This negotiation message is used as the first message exchanged in the
-        case of reverse connection: the 'connecting' out peer sends that
-        message once the connection is established, indicating to the remote
-        peer that it should use this connection as the communication channel
-        for the 'clusterNodeId' of the 'clusterName'.
-
-        protocolVersion...: protocol version used by this broker
-        clusterName.......: the name of the cluster this connection is about
-        clusterNodeId.....: the nodeId of the node in that cluster (note that
-                            the -1 default corresponds to
-                            'mqbnet::Cluster::k_INVALID_NODE_ID').
+        This type is used protocol messages that have been deprecated and removed.
       </documentation>
     </annotation>
-    <sequence>
-      <element name='protocolVersion' type='int'/>
-      <element name='clusterName'     type='string' default=''/>
-      <element name='clusterNodeId'   type='int'    default='-1'/>
-    </sequence>
   </complexType>
+
 </schema>

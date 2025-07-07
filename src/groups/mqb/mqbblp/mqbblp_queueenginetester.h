@@ -134,7 +134,6 @@
 
 // BDE
 #include <ball_log.h>
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
@@ -194,9 +193,6 @@ class QueueEngineTester {
     /// Constant representing a null Message GUID.  This value should be used
     /// for the GUID of a message whose GUID is not important or unknown.
     const bmqt::MessageGUID d_invalidGuid;
-
-    /// Buffer factory to use for messages.
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
 
     /// Mock dispatcher.
     bslma::ManagedPtr<mqbmock::Dispatcher> d_mockDispatcher_mp;

@@ -111,116 +111,7 @@ static void test1_initializeShutdown()
     BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
 }
 
-static void test2_hexBinaryConversions()
-// ------------------------------------------------------------------------
-//                       HEX/BINARY CONVERSIONS
-// ------------------------------------------------------------------------
-//
-// Concerns:
-//   Verify the correctness of binary to hex and hex to binary conversion.
-//
-// Testing:
-//   - void hexToBinary(char *buffer, int length, const char *hex)
-//   - void binaryToHex(char *buffer, char *binary, int binaryBufferLength)
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("HEX/BINARY CONVERSIONS");
-
-    PV("hexToBinary");
-    {
-        struct Test {
-            int                 d_line;
-            const char*         d_hex;
-            const unsigned char d_expected[8];
-        } k_DATA[] = {
-            {L_, "0000000000000000", {0, 0, 0, 0, 0, 0, 0, 0}},
-            {L_, "FFFFFFFFFFFFFFFF", {255, 255, 255, 255, 255, 255, 255, 255}},
-            {L_,
-             "0011223344556677",
-             {0x0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77}},
-            {L_,
-             "8899AABBCCDDEEFF",
-             {0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}},
-            {L_,
-             "0123456789ABCDEF",
-             {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}},
-        };
-
-        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-            const Test& test = k_DATA[idx];
-
-            PVV(test.d_line << ": converting '" << test.d_hex << "' to bin");
-            char buffer[8] = {0};
-            bmqp::ProtocolUtil::hexToBinary(buffer, 8, test.d_hex);
-            BMQTST_ASSERT_EQ_D("line " << test.d_line,
-                               0,
-                               bsl::memcmp(test.d_expected, buffer, 8));
-        }
-    }
-
-    PV("binaryToHex");
-    {
-        struct Test {
-            int                 d_line;
-            const unsigned char d_binary[8];
-            const char*         d_expected;
-        } k_DATA[] = {
-            {L_, {0, 0, 0, 0, 0, 0, 0, 0}, "0000000000000000"},
-            {L_, {255, 255, 255, 255, 255, 255, 255, 255}, "FFFFFFFFFFFFFFFF"},
-            {L_,
-             {0x0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77},
-             "0011223344556677"},
-            {L_,
-             {0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
-             "8899AABBCCDDEEFF"},
-            {L_,
-             {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF},
-             "0123456789ABCDEF"},
-            {L_, {0x01, 0x02, 0x03}, "010203"},
-        };
-
-        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-            const Test& test = k_DATA[idx];
-
-            PVV(test.d_line << ": converting to hex (expected: "
-                            << test.d_expected << ")");
-            char   buffer[16] = {0};
-            size_t l          = strlen(test.d_expected) / 2;
-            bmqp::ProtocolUtil::binaryToHex(
-                buffer,
-                reinterpret_cast<const char*>(test.d_binary),
-                l);
-            BMQTST_ASSERT_EQ_D("line " << test.d_line,
-                               0,
-                               bsl::memcmp(test.d_expected, buffer, l * 2));
-        }
-    }
-
-    PV("Isomorphism");
-    {
-        const char k_HEX[]               = "0123456789ABCDEF";
-        const char k_BINARY[]            = {4, 'a', '?', '1', 0, 22, 127, '*'};
-        const int  k_SIZE                = 8;
-        char       binaryToFill[k_SIZE]  = {0};
-        char       hexToFill[2 * k_SIZE] = {0};
-
-        PVV("binaryToHex(hexToBinary(x))");
-        bmqp::ProtocolUtil::hexToBinary(binaryToFill, k_SIZE, k_HEX);
-        bmqp::ProtocolUtil::binaryToHex(hexToFill, binaryToFill, k_SIZE);
-        BMQTST_ASSERT_EQ(0, bsl::memcmp(k_HEX, hexToFill, k_SIZE * 2));
-
-        PVV("hexToBinary(binaryToHex(x))");
-        bmqp::ProtocolUtil::binaryToHex(hexToFill, k_BINARY, k_SIZE);
-        bmqp::ProtocolUtil::hexToBinary(binaryToFill, k_SIZE, hexToFill);
-        BMQTST_ASSERT_EQ(0, bsl::memcmp(k_BINARY, binaryToFill, k_SIZE));
-    }
-}
-
-static void test3_calcNumWordsAndPadding()
+static void test2_calcNumWordsAndPadding()
 // ------------------------------------------------------------------------
 //                     CALC NUM WORDS AND PADDING
 // ------------------------------------------------------------------------
@@ -292,7 +183,7 @@ static void test3_calcNumWordsAndPadding()
     bmqp::ProtocolUtil::shutdown();
 }
 
-static void test4_paddingChar()
+static void test3_paddingChar()
 // ------------------------------------------------------------------------
 //                        APPEND PADDING (CHAR)
 // ------------------------------------------------------------------------
@@ -376,7 +267,7 @@ static void test4_paddingChar()
     bmqp::ProtocolUtil::shutdown();
 }
 
-static void test5_paddingBlob()
+static void test4_paddingBlob()
 // ------------------------------------------------------------------------
 //                        APPEND PADDING (BLOB)
 // ------------------------------------------------------------------------
@@ -484,7 +375,7 @@ static void test5_paddingBlob()
     bmqp::ProtocolUtil::shutdown();
 }
 
-static void test6_heartbeatAndEmptyBlobs()
+static void test5_heartbeatAndEmptyBlobs()
 // ------------------------------------------------------------------------
 //                           HEARTBEAT AND EMPTY BLOBS
 // ------------------------------------------------------------------------
@@ -537,7 +428,7 @@ static void test6_heartbeatAndEmptyBlobs()
     bmqp::ProtocolUtil::shutdown();
 }
 
-static void test7_ackResultToCode()
+static void test6_ackResultToCode()
 // ------------------------------------------------------------------------
 // ACK RESULT TO CODE
 //
@@ -586,7 +477,7 @@ static void test7_ackResultToCode()
     }
 }
 
-static void test8_ackResultFromCode()
+static void test7_ackResultFromCode()
 // ------------------------------------------------------------------------
 // ACK RESULT FROM CODE
 //
@@ -630,7 +521,7 @@ static void test8_ackResultFromCode()
     }
 }
 
-static void test9_loadFieldValues()
+static void test8_loadFieldValues()
 // ------------------------------------------------------------------------
 // LOAD FIELD VALUES
 //
@@ -779,7 +670,7 @@ static void encodeDecodeHelper(E encodingType)
     BMQTST_ASSERT_EQ(decodedClusterMessage, clusterMessage);
 }
 
-static void test10_encodeDecodeMessage()
+static void test9_encodeDecodeMessage()
 // ------------------------------------------------------------------------
 // ENCODE DECODE MESSAGE
 //
@@ -845,7 +736,7 @@ static void populateBlob(bdlbb::Blob* blob, int atLeastLen)
     }
 }
 
-static void test11_parseMessageProperties()
+static void test10_parseMessageProperties()
 // ------------------------------------------------------------------------
 // TESTS PARSING AS IT IS USED IN QueueEngineUtil::logRejectMessage
 //
@@ -942,16 +833,15 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 11: test11_parseMessageProperties(); break;
-    case 10: test10_encodeDecodeMessage(); break;
-    case 9: test9_loadFieldValues(); break;
-    case 8: test8_ackResultFromCode(); break;
-    case 7: test7_ackResultToCode(); break;
-    case 6: test6_heartbeatAndEmptyBlobs(); break;
-    case 5: test5_paddingBlob(); break;
-    case 4: test4_paddingChar(); break;
-    case 3: test3_calcNumWordsAndPadding(); break;
-    case 2: test2_hexBinaryConversions(); break;
+    case 10: test10_parseMessageProperties(); break;
+    case 9: test9_encodeDecodeMessage(); break;
+    case 8: test8_loadFieldValues(); break;
+    case 7: test7_ackResultFromCode(); break;
+    case 6: test6_ackResultToCode(); break;
+    case 5: test5_heartbeatAndEmptyBlobs(); break;
+    case 4: test4_paddingBlob(); break;
+    case 3: test3_paddingChar(); break;
+    case 2: test2_calcNumWordsAndPadding(); break;
     case 1: test1_initializeShutdown(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;

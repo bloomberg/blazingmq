@@ -70,7 +70,7 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
     }
 
     // Create and set description
-    bdlma::LocalSequentialAllocator<256> localAllocator;
+    bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
     bmqu::MemOutStream                   os(&localAllocator);
     if (isRemote) {
         os << "ClusterProxy (" << name << ")";
@@ -79,10 +79,7 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
         os << "Cluster (" << name << ")";
     }
 
-    bsl::string description;
-    description.assign(os.str().data(), os.str().length());
-
-    return mqbc::ClusterDataIdentity(name, description, identity);
+    return mqbc::ClusterDataIdentity(name, os.str(), identity, allocator);
 }
 
 }  // close unnamed namespace

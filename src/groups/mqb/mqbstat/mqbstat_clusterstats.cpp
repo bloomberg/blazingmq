@@ -251,7 +251,8 @@ void ClusterStats::initialize(const bsl::string&  name,
             bsl::shared_ptr<bmqst::StatContext>(
                 d_statContext_mp->addSubcontext(
                     bmqst::StatContextConfiguration(partitionName,
-                                                    &localAllocator))));
+                                                    &localAllocator)),
+                allocator));
         setNodeRoleForPartition(pId, PrimaryStatus::e_UNKNOWN);
     }
 }

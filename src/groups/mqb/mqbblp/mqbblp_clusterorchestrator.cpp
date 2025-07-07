@@ -518,71 +518,6 @@ void ClusterOrchestrator::dropPeerQueues(mqbc::ClusterNodeSession* ns)
     }
 }
 
-void ClusterOrchestrator::timerCb()
-{
-    // executed by the *SCHEDULER* thread
-
-    d_clusterData_p->dispatcherClientData().dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterOrchestrator::timerCbDispatched, this),
-        &d_clusterData_p->cluster());
-}
-
-void ClusterOrchestrator::timerCbDispatched()
-{
-    // executed by the *CLUSTER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        dispatcher()->inDispatcherThread(&d_clusterData_p->cluster()));
-
-    const bsls::Types::Int64 timer = bmqsys::Time::highResolutionTimer();
-
-    for (size_t partitionId = 0;
-         partitionId < clusterState()->partitions().size();
-         ++partitionId) {
-        if (!clusterState()->isSelfActivePrimary(partitionId)) {
-            continue;  // CONTINUE
-        }
-
-        const mqbs::FileStore& fs = d_storageManager_p->fileStore(partitionId);
-
-        if (!fs.isOpen()) {
-            continue;  // CONTINUE
-        }
-
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(&ClusterOrchestrator::onQueueActivityTimer,
-                                 this,
-                                 timer,
-                                 partitionId),
-            fs.dispatcherClientData());
-    }
-}
-
-void ClusterOrchestrator::onQueueActivityTimer(bsls::Types::Int64 timer,
-                                               int                partitionId)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_storageManager_p->fileStore(partitionId).inDispatcherThread());
-
-    struct local {
-        static void onTimerFunctor(mqbi::Queue*       _queue,
-                                   bsls::Types::Int64 _timer)
-        {
-            _queue->queueEngine()->onTimer(_timer);
-        }
-    };
-
-    d_storageManager_p->applyForEachQueue(
-        partitionId,
-        bdlf::BindUtil::bind(local::onTimerFunctor,
-                             bdlf::PlaceHolders::_1,  // queue
-                             timer));
-}
-
 // CREATORS
 ClusterOrchestrator::ClusterOrchestrator(
     mqbcfg::ClusterDefinition& clusterConfig,
@@ -729,14 +664,6 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         errorDescription << "Failed to start elector";
         return rc * 10 + rc_ELECTOR_FAILURE;  // RETURN
     }
-
-    bsls::TimeInterval interval;
-    interval.setTotalMilliseconds(
-        d_clusterConfig.queueOperations().consumptionMonitorPeriodMs());
-    d_clusterData_p->scheduler().scheduleRecurringEvent(
-        &d_consumptionMonitorEventHandle,
-        interval,
-        bdlf::BindUtil::bind(&ClusterOrchestrator::timerCb, this));
 
     d_isStarted = true;
     return rc_SUCCESS;
@@ -1341,18 +1268,6 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     d_stateManager_mp->processQueueAssignmentRequest(request, requester);
-}
-
-void ClusterOrchestrator::processQueueAssignmentAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processQueueAssignmentAdvisory(message, source);
 }
 
 void ClusterOrchestrator::processQueueUnassignedAdvisory(

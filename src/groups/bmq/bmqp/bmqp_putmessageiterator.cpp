@@ -36,6 +36,25 @@
 namespace BloombergLP {
 namespace bmqp {
 
+namespace {
+
+inline bool isValidWordPaddingByte(char value)
+{
+    switch (value) {
+    case 1: BSLA_FALLTHROUGH;
+    case 2: BSLA_FALLTHROUGH;
+    case 3: BSLA_FALLTHROUGH;
+    case 4: {
+        return true;  // RETURN
+    }
+    default: {
+        return false;  // RETURN
+    }
+    }
+}
+
+}  // close unnamed namespace
+
 // ------------------------
 // class PutMessageIterator
 // ------------------------
@@ -107,7 +126,7 @@ int PutMessageIterator::compressedApplicationDataSize() const
                         .data()[lastBytePos.byte()];
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            !ProtocolUtil::isValidWordPaddingByte(lastByte))) {
+            !isValidWordPaddingByte(lastByte))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // If the 'lastByte' is not a padding byte then message is malformed
         return -1;  // RETURN

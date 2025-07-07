@@ -82,7 +82,8 @@ void Cluster::_initializeClusterDefinition(
     const bslstl::StringRef&                archive,
     const bsl::vector<mqbcfg::ClusterNode>& nodes,
     bool                                    isCSLMode,
-    bool                                    isFSMWorkflow)
+    bool                                    isFSMWorkflow,
+    bool                                    doesFSMwriteQLIST)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -96,6 +97,8 @@ void Cluster::_initializeClusterDefinition(
 
     d_clusterDefinition.clusterAttributes().isCSLModeEnabled() = isCSLMode;
     d_clusterDefinition.clusterAttributes().isFSMWorkflow()    = isFSMWorkflow;
+    d_clusterDefinition.clusterAttributes().doesFSMwriteQLIST() =
+        doesFSMwriteQLIST;
 
     mqbcfg::PartitionConfig& partitionCfg =
         d_clusterDefinition.partitionConfig();
@@ -136,7 +139,7 @@ void Cluster::_initializeNetcluster()
     // Create 'mqbnet::MockCluster'
     d_netCluster_mp.load(new (*d_allocator_p)
                              mqbnet::MockCluster(d_clusterDefinition,
-                                                 d_bufferFactory_p,
+                                                 &d_bufferFactory,
                                                  d_allocator_p),
                          d_allocator_p);
 
@@ -198,20 +201,20 @@ void Cluster::_initializeNodeSessions()
 }
 
 // CREATORS
-Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
-                 bslma::Allocator*         allocator,
-                 bool                      isClusterMember,
-                 bool                      isLeader,
-                 bool                      isCSLMode,
-                 bool                      isFSMWorkflow,
-                 const ClusterNodeDefs&    clusterNodeDefs,
-                 const bslstl::StringRef&  name,
-                 const bslstl::StringRef&  location,
-                 const bslstl::StringRef&  archive)
+Cluster::Cluster(bslma::Allocator*        allocator,
+                 bool                     isClusterMember,
+                 bool                     isLeader,
+                 bool                     isCSLMode,
+                 bool                     isFSMWorkflow,
+                 bool                     doesFSMwriteQLIST,
+                 const ClusterNodeDefs&   clusterNodeDefs,
+                 const bslstl::StringRef& name,
+                 const bslstl::StringRef& location,
+                 const bslstl::StringRef& archive)
 : d_allocator_p(allocator)
-, d_bufferFactory_p(bufferFactory)
+, d_bufferFactory(1024, allocator)
 , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
-                                    d_bufferFactory_p,
+                                    &d_bufferFactory,
                                     bdlf::PlaceHolders::_1,   // arena
                                     bdlf::PlaceHolders::_2),  // allocator
                k_BLOB_POOL_GROWTH_STRATEGY,
@@ -224,7 +227,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_channels(allocator)
 , d_initialConnectionHandler_mp()
 , d_transportManager(&d_scheduler,
-                     bufferFactory,
+                     &d_bufferFactory,
                      d_initialConnectionHandler_mp,
                      0,  // mqbstat::StatController*
                      allocator)
@@ -240,7 +243,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
-, d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
+, d_resources(&d_scheduler, &d_bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
     if (isClusterMember) {
@@ -255,7 +258,8 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
                                  archive,
                                  clusterNodeDefs,
                                  isCSLMode,
-                                 isFSMWorkflow);
+                                 isFSMWorkflow,
+                                 doesFSMwriteQLIST);
     _initializeNetcluster();
 
     d_statContexts.insert(

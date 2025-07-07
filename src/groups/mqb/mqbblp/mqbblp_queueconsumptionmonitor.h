@@ -25,35 +25,30 @@
 /// monitors a queue and alerts if the queue has not been consumed for a
 /// configurable amount of time.  Monitoring does not happen until a "maximum
 /// idle time" has been set (using `setMaxIdleTime`).  Monitoring can be
-/// disabled by setting the maximum idle time to zero.
+/// disabled by setting the maximum idle time to zero. In this case substreams
+/// states are reset to 'alive' and scheduled alarm is cancelled. No any
+/// logs are generated when monitoring is disabled.
 ///
 /// Once in monitoring mode, the component is operated by a series of calls to
-/// `onMessageSent` and `onTimer(currentTime)`, in arbitrary order.  Each time
-/// that `onTimer(currentTime)` is called, the component first checks whether
-/// the queue is in 'alive' state.  It is the case if:
-///
-///   * this the first call to `onTimer` since monitoring was switched on;
-///   * `onMessageSent` was called since `onTimer` was last called; or
-///   * the queue is empty.
-///
-/// Then the component checks how much "time" has elapsed since the queue was
-/// last seen in `active` state (this may be zero, if one of the aforementioned
-/// condition was met).  If that period exceeds the value specified via
-/// `setMaxIdleTime`, then the queue is in `idle` state.  Otherwise it is in
-/// `active` state.  If the state changes to `idle`, an alarm is written to the
-/// log.  If the state changes to `active`, an INFO record is written to the
-/// log.
+/// `onMessagePosted` when message is posted and `onMessageSent` when it is
+/// delivered.
+/// When `onMessagePosted` is called, it schedules alarm event to be executed
+/// in the maximum idle time (if it was not already scheduled).  When
+/// alarm event is executed, it calls for each substream `logAlarmCb` callback,
+/// which checks if there are un-delivered messages. If the oldest un-delivered
+/// message alartm time in the past, alarm is logged and monitor puts this
+/// substream in 'idle' state. Then monitor calculates the earliest alarm time
+/// for all substreams and reschedules the alarm event if alarm time is in the
+/// future. When `onMessageSent` is called for corresponding substream, if
+/// substream is in 'idle' state and there are no un-delivered messages with
+/// alarm time in the past, it is put back to 'alive' state and an INFO
+/// record is written to the log. When queue becomes empty for corresponding
+/// substream (e.g. by queue purging or messages garbage collected due to TTL),
+/// it is put back to 'alive' state and an INFO record is written to the log.
 ///
 /// The `maxIdleTime` represents the minimum time before an alarm will be
-/// emitted would the queue be stale, but the alarm may be emitted anytime
-/// between `[maxIdleTime, maxIdleTime + frequency[`, where `frequency`
-/// represents the time period used between two consecutive calls to `onTimer`.
-///
-/// NOTE: the component does not assume any specific units for "time" - the
-/// sole constraint is that the values passed to `onTimer` monotonically (but
-/// not strictly) increase.  Typically, these values are obtained from
-/// @bbref{bsls::TimeUtil::getTimer()}, which returns a number of nanoseconds
-/// elapsed from an arbitrary but fixed point in time.
+/// emitted would the queue be stale (the oldest message is not delivered
+/// within `maxIdleTime`).
 ///
 /// Thread safety                      {#mqbblp_queueconsumptionmonitor_thread}
 /// =============
@@ -68,40 +63,27 @@
 ///
 /// ```
 /// mqbblp::QueueConsumptionMonitor monitor;
-/// monitor.setMaxIdleTime(20 * bdlt::TimeUnitRatio::k_NS_PER_S);
+/// monitor.setMaxIdleTime(20);
 /// // put 2 messages in queue
 ///
-/// // some time later, at time T:
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+/// // notify first message posted
+/// monitor.onMessagePosted(id);
 ///
-/// // 15 seconds later - T + 15s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+/// // notify second message posted
+/// monitor.onMessagePosted(id);
 ///
-/// // 15 seconds later - T + 30s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log ALARM
+/// bslmt::ThreadUtil::microSleep(21 *
+/// bdlt::TimeUnitRatio::k_MICROSECONDS_PER_SECOND); // sleep for 21 seconds
 ///
-/// // 15 seconds later - T + 45s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+/// // log ALARM
 ///
-/// // 15 seconds later - T + 60s
-/// // consume first message
+/// // consume first message, but second message is still in the queue
 /// monitor.onMessageSent(id);
 ///
-/// // 15 seconds later - T + 75s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
-///
-/// // 15 seconds later - T + 90s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
-///
-/// // 15 seconds later - T + 105s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log ALARM
-///
-/// // 15 seconds later - T + 120s
 /// // consume second message
 /// monitor.onMessageSent(id);
 ///
-/// // 15 seconds later - T + 135s
-/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
+/// // log INFO: back to active
 /// ```
 
 // MQB
@@ -176,46 +158,24 @@ class QueueConsumptionMonitor {
         static const char* toAscii(State::Enum value);
     };
 
-    /// Struct-enum representing the possible state-transition, as a result
-    /// of calls to the `onTimer` method.
-    struct Transition {
-        enum Enum { e_UNCHANGED = 0, e_ALIVE = 1, e_IDLE = 2 };
+    /// Callback function to check un-delivered messages.
+    /// Return managed pointer with iterator pointing to the oldest
+    /// un-delivered message if there are un-delivered messages for the
+    /// specified `appId`, or empty managed pointer otherwise.  If there are
+    /// un-delivered messages for the specified `appId` it sets in the
+    /// specified `alarmTime_p` calculated alarm time for the oldest
+    /// un-delivered message.
+    typedef bsl::function<bslma::ManagedPtr<mqbi::StorageIterator>(
+        bsls::TimeInterval*       alarmTime_p,
+        const bsl::string&        appId,
+        const bsls::TimeInterval& now)>
+        HaveUndeliveredCb;
 
-        // CLASS METHODS
-
-        /// Write the string representation of the specified enumeration
-        /// `value` to the specified output `stream`, and return a reference
-        /// to `stream`.  Optionally specify an initial indentation `level`,
-        /// whose absolute value is incremented recursively for nested
-        /// objects.  If `level` is specified, optionally specify
-        /// `spacesPerLevel`, whose absolute value indicates the number of
-        /// spaces per indentation level for this and all of its nested
-        /// objects.  If `level` is negative, suppress indentation of the
-        /// first line.  If `spacesPerLevel` is negative, format the entire
-        /// output on one line, suppressing all but the initial indentation
-        /// (as governed by `level`).  See `toAscii` for what constitutes
-        /// the string representation of a `Transition::Enum` value.
-        static bsl::ostream& print(bsl::ostream&    stream,
-                                   Transition::Enum value,
-                                   int              level          = 0,
-                                   int              spacesPerLevel = 4);
-
-        /// Return the non-modifiable string representation corresponding to
-        /// the specified enumeration `value`, if it exists, and a unique
-        /// (error) string otherwise.  The string representation of `value`
-        /// matches its corresponding enumerator name with the `e_` prefix
-        /// elided.  Note that specifying a `value` that does not match any
-        /// of the enumerators will result in a string representation that
-        /// is distinct from any of those corresponding to the enumerators,
-        /// but is otherwise unspecified.
-        static const char* toAscii(Transition::Enum value);
-    };
-
-    /// Callback function to log alarm info when queue state transitions to
-    /// idle. First argument is the app id, second argument is a boolean flag
-    /// to enable logging. If `enableLog` is `false`, logging is skipped.
-    /// Return `true` if there are un-delivered messages and `false` otherwise.
-    typedef bsl::function<bool(const bsl::string& id, bool enableLog)>
+    /// Callback function to log the alarm for the specified `appId` and
+    /// `oldestMsgIt`.
+    typedef bsl::function<void(
+        const bsl::string&                              appId,
+        const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt)>
         LoggingCb;
 
   private:
@@ -227,14 +187,12 @@ class QueueConsumptionMonitor {
 
         SubStreamInfo();
 
+        ~SubStreamInfo();
+
         // PUBLIC DATA
 
-        // Timer value, in arbitrary unit, of the last time the substream was
-        // in a good state.
-        bsls::Types::Int64 d_lastKnownGoodTimer;
-
-        /// Whether a message was sent during the last time slice.
-        bool d_messageSent;
+        /// EventHandle for the idle event, used by event scheduler.
+        bdlmt::EventSchedulerEventHandle d_idleEventHandle;
 
         /// The current state.
         State::Enum d_state;
@@ -252,17 +210,25 @@ class QueueConsumptionMonitor {
     /// Held but not owned.
     QueueState* d_queueState_p;
 
-    /// Maximum time, in arbitrary units, before the queue is declared idle.
-    bsls::Types::Int64 d_maxIdleTime;
+    /// EventHandle for triggering alarm, used by event scheduler.
+    bdlmt::EventSchedulerEventHandle d_alarmEventHandle;
 
-    /// Timer, in arbitrary unit, of the current time.
-    bsls::Types::Int64 d_currentTimer;
+    /// Maximum time, in seconds, before the queue is declared idle.
+    bsls::Types::Int64 d_maxIdleTimeSec;
 
     SubStreamInfoMap d_subStreamInfos;
 
-    /// Callback to log alarm info if there are undelivered messages.  Return
-    /// `true` if there are undelivered messages, `false` otherwise.
+    /// Last scheduled alarm time.
+    bsls::TimeInterval d_scheduledAlarmTime;
+
+    /// Callback to check un-delivered messages.
+    HaveUndeliveredCb d_haveUndeliveredCb;
+
+    /// Callback to log alarm.
     LoggingCb d_loggingCb;
+
+    /// Allocator used inside the class.
+    bslma::Allocator* d_allocator_p;
 
     // NOT IMPLEMENTED
     QueueConsumptionMonitor(const QueueConsumptionMonitor&) BSLS_CPP11_DELETED;
@@ -271,20 +237,57 @@ class QueueConsumptionMonitor {
 
     // ACCESSORS
 
-    /// Return the `SubStreamInfo` corresponding to the specified `id`.
-    const SubStreamInfo& subStreamInfo(const bsl::string& id) const;
-
-    /// Return the `SubStreamInfo` corresponding to the specified `id`.  It
-    /// is an error to specify an `id` that has not been previously
-    /// registered via `registerSubStream`.
-    SubStreamInfo& subStreamInfo(const bsl::string& id);
+    /// Return the `SubStreamInfo` corresponding to the specified `appId`.
+    const SubStreamInfo& subStreamInfo(const bsl::string& appId) const;
 
     // MANIPULATORS
 
+    /// Return the `SubStreamInfo` corresponding to the specified `appId`.
+    /// It is an error to specify an `id` that has not been previously
+    /// registered via `registerSubStream`.
+    SubStreamInfo& subStreamInfo(const bsl::string& appId);
+
     /// Update the specified `subStreamInfo`, associated to the specified
-    /// `id`, and write log, upon transition to alive state.
+    /// `appId`, and write log, upon transition to alive state.
     void onTransitionToAlive(SubStreamInfo*     subStreamInfo,
-                             const bsl::string& id);
+                             const bsl::string& appId);
+
+    /// Schedule the alarm event for the specified `alarmTime`.
+    void scheduleAlarmEvent(const bsls::TimeInterval& alarmTime);
+
+    /// Schedule the alarm event for the specified `alarmTime` if it was not
+    /// scheduled.  Reschedule the alarm event for the specified `alarmTime` if
+    /// it was already scheduled and alarmTime < d_scheduledAlarmTime.
+    void scheduleOrRescheduleAlarmEventIfNeeded(
+        const bsls::TimeInterval& alarmTime);
+
+    /// Schedule the idle event for the specified `subStreamInfo` and `appId`.
+    void scheduleIdleEvent(SubStreamInfo*     subStreamInfo,
+                           const bsl::string& appId);
+
+    /// Handler called by EventScheduler in scheduler dispatcher thread
+    /// to forward alarm event to the queue dispatcher thread.
+    void executeAlarmInQueueDispatcher();
+
+    /// Handler called by EventScheduler in scheduler dispatcher thread
+    /// to forward idle event to the queue dispatcher thread.
+    void executeIdleInQueueDispatcher(const bsl::string& appId);
+
+    /// Cancel all idle events (for all substreams) if they were scheduled.
+    /// If the specified `resetStates` is true, reset substreams states.
+    void cancelIdleEvents(bool resetStates);
+
+  protected:
+    /// Alarm event dispatcher, executed in queue dispatcher thread.
+    /// It checks if there are substreams that meet alarm condition and trigger
+    /// the alarm for them.  If there are undelivered messages (among
+    /// substreams) it reschedules alarm event.
+    virtual void alarmEventDispatched();
+
+    /// Idle event dispatcher, executed in queue dispatcher thread.
+    /// If there are no un-delivered messages the specified `appId`, it calls
+    /// onTransitionToAlive(). Otherwise, it reschedules idle event.
+    virtual void idleEventDispatched(const bsl::string& appId);
 
   public:
     // TRAITS
@@ -294,13 +297,17 @@ class QueueConsumptionMonitor {
     // CREATORS
 
     /// Create a `QueueConsumptionMonitor` object that monitors the queue
-    /// specified by `queueState`. Use the specified `loggingCb` callback for
+    /// specified by `queueState`. Use the specified `scheduler_p` for events
+    //  scheduling and `loggingCb` callback for
     /// logging alarm data. Use the optionally specified `allocator` to supply
     /// memory.  If `allocator` is 0, the currently installed default allocator
     /// is used.
-    QueueConsumptionMonitor(QueueState*       queueState,
-                            const LoggingCb&  loggingCb,
-                            bslma::Allocator* allocator);
+    QueueConsumptionMonitor(QueueState*              queueState,
+                            const HaveUndeliveredCb& haveUndeliveredCb,
+                            const LoggingCb&         loggingCb,
+                            bslma::Allocator*        allocator);
+
+    virtual ~QueueConsumptionMonitor();
 
     // MANIPULATORS
 
@@ -309,40 +316,53 @@ class QueueConsumptionMonitor {
     /// `value`, and resets it (see `reset`).  Setting `maxIdleTime` to zero
     /// is permitted, in which case the monitoring is disabled.  This
     /// function may be called more than once.  Each time it is called, the
-    /// component behaves as if `onTimer` and `onMessageSent` had never been
-    /// called.  If this causes substreams to return to `alive` state,
+    /// component behaves as if `onMessagePosted` and `onMessageSent` had never
+    /// been called.  If this causes substreams to return to `alive` state,
     /// nothing is logged.  Return a reference offering modifiable access to
     /// this object.
     QueueConsumptionMonitor& setMaxIdleTime(bsls::Types::Int64 value);
 
-    /// Register the substream identified by the specified `id`.
-    void registerSubStream(const bsl::string& id);
+    /// Register the substream identified by the specified `appId`.
+    void registerSubStream(const bsl::string& appId);
 
-    /// Stop monitoring the substream identified by the specified `id`.
+    /// Stop monitoring the substream identified by the specified `appId`.
     /// `id` must have been previously registered via `registerSubStream`.
-    void unregisterSubStream(const bsl::string& id);
+    void unregisterSubStream(const bsl::string& appId);
 
     /// Put the object back in construction state.
     void reset();
 
-    /// Close the current time period at the specified `currentTimer` and
-    /// check the queue's activity status during that period. Generate an
-    /// alarm if the queue becomes idle; or write an info message to the log
-    /// if the queue transitions back to active.
-    void onTimer(bsls::Types::Int64 currentTimer);
+    /// Notify the monitor that a message was posted
+    /// (for any substream).  It is used to schedule the event
+    /// (if it was not scheduled yet) to monitor the delivery.
+    void onMessagePosted();
 
     /// Notify the monitor that one or more messages were sent during the
-    /// current time period for the substream specified by `id`.  It is an
+    /// current time period for the substream specified by `appId`.  It is an
     /// error to specify an `id` that has not been previously registered via
     /// `registerSubStream`.
-    void onMessageSent(const bsl::string& id);
+    void onMessageSent(const bsl::string& appId);
 
     // ACCESSORS
 
     /// Return the current activity status for the monitored queue for the
-    /// substream specified by `id`.  It is an error to specify a `id`
+    /// substream specified by `id`.  It is an error to specify a `appId`
     /// that has not been previously registered via `registerSubStream`.
-    State::Enum state(const bsl::string& id) const;
+    State::Enum state(const bsl::string& appId) const;
+
+    /// Calculate the time interval for the alarm event to be scheduled for the
+    /// specified 'arrivalTimeDeltaNs' (in nanoseconds) and `now` as follows:
+    /// alarmTime = now - arrivalTimeDeltaNs + maxIdleTime.
+    bsls::TimeInterval
+    calculateAlarmTime(bsls::Types::Int64        arrivalTimeDeltaNs,
+                       const bsls::TimeInterval& now) const;
+
+    /// Return `true` if the alarm event is scheduled, and `false` otherwise.
+    bool isAlarmScheduled() const;
+
+    /// Return `true` if monitoring is disabled (d_maxIdleTimeSec is zero),
+    /// and `false` otherwise.
+    bool isMonitoringDisabled() const;
 };
 
 // FREE OPERATORS
@@ -358,17 +378,6 @@ class QueueConsumptionMonitor {
 bsl::ostream& operator<<(bsl::ostream&                        stream,
                          QueueConsumptionMonitor::State::Enum value);
 
-/// Write the string representation of the specified enumeration `value` to
-/// the specified output `stream` in a single-line format, and return a
-/// reference to `stream`.  See `toAscii` for what constitutes the string
-/// representation of a `QueueConsumptionMonitor::Transition::Enum` value.
-/// Note that this method has the same behavior as
-/// ```
-/// mqbblp::QueueConsumptionMonitor::Transition::print(stream, value, 0, -1);
-/// ```
-bsl::ostream& operator<<(bsl::ostream&                             stream,
-                         QueueConsumptionMonitor::Transition::Enum value);
-
 // ============================================================================
 //                            INLINE DEFINITIONS
 // ============================================================================
@@ -378,7 +387,7 @@ bsl::ostream& operator<<(bsl::ostream&                             stream,
 // -----------------------------
 
 inline QueueConsumptionMonitor::SubStreamInfo&
-QueueConsumptionMonitor::subStreamInfo(const bsl::string& id)
+QueueConsumptionMonitor::subStreamInfo(const bsl::string& appId)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -386,13 +395,13 @@ QueueConsumptionMonitor::subStreamInfo(const bsl::string& id)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    SubStreamInfoMapIter iter = d_subStreamInfos.find(id);
+    SubStreamInfoMapIter iter = d_subStreamInfos.find(appId);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
     return iter->second;
 }
 
 inline const QueueConsumptionMonitor::SubStreamInfo&
-QueueConsumptionMonitor::subStreamInfo(const bsl::string& id) const
+QueueConsumptionMonitor::subStreamInfo(const bsl::string& appId) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -400,12 +409,13 @@ QueueConsumptionMonitor::subStreamInfo(const bsl::string& id) const
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(id);
+    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(appId);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
     return iter->second;
 }
 
-inline void QueueConsumptionMonitor::onMessageSent(const bsl::string& id)
+inline QueueConsumptionMonitor::State::Enum
+QueueConsumptionMonitor::state(const bsl::string& appId) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -413,25 +423,17 @@ inline void QueueConsumptionMonitor::onMessageSent(const bsl::string& id)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTime == 0)) {
-        // monitoring is disabled
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
-    }
-
-    subStreamInfo(id).d_messageSent = true;
+    return subStreamInfo(appId).d_state;
 }
 
-inline QueueConsumptionMonitor::State::Enum
-QueueConsumptionMonitor::state(const bsl::string& id) const
+inline bool QueueConsumptionMonitor::isAlarmScheduled() const
 {
-    // executed by the *QUEUE DISPATCHER* thread
+    return d_alarmEventHandle != 0;
+}
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
-
-    return subStreamInfo(id).d_state;
+inline bool QueueConsumptionMonitor::isMonitoringDisabled() const
+{
+    return d_maxIdleTimeSec == 0;
 }
 
 }  // close package namespace
@@ -445,17 +447,6 @@ mqbblp::operator<<(bsl::ostream&                        stream,
                    QueueConsumptionMonitor::State::Enum value)
 {
     return QueueConsumptionMonitor::State::print(stream, value, 0, -1);
-}
-
-// ------------------------------------------
-// struct QueueConsumptionMonitor::Transition
-// ------------------------------------------
-
-inline bsl::ostream&
-mqbblp::operator<<(bsl::ostream&                             stream,
-                   QueueConsumptionMonitor::Transition::Enum value)
-{
-    return QueueConsumptionMonitor::Transition::print(stream, value, 0, -1);
 }
 
 }  // close enterprise namespace

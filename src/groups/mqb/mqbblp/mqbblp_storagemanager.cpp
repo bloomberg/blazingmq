@@ -363,94 +363,6 @@ void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
                                 d_clusterConfig);
 }
 
-void StorageManager::queueCreationCb(int*                    status,
-                                     int                     partitionId,
-                                     const bmqt::Uri&        uri,
-                                     const mqbu::StorageKey& queueKey,
-                                     const AppInfos&         appIdKeyPairs,
-                                     bool                    isNewQueue)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
-
-    if (d_cluster_p->isCSLModeEnabled()) {
-        // This callback is removed for CSL mode
-
-        return;  // RETURN
-    }
-
-    // This routine is executed at replica nodes when they received a queue
-    // creation record from the primary in the partition stream.
-
-    if (isNewQueue) {
-        mqbc::StorageUtil::registerQueueReplicaDispatched(
-            status,
-            &d_storages[partitionId],
-            &d_storagesLock,
-            d_fileStores[partitionId].get(),
-            d_domainFactory_p,
-            &d_allocators,
-            d_clusterData_p->identity().description(),
-            partitionId,
-            uri,
-            queueKey);
-
-        if (*status != 0) {
-            return;  // RETURN
-        }
-    }
-
-    mqbc::StorageUtil::updateQueueReplicaDispatched(
-        status,
-        &d_storages[partitionId],
-        &d_storagesLock,
-        d_domainFactory_p,
-        d_clusterData_p->identity().description(),
-        partitionId,
-        uri,
-        queueKey,
-        appIdKeyPairs);
-}
-
-void StorageManager::queueDeletionCb(int*                    status,
-                                     int                     partitionId,
-                                     const bmqt::Uri&        uri,
-                                     const mqbu::StorageKey& queueKey,
-                                     const mqbu::StorageKey& appKey)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
-
-    if (d_cluster_p->isCSLModeEnabled()) {
-        // This callback is removed for CSL mode
-
-        return;  // RETURN
-    }
-
-    // This routine is executed at replica nodes when they received a queue
-    // deletion record from the primary in the partition stream.
-
-    mqbc::StorageUtil::unregisterQueueReplicaDispatched(
-        status,
-        &d_storages[partitionId],
-        &d_storagesLock,
-        d_fileStores[partitionId].get(),
-        d_clusterData_p->identity().description(),
-        partitionId,
-        uri,
-        queueKey,
-        appKey,
-        d_cluster_p->isCSLModeEnabled());
-}
-
 void StorageManager::recoveredQueuesCb(int                    partitionId,
                                        const QueueKeyInfoMap& queueKeyInfoMap)
 {
@@ -479,8 +391,7 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         &d_unrecognizedDomains[partitionId],
         d_clusterData_p->identity().description(),
         partitionId,
-        queueKeyInfoMap,
-        d_cluster_p->isCSLModeEnabled());
+        queueKeyInfoMap);
 
     if (++d_numPartitionsRecoveredQueues < numPartitions) {
         return;  // RETURN
@@ -1131,14 +1042,6 @@ void StorageManager::registerQueueReplica(int                     partitionId,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
-    if (!d_cluster_p->isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "StorageManager::registerQueueReplica() should only "
-                       << "be invoked in CSL mode.";
-
-        return;  // RETURN
-    }
-
     // This routine is executed at follower nodes upon commit callback of Queue
     // Assignment Advisory from the leader.
 
@@ -1176,14 +1079,6 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
-    if (!d_cluster_p->isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "StorageManager::unregisterQueueReplica() should "
-                       << "only be invoked in CSL mode.";
-
-        return;  // RETURN
-    }
-
     // This routine is executed at follower nodes upon commit callback of Queue
     // Unassigned Advisory or Queue Update Advisory from the leader.
 
@@ -1203,8 +1098,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             partitionId,
             uri,
             queueKey,
-            appKey,
-            d_cluster_p->isCSLModeEnabled()));
+            appKey));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -1220,14 +1114,6 @@ void StorageManager::updateQueueReplica(int                     partitionId,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
-
-    if (!d_cluster_p->isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "StorageManager::updateQueueReplica() should only "
-                       << "be invoked in CSL mode.";
-
-        return;  // RETURN
-    }
 
     // This routine is executed at follower nodes upon commit callback of Queue
     // Queue Update Advisory from the leader.
@@ -1404,23 +1290,8 @@ int StorageManager::start(bsl::ostream& errorDescription)
         d_replicationFactor,
         bdlf::BindUtil::bind(&StorageManager::recoveredQueuesCb,
                              this,
-                             bdlf::PlaceHolders::_1,   // partitionId
-                             bdlf::PlaceHolders::_2),  // queueKeyUriMap)
-        bdlf::BindUtil::bind(&StorageManager::queueCreationCb,
-                             this,
-                             bdlf::PlaceHolders::_1,   // status
-                             bdlf::PlaceHolders::_2,   // partitionId
-                             bdlf::PlaceHolders::_3,   // QueueUri
-                             bdlf::PlaceHolders::_4,   // QueueKey
-                             bdlf::PlaceHolders::_5,   // AppInfos
-                             bdlf::PlaceHolders::_6),  // IsNewQueue)
-        bdlf::BindUtil::bind(&StorageManager::queueDeletionCb,
-                             this,
-                             bdlf::PlaceHolders::_1,    // status
-                             bdlf::PlaceHolders::_2,    // partitionId
-                             bdlf::PlaceHolders::_3,    // QueueUri
-                             bdlf::PlaceHolders::_4,    // QueueKey
-                             bdlf::PlaceHolders::_5));  // AppKey
+                             bdlf::PlaceHolders::_1,    // partitionId
+                             bdlf::PlaceHolders::_2));  // queueKeyUriMap)
 
     BALL_LOG_INFO_BLOCK
     {

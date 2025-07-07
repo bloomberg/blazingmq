@@ -26,11 +26,6 @@
 // represent a fixed-length key in the storage.  This key can be stored on disk
 // as well for fast retrieval from in-memory associative containers.
 
-// MQB
-
-// BMQ
-#include <bmqp_protocolutil.h>
-
 // BDE
 #include <bdlb_print.h>
 #include <bsl_cstddef.h>
@@ -199,6 +194,37 @@ bool operator!=(const StorageKey& lhs, const StorageKey& rhs);
 /// containers (map, set, etc.)
 bool operator<(const StorageKey& lhs, const StorageKey& rhs);
 
+// ========================
+// struct StorageKeyHexUtil
+// ========================
+
+struct StorageKeyHexUtil {
+  private:
+    // PRIVATE CONSTANTS
+
+    /// Conversion tables
+    static const char k_INT_TO_HEX_TABLE[];
+    static const char k_HEX_TO_INT_TABLE[];
+
+  public:
+    // PUBLIC CLASS METHODS
+
+    /// @brief Convert a data from hex to binary representation.
+    /// @param bin The destination buffer (binary representation).
+    /// @param binLength The size of destination buffer.
+    /// @param hex The source buffer.  The behaviour is undefined unless the
+    ///            length of `hex` buffer is twice the `length`.
+    static void hexToBinary(char* bin, size_t binLength, const char* hex);
+
+    /// @brief Convert a data from binary to hex representation.
+    /// @param hex The destination buffer (hex representation).  The behaviour
+    ///            is undefined unless the length of `hex` buffer is twice the
+    ///            `length`.
+    /// @param bin The source buffer.
+    /// @param binLength The size of source buffer.
+    static void binaryToHex(char* hex, const char* bin, size_t binLength);
+};
+
 // =====================
 // struct StorageKeyLess
 // =====================
@@ -296,9 +322,9 @@ inline StorageKey::StorageKey(unsigned int value)
 // MANIPULATORS
 inline void StorageKey::fromHex(const char* value)
 {
-    bmqp::ProtocolUtil::hexToBinary(d_buffer,
-                                    StorageKey::e_KEY_LENGTH_BINARY,
-                                    value);
+    StorageKeyHexUtil::hexToBinary(d_buffer,
+                                   StorageKey::e_KEY_LENGTH_BINARY,
+                                   value);
 }
 
 inline void StorageKey::fromBinary(const void* data)
@@ -324,9 +350,9 @@ inline const char* StorageKey::data() const
 
 inline void StorageKey::loadHex(char* out) const
 {
-    bmqp::ProtocolUtil::binaryToHex(out,
-                                    d_buffer,
-                                    StorageKey::e_KEY_LENGTH_BINARY);
+    StorageKeyHexUtil::binaryToHex(out,
+                                   d_buffer,
+                                   StorageKey::e_KEY_LENGTH_BINARY);
 }
 
 inline void StorageKey::loadBinary(bsl::vector<char>* out) const

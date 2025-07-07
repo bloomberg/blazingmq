@@ -104,9 +104,6 @@ struct CommandDefinition {
      "Get the supported settable parameters for the stat controller"},
     // ClusterCatalog
     {"CLUSTERS LIST", "List all active clusters", "List all active clusters"},
-    {"CLUSTERS ADDREVERSE <clusterName> <remotePeer>",
-     "Create a new reverse connection to 'remotePeer' about 'clusterName'",
-     "Create a new reverse connection to 'remotePeer' about 'clusterName'"},
     {
         "CLUSTERS CLUSTER <name> STATUS",
         "Show status of cluster 'name'",

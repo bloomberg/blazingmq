@@ -1181,19 +1181,17 @@ bool StorageUtil::validatePartitionSyncEvent(
 }
 
 int StorageUtil::assignPartitionDispatcherThreads(
-    bdlmt::FixedThreadPool*                     threadPool,
-    mqbc::ClusterData*                          clusterData,
-    const mqbi::Cluster&                        cluster,
-    mqbi::Dispatcher*                           dispatcher,
-    const mqbcfg::PartitionConfig&              config,
-    FileStores*                                 fileStores,
-    BlobSpPool*                                 blobSpPool,
-    bmqma::CountingAllocatorStore*              allocators,
-    bsl::ostream&                               errorDescription,
-    int                                         replicationFactor,
-    const RecoveredQueuesCb&                    recoveredQueuesCb,
-    const bdlb::NullableValue<QueueCreationCb>& queueCreationCb,
-    const bdlb::NullableValue<QueueDeletionCb>& queueDeletionCb)
+    bdlmt::FixedThreadPool*        threadPool,
+    mqbc::ClusterData*             clusterData,
+    const mqbi::Cluster&           cluster,
+    mqbi::Dispatcher*              dispatcher,
+    const mqbcfg::PartitionConfig& config,
+    FileStores*                    fileStores,
+    BlobSpPool*                    blobSpPool,
+    bmqma::CountingAllocatorStore* allocators,
+    bsl::ostream&                  errorDescription,
+    int                            replicationFactor,
+    const RecoveredQueuesCb&       recoveredQueuesCb)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1238,14 +1236,6 @@ int StorageUtil::assignPartitionDispatcherThreads(
             .setMaxArchivedFileSets(config.maxArchivedFileSets())
             .setRecoveredQueuesCb(recoveredQueuesCb);
 
-        if (!queueCreationCb.isNull()) {
-            dsCfg.setQueueCreationCb(queueCreationCb.value());
-        }
-
-        if (!queueDeletionCb.isNull()) {
-            dsCfg.setQueueDeletionCb(queueDeletionCb.value());
-        }
-
         // Get named allocator from associated bmqma::CountingAllocatorStore
         bslma::Allocator* fileStoreAllocator = allocators->get(
             bsl::string("Partition") + bsl::to_string(i));
@@ -1262,6 +1252,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
                                 threadPool,
                                 cluster.isCSLModeEnabled(),
                                 cluster.isFSMWorkflow(),
+                                cluster.doesFSMwriteQLIST(),
                                 replicationFactor,
                                 fileStoreAllocator),
             fileStoreAllocator);
@@ -1439,8 +1430,7 @@ void StorageUtil::recoveredQueuesCb(
     DomainQueueMessagesCountMap* unrecognizedDomains,
     const bsl::string&           clusterDescription,
     int                          partitionId,
-    const QueueKeyInfoMap&       queueKeyInfoMap,
-    bool                         isCSLMode)
+    const QueueKeyInfoMap&       queueKeyInfoMap)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -1612,11 +1602,11 @@ void StorageUtil::recoveredQueuesCb(
     for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap.begin();
          qit != queueKeyInfoMap.end();
          ++qit) {
-        const mqbu::StorageKey&               queueKey = qit->first;
-        const mqbs::DataStoreConfigQueueInfo& qinfo    = qit->second;
+        const mqbu::StorageKey&                         queueKey = qit->first;
+        const mqbs::DataStoreConfigQueueInfo&           qinfo    = qit->second;
         const mqbs::DataStoreConfigQueueInfo::AppInfos& appIdKeyPairs =
             qinfo.appIdKeyPairs();
-        const bmqt::Uri      queueUri(qinfo.canonicalQueueUri());
+        const bmqt::Uri queueUri(qinfo.canonicalQueueUri());
         BSLS_ASSERT_SAFE(queueUri.isValid());
 
         // Ensure queueKey uniqueness.
@@ -1641,65 +1631,47 @@ void StorageUtil::recoveredQueuesCb(
         StorageSpMapConstIter spmapIt = storageMap->find(queueUri);
         if (storageMap->end() != spmapIt) {
             // Already created ReplicatedStorage for this queueURI.
-            if (isCSLMode) {
-                // This can happen in CSL mode so we will just log it after
-                // verifying that the queueKey and appIds are matching.
+            // This can happen in CSL mode so we will just log it after
+            // verifying that the queueKey and appIds are matching.
 
-                const StorageSp& rstorage = spmapIt->second;
-                BSLS_ASSERT_SAFE(queueKey == rstorage->queueKey());
-                BSLS_ASSERT_SAFE(partitionId == rstorage->partitionId());
+            const StorageSp& rstorage = spmapIt->second;
+            BSLS_ASSERT_SAFE(queueKey == rstorage->queueKey());
+            BSLS_ASSERT_SAFE(partitionId == rstorage->partitionId());
 
-                for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator
-                         ait = appIdKeyPairs.cbegin();
-                     ait != appIdKeyPairs.cend();
-                     ++ait) {
-                    BSLA_MAYBE_UNUSED const bsl::string& appId = ait->second;
-                    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey =
-                        ait->first;
+            for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator ait =
+                     appIdKeyPairs.cbegin();
+                 ait != appIdKeyPairs.cend();
+                 ++ait) {
+                BSLA_MAYBE_UNUSED const bsl::string& appId       = ait->second;
+                BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey = ait->first;
 
-                    BSLS_ASSERT_SAFE(!appKey.isNull());
-                    BSLS_ASSERT_SAFE(!appId.empty());
+                BSLS_ASSERT_SAFE(!appKey.isNull());
+                BSLS_ASSERT_SAFE(!appId.empty());
 
-                    mqbu::StorageKey existingAppKey;
-                    BSLS_ASSERT_SAFE(
-                        rstorage->hasVirtualStorage(appId, &existingAppKey));
-                    BSLS_ASSERT_SAFE(appKey == existingAppKey);
-                }
-
-                {
-                    bslmt::LockGuard<bslmt::Mutex>
-                        unrecognizedDomainsLockGuard(
-                            unrecognizedDomainsLock);  // LOCK
-
-                    BSLS_ASSERT_SAFE(unrecognizedDomains->find(
-                                         queueUri.qualifiedDomain()) ==
-                                     unrecognizedDomains->end());
-                }
-
-                BALL_LOG_INFO << clusterDescription << ": Partition ["
-                              << partitionId << "]: encountered queueUri ["
-                              << queueUri << "] again. QueueKey of this uri ["
-                              << queueKey << "].";
-
-                queueKeyStorageMap.insert(
-                    bsl::make_pair(queueKey, rstorage.get()));
-
-                continue;  // CONTINUE
+                mqbu::StorageKey existingAppKey;
+                BSLS_ASSERT_SAFE(
+                    rstorage->hasVirtualStorage(appId, &existingAppKey));
+                BSLS_ASSERT_SAFE(appKey == existingAppKey);
             }
-            else {
-                // This is an error in non-CSL mode.
 
-                const StorageSp& rstorage = spmapIt->second;
-                BMQTSK_ALARMLOG_ALARM("RECOVERY")
-                    << clusterDescription << ": Partition [" << partitionId
-                    << "]: encountered queueUri [" << queueUri
-                    << "] again. QueueKey of this uri [" << queueKey
-                    << "]. Details of original queueUri:: Partition ["
-                    << rstorage->partitionId() << "], queueKey ["
-                    << rstorage->queueKey() << "]." << BMQTSK_ALARMLOG_END;
-                mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-                // EXIT
+            {
+                bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
+                    unrecognizedDomainsLock);  // LOCK
+
+                BSLS_ASSERT_SAFE(
+                    unrecognizedDomains->find(queueUri.qualifiedDomain()) ==
+                    unrecognizedDomains->end());
             }
+
+            BALL_LOG_INFO << clusterDescription << ": Partition ["
+                          << partitionId << "]: encountered queueUri ["
+                          << queueUri << "] again. QueueKey of this uri ["
+                          << queueKey << "].";
+
+            queueKeyStorageMap.insert(
+                bsl::make_pair(queueKey, rstorage.get()));
+
+            continue;  // CONTINUE
         }
 
         // If domain name is unrecognized, do not create storage.
@@ -2938,8 +2910,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     int                     partitionId,
     const bmqt::Uri&        uri,
     const mqbu::StorageKey& queueKey,
-    const mqbu::StorageKey& appKey,
-    bool                    isCSLMode)
+    const mqbu::StorageKey& appKey)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with `partitionId`
 
@@ -3006,28 +2977,25 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     if (appKey.isNull()) {
         // Entire queue is being deleted.
 
-        if (isCSLMode) {
-            const bsls::Types::Int64 numMsgs = rs->numMessages(
-                mqbu::StorageKey::k_NULL_KEY);
-            if (0 != numMsgs) {
-                BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                    << clusterDescription << " Partition [" << partitionId
-                    << "]: Attempt to delete storage for queue [ " << uri
-                    << "], queueKey [" << queueKey << "] which has ["
-                    << numMsgs << "] outstanding messages."
-                    << BMQTSK_ALARMLOG_END;
-                if (status) {
-                    *status = rc_QUEUE_HAS_MESSAGES;
-                }
-
-                return;  // RETURN
+        const bsls::Types::Int64 numMsgs = rs->numMessages(
+            mqbu::StorageKey::k_NULL_KEY);
+        if (0 != numMsgs) {
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                << clusterDescription << " Partition [" << partitionId
+                << "]: Attempt to delete storage for queue [ " << uri
+                << "], queueKey [" << queueKey << "] which has [" << numMsgs
+                << "] outstanding messages." << BMQTSK_ALARMLOG_END;
+            if (status) {
+                *status = rc_QUEUE_HAS_MESSAGES;
             }
 
-            const mqbs::ReplicatedStorage::RecordHandles& recHandles =
-                rs->queueOpRecordHandles();
-            for (size_t idx = 0; idx < recHandles.size(); ++idx) {
-                fs->removeRecordRaw(recHandles[idx]);
-            }
+            return;  // RETURN
+        }
+
+        const mqbs::ReplicatedStorage::RecordHandles& recHandles =
+            rs->queueOpRecordHandles();
+        for (size_t idx = 0; idx < recHandles.size(); ++idx) {
+            fs->removeRecordRaw(recHandles[idx]);
         }
 
         BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
@@ -3428,13 +3396,13 @@ void StorageUtil::processShutdownEventDispatched(ClusterData*     clusterData,
             int rc = fs->issueSyncPoint();
             if (0 != rc) {
                 BALL_LOG_ERROR
-                    << clusterData->identity().description() << "Partition ["
+                    << clusterData->identity().description() << " Partition ["
                     << partitionId
                     << "]: failed to force-issue SyncPt, rc: " << rc;
             }
             else {
                 BALL_LOG_INFO
-                    << clusterData->identity().description() << "Partition ["
+                    << clusterData->identity().description() << " Partition ["
                     << partitionId
                     << "]: force-issued SyncPt: " << fs->syncPoints().back()
                     << ".";

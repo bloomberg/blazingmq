@@ -1072,7 +1072,7 @@ void ClusterStateManager::applyFSMEvent(
                                        ClusterFSMArgs(d_allocator_p),
                                    d_allocator_p);
     eventsQueueSp->emplace(event, metadata);
-    d_clusterFSM.applyEvent(eventsQueueSp);
+    d_clusterFSM.popEventAndProcess(eventsQueueSp);
 }
 
 int ClusterStateManager::loadClusterStateSnapshot(ClusterState* out)
@@ -1762,15 +1762,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         request,
         requester,
         d_allocator_p);
-}
-
-void ClusterStateManager::processQueueAssignmentAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source,
-    BSLA_UNUSED bool                 delayed)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processQueueUnassignedAdvisory(

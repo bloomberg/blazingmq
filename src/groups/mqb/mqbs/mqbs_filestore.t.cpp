@@ -92,28 +92,6 @@ typedef bsl::pair<mqbs::DataStoreRecordHandle, Record> HandleRecordPair;
 
 // FUNCTIONS
 
-void queueCreationCb(int*                    status,
-                     int                     partitionId,
-                     const bmqt::Uri&        uri,
-                     const mqbu::StorageKey& queueKey)
-{
-    static_cast<void>(status);
-    static_cast<void>(partitionId);
-    static_cast<void>(uri);
-    static_cast<void>(queueKey);
-}
-
-void queueDeletionCb(int*                    status,
-                     int                     partitionId,
-                     const bmqt::Uri&        uri,
-                     const mqbu::StorageKey& queueKey)
-{
-    static_cast<void>(status);
-    static_cast<void>(partitionId);
-    static_cast<void>(uri);
-    static_cast<void>(queueKey);
-}
-
 void recoveredQueuesCb(
     int                                           partitionId,
     const mqbs::DataStoreConfig::QueueKeyInfoMap& queueKeyInfoMap)
@@ -184,6 +162,7 @@ struct Tester {
 
         d_partitionCfg.maxDataFileSize()     = 100 * 1024 * 1024;
         d_partitionCfg.maxQlistFileSize()    = 1 * 1024 * 1024;
+        d_partitionCfg.maxCSLFileSize()      = 1 * 1024 * 1024;
         d_partitionCfg.maxJournalFileSize()  = 1 * 1024 * 1024;
         d_partitionCfg.location()            = d_clusterLocation;
         d_partitionCfg.archiveLocation()     = d_clusterArchiveLocation;
@@ -225,18 +204,6 @@ struct Tester {
             .setMaxDataFileSize(d_partitionCfg.maxDataFileSize())
             .setMaxJournalFileSize(d_partitionCfg.maxJournalFileSize())
             .setMaxQlistFileSize(d_partitionCfg.maxQlistFileSize())
-            .setQueueCreationCb(
-                bdlf::BindUtil::bind(&queueCreationCb,
-                                     bdlf::PlaceHolders::_1,   // status
-                                     bdlf::PlaceHolders::_2,   // partitionId
-                                     bdlf::PlaceHolders::_3,   // QueueUri
-                                     bdlf::PlaceHolders::_4))  // QueueKey
-            .setQueueDeletionCb(
-                bdlf::BindUtil::bind(&queueDeletionCb,
-                                     bdlf::PlaceHolders::_1,   // status
-                                     bdlf::PlaceHolders::_2,   // partitionId
-                                     bdlf::PlaceHolders::_3,   // QueueUri
-                                     bdlf::PlaceHolders::_4))  // QueueKey
             .setRecoveredQueuesCb(bdlf::BindUtil::bind(
                 &recoveredQueuesCb,
                 bdlf::PlaceHolders::_1,    // partitionId
@@ -258,9 +225,10 @@ struct Tester {
                                          d_blobSpPool_sp.get(),
                                          &d_statePool,
                                          &d_miscWorkThreadPool,
-                                         false,  // isCSLModeEnabled
-                                         false,  // isFSMWorkflow
-                                         1,      // replicationFactor
+                                         true,  // isCSLModeEnabled
+                                         true,  // isFSMWorkflow
+                                         true,  // doesFSMwriteQLIST
+                                         1,     // replicationFactor
                                          bmqtst::TestHelperUtil::allocator()),
                      bmqtst::TestHelperUtil::allocator());
     }
