@@ -96,9 +96,7 @@ int Authenticator::onAuthenticationRequest(
     context->setAuthenticationContext(authenticationContext);
 
     // Authenticate
-    int rc = authenticateAsync(errorDescription,
-                               authenticationContext,
-                               context->channel());
+    int rc = authenticateAsync(errorDescription, context, context->channel());
 
     return rc;
 }
@@ -156,7 +154,7 @@ int Authenticator::sendAuthenticationMessage(
 
 int Authenticator::authenticateAsync(
     bsl::ostream&                          errorDescription,
-    const AuthenticationContextSp&         context,
+    const InitialConnectionContextSp&      context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     int rc = d_threadPool.enqueueJob(
@@ -166,28 +164,28 @@ int Authenticator::authenticateAsync(
                              channel));
 
     if (rc != 0) {
-        errorDescription << "Failed to enqueue authentication job for '"
-                         << channel->peerUri() << "' [rc: " << rc
-                         << ", message: " << context->authenticationMessage()
-                         << "]";
+        errorDescription
+            << "Failed to enqueue authentication job for '"
+            << channel->peerUri() << "' [rc: " << rc << ", message: "
+            << context->authenticationContext()->authenticationMessage()
+            << "]";
     }
 
     return rc;
 }
 
 void Authenticator::authenticate(
-    const AuthenticationContextSp&         context,
+    const InitialConnectionContextSp&      context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // PRECONDITIONS
     BSLS_ASSERT(context);
-    BSLS_ASSERT(context->initialConnectionContext());
 
-    mqbnet::InitialConnectionContext* initialConnectionContext =
-        context->initialConnectionContext();
+    const AuthenticationContextSp& authenticationContext =
+        context->authenticationContext();
 
     const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
-        context->authenticationMessage().authenticateRequest();
+        authenticationContext->authenticationMessage().authenticateRequest();
 
     bsl::shared_ptr<mqbplug::AuthenticationResult> result;
     mqbplug::AuthenticationData                    authenticationData(
@@ -225,40 +223,36 @@ void Authenticator::authenticate(
         response.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
         response.lifetimeMs()        = result->lifetimeMs();
 
-        context->setAuthenticationResult(result);
+        authenticationContext->setAuthenticationResult(result);
 
-        if (context->state().testAndSwap(State::e_AUTHENTICATING,
-                                         State::e_AUTHENTICATED) !=
-            State::e_AUTHENTICATING) {
+        if (authenticationContext->state().testAndSwap(
+                State::e_AUTHENTICATING,
+                State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
             authenticationErrorStream
                 << "Failed to set authentication state for '"
                 << channel->peerUri()
                 << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-            initialConnectionContext->complete(
-                rc,
-                authenticationErrorStream.str(),
-                bsl::shared_ptr<mqbnet::Session>());
+            context->complete(rc,
+                              authenticationErrorStream.str(),
+                              bsl::shared_ptr<mqbnet::Session>());
             return;  // RETURN
         }
     }
 
     // This is when we authenticate with default credentials
     // No need to send authentication response
-    if (initialConnectionContext->negotiationContext()) {
+    if (context->negotiationContext()) {
         bsl::shared_ptr<mqbnet::Session> session;
         bmqu::MemOutStream               errStream;
         bsl::string                      error;
-        rc = initialConnectionContext->negotiationCb()(
-            errStream,
-            &session,
-            initialConnectionContext);
+        rc = context->negotiationCb()(errStream, &session, context.get());
 
         if (rc != 0) {
             error = bsl::string(errStream.str().data(),
                                 errStream.str().length());
         }
 
-        initialConnectionContext->complete(rc, error, session);
+        context->complete(rc, error, session);
 
         return;  // RETURN
     }
@@ -270,14 +264,14 @@ void Authenticator::authenticate(
                                    channel,
                                    context->authenticationEncodingType());
     if (response.status().code() != 0) {
-        initialConnectionContext->complete(rc,
-                                           authenticationErrorStream.str(),
-                                           bsl::shared_ptr<mqbnet::Session>());
+        context->complete(rc,
+                          authenticationErrorStream.str(),
+                          bsl::shared_ptr<mqbnet::Session>());
     }
     else if (rc != 0) {
-        initialConnectionContext->complete(rc,
-                                           sendResponseErrorStream.str(),
-                                           bsl::shared_ptr<mqbnet::Session>());
+        context->complete(rc,
+                          sendResponseErrorStream.str(),
+                          bsl::shared_ptr<mqbnet::Session>());
     }
 
     return;
