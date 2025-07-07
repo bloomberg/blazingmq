@@ -340,15 +340,6 @@ class ClusterStateManager {
         mqbnet::ClusterNode*                source,
         bool                                delayed = false) = 0;
 
-    /// Process the specified leader advisory `message` from the specified
-    /// `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    virtual void
-    processLeaderAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
-                          mqbnet::ClusterNode*                source) = 0;
-
     /// Process the shutdown event.
     ///
     /// THREAD: Executed by any thread.

@@ -591,15 +591,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         mqbnet::ClusterNode*                source,
         bool delayed = false) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified leader advisory `message` from the specified
-    /// `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void
-    processLeaderAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
-                          mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
-
     /// Process the shutdown event.
     ///
     /// THREAD: Executed by any thread.

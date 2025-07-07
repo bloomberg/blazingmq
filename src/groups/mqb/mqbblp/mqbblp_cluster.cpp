@@ -3016,12 +3016,7 @@ void Cluster::processClusterControlMessage(
         // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(&ClusterOrchestrator::processLeaderAdvisory,
-                                 &d_clusterOrchestrator,
-                                 message,
-                                 source),
-            this);
+        // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
         // NO-OP
