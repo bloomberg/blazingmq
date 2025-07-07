@@ -82,8 +82,8 @@ void ClusterStateManager::onCommit(
 
     // NOTE: Even when using old workflow, we still apply all advisories to the
     // CSL. We just don't invoke the commit callbacks.
-    // Make an exception for QueueUpdateAdvisory, QueueAssignmentAdvisory, and
-    // PartitionPrimaryAdvisory
+    // Make an exception for QueueUpdateAdvisory, QueueAssignmentAdvisory,
+    // PartitionPrimaryAdvisory, and LeaderAdvisory
     if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
         !clusterMessage.choice().isQueueUpdateAdvisoryValue() &&
         !clusterMessage.choice().isQueueAssignmentAdvisoryValue() &&
@@ -102,6 +102,13 @@ void ClusterStateManager::onCommit(
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Committed advisory: " << advisory << ", with status '"
                   << status << "'";
+
+    // Leader status is set to ACTIVE during FSM, not CSL. Since we are still
+    // in the phase of enabling CSL, we need to explicitly set it here.
+    if (clusterMessage.choice().isLeaderAdvisoryValue()) {
+        d_clusterData_p->electorInfo().setLeaderStatus(
+            mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+    }
 
     mqbc::ClusterUtil::apply(d_state_p, clusterMessage, *d_clusterData_p);
 }
@@ -1511,69 +1518,6 @@ void ClusterStateManager::processClusterStateEvent(
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to apply cluster state event, rc: " << rc;
     }
-}
-
-void ClusterStateManager::processLeaderAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT(message.choice().isClusterMessageValue());
-    BSLS_ASSERT(
-        message.choice().clusterMessage().choice().isLeaderAdvisoryValue());
-
-    BALL_LOG_INFO << d_cluster_p->description()
-                  << ": Processing leaderAdvisory message: " << message
-                  << ", from '" << source->nodeDescription() << "'";
-
-    const bmqp_ctrlmsg::LeaderAdvisory& advisory =
-        message.choice().clusterMessage().choice().leaderAdvisory();
-
-    if (d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "Received legacy leaderAdvisory: " << advisory
-                       << " from: " << source << " in CSL mode.";
-
-        return;  // RETURN
-    }
-
-    if (d_clusterData_p->electorInfo().leaderNode() != source) {
-        // Different leader.  Ignore message.
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": ignoring leader advisory: " << advisory << " from "
-                      << source->nodeDescription()
-                      << " because there is a different leader: "
-                      << d_clusterData_p->electorInfo().leaderNodeId()
-                      << " with term: "
-                      << d_clusterData_p->electorInfo().electorTerm();
-        return;  // RETURN
-    }
-
-    const bmqp_ctrlmsg::LeaderMessageSequence& leaderMsgSeq =
-        advisory.sequenceNumber();
-    if (d_clusterData_p->electorInfo().leaderMessageSequence() >
-        leaderMsgSeq) {
-        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-            << d_clusterData_p->identity().description()
-            << ": got leader advisory: " << advisory << " from leader node ["
-            << source->nodeDescription()
-            << " with smaller leader message sequence: " << leaderMsgSeq
-            << ". Current value: "
-            << d_clusterData_p->electorInfo().leaderMessageSequence()
-            << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
-        return;  // RETURN
-    }
-
-    // Leader status and sequence number are updated unconditionally.  It may
-    // have been updated by one of the routines called earlier in this method,
-    // but there is no harm in setting these values again.
-
-    d_clusterData_p->electorInfo().setLeaderMessageSequence(leaderMsgSeq);
-    d_clusterData_p->electorInfo().setLeaderStatus(
-        mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }
 
 void ClusterStateManager::processShutdownEvent()
