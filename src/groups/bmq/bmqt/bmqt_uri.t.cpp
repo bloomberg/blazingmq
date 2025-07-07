@@ -38,40 +38,6 @@ using namespace BloombergLP;
 using namespace bsl;
 
 // ============================================================================
-//                            TEST HELPERS UTILITY
-// ----------------------------------------------------------------------------
-namespace {
-
-/// Thread function: wait on the specified `barrier` and then generate the
-/// specified `numGUIDs` (in a tight loop) and store them in the specified
-/// `out`.
-static void threadFunction(int                                      threadId,
-                           bsl::vector<bsl::pair<bmqt::Uri, int> >* out,
-                           bslmt::Barrier*                          barrier,
-                           int numIterations)
-{
-    out->reserve(numIterations);
-    barrier->wait();
-
-    for (int i = 0; i < numIterations; ++i) {
-        bmqu::MemOutStream osstrDomain(bmqtst::TestHelperUtil::allocator());
-        bmqu::MemOutStream osstrQueue(bmqtst::TestHelperUtil::allocator());
-        osstrDomain << "my.domain." << threadId << "." << i;
-        osstrQueue << "queue-foo-bar-" << threadId << "-" << i;
-
-        bmqt::Uri        qualifiedUri(bmqtst::TestHelperUtil::allocator());
-        bmqt::UriBuilder builder(bmqtst::TestHelperUtil::allocator());
-        builder.setDomain(osstrDomain.str());
-        builder.setQueue(osstrQueue.str());
-
-        int rc = builder.uri(&qualifiedUri);
-        out->push_back(bsl::make_pair(qualifiedUri, rc));
-    }
-}
-
-}  // close unnamed namespace
-
-// ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
@@ -452,36 +418,60 @@ static void test2_URIBuilder()
 /// from multiple threads.
 static void test3_URIBuilderMultiThreaded()
 {
-    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Can't ensure no global memory is allocated because
-    // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
-    // memory.
-
     bmqtst::TestHelper::printTestName("MULTI-THREADED URI BUILDER TEST");
 
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    const int          k_NUM_THREADS    = 6;
-    const int          k_NUM_ITERATIONS = 10000;
-    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
+    const size_t k_NUM_THREADS    = 6;
+    const size_t k_NUM_ITERATIONS = 10000;
+
+    struct Local {
+        static void threadFunction(size_t                  threadId,
+                                   bsl::vector<bmqt::Uri>* out,
+                                   bslmt::Barrier*         barrier)
+        {
+            out->reserve(k_NUM_ITERATIONS);
+            barrier->wait();
+
+            for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+                bmqu::MemOutStream osstrDomain(
+                    bmqtst::TestHelperUtil::allocator());
+                bmqu::MemOutStream osstrQueue(
+                    bmqtst::TestHelperUtil::allocator());
+                osstrDomain << "my.domain." << threadId << "." << i;
+                osstrQueue << "queue-foo-bar-" << threadId << "-" << i;
+
+                bmqt::Uri qualifiedUri(bmqtst::TestHelperUtil::allocator());
+                bmqt::UriBuilder builder(bmqtst::TestHelperUtil::allocator());
+                builder.setDomain(osstrDomain.str());
+                builder.setQueue(osstrQueue.str());
+
+                const int rc = builder.uri(&qualifiedUri);
+                BMQTST_ASSERT_EQ_D("Failed to build bmqt::Uri, i="
+                                       << i << ", rc=" << rc,
+                                   rc,
+                                   0);
+                out->emplace_back(bslmf::MovableRefUtil::move(qualifiedUri));
+            }
+        }
+    };
 
     // Barrier to get each thread to start at the same time; `+1` for this
     // (main) thread.
     bslmt::Barrier barrier(k_NUM_THREADS + 1);
 
-    typedef bsl::pair<bmqt::Uri, int> Result;
-
-    bsl::vector<bsl::vector<Result> > threadsData(
+    bsl::vector<bsl::vector<bmqt::Uri> > threadsData(
         bmqtst::TestHelperUtil::allocator());
     threadsData.resize(k_NUM_THREADS);
 
-    for (int i = 0; i < k_NUM_THREADS; ++i) {
-        int rc = threadGroup.addThread(bdlf::BindUtil::bind(&threadFunction,
-                                                            i,
-                                                            &threadsData[i],
-                                                            &barrier,
-                                                            k_NUM_ITERATIONS));
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
+    for (size_t i = 0; i < k_NUM_THREADS; ++i) {
+        const int rc = threadGroup.addThread(
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &Local::threadFunction,
+                                  i,
+                                  &threadsData[i],
+                                  &barrier));
         BMQTST_ASSERT_EQ_D(i, rc, 0);
     }
 
@@ -490,17 +480,12 @@ static void test3_URIBuilderMultiThreaded()
 
     // Validate for each thread.
 
-    for (int i = 0; i < k_NUM_THREADS; ++i) {
-        const bsl::vector<Result>& threadResults = threadsData[i];
+    for (size_t i = 0; i < k_NUM_THREADS; ++i) {
+        const bsl::vector<bmqt::Uri>& uris = threadsData[i];
 
-        BSLS_ASSERT_OPT(threadResults.size() ==
-                        static_cast<size_t>(k_NUM_ITERATIONS));
+        BMQTST_ASSERT_EQ(uris.size(), k_NUM_ITERATIONS);
 
-        for (int j = 0; j < k_NUM_ITERATIONS; ++j) {
-            BMQTST_ASSERT_EQ_D(i << ", " << j,
-                               threadResults[j].second,
-                               0);  // builder rc
-
+        for (size_t j = 0; j < k_NUM_ITERATIONS; ++j) {
             bmqu::MemOutStream expectedUriStr(
                 bmqtst::TestHelperUtil::allocator());
             expectedUriStr << "bmq://my.domain." << i << "." << j
@@ -508,9 +493,7 @@ static void test3_URIBuilderMultiThreaded()
             bmqt::Uri expectedUri(expectedUriStr.str(),
                                   bmqtst::TestHelperUtil::allocator());
 
-            BMQTST_ASSERT_EQ_D(i << ", " << j,
-                               threadResults[j].first,
-                               expectedUri);
+            BMQTST_ASSERT_EQ_D(i << ", " << j, uris[j], expectedUri);
         }
     }
 
