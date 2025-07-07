@@ -23,7 +23,7 @@ jobs:
     if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
-      - name : Purge runner
+      - name: Purge runner
       # Strip the runner to avoid space quota exceeding
         run: |
           sudo apt-get purge -y \
@@ -42,3 +42,7 @@ jobs:
       - name: UT [c++,${{ github.job }}]
         if: ${{ matrix.fuzz == 'off' }}
         run: docker run --rm sanitizer-${{ github.job }}
+      - name: IT [c++,${{ github.job }}]
+        if: ${{ matrix.fuzz == 'off' }}
+        run: |
+          docker run --rm sanitizer-${{ github.job }} /blazingmq/cmake.bld/Linux/run-it.sh -k breathing --reruns=3 --bmq-tolerate-dirty-shutdown

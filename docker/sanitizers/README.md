@@ -23,3 +23,21 @@ docker run --rm -it sanitizer-<sanitizer-name> /bin/bash
 
 root@923efd7529a4:/blazingmq# cd cmake.bld/Linux && ./run-env.sh ctest -R <test-name>
 ```
+
+- Run docker container with integration tests
+
+Start container in interactive mode and run ITs with specified PRESET and extra parameters (see also build.yaml for reference):
+```
+docker run --rm -it sanitizer-<sanitizer-name> /bin/bash
+
+root@923efd7529a4:/blazingmq# BLAZINGMQ_IT_PRESET="fsm_mode and strong_consistency" /blazingmq/cmake.bld/Linux/run-it.sh \
+--log-level ERROR                   \
+--log-file-level=info               \
+--bmq-tolerate-dirty-shutdown       \
+--bmq-log-dir=failure-logs          \
+--bmq-log-level=INFO                \
+--junitxml=integration-tests.xml    \
+--tb long                           \
+--reruns=3                          \
+-n logical -v
+```
