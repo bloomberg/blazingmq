@@ -791,9 +791,6 @@ int main(int argc, char* argv[])
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
-
     switch (_testCase) {
     case 0:
     case 10: test10_putStatsTest(); break;

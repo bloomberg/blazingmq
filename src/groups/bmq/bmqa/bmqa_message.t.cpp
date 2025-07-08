@@ -415,9 +415,6 @@ static void test4_subscriptionHandle()
 
     bmqtst::TestHelper::printTestName("SUBSCRIPTION HANDLE ACCESSOR TEST");
 
-    // Initialize Crc32c
-    bmqp::Crc32c::initialize();
-
     typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
 
     const int                 queueId = 4321;

@@ -858,7 +858,6 @@ int main(int argc, char* argv[])
 
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqp::Crc32c::initialize();
 
     switch (_testCase) {
     case 0:
