@@ -91,22 +91,6 @@
                 "BDE_BUILD_TARGET_CPP17": "ON",
                 "CMAKE_INSTALL_LIBDIR": "lib64"
             }
-        },
-        {
-            "name": "gh-ut-ubuntu-latest-cpp17",
-            "description":
-                "GitHub Actions CI: Unit tests on ubuntu-latest, C++17",
-            "inherits": "gh-base",
-            "toolchainFile":
-                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
-            "environment": {
-                "PKG_CONFIG_PATH":
-                    "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
-            },
-            "cacheVariables": {
-                "BDE_BUILD_TARGET_CPP17": "ON",
-                "CMAKE_INSTALL_LIBDIR": "lib64"
-            }
         }
     ],
     "buildPresets": [
@@ -119,26 +103,17 @@
                 "bmqbrkr",
                 "bmqtool",
                 "bmqstoragetool",
+                "all.t",
                 "all.it"
-            ]
-        },
-        {
-            "name": "gh-ut-ubuntu-latest-cpp17",
-            "description":
-                "GitHub Actions CI: Unit tests on ubuntu-latest, C++17",
-            "configurePreset": "gh-ut-ubuntu-latest-cpp17",
-            "jobs": 8,
-            "targets": [
-                "all.t"
             ]
         }
     ],
     "testPresets": [
         {
-            "name": "gh-ut-ubuntu-latest-cpp17",
+            "name": "gh-build-ubuntu-latest-cpp17",
             "description":
                 "GitHub Actions CI: Unit tests on ubuntu-latest, C++17",
-            "configurePreset": "gh-ut-ubuntu-latest-cpp17",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
             "filter": {
                 "include": {
                     "label": "^unit$"

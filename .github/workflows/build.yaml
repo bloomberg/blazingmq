@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/dependencies.yaml
 
   build_ubuntu:
-    name: Build [ubuntu]
+    name: Build and Unit Test [ubuntu]
     runs-on: ubuntu-latest
     needs: get_dependencies
     steps:
@@ -58,10 +58,14 @@ jobs:
       - name: Build BlazingMQ
         run: cmake --build --preset gh-build-ubuntu-latest-cpp17
 
+      - name: Run BlazingMQ Unit Tests
+        run: ctest --preset gh-build-ubuntu-latest-cpp17
+
       - name: Clean-up build directories before caching
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
+          find . -name "*.t" -type f -delete
 
       - uses: actions/cache@v4
         with:
@@ -70,48 +74,6 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
-
-  unit_tests_cxx:
-    name: UT [c++]
-    runs-on: ubuntu-latest
-    needs: get_dependencies
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
-
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
-
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
-
-      - name: Configure BlazingMQ UTs
-        run: cmake --preset gh-ut-ubuntu-latest-cpp17
-
-      - name: Build BlazingMQ UTs
-        run: cmake --build --preset gh-ut-ubuntu-latest-cpp17
-
-      - name: Run C++ Unit Tests
-        run: ctest --preset gh-ut-ubuntu-latest-cpp17
 
   unit_tests_python:
     name: UT [python]
