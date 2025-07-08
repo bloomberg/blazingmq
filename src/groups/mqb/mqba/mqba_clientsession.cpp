@@ -339,6 +339,479 @@ struct BuildAckOverflowFunctor {
 
 }  // close unnamed namespace
 
+class ClientSessionDestructGuard {
+  public:
+    // PUBLIC CLASS METHODS
+
+    static void checkUnconfirmed(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const ClientSession::ShutdownContextSp&     shutdownCtx,
+        const ClientSession::VoidFunctor&           completionCb)
+    {
+        // executed by *ANY* thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, just call a callback
+            completionCb();
+            return;  // RETURN
+        }
+
+        ptr->dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                ptr->d_state.d_allocator_p,
+                &ClientSessionDestructGuard::checkUnconfirmedDispatched,
+                sharedSession_sp,
+                shutdownCtx,
+                completionCb),
+            ptr.get());
+    }
+
+    static void checkUnconfirmedDispatched(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const ClientSession::ShutdownContextSp&     shutdownCtx,
+        const ClientSession::VoidFunctor&           completionCb)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, just call a callback
+            completionCb();
+            return;  // RETURN
+        }
+
+        ptr->checkUnconfirmedDispatched(shutdownCtx, completionCb);
+    }
+
+    static void finishCheckUnconfirmed(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const ClientSession::ShutdownContextSp&     shutdownCtx,
+        const ClientSession::VoidFunctor&           completionCb)
+    {
+        // executed by ONE of the *QUEUE* dispatcher threads
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, just call a callback
+            completionCb();
+            return;  // RETURN
+        }
+
+        ptr->dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                ptr->d_state.d_allocator_p,
+                &ClientSessionDestructGuard::finishCheckUnconfirmedDispatched,
+                sharedSession_sp,
+                shutdownCtx,
+                completionCb),
+            ptr.get());
+    }
+
+    static void finishCheckUnconfirmedDispatched(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const ClientSession::ShutdownContextSp&     shutdownCtx,
+        const ClientSession::VoidFunctor&           completionCb)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, just call a callback
+            completionCb();
+            return;  // RETURN
+        }
+
+        ptr->finishCheckUnconfirmedDispatched(shutdownCtx, completionCb);
+    }
+
+    static void countUnconfirmed(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        mqbi::QueueHandle*                          handle,
+        const ClientSession::ShutdownContextSp&     shutdownCtx,
+        const ClientSession::VoidFunctor&           completionCb)
+    {
+        // executed by ONE of the *QUEUE* dispatcher threads
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, just call a callback
+            completionCb();
+            return;  // RETURN
+        }
+
+        // This code assumes that this `ClientSession` cannot be destructed
+        // from another thread while we execute this.  If this `ClientSession`
+        // CAN be destructed, there are multiple problems:
+        // 1. `d_self_sp` pointer might become NULL.
+        // 2. It is UB to execute a member function on an object that was
+        //    destructed, even if we don't touch its fields.
+
+        handle->queue()->dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                ptr->d_state.d_allocator_p,
+                &ClientSessionDestructGuard::countUnconfirmedDispatched,
+                sharedSession_sp,
+                handle,
+                shutdownCtx,
+                completionCb),
+            handle->queue());
+    }
+
+    static void countUnconfirmedDispatched(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        mqbi::QueueHandle*                          handle,
+        const ClientSession::ShutdownContextSp&     shutdownCtx,
+        const ClientSession::VoidFunctor&           completionCb)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, just call a callback
+            completionCb();
+            return;  // RETURN
+        }
+
+        ptr->countUnconfirmedDispatched(handle, shutdownCtx, completionCb);
+    }
+
+    static void onHandleConfigured(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::Status&                     status,
+        const bmqp_ctrlmsg::StreamParameters&           streamParameters,
+        const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *ANY* thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                ptr->d_state.d_allocator_p,
+                &ClientSessionDestructGuard::onHandleConfiguredDispatched,
+                sharedSession_sp,
+                status,
+                streamParameters,
+                streamParamsCtrlMsg,
+                opLogger),
+            ptr.get());
+    }
+
+    static void onHandleConfiguredDispatched(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::Status&                     status,
+        const bmqp_ctrlmsg::StreamParameters&           streamParameters,
+        const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->onHandleConfiguredDispatched(status,
+                                          streamParameters,
+                                          streamParamsCtrlMsg,
+                                          opLogger);
+    }
+
+    static void initiateShutdownDispatched(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const ClientSession::ShutdownCb&            callback,
+        const bsls::TimeInterval&                   timeout,
+        bool                                        supportShutdownV2)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->initiateShutdownDispatched(callback, timeout, supportShutdownV2);
+    }
+
+    static void
+    closeChannel(const ClientSession::SharedClientSessionSp& sharedSession_sp)
+    {
+        // executed by the *ANY* thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->closeChannel();
+    }
+
+    static void
+    onWatermark(const ClientSession::SharedClientSessionSp& sharedSession_sp,
+                bmqio::ChannelWatermarkType::Enum           type)
+    {
+        // executed by the *IO* thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        switch (type) {
+        case bmqio::ChannelWatermarkType::e_LOW_WATERMARK: {
+            ptr->onLowWatermark();
+        } break;  // BREAK
+        case bmqio::ChannelWatermarkType::e_HIGH_WATERMARK: {
+            ptr->onHighWatermark();
+        } break;  // BREAK
+        default: {
+            BSLS_ASSERT_SAFE(false && "Unknown watermark type");
+        }
+        }
+    }
+
+    static void flushChannelBufferQueueDispatched(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->flushChannelBufferQueue();
+    }
+
+    static void processDisconnectAllQueues(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&             controlMessage,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processDisconnectAllQueues(controlMessage, opLogger);
+    }
+
+    static void processDisconnectAllQueuesDone(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&             controlMessage,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by ONE of the *QUEUE* dispatcher threads
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processDisconnectAllQueuesDone(controlMessage, opLogger);
+    }
+
+    static void processDisconnect(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&             controlMessage,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processDisconnect(controlMessage, opLogger);
+    }
+
+    static void
+    sendPacket(const ClientSession::SharedClientSessionSp& sharedSession_sp,
+               const bsl::shared_ptr<bdlbb::Blob>&         blob,
+               bool                                        flushBuilders)
+    {
+        // executed by the *ANY* thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                ptr->d_state.d_allocator_p,
+                &ClientSessionDestructGuard::sendPacketDispatched,
+                sharedSession_sp,
+                blob,
+                flushBuilders),
+            ptr.get());
+    }
+
+    static void sendPacketDispatched(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const bsl::shared_ptr<bdlbb::Blob>&         blob,
+        bool                                        flushBuilders)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->sendPacketDispatched(blob, flushBuilders);
+    }
+
+    static void processOpenQueue(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processOpenQueue(handleParamsCtrlMsg, opLogger);
+    }
+
+    static void
+    openQueueCb(const ClientSession::SharedClientSessionSp& sharedSession_sp,
+                const bmqp_ctrlmsg::Status&                 status,
+                BSLA_UNUSED mqbi::QueueHandle*         handle,
+                const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
+                const bmqp_ctrlmsg::ControlMessage&    handleParamsCtrlMsg,
+                const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->openQueueCb(status,
+                         handle,
+                         openQueueResponse,
+                         handleParamsCtrlMsg,
+                         opLogger);
+    }
+
+    static void
+    closeQueueCb(const ClientSession::SharedClientSessionSp& sharedSession_sp,
+                 const bsl::shared_ptr<mqbi::QueueHandle>&   handle,
+                 const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg,
+                 const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->closeQueueCb(handle, handleParamsCtrlMsg, opLogger);
+    }
+
+    static void sendErrorResponse(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        bmqp_ctrlmsg::StatusCategory::Value         failureCategory,
+        const bslstl::StringRef&                    errorDescription,
+        int                                         code,
+        const bmqp_ctrlmsg::ControlMessage&         request)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->sendErrorResponse(failureCategory,
+                               errorDescription,
+                               code,
+                               request);
+    }
+
+    static void processCloseQueue(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processCloseQueue(handleParamsCtrlMsg, opLogger);
+    }
+
+    static void processConfigureStream(
+        const ClientSession::SharedClientSessionSp&     sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
+        const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processConfigureStream(streamParamsCtrlMsg, opLogger);
+    }
+
+    static void processClusterMessage(
+        const ClientSession::SharedClientSessionSp& sharedSession_sp,
+        const bmqp_ctrlmsg::ControlMessage&         message)
+    {
+        // executed by the *CLIENT* dispatcher thread
+
+        bsl::shared_ptr<ClientSession> ptr = sharedSession_sp->acquire();
+        if (!ptr) {
+            // Session was already destroyed, do nothing
+            return;  // RETURN
+        }
+
+        ptr->processClusterMessage(message);
+    }
+
+    static void
+    onDeconfiguredHandle(const ClientSession::ShutdownContextSp& contextSp)
+    {
+        (void)contextSp;
+    }
+};
+
 // -------------------------
 // struct ClientSessionState
 // -------------------------
@@ -383,7 +856,7 @@ ClientSessionState::ClientSessionState(
 void ClientSession::sendErrorResponse(
     bmqp_ctrlmsg::StatusCategory::Value failureCategory,
     const bslstl::StringRef&            errorDescription,
-    const int                           code,
+    int                                 code,
     const bmqp_ctrlmsg::ControlMessage& request)
 {
     // executed by the *CLIENT* dispatcher thread
@@ -420,17 +893,6 @@ void ClientSession::sendErrorResponse(
 
     // Send the response
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
-}
-
-void ClientSession::sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                               bool flushBuilders)
-{
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::sendPacketDispatched,
-                             this,
-                             blob,
-                             flushBuilders),
-        this);
 }
 
 void ClientSession::sendPacketDispatched(
@@ -675,7 +1137,8 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
 
     BALL_LOG_INFO << description() << ": tearDownImpl";
 
-    bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(
+    bdlb::ScopeExitAny guard(bdlf::BindUtil::bindS(
+        d_state.d_allocator_p,
         static_cast<void (bslmt::Semaphore::*)()>(&bslmt::Semaphore::post),
         semaphore));
 
@@ -690,7 +1153,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
         d_scheduler_p->cancelEventAndWait(d_periodicUnconfirmedCheckHandler);
     }
 
-    d_self.invalidate();
+    d_self_sp->invalidate();
     // Invalidating this CS in CS thread for the sake of synchronization
     // with `finishCheckUnconfirmed / finishCheckUnconfirmedDispatched` and
     // `checkUnconfirmed` / `checkUnconfirmedDispatched`.  Otherwise, they
@@ -744,9 +1207,10 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     dispatcher()->execute(
         mqbi::Dispatcher::VoidFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
-        bdlf::BindUtil::bind(&ClientSession::tearDownAllQueuesDone,
-                             this,
-                             session));
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSession::tearDownAllQueuesDone,
+                              this,
+                              session));
 }
 
 void ClientSession::tearDownAllQueuesDone(const bsl::shared_ptr<void>& session)
@@ -764,28 +1228,12 @@ void ClientSession::tearDownAllQueuesDone(const bsl::shared_ptr<void>& session)
     // by having the 'handle' go out of scope.  This dispatcher event must be
     // of type 'e_DISPATCHER' to make sure this client will not be added to the
     // dispatcher's flush list, since it is being destroyed.
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&sessionHolderDummy, d_shutdownCallback, session),
-        this,
-        mqbi::DispatcherEventType::e_DISPATCHER);
-}
-
-void ClientSession::onHandleConfigured(
-    const bmqp_ctrlmsg::Status&                     status,
-    const bmqp_ctrlmsg::StreamParameters&           streamParameters,
-    const bmqp_ctrlmsg::ControlMessage&             streamParamsCtrlMsg,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
-{
-    // executed by the *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::onHandleConfiguredDispatched,
-                             this,
-                             status,
-                             streamParameters,
-                             streamParamsCtrlMsg,
-                             opLogger),
-        this);
+    dispatcher()->execute(bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                                                &sessionHolderDummy,
+                                                d_shutdownCallback,
+                                                session),
+                          this,
+                          mqbi::DispatcherEventType::e_DISPATCHER);
 }
 
 void ClientSession::onHandleConfiguredDispatched(
@@ -952,7 +1400,9 @@ void ClientSession::initiateShutdownDispatched(
         ShutdownContextSp context;
         context.createInplace(
             d_state.d_allocator_p,
-            bdlf::BindUtil::bind(&ClientSession::closeChannel, this),
+            bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                                  &ClientSessionDestructGuard::closeChannel,
+                                  d_self_sp),
             timeout);
 
         deconfigureAndWait(context);
@@ -980,19 +1430,21 @@ void ClientSession::deconfigureAndWait(ShutdownContextSp& context)
          ++it) {
         if (!it->second.d_hasReceivedFinalCloseQueue) {
             link.insert(
-                bdlf::BindUtil::bind(&mqbi::QueueHandle::deconfigureAll,
-                                     it->second.d_handle_p,
-                                     bdlf::PlaceHolders::_1));
+                bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                                      &mqbi::QueueHandle::deconfigureAll,
+                                      it->second.d_handle_p,
+                                      bdlf::PlaceHolders::_1));
         }
     }
     // No-op if the link is empty
     d_shutdownChain.append(&link);
 
     d_shutdownChain.appendInplace(
-        bdlf::BindUtil::bind(&ClientSession::checkUnconfirmed,
-                             this,
-                             context,
-                             bdlf::PlaceHolders::_1));
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::checkUnconfirmed,
+                              d_self_sp,
+                              context,
+                              bdlf::PlaceHolders::_1));
     d_shutdownChain.start();
 }
 
@@ -1005,21 +1457,8 @@ void ClientSession::invalidateDispatched()
         return;  // RETURN
     }
 
-    d_self.invalidate();
+    d_self_sp->invalidate();
     d_operationState = e_DEAD;
-}
-
-void ClientSession::checkUnconfirmed(const ShutdownContextSp& shutdownCtx,
-                                     const VoidFunctor&       completionCb)
-{
-    // executed by *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::checkUnconfirmedDispatched,
-                             this,
-                             shutdownCtx,
-                             completionCb),
-        this);
 }
 
 void ClientSession::checkUnconfirmedDispatched(
@@ -1061,36 +1500,24 @@ void ClientSession::checkUnconfirmedDispatched(
          it != d_queueSessionManager.queues().end();
          ++it) {
         if (!it->second.d_hasReceivedFinalCloseQueue) {
-            link.insert(bdlf::BindUtil::bind(&ClientSession::countUnconfirmed,
-                                             this,
-                                             it->second.d_handle_p,
-                                             shutdownCtx,
-                                             bdlf::PlaceHolders::_1));
+            link.insert(bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::countUnconfirmed,
+                d_self_sp,
+                it->second.d_handle_p,
+                shutdownCtx,
+                bdlf::PlaceHolders::_1));
         }
     }
     // No-op if the link is empty
     d_shutdownChain.append(&link);
 
-    d_shutdownChain.appendInplace(
-        bdlf::BindUtil::bind(&ClientSession::finishCheckUnconfirmed,
-                             this,
-                             shutdownCtx,
-                             bdlf::PlaceHolders::_1));
-}
-
-void ClientSession::countUnconfirmed(mqbi::QueueHandle*       handle,
-                                     const ShutdownContextSp& shutdownCtx,
-                                     const VoidFunctor&       completionCb)
-{
-    // executed by ONE of the *QUEUE* dispatcher threads
-
-    handle->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::countUnconfirmedDispatched,
-                             this,
-                             handle,
-                             shutdownCtx,
-                             completionCb),
-        handle->queue());
+    d_shutdownChain.appendInplace(bdlf::BindUtil::bindS(
+        d_state.d_allocator_p,
+        &ClientSessionDestructGuard::finishCheckUnconfirmed,
+        d_self_sp,
+        shutdownCtx,
+        bdlf::PlaceHolders::_1));
 }
 
 void ClientSession::countUnconfirmedDispatched(
@@ -1113,20 +1540,6 @@ void ClientSession::countUnconfirmedDispatched(
 
     // Completion callback must be called to finish operation in the chain.
     completionCb();
-}
-
-void ClientSession::finishCheckUnconfirmed(
-    const ShutdownContextSp& shutdownCtx,
-    const VoidFunctor&       completionCb)
-{
-    // executed by ONE of the *QUEUE* dispatcher threads
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::finishCheckUnconfirmedDispatched,
-                             this,
-                             shutdownCtx,
-                             completionCb),
-        this);
 }
 
 void ClientSession::finishCheckUnconfirmedDispatched(
@@ -1169,11 +1582,11 @@ void ClientSession::finishCheckUnconfirmedDispatched(
     d_scheduler_p->scheduleEvent(
         &d_periodicUnconfirmedCheckHandler,
         nextCheckTime,
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::checkUnconfirmed,
-                                           d_self.acquireWeak()),
-            shutdownCtx,
-            bdlf::noOp));
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::checkUnconfirmed,
+                              d_self_sp,
+                              shutdownCtx,
+                              bdlf::noOp));
 }
 
 void ClientSession::closeChannel()
@@ -1245,10 +1658,10 @@ void ClientSession::processDisconnectAllQueues(
     dispatcher()->execute(
         mqbi::Dispatcher::VoidFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(
-                &ClientSession::processDisconnectAllQueuesDone,
-                d_self.acquireWeak()),
+        bdlf::BindUtil::bindS(
+            d_state.d_allocator_p,
+            &ClientSessionDestructGuard::processDisconnectAllQueuesDone,
+            d_self_sp,
             controlMessage,
             opLogger));
 }
@@ -1265,11 +1678,11 @@ void ClientSession::processDisconnectAllQueuesDone(
     // thread.
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::processDisconnect,
-                                           d_self.acquireWeak()),
-            controlMessage,
-            opLogger),
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::processDisconnect,
+                              d_self_sp,
+                              controlMessage,
+                              opLogger),
         this);
 }
 
@@ -1344,19 +1757,21 @@ void ClientSession::processOpenQueue(
 
     d_queueSessionManager.processOpenQueue(
         handleParamsCtrlMsg,
-        bdlf::BindUtil::bind(&ClientSession::openQueueCb,
-                             this,
-                             bdlf::PlaceHolders::_1,  // status
-                             bdlf::PlaceHolders::_2,  // handle
-                             bdlf::PlaceHolders::_3,  // response
-                             handleParamsCtrlMsg,
-                             opLogger),
-        bdlf::BindUtil::bind(&ClientSession::sendErrorResponse,
-                             this,
-                             bdlf::PlaceHolders::_1,  // failureCategory
-                             bdlf::PlaceHolders::_2,  // errorDescription
-                             bdlf::PlaceHolders::_3,  // code
-                             handleParamsCtrlMsg));
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::openQueueCb,
+                              d_self_sp,
+                              bdlf::PlaceHolders::_1,  // status
+                              bdlf::PlaceHolders::_2,  // handle
+                              bdlf::PlaceHolders::_3,  // response
+                              handleParamsCtrlMsg,
+                              opLogger),
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::sendErrorResponse,
+                              d_self_sp,
+                              bdlf::PlaceHolders::_1,  // failureCategory
+                              bdlf::PlaceHolders::_2,  // errorDescription
+                              bdlf::PlaceHolders::_3,  // code
+                              handleParamsCtrlMsg));
 }
 
 void ClientSession::openQueueCb(
@@ -1428,17 +1843,19 @@ void ClientSession::processCloseQueue(
 
     d_queueSessionManager.processCloseQueue(
         handleParamsCtrlMsg,
-        bdlf::BindUtil::bind(&ClientSession::closeQueueCb,
-                             this,
-                             bdlf::PlaceHolders::_1,  // handle
-                             handleParamsCtrlMsg,
-                             opLogger),
-        bdlf::BindUtil::bind(&ClientSession::sendErrorResponse,
-                             this,
-                             bdlf::PlaceHolders::_1,  // failureCategory
-                             bdlf::PlaceHolders::_2,  // errorDescription
-                             bdlf::PlaceHolders::_3,  // code
-                             handleParamsCtrlMsg));
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::closeQueueCb,
+                              d_self_sp,
+                              bdlf::PlaceHolders::_1,  // handle
+                              handleParamsCtrlMsg,
+                              opLogger),
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::sendErrorResponse,
+                              d_self_sp,
+                              bdlf::PlaceHolders::_1,  // failureCategory
+                              bdlf::PlaceHolders::_2,  // errorDescription
+                              bdlf::PlaceHolders::_3,  // code
+                              handleParamsCtrlMsg));
 }
 
 void ClientSession::closeQueueCb(
@@ -1496,7 +1913,10 @@ void ClientSession::closeQueueCb(
     //       and the process of this event by the dispatcher should not add it
     //       to the flush list.
     handle->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&finalizeClosedHandle, description(), handle),
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &finalizeClosedHandle,
+                              description(),
+                              handle),
         handle->queue(),
         mqbi::DispatcherEventType::e_DISPATCHER);
 }
@@ -1595,13 +2015,13 @@ void ClientSession::processConfigureStream(
     // QE should validate consumerPriority and consumerPriorityCount
     handle->configure(
         req.streamParameters(),
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::onHandleConfigured,
-                                           d_self.acquireWeak()),
-            bdlf::PlaceHolders::_1,  // status
-            bdlf::PlaceHolders::_2,  // streamParams
-            streamParamsCtrlMsg,
-            opLogger));
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::onHandleConfigured,
+                              d_self_sp,
+                              bdlf::PlaceHolders::_1,  // status
+                              bdlf::PlaceHolders::_2,  // streamParams
+                              streamParamsCtrlMsg,
+                              opLogger));
 }
 
 void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
@@ -2639,7 +3059,9 @@ ClientSession::ClientSession(
     bdlbb::BlobBufferFactory*               bufferFactory,
     bdlmt::EventScheduler*                  scheduler,
     bslma::Allocator*                       allocator)
-: d_self(this)  // use default allocator
+: d_self_sp(bsl::allocate_shared<bmqu::SharedResource<ClientSession> >(
+      allocator,
+      this))  // use default allocator
 , d_operationState(e_RUNNING)
 , d_isDisconnecting(false)
 , d_negotiationMessage(negotiationMessage, allocator)
@@ -2677,9 +3099,10 @@ ClientSession::ClientSession(
     // to unregister from the channel, because this Session has a longer
     // lifecycle than the Channel itself.
     channel->onWatermark(
-        bdlf::BindUtil::bind(&ClientSession::onWatermark,
-                             this,
-                             bdlf::PlaceHolders::_1));  // type
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSessionDestructGuard::onWatermark,
+                              d_self_sp,
+                              bdlf::PlaceHolders::_1));  // type
 
     mqbstat::BrokerStats::instance()
         .onEvent<mqbstat::BrokerStats::EventType::e_CLIENT_CREATED>();
@@ -2697,7 +3120,7 @@ ClientSession::~ClientSession()
     // executed by ONE of the *QUEUE* dispatcher threads
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_self.isValid());
+    BSLS_ASSERT_SAFE(!d_self_sp->isValid());
     BSLS_ASSERT_SAFE(d_shutdownChain.numOperations() == 0);
 
     BALL_LOG_INFO << description() << ": destructor";
@@ -2767,9 +3190,10 @@ void ClientSession::processEvent(const bmqp::Event& event,
             opLogger->start() << description() << ": disconnect";
 
             d_isDisconnecting = true;
-            eventCallback     = bdlf::BindUtil::bind(
-                &ClientSession::processDisconnectAllQueues,
-                this,
+            eventCallback     = bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::processDisconnectAllQueues,
+                d_self_sp,
                 controlMessage,
                 opLogger);
         } break;
@@ -2783,9 +3207,10 @@ void ClientSession::processEvent(const bmqp::Event& event,
             opLogger->start() << description() << ": open queue [queue: '"
                               << queueUri << "']";
 
-            eventCallback = bdlf::BindUtil::bind(
-                &ClientSession::processOpenQueue,
-                this,
+            eventCallback = bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::processOpenQueue,
+                d_self_sp,
                 controlMessage,
                 opLogger);
         } break;
@@ -2799,9 +3224,10 @@ void ClientSession::processEvent(const bmqp::Event& event,
             opLogger->start() << description() << ": close queue [queue: '"
                               << queueUri << "']";
 
-            eventCallback = bdlf::BindUtil::bind(
-                &ClientSession::processCloseQueue,
-                this,
+            eventCallback = bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::processCloseQueue,
+                d_self_sp,
                 controlMessage,
                 opLogger);
         } break;
@@ -2812,9 +3238,10 @@ void ClientSession::processEvent(const bmqp::Event& event,
                     d_state.d_allocator_p);
             opLogger->start() << description() << ": configure queue";
 
-            eventCallback = bdlf::BindUtil::bind(
-                &ClientSession::processConfigureStream,
-                this,
+            eventCallback = bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::processConfigureStream,
+                d_self_sp,
                 controlMessage,
                 opLogger);
         } break;
@@ -2831,9 +3258,10 @@ void ClientSession::processEvent(const bmqp::Event& event,
             return;  // RETURN
         }
         case MsgChoice::SELECTION_ID_CLUSTER_MESSAGE: {
-            eventCallback = bdlf::BindUtil::bind(
-                &ClientSession::processClusterMessage,
-                this,
+            eventCallback = bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::processClusterMessage,
+                d_self_sp,
                 controlMessage);
         } break;
         case MsgChoice::SELECTION_ID_UNDEFINED:
@@ -2914,11 +3342,12 @@ void ClientSession::tearDown(const bsl::shared_ptr<void>& session,
     // NOTE: We use the e_DISPATCHER type because this Client is dying, and the
     //       process of this event by the dispatcher should not add it to the
     //       flush list.
-    dispatcher()->execute(bdlf::BindUtil::bind(&ClientSession::tearDownImpl,
-                                               this,
-                                               &semaphore,
-                                               session,
-                                               isBrokerShutdown),
+    dispatcher()->execute(bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                                                &ClientSession::tearDownImpl,
+                                                this,
+                                                &semaphore,
+                                                session,
+                                                isBrokerShutdown),
                           this,
                           mqbi::DispatcherEventType::e_DISPATCHER);
     semaphore.wait();
@@ -2952,17 +3381,17 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
     // 'bmqu::OperationChainLink' expects the completion callback from multiple
     // sessions anyway.
 
-    bsl::shared_ptr<ClientSession> ptr = d_self.acquire();
+    bsl::shared_ptr<ClientSession> ptr = d_self_sp->acquire();
 
     if (!ptr) {
         callback();
     }
     else {
         dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                bdlf::MemFnUtil::memFn(
-                    &ClientSession::initiateShutdownDispatched,
-                    d_self.acquire()),
+            bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::initiateShutdownDispatched,
+                d_self_sp,
                 callback,
                 timeout,
                 supportShutdownV2),
@@ -2979,27 +3408,14 @@ void ClientSession::invalidate()
     BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::invalidateDispatched, this),
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              &ClientSession::invalidateDispatched,
+                              this),
         this);
     dispatcher()->synchronize(this);
 }
 
 // MANIPULATORS
-void ClientSession::onWatermark(bmqio::ChannelWatermarkType::Enum type)
-{
-    switch (type) {
-    case bmqio::ChannelWatermarkType::e_LOW_WATERMARK: {
-        onLowWatermark();
-    } break;  // BREAK
-    case bmqio::ChannelWatermarkType::e_HIGH_WATERMARK: {
-        onHighWatermark();
-    } break;  // BREAK
-    default: {
-        BSLS_ASSERT_SAFE(false && "Unknown watermark type");
-    }
-    }
-}
-
 void ClientSession::onHighWatermark()
 {
     // executed by the *IO* thread
@@ -3016,23 +3432,13 @@ void ClientSession::onLowWatermark()
 {
     // executed by the *IO* thread
 
-    if (!d_self.isValid()) {
-        // In the case of graceful shutdown, the disconnection is initiated by
-        // the client, upon reception of the DisconnectResponse message from
-        // the broker; which implies the channelBufferQueue as well as the IO
-        // buffer were fully drained (since this is the last message delivered
-        // by the broker).  Therefore, in the graceful shutdown situation, it's
-        // fine to return now because there is nothing to flush anyway.  And in
-        // the ungraceful shutdown, this flag set implies the channel is dead
-        // and unusable, and that we should no longer try to use it nor should
-        // we enqueue anything for processing to our own dispatcher thread.
-        return;  // RETURN
-    }
-
     // Enqueue an event to be processed in the client's DISPATCHER thread to
     // resume flushing data from the channelBufferQueue.
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::flushChannelBufferQueue, this),
+        bdlf::BindUtil::bindS(
+            d_state.d_allocator_p,
+            &ClientSessionDestructGuard::flushChannelBufferQueueDispatched,
+            d_self_sp),
         this);
 }
 
@@ -3148,6 +3554,8 @@ void ClientSession::flush()
 void ClientSession::processClusterMessage(
     const bmqp_ctrlmsg::ControlMessage& message)
 {
+    // executed by the *CLIENT* dispatcher thread
+
     if (message.choice().clusterMessage().choice().isStopResponseValue()) {
         BALL_LOG_INFO << description() << ": processStopResponse: " << message;
         d_clusterCatalog_p->stopRequestManger().processResponse(message);
@@ -3182,10 +3590,11 @@ void ClientSession::processClusterMessage(
         ShutdownContextSp context;
         context.createInplace(
             d_state.d_allocator_p,
-            bdlf::BindUtil::bind(&ClientSession::sendPacket,
-                                 this,
-                                 d_state.d_schemaEventBuilder.blob(),
-                                 false));
+            bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                                  &ClientSessionDestructGuard::sendPacket,
+                                  d_self_sp,
+                                  d_state.d_schemaEventBuilder.blob(),
+                                  false));
 
         processStopRequest(context);
     }
@@ -3193,11 +3602,6 @@ void ClientSession::processClusterMessage(
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
                        << ": unknown Cluster message: " << message;
     }
-}
-
-void ClientSession::onDeconfiguredHandle(const ShutdownContextSp& contextSp)
-{
-    (void)contextSp;
 }
 
 void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
@@ -3236,10 +3640,10 @@ void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
          cit != d_queueSessionManager.queues().end();
          ++cit) {
         if (!cit->second.d_hasReceivedFinalCloseQueue) {
-            cit->second.d_handle_p->deconfigureAll(
-                bdlf::BindUtil::bind(&ClientSession::onDeconfiguredHandle,
-                                     this,
-                                     contextSp));
+            cit->second.d_handle_p->deconfigureAll(bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                &ClientSessionDestructGuard::onDeconfiguredHandle,
+                contextSp));
         }
     }
 }

@@ -292,6 +292,16 @@ class ClientSession : public mqbnet::Session,
 
     typedef bsl::shared_ptr<ShutdownContext> ShutdownContextSp;
 
+    /// This type is used to avoid executing any callbacks if the session has
+    /// been destroyed.  The outer shared_ptr is shared across scheduler or
+    /// dispatcher events and is valid even if the parent ClientSession is
+    /// destroyed.  It holds a SharedResource that is either valid of invalid.
+    typedef bsl::shared_ptr<bmqu::SharedResource<ClientSession> >
+        SharedClientSessionSp;
+
+    // FRIENDS
+    friend class ClientSessionDestructGuard;
+
   private:
     // DATA
 
@@ -300,7 +310,7 @@ class ClientSession : public mqbnet::Session,
     /// be called from outside of the dispatcher's thread (such as a remote
     /// configuration service IO thread), because we can't guarantee this queue
     /// is drained before destroying the session.
-    bmqu::SharedResource<ClientSession> d_self;
+    SharedClientSessionSp d_self_sp;
 
     /// Show whether the session is running or shutting down due to either a
     /// stop request, or a client's disconnect request, or the channel being
@@ -380,7 +390,7 @@ class ClientSession : public mqbnet::Session,
     /// response to the specified `request`.
     void sendErrorResponse(bmqp_ctrlmsg::StatusCategory::Value failureCategory,
                            const bslstl::StringRef& errorDescription,
-                           const int                code,
+                           int                      code,
                            const bmqp_ctrlmsg::ControlMessage& request);
 
     /// Internal method to send the specified `blob` to the client.  *All*
@@ -390,8 +400,6 @@ class ClientSession : public mqbnet::Session,
     /// ACK) will be flushed and sent before `blob`; this is necessary to
     /// guarantee strict serialization of events when sending a control
     /// message.
-    void sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                    bool                                flushBuilders);
     void sendPacketDispatched(const bsl::shared_ptr<bdlbb::Blob>& blob,
                               bool flushBuilders);
 
@@ -458,9 +466,6 @@ class ClientSession : public mqbnet::Session,
     // V2.
     void deconfigureAndWait(ShutdownContextSp& context);
 
-    void checkUnconfirmed(const ShutdownContextSp& shutdownCtx,
-                          const VoidFunctor&       completionCb);
-
     /// Initiate checking of the unconfirmed messages for each open queue
     /// handle unless the current time is greater than the stop time from
     /// the specified `shutdownCtx`.  In this case invoke the shutdown
@@ -483,10 +488,6 @@ class ClientSession : public mqbnet::Session,
     void finishCheckUnconfirmedDispatched(const ShutdownContextSp& shutdownCtx,
                                           const VoidFunctor& completionCb);
 
-    void countUnconfirmed(mqbi::QueueHandle*       handle,
-                          const ShutdownContextSp& shutdownCtx,
-                          const VoidFunctor&       completionCb);
-
     /// Called from the queue dispatcher context to get the number of the
     /// unconfirmed messages that the specified `handle` has and add this
     /// number to the atomic counter stored in the specified `shutdownCtx`.
@@ -497,7 +498,6 @@ class ClientSession : public mqbnet::Session,
 
     void processClusterMessage(const bmqp_ctrlmsg::ControlMessage& message);
     void processStopRequest(ShutdownContextSp& context);
-    void onDeconfiguredHandle(const ShutdownContextSp& contextSp);
 
     int dropAllQueueHandles(bool doDeconfigure, bool hasLostClient);
 
@@ -677,7 +677,6 @@ class ClientSession : public mqbnet::Session,
     void invalidate() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void onWatermark(bmqio::ChannelWatermarkType::Enum type);
     void onHighWatermark();
 
     /// Watermark notification methods from observing the specified
