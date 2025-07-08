@@ -44,8 +44,7 @@ config_authentication = tweak.broker.app_config.authentication(
             {"name": "FailAuthenticator", "configs": []},
             {"name": "PassAuthenticator", "configs": []},
             {"name": "BasicAuthenticator", "configs": []},
-        ],
-        "fallbackPrincipal": "defaultFallbackPrincipal",
+        ]
     }
 )
 
@@ -164,16 +163,11 @@ def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
     client.stop()
 
 
-@tweak.broker.app_config.plugins.enabled(
-    ["PassAuthenticator"],
-)
-@libraries
-@config_authentication
-def test_authenticate_default(single_node: Cluster) -> None:
+def test_default_anony_credential(single_node: Cluster) -> None:
     """
     This test sends a negotiation request without prior authentication.
-    After default credential is fully implemented, this test should succeed without
-    enabling any authentication plugin.
+    It succees without enabling any authentication plugin since we use
+    didn't provide an anonymous credential so the default is used.
     """
 
     # Start the raw client
@@ -183,5 +177,121 @@ def test_authenticate_default(single_node: Cluster) -> None:
     # Pass: Sending negotiation request without prior authentication
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client.stop()
+
+
+@tweak.broker.app_config.authentication({"anonymousCredential": {"disallow": {}}})
+def test_anony_disallow_without_authentication(single_node: Cluster) -> None:
+    """
+    This test sends a negotiation request without prior authentication
+    and configures the broker to disallow anonymous credentials.
+    It should fail since the broker does not allow anonymous credential.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Fail: Sending negotiation request without prior authentication
+    with pytest.raises(ConnectionError):
+        client.send_negotiation_request()
+
+    client.stop()
+
+
+@libraries
+@tweak.broker.app_config.plugins.enabled(
+    ["BasicAuthenticator"],
+)
+@tweak.broker.app_config.authentication(
+    {
+        "plugins": [
+            {"name": "BasicAuthenticator", "configs": []},
+        ],
+        "anonymousCredential": {
+            "credential": {"mechanism": "Basic", "identity": "user1:password1"}
+        },
+    }
+)
+def test_anony_credential_specified_correct(single_node: Cluster) -> None:
+    """
+    This test sends a negotiation request without prior authentication.
+    It succees since we provide a correct anonymous credential to use.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Pass: Sending negotiation request without prior authentication
+    nego_resp = client.send_negotiation_request()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client.stop()
+
+
+@libraries
+@tweak.broker.app_config.plugins.enabled(
+    ["BasicAuthenticator"],
+)
+@tweak.broker.app_config.authentication(
+    {
+        "plugins": [
+            {"name": "BasicAuthenticator", "configs": []},
+        ],
+        "anonymousCredential": {
+            "credential": {"mechanism": "Basic", "identity": "user1:password2"}
+        },
+    }
+)
+def test_anony_credential_specified_wrong(single_node: Cluster) -> None:
+    """
+    This test sends a negotiation request without prior authentication.
+    It fails since we provide a wrong anonymous credential to use.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Fail: Sending negotiation request without prior authentication
+    with pytest.raises(ConnectionError):
+        client.send_negotiation_request()
+
+    client.stop()
+
+
+@libraries
+@tweak.broker.app_config.plugins.enabled(
+    ["BasicAuthenticator"],
+)
+@tweak.broker.app_config.authentication(
+    {
+        "plugins": [
+            {"name": "FailAuthenticator", "configs": []},
+            {"name": "PassAuthenticator", "configs": []},
+            {"name": "BasicAuthenticator", "configs": []},
+        ],
+        "anonymousCredential": {
+            "credential": {"mechanism": "NotExisted", "identity": ""}
+        },
+    }
+)
+def test_anony_credential_specified_without_plugin_support(
+    single_node: Cluster,
+) -> None:
+    """
+    This test sends a negotiation request without prior authentication.
+    It fails since we provide an anonymous credential without the corresponding plugin.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Fail: Sending negotiation request without prior authentication
+    with pytest.raises(ConnectionError):
+        client.send_negotiation_request()
 
     client.stop()
