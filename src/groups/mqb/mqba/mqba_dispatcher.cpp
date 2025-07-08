@@ -447,6 +447,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             }
         }
     } break;
+    default: BSLA_UNREACHABLE;
     }
 }
 

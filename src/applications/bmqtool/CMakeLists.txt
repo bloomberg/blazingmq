@@ -16,6 +16,14 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang")
     PROPERTY COMPILE_FLAGS "-Wno-format-nonliteral")
 endif()
 
+# Turn off warnings in generated code.
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang")
+    set_property(SOURCE "m_bmqtool_messages.cpp"
+                 APPEND
+                 PROPERTY COMPILE_OPTIONS "-Wno-everything"
+    )
+endif()
+
 target_bmq_default_compiler_flags(bmqtool)
 
 set_target_properties(bmqtool
