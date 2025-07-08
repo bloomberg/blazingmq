@@ -52,19 +52,11 @@ jobs:
         working-directory: deps
         run: ../docker/build_deps.sh
 
+      - name: Configure BlazingMQ
+        run: cmake --preset gh-build-ubuntu-latest-cpp17
+
       - name: Build BlazingMQ
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqstoragetool all.it
+        run: cmake --build --preset gh-build-ubuntu-latest-cpp17
 
       - name: Clean-up build directories before caching
         run: |
@@ -112,24 +104,14 @@ jobs:
         working-directory: deps
         run: ../docker/build_deps.sh
 
+      - name: Configure BlazingMQ UTs
+        run: cmake --preset gh-ut-ubuntu-latest-cpp17
+
       - name: Build BlazingMQ UTs
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all.t
+        run: cmake --build --preset gh-ut-ubuntu-latest-cpp17
 
       - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure -L \^unit\$
+        run: ctest --preset gh-ut-ubuntu-latest-cpp17
 
   unit_tests_python:
     name: UT [python]
