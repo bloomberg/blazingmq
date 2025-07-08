@@ -610,6 +610,15 @@ int Application::initialize()
             return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
         }
 
+        if (!InputUtil::populateSubscriptions(
+                &queueOptions,
+                d_parameters.autoPubSubModulo(),
+                d_parameters.autoPubSubPropertyName(),
+                d_allocator_p)) {
+            BALL_LOG_ERROR << "Invalid subscriptions";
+            return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
+        }
+
         bmqa::OpenQueueStatus result = d_session_mp->openQueueSync(
             &d_queueId,
             d_parameters.queueUri(),

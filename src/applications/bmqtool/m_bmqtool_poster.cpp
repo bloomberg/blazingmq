@@ -174,14 +174,23 @@ void PostingContext::postNext()
                 length = d_blob.length();
             }
 
+            bsls::Types::Uint64 autoIncrementedValue =
+                d_autoIncrementedValue++;
+
             if (!d_parameters.autoIncrementedField().empty()) {
                 d_properties.setPropertyAsInt64(
                     d_parameters.autoIncrementedField(),
-                    d_autoIncrementedValue++);
+                    autoIncrementedValue);
             }
 
             if (d_properties.numProperties()) {
                 msg.setPropertiesRef(&d_properties);
+            }
+
+            if (d_parameters.autoPubSubModulo()) {
+                d_properties.setPropertyAsInt64(
+                    d_parameters.autoPubSubPropertyName(),
+                    autoIncrementedValue % d_parameters.autoPubSubModulo());
             }
 
             bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(

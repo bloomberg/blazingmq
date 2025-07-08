@@ -78,6 +78,11 @@ struct InputUtil {
     static bool populateSubscriptions(bmqt::QueueOptions*              out,
                                       const bsl::vector<Subscription>& in);
 
+    static bool populateSubscriptions(bmqt::QueueOptions* out,
+                                      int                 autoPubSubModulo,
+                                      const char*       autoPubSubPropertyName,
+                                      bslma::Allocator* allocator);
+
     template <typename CMD>
     static bool parseCommand(CMD*               command,
                              bsl::string*       error,

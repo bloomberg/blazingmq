@@ -321,6 +321,40 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
     return !failed;
 }
 
+bool InputUtil::populateSubscriptions(bmqt::QueueOptions* out,
+                                      int                 autoPubSubModulo,
+                                      const char*       autoPubSubPropertyName,
+                                      bslma::Allocator* allocator)
+{
+    BSLS_ASSERT_SAFE(out);
+
+    bool failed = false;
+    for (int i = 0; i < autoPubSubModulo; ++i) {
+        bmqt::Subscription       to;
+        bmqt::CorrelationId      correlationId(i);
+        bmqt::SubscriptionHandle handle(correlationId);
+
+        bsl::string equality(autoPubSubPropertyName, allocator);
+        equality += "==";
+        equality += bsl::to_string(i);
+
+        bmqt::SubscriptionExpression expression(
+            equality,
+            bmqt::SubscriptionExpression::e_VERSION_1);
+
+        to.setExpression(expression);
+
+        bsl::string error;
+        if (!out->addOrUpdateSubscription(&error, handle, to)) {
+            // It is possible to make early return here, but we want to log all
+            // the failed expressions, not only the first failure.
+            BALL_LOG_ERROR << "#INVALID_SUBSCRIPTION " << error;
+            failed = true;
+        }
+    }
+    return !failed;
+}
+
 bool InputUtil::decodeHexDump(bsl::ostream*     out,
                               bsl::ostream*     error,
                               bsl::istream&     in,
