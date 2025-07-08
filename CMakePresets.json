@@ -91,6 +91,23 @@
                 "BDE_BUILD_TARGET_CPP17": "ON",
                 "CMAKE_INSTALL_LIBDIR": "lib64"
             }
+        },
+        {
+            "name": "gh-prometheus-ubuntu-latest-cpp17",
+            "description":
+                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
+            "inherits": "gh-base",
+            "toolchainFile":
+                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+            "environment": {
+                "PKG_CONFIG_PATH":
+                    "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
+            },
+            "cacheVariables": {
+                "BDE_BUILD_TARGET_CPP17": "ON",
+                "CMAKE_INSTALL_LIBDIR": "lib64",
+                "INSTALL_TARGETS": "prometheus;bmqbrkr;bmqtool"
+            }
         }
     ],
     "buildPresets": [
@@ -105,6 +122,18 @@
                 "bmqstoragetool",
                 "all.t",
                 "all.it"
+            ]
+        },
+        {
+            "name": "gh-prometheus-ubuntu-latest-cpp17",
+            "description":
+                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
+            "configurePreset": "gh-prometheus-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "bmqbrkr",
+                "bmqtool",
+                "bmqprometheus"
             ]
         }
     ],
