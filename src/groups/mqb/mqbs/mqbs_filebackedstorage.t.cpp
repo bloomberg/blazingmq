@@ -97,7 +97,6 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const int  k_PARTITION_ID       = 1;
 const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
 
@@ -186,31 +185,34 @@ class MockDataStore : public mqbs::DataStore {
     bsl::map<bsls::Types::Uint64, bsl::shared_ptr<bdlbb::Blob> >  d_appData;
     bsl::map<bsls::Types::Uint64, bsl::shared_ptr<bdlbb::Blob> >  d_options;
 
-    bsls::Types::Uint64 d_message_counter;
-    bsls::Types::Uint64 d_confirm_counter;
-    bsls::Types::Uint64 d_deletion_counter;
+    bsls::Types::Uint64 d_messageCounter;
+    bsls::Types::Uint64 d_confirmCounter;
+    bsls::Types::Uint64 d_deletionCounter;
 
   public:
-    MockDataStore(bslma::Allocator* allocator, int partitionId)
+    explicit MockDataStore(int partitionId, bslma::Allocator* allocator)
     : d_allocator_p(bslma::Default::allocator(allocator))
+    , d_config()
+    , d_dispatcherClientData()
+    , d_description(d_allocator_p)
+    , d_records(d_allocator_p)
     , d_attributes(d_allocator_p)
     , d_appData(d_allocator_p)
     , d_options(d_allocator_p)
+    , d_messageCounter(0)
+    , d_confirmCounter(0)
+    , d_deletionCounter(0)
     {
-        d_message_counter  = 0ULL;
-        d_confirm_counter  = 0ULL;
-        d_deletion_counter = 0ULL;
-
         d_config.setPartitionId(partitionId);
     }
 
-    bsls::Types::Uint64 getMessageCounter() const { return d_message_counter; }
+    bsls::Types::Uint64 getMessageCounter() const { return d_messageCounter; }
 
-    bsls::Types::Uint64 getConfirmCounter() const { return d_confirm_counter; }
+    bsls::Types::Uint64 getConfirmCounter() const { return d_confirmCounter; }
 
     bsls::Types::Uint64 getDeletionCounter() const
     {
-        return d_deletion_counter;
+        return d_deletionCounter;
     }
 
     int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
@@ -221,9 +223,9 @@ class MockDataStore : public mqbs::DataStore {
                            BSLA_UNUSED const mqbu::StorageKey& queueKey)
         BSLS_KEYWORD_OVERRIDE
     {
-        d_message_counter++;
+        d_messageCounter++;
 
-        bsls::Types::Uint64          id             = d_message_counter;
+        bsls::Types::Uint64          id             = d_messageCounter;
         bsls::Types::Uint64          sequenceNum    = id;
         unsigned int                 primaryLeaseId = 0;
         const mqbs::RecordType::Enum recType   = mqbs::RecordType::e_MESSAGE;
@@ -255,7 +257,7 @@ class MockDataStore : public mqbs::DataStore {
                            bsls::Types::Uint64,
                            mqbs::ConfirmReason::Enum) BSLS_KEYWORD_OVERRIDE
     {
-        d_confirm_counter++;
+        d_confirmCounter++;
         return 0;
     }
 
@@ -264,7 +266,7 @@ class MockDataStore : public mqbs::DataStore {
                             mqbs::DeletionRecordFlag::Enum,
                             bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
-        d_deletion_counter++;
+        d_deletionCounter++;
         return 0;
     }
 
@@ -477,48 +479,44 @@ struct Tester {
 
   private:
     // DATA
+    bslma::Allocator*                          d_allocator_p;
     mqbmock::Cluster                           d_mockCluster;
     mqbmock::Domain                            d_mockDomain;
     mqbmock::Queue                             d_mockQueue;
     mqbmock::QueueEngine                       d_mockQueueEngine;
     bslma::ManagedPtr<mqbs::ReplicatedStorage> d_replicatedStorage_mp;
     Records                                    d_records;
-    bslma::Allocator*                          d_allocator_p;
     MockDataStore                              d_dataStore;
 
   public:
     // CREATORS
-    Tester(bslma::Allocator*        allocator,
-           int                      partitionId = k_PARTITION_ID,
-           const bslstl::StringRef& uri         = k_URI_STR,
-           const mqbu::StorageKey&  queueKey    = k_QUEUE_KEY,
-           bsls::Types::Int64       ttlSeconds  = k_INT64_MAX)
-    : d_mockCluster(allocator)
-    , d_mockDomain(&d_mockCluster, allocator)
-    , d_mockQueue(&d_mockDomain, allocator)
-    , d_mockQueueEngine(allocator)
+    explicit Tester(bslma::Allocator* allocator = 0)
+    : d_allocator_p(bslma::Default::allocator(allocator))
+    , d_mockCluster(d_allocator_p)
+    , d_mockDomain(&d_mockCluster, d_allocator_p)
+    , d_mockQueue(&d_mockDomain, d_allocator_p)
+    , d_mockQueueEngine(d_allocator_p)
     , d_replicatedStorage_mp()
-    , d_records(allocator)
-    , d_allocator_p(allocator)
-    , d_dataStore(allocator, partitionId)
+    , d_records(d_allocator_p)
+    , d_dataStore(k_PROXY_PARTITION_ID, d_allocator_p)
     {
         d_mockDomain.capacityMeter()->setLimits(k_INT64_MAX, k_INT64_MAX);
         d_mockQueue._setQueueEngine(&d_mockQueueEngine);
 
-        mqbconfm::Domain domainCfg;
+        mqbconfm::Domain domainCfg(d_allocator_p);
         domainCfg.deduplicationTimeMs() = 0;  // No history
-        domainCfg.messageTtl()          = ttlSeconds;
+        domainCfg.messageTtl()          = k_INT64_MAX;
 
-        bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream errDescription(d_allocator_p);
         d_mockDomain.configure(errDescription, domainCfg);
 
         d_replicatedStorage_mp.load(
-            new (*d_allocator_p) mqbs::FileBackedStorage(
-                &d_dataStore,
-                bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
-                queueKey,
-                &d_mockDomain,
-                d_allocator_p),
+            new (*d_allocator_p)
+                mqbs::FileBackedStorage(&d_dataStore,
+                                        bmqt::Uri(k_URI_STR, d_allocator_p),
+                                        k_QUEUE_KEY,
+                                        &d_mockDomain,
+                                        d_allocator_p),
             d_allocator_p);
 
         d_replicatedStorage_mp->setQueue(&d_mockQueue);
@@ -676,12 +674,7 @@ struct Test : bmqtst::Test {
 // -----------
 // CREATORS
 Test::Test()
-: d_tester(bmqtst::TestHelperUtil::allocator(),
-           k_PARTITION_ID,
-           k_URI_STR,
-           k_QUEUE_KEY,
-           k_INT64_MAX  // ttlSeconds
-  )
+: d_tester(bmqtst::TestHelperUtil::allocator())
 {
     d_tester.configure();
 }
@@ -712,7 +705,7 @@ BMQTST_TEST(breathingTest)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 
@@ -749,7 +742,7 @@ BMQTST_TEST(configure)
 {
     bmqtst::TestHelper::printTestName("CONFIGURE");
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES) == 0);
 
@@ -1157,7 +1150,7 @@ BMQTST_TEST(put_withVirtualStorages)
 
     bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1226,7 +1219,7 @@ BMQTST_TEST(removeAllMessages_appKeyNotFound)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1276,7 +1269,7 @@ BMQTST_TEST(removeAllMessages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1341,7 +1334,7 @@ BMQTST_TEST(get_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1400,7 +1393,7 @@ BMQTST_TEST(confirm)
 
     bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1554,7 +1547,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1699,7 +1692,7 @@ BMQTST_TEST(capacityMeter_limitBytes)
     const bsls::Types::Int64 k_MSG_LIMIT   = 30;
     const bsls::Types::Int64 k_BYTES_LIMIT = 80;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1743,7 +1736,7 @@ BMQTST_TEST(garbageCollect)
     // input
     const int k_TTL = 20;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG,
                                      k_DEFAULT_BYTES,

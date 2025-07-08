@@ -1218,7 +1218,7 @@ inline bslma::ManagedPtr<bdld::ManagedDatum> StatContext::datum() const
 inline StatContextConfiguration::StatContextConfiguration(
     const bslstl::StringRef& name,
     bslma::Allocator*        basicAllocator)
-: d_id(bsl::string(name), basicAllocator)
+: d_id(bsl::string(name, basicAllocator), basicAllocator)
 , d_uniqueId(0)
 , d_defaultHistorySizes(basicAllocator)
 , d_valueDefs(basicAllocator)
@@ -1232,6 +1232,7 @@ inline StatContextConfiguration::StatContextConfiguration(
 , d_nextSubcontextId_p()
 , d_statValueAllocator_p(0)
 {
+    // NOTHING
 }
 
 inline StatContextConfiguration::StatContextConfiguration(

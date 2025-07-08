@@ -118,12 +118,13 @@ FileBackedStorage::FileBackedStorage(
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
 , d_ttlSeconds(domain->config().messageTtl())
 , d_capacityMeter(
-      "queue [" + queueUri.asString() + "]",
+      bsl::string("queue [", allocator) + queueUri.asString() + "]",
       domain->capacityMeter(),
       allocator,
-      bdlf::BindUtil::bind(&FileBackedStorage::logAppsSubscriptionInfoCb,
-                           this,
-                           bdlf::PlaceHolders::_1)  // stream
+      bdlf::BindUtil::bindS(allocator,
+                            &FileBackedStorage::logAppsSubscriptionInfoCb,
+                            this,
+                            bdlf::PlaceHolders::_1)  // stream
       )
 , d_handles(bsls::TimeInterval()
                 .addMilliseconds(domain->config().deduplicationTimeMs())
