@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;980295aaa9bc6e5252bdf65a4ebfeaf1790eef9a</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;3973a7012d9e0f8cb315a6c78613daca78648698</span>
    </div>
   </td>
  </tr>
@@ -120,6 +120,7 @@ $(document).ready(function(){initNavTree('bmqa__mocksession_8h.html',''); initRe
 <code>#include &lt;bsl_string.h&gt;</code><br />
 <code>#include &lt;bsl_unordered_map.h&gt;</code><br />
 <code>#include &lt;bsl_unordered_set.h&gt;</code><br />
+<code>#include &lt;bsl_vector.h&gt;</code><br />
 <code>#include &lt;bslma_allocator.h&gt;</code><br />
 <code>#include &lt;bslma_managedptr.h&gt;</code><br />
 <code>#include &lt;bslma_usesbslmaallocator.h&gt;</code><br />
@@ -450,7 +451,7 @@ Example 1</h2>
 <div class="line">    <span class="comment">// need to be called only if &#39;initialize&#39; was explicitly called.</span></div>
 <div class="line">    <span class="comment">// bmqa::MockSession::shutdown();</span></div>
 <div class="line">}</div>
-<div class="ttc" id="abmqa__mocksession_8h_html_abe2652fa6d696e03dec9bf44e4e731c9"><div class="ttname"><a href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a></div><div class="ttdeci">#define BMQA_EXPECT_CALL(OBJ, CALL)</div><div class="ttdef"><b>Definition</b> bmqa_mocksession.h:607</div></div>
+<div class="ttc" id="abmqa__mocksession_8h_html_abe2652fa6d696e03dec9bf44e4e731c9"><div class="ttname"><a href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a></div><div class="ttdeci">#define BMQA_EXPECT_CALL(OBJ, CALL)</div><div class="ttdef"><b>Definition</b> bmqa_mocksession.h:608</div></div>
 </div><!-- fragment --><h2><a class="anchor" id="bmqa_mocksession_ex2"></a>
 Example 2</h2>
 <p>The folowing example shows a consumer in synchronous mode, which will start the session, generate a push message (simulating the broker), confirm the message and then stop the session. Additionally, this test case also sets all expectations up front before running the code, as this is the alternate way of writing your test driver.</p>

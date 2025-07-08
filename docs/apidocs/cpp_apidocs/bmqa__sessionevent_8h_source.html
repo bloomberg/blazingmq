@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;980295aaa9bc6e5252bdf65a4ebfeaf1790eef9a</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;3973a7012d9e0f8cb315a6c78613daca78648698</span>
    </div>
   </td>
  </tr>
@@ -125,94 +125,95 @@ $(document).ready(function(){initNavTree('bmqa__sessionevent_8h_source.html','')
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">// BDE</span></div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="preprocessor">#include &lt;bsl_memory.h&gt;</span></div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span> </div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="comment">// FORWARD DECLARATION</span></div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="keyword">namespace </span>bmqimp {</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">class </span>Event;</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>}</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="keyword">namespace </span>bmqa {</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span> </div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">// ==================</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">// class SessionEvent</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">// ==================</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span> </div>
-<div class="foldopen" id="foldopen00075" data-start="{" data-end="};">
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">   75</a></span><span class="keyword">class </span><a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a> {</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>    <span class="comment">// FRIENDS</span></div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a9684aadcd31265a3fa4e823e711699f7">   78</a></span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_friend" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a9684aadcd31265a3fa4e823e711699f7">operator==</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f87837c07db7a25fd94c357d5f6e841">   79</a></span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_friend" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f87837c07db7a25fd94c357d5f6e841">operator!=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span> </div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    <span class="comment">// DATA</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    bsl::shared_ptr&lt;bmqimp::Event&gt; d_impl_sp;  <span class="comment">// pimpl</span></div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <span class="comment">// CREATORS</span></div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#af32c74eda4ebbddc3ab49d06a1479c02">   89</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#af32c74eda4ebbddc3ab49d06a1479c02">SessionEvent</a>();</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a0525974cebffc90ac765bda349b38eef">   93</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a0525974cebffc90ac765bda349b38eef">SessionEvent</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; other);</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="comment">// MANIPULATORS</span></div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span> </div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a1dc2f60cb60ed0701e89379bf90b5196">   99</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a1dc2f60cb60ed0701e89379bf90b5196">operator=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span> </div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    <span class="comment">// ACCESSORS</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span> </div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a7d4688471345d94466199d222e3c8373">  104</a></span>    <a class="code hl_enumeration" href="structBloombergLP_1_1bmqt_1_1SessionEventType.html#ae92327d931cc88d7adb05afdbc5f0431">bmqt::SessionEventType::Enum</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a7d4688471345d94466199d222e3c8373">type</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span> </div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f6a9a56593f8c2829996c24c6b558ea">  107</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f6a9a56593f8c2829996c24c6b558ea">correlationId</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span> </div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a80c538d5d97ff8d5e86e9f295c576d8e">  112</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a80c538d5d97ff8d5e86e9f295c576d8e">queueId</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span> </div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#ad6d0bf0d0d0308b0d7979d84a0774386">  116</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#ad6d0bf0d0d0308b0d7979d84a0774386">statusCode</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span> </div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#aa81cd844583c426313e52e2e1fe841f6">  120</a></span>    <span class="keyword">const</span> bsl::string&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#aa81cd844583c426313e52e2e1fe841f6">errorDescription</a>() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span> </div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    bsl::ostream&amp;</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">  132</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>};</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="preprocessor">#include &lt;bsl_ostream.h&gt;</span></div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment">// FORWARD DECLARATION</span></div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">namespace </span>bmqimp {</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="keyword">class </span>Event;</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>}</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="keyword">namespace </span>bmqa {</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">// ==================</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">// class SessionEvent</span></div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">// ==================</span></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
+<div class="foldopen" id="foldopen00076" data-start="{" data-end="};">
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">   76</a></span><span class="keyword">class </span><a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a> {</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>    <span class="comment">// FRIENDS</span></div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a9684aadcd31265a3fa4e823e711699f7">   79</a></span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_friend" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a9684aadcd31265a3fa4e823e711699f7">operator==</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f87837c07db7a25fd94c357d5f6e841">   80</a></span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_friend" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f87837c07db7a25fd94c357d5f6e841">operator!=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span> </div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    <span class="comment">// DATA</span></div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    bsl::shared_ptr&lt;bmqimp::Event&gt; d_impl_sp;  <span class="comment">// pimpl</span></div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  <span class="keyword">public</span>:</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    <span class="comment">// CREATORS</span></div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#af32c74eda4ebbddc3ab49d06a1479c02">   90</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#af32c74eda4ebbddc3ab49d06a1479c02">SessionEvent</a>();</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a0525974cebffc90ac765bda349b38eef">   94</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a0525974cebffc90ac765bda349b38eef">SessionEvent</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; other);</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span> </div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a1dc2f60cb60ed0701e89379bf90b5196">  100</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a1dc2f60cb60ed0701e89379bf90b5196">operator=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span> </div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a7d4688471345d94466199d222e3c8373">  105</a></span>    <a class="code hl_enumeration" href="structBloombergLP_1_1bmqt_1_1SessionEventType.html#ae92327d931cc88d7adb05afdbc5f0431">bmqt::SessionEventType::Enum</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a7d4688471345d94466199d222e3c8373">type</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span> </div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f6a9a56593f8c2829996c24c6b558ea">  108</a></span>    <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a8f6a9a56593f8c2829996c24c6b558ea">correlationId</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span> </div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a80c538d5d97ff8d5e86e9f295c576d8e">  113</a></span>    <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a80c538d5d97ff8d5e86e9f295c576d8e">queueId</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#ad6d0bf0d0d0308b0d7979d84a0774386">  117</a></span>    <span class="keywordtype">int</span> <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#ad6d0bf0d0d0308b0d7979d84a0774386">statusCode</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span> </div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#aa81cd844583c426313e52e2e1fe841f6">  121</a></span>    <span class="keyword">const</span> bsl::string&amp; <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#aa81cd844583c426313e52e2e1fe841f6">errorDescription</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span> </div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    bsl::ostream&amp;</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">  133</a></span>    <a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>};</div>
 </div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span> </div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="comment">// FREE OPERATORS</span></div>
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span> </div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#a8a7bb3065b509c93c64350d05c38e07f">  140</a></span><span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#a5cc9167ef17507f5d0b78cb9238ec321">operator==</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span> </div>
-<div class="line"><a id="l00145" name="l00145"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#a2edbe173e3d6f837b3a62784697f354c">  145</a></span><span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#a4eec170f48c69173c1f5afb6ecd5a5c5">operator!=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span> </div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span> </div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>}  <span class="comment">// close package namespace</span></div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span> </div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="comment">// ============================================================================</span></div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="comment">//                             INLINE DEFINITIONS</span></div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">// ============================================================================</span></div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span> </div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="comment">// ------------------</span></div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">// class SessionEvent</span></div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span><span class="comment">// ------------------</span></div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span> </div>
-<div class="foldopen" id="foldopen00161" data-start="{" data-end="}">
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#a9377023bfc33d49a2aa1706398bd0b96">  161</a></span><span class="keyword">inline</span> bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">bmqa::operator&lt;&lt;</a>(bsl::ostream&amp;             stream,</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>                                      <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">bmqa::SessionEvent</a>&amp; rhs)</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>{</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    <span class="keywordflow">return</span> rhs.<a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">print</a>(stream, 0, -1);</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>}</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span> </div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span> </div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#a8a7bb3065b509c93c64350d05c38e07f">  141</a></span><span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#a5cc9167ef17507f5d0b78cb9238ec321">operator==</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span> </div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#a2edbe173e3d6f837b3a62784697f354c">  146</a></span><span class="keywordtype">bool</span> <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#a4eec170f48c69173c1f5afb6ecd5a5c5">operator!=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; lhs, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span> </div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; rhs);</div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span> </div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span> </div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="comment">// ============================================================================</span></div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span><span class="comment">// ============================================================================</span></div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span> </div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">// ------------------</span></div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span><span class="comment">// class SessionEvent</span></div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment">// ------------------</span></div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span> </div>
+<div class="foldopen" id="foldopen00162" data-start="{" data-end="}">
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqa.html#a9377023bfc33d49a2aa1706398bd0b96">  162</a></span><span class="keyword">inline</span> bsl::ostream&amp; <a class="code hl_function" href="namespaceBloombergLP_1_1bmqa.html#ab5aaa4ada90c01325bdeacc3f6a01a7e">bmqa::operator&lt;&lt;</a>(bsl::ostream&amp;             stream,</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>                                      <span class="keyword">const</span> <a class="code hl_class" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">bmqa::SessionEvent</a>&amp; rhs)</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>{</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <span class="keywordflow">return</span> rhs.<a class="code hl_function" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">print</a>(stream, 0, -1);</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>}</div>
 </div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span> </div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>}  <span class="comment">// close enterprise namespace</span></div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span> </div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span> </div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span> </div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="abmqa__queueid_8h_html"><div class="ttname"><a href="bmqa__queueid_8h.html">bmqa_queueid.h</a></div><div class="ttdoc">Provide a value-semantic efficient identifier for a queue.</div></div>
 <div class="ttc" id="abmqt__correlationid_8h_html"><div class="ttname"><a href="bmqt__correlationid_8h.html">bmqt_correlationid.h</a></div><div class="ttdoc">Provide a value-semantic type usable as an efficient identifier.</div></div>
 <div class="ttc" id="abmqt__sessioneventtype_8h_html"><div class="ttname"><a href="bmqt__sessioneventtype_8h.html">bmqt_sessioneventtype.h</a></div><div class="ttdoc">Provide an enumeration for the different types of session events.</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1QueueId_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1QueueId.html">BloombergLP::bmqa::QueueId</a></div><div class="ttdoc">Value-semantic efficient identifier for a queue.</div><div class="ttdef"><b>Definition</b> bmqa_queueid.h:59</div></div>
-<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEvent_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">BloombergLP::bmqa::SessionEvent</a></div><div class="ttdoc">An event related to the operation of a Session.</div><div class="ttdef"><b>Definition</b> bmqa_sessionevent.h:75</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEvent_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">BloombergLP::bmqa::SessionEvent</a></div><div class="ttdoc">An event related to the operation of a Session.</div><div class="ttdef"><b>Definition</b> bmqa_sessionevent.h:76</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEvent_html_a0525974cebffc90ac765bda349b38eef"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a0525974cebffc90ac765bda349b38eef">BloombergLP::bmqa::SessionEvent::SessionEvent</a></div><div class="ttdeci">SessionEvent(const SessionEvent &amp;other)</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEvent_html_a1dc2f60cb60ed0701e89379bf90b5196"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a1dc2f60cb60ed0701e89379bf90b5196">BloombergLP::bmqa::SessionEvent::operator=</a></div><div class="ttdeci">SessionEvent &amp; operator=(const SessionEvent &amp;rhs)</div></div>
 <div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEvent_html_a79bac5e2ff33000d11afab03f46023b6"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEvent.html#a79bac5e2ff33000d11afab03f46023b6">BloombergLP::bmqa::SessionEvent::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div></div>
