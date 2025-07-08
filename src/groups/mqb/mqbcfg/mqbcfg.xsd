@@ -77,7 +77,7 @@
         hostDataCenter.......: datacenter the current host resides in
         isRunningOnDev.......: true if running on dev
         logsObserverMaxSize..: maximum number of log records to keep
-        latencyMonitorDomain.: common part of all latemon domains
+        latencyMonitorDomain.: common prefix of all latemon domains
         dispatcherConfig.....: configuration for the dispatcher
         stats................: configuration for the stats
         networkInterfaces....: configuration for the network interfaces
