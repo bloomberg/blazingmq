@@ -21,7 +21,15 @@ execute_process(
     "${Python3_EXECUTABLE}"
     -m venv
     "${CMAKE_CURRENT_BINARY_DIR}/venv"
+  RESULT_VARIABLE STATUS
 )
+if(STATUS AND NOT STATUS EQUAL 0)
+  message(WARN
+    "Could not create Python virtual environment; disabling integration tests"
+  )
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  return()
+endif()
 
 # Forget about the system Python version; look for Python 3 installed within
 # the virtual environment now.
