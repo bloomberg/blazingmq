@@ -315,18 +315,64 @@
         plugins...........:
             Configurations for authenticator plugins. A config should be present
             for each authenticator plugin enabled on the broker.
-        fallbackPrincipal.:
-            Principal to assign to a client in case the client does not support
-            authentication or has not been configured to authenticate. When set,
-            authentication is effectively optional. When not set, authentication
-            is required and clients which cannot or do not authenticate will be
-            rejected.
+        anonymousCredential.:
+            Credential used to control anonymous authentication.
+            If not set, the broker will use the default anonymous credential.
       </documentation>
     </annotation>
     <sequence>
-      <element name='plugins'           type='tns:AuthenticatorPluginConfig' maxOccurs='unbounded'/>
-      <element name='fallbackPrincipal' type='string' minOccurs='0'/>
+      <element name='plugins'             type='tns:AuthenticatorPluginConfig' minOccurs="0" maxOccurs='unbounded'/>
+      <element name='anonymousCredential' type='tns:AnonymousCredential' minOccurs='0'/>
+     </sequence>
+  </complexType>
+
+  <complexType name='AnonymousCredential'>
+    <annotation>
+      <documentation>
+        Type representing the anonymous credential configuration.
+
+        disallow...:
+            If set, the anonymous credential is not allowed. Authentication
+            is required and clients which cannot or do not authenticate will be
+            rejected.
+        credential.:
+            If set, the credential is used for anonymous authentication in case the client
+            does not support authentication or has not been configured to authenticate.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='disallow'   type='tns:Disallow'/>
+      <element name='credential' type='tns:Credential'/>
+    </choice>
+  </complexType>
+
+  <complexType name="Credential">
+    <annotation>
+      <documentation>
+        Type representing a credential used for authentication.
+
+        This type is used to represent a credential that can be used for
+        authentication. It contains an authentication mechanism and an identity.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='mechanism' type='string'/>
+      <element name='identity' type='string'/>
     </sequence>
+  </complexType>
+
+  <complexType name="Disallow">
+    <annotation>
+      <documentation>
+        Type representing the disallow anonymous credential configuration.
+
+        This type is used to indicate that anonymous authentication is not
+        allowed on the broker. If this is set, the broker will not use the
+        anonymous authenticator plugin. Authentication is required and clients
+        which cannot or do not authenticate will be rejected.
+      </documentation>
+    </annotation>
+    <sequence></sequence>
   </complexType>
 
   <complexType name="AuthenticatorPluginConfig">

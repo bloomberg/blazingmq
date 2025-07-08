@@ -193,6 +193,44 @@ class ClusterMonitorConfig:
 
 
 @dataclass
+class Credential:
+    """Type representing a credential used for authentication.
+
+    This type is used to represent a credential that can be used for
+    authentication. It contains an authentication mechanism and an
+    identity.
+    """
+
+    mechanism: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    identity: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
+class Disallow:
+    """Type representing the disallow anonymous credential configuration.
+
+    This type is used to indicate that anonymous authentication is not
+    allowed on the broker. If this is set, the broker will not use the
+    anonymous authenticator plugin. Authentication is required and
+    clients which cannot or do not authenticate will be rejected.
+    """
+
+
+@dataclass
 class DispatcherProcessorParameters:
     queue_size: Optional[int] = field(
         default=None,
@@ -1116,6 +1154,35 @@ class VirtualClusterInformation:
 
 
 @dataclass
+class AnonymousCredential:
+    """Type representing the anonymous credential configuration.
+
+    disallow...:
+    If set, the anonymous credential is not allowed. Authentication
+    is required and clients which cannot or do not authenticate will be
+    rejected.
+    credential.:
+    If set, the credential is used for anonymous authentication in case the client
+    does not support authentication or has not been configured to authenticate.
+    """
+
+    disallow: Optional[Disallow] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    credential: Optional[Credential] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class ClusterNodeConnection:
     """Choice of all the various transport mode available to establish connectivity
     with a node.
@@ -1793,12 +1860,9 @@ class AuthenticatorConfig:
     plugins...........:
     Configurations for authenticator plugins. A config should be present
     for each authenticator plugin enabled on the broker.
-    fallbackPrincipal.:
-    Principal to assign to a client in case the client does not support
-    authentication or has not been configured to authenticate. When set,
-    authentication is effectively optional. When not set, authentication
-    is required and clients which cannot or do not authenticate will be
-    rejected.
+    anonymousCredential.:
+    Credential used to control anonymous authentication.
+    If not set, the broker will use the default anonymous credential.
     """
 
     plugins: List[AuthenticatorPluginConfig] = field(
@@ -1806,13 +1870,12 @@ class AuthenticatorConfig:
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
         },
     )
-    fallback_principal: Optional[str] = field(
+    anonymous_credential: Optional[AnonymousCredential] = field(
         default=None,
         metadata={
-            "name": "fallbackPrincipal",
+            "name": "anonymousCredential",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
@@ -2216,7 +2279,7 @@ class ClustersDefinition:
     myVirtualClusters..........:
     information about all the virtual clusters the current machine is
     considered to belong to (if any)
-    clusters...................: array of cluster definition
+    proxyClusters..............: array of cluster proxy definition
     """
 
     my_clusters: List[ClusterDefinition] = field(

@@ -18,12 +18,14 @@
 #define INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 
 // MQB
+#include "mqbcfg_messages.h"
 #include <mqbplug_authenticator.h>
 #include <mqbplug_pluginmanager.h>
 
 // BDE
 #include <ball_log.h>
 #include <bsl_memory.h>
+#include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
@@ -56,8 +58,8 @@ class AuthenticationController {
     /// Mapping an authentication mechanism to a mqbplug::Authenticator
     AuthenticatorMap d_authenticators;
 
-    /// Default credential
-    bsl::optional<bsl::string> d_defaultCredential;
+    /// Anonymous credential
+    bsl::optional<mqbcfg::Credential> d_anonymousCredential;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
@@ -103,9 +105,9 @@ class AuthenticationController {
                      bsl::string_view                                mechanism,
                      const mqbplug::AuthenticationData&              input);
 
-    /// Return the default credential used for authentication.
-    /// If no default credential is set, return an empty optional.
-    const bsl::optional<bsl::string>& defaultCredential();
+    /// Return the anonymous credential used for authentication.
+    /// If no anonymous credential is set, return an empty optional.
+    const bsl::optional<mqbcfg::Credential>& anonymousCredential();
 };
 
 }  // close package namespace
