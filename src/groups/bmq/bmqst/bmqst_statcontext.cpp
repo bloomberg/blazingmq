@@ -270,7 +270,8 @@ void StatContext::moveNewSubcontexts()
          iter != localNewSubcontexts.end();
          ++iter) {
         StatContext*               context = *iter;
-        StatContextMap::value_type val(context->d_id, context);
+        StatContextMap::value_type val(Id(context->d_id, d_allocator_p),
+                                       context);
         d_subcontexts.insert(val);
 
         BSLS_ASSERT(d_subcontextsById.find(context->d_uniqueId) ==
