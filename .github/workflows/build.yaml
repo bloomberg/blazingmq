@@ -340,23 +340,47 @@ jobs:
         run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker
 
   documentation:
-    name: "Documentation"
+    name: Build Doxygen documentation
     runs-on: ubuntu-latest
+    needs: get_dependencies
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qy doxygen
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            doxygen \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
 
-      - name: Set up output directory
-        run: |
-          mkdir -p docs/docs/apidocs
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
 
-      - name: Build docs
-        run: |
-          doxygen Doxyfile
+      - name: Configure Doxygen documentation
+        run: cmake --preset gh-build-ubuntu-latest-cpp17
+
+      - name: Build Doxygen API documentation
+        run: cmake --build --preset gh-doxygen-apidocs
+
+      - name: Build Doxygen Internal documentation
+        run: cmake --build --preset gh-doxygen-internaldocs
 
   shellcheck:
     name: Shellcheck

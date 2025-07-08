@@ -135,6 +135,35 @@
                 "bmqtool",
                 "bmqprometheus"
             ]
+        },
+        {
+            "name": "gh-doxygen",
+            "description": "GitHub Actions CI: Build Doxygen Documentation",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "docs"
+            ]
+        },
+        {
+            "name": "gh-doxygen-apidocs",
+            "description":
+                "GitHub Actions CI: Build Doxygen API Documentation",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "apidocs"
+            ]
+        },
+        {
+            "name": "gh-doxygen-internaldocs",
+            "description":
+                "GitHub Actions CI: Build Doxygen Internal Documentation",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "internaldocs"
+            ]
         }
     ],
     "testPresets": [
