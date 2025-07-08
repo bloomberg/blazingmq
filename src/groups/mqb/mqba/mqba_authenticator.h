@@ -227,10 +227,10 @@ class Authenticator : public mqbnet::Authenticator {
 
     /// ACCESSORS
 
-    /// Return the default credential used for authentication.
-    /// If no default credential is set, return an empty optional.
-    const bsl::optional<bsl::string>&
-    defaultCredential() BSLS_KEYWORD_OVERRIDE;
+    /// Return the anonymous credential used for authentication.
+    /// If no anonymous credential is set, return an empty optional.
+    const bsl::optional<mqbcfg::Credential>&
+    anonymousCredential() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

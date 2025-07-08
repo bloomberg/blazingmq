@@ -792,12 +792,49 @@ class TweakFactory:
 
                 plugins = Plugins()
 
-                class FallbackPrincipal(metaclass=TweakMetaclass):
+                class AnonymousCredential(metaclass=TweakMetaclass):
+                    class Disallow(metaclass=TweakMetaclass):
+                        def __call__(
+                            self,
+                            value: typing.Union[
+                                blazingmq.schemas.mqbcfg.Disallow, NoneType
+                            ],
+                        ) -> Callable: ...
+
+                    disallow = Disallow()
+
+                    class Credential(metaclass=TweakMetaclass):
+                        class Mechanism(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        mechanism = Mechanism()
+
+                        class Identity(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        identity = Identity()
+
+                        def __call__(
+                            self,
+                            value: typing.Union[
+                                blazingmq.schemas.mqbcfg.Credential, NoneType
+                            ],
+                        ) -> Callable: ...
+
+                    credential = Credential()
+
                     def __call__(
-                        self, value: typing.Union[str, NoneType]
+                        self,
+                        value: typing.Union[
+                            blazingmq.schemas.mqbcfg.AnonymousCredential, NoneType
+                        ],
                     ) -> Callable: ...
 
-                fallback_principal = FallbackPrincipal()
+                anonymous_credential = AnonymousCredential()
 
                 def __call__(
                     self,
