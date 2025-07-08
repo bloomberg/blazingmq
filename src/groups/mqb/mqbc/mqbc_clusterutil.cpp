@@ -522,7 +522,7 @@ int ClusterUtil::getNextPartitionId(const ClusterState& clusterState,
     const bsl::string&       latencyMonitorDomain =
         mqbcfg::BrokerConfig::get().latencyMonitorDomain();
 
-    if (domainName.find(latencyMonitorDomain) != bsl::string::npos) {
+    if (domainName.starts_with(latencyMonitorDomain)) {
         // latemon domain
         const int partitionId = clusterState.extractPartitionId(queueName);
         if (partitionId < 0) {
