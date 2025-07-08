@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbauthn_authenticationcontroller.cpp                          -*-C++-*-
-#include <ball_log.h>
 #include <mqbauthn_authenticationcontroller.h>
 
 #include <mqbscm_version.h>
@@ -23,12 +22,14 @@
 #include <bmqu_memoutstream.h>
 
 // MQB
+#include <mqbauthn_anonypassauthenticator.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 #include <mqbplug_pluginfactory.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsl_unordered_set.h>
@@ -65,9 +66,39 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
     int                rc = rc_SUCCESS;
     bmqu::MemOutStream errorStream(d_allocator_p);
 
-    // Read default credential from configuration
-    // We hack one for now before implementing default credential
-    d_defaultCredential = "allmighty:password";
+    BALL_LOG_INFO << "Starting AuthenticationController...";
+
+    const mqbcfg::AuthenticatorConfig& authenticatorConfig =
+        mqbcfg::BrokerConfig::get().authentication();
+
+    // Set the default anonymous credential
+    const bdlb::NullableValue<mqbcfg::AnonymousCredential>&
+        anonymousCredential = authenticatorConfig.anonymousCredential();
+
+    if (anonymousCredential.isNull()) {
+        // If no anonymous credential is set, we use an empty string
+        BALL_LOG_INFO << "No anonymous credential configured, "
+                         "using Anonymous as default mechanism and empty "
+                         "string as default identity.";
+        d_anonymousCredential              = mqbcfg::Credential();
+        d_anonymousCredential->mechanism() = "Anonymous";
+        d_anonymousCredential->identity()  = "";
+    }
+    else if (anonymousCredential->isCredentialValue()) {
+        BALL_LOG_INFO << "Using anonymous credential: '"
+                      << anonymousCredential->credential() << "'";
+        d_anonymousCredential = anonymousCredential->credential();
+    }
+    else if (anonymousCredential->isDisallowValue()) {
+        BALL_LOG_INFO << "Anonymous credential disallowed.";
+        d_anonymousCredential.reset();
+    }
+    else {
+        errorDescription << "Invalid anonymous credential configuration: "
+                            "expected 'credential' or 'disallow', got '"
+                         << anonymousCredential << "'";
+        return rc_DUPLICATE_MECHANISM;  // RETURN
+    }
 
     // Initialize Authenticators from plugins
     {
@@ -102,6 +133,33 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
                     << BMQTSK_ALARMLOG_END;
                 errorStream.reset();
                 continue;  // CONTINUE
+            }
+
+            // Add the authenticator into the collection
+            d_authenticators.emplace(
+                authenticator->mechanism(),
+                bslmf::MovableRefUtil::move(authenticator));
+        }
+
+        // Add the anonymous authenticator if no other authenticators
+        // are configured.
+        if (d_authenticators.empty()) {
+            BALL_LOG_INFO << "No authenticators configured, using "
+                             "AnonyPassAuthenticator as default.";
+
+            // Create an anonymous pass authenticator
+            AnonyPassAuthenticatorPluginFactory anonyFactory;
+            AuthenticatorMp authenticator = anonyFactory.create(d_allocator_p);
+
+            // Start the anonymous pass authenticator
+            if (int status = authenticator->start(errorStream)) {
+                BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
+                    << "Failed to start Authenticator '"
+                    << authenticator->name() << "' [rc: " << status
+                    << ", error: '" << errorStream.str() << "']"
+                    << BMQTSK_ALARMLOG_END;
+                errorStream.reset();
+                return status;  // RETURN
             }
 
             // Add the authenticator into the collection
@@ -160,9 +218,10 @@ int AuthenticationController::authenticate(
     return rc_SUCCESS;
 }
 
-const bsl::optional<bsl::string>& AuthenticationController::defaultCredential()
+const bsl::optional<mqbcfg::Credential>&
+AuthenticationController::anonymousCredential()
 {
-    return d_defaultCredential;
+    return d_anonymousCredential;
 }
 
 }  // close package namespace

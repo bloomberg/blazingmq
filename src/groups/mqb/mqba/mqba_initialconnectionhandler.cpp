@@ -179,9 +179,9 @@ int InitialConnectionHandler::processBlob(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                               = 0,
-        rc_INVALID_NEGOTIATION_MESSAGE           = -1,
-        rc_ERROR_AUTHENTICATE_DEFAULT_CREDENTIAL = -1,
+        rc_SUCCESS                       = 0,
+        rc_INVALID_NEGOTIATION_MESSAGE   = -1,
+        rc_DEFAULT_CREDENTIAL_DISALLOWED = -2,
     };
 
     bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
@@ -201,10 +201,11 @@ int InitialConnectionHandler::processBlob(
         errorDescription << "Decode AuthenticationMessage or "
                             "NegotiationMessage succeeds but nothing gets "
                             "loaded in.";
-        rc = (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
+        return (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
     }
-    else if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
-                 message.value())) {
+
+    if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+            message.value())) {
         rc = d_authenticator_mp->handleAuthentication(
             errorDescription,
             isContinueRead,
@@ -213,6 +214,12 @@ int InitialConnectionHandler::processBlob(
     }
     else if (bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
                  message.value())) {
+        if (!d_authenticator_mp->anonymousCredential()) {
+            errorDescription << "Anonymous credential is disallowed, "
+                             << "cannot negotiate without authentication.";
+            return (rc * 10) + rc_DEFAULT_CREDENTIAL_DISALLOWED;  // RETURN
+        }
+
         // Create NegotiationContext
         bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
             bsl::allocate_shared<mqbnet::NegotiationContext>(
@@ -246,11 +253,12 @@ int InitialConnectionHandler::processBlob(
             bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
                 authenticationMsg.makeAuthenticateRequest();
 
-            // Set the default authentication mechanism to "Basic" for now
-            authenticateRequest.mechanism() = "Basic";
+            const mqbcfg::Credential& anonymousCredential =
+                d_authenticator_mp->anonymousCredential().value();
+            authenticateRequest.mechanism() = anonymousCredential.mechanism();
             authenticateRequest.data()      = bsl::vector<char>(
-                d_authenticator_mp->defaultCredential().value().begin(),
-                d_authenticator_mp->defaultCredential().value().end());
+                anonymousCredential.identity().begin(),
+                anonymousCredential.identity().end());
 
             rc = d_authenticator_mp->handleAuthentication(errorDescription,
                                                           isContinueRead,

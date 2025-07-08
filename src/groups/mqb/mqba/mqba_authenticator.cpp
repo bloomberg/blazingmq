@@ -27,6 +27,7 @@
 
 // MQB
 #include <mqbblp_clustercatalog.h>
+#include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_initialconnectioncontext.h>
 #include <mqbplug_authenticator.h>
@@ -242,6 +243,15 @@ void Authenticator::authenticate(
     // This is when we authenticate with default credentials
     // No need to send authentication response
     if (context->negotiationContext()) {
+        if (response.status().category() !=
+            bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+            // If the authentication failed, we do not create a session.
+            context->complete(rc,
+                              authenticationErrorStream.str(),
+                              bsl::shared_ptr<mqbnet::Session>());
+            return;  // RETURN
+        }
+
         bsl::shared_ptr<mqbnet::Session> session;
         bmqu::MemOutStream               errStream;
         bsl::string                      error;
@@ -263,7 +273,8 @@ void Authenticator::authenticate(
                                    authenticationResponse,
                                    channel,
                                    context->authenticationEncodingType());
-    if (response.status().code() != 0) {
+    if (response.status().category() !=
+        bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         context->complete(rc,
                           authenticationErrorStream.str(),
                           bsl::shared_ptr<mqbnet::Session>());
@@ -479,9 +490,9 @@ int Authenticator::authenticationOutbound(
 }
 
 // ACCESSORS
-const bsl::optional<bsl::string>& Authenticator::defaultCredential()
+const bsl::optional<mqbcfg::Credential>& Authenticator::anonymousCredential()
 {
-    return d_authnController_p->defaultCredential();
+    return d_authnController_p->anonymousCredential();
 }
 
 }  // close package namespace
