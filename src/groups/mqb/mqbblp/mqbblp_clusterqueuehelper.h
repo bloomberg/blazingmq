@@ -102,16 +102,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Signature of a `void` callback method.
     typedef bsl::function<void(void)> VoidFunctor;
 
-    /// Signature of a callback invoked upon assignment of a queue by this
-    /// leader.
-    typedef bsl::function<void(const bmqp_ctrlmsg::QueueAssignmentAdvisory&)>
-        OnQueueAssignedCb;
-
-    /// Signature of a callback invoked upon un-assignment of a queue by
-    /// this leader.
-    typedef bsl::function<void(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory&)>
-        OnQueueUnassignedCb;
-
   private:
     // PRIVATE TYPES
     typedef bsl::shared_ptr<const mqbc::ClusterStateQueueInfo>

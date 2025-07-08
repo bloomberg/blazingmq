@@ -549,11 +549,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void processClusterStateEvent(
         const mqbi::DispatcherClusterStateEvent& event) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process any queue assignment and unassignment advisory messages
-    /// which were received while self node was starting.  Behavior is
-    /// undefined unless self node has transitioned to AVAILABLE.
-    void processBufferedQueueAdvisories() BSLS_KEYWORD_OVERRIDE;
-
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`.  Return the queue assignment result.
     ///
@@ -562,21 +557,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void processQueueAssignmentRequest(
         const bmqp_ctrlmsg::ControlMessage& request,
         mqbnet::ClusterNode*                requester) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process the queue unAssignment advisory in the specified `message`
-    /// received from the specified `source`.  If the specified `delayed` is
-    /// true, the advisory has previously been delayed for processing.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    ///
-    /// TODO_CSL: This is the current workflow which we should be able to
-    /// remove after the new workflow via
-    /// ClusterQueueHelper::onQueueUnassigned() is stable.
-    void processQueueUnAssignmentAdvisory(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source,
-        bool delayed = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the shutdown event.
     ///

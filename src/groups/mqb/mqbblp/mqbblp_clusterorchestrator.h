@@ -339,11 +339,6 @@ class ClusterOrchestrator {
     void
     processClusterStateEvent(const mqbi::DispatcherClusterStateEvent& event);
 
-    /// Process any queue assignment and un-assignment advisory messages
-    /// which were received while self node was starting.  Behavior is
-    /// undefined unless self node has transitioned to AVAILABLE.
-    void processBufferedQueueAdvisories();
-
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`.
     ///
@@ -352,15 +347,6 @@ class ClusterOrchestrator {
     void
     processQueueAssignmentRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                   mqbnet::ClusterNode* requester);
-
-    /// Process the queue unAssignment advisory in the specified `msg`
-    /// received from the specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void
-    processQueueUnAssignmentAdvisory(const bmqp_ctrlmsg::ControlMessage& msg,
-                                     mqbnet::ClusterNode* source);
 
     /// Process the specified storage sync request `message` from the
     /// specified `source`.
