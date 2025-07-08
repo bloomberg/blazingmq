@@ -6233,12 +6233,12 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
         // generating sequence numbers).  In the current scheme of things,
         // primary and leader nodes can be different (even if cluster is
         // configured with 'leader-is-primary-for-all-partitions' flag).  If
-        // this occurs, primary cannot broadcast a QueueUnassignedAdvisory
+        // this occurs, primary cannot broadcast a QueueUnAssignmentAdvisory
         // since only leader can do so.  So for now, queue gc logic is
         // suppressed if leader and primary nodes are different.  This logic
         // will be updated such that primary will send a QueueUnassignedRequest
         // to the leader, and then leader will broadcast
-        // QueueUnassignedAdvisory.
+        // QueueUnAssignmentAdvisory.
 
         if (!d_primaryNotLeaderAlarmRaised) {
             BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
@@ -6269,34 +6269,35 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
 
         mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uriCopy);
 
-        // Populate 'queueUnassignedAdvisory'
+        // Populate 'QueueUnAssignmentAdvisory'
         bdlma::LocalSequentialAllocator<1024>  localAlloc(d_allocator_p);
         bmqp_ctrlmsg::ControlMessage           controlMsg(&localAlloc);
-        bmqp_ctrlmsg::QueueUnassignedAdvisory& queueAdvisory =
+        bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
             controlMsg.choice()
                 .makeClusterMessage()
                 .choice()
-                .makeQueueUnassignedAdvisory();
+                .makeQueueUnAssignmentAdvisory();
 
-        mqbc::ClusterUtil::populateQueueUnassignedAdvisory(&queueAdvisory,
-                                                           d_clusterData_p,
-                                                           uriCopy,
-                                                           keyCopy,
-                                                           pid,
-                                                           *d_clusterState_p);
+        mqbc::ClusterUtil::populateQueueUnAssignmentAdvisory(
+            &queueAdvisory,
+            d_clusterData_p,
+            uriCopy,
+            keyCopy,
+            pid,
+            *d_clusterState_p);
 
         if (!d_cluster_p->isCSLModeEnabled()) {
-            // Broadcast 'queueUnassignedAdvisory' to all followers
+            // Broadcast 'QueueUnAssignmentAdvisory' to all followers
             //
             // NOTE: We must broadcast this control message before applying to
             // CSL, because if CSL is running in eventual consistency it will
             // immediately apply a commit with a higher seqeuence number than
-            // the QueueUnassignedAdvisory.  If we ever receive the commit
+            // the QueueUnAssignmentAdvisory.  If we ever receive the commit
             // before the QUA, we will alarm due to out-of-sequence advisory.
             d_clusterData_p->messageTransmitter().broadcastMessage(controlMsg);
         }
 
-        // Apply 'queueUnassignedAdvisory' to CSL
+        // Apply 'QueueUnAssignmentAdvisory' to CSL
         d_clusterStateManager_p->unassignQueue(queueAdvisory);
     }
 

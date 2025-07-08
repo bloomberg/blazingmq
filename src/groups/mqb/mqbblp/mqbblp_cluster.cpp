@@ -2215,10 +2215,8 @@ void Cluster::onRecoveryStatusDispatched(
     // This must be done before setting self status to AVAILABLE, which will
     // proceed with any pending queue-open requests etc.
 
-    BALL_LOG_INFO << description() << ": Transitioning to AVAILABLE, applying "
-                  << "buffered queue [un]assignment advisories, if any.";
+    BALL_LOG_INFO << description() << ": Transitioning to AVAILABLE.";
 
-    d_clusterOrchestrator.processBufferedQueueAdvisories();
     if (!isFSMWorkflow()) {
         d_clusterOrchestrator.validateClusterStateLedger();
     }
@@ -3103,22 +3101,9 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processQueueUnAssignmentAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
-    } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processQueueUnassignedAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
+        // NO-OP
+        // This version unconditionally applies all CSL commits including
+        // unassignment advisories.
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_STATE_NOTIFICATION: {
         dispatcher()->execute(

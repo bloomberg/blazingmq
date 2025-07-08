@@ -282,17 +282,6 @@ void ClusterOrchestrator::electorTransitionToLeader(
     d_stateManager_mp->initiateLeaderSync(true);
 }
 
-void ClusterOrchestrator::processBufferedQueueAdvisories()
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processBufferedQueueAdvisories();
-}
-
 void ClusterOrchestrator::registerQueueInfo(const bmqt::Uri& uri,
                                             int              partitionId,
                                             const mqbu::StorageKey& queueKey,
@@ -1268,32 +1257,6 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     d_stateManager_mp->processQueueAssignmentRequest(request, requester);
-}
-
-void ClusterOrchestrator::processQueueUnassignedAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& msg,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processQueueUnassignedAdvisory(msg, source);
-}
-
-void ClusterOrchestrator::processQueueUnAssignmentAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& msg,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processQueueUnAssignmentAdvisory(msg, source);
 }
 
 void ClusterOrchestrator::processLeaderSyncDataQuery(

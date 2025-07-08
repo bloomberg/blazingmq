@@ -741,11 +741,12 @@ void VirtualStorageCatalog::loadVirtualStorageDetails(AppInfos* buffer) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(buffer);
 
-    for (VirtualStoragesConstIter cit = d_virtualStorages.begin();
-         cit != d_virtualStorages.end();
-         ++cit) {
-        BSLS_ASSERT_SAFE(cit->key2() == cit->value()->appKey());
-        buffer->insert(bsl::make_pair(cit->key1(), cit->key2()));
+    // Return ordered by ordinals
+    for (size_t i = 0; i < d_ordinals.size(); ++i) {
+        BSLS_ASSERT_SAFE(d_ordinals[i]);
+        const VirtualStorage& storage = *d_ordinals[i];
+
+        buffer->insert(bsl::make_pair(storage.appId(), storage.appKey()));
     }
 }
 

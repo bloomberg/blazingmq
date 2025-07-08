@@ -777,13 +777,13 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
                   << ": Populated QueueAssignmentAdvisory: " << *advisory;
 }
 
-void ClusterUtil::populateQueueUnassignedAdvisory(
-    bmqp_ctrlmsg::QueueUnassignedAdvisory* advisory,
-    ClusterData*                           clusterData,
-    const bmqt::Uri&                       uri,
-    const mqbu::StorageKey&                key,
-    int                                    partitionId,
-    const ClusterState&                    clusterState)
+void ClusterUtil::populateQueueUnAssignmentAdvisory(
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory* advisory,
+    ClusterData*                             clusterData,
+    const bmqt::Uri&                         uri,
+    const mqbu::StorageKey&                  key,
+    int                                      partitionId,
+    const ClusterState&                      clusterState)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -812,7 +812,7 @@ void ClusterUtil::populateQueueUnassignedAdvisory(
     key.loadBinary(&queueInfo.key());
 
     BALL_LOG_INFO << clusterData->identity().description()
-                  << ": Populated QueueUnassignedAdvisory: " << *advisory;
+                  << ": Populated QueueUnAssignmentAdvisory: " << *advisory;
 }
 
 ClusterUtil::QueueAssignmentResult::Enum
@@ -1513,9 +1513,9 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
             clusterMessage.choice().queueAssignmentAdvisory();
         applyQueueAssignment(clusterState, queueAdvisory.queues());
     } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        const bmqp_ctrlmsg::QueueUnassignedAdvisory& queueAdvisory =
-            clusterMessage.choice().queueUnassignedAdvisory();
+    case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
+            clusterMessage.choice().queueUnAssignmentAdvisory();
 
         applyQueueUnassignment(clusterState, queueAdvisory.queues());
     } break;  // BREAK
@@ -1902,7 +1902,7 @@ int ClusterUtil::load(ClusterState*               state,
         case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY:
         case MsgChoice::SELECTION_ID_LEADER_ADVISORY:
         case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY:
-        case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
+        case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
         case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
             BALL_LOG_INFO << "#CSL_RECOVERY "
                           << clusterData.identity().description()

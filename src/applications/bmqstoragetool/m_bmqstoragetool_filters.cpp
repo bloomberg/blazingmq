@@ -187,14 +187,6 @@ bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
             }
             else if (selectionId ==
                      ClusterMessageChoice::
-                         SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY) {
-                const QueueUnassignedAdvisory& queueAdvisory =
-                    record.choice().queueUnassignedAdvisory();
-                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
-                                                d_queueKeys);
-            }
-            else if (selectionId ==
-                     ClusterMessageChoice::
                          SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY) {
                 const QueueUnAssignmentAdvisory& queueAdvisory =
                     record.choice().queueUnAssignmentAdvisory();

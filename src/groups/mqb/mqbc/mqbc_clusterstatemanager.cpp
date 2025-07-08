@@ -1522,7 +1522,7 @@ void ClusterStateManager::registerQueueInfo(
 }
 
 void ClusterStateManager::unassignQueue(
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1738,15 +1738,6 @@ void ClusterStateManager::processClusterStateEvent(
     }
 }
 
-void ClusterStateManager::processBufferedQueueAdvisories()
-{
-    // While this method could be invoked by mqbblp::Cluster as part of
-    // pre-CSL workflow, we can do a no-op here because there won't be any
-    // buffered queue advisories anymore under the new CSL logic.
-
-    // NOTHING
-}
-
 void ClusterStateManager::processQueueAssignmentRequest(
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbnet::ClusterNode*                requester)
@@ -1764,23 +1755,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         request,
         requester,
         d_allocator_p);
-}
-
-void ClusterStateManager::processQueueUnassignedAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
-}
-
-void ClusterStateManager::processQueueUnAssignmentAdvisory(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source,
-    BSLS_ANNOTATION_UNUSED bool                 delayed)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
 }
 
 void ClusterStateManager::processShutdownEvent()
