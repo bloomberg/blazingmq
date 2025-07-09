@@ -404,9 +404,20 @@ InitialConnectionHandler::~InitialConnectionHandler()
 {
 }
 
-void InitialConnectionHandler::handleConnectionFlow(
+void InitialConnectionHandler::handleInitialConnection(
     const InitialConnectionContextSp& context)
 {
+    // The only counted references to 'InitialConnectionContextSp' are two
+    // callbacks:
+    //  1.  'InitialConnectionHandler::complete' which is constructed and
+    //      destructed on stack.
+    //  2.  'InitialConnectionHandler::readCallback' which the channel holds
+    //      (see 'InitialConnectionHandler::scheduleRead').
+    // That means 'InitialConnectionContext' lives as long as there is the need
+    // to read from the channel.  As soon as it sets '*numNeeded = 0', it gets
+    // destructed after 'InitialConnectionHandler::readCallback' returns.
+    // If there is a need to keep 'InitialConnectionContext' longer, there
+    // should be explicit 'bsl::shared_ptr<mqbnet::InitialConnectionContext>'.
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
@@ -445,23 +456,6 @@ void InitialConnectionHandler::handleConnectionFlow(
     }
 
     guard.release();
-}
-
-void InitialConnectionHandler::handleInitialConnection(
-    const InitialConnectionContextSp& context)
-{
-    // The only counted references to 'InitialConnectionContextSp' are two
-    // callbacks:
-    //  1.  'InitialConnectionHandler::complete' which is constructed and
-    //      destructed on stack.
-    //  2.  'InitialConnectionHandler::readCallback' which the channel holds
-    //      (see 'InitialConnectionHandler::scheduleRead').
-    // That means 'InitialConnectionContext' lives as long as there is the need
-    // to read from the channel.  As soon as it sets '*numNeeded = 0', it gets
-    // destructed after 'InitialConnectionHandler::readCallback' returns.
-    // If there is a need to keep 'InitialConnectionContext' longer, there
-    // should be explicit 'bsl::shared_ptr<mqbnet::InitialConnectionContext>'.
-    handleConnectionFlow(context);
 }
 
 }  // close package namespace

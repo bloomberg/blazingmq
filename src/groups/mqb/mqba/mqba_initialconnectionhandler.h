@@ -143,8 +143,6 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                          const bsl::string&                      error,
                          const bsl::shared_ptr<mqbnet::Session>& session);
 
-    void handleConnectionFlow(const InitialConnectionContextSp& context);
-
   public:
     // CREATORS
 
