@@ -95,19 +95,21 @@ class ClusterStateManager {
         enum Enum {
             // Return code for queue assignment operations.
 
-            k_ASSIGNMENT_OK  // assignment proceeding without
-                             // error, even though actual
-                             // assignment may be deferred.
+            k_OK  // assignment proceeding without
+                  // error, even though actual
+                  // assignment may be deferred.
             ,
-            k_ASSIGNMENT_DUPLICATE  // assignment was already assigned,
-                                    // so this is a duplicate.
+            k_DUPLICATE  // assignment was already assigned,
+                         // so this is a duplicate.
             ,
-            k_ASSIGNMENT_REJECTED  // assignment was definitively
-                                   // rejected (e.g. max queue cap
-                                   // reached).
+            k_LIMIT_EXCEEDED  // assignment was definitively
+                              // rejected (e.g. max queue cap
+                              // reached).
             ,
-            k_ASSIGNMENT_WHILE_UNAVAILABLE  // Not an active leader, or leader
-                                            // is STOPPING.
+            k_UNAVAILABLE  // Not an active leader, or leader
+                           // is STOPPING.
+            ,
+            k_CSL_FAILURE  // Failure to apply the assignment to the CSL.
         };
     };
 

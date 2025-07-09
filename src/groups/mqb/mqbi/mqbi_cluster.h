@@ -144,6 +144,9 @@ struct ClusterErrorCode {
         ,
         e_NOT_REPLICA = -207
         // The node is not a replica of the partition
+        ,
+        e_CSL_FAILURE = -208
+        // Failure to apply to the CSL
     };
 
     // CLASS METHODS

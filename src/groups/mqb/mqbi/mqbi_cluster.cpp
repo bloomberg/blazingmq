@@ -62,6 +62,7 @@ const char* ClusterErrorCode::toAscii(ClusterErrorCode::Enum value)
         CASE(LIMIT)
         CASE(NOT_FOLLOWER)
         CASE(NOT_REPLICA)
+        CASE(CSL_FAILURE)
     default: return "(* UNKNOWN *)";
     }
 

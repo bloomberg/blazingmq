@@ -92,6 +92,7 @@ namespace {
 const char k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
     "maximum number of queues reached";
 const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
+const char k_CSL_FAILURE[]           = "CSL failure";
 
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
@@ -393,8 +394,7 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
     }
 }
 
-mqbi::ClusterStateManager::QueueAssignmentResult::Enum
-ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
+void ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -407,30 +407,40 @@ ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
         // Assigning a queue in a remote, is simply giving it a new queueId.
         queueContext->d_liveQInfo.d_id = getNextQueueId();
         onQueueContextAssigned(queueContext);
-        return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
     }
-
-    if (d_clusterData_p->electorInfo().hasActiveLeader()) {
+    else if (d_clusterData_p->electorInfo().hasActiveLeader()) {
         if (d_clusterData_p->electorInfo().isSelfLeader()) {
-            return d_clusterStateManager_p->assignQueue(queueContext->uri());
-            // RETURN
+            QueueAssignmentResult::Enum result =
+                d_clusterStateManager_p->assignQueue(queueContext->uri());
+
+            if (QueueAssignmentResult::k_LIMIT_EXCEEDED == result) {
+                processRejectedQueueAssignment(
+                    queueContext.get(),
+                    mqbi::ClusterErrorCode::e_LIMIT,
+                    k_MAXIMUM_NUMBER_OF_QUEUES_REACHED);
+            }
+            else if (QueueAssignmentResult::k_CSL_FAILURE == result) {
+                processRejectedQueueAssignment(
+                    queueContext.get(),
+                    mqbi::ClusterErrorCode::e_CSL_FAILURE,
+                    k_CSL_FAILURE);
+            }
+            // else, all other failure are transient. will retry.
         }
         else {
             requestQueueAssignment(queueContext->uri());
-            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
         }
     }
+    else {
+        // Queue not yet assigned, because we don't have a leader (or leader is
+        // not active) at the moment, nothing to be done; the queue will
+        // automatically be re-processed once we have an active leader.
 
-    // Queue not yet assigned, because we don't have a leader (or leader is not
-    // active) at the moment, nothing to be done; the queue will automatically
-    // be re-processed once we have an active leader.
-
-    BALL_LOG_INFO << d_cluster_p->description()
-                  << " Cannot proceed with queueAssignment of "
-                  << "'" << queueContext->uri()
-                  << "' (waiting for an ACTIVE leader).";
-
-    return QueueAssignmentResult::k_ASSIGNMENT_OK;
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << " Cannot proceed with queueAssignment of '"
+                      << queueContext->uri()
+                      << "' (waiting for an ACTIVE leader).";
+    }
 }
 
 void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
@@ -602,11 +612,23 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
                      mqbi::ClusterErrorCode::e_LIMIT) {
                 QueueContextMapIter qit = d_queues.find(uri);
                 BSLS_ASSERT_SAFE(qit != d_queues.end());
-                bdlma::LocalSequentialAllocator<256> localAllocator(
-                    d_allocator_p);
-                bsl::vector<QueueContext*> rejected(1, &localAllocator);
-                *rejected.begin() = qit->second.get();
-                processRejectedQueueAssignments(rejected);
+                const QueueContext* rejected = qit->second.get();
+
+                processRejectedQueueAssignment(
+                    rejected,
+                    mqbi::ClusterErrorCode::e_LIMIT,
+                    k_MAXIMUM_NUMBER_OF_QUEUES_REACHED);
+            }
+            else if (requestContext->response().choice().status().code() ==
+                     mqbi::ClusterErrorCode::e_CSL_FAILURE) {
+                QueueContextMapIter qit = d_queues.find(uri);
+                BSLS_ASSERT_SAFE(qit != d_queues.end());
+                const QueueContext* rejected = qit->second.get();
+
+                processRejectedQueueAssignment(
+                    rejected,
+                    mqbi::ClusterErrorCode::e_CSL_FAILURE,
+                    k_CSL_FAILURE);
             }
         }
         else {
@@ -3399,8 +3421,10 @@ void ClusterQueueHelper::restoreState(int partitionId)
     }
 }
 
-void ClusterQueueHelper::processRejectedQueueAssignments(
-    const bsl::vector<QueueContext*>& rejected)
+void ClusterQueueHelper::processRejectedQueueAssignment(
+    const QueueContext* rejected,
+    int                 code,
+    const char*         reason)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -3410,24 +3434,20 @@ void ClusterQueueHelper::processRejectedQueueAssignments(
 
     bmqp_ctrlmsg::Status failure;
     failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-    failure.code()     = mqbi::ClusterErrorCode::e_LIMIT;
-    failure.message()  = k_MAXIMUM_NUMBER_OF_QUEUES_REACHED;
+    failure.code()     = code;
+    failure.message()  = reason;
 
-    for (bsl::vector<QueueContext*>::const_iterator sIt = rejected.begin();
-         sIt != rejected.end();
-         ++sIt) {
-        for (bsl::vector<OpenQueueContextSp>::iterator
-                 cIt   = (*sIt)->d_liveQInfo.d_pending.begin(),
-                 cLast = (*sIt)->d_liveQInfo.d_pending.end();
-             cIt != cLast;
-             ++cIt) {
-            (*cIt)->d_callback(failure,
-                               0,
-                               bmqp_ctrlmsg::OpenQueueResponse(),
-                               mqbi::Cluster::OpenQueueConfirmationCookie());
-        }
-        d_queues.erase((*sIt)->uri());
+    for (bsl::vector<OpenQueueContextSp>::const_iterator
+             cIt   = rejected->d_liveQInfo.d_pending.begin(),
+             cLast = rejected->d_liveQInfo.d_pending.end();
+         cIt != cLast;
+         ++cIt) {
+        (*cIt)->d_callback(failure,
+                           0,
+                           bmqp_ctrlmsg::OpenQueueResponse(),
+                           mqbi::Cluster::OpenQueueConfirmationCookie());
     }
+    d_queues.erase(rejected->uri());
 }
 
 void ClusterQueueHelper::restoreStateRemote()
@@ -3450,9 +3470,6 @@ void ClusterQueueHelper::restoreStateRemote()
     }
 
     // Attempt to re-issue open-queue requests for all applicable queues.
-    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    bsl::vector<QueueContext*>            rejected(&localAllocator);
-    rejected.reserve(d_queues.size());
 
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
@@ -3473,10 +3490,9 @@ void ClusterQueueHelper::restoreStateRemote()
 
         if (!isQueueAssigned(*queueContext.get())) {
             // Queue is not assigned to a partition; get it assigned.
-            if (QueueAssignmentResult::k_ASSIGNMENT_REJECTED ==
-                assignQueue(queueContext)) {
-                rejected.push_back(queueContext.get());
-            }
+
+            assignQueue(queueContext);
+
             continue;  // CONTINUE
         }
 
@@ -3508,8 +3524,6 @@ void ClusterQueueHelper::restoreStateRemote()
 
         onQueueContextAssigned(queueContext);
     }
-
-    processRejectedQueueAssignments(rejected);
 }
 
 void ClusterQueueHelper::restoreStateCluster(int partitionId)
@@ -3595,10 +3609,6 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         d_clusterData_p->membership().selfNode();
     }
 
-    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    bsl::vector<QueueContext*>            rejected(&localAllocator);
-    rejected.reserve(d_queues.size());
-
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
          ++cit) {
@@ -3626,10 +3636,9 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 // Queue is not assigned to a partition; get it assigned.  If
                 // self is leader, it will assign it locally, if not it will
                 // send a request to the leader, etc.
-                if (QueueAssignmentResult::k_ASSIGNMENT_REJECTED ==
-                    assignQueue(queueContext)) {
-                    rejected.push_back(queueContext.get());
-                }
+
+                assignQueue(queueContext);
+
                 continue;  // CONTINUE
             }
         }
@@ -3757,8 +3766,6 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             }
         }
     }
-
-    processRejectedQueueAssignments(rejected);
 }
 
 bmqt::GenericResult::Enum
@@ -4699,14 +4706,7 @@ void ClusterQueueHelper::openQueue(
         queueContext->d_liveQInfo.d_pending.push_back(context);
 
         // Initiate the assignment.
-        if (QueueAssignmentResult::k_ASSIGNMENT_REJECTED ==
-            assignQueue(queueContext)) {
-            bdlma::LocalSequentialAllocator<1024> localAllocator(
-                d_allocator_p);
-            bsl::vector<QueueContext*> rejected(&localAllocator);
-            rejected.push_back(queueContext.get());
-            processRejectedQueueAssignments(rejected);
-        }
+        assignQueue(queueContext);
     }
 }
 

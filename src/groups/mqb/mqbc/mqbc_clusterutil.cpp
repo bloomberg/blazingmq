@@ -856,8 +856,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             status->message()  = k_SELF_NODE_IS_STOPPING;
         }
 
-        return QueueAssignmentResult::
-            k_ASSIGNMENT_WHILE_UNAVAILABLE;  // RETURN
+        return QueueAssignmentResult::k_UNAVAILABLE;  // RETURN
     }
 
     ClusterState::DomainStates& domainStates = clusterState->domainStates();
@@ -896,7 +895,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                 status->message()  = k_DOMAIN_CREATION_FAILURE;
             }
 
-            return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
+            return QueueAssignmentResult::k_LIMIT_EXCEEDED;  // RETURN
         }
     }
 
@@ -912,13 +911,13 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
             BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                           << uri << "' is already pending.";
-            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
+            return QueueAssignmentResult::k_OK;  // RETURN
         }
 
         if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
             BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                           << uri << "' is already done.";
-            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
+            return QueueAssignmentResult::k_OK;  // RETURN
         }
     }
 
@@ -975,7 +974,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                     status->message() = k_MAXIMUM_NUMBER_OF_QUEUES_REACHED;
                 }
 
-                return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
+                return QueueAssignmentResult::k_LIMIT_EXCEEDED;  // RETURN
             }
         }
 
@@ -1044,13 +1043,17 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                   << " cluster state ledger: " << queueAdvisory;
 
     const int rc = ledger->apply(queueAdvisory);
-    if (rc != 0) {
+
+    if (rc == 0) {
+        return QueueAssignmentResult::k_OK;
+    }
+    else {
         BALL_LOG_ERROR << clusterData->identity().description()
                        << ": Failed to apply queue assignment advisory: "
                        << queueAdvisory << ", rc: " << rc;
-    }
 
-    return QueueAssignmentResult::k_ASSIGNMENT_OK;
+        return QueueAssignmentResult::k_CSL_FAILURE;
+    }
 }
 
 void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
