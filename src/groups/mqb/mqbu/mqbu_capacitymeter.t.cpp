@@ -64,6 +64,7 @@ static void test1_breathingTest()
     const char* k_NAME = "dummy";
 
     mqbu::CapacityMeter capacityMeter(k_NAME,
+                                      0,
                                       bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(capacityMeter.name(), k_NAME);
@@ -118,6 +119,7 @@ static void test2_logStateChange()
             ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
+                                          0,
                                           bmqtst::TestHelperUtil::allocator());
         capacityMeter.setLimits(k_MSGS_LIMIT, k_BYTES_LIMIT);
         capacityMeter.setWatermarkThresholds(k_MSGS_THRESHOLD,
@@ -137,6 +139,7 @@ static void test2_logStateChange()
             ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
+                                          0,
                                           bmqtst::TestHelperUtil::allocator());
         capacityMeter.setLimits(k_MSGS_LIMIT, k_BYTES_LIMIT);
         capacityMeter.setWatermarkThresholds(k_MSGS_THRESHOLD,
@@ -180,6 +183,7 @@ static void test2_logStateChange()
             ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
+                                          0,
                                           bmqtst::TestHelperUtil::allocator());
         capacityMeter.setLimits(k_MSGS_LIMIT, k_BYTES_LIMIT);
         capacityMeter.setWatermarkThresholds(k_MSGS_THRESHOLD,
@@ -211,6 +215,7 @@ static void test2_logStateChange()
             ball::Severity::e_WARN,
             bmqtst::TestHelperUtil::allocator());
         mqbu::CapacityMeter capacityMeter("dummy",
+                                          0,
                                           bmqtst::TestHelperUtil::allocator());
         capacityMeter.setLimits(k_MSGS_LIMIT, k_BYTES_LIMIT);
         capacityMeter.setWatermarkThresholds(k_MSGS_THRESHOLD,
@@ -281,17 +286,15 @@ static void test3_enhancedLog()
                                                            k_MSGS_THRESHOLD;
     const bsls::Types::Int64 k_BYTES_LIMIT                = 1024;
     const double             k_BYTES_THRESHOLD            = 0.8;
-    const bsls::Types::Int64 k_BYTES_HIGH_WATERMARK_VALUE = k_BYTES_LIMIT *
-                                                            k_BYTES_THRESHOLD;
 
     bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
     mqbu::CapacityMeter       capacityMeter(
         "dummy",
-        bmqtst::TestHelperUtil::allocator(),
-        bdlf::BindUtil::bind(&logEnhancedStorageInfoCb,
-                             bdlf::PlaceHolders::_1)  // stream
-    );
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &logEnhancedStorageInfoCb,
+                              bdlf::PlaceHolders::_1),  // stream
+        bmqtst::TestHelperUtil::allocator());
     capacityMeter.setLimits(k_MSGS_LIMIT, k_BYTES_LIMIT);
     capacityMeter.setWatermarkThresholds(k_MSGS_THRESHOLD, k_BYTES_THRESHOLD);
 

@@ -122,6 +122,7 @@ static void test2_iterations()
 
     mqbu::CapacityMeter dummyCapacityMeter(
         "dummy",
+        0,
         bmqtst::TestHelperUtil::allocator());
     bmqt::Uri        dummyUri("dummy", bmqtst::TestHelperUtil::allocator());
     mqbconfm::Domain dummyDomain(bmqtst::TestHelperUtil::allocator());

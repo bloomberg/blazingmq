@@ -233,8 +233,10 @@ Domain::Domain(const bsl::string&                     name,
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_domainsStatContext_p(domainsStatContext)
 , d_queuesStatContext_mp(queuesStatContext)
-, d_capacityMeter("domain [bmq://" + d_name + "]", allocator)
-, d_queues(allocator)
+, d_capacityMeter(bsl::string("domain [bmq://", d_allocator_p) + d_name + "]",
+                  0,
+                  d_allocator_p)
+, d_queues(d_allocator_p)
 , d_pendingRequests(0)
 , d_teardownCb()
 , d_teardownRemoveCb()
@@ -247,7 +249,7 @@ Domain::Domain(const bsl::string&                     name,
     }
 
     // Initialize stats
-    d_domainsStats.initialize(this, d_domainsStatContext_p, allocator);
+    d_domainsStats.initialize(this, d_domainsStatContext_p, d_allocator_p);
 }
 
 Domain::~Domain()

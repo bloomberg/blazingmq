@@ -112,25 +112,24 @@ FileBackedStorage::FileBackedStorage(
 , d_store_p(dataStore)
 , d_queueKey(queueKey)
 , d_config()
-, d_queueUri(queueUri, allocator)
+, d_queueUri(queueUri, d_allocator_p)
 , d_virtualStorageCatalog(
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
 , d_ttlSeconds(domain->config().messageTtl())
 , d_capacityMeter(
-      bsl::string("queue [", allocator) + queueUri.asString() + "]",
+      bsl::string("queue [", d_allocator_p) + queueUri.asString() + "]",
       domain->capacityMeter(),
-      allocator,
-      bdlf::BindUtil::bindS(allocator,
+      bdlf::BindUtil::bindS(d_allocator_p,
                             &FileBackedStorage::logAppsSubscriptionInfoCb,
                             this,
-                            bdlf::PlaceHolders::_1)  // stream
-      )
+                            bdlf::PlaceHolders::_1),  // stream
+      d_allocator_p)
 , d_handles(bsls::TimeInterval()
                 .addMilliseconds(domain->config().deduplicationTimeMs())
                 .totalNanoseconds(),
             allocatorStore ? allocatorStore->get("Handles") : d_allocator_p)
-, d_queueOpRecordHandles(allocator)
+, d_queueOpRecordHandles(d_allocator_p)
 , d_isEmpty(1)
 , d_hasReceipts(!domain->config().consistency().isStrongValue())
 , d_currentlyAutoConfirming()

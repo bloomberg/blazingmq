@@ -54,8 +54,8 @@ void CapacityMeter::logOnMonitorStateTransition(
 {
     const size_t k_INITIAL_BUFFER_SIZE = 256;
 
-    bmqu::MemOutStream categoryStream(k_INITIAL_BUFFER_SIZE);
-    bmqu::MemOutStream stream(k_INITIAL_BUFFER_SIZE);
+    bmqu::MemOutStream categoryStream(k_INITIAL_BUFFER_SIZE, d_allocator_p);
+    bmqu::MemOutStream stream(k_INITIAL_BUFFER_SIZE, d_allocator_p);
 
     categoryStream << "CAPACITY_" << d_monitor.state();
     stream << "for '" << name() << "':";
@@ -105,9 +105,10 @@ void CapacityMeter::logOnMonitorStateTransition(
 }
 
 CapacityMeter::CapacityMeter(const bsl::string&       name,
-                             bslma::Allocator*        allocator,
-                             LogEnhancedStorageInfoCb logEnhancedStorageInfoCb)
-: d_name(name, allocator)
+                             LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
+                             bslma::Allocator*        allocator)
+: d_allocator_p(allocator)
+, d_name(name, d_allocator_p)
 , d_isDisabled(false)
 , d_parent_p(0)
 , d_monitor(0,
@@ -120,16 +121,19 @@ CapacityMeter::CapacityMeter(const bsl::string&       name,
 , d_nbMessagesReserved(0)
 , d_nbBytesReserved(0)
 , d_lock(bsls::SpinLock::s_unlocked)
-, d_logEnhancedStorageInfoCb(logEnhancedStorageInfoCb)
+, d_logEnhancedStorageInfoCb(bsl::allocator_arg,
+                             d_allocator_p,
+                             logEnhancedStorageInfoCb)
 {
     // NOTHING
 }
 
 CapacityMeter::CapacityMeter(const bsl::string&       name,
                              CapacityMeter*           parent,
-                             bslma::Allocator*        allocator,
-                             LogEnhancedStorageInfoCb logEnhancedStorageInfoCb)
-: d_name(name, allocator)
+                             LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
+                             bslma::Allocator*        allocator)
+: d_allocator_p(allocator)
+, d_name(name, d_allocator_p)
 , d_isDisabled(false)
 , d_parent_p(parent)
 , d_monitor(0,
@@ -141,8 +145,10 @@ CapacityMeter::CapacityMeter(const bsl::string&       name,
 // will be reconfigured in setLimits
 , d_nbMessagesReserved(0)
 , d_nbBytesReserved(0)
-, d_lock()
-, d_logEnhancedStorageInfoCb(logEnhancedStorageInfoCb)
+, d_lock(bsls::SpinLock::s_unlocked)
+, d_logEnhancedStorageInfoCb(bsl::allocator_arg,
+                             d_allocator_p,
+                             logEnhancedStorageInfoCb)
 {
     // NOTHING
 }
