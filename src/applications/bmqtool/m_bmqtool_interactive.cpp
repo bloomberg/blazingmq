@@ -269,7 +269,8 @@ void Interactive::processCommand(const OpenQueueCommand& command)
         .setConsumerPriority(command.consumerPriority());
 
     if (!InputUtil::populateSubscriptions(&queueOptions,
-                                          command.subscriptions())) {
+                                          command.subscriptions(),
+                                          d_allocator_p)) {
         BALL_LOG_ERROR << "Invalid subscriptions";
         return;  // RETURN
     }
@@ -357,7 +358,8 @@ void Interactive::processCommand(const ConfigureQueueCommand& command)
         .setConsumerPriority(command.consumerPriority());
 
     if (!InputUtil::populateSubscriptions(&queueOptions,
-                                          command.subscriptions())) {
+                                          command.subscriptions(),
+                                          d_allocator_p)) {
         BALL_LOG_ERROR << "Invalid subscriptions";
         return;  // RETURN
     }

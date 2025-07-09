@@ -377,6 +377,11 @@ bool Parameters::from(bsl::ostream&                stream,
         eventsCount        = params.postRate() * numPosts;
     }
 
+    if (params.autoPubSubModulo() < 0) {
+        stream << "Negative autoPubSubModulo values are not supported" << "\n";
+        return false;  // RETURN
+    }
+
     // Populate output parameters struct
     setVerbosity(paramVerbosity);
     setLogFormat(params.logFormat());

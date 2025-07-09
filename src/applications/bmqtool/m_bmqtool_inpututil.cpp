@@ -269,7 +269,8 @@ void InputUtil::verifyProperties(
 }
 
 bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
-                                      const bsl::vector<Subscription>& in)
+                                      const bsl::vector<Subscription>& in,
+                                      bslma::Allocator* allocator)
 {
     BSLS_ASSERT_SAFE(out);
 
@@ -310,7 +311,7 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
             to.setConsumerPriority(out->consumerPriority());
         }
 
-        bsl::string error;
+        bsl::string error(allocator);
         if (!out->addOrUpdateSubscription(&error, handle, to)) {
             // It is possible to make early return here, but we want to log
             // all the failed expressions, not only the first failure.
@@ -344,7 +345,7 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions* out,
 
         to.setExpression(expression);
 
-        bsl::string error;
+        bsl::string error(allocator);
         if (!out->addOrUpdateSubscription(&error, handle, to)) {
             // It is possible to make early return here, but we want to log all
             // the failed expressions, not only the first failure.
