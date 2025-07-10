@@ -179,9 +179,9 @@ int InitialConnectionHandler::processBlob(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                       = 0,
-        rc_INVALID_NEGOTIATION_MESSAGE   = -1,
-        rc_DEFAULT_CREDENTIAL_DISALLOWED = -2,
+        rc_SUCCESS                           = 0,
+        rc_INVALID_INITIALCONNECTION_MESSAGE = -1,
+        rc_DEFAULT_CREDENTIAL_DISALLOWED     = -2,
     };
 
     bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
@@ -194,14 +194,14 @@ int InitialConnectionHandler::processBlob(
                                             context);
 
     if (rc != rc_SUCCESS) {
-        return (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;  // RETURN
+        return (rc * 10) + rc_INVALID_INITIALCONNECTION_MESSAGE;  // RETURN
     }
 
     if (!message.has_value()) {
         errorDescription << "Decode AuthenticationMessage or "
                             "NegotiationMessage succeeds but nothing gets "
                             "loaded in.";
-        return (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
+        return (rc * 10) + rc_INVALID_INITIALCONNECTION_MESSAGE;
     }
 
     if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
@@ -214,60 +214,78 @@ int InitialConnectionHandler::processBlob(
     }
     else if (bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
                  message.value())) {
-        if (!d_authenticator_mp->anonymousCredential()) {
-            errorDescription << "Anonymous credential is disallowed, "
-                             << "cannot negotiate without authentication.";
-            return (rc * 10) + rc_DEFAULT_CREDENTIAL_DISALLOWED;  // RETURN
+        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage =
+            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
+
+        bool isClientyIdentity = negotiationMessage.isClientIdentityValue();
+
+        if (isClientyIdentity) {
+            // Create NegotiationContext only when we receive a ClientIdentity.
+            // This is been created already if we sent the ClientIdentity and
+            // are expecting a BrokerResponse.
+            bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
+                bsl::allocate_shared<mqbnet::NegotiationContext>(
+                    d_allocator_p,
+                    context.get(),       // initialConnectionContext
+                    negotiationMessage,  // negotiationMessage
+                    bsl::string(),       // clusterName
+                    mqbnet::ConnectionType::e_UNKNOWN,  // connectionType
+                    0,                                  // maxMissedHeartbeat
+                    bsl::nullptr_t(),                   // eventProcessor
+                    bsl::nullptr_t()                    // cluster
+                );
+
+            context->setNegotiationContext(negotiationContext);
+
+            // Received a ClientIdentity before an AuthenticationRequest,
+            // use the default authentication credential to authenticate.
+            // In order not to block the IO thread, for default credential, we
+            // do negotiation in authentication threads
+            if (!context->authenticationContext()) {
+                if (!d_authenticator_mp->anonymousCredential()) {
+                    errorDescription
+                        << "Anonymous credential is disallowed, "
+                        << "cannot negotiate without authentication.";
+                    return (rc * 10) +
+                           rc_DEFAULT_CREDENTIAL_DISALLOWED;  // RETURN
+                }
+
+                context->setNegotiationCb(bdlf::BindUtil::bind(
+                    &mqbnet::Negotiator::createSessionOnMsgType,
+                    d_negotiator_mp.get(),
+                    bdlf::PlaceHolders::_1,  // errorDescription
+                    bdlf::PlaceHolders::_2,  // session
+                    bdlf::PlaceHolders::_3   // context
+                    ));
+
+                bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
+                bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
+                    authenticationMessage.makeAuthenticateRequest();
+
+                const mqbcfg::Credential& anonymousCredential =
+                    d_authenticator_mp->anonymousCredential().value();
+                authenticateRequest.mechanism() =
+                    anonymousCredential.mechanism();
+                authenticateRequest.data() = bsl::vector<char>(
+                    anonymousCredential.identity().begin(),
+                    anonymousCredential.identity().end());
+
+                rc = d_authenticator_mp->handleAuthentication(
+                    errorDescription,
+                    isContinueRead,
+                    context,
+                    authenticationMessage);
+
+                *isContinueRead = false;
+
+                return rc;  // RETURN
+            }
         }
-
-        // Create NegotiationContext
-        bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
-            bsl::allocate_shared<mqbnet::NegotiationContext>(
-                d_allocator_p,
-                context.get(),  // initialConnectionContext
-                bsl::get<bmqp_ctrlmsg::NegotiationMessage>(
-                    message.value()),               // negotiationMessage
-                bsl::string(),                      // clusterName
-                mqbnet::ConnectionType::e_UNKNOWN,  // connectionType
-                0,                                  // maxMissedHeartbeat
-                bsl::nullptr_t(),                   // eventProcessor
-                bsl::nullptr_t()                    // cluster
-            );
-
-        context->setNegotiationContext(negotiationContext);
-
-        // Received a NegotiationMessage before an AuthenticationMessage,
-        // use the default authentication credential to authenticate.
-        // In order not to block the IO thread, for default credential, we do
-        // negotiation in authentication threads
-        if (!context->authenticationContext()) {
-            context->setNegotiationCb(bdlf::BindUtil::bind(
-                &mqbnet::Negotiator::createSessionOnMsgType,
-                d_negotiator_mp.get(),
-                bdlf::PlaceHolders::_1,  // errorDescription
-                bdlf::PlaceHolders::_2,  // session
-                bdlf::PlaceHolders::_3   // context
-                ));
-
-            bmqp_ctrlmsg::AuthenticationMessage authenticationMsg;
-            bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
-                authenticationMsg.makeAuthenticateRequest();
-
-            const mqbcfg::Credential& anonymousCredential =
-                d_authenticator_mp->anonymousCredential().value();
-            authenticateRequest.mechanism() = anonymousCredential.mechanism();
-            authenticateRequest.data()      = bsl::vector<char>(
-                anonymousCredential.identity().begin(),
-                anonymousCredential.identity().end());
-
-            rc = d_authenticator_mp->handleAuthentication(errorDescription,
-                                                          isContinueRead,
-                                                          context,
-                                                          authenticationMsg);
-
-            *isContinueRead = false;
-
-            return rc;  // RETURN
+        else {
+            // Received a BrokerResponse, which is the last message of the
+            // negotiation protocol.
+            context->negotiationContext()->setNegotiationMessage(
+                bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value()));
         }
 
         rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,

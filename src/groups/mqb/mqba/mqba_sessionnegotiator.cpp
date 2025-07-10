@@ -255,9 +255,6 @@ int SessionNegotiator::createSessionOnMsgType(
     BSLS_ASSERT(context);
     BSLS_ASSERT(context->negotiationContext());
 
-    // Authentication needs to be done before we can create a session.
-    BSLS_ASSERT(context->authenticationContext());
-
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                        = 0,
@@ -278,6 +275,9 @@ int SessionNegotiator::createSessionOnMsgType(
         // - a proxy connecting to us (implying we are a cluster member)
         // - a cluster peer connecting to us (implying we are a cluster member)
         // - an admin client connecting to us
+
+        // Authentication needs to be done before we can create a session.
+        BSLS_ASSERT(context->authenticationContext());
 
         if (negotiationContext->negotiationMessage()
                 .clientIdentity()
@@ -914,16 +914,22 @@ int SessionNegotiator::negotiateOutbound(
 
     BSLS_ASSERT_SAFE(userData);
 
-    context->negotiationContext()->setClusterName(userData->d_clusterName);
-    if (d_clusterCatalog_p->isMemberOf(
-            context->negotiationContext()->clusterName())) {
-        context->negotiationContext()->setConnectionType(
-            mqbnet::ConnectionType::e_CLUSTER_MEMBER);
-    }
-    else {
-        context->negotiationContext()->setConnectionType(
-            mqbnet::ConnectionType::e_CLUSTER_PROXY);
-    }
+    // Create NegotiationContext
+    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
+        bsl::allocate_shared<mqbnet::NegotiationContext>(
+            d_allocator_p,
+            context.get(),                       // initialConnectionContext
+            bmqp_ctrlmsg::NegotiationMessage(),  // negotiationMessage
+            userData->d_clusterName,             // clusterName
+            d_clusterCatalog_p->isMemberOf(userData->d_clusterName)
+                ? mqbnet::ConnectionType::e_CLUSTER_MEMBER
+                : mqbnet::ConnectionType::e_CLUSTER_PROXY,  // connectionType
+            0,                 // maxMissedHeartbeat
+            bsl::nullptr_t(),  // eventProcessor
+            bsl::nullptr_t()   // cluster
+        );
+
+    context->setNegotiationContext(negotiationContext);
 
     int rc = initiateOutboundNegotiation(errorDescription,
                                          context->negotiationContext());
