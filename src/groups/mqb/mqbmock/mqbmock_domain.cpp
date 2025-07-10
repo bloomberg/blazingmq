@@ -47,7 +47,9 @@ Domain::Domain(mqbi::Cluster* cluster, bslma::Allocator* allocator)
 // NOTE: Some test drivers require a few snapshot, hence the 'arbitrary' 5
 //       used here
 , d_config(allocator)
-, d_capacityMeter("domain [" + d_name + "]", allocator)
+, d_capacityMeter(bsl::string("domain [", allocator) + d_name + "]",
+                  0,
+                  allocator)
 , d_queues(allocator)
 {
     // NOTE: Traditionally done in 'configure()' where the limits can be

@@ -57,17 +57,17 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
 , d_key(queueKey)
-, d_uri(uri, allocator)
+, d_uri(uri, d_allocator_p)
 , d_partitionId(partitionId)
 , d_config()
 , d_capacityMeter(
-      "queue [" + uri.asString() + "]",
+      bsl::string("queue [", d_allocator_p) + uri.asString() + "]",
       parentCapacityMeter,
-      allocator,
-      bdlf::BindUtil::bind(&InMemoryStorage::logAppsSubscriptionInfoCb,
-                           this,
-                           bdlf::PlaceHolders::_1)  // stream
-      )
+      bdlf::BindUtil::bindS(d_allocator_p,
+                            &InMemoryStorage::logAppsSubscriptionInfoCb,
+                            this,
+                            bdlf::PlaceHolders::_1),  // stream
+      d_allocator_p)
 , d_items(bsls::TimeInterval()
               .addMilliseconds(config.deduplicationTimeMs())
               .totalNanoseconds(),
@@ -78,7 +78,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
 , d_ttlSeconds(config.messageTtl())
 , d_isEmpty(1)
 , d_currentlyAutoConfirming()
-, d_autoConfirms(allocator)
+, d_autoConfirms(d_allocator_p)
 {
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
 

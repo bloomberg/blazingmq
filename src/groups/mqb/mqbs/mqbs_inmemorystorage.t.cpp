@@ -170,45 +170,40 @@ struct Tester {
 
   private:
     // DATA
+    bslma::Allocator*                          d_allocator_p;
     mqbmock::Cluster                           d_mockCluster;
     mqbmock::Domain                            d_mockDomain;
     mqbmock::Queue                             d_mockQueue;
     mqbmock::QueueEngine                       d_mockQueueEngine;
     bslma::ManagedPtr<mqbs::ReplicatedStorage> d_replicatedStorage_mp;
     Records                                    d_records;
-    bslma::Allocator*                          d_allocator_p;
 
   public:
     // CREATORS
-    Tester(bslma::Allocator*        allocator,
-           int                      partitionId = k_PARTITION_ID,
-           const bslstl::StringRef& uri         = k_URI_STR,
-           const mqbu::StorageKey&  queueKey    = k_QUEUE_KEY,
-           bsls::Types::Int64       ttlSeconds  = k_INT64_MAX)
-    : d_mockCluster(allocator)
-    , d_mockDomain(&d_mockCluster, allocator)
-    , d_mockQueue(&d_mockDomain, allocator)
-    , d_mockQueueEngine(allocator)
+    explicit Tester(int partitionId, bslma::Allocator* allocator = 0)
+    : d_allocator_p(bslma::Default::allocator(allocator))
+    , d_mockCluster(d_allocator_p)
+    , d_mockDomain(&d_mockCluster, d_allocator_p)
+    , d_mockQueue(&d_mockDomain, d_allocator_p)
+    , d_mockQueueEngine(d_allocator_p)
     , d_replicatedStorage_mp()
-    , d_records(allocator)
-    , d_allocator_p(allocator)
+    , d_records(d_allocator_p)
     {
         d_mockDomain.capacityMeter()->setLimits(k_INT64_MAX, k_INT64_MAX);
         d_mockQueue._setQueueEngine(&d_mockQueueEngine);
 
         mqbconfm::Domain domainCfg;
         domainCfg.deduplicationTimeMs() = 0;  // No history
-        domainCfg.messageTtl()          = ttlSeconds;
+        domainCfg.messageTtl()          = k_INT64_MAX;
 
-        d_replicatedStorage_mp.load(
-            new (*d_allocator_p) mqbs::InMemoryStorage(
-                bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
-                queueKey,
-                partitionId,
-                domainCfg,
-                d_mockDomain.capacityMeter(),
-                d_allocator_p),
-            d_allocator_p);
+        d_replicatedStorage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+                                        bmqt::Uri(k_URI_STR, d_allocator_p),
+                                        k_QUEUE_KEY,
+                                        partitionId,
+                                        domainCfg,
+                                        d_mockDomain.capacityMeter(),
+                                        d_allocator_p),
+                                    d_allocator_p);
     }
 
     ~Tester()
@@ -360,12 +355,7 @@ struct Test : bmqtst::Test {
 // -----------
 // CREATORS
 Test::Test()
-: d_tester(bmqtst::TestHelperUtil::allocator(),
-           k_PARTITION_ID,
-           k_URI_STR,
-           k_QUEUE_KEY,
-           k_INT64_MAX  // ttlSeconds
-  )
+: d_tester(k_PARTITION_ID, bmqtst::TestHelperUtil::allocator())
 {
     d_tester.configure();
 }
@@ -396,7 +386,7 @@ BMQTST_TEST(breathingTest)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 
@@ -433,7 +423,7 @@ BMQTST_TEST(configure)
 {
     bmqtst::TestHelper::printTestName("CONFIGURE");
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES) == 0);
 
@@ -813,7 +803,7 @@ BMQTST_TEST(put_withVirtualStorages)
 
     bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PARTITION_ID);
+    Tester tester(k_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -882,7 +872,7 @@ BMQTST_TEST(removeAllMessages_appKeyNotFound)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PARTITION_ID);
+    Tester tester(k_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -932,7 +922,7 @@ BMQTST_TEST(removeAllMessages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -997,7 +987,7 @@ BMQTST_TEST(get_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1059,7 +1049,7 @@ BMQTST_TEST(confirm)
 
     bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1208,7 +1198,7 @@ BMQTST_TEST(getIterator_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1353,7 +1343,7 @@ BMQTST_TEST(capacityMeter_limitBytes)
     const bsls::Types::Int64 k_MSG_LIMIT   = 30;
     const bsls::Types::Int64 k_BYTES_LIMIT = 80;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PARTITION_ID);
+    Tester tester(k_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1397,7 +1387,7 @@ BMQTST_TEST(garbageCollect)
     // input
     const int k_TTL = 20;
 
-    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PARTITION_ID);
+    Tester tester(k_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG,
                                      k_DEFAULT_BYTES,

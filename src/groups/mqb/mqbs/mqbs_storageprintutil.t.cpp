@@ -119,6 +119,7 @@ void verifyOutput(const mqbcmd::QueueContents&          queueContents,
 struct Tester {
   private:
     // DATA
+    bslma::Allocator*                        d_allocator_p;
     bdlbb::PooledBlobBufferFactory           d_bufferFactory;
     bsl::vector<bmqt::MessageGUID>           d_guids;
     mqbu::CapacityMeter                      d_capacityMeter;
@@ -127,9 +128,10 @@ struct Tester {
   public:
     // CREATORS
     Tester()
-    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
-    , d_guids(bmqtst::TestHelperUtil::allocator())
-    , d_capacityMeter("test", bmqtst::TestHelperUtil::allocator())
+    : d_allocator_p(bmqtst::TestHelperUtil::allocator())
+    , d_bufferFactory(1024, d_allocator_p)
+    , d_guids(d_allocator_p)
+    , d_capacityMeter(bsl::string("test", d_allocator_p), 0, d_allocator_p)
     {
         d_capacityMeter.setLimits(k_INT64_MAX, k_INT64_MAX);
 
@@ -137,19 +139,17 @@ struct Tester {
         domainCfg.deduplicationTimeMs() = 0;  // No history
         domainCfg.messageTtl()          = k_INT64_MAX;
 
-        const bsl::string uri("my.domain/myqueue");
-        d_storage_mp.load(
-            new (*bmqtst::TestHelperUtil::allocator()) mqbs::InMemoryStorage(
-                bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
-                k_QUEUE_KEY,
-                0,
-                domainCfg,
-                &d_capacityMeter,
-                bmqtst::TestHelperUtil::allocator()),
-            bmqtst::TestHelperUtil::allocator());
+        const bsl::string uri("my.domain/myqueue", d_allocator_p);
+        d_storage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+                              bmqt::Uri(uri, d_allocator_p),
+                              k_QUEUE_KEY,
+                              0,
+                              domainCfg,
+                              &d_capacityMeter,
+                              d_allocator_p),
+                          d_allocator_p);
 
-        bmqu::MemOutStream errorDescription(
-            bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream errorDescription(d_allocator_p);
         d_storage_mp->addVirtualStorage(errorDescription,
                                         k_APP_ID1,
                                         k_APP_KEY1);
@@ -181,11 +181,9 @@ struct Tester {
             bmqt::MessageGUID& guid = d_guids.back();
             mqbu::MessageGUIDUtil::generateGUID(&guid);
 
-            bsl::shared_ptr<bdlbb::Blob> appDataPtr(
-                new (*bmqtst::TestHelperUtil::allocator())
-                    bdlbb::Blob(&d_bufferFactory,
-                                bmqtst::TestHelperUtil::allocator()),
-                bmqtst::TestHelperUtil::allocator());
+            bsl::shared_ptr<bdlbb::Blob> appDataPtr =
+                bsl::allocate_shared<bdlbb::Blob>(d_allocator_p,
+                                                  &d_bufferFactory);
             appDataPtr->setLength(i * 10);
 
             mqbi::StorageMessageAttributes attributes;

@@ -115,6 +115,9 @@ class VirtualStorageCatalog {
 
   private:
     // DATA
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
     /// Physical storage underlying all virtual storages known to this object
     mqbi::Storage* d_storage_p;
 
@@ -151,9 +154,6 @@ class VirtualStorageCatalog {
     /// This could be null if a local or remote
     /// queue instance has not been created.
     mqbi::Queue* d_queue_p;
-
-    /// Allocator to use
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED

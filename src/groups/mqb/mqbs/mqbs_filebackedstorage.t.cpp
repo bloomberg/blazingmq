@@ -176,7 +176,7 @@ class MockDataStore : public mqbs::DataStore {
 
   private:
     // DATA
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
+    bslma::Allocator* d_allocator_p;
 
     mqbs::DataStoreConfig      d_config;
     mqbi::DispatcherClientData d_dispatcherClientData;

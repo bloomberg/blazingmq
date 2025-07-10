@@ -94,16 +94,17 @@ namespace mqbs {
 // CREATORS
 VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
                                              bslma::Allocator* allocator)
-: d_storage_p(storage)
-, d_virtualStorages(allocator)
-, d_dataStream(allocator)
+: d_allocator_p(allocator)
+, d_storage_p(storage)
+, d_virtualStorages(d_allocator_p)
+, d_ordinals(d_allocator_p)
+, d_dataStream(d_allocator_p)
 , d_totalBytes(0)
 , d_numMessages(0)
 , d_defaultAppMessage(bmqp::RdaInfo())
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
 , d_isProxy(false)
 , d_queue_p(0)
-, d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
