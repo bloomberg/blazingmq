@@ -207,7 +207,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // and in-flight requests are zero).
         int d_numHandleCreationsInProgress;
 
-        // Timerstamp (high resolution timer) in milliseconds after which queue
+        // Timestamp (high resolution timer) in milliseconds after which queue
         // will expire.  Zero if queue cannot expire (because it has non-zero
         // messages or handles or both).
         bsls::Types::Int64 d_queueExpirationTimestampMs;
@@ -221,11 +221,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         // Number of in flight contexts, that is the number of contexts for
         // which `d_callback` has not yet been called. Note that this may be
-        // different than `d_pending.size` because the `d_pending` vector
+        // different than `d_pending.size()` because the `d_pending` vector
         // doesn't contain the requests which have been sent and are awaiting
         // an answer (those contexts are stored through binding in the response
         // callback).
-        int d_inFlight;
+        // Note that this value is modified from `OpenQueueContext` possibly
+        // from different threads.
+        bsls::AtomicInt d_inFlight;
 
       public:
         // TRAITS
@@ -235,12 +237,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // CREATORS
 
         /// Create a new object using the specified `allocator`.
-        QueueLiveState(bslma::Allocator* allocator);
+        explicit QueueLiveState(bslma::Allocator* allocator);
 
-        /// Copy constructor from the specified `other` using the optionally
-        /// specified `allocator`.
-        QueueLiveState(const QueueLiveState& other,
-                       bslma::Allocator*     allocator = 0);
+        // NOT IMPLEMENTED
+        /// QueueContext owns `bsls::AtomicInt` that cannot be
+        /// copy-constructed.
+        QueueLiveState(const QueueLiveState&) BSLS_KEYWORD_DELETED;
+        QueueLiveState& operator=(const QueueLiveState&) BSLS_KEYWORD_DELETED;
 
         // MANIPULATORS
 
@@ -375,12 +378,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         /// Create a new object representing the queue identified by the
         /// specified `uri` and using the specified `allocator`.
-        QueueContext(const bmqt::Uri& uri, bslma::Allocator* allocator);
+        explicit QueueContext(const bmqt::Uri&  uri,
+                              bslma::Allocator* allocator);
 
-        /// Copy constructor from the specified `other` using the optionally
-        /// specified `allocator`.
-        QueueContext(const QueueContext& other,
-                     bslma::Allocator*   allocator = 0);
+        // NOT IMPLEMENTED
+        /// QueueContext owns QueueLiveState that cannot be copy-constructed.
+        QueueContext(const QueueContext&) BSLS_KEYWORD_DELETED;
+        QueueContext& operator=(const QueueContext&) BSLS_KEYWORD_DELETED;
 
         // ACCESSORS
 
@@ -1159,16 +1163,6 @@ inline ClusterQueueHelper::QueueContext::QueueContext(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(uri.asString() == uri.canonical() &&
                      "'uri' must be the canonical URI");
-}
-
-inline ClusterQueueHelper::QueueContext::QueueContext(
-    const ClusterQueueHelper::QueueContext& other,
-    bslma::Allocator*                       allocator)
-: d_liveQInfo(other.d_liveQInfo, allocator)
-, d_stateQInfo_sp(other.d_stateQInfo_sp)
-, d_uri(other.d_uri, allocator)
-{
-    // NOTHING
 }
 
 // ACCESSORS

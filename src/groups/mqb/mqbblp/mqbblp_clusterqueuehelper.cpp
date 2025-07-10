@@ -185,7 +185,7 @@ ClusterQueueHelper::OpenQueueContext::~OpenQueueContext()
 {
     BSLS_ASSERT_SAFE(d_queueContext_p);
 
-    --d_queueContext_p->d_liveQInfo.d_inFlight;
+    d_queueContext_p->d_liveQInfo.d_inFlight.subtractRelaxed(1);
 }
 
 void ClusterQueueHelper::OpenQueueContext::setQueueContext(
@@ -196,7 +196,7 @@ void ClusterQueueHelper::OpenQueueContext::setQueueContext(
 
     d_queueContext_p = queueContext;
     // Bump 'd_inFlight' counter
-    ++(d_queueContext_p->d_liveQInfo.d_inFlight);
+    d_queueContext_p->d_liveQInfo.d_inFlight.addRelaxed(1);
 }
 
 ClusterQueueHelper::QueueContext*
@@ -223,23 +223,6 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(bslma::Allocator* allocator)
 , d_pending(allocator)
 , d_pendingUpdates(allocator)
 , d_inFlight(0)
-{
-    // NOTHING
-}
-
-ClusterQueueHelper::QueueLiveState::QueueLiveState(
-    const ClusterQueueHelper::QueueLiveState& other,
-    bslma::Allocator*                         allocator)
-: d_id(other.d_id)
-, d_subQueueIds(allocator)
-, d_nextSubQueueId(other.d_nextSubQueueId)
-, d_queue_sp(other.d_queue_sp)
-, d_numQueueHandles(other.d_numQueueHandles)
-, d_numHandleCreationsInProgress(other.d_numHandleCreationsInProgress)
-, d_queueExpirationTimestampMs(other.d_queueExpirationTimestampMs)
-, d_pending(other.d_pending)
-, d_pendingUpdates(other.d_pendingUpdates, allocator)
-, d_inFlight(other.d_inFlight)
 {
     // NOTHING
 }
