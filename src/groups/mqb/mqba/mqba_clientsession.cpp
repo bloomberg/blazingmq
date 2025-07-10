@@ -2492,8 +2492,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
     // executed by the *IO* thread
 
     if (!event.isAuthenticationEvent() && !d_authenticationContext) {
-        BALL_LOG_ERROR << "The authentication lifetime has expired.  Need to "
-                          "reauthenticate.";
+        BALL_LOG_ERROR << "The session is not authenticated, but received "
+                          "event: "
+                       << event;
         return;  // RETURN
     }
 

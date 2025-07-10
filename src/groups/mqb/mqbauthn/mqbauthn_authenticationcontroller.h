@@ -18,7 +18,7 @@
 #define INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 
 // MQB
-#include "mqbcfg_messages.h"
+#include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 #include <mqbplug_pluginmanager.h>
 

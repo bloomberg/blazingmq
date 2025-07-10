@@ -191,7 +191,7 @@ def test_default_anony_credential_multi(multi_node: Cluster) -> None:
 
     # Start the raw client
     client = RawClient()
-    client.open_channel(*single_node.admin_endpoint)
+    client.open_channel(*multi_node.admin_endpoint)
 
     # Pass: Sending negotiation request without prior authentication
     nego_resp = client.send_negotiation_request()
