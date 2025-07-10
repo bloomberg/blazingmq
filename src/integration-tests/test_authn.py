@@ -181,6 +181,25 @@ def test_default_anony_credential(single_node: Cluster) -> None:
     client.stop()
 
 
+def test_default_anony_credential_multi(multi_node: Cluster) -> None:
+    """
+    This test sends a negotiation request without prior authentication
+    for a multi-node cluster.
+    It succees without enabling any authentication plugin since we use
+    didn't provide an anonymous credential so the default is used.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Pass: Sending negotiation request without prior authentication
+    nego_resp = client.send_negotiation_request()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    client.stop()
+
+
 @tweak.broker.app_config.authentication({"anonymousCredential": {"disallow": {}}})
 def test_anony_disallow_without_authentication(single_node: Cluster) -> None:
     """
