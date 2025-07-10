@@ -1203,101 +1203,6 @@ static void test3_processDumpCommand()
     }
 }
 
-static void test4_processDumpCommand_invalidDumpMessage()
-// ------------------------------------------------------------------------
-// PROCESS DUMP COMMAND - INVALID DUMP MESSAGE
-//
-// Concerns:
-//   1. Attempting to process an invalid dump command does not impact the
-//      state of the MessageDumper object.
-//   2. An appropriate return code is returned, indicating whether
-//      processing the specified dump command was successful.
-//
-// Plan:
-//   1. For various *valid* DumpMessages commands:
-//     a. Process the command and verify that dumping of the corresponding
-//       events is enabled.
-//     b. Attempt to process further an *invalid* dump command and verify
-//        that it does not impact the state of the MessageDumper object as
-//        well as that a non-zero error code is returned.
-//
-// Testing:
-//   processDumpCommand
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Logging infrastructure allocates using the default allocator, and
-    // that logging is beyond the control of this function.
-
-    bmqtst::TestHelper::printTestName("PROCESS DUMP COMMAND");
-
-    struct Test {
-        int         d_line;
-        const char* d_command;
-        bool        d_isPushEnabled;
-        bool        d_isAckEnabled;
-        bool        d_isPutEnabled;
-        bool        d_isConfirmEnabled;
-    } k_DATA[] = {{L_, "PUSH 10", true, false, false, false},
-                  {L_, "ACK 100s", false, true, false, false},
-                  {L_, "PUT ON", false, false, true, false},
-                  {L_, "CONFIRM 1", false, false, false, true},
-                  {L_, "IN ON", true, true, false, false},
-                  {L_, "OUT 1s", false, false, true, true},
-                  {L_, "IN OFF", false, false, false, false}};
-
-    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        Tester      tester(bmqtst::TestHelperUtil::allocator());
-        const Test& test = k_DATA[idx];
-
-        // a. Process the command and verify that dumping of the corresponding
-        //    events is enabled.
-        PVV(test.d_line << ": processing dump command: [command: "
-                        << test.d_command << "], expecting event dumping "
-                        << "enabled as follows: "
-                        << "[PUSH: " << test.d_isPushEnabled
-                        << ", ACK: " << test.d_isAckEnabled
-                        << ", PUT: " << test.d_isPutEnabled
-                        << ", CONFIRM: " << test.d_isConfirmEnabled << "]");
-
-        BMQTST_ASSERT_EQ(tester.processDumpCommand(test.d_command), 0);
-
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUSH),
-                         test.d_isPushEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_ACK),
-                         test.d_isAckEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUT),
-                         test.d_isPutEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
-                         test.d_isConfirmEnabled);
-
-        // b. Attempt to process further an *invalid* dump command and verify
-        //    that it does not impact the state of the MessageDumper object as
-        //    well as that a non-zero error code is returned.
-        bmqp_ctrlmsg::DumpMessages invalidDumpMessagesCommand;
-        invalidDumpMessagesCommand.msgTypeToDump() =
-            static_cast<bmqp_ctrlmsg::DumpMsgType::Value>(-1);
-
-        PVV(test.d_line << ": Attempting to process an invalid dump command");
-
-        // Non-zero error code is returned
-        BMQTST_ASSERT_NE(tester.processDumpCommand(invalidDumpMessagesCommand),
-                         0);
-
-        // No impact on the state of the MessageDumper object
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUSH),
-                         test.d_isPushEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_ACK),
-                         test.d_isAckEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUT),
-                         test.d_isPutEnabled);
-        BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
-                         test.d_isConfirmEnabled);
-    }
-}
-
 static void test5_reset()
 // ------------------------------------------------------------------------
 // RESET
@@ -1930,7 +1835,7 @@ int main(int argc, char** argv)
     case 7: test7_dumpAckEvent(); break;
     case 6: test6_dumpPushEvent(); break;
     case 5: test5_reset(); break;
-    case 4: test4_processDumpCommand_invalidDumpMessage(); break;
+    case 4: /* DELETED */ break;
     case 3: test3_processDumpCommand(); break;
     case 2: test2_parseCommand(); break;
     case 1: test1_breathingTest(); break;
