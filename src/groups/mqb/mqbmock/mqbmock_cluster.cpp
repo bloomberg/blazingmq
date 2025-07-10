@@ -230,7 +230,7 @@ Cluster::Cluster(bslma::Allocator*        allocator,
 , d_authenticator_mp()
 , d_initialConnectionHandler_mp()
 , d_transportManager(&d_scheduler,
-                     bufferFactory,
+                     &d_bufferFactory,
                      d_authenticator_mp,
                      d_initialConnectionHandler_mp,
                      0,  // mqbstat::StatController*
