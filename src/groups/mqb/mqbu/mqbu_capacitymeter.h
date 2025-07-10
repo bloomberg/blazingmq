@@ -253,21 +253,19 @@ class CapacityMeter {
     // CREATORS
 
     /// Create a new un-configured object having the specified `name`,
-    /// using the specified `allocator` and optionally specified
+    /// using the specified `allocator` and the specified
     /// `logEnhancedStorageInfoCb`.
-    explicit CapacityMeter(
-        const bsl::string&       name,
-        LogEnhancedStorageInfoCb logEnhancedStorageInfoCb = 0,
-        bslma::Allocator*        allocator                = 0);
+    explicit CapacityMeter(const bsl::string&       name,
+                           LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
+                           bslma::Allocator*        allocator);
 
     /// Create a new un-configured object having the specified `name`, being
     /// a child of the specified `parent` meter and using the specified
-    /// `allocator` and optionally specified `logEnhancedStorageInfoCb`.
-    explicit CapacityMeter(
-        const bsl::string&       name,
-        CapacityMeter*           parent,
-        LogEnhancedStorageInfoCb logEnhancedStorageInfoCb = 0,
-        bslma::Allocator*        allocator                = 0);
+    /// `allocator` and the specified `logEnhancedStorageInfoCb`.
+    explicit CapacityMeter(const bsl::string&       name,
+                           CapacityMeter*           parent,
+                           LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
+                           bslma::Allocator*        allocator);
 
     // MANIPULATORS
 
