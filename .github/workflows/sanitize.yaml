@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - ubsan
-  pull_request_review:
-    types: [submitted]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -24,7 +22,7 @@ jobs:
         #     fuzz: "on"
       fail-fast: false
     runs-on: ubuntu-24.04
-    if: github.event.review.state == 'APPROVED'
+    # if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
       - name: Purge runner
