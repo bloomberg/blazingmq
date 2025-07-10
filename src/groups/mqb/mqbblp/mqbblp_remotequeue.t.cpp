@@ -106,7 +106,7 @@ class TestBench {
 
   public:
     struct PutEvent {
-        const bmqp::PutHeader        d_header;
+        bmqp::PutHeader              d_header;
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
@@ -262,7 +262,7 @@ void TestBench::ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status)
 
 void TestBench::dropPuts()
 {
-    bsl::queue<PutEvent>().swap(d_puts);
+    d_puts = bsl::queue<PutEvent>(d_allocator_p);
 }
 
 void TestBench::advanceTime(const bsls::TimeInterval& step)

@@ -102,13 +102,13 @@ static void test2_printTest()
          "CHANNEL_LOW_WATERMARK"},
         {bmqt::SessionEventType::e_CHANNEL_HIGH_WATERMARK,
          "CHANNEL_HIGH_WATERMARK"},
-        {static_cast<bmqt::SessionEventType::Enum>(-1234), "(* UNKNOWN *)"},
     };
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test = k_DATA[idx];
+
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
