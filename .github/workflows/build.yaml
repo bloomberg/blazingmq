@@ -379,8 +379,26 @@ jobs:
       - name: Build Doxygen API documentation
         run: cmake --build --preset gh-doxygen-apidocs
 
+      - name: Generate Doxygen API Documentation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}_apidocs
+          path: ${{ github.workspace }}/build/blazingmq/apidocs
+          compression-level: 9
+          overwrite: true
+          if-no-files-found: error
+
       - name: Build Doxygen Internal documentation
         run: cmake --build --preset gh-doxygen-internaldocs
+
+      - name: Generate Doxygen Internal Documentation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}_internaldocs
+          path: ${{ github.workspace }}/build/blazingmq/internaldocs
+          compression-level: 9
+          overwrite: true
+          if-no-files-found: error
 
   shellcheck:
     name: Shellcheck
