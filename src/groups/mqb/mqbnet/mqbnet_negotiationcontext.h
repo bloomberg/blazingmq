@@ -44,6 +44,7 @@ class NegotiationContext {
     InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
+    /// Set to empty if we haven't received one yet.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
 
     /// The cluster involved in the session being negotiated, or empty if
