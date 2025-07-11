@@ -448,6 +448,10 @@ Queue::Queue(const bmqt::Uri&                          uri,
         .setMiscWorkThreadPool(threadPool)
         .setRoutingConfig(routingCfg)
         .setMessageThrottleConfig(messageThrottleConfig);
+
+    // Have to set up dispatcher in constructor so we can check if we are
+    // in the correct thread in `mqbblp::Queue::configure()`.
+    dispatcherClientData().setDispatcher(domain->cluster()->dispatcher());
 }
 
 Queue::~Queue()
@@ -606,7 +610,7 @@ int Queue::configure(bsl::ostream& errorDescription,
     dispatcher()->execute(
         bdlf::BindUtil::bind(&Queue::configureDispatched,
                              this,
-                             &result,
+                             (wait ? &result : NULL),
                              (wait ? &errorDescription : NULL),
                              isReconfigure),
         this);
