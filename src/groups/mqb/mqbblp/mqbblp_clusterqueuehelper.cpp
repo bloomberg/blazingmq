@@ -2039,19 +2039,12 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                                    d_allocator_p),
         d_allocator_p);
 
+    // Create Local/Remote queue flavor
     if (!isPrimary) {
         queueSp->createRemote(
             openQueueResponse.deduplicationTimeMs(),
             d_clusterData_p->clusterConfig().queueOperations().ackWindowSize(),
             &d_clusterData_p->stateSpPool());
-
-        if (context.d_domain_p->registerQueue(errorDescription, queueSp) !=
-            0) {
-            return 0;  // RETURN
-        }
-
-        queueContext->d_liveQInfo.d_queue_sp         = queueSp;
-        d_queuesById[queueContext->d_liveQInfo.d_id] = queueContext;
     }
     else {
         // This is the primary of the queue.
@@ -2084,16 +2077,54 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         // Queue must have been registered with storage manager before
         // registering it with the domain, otherwise Queue.configure() will
         // fail.
-
-        if (context.d_domain_p->registerQueue(errorDescription, queueSp) !=
-            0) {
-            return 0;  // RETURN
-        }
-
-        queueContext->d_liveQInfo.d_queue_sp = queueSp;
-        // No need to insert in d_queuesById since those queues will never
-        // be looked up by id (and all have k_PRIMARY_QUEUE_ID id).
     }
+
+    // Register this queue to the dispatcher.
+    if (d_cluster_p->isRemote()) {
+        d_cluster_p->dispatcher()->registerClient(
+            queueSp.get(),
+            mqbi::DispatcherClientType::e_QUEUE);
+    }
+    else {
+        d_cluster_p->dispatcher()->registerClient(
+            queueSp.get(),
+            mqbi::DispatcherClientType::e_QUEUE,
+            d_storageManager_p->processorForPartition(
+                queueContext->partitionId()));
+    }
+
+    // Configure the queue
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    bmqu::MemOutStream                    error(&localAllocator);
+
+    int rc = queueSp->configure(error,
+                                false,  // isReconfigure
+                                true);  // wait
+
+    if (rc != 0) {
+        // Queue.configure() failed.
+
+        BALL_LOG_ERROR << "Failure configuring queue '" << queueContext->uri()
+                       << "': " << error.str() << ".";
+
+        errorDescription << error.str();
+
+        // Discard the queue.
+        return 0;  // RETURN
+    }
+
+    if (context.d_domain_p->registerQueue(queueSp) != 0) {
+        // Discard the queue.
+        return 0;  // RETURN
+    }
+
+    queueContext->d_liveQInfo.d_queue_sp = queueSp;
+
+    if (!isPrimary) {
+        d_queuesById[queueContext->d_liveQInfo.d_id] = queueContext;
+    }
+    // else, no need to insert in d_queuesById since those queues will never
+    // be looked up by id (and all have k_PRIMARY_QUEUE_ID id).
 
     if (!d_cluster_p->isRemote()) {
         d_clusterState_p->updatePartitionNumActiveQueues(
@@ -2101,7 +2132,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             1);
     }
 
-    return bsl::shared_ptr<mqbi::Queue>(queueSp);
+    return queueSp;
 }
 
 void ClusterQueueHelper::onHandleReleased(

@@ -268,10 +268,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
         BSLS_KEYWORD_OVERRIDE;
 
     /// Take ownership of and configure the specified `queue`.  Return 0 on
-    /// success, or a non-zero return code otherwise, populating the
-    /// specified `errorDescription` with a description of the failure.
-    int registerQueue(bsl::ostream&                       errorDescription,
-                      const bsl::shared_ptr<mqbi::Queue>& queueSp)
+    /// success, or a non-zero return code otherwise.
+    int registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Reverse method of `registerQueue`, invoked when the last

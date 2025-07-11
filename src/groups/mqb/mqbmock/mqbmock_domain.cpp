@@ -99,20 +99,12 @@ void Domain::openQueue(
     // NOTHING
 }
 
-int Domain::registerQueue(bsl::ostream&                       errorDescription,
-                          const bsl::shared_ptr<mqbi::Queue>& queueSp)
+int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueSp && "'queue' must not be null");
     BSLS_ASSERT_SAFE(lookupQueue(0, queueSp->uri()) != 0 &&
                      "'queue' already registered with the domain");
-
-    int rc = queueSp->configure(errorDescription,
-                                false,  // isReconfigure
-                                true);  // wait
-    if (rc != 0) {
-        return rc;  // RETURN
-    }
 
     d_queues[queueSp->uri().queue()] = queueSp;
 

@@ -475,8 +475,7 @@ void Domain::openQueue(
                              callback));
 }
 
-int Domain::registerQueue(bsl::ostream&                       errorDescription,
-                          const bsl::shared_ptr<mqbi::Queue>& queueSp)
+int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
 {
     // executed by the associated CLUSTER's DISPATCHER thread
 
@@ -486,9 +485,8 @@ int Domain::registerQueue(bsl::ostream&                       errorDescription,
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS              = 0,
-        rc_ALREADY_REGISTERED   = -1,
-        rc_CONFIGURATION_FAILED = -2
+        rc_SUCCESS            = 0,
+        rc_ALREADY_REGISTERED = -1
     };
 
     // As part of registering the 'queue' with the domain, 'queue' will also be
@@ -518,30 +516,6 @@ int Domain::registerQueue(bsl::ostream&                       errorDescription,
         // (assuming Queue.configure() will succeed).
 
         d_queues[queueSp->uri().queue()] = queueSp;
-    }
-    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    bmqu::MemOutStream                    error(&localAllocator);
-
-    int rc = queueSp->configure(error,
-                                false,  // isReconfigure
-                                true);  // wait
-    if (rc != 0) {
-        // Queue.configure() failed, need to rollback.
-
-        BALL_LOG_ERROR << "Failure configuring queue in the domain '" << d_name
-                       << "' "
-                       << "[canonicalURI: " << queueSp->uri().canonical()
-                       << ", qId: " << bmqp::QueueId::QueueIdInt(queueSp->id())
-                       << "]: " << error.str() << ".";
-
-        errorDescription << error.str();
-
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-        QueueMap::const_iterator it = d_queues.find(queueSp->uri().queue());
-        BSLS_ASSERT_SAFE(it != d_queues.end());
-        d_queues.erase(it);
-
-        return rc * 10 + rc_CONFIGURATION_FAILED;  // RETURN
     }
 
     BALL_LOG_INFO << "Registered queue to domain '" << d_name << "' "
