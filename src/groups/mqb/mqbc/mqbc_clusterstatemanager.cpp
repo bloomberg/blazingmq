@@ -1489,9 +1489,8 @@ void ClusterStateManager::assignPartitions(
                                   true);  // isCSLMode
 }
 
-ClusterStateManager::QueueAssignmentResult::Enum
-ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
-                                 bmqp_ctrlmsg::Status* status)
+bool ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
+                                      bmqp_ctrlmsg::Status* status)
 {
     // executed by the cluster *DISPATCHER* thread
     // PRECONDITIONS

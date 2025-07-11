@@ -435,15 +435,15 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// Perform the actual assignment of the queue represented by the
     /// specified `uri` for a cluster member queue, that is assign it a
     /// queue key, a partition id, and some appIds; and applying the
-    /// corresponding queue assignment advisory to CSL.  Return a value
-    /// indicating whether the assignment was successful or was definitively
-    /// rejected. This method is called only on the leader node.
+    /// corresponding queue assignment advisory to CSL.  Return `false` in the
+    /// case of permanent failure when need to reject the assignment.  Return
+    /// `true` if the assignment is successful or can be retried.
+    /// This method is called only on the leader node.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    QueueAssignmentResult::Enum
-    assignQueue(const bmqt::Uri&      uri,
-                bmqp_ctrlmsg::Status* status = 0) BSLS_KEYWORD_OVERRIDE;
+    bool assignQueue(const bmqt::Uri&      uri,
+                     bmqp_ctrlmsg::Status* status) BSLS_KEYWORD_OVERRIDE;
 
     /// Register a queue info for the queue with the specified `advisory`.
     /// If the specified `forceUpdate` flag is true, update queue info even if

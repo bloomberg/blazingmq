@@ -89,10 +89,8 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
-const char k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
-    "maximum number of queues reached";
+
 const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
-const char k_CSL_FAILURE[]           = "CSL failure";
 
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
@@ -410,20 +408,11 @@ void ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
     }
     else if (d_clusterData_p->electorInfo().hasActiveLeader()) {
         if (d_clusterData_p->electorInfo().isSelfLeader()) {
-            QueueAssignmentResult::Enum result =
-                d_clusterStateManager_p->assignQueue(queueContext->uri());
+            bmqp_ctrlmsg::Status status(d_allocator_p);
 
-            if (QueueAssignmentResult::k_LIMIT_EXCEEDED == result) {
-                processRejectedQueueAssignment(
-                    queueContext.get(),
-                    mqbi::ClusterErrorCode::e_LIMIT,
-                    k_MAXIMUM_NUMBER_OF_QUEUES_REACHED);
-            }
-            else if (QueueAssignmentResult::k_CSL_FAILURE == result) {
-                processRejectedQueueAssignment(
-                    queueContext.get(),
-                    mqbi::ClusterErrorCode::e_CSL_FAILURE,
-                    k_CSL_FAILURE);
+            if (!d_clusterStateManager_p->assignQueue(queueContext->uri(),
+                                                      &status)) {
+                processRejectedQueueAssignment(queueContext.get(), status);
             }
             // else, all other failure are transient. will retry.
         }
@@ -574,6 +563,7 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
         // exists and the queue is assigned, because the
         // 'queueAssignmentAdvisory' message may have been dropped due to
         // change of leader.
+
         BALL_LOG_INFO << d_cluster_p->description()
                       << " Received queueAssignment response from '"
                       << responder->nodeDescription()
@@ -599,8 +589,7 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
             // time.
         }
         else if (requestContext->result() == bmqt::GenericResult::e_REFUSED) {
-            if (requestContext->response().choice().status().code() ==
-                mqbi::ClusterErrorCode::e_NOT_LEADER) {
+            if (status.code() == mqbi::ClusterErrorCode::e_NOT_LEADER) {
                 // The leader changed by the time our request reached it; we
                 // don't have to do anything here: since the leader changed, we
                 // must have (or will shortly) received a notification about
@@ -608,27 +597,14 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
                 // is re-emit an assignmentRequest for any unassigned queue,
                 // this current one being part of them.
             }
-            else if (requestContext->response().choice().status().code() ==
-                     mqbi::ClusterErrorCode::e_LIMIT) {
+            else if (status.code() == mqbi::ClusterErrorCode::e_LIMIT ||
+                     status.code() == mqbi::ClusterErrorCode::e_CSL_FAILURE ||
+                     status.code() == mqbi::ClusterErrorCode::e_UNKNOWN) {
                 QueueContextMapIter qit = d_queues.find(uri);
                 BSLS_ASSERT_SAFE(qit != d_queues.end());
                 const QueueContext* rejected = qit->second.get();
 
-                processRejectedQueueAssignment(
-                    rejected,
-                    mqbi::ClusterErrorCode::e_LIMIT,
-                    k_MAXIMUM_NUMBER_OF_QUEUES_REACHED);
-            }
-            else if (requestContext->response().choice().status().code() ==
-                     mqbi::ClusterErrorCode::e_CSL_FAILURE) {
-                QueueContextMapIter qit = d_queues.find(uri);
-                BSLS_ASSERT_SAFE(qit != d_queues.end());
-                const QueueContext* rejected = qit->second.get();
-
-                processRejectedQueueAssignment(
-                    rejected,
-                    mqbi::ClusterErrorCode::e_CSL_FAILURE,
-                    k_CSL_FAILURE);
+                processRejectedQueueAssignment(rejected, status);
             }
         }
         else {
@@ -3422,9 +3398,8 @@ void ClusterQueueHelper::restoreState(int partitionId)
 }
 
 void ClusterQueueHelper::processRejectedQueueAssignment(
-    const QueueContext* rejected,
-    int                 code,
-    const char*         reason)
+    const QueueContext*         rejected,
+    const bmqp_ctrlmsg::Status& status)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -3432,17 +3407,12 @@ void ClusterQueueHelper::processRejectedQueueAssignment(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    bmqp_ctrlmsg::Status failure;
-    failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-    failure.code()     = code;
-    failure.message()  = reason;
-
     for (bsl::vector<OpenQueueContextSp>::const_iterator
              cIt   = rejected->d_liveQInfo.d_pending.begin(),
              cLast = rejected->d_liveQInfo.d_pending.end();
          cIt != cLast;
          ++cIt) {
-        (*cIt)->d_callback(failure,
+        (*cIt)->d_callback(status,
                            0,
                            bmqp_ctrlmsg::OpenQueueResponse(),
                            mqbi::Cluster::OpenQueueConfirmationCookie());

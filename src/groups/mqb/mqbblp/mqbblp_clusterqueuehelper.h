@@ -292,9 +292,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     typedef mqbc::ClusterState::DomainStates           DomainStates;
     typedef mqbc::ClusterState::DomainStatesCIter      DomainStatesCIter;
 
-    typedef mqbi::ClusterStateManager::QueueAssignmentResult
-        QueueAssignmentResult;
-
     typedef mqbc::ClusterNodeSession::SubQueueInfo CNSSubQueueInfo;
     typedef mqbc::ClusterNodeSession::QueueState   CNSQueueState;
     typedef mqbc::ClusterNodeSession::StreamsMap   CNSStreamsMap;
@@ -483,7 +480,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                     mqbnet::ClusterNode* primary,
                                     bmqp_ctrlmsg::PrimaryStatus::Value status);
 
-    /// Try to Assign the queue represented by the specified `queueContext`,
+    /// Try to assign the queue represented by the specified `queueContext`,
     /// that is give it an id and eventually a partition id, by initiating
     /// assignment request communication with the leader.   This method is
     /// called regardless of proxy or member, and leader or replica and will
@@ -505,12 +502,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const bmqt::Uri&                     uri,
         mqbnet::ClusterNode*                 responder);
 
-    /// Send a failure response for the pending context associated to the
-    /// states in the specified `rejected`.  Also remove the associated queues
-    /// from `d_queues`.
-    void processRejectedQueueAssignment(const QueueContext* rejected,
-                                        int                 code,
-                                        const char*         reason);
+    /// Send a failure response with the specified `status` for the pending
+    /// context associated to the states in the specified `rejected`.  Also
+    /// remove the associated queue from `d_queues`.
+    void processRejectedQueueAssignment(const QueueContext*         rejected,
+                                        const bmqp_ctrlmsg::Status& status);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.
