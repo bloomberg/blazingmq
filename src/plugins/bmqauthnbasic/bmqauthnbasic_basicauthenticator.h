@@ -13,20 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqauthnpass_passauthenticator.h                             -*-C++-*-
-#ifndef INCLUDED_AUTHNPASS_PASSAUTHENTICATOR
-#define INCLUDED_AUTHNPASS_PASSAUTHENTICATOR
+// bmqauthnbasic_basicauthenticator.h                             -*-C++-*-
+#ifndef INCLUDED_AUTHNBASIC_BASICAUTHENTICATOR
+#define INCLUDED_AUTHNBASIC_BASICAUTHENTICATOR
 
-//@PURPOSE: Provide a plugin that always authenticates successfully.
+//@PURPOSE: Provide a plugin that authenticates using username and password.
 //
 //@CLASSES:
-//  bmqauthnpass::PassAuthenticator: Authenticator plugin that unconditionally
-//  accepts any authentication request.
+//  bmqauthnbasic::BasicAuthenticator: Authenticator plugin that
+//  authenticates using username and password.
 //
 //@DESCRIPTION:
-//  'bmqauthnpass::PassAuthenticator' implements a dummy authenticator for
-//  testing or development purposes. It always returns success, regardless of
-//  the input provided.
+//  'bmqauthnbasic::BasicAuthenticator' implements an authenticator for
+//  testing or development purposes. It uses basic mechanism and authenticate
+//  based on username and password.
+//  The credential that's passed in as AuthenticationData is expected to be
+//  a string of the form "username:password".
 
 // MQB
 #include <mqbcfg_messages.h>
@@ -36,6 +38,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
@@ -45,13 +48,13 @@
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
-namespace bmqauthnpass {
+namespace bmqauthnbasic {
 
-// ==========================
-// class AuthenticationResult
-// ==========================
+// ===============================
+// class BasicAuthenticationResult
+// ===============================
 
-class PassAuthenticationResult : public mqbplug::AuthenticationResult {
+class BasicAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
     bsl::string                       d_principal;
@@ -60,17 +63,17 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(PassAuthenticationResult,
+    BSLMF_NESTED_TRAIT_DECLARATION(BasicAuthenticationResult,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Construct this object using the optionally specified `allocator`.
-    PassAuthenticationResult(bsl::string_view   principal,
-                             bsls::Types::Int64 lifetimeMs,
-                             bslma::Allocator*  allocator);
+    BasicAuthenticationResult(bsl::string_view   principal,
+                              bsls::Types::Int64 lifetimeMs,
+                              bslma::Allocator*  allocator);
 
-    ~PassAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
+    ~BasicAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -79,38 +82,40 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
 
-// =======================
-// class PassAuthenticator
-// =======================
+// ========================
+// class BasicAuthenticator
+// ========================
 
-class PassAuthenticator : public mqbplug::Authenticator {
+class BasicAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static constexpr const char* k_NAME = "PassAuthenticator";
+    static constexpr const char* k_NAME = "BasicAuthenticator";
 
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("BMQAUTHNPASS.PASSAUTHENTICATOR");
+    BALL_LOG_SET_CLASS_CATEGORY("BMQAUTHNBASIC.BASICAUTHENTICATOR");
 
     // DATA
     const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
 
     bool d_isStarted;
 
+    bsl::map<bsl::string, bsl::string> d_credentials;
+
     bslma::Allocator* d_allocator_p;
 
   public:
     // NOT IMPLEMENTED
-    PassAuthenticator(const PassAuthenticator& other)            = delete;
-    PassAuthenticator& operator=(const PassAuthenticator& other) = delete;
+    BasicAuthenticator(const BasicAuthenticator& other)            = delete;
+    BasicAuthenticator& operator=(const BasicAuthenticator& other) = delete;
 
     // CREATORS
 
-    PassAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
-                      bslma::Allocator*                        allocator);
+    BasicAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
+                       bslma::Allocator*                        allocator);
 
     /// Destructor.
-    ~PassAuthenticator() BSLS_KEYWORD_OVERRIDE;
+    ~BasicAuthenticator() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -143,16 +148,16 @@ class PassAuthenticator : public mqbplug::Authenticator {
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
-// ====================================
-// class PassAuthenticatorPluginFactory
-// ====================================
+// =====================================
+// class BasicAuthenticatorPluginFactory
+// =====================================
 
-class PassAuthenticatorPluginFactory
+class BasicAuthenticatorPluginFactory
 : public mqbplug::AuthenticatorPluginFactory {
   public:
     // CREATORS
-    PassAuthenticatorPluginFactory();
-    ~PassAuthenticatorPluginFactory() BSLS_KEYWORD_OVERRIDE;
+    BasicAuthenticatorPluginFactory();
+    ~BasicAuthenticatorPluginFactory() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     bslma::ManagedPtr<mqbplug::Authenticator>

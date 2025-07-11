@@ -36,6 +36,7 @@ class EventType(IntEnum):
     CONTROL = 0x01
     PUT = 0x02
     CONFIRM = 0x03
+    AUTHENTICATION = 0x0F
 
 
 class TypeSpecific(IntEnum):
@@ -140,4 +141,8 @@ DISCONNECT_SCHEMA: SchemaDescription = {"rId": 0, "disconnect": {}}
 ADMIN_COMMAND_SCHEMA: SchemaDescription = {
     "rId": 0,
     "adminCommand": {"command": "help"},
+}
+
+AUTHENTICATE_REQUEST_SCHEMA: SchemaDescription = {
+    "authenticateRequest": {"mechanism": "", "data": ""}
 }

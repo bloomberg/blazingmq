@@ -21,6 +21,7 @@
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbnet_authenticationcontext.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 
 // BMQ
@@ -39,7 +40,10 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_string.h>
+#include <bsls_nullptr.h>
 #include <bsls_timeinterval.h>
+#include <bslstl_variant.h>
 
 namespace BloombergLP {
 namespace mqba {
@@ -175,58 +179,131 @@ int InitialConnectionHandler::processBlob(
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                     = 0,
-        rc_INVALID_NEGOTIATION_MESSAGE = -1,
+        rc_SUCCESS                           = 0,
+        rc_INVALID_INITIALCONNECTION_MESSAGE = -1,
+        rc_DEFAULT_CREDENTIAL_DISALLOWED     = -2,
     };
 
-    bsl::optional<bmqp_ctrlmsg::AuthenticationMessage> authenticationMsg;
-    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>    negotiationMsg;
+    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                               bmqp_ctrlmsg::NegotiationMessage> >
+        message;
 
     int rc = decodeInitialConnectionMessage(errorDescription,
+                                            &message,
                                             blob,
-                                            &authenticationMsg,
-                                            &negotiationMsg);
+                                            context);
 
     if (rc != rc_SUCCESS) {
-        return (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;  // RETURN
+        return (rc * 10) + rc_INVALID_INITIALCONNECTION_MESSAGE;  // RETURN
     }
 
-    // Authentication or Negotiation based on the type of message received.
-    if (authenticationMsg.has_value()) {
-        rc = d_authenticator_mp->handleAuthentication(
-            errorDescription,
-            isContinueRead,
-            context,
-            authenticationMsg.value());
-    }
-    else if (negotiationMsg.has_value()) {
-        context->negotiationContext()->d_negotiationMessage =
-            negotiationMsg.value();
-
-        rc = d_negotiator_mp->createSessionOnMsgType(
-            errorDescription,
-            session,
-            isContinueRead,
-            context->negotiationContext());
-    }
-    else {
+    if (!message.has_value()) {
         errorDescription << "Decode AuthenticationMessage or "
                             "NegotiationMessage succeeds but nothing gets "
                             "loaded in.";
-        rc = (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
+        return (rc * 10) + rc_INVALID_INITIALCONNECTION_MESSAGE;
+    }
+
+    if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+            message.value())) {
+        rc = d_authenticator_p->handleAuthentication(
+            errorDescription,
+            isContinueRead,
+            context,
+            bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message.value()));
+    }
+    else if (bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
+                 message.value())) {
+        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage =
+            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
+
+        bool isClientyIdentity = negotiationMessage.isClientIdentityValue();
+
+        if (isClientyIdentity) {
+            // Create NegotiationContext only when we receive a ClientIdentity.
+            // This is been created already if we sent the ClientIdentity and
+            // are expecting a BrokerResponse.
+            bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
+                bsl::allocate_shared<mqbnet::NegotiationContext>(
+                    d_allocator_p,
+                    context.get(),       // initialConnectionContext
+                    negotiationMessage,  // negotiationMessage
+                    bsl::string(),       // clusterName
+                    mqbnet::ConnectionType::e_UNKNOWN,  // connectionType
+                    0,                                  // maxMissedHeartbeat
+                    bsl::nullptr_t(),                   // eventProcessor
+                    bsl::nullptr_t()                    // cluster
+                );
+
+            context->setNegotiationContext(negotiationContext);
+
+            // Received a ClientIdentity before an AuthenticationRequest,
+            // use the default authentication credential to authenticate.
+            // In order not to block the IO thread, for default credential, we
+            // do negotiation in authentication threads
+            if (!context->authenticationContext()) {
+                if (!d_authenticator_p->anonymousCredential()) {
+                    errorDescription
+                        << "Anonymous credential is disallowed, "
+                        << "cannot negotiate without authentication.";
+                    return (rc * 10) +
+                           rc_DEFAULT_CREDENTIAL_DISALLOWED;  // RETURN
+                }
+
+                context->setNegotiationCb(bdlf::BindUtil::bind(
+                    &mqbnet::Negotiator::createSessionOnMsgType,
+                    d_negotiator_p,
+                    bdlf::PlaceHolders::_1,  // errorDescription
+                    bdlf::PlaceHolders::_2,  // session
+                    bdlf::PlaceHolders::_3   // context
+                    ));
+
+                bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
+                bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
+                    authenticationMessage.makeAuthenticateRequest();
+
+                const mqbcfg::Credential& anonymousCredential =
+                    d_authenticator_p->anonymousCredential().value();
+                authenticateRequest.mechanism() =
+                    anonymousCredential.mechanism();
+                authenticateRequest.data() = bsl::vector<char>(
+                    anonymousCredential.identity().begin(),
+                    anonymousCredential.identity().end());
+
+                rc = d_authenticator_p->handleAuthentication(
+                    errorDescription,
+                    isContinueRead,
+                    context,
+                    authenticationMessage);
+
+                *isContinueRead = false;
+
+                return rc;  // RETURN
+            }
+        }
+        else {
+            // Received a BrokerResponse, which is the last message of the
+            // negotiation protocol.
+            context->negotiationContext()->setNegotiationMessage(
+                bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value()));
+        }
+
+        rc = d_negotiator_p->createSessionOnMsgType(errorDescription,
+                                                    session,
+                                                    context.get());
     }
 
     return rc;
 }
 
 int InitialConnectionHandler::decodeInitialConnectionMessage(
-    bsl::ostream&                                       errorDescription,
-    const bdlbb::Blob&                                  blob,
-    bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
-    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg)
+    bsl::ostream& errorDescription,
+    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                               bmqp_ctrlmsg::NegotiationMessage> >* message,
+    const bdlbb::Blob&                                              blob,
+    const InitialConnectionContextSp&                               context)
 {
-    BSLS_ASSERT(authenticationMsg);
-    BSLS_ASSERT(negotiationMsg);
+    BSLS_ASSERT(message);
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -251,6 +328,8 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
+    BALL_LOG_INFO << "Received blob: " << bmqu::BlobStartHexDumper(&blob);
+
     if (event.isAuthenticationEvent()) {
         const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
@@ -261,7 +340,9 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
             return rc_INVALID_AUTHENTICATION_EVENT;  // RETURN
         }
 
-        *authenticationMsg = authenticationMessage;
+        context->setAuthenticationEncodingType(
+            event.authenticationEventEncodingType());
+        *message = authenticationMessage;
     }
     else if (event.isControlEvent()) {
         const int rc = event.loadControlEvent(&negotiationMessage);
@@ -272,7 +353,7 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
             return rc_INVALID_CONTROL_EVENT;  // RETURN
         }
 
-        *negotiationMsg = negotiationMessage;
+        *message = negotiationMessage;
     }
     else {
         errorDescription
@@ -328,11 +409,11 @@ void InitialConnectionHandler::complete(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    bslma::ManagedPtr<mqbnet::Authenticator>& authenticator,
-    bslma::ManagedPtr<mqbnet::Negotiator>&    negotiator,
-    bslma::Allocator*                         allocator)
-: d_authenticator_mp(authenticator)
-, d_negotiator_mp(negotiator)
+    mqbnet::Negotiator*    negotiator,
+    mqbnet::Authenticator* authenticator,
+    bslma::Allocator*      allocator)
+: d_authenticator_p(authenticator)
+, d_negotiator_p(negotiator)
 , d_allocator_p(allocator)
 {
 }
@@ -341,7 +422,7 @@ InitialConnectionHandler::~InitialConnectionHandler()
 {
 }
 
-void InitialConnectionHandler::setupContext(
+void InitialConnectionHandler::handleInitialConnection(
     const InitialConnectionContextSp& context)
 {
     // The only counted references to 'InitialConnectionContextSp' are two
@@ -355,21 +436,6 @@ void InitialConnectionHandler::setupContext(
     // destructed after 'InitialConnectionHandler::readCallback' returns.
     // If there is a need to keep 'InitialConnectionContext' longer, there
     // should be explicit 'bsl::shared_ptr<mqbnet::InitialConnectionContext>'.
-
-    // Create an NegotiationContext for that connection
-    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext;
-    negotiationContext.createInplace(d_allocator_p);
-
-    negotiationContext->d_initialConnectionContext_p = context.get();
-    negotiationContext->d_clusterName                = "";
-    negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
-
-    context->setNegotiationContext(negotiationContext);
-}
-
-void InitialConnectionHandler::handleConnectionFlow(
-    const InitialConnectionContextSp& context)
-{
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
@@ -391,8 +457,10 @@ void InitialConnectionHandler::handleConnectionFlow(
         rc = scheduleRead(errStream, context);
     }
     else {
-        rc = d_negotiator_mp->negotiateOutbound(errStream,
-                                                context->negotiationContext());
+        // TODO: When we are ready to move on to the next step, we should
+        // call `authenticationOutbound` here instead before calling
+        // `negotiateOutbound`.
+        rc = d_negotiator_p->negotiateOutbound(errStream, context);
 
         // Send outbound request success, continue to read
         if (rc == 0) {
@@ -406,13 +474,6 @@ void InitialConnectionHandler::handleConnectionFlow(
     }
 
     guard.release();
-}
-
-void InitialConnectionHandler::handleInitialConnection(
-    const InitialConnectionContextSp& context)
-{
-    setupContext(context);
-    handleConnectionFlow(context);
 }
 
 }  // close package namespace

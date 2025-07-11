@@ -29,7 +29,6 @@
 //  the input provided.
 
 // MQB
-#include <bslstl_stringview.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 
@@ -39,6 +38,8 @@
 #include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
+#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bsls_keyword.h>
@@ -55,7 +56,7 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    bslma::Allocator*                 d_allocator_p;
+    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
@@ -133,9 +134,9 @@ class FailAuthenticator : public mqbplug::Authenticator {
 
     // MANIPULATORS
 
-    /// Start the Authenticator and return 0 on success, or return a non-zero
-    /// value and populate the specified `errorDescription` with the
-    /// description of any failure encountered.
+    /// Start the Authenticator and return 0 on success, or return a
+    /// non-zero value and populate the specified `errorDescription` with
+    /// the description of any failure encountered.
     int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the Authenticator.

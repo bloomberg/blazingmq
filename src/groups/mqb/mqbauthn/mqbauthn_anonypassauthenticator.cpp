@@ -13,10 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqauthnfail_failauthenticator.h>
-
-// BMQAUTHNFAIL
-#include <bmqauthnfail_version.h>
+#include <mqbauthn_anonypassauthenticator.h>
 
 // MQB
 #include <mqbplug_authenticator.h>
@@ -35,13 +32,13 @@
 #include <bsls_assert.h>
 
 namespace BloombergLP {
-namespace bmqauthnfail {
+namespace mqbauthn {
 
-// ------------------------------
-// class FailAuthenticationResult
-// ------------------------------
+// -----------------------------------
+// class AnonyPassAuthenticationResult
+// -----------------------------------
 
-FailAuthenticationResult::FailAuthenticationResult(
+AnonyPassAuthenticationResult::AnonyPassAuthenticationResult(
     bsl::string_view   principal,
     bsls::Types::Int64 lifetimeMs,
     bslma::Allocator*  allocator)
@@ -51,76 +48,73 @@ FailAuthenticationResult::FailAuthenticationResult(
 {
 }
 
-FailAuthenticationResult::~FailAuthenticationResult()
+AnonyPassAuthenticationResult::~AnonyPassAuthenticationResult()
 {
 }
 
-bsl::string_view FailAuthenticationResult::principal() const
+bsl::string_view AnonyPassAuthenticationResult::principal() const
 {
     return d_principal;
 }
 
 const bsl::optional<bsls::Types::Int64>&
-FailAuthenticationResult::lifetimeMs() const
+AnonyPassAuthenticationResult::lifetimeMs() const
 {
     return d_lifetimeMs;
 }
 
-// -----------------------
-// class FailAuthenticator
-// -----------------------
+// ----------------------------
+// class AnonyPassAuthenticator
+// ----------------------------
 
-FailAuthenticator::FailAuthenticator(
+AnonyPassAuthenticator::AnonyPassAuthenticator(
     const mqbcfg::AuthenticatorPluginConfig* config,
     bslma::Allocator*                        allocator)
 : d_authenticatorConfig_p(config)
 , d_isStarted(false)
 , d_allocator_p(allocator)
 {
+    if (!config) {
+        // No config is provided for an anonymous authenticator.
+    }
 }
 
-FailAuthenticator::~FailAuthenticator()
+AnonyPassAuthenticator::~AnonyPassAuthenticator()
 {
     stop();
 }
 
-bsl::string_view FailAuthenticator::name() const
+bsl::string_view AnonyPassAuthenticator::name() const
 {
     return k_NAME;
 }
 
-bsl::string_view FailAuthenticator::mechanism() const
+bsl::string_view AnonyPassAuthenticator::mechanism() const
 {
-    return "Basic";
+    return "Anonymous";
 }
 
-int FailAuthenticator::authenticate(
-    bsl::ostream&                                   errorDescription,
+int AnonyPassAuthenticator::authenticate(
+    BSLA_UNUSED bsl::ostream&                       errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
-    BALL_LOG_INFO << "FailAuthenticator: "
-                  << "authentication failed for mechanism '" << mechanism()
+    BALL_LOG_INFO << "AnonyPassAuthenticator: "
+                  << "authentication passed for mechanism '" << mechanism()
                   << "' unconditionally.";
 
-    errorDescription << "FailAuthenticator: "
-                     << "authentication failed for mechanism '" << mechanism()
-                     << "' unconditionally.";
-
-    *result = bsl::allocate_shared<FailAuthenticationResult>(d_allocator_p,
-                                                             "",
-                                                             600 * 1000);
-    return -1;
+    *result = bsl::allocate_shared<AnonyPassAuthenticationResult>(
+        d_allocator_p,
+        "",
+        600 * 1000);
+    return 0;
 }
 
-int FailAuthenticator::start(bsl::ostream& errorDescription)
+int AnonyPassAuthenticator::start(BSLA_UNUSED bsl::ostream& errorDescription)
 {
-    if (!d_authenticatorConfig_p) {
-        errorDescription << "Could not find config for FailAuthenticator '"
-                         << name() << "' with mechanism '" << mechanism()
-                         << "'";
-        return -1;  // RETURN
-    }
+    // Since this is the default anonymous authenticator, it does not require
+    // any specific configuration or initialization.
+    // We just need to ensure it is started only once.
 
     if (d_isStarted) {
         return 0;  // RETURN
@@ -131,34 +125,34 @@ int FailAuthenticator::start(bsl::ostream& errorDescription)
     return 0;
 }
 
-void FailAuthenticator::stop()
+void AnonyPassAuthenticator::stop()
 {
     d_isStarted = false;
 }
 
-// ------------------------------------
-// class FailAuthenticatorPluginFactory
-// ------------------------------------
+// -----------------------------------------
+// class AnonyPassAuthenticatorPluginFactory
+// -----------------------------------------
 
-FailAuthenticatorPluginFactory::FailAuthenticatorPluginFactory()
+AnonyPassAuthenticatorPluginFactory::AnonyPassAuthenticatorPluginFactory()
 {
     // NOTHING
 }
 
-FailAuthenticatorPluginFactory::~FailAuthenticatorPluginFactory()
+AnonyPassAuthenticatorPluginFactory::~AnonyPassAuthenticatorPluginFactory()
 {
     // NOTHING
 }
 
 bslma::ManagedPtr<mqbplug::Authenticator>
-FailAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
+AnonyPassAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
 {
     const mqbcfg::AuthenticatorPluginConfig* config =
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
-            FailAuthenticator::k_NAME);
+            AnonyPassAuthenticator::k_NAME);
 
     bslma::ManagedPtr<mqbplug::Authenticator> result(
-        new (*allocator) FailAuthenticator(config, allocator),
+        new (*allocator) AnonyPassAuthenticator(config, allocator),
         allocator);
     return result;
 }
