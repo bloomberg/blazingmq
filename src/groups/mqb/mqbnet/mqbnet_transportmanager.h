@@ -182,6 +182,9 @@ class TransportManager {
     /// Authenticator to use for authenticating a connection.
     bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
 
+    /// Negotiator to use for negotiating and creating a session.
+    bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
+
     // Initial Connection to use
     bslma::ManagedPtr<InitialConnectionHandler> d_initialConnectionHandler_mp;
 
@@ -308,6 +311,7 @@ class TransportManager {
         bdlmt::EventScheduler*                       scheduler,
         bdlbb::BlobBufferFactory*                    blobBufferFactory,
         bslma::ManagedPtr<Authenticator>&            authenticator,
+        bslma::ManagedPtr<Negotiator>&               negotiator,
         bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
         mqbstat::StatController*                     statController,
         bslma::Allocator*                            allocator);
