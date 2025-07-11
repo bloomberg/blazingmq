@@ -14,6 +14,10 @@
 // limitations under the License.
 
 // mqba_clientsession.t.cpp                                           -*-C++-*-
+#include "mqbnet_authenticationcontext.h"
+#include "mqbnet_initialconnectioncontext.h"
+#include <bsls_nullptr.h>
+#include <bslstl_sharedptr.h>
 #include <mqba_clientsession.h>
 
 // MQB
@@ -26,7 +30,6 @@
 #include <mqbmock_queue.h>
 #include <mqbmock_queueengine.h>
 #include <mqbmock_queuehandle.h>
-#include <mqbnet_initialconnectioncontext.h>
 #include <mqbstat_brokerstats.h>
 #include <mqbstat_queuestats.h>
 #include <mqbu_messageguidutil.h>
@@ -691,7 +694,14 @@ class TestBench {
     , d_cs(d_channel,
            negotiationMessage,
            "sessionDescription",
-           bsl::shared_ptr<mqbnet::AuthenticationContext>(),
+           bsl::allocate_shared<mqbnet::AuthenticationContext>(
+               allocator,
+               bsl::nullptr_t(),
+               bmqp_ctrlmsg::AuthenticationMessage(allocator),
+               bmqp::EncodingType::e_UNKNOWN,
+               mqbnet::AuthenticationContext::ReauthenticateCb(),
+               mqbnet::AuthenticationContext::e_AUTHENTICATING,
+               mqbnet::ConnectionType::e_UNKNOWN),
            setInDispatcherThread(&d_mockDispatcher),
            0,  // ClusterCatalog
            &d_mockDomainFactory,
