@@ -377,6 +377,11 @@ bool Parameters::from(bsl::ostream&                stream,
         eventsCount        = params.postRate() * numPosts;
     }
 
+    if (params.autoPubSubModulo() < 0) {
+        stream << "Negative autoPubSubModulo values are not supported" << "\n";
+        return false;  // RETURN
+    }
+
     // Populate output parameters struct
     setVerbosity(paramVerbosity);
     setLogFormat(params.logFormat());
@@ -404,6 +409,7 @@ bool Parameters::from(bsl::ostream&                stream,
     setShutdownGrace(params.shutdownGrace());
     setMessageProperties(params.messageProperties());
     setSubscriptions(params.subscriptions());
+    setAutoPubSubModulo(params.autoPubSubModulo());
 
     return true;
 }
@@ -437,6 +443,11 @@ bool Parameters::validate(bsl::string* error)
 
     error->assign(ss.str().data(), ss.str().length());
     return error->empty();
+}
+
+const char* Parameters::autoPubSubPropertyName() const
+{
+    return "AUTO_PUBSUB_PROPERTY";
 }
 
 }  // close package namespace

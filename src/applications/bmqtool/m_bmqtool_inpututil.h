@@ -76,7 +76,13 @@ struct InputUtil {
                      const bsl::vector<MessageProperty>& properties);
 
     static bool populateSubscriptions(bmqt::QueueOptions*              out,
-                                      const bsl::vector<Subscription>& in);
+                                      const bsl::vector<Subscription>& in,
+                                      bslma::Allocator* allocator);
+
+    static bool populateSubscriptions(bmqt::QueueOptions* out,
+                                      int                 autoPubSubModulo,
+                                      const char*       autoPubSubPropertyName,
+                                      bslma::Allocator* allocator);
 
     template <typename CMD>
     static bool parseCommand(CMD*               command,

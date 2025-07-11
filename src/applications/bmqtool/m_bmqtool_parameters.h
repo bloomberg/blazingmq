@@ -273,6 +273,8 @@ class Parameters {
     // A name of a property to put auto-incremented values
     // in batch-posting mode.
 
+    int d_autoPubSubModulo;
+
   public:
     // CREATORS
 
@@ -308,6 +310,7 @@ class Parameters {
     setMessageProperties(const bsl::vector<MessageProperty>& value);
     Parameters& setSubscriptions(const bsl::vector<Subscription>& value);
     Parameters& setAutoIncrementedField(const bsl::string& value);
+    Parameters& setAutoPubSubModulo(int autoPubSubModulo);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -366,6 +369,9 @@ class Parameters {
     const bsl::vector<MessageProperty>& messageProperties() const;
     const bsl::vector<Subscription>&    subscriptions() const;
     const bsl::string&                  autoIncrementedField() const;
+    int                                 autoPubSubModulo() const;
+
+    const char* autoPubSubPropertyName() const;
 };
 
 // FREE OPERATORS
@@ -575,6 +581,13 @@ Parameters::setAutoIncrementedField(const bsl::string& value)
     return *this;
 }
 
+inline Parameters& Parameters::setAutoPubSubModulo(int autoPubSubModulo)
+{
+    d_autoPubSubModulo = autoPubSubModulo;
+
+    return *this;
+}
+
 // ACCESSORS
 inline ParametersMode::Value Parameters::mode() const
 {
@@ -720,6 +733,11 @@ inline const bsl::vector<Subscription>& Parameters::subscriptions() const
 inline const bsl::string& Parameters::autoIncrementedField() const
 {
     return d_autoIncrementedField;
+}
+
+inline int Parameters::autoPubSubModulo() const
+{
+    return d_autoPubSubModulo;
 }
 
 }  // close package namespace

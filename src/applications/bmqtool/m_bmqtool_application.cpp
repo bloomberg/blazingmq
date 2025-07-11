@@ -605,7 +605,17 @@ int Application::initialize()
             .setMaxUnconfirmedBytes(d_parameters.maxUnconfirmedBytes());
 
         if (!InputUtil::populateSubscriptions(&queueOptions,
-                                              d_parameters.subscriptions())) {
+                                              d_parameters.subscriptions(),
+                                              d_allocator_p)) {
+            BALL_LOG_ERROR << "Invalid subscriptions";
+            return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
+        }
+
+        if (!InputUtil::populateSubscriptions(
+                &queueOptions,
+                d_parameters.autoPubSubModulo(),
+                d_parameters.autoPubSubPropertyName(),
+                d_allocator_p)) {
             BALL_LOG_ERROR << "Invalid subscriptions";
             return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
         }
