@@ -364,7 +364,7 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
         initialConnectionHandlerMp(
             new (*d_allocator_p) InitialConnectionHandler(
-                negotiatorMp,
+                negotiatorMp.get(),
                 authenticatorMp.get(),
                 d_allocators.get("InitialConnectionHandler")),
             d_allocator_p);
@@ -373,6 +373,7 @@ int Application::start(bsl::ostream& errorDescription)
                                    d_scheduler_p,
                                    &d_bufferFactory,
                                    authenticatorMp,
+                                   negotiatorMp,
                                    initialConnectionHandlerMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),

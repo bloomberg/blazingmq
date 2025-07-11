@@ -186,6 +186,9 @@ class Cluster : public mqbi::Cluster {
     // Authenticator
     bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
 
+    // Negotiator
+    bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
+
     // Initial Connection Handler
     InitialConnectionHandlerMp d_initialConnectionHandler_mp;
 
