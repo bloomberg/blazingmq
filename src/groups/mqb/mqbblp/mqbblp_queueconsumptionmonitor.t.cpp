@@ -246,7 +246,7 @@ Test::Test()
     bslma::ManagedPtr<mqbi::Queue> queueMp(&d_queue,
                                            0,
                                            bslma::ManagedPtrUtil::noOpDeleter);
-    d_domain.registerQueue(errorDescription, queueMp);
+    d_domain.registerQueue(queueMp);
 
     mqbconfm::Storage config;
     mqbconfm::Limits  limits;

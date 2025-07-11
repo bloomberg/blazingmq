@@ -163,12 +163,9 @@ class Domain {
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
         const OpenQueueCallback&                            callback) = 0;
 
-    /// Take ownership of the specified `queue`, and eventually configure
-    /// it.  Return 0 on success, or a non-zero return code otherwise,
-    /// populating the specified `errorDescription` with a description of
-    /// the failure.
-    virtual int registerQueue(bsl::ostream&                 errorDescription,
-                              const bsl::shared_ptr<Queue>& queueSp) = 0;
+    /// Take ownership of the specified `queue`. Return 0 on success, or a
+    /// non-zero return code otherwise.
+    virtual int registerQueue(const bsl::shared_ptr<Queue>& queueSp) = 0;
 
     /// Reverse method of `registerQueue`, invoked when the last
     /// `QueueHandle` associated to the specified `queue` has been deleted

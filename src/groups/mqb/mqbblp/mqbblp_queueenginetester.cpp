@@ -470,7 +470,13 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
 
     // Register queue in domain
     bslma::ManagedPtr<mqbi::Queue> queueMp(d_mockQueue_sp.managedPtr());
-    rc = d_mockDomain_mp->registerQueue(errorDescription, queueMp);
+
+    rc = queueMp->configure(errorDescription,
+                            false,  // isReconfigure
+                            true);  // wait
+    BSLS_ASSERT_OPT(rc == 0);
+
+    rc = d_mockDomain_mp->registerQueue(queueMp);
     BSLS_ASSERT_OPT(rc == 0);
 
     // VALIDATION
