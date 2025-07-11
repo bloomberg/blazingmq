@@ -369,22 +369,6 @@ void Cluster::stop()
     d_isStarted = false;
 }
 
-void Cluster::registerStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-}
-
-void Cluster::unregisterStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-}
-
 mqbnet::Cluster& Cluster::netCluster()
 {
     return *(d_clusterData_mp->membership().netCluster());

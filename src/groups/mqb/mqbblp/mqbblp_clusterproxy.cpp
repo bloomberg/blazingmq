@@ -1201,28 +1201,6 @@ void ClusterProxy::stop()
     dispatcher()->synchronize(this);
 }
 
-void ClusterProxy::registerStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-    //
-    // TODO_CSL Register the observer to 'dummy state' after it becomes the
-    //          true state.
-}
-
-void ClusterProxy::unregisterStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-    //
-    // TODO_CSL Register the observer to 'dummy state' after it becomes the
-    //          true state.
-}
-
 void ClusterProxy::openQueue(
     const bmqt::Uri&                                          uri,
     mqbi::Domain*                                             domain,

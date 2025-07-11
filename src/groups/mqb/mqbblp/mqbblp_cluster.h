@@ -550,16 +550,6 @@ class Cluster : public mqbi::Cluster,
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;
 
-    /// Register the specified `observer` to be notified of cluster state
-    /// changes.
-    void registerStateObserver(mqbc::ClusterStateObserver* observer)
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Un-register the specified `observer` from being notified of cluster
-    /// state changes.
-    void unregisterStateObserver(mqbc::ClusterStateObserver* observer)
-        BSLS_KEYWORD_OVERRIDE;
-
     /// Open the queue with the specified `uri`, belonging to the specified
     /// `domain` with the specified `parameters` from a client identified
     /// with the specified `clientContext`.  Invoke the specified `callback`

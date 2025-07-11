@@ -70,9 +70,6 @@ class FixedThreadPool;
 namespace bmqt {
 class Uri;
 }
-namespace mqbc {
-class ClusterStateObserver;
-}
 namespace mqbcmd {
 class ClusterCommand;
 }
@@ -289,16 +286,6 @@ class Cluster : public DispatcherClient {
     // Return a reference offering a modifiable access to the multi request
     // manager used by this cluster.
     virtual MultiRequestManagerType& multiRequestManager() = 0;
-
-    /// Register the specified `observer` to be notified of cluster state
-    /// changes.
-    virtual void
-    registerStateObserver(mqbc::ClusterStateObserver* observer) = 0;
-
-    /// Un-register the specified `observer` from being notified of cluster
-    /// state changes.
-    virtual void
-    unregisterStateObserver(mqbc::ClusterStateObserver* observer) = 0;
 
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
