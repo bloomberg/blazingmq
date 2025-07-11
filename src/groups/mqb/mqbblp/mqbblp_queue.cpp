@@ -606,7 +606,7 @@ int Queue::configure(bsl::ostream& errorDescription,
     dispatcher()->execute(
         bdlf::BindUtil::bind(&Queue::configureDispatched,
                              this,
-                             &result,
+                             (wait ? &result : NULL),
                              (wait ? &errorDescription : NULL),
                              isReconfigure),
         this);
