@@ -246,6 +246,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// `allocator`.
     InMemoryStorage(const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
+                    mqbi::Domain*                  domain,
                     int                            partitionId,
                     const mqbconfm::Domain&        config,
                     mqbu::CapacityMeter*           parentCapacityMeter,

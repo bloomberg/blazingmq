@@ -463,6 +463,19 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 
         d_consumptionMonitor.registerSubStream(appId);
 
+        const bsls::Types::Int64 appNumMessages =
+            d_queueState_p->storage()->numMessages(appKey);
+        const bsls::Types::Int64 appNumBytes =
+            d_queueState_p->storage()->numBytes(appKey);
+
+        d_queueState_p->queue()->stats()->setOutstandingData(appNumMessages,
+                                                             appNumBytes,
+                                                             appId);
+        BALL_LOG_INFO << "Set outstanding data for appId[" << appId
+                      << "], queue [" << d_queueState_p->uri() << "]: ("
+                      << appNumMessages << " msgs, " << appNumBytes
+                      << " bytes)";
+
         BALL_LOG_INFO << "Found virtual storage for appId [" << appId
                       << "], queue [" << d_queueState_p->uri() << "], appKey ["
                       << appKey << "], ordinal [" << ordinal << "]";

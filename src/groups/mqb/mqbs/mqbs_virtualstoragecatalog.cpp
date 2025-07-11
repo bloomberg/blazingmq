@@ -105,6 +105,8 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
 , d_isProxy(false)
 , d_queue_p(0)
+, d_queueStats_sp(
+      bsl::allocate_shared<mqbstat::QueueStatsDomain>(d_allocator_p))
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
@@ -120,6 +122,15 @@ VirtualStorageCatalog::~VirtualStorageCatalog()
 }
 
 // MANIPULATORS
+void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
+{
+    d_queue_p = queue;
+
+    if (d_queue_p) {
+        d_queue_p->setStats(d_queueStats_sp);
+    }
+}
+
 VirtualStorageCatalog::DataStreamIterator
 VirtualStorageCatalog::begin(const bmqt::MessageGUID& where)
 {
@@ -278,8 +289,8 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
     const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
-    if (queue() && mqbi::StorageResult::e_SUCCESS == rc) {
-        queue()->stats()->onEvent(
+    if (mqbi::StorageResult::e_SUCCESS == rc) {
+        d_queueStats_sp->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             data->second.d_size,
             it->key1());
@@ -291,10 +302,36 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID)
 {
-    // Remove all Apps states at once.
-    if (0 == d_dataStream.erase(msgGUID)) {
+    const mqbs::VirtualStorage::DataStream::const_iterator it =
+        d_dataStream.find(msgGUID);
+    if (it == d_dataStream.end()) {
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
+
+    const mqbi::DataStreamMessage& appStates = it->second;
+
+    const size_t numOrdinals = bsl::min(appStates.d_apps.size(),
+                                        d_ordinals.size());
+    for (size_t i = 0; i < numOrdinals; i++) {
+        const mqbi::AppMessage& appMessage = appStates.app(i);
+        if (appMessage.isPending()) {
+            d_ordinals[i]->setNumRemoved(d_ordinals[i]->numRemoved() + 1,
+                                         d_ordinals[i]->removedBytes() +
+                                             appStates.d_size);
+        }
+    }
+
+    for (size_t i = numOrdinals; i < appStates.d_numApps; i++) {
+        // We might have uninitialized state for some apps in the stored state.
+        // In this case, the default state is `pending`, and we updated
+        // the corresponding virtual storages.
+        d_ordinals[i]->setNumRemoved(d_ordinals[i]->numRemoved() + 1,
+                                     d_ordinals[i]->removedBytes() +
+                                         appStates.d_size);
+    }
+
+    // Remove all Apps states at once.
+    d_dataStream.erase(it);
 
     return mqbi::StorageResult::e_SUCCESS;
 }
@@ -487,12 +524,9 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
         }
     }
 
-    if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_PURGE,
-            0,
-            vs->appId());
-    }
+    d_queueStats_sp->onEvent(mqbstat::QueueStatsDomain::EventType::e_PURGE,
+                             0,
+                             vs->appId());
 
     return mqbi::StorageResult::e_SUCCESS;
 }
