@@ -267,8 +267,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
                    const mqbi::Domain::OpenQueueCallback&     callback)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Take ownership of and configure the specified `queue`.  Return 0 on
-    /// success, or a non-zero return code otherwise.
+    /// Take ownership of the specified `queue`.  Return 0 on success, or a
+    /// non-zero return code otherwise.
     int registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
         BSLS_KEYWORD_OVERRIDE;
 
