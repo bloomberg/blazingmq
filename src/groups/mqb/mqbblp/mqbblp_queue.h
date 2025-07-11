@@ -584,12 +584,12 @@ inline const mqbi::DispatcherClientData& Queue::dispatcherClientData() const
 
 inline mqbi::Dispatcher* Queue::dispatcher()
 {
-    return d_state.domain()->cluster()->dispatcher();
+    return d_state.dispatcherClientData().dispatcher();
 }
 
 inline const mqbi::Dispatcher* Queue::dispatcher() const
 {
-    return d_state.domain()->cluster()->dispatcher();
+    return d_state.dispatcherClientData().dispatcher();
 }
 
 inline bmqp::SchemaLearner& Queue::schemaLearner() const
