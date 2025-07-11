@@ -206,7 +206,7 @@ int InitialConnectionHandler::processBlob(
 
     if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
             message.value())) {
-        rc = d_authenticator_mp->handleAuthentication(
+        rc = d_authenticator_p->handleAuthentication(
             errorDescription,
             isContinueRead,
             context,
@@ -242,7 +242,7 @@ int InitialConnectionHandler::processBlob(
             // In order not to block the IO thread, for default credential, we
             // do negotiation in authentication threads
             if (!context->authenticationContext()) {
-                if (!d_authenticator_mp->anonymousCredential()) {
+                if (!d_authenticator_p->anonymousCredential()) {
                     errorDescription
                         << "Anonymous credential is disallowed, "
                         << "cannot negotiate without authentication.";
@@ -252,7 +252,7 @@ int InitialConnectionHandler::processBlob(
 
                 context->setNegotiationCb(bdlf::BindUtil::bind(
                     &mqbnet::Negotiator::createSessionOnMsgType,
-                    d_negotiator_mp.get(),
+                    d_negotiator_p,
                     bdlf::PlaceHolders::_1,  // errorDescription
                     bdlf::PlaceHolders::_2,  // session
                     bdlf::PlaceHolders::_3   // context
@@ -263,14 +263,14 @@ int InitialConnectionHandler::processBlob(
                     authenticationMessage.makeAuthenticateRequest();
 
                 const mqbcfg::Credential& anonymousCredential =
-                    d_authenticator_mp->anonymousCredential().value();
+                    d_authenticator_p->anonymousCredential().value();
                 authenticateRequest.mechanism() =
                     anonymousCredential.mechanism();
                 authenticateRequest.data() = bsl::vector<char>(
                     anonymousCredential.identity().begin(),
                     anonymousCredential.identity().end());
 
-                rc = d_authenticator_mp->handleAuthentication(
+                rc = d_authenticator_p->handleAuthentication(
                     errorDescription,
                     isContinueRead,
                     context,
@@ -288,9 +288,9 @@ int InitialConnectionHandler::processBlob(
                 bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value()));
         }
 
-        rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
-                                                     session,
-                                                     context.get());
+        rc = d_negotiator_p->createSessionOnMsgType(errorDescription,
+                                                    session,
+                                                    context.get());
     }
 
     return rc;
@@ -409,11 +409,11 @@ void InitialConnectionHandler::complete(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
-    mqbnet::Authenticator*                 authenticator,
-    bslma::Allocator*                      allocator)
-: d_authenticator_mp(authenticator)
-, d_negotiator_mp(negotiator)
+    mqbnet::Negotiator*    negotiator,
+    mqbnet::Authenticator* authenticator,
+    bslma::Allocator*      allocator)
+: d_authenticator_p(authenticator)
+, d_negotiator_p(negotiator)
 , d_allocator_p(allocator)
 {
 }
@@ -460,7 +460,7 @@ void InitialConnectionHandler::handleInitialConnection(
         // TODO: When we are ready to move on to the next step, we should
         // call `authenticationOutbound` here instead before calling
         // `negotiateOutbound`.
-        rc = d_negotiator_mp->negotiateOutbound(errStream, context);
+        rc = d_negotiator_p->negotiateOutbound(errStream, context);
 
         // Send outbound request success, continue to read
         if (rc == 0) {

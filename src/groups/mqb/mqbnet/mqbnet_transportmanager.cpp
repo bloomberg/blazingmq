@@ -339,6 +339,7 @@ TransportManager::TransportManager(
     bdlmt::EventScheduler*                       scheduler,
     bdlbb::BlobBufferFactory*                    blobBufferFactory,
     bslma::ManagedPtr<Authenticator>&            authenticator,
+    bslma::ManagedPtr<Negotiator>&               negotiator,
     bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
     mqbstat::StatController*                     statController,
     bslma::Allocator*                            allocator)
@@ -347,6 +348,7 @@ TransportManager::TransportManager(
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_authenticator_mp(authenticator)
+, d_negotiator_mp(negotiator)
 , d_initialConnectionHandler_mp(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
