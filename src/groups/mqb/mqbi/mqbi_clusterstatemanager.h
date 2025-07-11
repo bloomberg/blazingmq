@@ -91,26 +91,6 @@ class ClusterStateManager {
     typedef bmqc::OrderedHashMap<bsl::string, mqbu::StorageKey> AppInfos;
     typedef AppInfos::const_iterator                            AppInfosCIter;
 
-    struct QueueAssignmentResult {
-        enum Enum {
-            // Return code for queue assignment operations.
-
-            k_ASSIGNMENT_OK  // assignment proceeding without
-                             // error, even though actual
-                             // assignment may be deferred.
-            ,
-            k_ASSIGNMENT_DUPLICATE  // assignment was already assigned,
-                                    // so this is a duplicate.
-            ,
-            k_ASSIGNMENT_REJECTED  // assignment was definitively
-                                   // rejected (e.g. max queue cap
-                                   // reached).
-            ,
-            k_ASSIGNMENT_WHILE_UNAVAILABLE  // Not an active leader, or leader
-                                            // is STOPPING.
-        };
-    };
-
   public:
     // CREATORS
 
@@ -184,14 +164,15 @@ class ClusterStateManager {
     /// Perform the actual assignment of the queue represented by the
     /// specified `uri` for a cluster member queue, that is assign it a
     /// queue key, a partition id, and some appIds; and applying the
-    /// corresponding queue assignment adviosry to CSL.  Return a value
-    /// indicating whether the assignment was successful or was definitively
-    /// rejected. This method is called only on the leader node.
+    /// corresponding queue assignment advisory to CSL.  Return `false` in the
+    /// case of permanent failure when need to reject the assignment.  Return
+    /// `true` if the assignment is successful or can be retried.
+    /// This method is called only on the leader node.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual QueueAssignmentResult::Enum
-    assignQueue(const bmqt::Uri& uri, bmqp_ctrlmsg::Status* status = 0) = 0;
+    virtual bool assignQueue(const bmqt::Uri&      uri,
+                             bmqp_ctrlmsg::Status* status) = 0;
 
     /// Register a queue info for the queue with the specified `advisory`.
     /// If the specified `forceUpdate` flag is true, update queue info even if
