@@ -2714,28 +2714,6 @@ void Cluster::terminate(mqbu::ExitCode::Enum reason)
     mqbu::ExitUtil::shutdown(reason);  // EXIT
 }
 
-void Cluster::registerStateObserver(mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&mqbc::ClusterState::registerObserver,
-                             &d_state,
-                             observer),
-        this);
-}
-
-void Cluster::unregisterStateObserver(mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&mqbc::ClusterState::unregisterObserver,
-                             &d_state,
-                             observer),
-        this);
-}
-
 void Cluster::openQueue(
     const bmqt::Uri&                                          uri,
     mqbi::Domain*                                             domain,
