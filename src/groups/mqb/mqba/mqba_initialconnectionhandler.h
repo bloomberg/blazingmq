@@ -73,10 +73,10 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     // DATA
 
     /// Authenticator to use for authenticating a connection.
-    mqbnet::Authenticator* d_authenticator_mp;
+    mqbnet::Authenticator* d_authenticator_p;
 
     /// Negotiator to use for converting a Channel to a Session.
-    bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
+    mqbnet::Negotiator* d_negotiator_p;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
@@ -146,7 +146,7 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   public:
     // CREATORS
 
-    InitialConnectionHandler(bslma::ManagedPtr<mqbnet::Negotiator>& negotiator,
+    InitialConnectionHandler(mqbnet::Negotiator*    negotiator,
                              mqbnet::Authenticator* authenticator,
                              bslma::Allocator*      allocator);
 
