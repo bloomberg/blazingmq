@@ -105,6 +105,8 @@ struct ClusterErrorCode {
     enum Enum {
         // Generic
         // - - - -
+        e_OK = 0,
+
         e_UNKNOWN = -10
         // Operation failed for unknown reason
         ,

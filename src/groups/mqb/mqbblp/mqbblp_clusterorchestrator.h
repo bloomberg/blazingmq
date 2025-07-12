@@ -442,9 +442,9 @@ class ClusterOrchestrator {
     void validateClusterStateLedger();
 
     /// Unregister the specified 'removed' and register the specified `added`
-    /// for the specified  `domainName`.
+    /// for the specified  `domainName`.  Return `0` on success.
     /// Invoked by @bbref{mqbblp::Cluster}.
-    void updateAppIds(
+    mqbi::ClusterErrorCode::Enum updateAppIds(
         const bsl::shared_ptr<const bsl::vector<bsl::string> >& added,
         const bsl::shared_ptr<const bsl::vector<bsl::string> >& removed,
         const bsl::string&                                      domainName);

@@ -463,7 +463,7 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
     return *this;
 }
 
-bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
+void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -471,11 +471,11 @@ bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
 
     const bmqt::Uri& uri         = advisory.uri();
-    const int        partitionId = advisory.partitionId();
-
-    bool                  isNewAssignment = true;
+    const int             partitionId = advisory.partitionId();
     DomainStatesIter      domIt = domainStates().find(uri.qualifiedDomain());
     UriToQueueInfoMapIter queueIt;
+    QueueInfoSp           newQueueInfo;
+    QueueInfoSp&          queue = newQueueInfo;
 
     if (domIt == domainStates().end()) {
         ClusterState::DomainStateSp domainState;
@@ -490,35 +490,32 @@ bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
     }
 
     if (queueIt == domIt->second->queuesInfo().end()) {
-        QueueInfoSp queueInfo;
+        newQueueInfo.createInplace(d_allocator_p, advisory, d_allocator_p);
 
-        queueInfo.createInplace(d_allocator_p, advisory, d_allocator_p);
-
-        queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
+        queueIt = domIt->second->queuesInfo().emplace(uri, queue).first;
     }
     else {
-        if (queueIt->second->state() ==
-            ClusterStateQueueInfo::State::k_ASSIGNED) {
-            // See 'ClusterStateManager::processQueueAssignmentAdvisory' which
-            // insists on re-assigning
-            isNewAssignment = false;
+        queue = queueIt->second;
 
+        if (queue->state() == ClusterStateQueueInfo::State::k_ASSIGNED) {
             ClusterStateQueueInfo fromAdvisory(advisory, d_allocator_p);
 
-            if (queueIt->second->isEquivalent(fromAdvisory)) {
+            if (queue->isEquivalent(fromAdvisory)) {
                 // If queue info is unchanged, can simply return
-                return false;  // RETURN
+                return;  // RETURN
             }
-
-            updatePartitionQueueMapped(queueIt->second->partitionId(), -1);
         }
 
-        queueIt->second->setKey(advisory).setPartitionId(partitionId);
-        queueIt->second->setApps(advisory);
+        if (queue->partitionId() != mqbs::DataStore::k_INVALID_PARTITION_ID) {
+            updatePartitionQueueMapped(queue->partitionId(), -1);
+        }
+
+        queue->setKey(advisory).setPartitionId(partitionId);
+        queue->setApps(advisory);
     }
 
     // Set the queue as assigned
-    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNED);
+    queue->setState(ClusterStateQueueInfo::State::k_ASSIGNED);
 
     updatePartitionQueueMapped(partitionId, 1);
 
@@ -529,12 +526,11 @@ bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
                   << mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                       advisory.key().data())
                   << "] to Partition [" << partitionId
-                  << "] with appIdInfos: [" << printer
-                  << "], isNewAssignment: " << isNewAssignment << ".";
+                  << "] with appIdInfos: [" << printer << "].";
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
          ++it) {
-        (*it)->onQueueAssigned(queueIt->second);
+        (*it)->onQueueAssigned(queue);
     }
 
     // POSTCONDITIONS
@@ -543,8 +539,6 @@ bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
     // 'numActiveQueues'.
     BSLS_ASSERT_SAFE(d_partitionsInfo[partitionId].numQueuesMapped() >=
                      d_partitionsInfo[partitionId].numActiveQueues());
-
-    return isNewAssignment;
 }
 
 bool ClusterState::unassignQueue(const bmqt::Uri& uri)
