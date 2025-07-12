@@ -484,13 +484,15 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
     /// Unregister the specified 'removed' and register the specified `added`
     /// for the specified  `domainName` and optionally specified `uri`.
+    /// Return `0` on success.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void updateAppIds(const bsl::vector<bsl::string>& added,
-                      const bsl::vector<bsl::string>& removed,
-                      const bsl::string&              domainName,
-                      const bsl::string& uri) BSLS_KEYWORD_OVERRIDE;
+    mqbi::ClusterErrorCode::Enum
+    updateAppIds(const bsl::vector<bsl::string>& added,
+                 const bsl::vector<bsl::string>& removed,
+                 const bsl::string&              domainName,
+                 const bsl::string&              uri) BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.
