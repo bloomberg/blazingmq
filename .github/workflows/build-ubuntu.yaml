@@ -1,0 +1,163 @@
+name: Build Ubuntu
+
+description: |
+  This is a reusable workflow to build BlazingMQ on Ubuntu. 
+  Optionally run unit tests if the target is "all.t".
+  Given a ref and a target, this workflow will build the project and will save the build results both as artifact and in cache.
+  The cache key is generated based on the ref and the target, and is returned via workflow output.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Branch name, tag, or commit SHA to build"
+        required: true
+        type: string
+      target:
+        description: "Build targets, space-delimited"
+        required: true
+        type: string
+      save_build_as_artifacts:
+        description: "Whether to save the build as artifacts"
+        required: true
+        type: boolean
+        default: true
+      run_unit_tests:
+        description: "Whether to run unit tests.  Can only be set to true if `all.t` is one of the build targets"
+        required: true
+        type: boolean
+        default: false
+      name:
+        description: "Name of the workflow run, used for artifacts"
+        required: false
+        type: string
+        default: "build-ubuntu"
+    outputs:
+      artifact_key:
+        description: "GH Actions Cache key associated with the built dependencies"
+        value: ${{ jobs.build_ubuntu.outputs.artifact_key }}
+
+jobs:
+  get_dependencies:
+    name: "Dependencies"
+    uses: ./.github/workflows/dependencies.yaml
+
+  build_ubuntu:
+    name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    needs: get_dependencies   
+    outputs:
+      artifact_key: ${{ steps.get_cache_key.outputs.artifact_key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      
+      # Since input.ref can be a branch, tag or commit SHA,
+      # we need to get the commit SHA to use it in the cache key.
+      - name: Generate cache key from commit SHA
+        id: get_cache_key
+        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
+        # When restoring from cache fails, it searches for other keys to fall back to.
+        # If the given key is a prefix of another key, it will be used. 
+        # E.g. "...-all" can fallback to "...-all.t" 
+        # Thus do not put the target at the end of the key.
+        run: |
+            COMMIT_SHA=$(git rev-parse HEAD)
+            echo "cache_key=cache-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+            echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+      - uses: actions/cache/restore@v4
+        id: build-cache-restore-step
+        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
+        with:
+          path: |
+            build/blazingmq
+            deps
+          key: ${{ steps.get_cache_key.outputs.cache_key }}
+
+      # The following steps restore cached deps
+      # If the cache is not hit, it will build and install the dependencies
+      # If the cache is hit, building deps is skipped, only make install is run
+      - uses: actions/cache/restore@v4
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        with:
+          path: deps
+          key: ${{ needs.get_dependencies.outputs.cache_key }}
+      - name: Set up dependencies
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+      - name: Install cached non packaged dependencies
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        working-directory: deps
+        run: ../docker/build_deps.sh
+
+      # Build BlazingMQ
+      - name: Build BlazingMQ
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        env:
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+        run: |
+          cmake -S . -B build/blazingmq -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBDE_BUILD_TARGET_SAFE=ON \
+            -DBDE_BUILD_TARGET_64=ON \
+            -DBDE_BUILD_TARGET_CPP17=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
+            -DCMAKE_INSTALL_LIBDIR=lib64
+          cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
+
+      - name: Clean-up build directories before caching
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        run: |
+          find . -name "*.o" -type f -delete
+          find . -name "*.a" -type f -delete
+
+      - name: Run UT [c++]
+        if: contains(inputs.target, 'all.t') && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
+        run: |
+          cd ${{ github.workspace }}/build/blazingmq
+          ctest --output-on-failure -L \^unit\$
+
+      - name: Fail if requrested to run UTs, they were not built
+        if: contains(inputs.target, 'all.t') == false && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
+        run: |
+          echo "Unit tests were requested to run, but the target does not include 'all.t'."
+          echo "Please set the target to include 'all.t' to build unit tests."
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
+        with:
+          path: |
+            build/blazingmq
+            deps
+          name: ${{ steps.get_cache_key.outputs.artifact_key }}
+          retention-days: 1
+
+      - name: Build Cache Save
+        # Type of "save_build_as_artifacts" variable is boolean, thus no quotes
+        # Type of "cache-hit" variable is string, thus using quotes
+        if: inputs.save_build_as_artifacts == true && steps.build-cache-restore-step.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+          key: ${{ steps.get_cache_key.outputs.cache_key }}
