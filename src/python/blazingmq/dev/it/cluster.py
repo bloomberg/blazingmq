@@ -313,18 +313,40 @@ class Cluster(contextlib.AbstractContextManager):
         """
 
         self._logger.info("stopping all nodes")
+
         if prevent_leader_bounce:
+            if self.last_known_leader is not None:
+                # Setting leader's quorum to 1, so it does not lose its leadership
+                # while supporting nodes shutting down.
+                # In case of 7-node cluster (with default quorum of 4),
+                # shutting down 4 nodes would initiate leader bounce.
+                self.last_known_leader.set_quorum(QUORUM_TO_ENSURE_LEADER)
+
+            # Stop all non-leader nodes
             for node in self.nodes():
                 if node is not self.last_known_leader:
-                    node.set_quorum(QUORUM_TO_ENSURE_NOT_LEADER)
+                    with internal_use(node):
+                        node.stop()
+
+            # Make sure all non-leader nodes are stopped
+            for node in self.nodes():
+                if node is not self.last_known_leader:
+                    self.make_sure_node_stopped(node)
+
+            # Finally stop the leader node
+            if self.last_known_leader is not None:
+                with internal_use(self.last_known_leader):
+                    self.last_known_leader.stop()
+                    self.make_sure_node_stopped(self.last_known_leader)
+        else:
+            for node in self.nodes():
+                with internal_use(node):
+                    node.stop()
+
+            for node in self.nodes():
+                self.make_sure_node_stopped(node)
 
         self.last_known_leader = None
-        for node in self.nodes():
-            with internal_use(node):
-                node.stop()
-
-        for node in self.nodes():
-            self.make_sure_node_stopped(node)
 
     def restart_nodes(self, wait_leader=True, wait_ready=False):
         """Restart all the nodes.
