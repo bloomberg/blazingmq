@@ -8,12 +8,11 @@ jobs:
     name: ${{ matrix.mode }}${{ matrix.fuzz == 'on' && '-fuzz' || '' }}
     strategy:
       matrix:
-        # mode: ["asan", "msan", "tsan", "ubsan"]
-        mode: ["ubsan"]
+        mode: ["asan", "msan", "tsan", "ubsan"]
         fuzz: ["off"]
-        # include:
-        #   - mode: "asan"
-        #     fuzz: "on"
+        include:
+          - mode: "asan"
+            fuzz: "on"
       fail-fast: false
     runs-on: ubuntu-24.04
     steps:
