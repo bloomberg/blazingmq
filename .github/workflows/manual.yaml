@@ -15,10 +15,6 @@ on:
       ref2:
         description: 'Branch name, tag, or commit SHA #2'
         required: true
-      leader_name:
-        description: 'Leader name for ITs (auto selected if empty)'
-        required: false
-        default: ''
 
 # The ref parameter is flexible and can accept:
 # Branch names (e.g., main)
@@ -109,8 +105,6 @@ jobs:
       - name: Run Integration Tests
         working-directory: repoit
         env:
-          BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
-
           # Broker default path for proxy nodes
           BLAZINGMQ_BROKER: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_TOOL: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqtool/bmqtool.tsk"
@@ -199,8 +193,6 @@ jobs:
       - name: Run Integration Tests
         working-directory: repoit
         env:
-          BLAZINGMQ_LEADER_NAME: "${{ github.event.inputs.leader_name }}"
-
           # Broker default path for proxy nodes
           BLAZINGMQ_BROKER: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_TOOL: "${{ github.workspace }}/repo1/build/blazingmq/src/applications/bmqtool/bmqtool.tsk"
