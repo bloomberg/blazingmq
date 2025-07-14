@@ -167,11 +167,12 @@ TableSchemaColumn& TableSchema::addColumn(const bslstl::StringRef& name,
 
 void TableSchema::addDefaultIdColumn(const bslstl::StringRef& name)
 {
-    Column::ValueFn columnFn = bdlf::BindUtil::bind(defaultIdColumn,
-                                                    bdlf::PlaceHolders::_1,
-                                                    bdlf::PlaceHolders::_2,
-                                                    bdlf::PlaceHolders::_3,
-                                                    bdlf::PlaceHolders::_4);
+    Column::ValueFn columnFn = bdlf::BindUtil::bindS(d_allocator_p,
+                                                     defaultIdColumn,
+                                                     bdlf::PlaceHolders::_1,
+                                                     bdlf::PlaceHolders::_2,
+                                                     bdlf::PlaceHolders::_3,
+                                                     bdlf::PlaceHolders::_4);
 
     addColumn(name, columnFn);
 }

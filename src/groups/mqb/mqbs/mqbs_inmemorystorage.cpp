@@ -75,6 +75,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
 , d_virtualStorageCatalog(
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
+, d_queueOpRecordHandles(d_allocator_p)
 , d_ttlSeconds(config.messageTtl())
 , d_isEmpty(1)
 , d_currentlyAutoConfirming()
