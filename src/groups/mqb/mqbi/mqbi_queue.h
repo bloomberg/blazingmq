@@ -122,6 +122,57 @@ class Domain;
 class Queue;
 class QueueEngine;
 
+// ===================
+// struct InlineResult
+// ===================
+struct InlineResult {
+    enum Enum {
+        e_SUCCESS           = 0,
+        e_UNAVAILABLE       = 1,
+        e_INVALID_PRIMARY   = 2,
+        e_INVALID_GEN_COUNT = 3,
+        e_CHANNEL_ERROR     = 4,
+        e_INVALID_PARTITION = 5,
+        e_SELF_PRIMARY      = 6
+    };
+    // CLASS METHODS
+    static const char*           toAscii(InlineResult::Enum value);
+    static bool                  isPermanentError(InlineResult::Enum value);
+    static bmqt::AckResult::Enum toAckResult(InlineResult::Enum value);
+};
+
+// ==================
+// class InlineClient
+// ==================
+class InlineClient {
+    // Interface for PUSH and ACK.
+
+  public:
+    // CREATORS
+    virtual ~InlineClient();
+
+    virtual mqbi::InlineResult::Enum
+    sendPush(const bmqt::MessageGUID&                  msgGUID,
+             int                                       queueId,
+             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const mqbi::StorageMessageAttributes&     attributes,
+             const bmqp::MessagePropertiesInfo&        mps,
+             const bmqp::Protocol::SubQueueInfosArray& subQueues) = 0;
+    // Called by the 'queueId' to deliver the specified 'message' with the
+    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
+    // specified 'subQueues' streams of the queue.
+    // Return 'InlineResult::Enum'.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    virtual mqbi::InlineResult::Enum
+    sendAck(int queueId, const bmqp::AckMessage& ackMessage) = 0;
+    // Called by the 'Queue' to send the specified 'ackMessage'.
+    // Return 'InlineResult::Enum'.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+};
+
 // =================================
 // class QueueHandleRequesterContext
 // =================================
@@ -178,6 +229,8 @@ class QueueHandleRequesterContext {
 
     bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
 
+    InlineClient* d_inlineClient_p;
+
     // NOT IMPLEMENTED
     QueueHandleRequesterContext(const QueueHandleRequesterContext&)
         BSLS_CPP11_DELETED;
@@ -215,6 +268,8 @@ class QueueHandleRequesterContext {
     QueueHandleRequesterContext&
     setStatContext(const bsl::shared_ptr<bmqst::StatContext>& value);
 
+    QueueHandleRequesterContext& setInlineClient(InlineClient* inlineClient);
+
     // ACCESSORS
     DispatcherClient*                   client() const;
     const bmqp_ctrlmsg::ClientIdentity& identity() const;
@@ -225,6 +280,8 @@ class QueueHandleRequesterContext {
     RequesterId requesterId() const;
 
     const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
+
+    InlineClient* inlineClient() const;
 
     /// Return true if the requester node is first hop after the client (or
     /// last hop before the client).
@@ -1025,6 +1082,52 @@ class QueueHandleFactory {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
+inline const char* InlineResult::toAscii(InlineResult::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(SUCCESS)
+        CASE(UNAVAILABLE)
+        CASE(CHANNEL_ERROR)
+        CASE(INVALID_PARTITION)
+        CASE(INVALID_PRIMARY)
+        CASE(INVALID_GEN_COUNT)
+        CASE(SELF_PRIMARY)
+    default: return "(* UNKNOWN *)";
+    }
+#undef CASE
+}
+
+inline bool InlineResult::isPermanentError(InlineResult::Enum value)
+{
+    if (value == InlineResult::Enum::e_INVALID_PARTITION ||
+        value == InlineResult::Enum::e_SELF_PRIMARY) {
+        return true;  // RETURN
+    }
+    else {
+        return false;  // RETURN
+    }
+}
+
+inline bmqt::AckResult::Enum
+InlineResult::toAckResult(InlineResult::Enum value)
+{
+    bmqt::AckResult::Enum ackResult = bmqt::AckResult::e_SUCCESS;
+
+    if (value == InlineResult::Enum::e_SUCCESS) {
+        ackResult = bmqt::AckResult::e_SUCCESS;
+    }
+    else if (value == InlineResult::Enum::e_INVALID_PARTITION) {
+        ackResult = bmqt::AckResult::e_INVALID_ARGUMENT;
+    }
+    else {
+        ackResult = bmqt::AckResult::e_UNKNOWN;
+    }
+    return ackResult;
+}
+
 // -----------------------
 // struct OpenQueueContext
 // -----------------------
@@ -1177,6 +1280,7 @@ inline QueueHandleRequesterContext::QueueHandleRequesterContext(
 , d_isClusterMember(false)
 , d_requesterId(k_INVALID_REQUESTER_ID)
 , d_statContext_sp()
+, d_inlineClient_p(0)
 {
     // NOTHING
 }
@@ -1224,6 +1328,15 @@ QueueHandleRequesterContext::setStatContext(
     return *this;
 }
 
+inline QueueHandleRequesterContext&
+QueueHandleRequesterContext::setInlineClient(InlineClient* inlineClient)
+{
+    BSLS_ASSERT_SAFE(inlineClient);
+
+    d_inlineClient_p = inlineClient;
+    return *this;
+}
+
 inline DispatcherClient* QueueHandleRequesterContext::client() const
 {
     return d_client_p;
@@ -1260,6 +1373,11 @@ inline const bsl::shared_ptr<bmqst::StatContext>&
 QueueHandleRequesterContext::statContext() const
 {
     return d_statContext_sp;
+}
+
+inline InlineClient* QueueHandleRequesterContext::inlineClient() const
+{
+    return d_inlineClient_p;
 }
 
 }  // close package namespace

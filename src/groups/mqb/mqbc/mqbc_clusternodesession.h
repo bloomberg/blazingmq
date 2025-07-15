@@ -51,8 +51,92 @@
 namespace BloombergLP {
 namespace mqbc {
 
-// FORWARD DECLARATION
-class ClusterState;
+// ================
+// class AtomicGate
+// ================
+
+class AtomicGate {
+    // This thread-safe mechanism maintains binary state (open/close) allowing
+    // efficiently check the state ('tryEnter'/'leave'), change it to open
+    // ('open'), and to close ('closeAndDrain') waiting for all 'leave' calls
+    // matching 'tryEnter' calls.
+
+  private:
+    // PRIVATE TYPES
+
+    /// The Enum values have arithmetical meaning and cannot be changed, or
+    /// extended, or reordered.
+    enum Enum { e_INIT = 0, e_CLOSE = 1, e_ENTER = 2 };
+
+    // PRIVATE DATA
+    bsls::AtomicInt d_value;
+
+  public:
+    // CREATORS
+    AtomicGate(bool isOpen);
+    ~AtomicGate();
+
+    // MANIPULATORS
+    void closeAndDrain();
+    // Write lock.
+
+    void open();
+    // Undo 'closeAndDrain'.
+
+    bool tryEnter();
+    // Return true if 'closeAndDrain' has not been called.
+
+    void leave();
+    // Undo 'tryEnter'.  The behavior is undefined if 'tryEnter'
+    // has returned 'false', or if called more than once.
+};
+
+// ================
+// class GateKeeper
+// ================
+
+class GateKeeper {
+    // This mechanism is a wrapper around 'AtomicGate' allowing 'tryEnter'
+    // and 'leave' using RAII ('Status').
+    // 'open' and 'close' are not thread-safe and can be called from the thread
+    // maintaining the status, while 'Status' ('tryEnter'/'leave') is
+    // thread-safe and can be called from any thread attempting to 'enter' the
+    // gate.
+
+  private:
+    // DATA
+    AtomicGate d_gate;
+    bool       d_isOpen;
+
+  public:
+    // TYPES
+    class Status {
+      private:
+        // DATA
+        AtomicGate& d_gate;
+        bool        d_isOpen;
+
+      private:
+        // NOT IMPLEMENTED
+        Status(const Status& other) BSLS_KEYWORD_DELETED;
+
+      public:
+        // CREATORS
+        Status(GateKeeper& lock);
+        ~Status();
+
+        // ACCESSORS
+        bool isOpen() const;
+    };
+
+  public:
+    // CREATORS
+    GateKeeper();
+
+    // MANIPULATORS
+    void open();
+    void close();
+};
 
 // ========================
 // class ClusterNodeSession
@@ -60,7 +144,8 @@ class ClusterState;
 
 /// Provide a session for interaction with BlazingMQ cluster node.
 class ClusterNodeSession : public mqbi::DispatcherClient,
-                           public mqbi::QueueHandleRequester {
+                           public mqbi::QueueHandleRequester,
+                           public mqbi::InlineClient {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.CLUSTERNODESESSION");
@@ -164,12 +249,17 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
     // Extra reference to the stat context
     bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
-
     /// PartitionIds for which this node is the primary.
     bsl::vector<int> d_primaryPartitions;
 
     /// List of queue handles opened on this node by `d_clusterNode_p`.
     QueueHandleMap d_queueHandles;
+
+    /// Gates controlling sending messages inline (from multiple threads).
+    GateKeeper d_gatePush;
+    GateKeeper d_gateAck;
+    GateKeeper d_gatePut;
+    GateKeeper d_gateConfirm;
 
   private:
     // NOT IMPLEMENTED
@@ -216,7 +306,11 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
 
-    void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value);
+    /// @brief Update the status of this node session.
+    /// @param other Node status of the node this session is connected to.
+    /// @param self Node status of the node this session belongs to.
+    void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
+                       bmqp_ctrlmsg::NodeStatus::Value self);
 
     void setPeerInstanceId(int value);
 
@@ -241,6 +335,31 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Remove all partitions from the list of partitions for which this
     /// node is the primary.
     void removeAllPartitions();
+
+    //   (virtual: mqbi::InlineClient)
+    mqbi::InlineResult::Enum
+    sendPush(const bmqt::MessageGUID&                  msgGUID,
+             int                                       queueId,
+             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const mqbi::StorageMessageAttributes&     attributes,
+             const bmqp::MessagePropertiesInfo&        mps,
+             const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
+        BSLS_KEYWORD_OVERRIDE;
+    // Called by the 'queueId' to deliver the specified 'message' with the
+    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
+    // specified 'subQueueInfos' streams of the queue.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    mqbi::InlineResult::Enum
+    sendAck(int                     queueId,
+            const bmqp::AckMessage& ackMessage) BSLS_KEYWORD_OVERRIDE;
+    // Called by the 'queueId' to send the specified 'ackMessage'.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    GateKeeper& gatePut();
+    GateKeeper& gateConfirm();
 
     // ACCESSORS
 
@@ -292,6 +411,115 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 // ============================================================================
 //                            INLINE DEFINITIONS
 // ============================================================================
+
+// ----------------
+// class AtomicGate
+// ----------------
+
+inline AtomicGate::AtomicGate(bool isOpen)
+: d_value(isOpen ? e_INIT : e_CLOSE)
+{
+    // NOTHING
+}
+
+inline AtomicGate::~AtomicGate()
+{
+    BSLS_ASSERT_SAFE(d_value <= e_CLOSE);
+}
+
+// MANIPULATORS
+inline void AtomicGate::closeAndDrain()
+{
+    int result = d_value.add(e_CLOSE);
+
+    BSLS_ASSERT_SAFE(result & e_CLOSE);
+    // Do not support more than one writer
+
+    // Spin while locked result > e_CLOSE
+
+    while (result > e_CLOSE) {
+        bslmt::ThreadUtil::yield();
+        result = d_value;
+    }
+}
+
+inline bool AtomicGate::tryEnter()
+{
+    const int result = d_value.add(e_ENTER);
+
+    if (result & e_CLOSE) {
+        d_value.subtract(e_ENTER);
+        return false;  // RETURN
+    }
+    else {
+        return true;  // RETURN
+    }
+}
+
+inline void AtomicGate::open()
+{
+    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_CLOSE);
+
+    BSLS_ASSERT_SAFE(result >= e_INIT);
+    BSLS_ASSERT_SAFE((result & e_CLOSE) == 0);
+}
+
+inline void AtomicGate::leave()
+{
+    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_ENTER);
+
+    BSLS_ASSERT_SAFE(result >= e_INIT);
+}
+
+// ------------------------
+// class GateKeeper::Status
+// ------------------------
+
+inline GateKeeper::Status::Status(GateKeeper& gateKeeper)
+: d_gate(gateKeeper.d_gate)
+, d_isOpen(d_gate.tryEnter())
+{
+    // NOTHING
+}
+
+inline GateKeeper::Status::~Status()
+{
+    if (d_isOpen) {
+        d_gate.leave();
+    }
+}
+
+inline bool GateKeeper::Status::isOpen() const
+{
+    return d_isOpen;
+}
+
+// ----------------
+// class GateKeeper
+// ----------------
+
+inline GateKeeper::GateKeeper()
+: d_gate(false)
+, d_isOpen(false)
+{
+    // NOTHING
+}
+
+inline void GateKeeper::open()
+{
+    if (!d_isOpen) {
+        d_isOpen = true;
+        d_gate.open();
+    }
+}
+
+inline void GateKeeper::close()
+{
+    if (d_isOpen) {
+        d_isOpen = false;
+        d_gate.closeAndDrain();
+    }
+}
 
 // ---------------------------------------
 // struct ClientSessionState::SubQueueInfo
@@ -351,9 +579,50 @@ inline mqbi::DispatcherClientData& ClusterNodeSession::dispatcherClientData()
 }
 
 inline void
-ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
+ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
+                                  bmqp_ctrlmsg::NodeStatus::Value self)
 {
-    d_nodeStatus = value;
+    // executed by the *DISPATCHER* thread
+
+    d_nodeStatus = other;
+
+    if ((other != bmqp_ctrlmsg::NodeStatus::E_AVAILABLE &&
+         other != bmqp_ctrlmsg::NodeStatus::E_STOPPING) ||
+        (self != bmqp_ctrlmsg::NodeStatus::E_AVAILABLE &&
+         self != bmqp_ctrlmsg::NodeStatus::E_STOPPING)) {
+        d_gatePush.close();
+        d_gateAck.close();
+        d_gatePut.close();
+        d_gateConfirm.close();
+    }
+    else {
+        // Both are either E_AVAILABLE or E_STOPPING
+        d_gateAck.open();
+        d_gateConfirm.open();
+
+        if (other == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
+            // Even if self is E_STOPPING, do allow PUTs.
+            // Otherwise, broadcast PUTs can be lost in the following scenario:
+            // This node sends StopRequest to a downstream while some broadcast
+            // PUTs "cross" the StopRequest.
+
+            d_gatePut.open();
+            if (self == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
+                d_gatePush.open();
+            }
+            else {
+                // Do NOT process PUSH in the E_STOPPING state.
+                d_gatePush.close();
+            }
+        }
+        else {
+            // But do NOT send to E_STOPPING upstream.
+            d_gatePut.close();
+
+            // Do NOT send PUSH to E_STOPPING upstream.
+            d_gatePush.close();
+        }
+    }
 }
 
 inline void ClusterNodeSession::setPeerInstanceId(int value)
@@ -389,6 +658,16 @@ inline ClusterNodeSession::QueueHandleMap& ClusterNodeSession::queueHandles()
 inline mqbi::Dispatcher* ClusterNodeSession::dispatcher()
 {
     return d_cluster_p->dispatcher();
+}
+
+inline GateKeeper& ClusterNodeSession::gatePut()
+{
+    return d_gatePut;
+}
+
+inline GateKeeper& ClusterNodeSession::gateConfirm()
+{
+    return d_gateConfirm;
 }
 
 inline const mqbi::Dispatcher* ClusterNodeSession::dispatcher() const

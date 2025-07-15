@@ -659,9 +659,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                             const bmqp_ctrlmsg::ControlMessage&   request,
                             mqbc::ClusterNodeSession*             requester);
     void onHandleConfiguredDispatched(
-        const bmqp_ctrlmsg::Status&           status,
+        int                                   qId,
         const bmqp_ctrlmsg::StreamParameters& streamParameters,
-        const bmqp_ctrlmsg::ControlMessage&   request,
         mqbc::ClusterNodeSession*             requester);
 
     void onGetDomain(const bmqp_ctrlmsg::Status&         status,

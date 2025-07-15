@@ -2580,31 +2580,12 @@ void ClusterQueueHelper::onHandleConfigured(
 {
     // executed by *ANY* thread
 
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bindS(
-            d_allocator_p,
-            &ClusterQueueHelper::onHandleConfiguredDispatched,
-            this,
-            status,
-            streamParameters,
-            request,
-            requester),
-        d_cluster_p);
-}
+    // Make sure the response is out; otherwise inline PUSH (in queue thread)
+    // can get to the channel before the response.
 
-void ClusterQueueHelper::onHandleConfiguredDispatched(
-    const bmqp_ctrlmsg::Status&           status,
-    const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    const bmqp_ctrlmsg::ControlMessage&   request,
-    mqbc::ClusterNodeSession*             requester)
-{
-    // executed by the *CLUSTER* dispatcher thread
+    // 'synchronize' (Queue with the Cluster) would result in a dead-lock if
+    // 'Queue::configure' synchronizes Cluster with Queue.
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    // Send the response (always success)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -2644,25 +2625,47 @@ void ClusterQueueHelper::onHandleConfiguredDispatched(
             configureStream.streamParameters() = streamParameters;
         }
 
-        // Need to rebuild Subscriptions
-        CNSQueueHandleMap::iterator it = requester->queueHandles().find(qId);
-        if (it == requester->queueHandles().end()) {
-            // Failure.
-
-            BMQ_LOGTHROTTLE_WARN
-                << d_cluster_p->description()
-                << ": Received configureStream response from ["
-                << requester->description() << "] for a queue with unknown Id "
-                << "(" << qId << ").";
-        }
-        else {
-            it->second.d_subQueueInfosMap.addSubscriptions(streamParameters);
-        }
+        // Need to rebuild Subscriptions in the Cluster thread.
+        d_cluster_p->dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterQueueHelper::onHandleConfiguredDispatched,
+                this,
+                qId,
+                streamParameters,
+                requester),
+            d_cluster_p);
     }
 
-    d_clusterData_p->messageTransmitter().sendMessage(
+    d_clusterData_p->messageTransmitter().sendMessageSafe(
         response,
         requester->clusterNode());
+}
+
+void ClusterQueueHelper::onHandleConfiguredDispatched(
+    int                                   qId,
+    const bmqp_ctrlmsg::StreamParameters& streamParameters,
+    mqbc::ClusterNodeSession*             requester)
+{
+    // executed by the *CLUSTER* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    // Need to rebuild Subscriptions
+    CNSQueueHandleMap::iterator it = requester->queueHandles().find(qId);
+    if (it == requester->queueHandles().end()) {
+        // Failure.
+
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << ": Received configureStream response from ["
+                             << requester->description()
+                             << "] for a queue with unknown Id (" << qId
+                             << ").";
+    }
+    else {
+        it->second.d_subQueueInfosMap.addSubscriptions(streamParameters);
+    }
 }
 
 void ClusterQueueHelper::onGetDomain(

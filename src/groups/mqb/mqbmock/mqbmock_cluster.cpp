@@ -193,7 +193,8 @@ void Cluster::_initializeNodeSessions()
                                     statContextSp,
                                     d_allocator_p);
 
-        nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE);
+        nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE,
+                                     bmqp_ctrlmsg::NodeStatus::E_AVAILABLE);
 
         clusterMembership.clusterNodeSessionMap().insert(
             bsl::make_pair(*nodeIter, nodeSessionSp));
@@ -249,6 +250,7 @@ Cluster::Cluster(bslma::Allocator*        allocator,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
+, d_putFunctor(bsl::allocator_arg, d_allocator_p)
 , d_resources(&d_scheduler, &d_bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
@@ -476,6 +478,31 @@ int Cluster::processCommand(mqbcmd::ClusterResult*        result,
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* out)
 {
     out->makeClusterStatus();
+}
+
+mqbi::InlineResult::Enum
+Cluster::sendConfirmInline(BSLA_UNUSED int   partitionId,
+                           BSLA_UNUSED const bmqp::ConfirmMessage& message)
+{
+    return mqbi::InlineResult::e_UNAVAILABLE;
+}
+
+mqbi::InlineResult::Enum
+Cluster::sendPutInline(int                                       partitionId,
+                       const bmqp::PutHeader&                    putHeader,
+                       const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                       const bsl::shared_ptr<bdlbb::Blob>&       options,
+                       const bsl::shared_ptr<bmqu::AtomicState>& state,
+                       bsls::Types::Uint64                       genCount)
+{
+    BSLS_ASSERT_SAFE(d_putFunctor);
+
+    return d_putFunctor(partitionId,
+                        putHeader,
+                        appData,
+                        options,
+                        state,
+                        genCount);
 }
 
 void Cluster::purgeAndGCQueueOnDomain(
