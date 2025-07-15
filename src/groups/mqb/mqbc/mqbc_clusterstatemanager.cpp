@@ -1434,7 +1434,12 @@ void ClusterStateManager::setPrimary(int                  partitionId,
                      d_state_p->partitions().size());
     BSLS_ASSERT_SAFE(primary);
 
-    d_state_p->setPartitionPrimary(partitionId, leaseId, primary);
+    ClusterNodeSession* ns =
+        d_clusterData_p->membership().getClusterNodeSession(primary);
+
+    BSLS_ASSERT_SAFE(ns);
+
+    d_state_p->setPartitionPrimary(partitionId, leaseId, ns);
 }
 
 void ClusterStateManager::setPrimaryStatus(
