@@ -215,7 +215,7 @@ class Cluster : public DispatcherClient {
         const bmqp_ctrlmsg::Status&            status,
         QueueHandle*                           queueHandle,
         const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
-        const OpenQueueConfirmationCookie&     confirmationCookie)>
+        const OpenQueueConfirmationCookieSp&   confirmationCookie)>
         OpenQueueCallback;
 
     // TYPES

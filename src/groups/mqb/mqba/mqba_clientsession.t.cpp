@@ -605,11 +605,11 @@ class MyMockDomain : public mqbmock::Domain {
                                     handleParameters,
                                     d_allocator_p);
 
-        mqbi::OpenQueueConfirmationCookie confirmationCookie;
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie;
         confirmationCookie.createInplace(d_allocator_p, d_queueHandle.get());
 
-        confirmationCookie->d_stats.createInplace(d_allocator_p);
-        confirmationCookie->d_stats->initialize(
+        confirmationCookie->d_stats_sp.createInplace(d_allocator_p);
+        confirmationCookie->d_stats_sp->initialize(
             uri,
             clientContext->statContext().get(),
             d_allocator_p);

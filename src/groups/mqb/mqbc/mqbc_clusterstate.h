@@ -597,8 +597,8 @@ class ClusterState {
     // -----------------
 
     /// Update the status of the specified `partitionId`, to indicate that
-    /// the specified `node` is the primary, with the specified `leaseId`.
-    /// If `node` is a null pointer, this means the partition has no
+    /// the node of the specified `ns` is the primary, with the specified
+    /// `leaseId`.  If `ns` is a null pointer, this means the partition has no
     /// primary.  This will notify all active observers by invoking
     /// `onPartitionPrimaryAssignment()` on each of them, with the
     /// `partitionId` and `node` as parameters.  The bahavior is undefined

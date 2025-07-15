@@ -56,6 +56,7 @@ InlineClient::~InlineClient()
 {
     // NOTHING
 }
+
 // --------------------------
 // class QueueHandleRequester
 // --------------------------

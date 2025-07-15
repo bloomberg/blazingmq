@@ -220,13 +220,13 @@ void QueueSessionManager::onDomainOpenCb(
 }
 
 void QueueSessionManager::onQueueOpenCb(
-    const bmqp_ctrlmsg::Status&              status,
-    mqbi::QueueHandle*                       queueHandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-    const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
-    const GetHandleCallback&                 responseCallback,
-    const bmqp_ctrlmsg::ControlMessage&      request,
-    const bmqu::AtomicValidatorSp&           validator)
+    const bmqp_ctrlmsg::Status&                status,
+    mqbi::QueueHandle*                         queueHandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+    const GetHandleCallback&                   responseCallback,
+    const bmqp_ctrlmsg::ControlMessage&        request,
+    const bmqu::AtomicValidatorSp&             validator)
 {
     // executed by *ANY* thread
 
@@ -256,12 +256,12 @@ void QueueSessionManager::onQueueOpenCb(
 }
 
 void QueueSessionManager::onQueueOpenCbDispatched(
-    const bmqp_ctrlmsg::Status&              status,
-    mqbi::QueueHandle*                       queueHandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-    const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
-    const GetHandleCallback&                 responseCallback,
-    const bmqp_ctrlmsg::ControlMessage&      request)
+    const bmqp_ctrlmsg::Status&                status,
+    mqbi::QueueHandle*                         queueHandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+    const GetHandleCallback&                   responseCallback,
+    const bmqp_ctrlmsg::ControlMessage&        request)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -310,8 +310,9 @@ void QueueSessionManager::onQueueOpenCbDispatched(
         QueueState::StreamsMap::iterator subQueueInfo =
             qs.d_subQueueInfosMap.insert(apppId, queueId.subId(), queueId);
 
-        if (!subQueueInfo->value().d_stats && confirmationCookie->d_stats) {
-            subQueueInfo->value().d_stats = confirmationCookie->d_stats;
+        if (!subQueueInfo->value().d_stats_sp &&
+            confirmationCookie->d_stats_sp) {
+            subQueueInfo->value().d_stats_sp = confirmationCookie->d_stats_sp;
 
             const bsl::string& domain = queueHandle->queue()->domain()->name();
             const bsl::string& cluster =
@@ -324,10 +325,11 @@ void QueueSessionManager::onQueueOpenCbDispatched(
             const bsls::Types::Int64 queueFlags =
                 queueHandle->handleParameters().flags();
 
-            createQueueStatsDatum(subQueueInfo->value().d_stats->statContext(),
-                                  domain,
-                                  cluster,
-                                  queueFlags);
+            createQueueStatsDatum(
+                subQueueInfo->value().d_stats_sp->statContext(),
+                domain,
+                cluster,
+                queueFlags);
         }
     }
 
@@ -502,7 +504,7 @@ void QueueSessionManager::dispatchErrorCallback(
 QueueSessionManager::QueueSessionManager(
     mqbi::DispatcherClient*                    dispatcherClient,
     const bmqp_ctrlmsg::ClientIdentity&        clientIdentity,
-    const bsl::shared_ptr<bmqst::StatContext>& statContext,
+    const bsl::shared_ptr<bmqst::StatContext>& statContext_sp,
     mqbi::DomainFactory*                       domainFactory,
     bslma::Allocator*                          allocator)
 : d_dispatcherClient_p(dispatcherClient)
@@ -515,7 +517,7 @@ QueueSessionManager::QueueSessionManager(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcherClient_p != 0);
-    BSLS_ASSERT_SAFE(statContext);
+    BSLS_ASSERT_SAFE(statContext_sp);
     BSLS_ASSERT_SAFE(d_domainFactory_p != 0);
 
     d_requesterContext_sp->setClient(dispatcherClient)
@@ -523,8 +525,8 @@ QueueSessionManager::QueueSessionManager(
         .setDescription(dispatcherClient->description())
         .setIsClusterMember(false)
         .setRequesterId(
-            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId())
-        .setStatContext(statContext);
+            mqbi::QueueHandleRequesterContext::generateUniqueRequesterId())
+        .setStatContext(statContext_sp);
 }
 
 QueueSessionManager::~QueueSessionManager()

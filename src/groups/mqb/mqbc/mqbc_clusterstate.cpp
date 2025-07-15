@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbc_clusterstate.cpp                                              -*-C++-*-
-#include <mqbc_clusternodesession.h>
 #include <mqbc_clusterstate.h>
 
 #include <mqbscm_version.h>

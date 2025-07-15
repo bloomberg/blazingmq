@@ -249,8 +249,8 @@ Cluster::Cluster(bslma::Allocator*        allocator,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
-, d_putFunctor()
-, d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
+, d_putFunctor(bsl::allocator_arg, d_allocator_p)
+, d_resources(&d_scheduler, &d_bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
     if (isClusterMember) {
@@ -480,9 +480,9 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* out)
     out->makeClusterStatus();
 }
 
-mqbi::InlineResult::Enum Cluster::sendConfirmInline(
-    BSLS_ANNOTATION_UNUSED int   partitionId,
-    BSLS_ANNOTATION_UNUSED const bmqp::ConfirmMessage& message)
+mqbi::InlineResult::Enum
+Cluster::sendConfirmInline(BSLA_UNUSED int   partitionId,
+                           BSLA_UNUSED const bmqp::ConfirmMessage& message)
 {
     return mqbi::InlineResult::e_UNAVAILABLE;
 }
@@ -495,6 +495,8 @@ Cluster::sendPutInline(int                                       partitionId,
                        const bsl::shared_ptr<bmqu::AtomicState>& state,
                        bsls::Types::Uint64                       genCount)
 {
+    BSLS_ASSERT_SAFE(d_putFunctor);
+
     return d_putFunctor(partitionId,
                         putHeader,
                         appData,

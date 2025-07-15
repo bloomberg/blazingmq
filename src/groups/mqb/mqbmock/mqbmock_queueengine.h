@@ -111,7 +111,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// `handleParameters`, and invoke the specified `callback` when
     /// finished.
     mqbi::QueueHandle*
-    getHandle(const mqbi::OpenQueueConfirmationCookie& context,
+    getHandle(const mqbi::OpenQueueConfirmationCookieSp& context,
               const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                           clientContext,
               const bmqp_ctrlmsg::QueueHandleParameters&  handleParameters,

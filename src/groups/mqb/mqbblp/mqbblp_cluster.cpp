@@ -1388,9 +1388,6 @@ Cluster::sendConfirmInline(int                         partitionId,
     // is a replica so this node just needs to forward the message to queue's
     // partition's primary node (after appropriate checks).
 
-    const int id    = message.queueId();
-    const int subId = message.subQueueId();
-
     if (mqbs::DataStore::k_INVALID_PARTITION_ID == partitionId) {
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
@@ -1423,8 +1420,10 @@ Cluster::sendConfirmInline(int                         partitionId,
         return mqbi::InlineResult::e_SELF_PRIMARY;  // RETURN
     }
 
-    bmqt::GenericResult::Enum rc =
-        primary->channel().writeConfirm(id, subId, message.messageGUID());
+    bmqt::GenericResult::Enum rc = primary->channel().writeConfirm(
+        message.queueId(),
+        message.subQueueId(),
+        message.messageGUID());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             rc != bmqt::GenericResult::e_SUCCESS)) {
@@ -1436,13 +1435,13 @@ Cluster::sendConfirmInline(int                         partitionId,
     return mqbi::InlineResult::e_SUCCESS;
 }
 
-mqbi::InlineResult::Enum Cluster::sendPutInline(
-    int                                 partitionId,
-    const bmqp::PutHeader&              putHeader,
-    const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-    const bsl::shared_ptr<bmqu::AtomicState>&                  state,
-    bsls::Types::Uint64                                        genCount)
+mqbi::InlineResult::Enum
+Cluster::sendPutInline(int                                 partitionId,
+                       const bmqp::PutHeader&              putHeader,
+                       const bsl::shared_ptr<bdlbb::Blob>& appData,
+                       BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+                       const bsl::shared_ptr<bmqu::AtomicState>&       state,
+                       bsls::Types::Uint64 genCount)
 {
     // executed by *ANY* thread
 

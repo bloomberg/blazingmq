@@ -662,7 +662,7 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
             queueStats = invalidQueueStats();
         }
         else {
-            queueStats = subQueueCiter->value().d_stats.get();
+            queueStats = subQueueCiter->value().d_stats_sp.get();
         }
     }
 

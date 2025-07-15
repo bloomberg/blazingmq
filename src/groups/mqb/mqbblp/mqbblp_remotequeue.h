@@ -350,7 +350,7 @@ class RemoteQueue {
     /// result.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void getHandle(const mqbi::OpenQueueConfirmationCookie& context,
+    void getHandle(const mqbi::OpenQueueConfirmationCookieSp& context,
                    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,

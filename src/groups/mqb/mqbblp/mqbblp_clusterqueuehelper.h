@@ -637,7 +637,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                             const bmqp_ctrlmsg::ControlMessage&   request,
                             mqbc::ClusterNodeSession*             requester);
     void onHandleConfiguredDispatched(
-        unsigned int                          qId,
+        int                                   qId,
         const bmqp_ctrlmsg::StreamParameters& streamParameters,
         mqbc::ClusterNodeSession*             requester);
 
@@ -645,7 +645,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                      mqbi::Domain*                       domain,
                      const bmqp_ctrlmsg::ControlMessage& request,
                      mqbc::ClusterNodeSession*           requester,
-                     const int                           peerInstanceId);
+                     int                                 peerInstanceId);
 
     /// Callback invoked in response to an open domain query (in the
     /// specified `request`) made to the domain factory on behalf of the
@@ -661,11 +661,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                const int peerInstanceId);
 
     void onGetQueueHandle(
-        const bmqp_ctrlmsg::Status&              status,
-        mqbi::QueueHandle*                       queueHandle,
-        const OpenQueueContextSp&                context,
-        const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-        const mqbi::OpenQueueConfirmationCookie& confirmationCookie);
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const OpenQueueContextSp&                  context,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie);
 
     /// Callback invoked in response to an open queue request to the domain
     /// (in the specified `request`).  If the specified `status` is SUCCESS,
@@ -677,13 +677,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// `status` contains the category, error code and description of the
     /// failure.  The `queueHandle` must be released once no longer needed.
     void onGetQueueHandleDispatched(
-        const bmqp_ctrlmsg::Status&              status,
-        mqbi::QueueHandle*                       queueHandle,
-        const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-        const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
-        const bmqp_ctrlmsg::ControlMessage&      request,
-        mqbc::ClusterNodeSession*                requester,
-        const int                                peerInstanceId);
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+        const bmqp_ctrlmsg::ControlMessage&        request,
+        mqbc::ClusterNodeSession*                  requester,
+        const int                                  peerInstanceId);
 
     void reconfigureCallback(
         const bmqp_ctrlmsg::Status&           status,

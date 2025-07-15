@@ -1224,7 +1224,7 @@ void ClusterProxy::purgeAndGCQueueOnDomain(
 }
 
 mqbi::InlineResult::Enum
-ClusterProxy::sendConfirmInline(BSLS_ANNOTATION_UNUSED int  partitionId,
+ClusterProxy::sendConfirmInline(BSLA_UNUSED int             partitionId,
                                 const bmqp::ConfirmMessage& message)
 {
     // executed by the *ANY* thread
@@ -1238,13 +1238,12 @@ ClusterProxy::sendConfirmInline(BSLS_ANNOTATION_UNUSED int  partitionId,
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
     }
 
-    bmqt::GenericResult::Enum rc;
-
     BSLS_ASSERT_SAFE(d_activeNode_p);
 
-    rc = d_activeNode_p->channel().writeConfirm(message.queueId(),
-                                                message.subQueueId(),
-                                                message.messageGUID());
+    bmqt::GenericResult::Enum rc = d_activeNode_p->channel().writeConfirm(
+        message.queueId(),
+        message.subQueueId(),
+        message.messageGUID());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             rc != bmqt::GenericResult::e_SUCCESS)) {
@@ -1256,12 +1255,12 @@ ClusterProxy::sendConfirmInline(BSLS_ANNOTATION_UNUSED int  partitionId,
 }
 
 mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
-    BSLS_ANNOTATION_UNUSED int          partitionId,
+    BSLA_UNUSED int                     partitionId,
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-    const bsl::shared_ptr<bmqu::AtomicState>&                  state,
-    bsls::Types::Uint64                                        genCount)
+    BSLA_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    const bsl::shared_ptr<bmqu::AtomicState>&       state,
+    bsls::Types::Uint64                             genCount)
 {
     // This event is invoked as a result of RemoteQueue asking cluster proxy to
     // relay PUT message to cluster on it's behalf.  Note that we don't check
@@ -1289,9 +1288,8 @@ mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
         return mqbi::InlineResult::e_INVALID_PRIMARY;  // RETURN
     }
 
-    bmqt::GenericResult::Enum rc;
-
-    rc = d_activeNode_p->channel().writePut(putHeader, appData, state);
+    bmqt::GenericResult::Enum rc =
+        d_activeNode_p->channel().writePut(putHeader, appData, state);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             rc != bmqt::GenericResult::e_SUCCESS)) {

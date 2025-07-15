@@ -157,13 +157,15 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// opened in this session.
     struct SubQueueInfo {
         /// Stats of this SubQueue, with regards to the client.
-        bsl::shared_ptr<mqbstat::QueueStatsClient> d_clientStats;
+        bsl::shared_ptr<mqbstat::QueueStatsClient> d_clientStats_sp;
 
         // CREATORS
 
         /// Constructor of a new object, initializes all data members to
         /// default values.
         SubQueueInfo();
+
+        // ACCESSORS
         void onEvent(mqbstat::QueueStatsClient::EventType::Enum type,
                      bsls::Types::Int64                         value) const;
     };
@@ -251,11 +253,14 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// List of queue handles opened on this node by `d_clusterNode_p`.
     QueueHandleMap d_queueHandles;
 
+    /// Gates controlling sending messages inline (from multiple threads).
     GateKeeper d_gatePush;
     GateKeeper d_gateAck;
     GateKeeper d_gatePut;
     GateKeeper d_gateConfirm;
-    // Gates controlling sending messages inline (from multiple threads).
+
+    // Extra reference to the stat context
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
 
   private:
     // NOT IMPLEMENTED
@@ -302,6 +307,9 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
 
+    /// @brief Update the status of this node session.
+    /// @param other Node status of the node this session is connected to.
+    /// @param self Node status of the node this session belongs to.
     void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
                        bmqp_ctrlmsg::NodeStatus::Value self);
 
@@ -334,7 +342,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// node is the primary.
     void removeAllPartitions();
 
-    //   (virtual: mqbi::QueueHandleClient)
+    //   (virtual: mqbi::InlineClient)
     mqbi::InlineResult::Enum
     sendPush(const bmqt::MessageGUID&                  msgGUID,
              int                                       queueId,
@@ -350,16 +358,16 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     // THREAD: This method is called from the Queue's dispatcher thread.
 
     mqbi::InlineResult::Enum
-    sendAck(const bmqp::AckMessage& ackMessage,
-            unsigned int            queueId) BSLS_KEYWORD_OVERRIDE;
+    sendAck(int                     queueId,
+            const bmqp::AckMessage& ackMessage) BSLS_KEYWORD_OVERRIDE;
     // Called by the 'queueId' to send the specified 'ackMessage'.
     //
     // THREAD: This method is called from the Queue's dispatcher thread.
 
-    // ACCESSORS
-
     GateKeeper& gatePut();
     GateKeeper& gateConfirm();
+
+    // ACCESSORS
 
     /// Return a pointer to the dispatcher this client is associated with.
     const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE;
@@ -456,20 +464,17 @@ inline bool AtomicGate::tryEnter()
 
 inline void AtomicGate::open()
 {
-    const int result = d_value.subtract(e_CLOSE);
+    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_CLOSE);
 
     BSLS_ASSERT_SAFE(result >= e_INIT);
     BSLS_ASSERT_SAFE((result & e_CLOSE) == 0);
-
-    (void)result;
 }
 
 inline void AtomicGate::leave()
 {
-    const int result = d_value.subtract(e_ENTER);
+    BSLA_MAYBE_UNUSED const int result = d_value.subtract(e_ENTER);
 
     BSLS_ASSERT_SAFE(result >= e_INIT);
-    (void)result;
 }
 
 // ------------------------
@@ -527,16 +532,17 @@ inline void GateKeeper::close()
 // ---------------------------------------
 
 inline ClusterNodeSession::SubQueueInfo::SubQueueInfo()
-: d_clientStats()
+: d_clientStats_sp()
 {
 }
 
+// ACCESSORS
 inline void ClusterNodeSession::SubQueueInfo::onEvent(
     mqbstat::QueueStatsClient::EventType::Enum type,
     bsls::Types::Int64                         value) const
 {
-    if (d_clientStats) {
-        d_clientStats->onEvent(type, value);
+    if (d_clientStats_sp) {
+        d_clientStats_sp->onEvent(type, value);
     }
 }
 
@@ -601,6 +607,11 @@ ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
         d_gateConfirm.open();
 
         if (other == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
+            // Even if self is E_STOPPING, do allow PUTs.
+            // Otherwise, broadcast PUTs can be lost in the following scenario:
+            // This node sends StopRequest to a downstream while some broadcast
+            // PUTs "cross" the StopRequest.
+
             d_gatePut.open();
             if (self == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
                 d_gatePush.open();
@@ -611,9 +622,6 @@ ClusterNodeSession::setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value other,
             }
         }
         else {
-            // DO process PUTs in the E_STOPPING state.  This is for broadcast
-            // PUTs that "cross" StopRequest.  Since remote 'RemoteQueue' did
-            // not buffer  broadcast PUTs data, "crossed" PUTs will be lost.
             // But do NOT send to E_STOPPING upstream.
             d_gatePut.close();
 
@@ -715,7 +723,7 @@ inline int ClusterNodeSession::peerInstanceId() const
 inline const bsl::shared_ptr<bmqst::StatContext>&
 ClusterNodeSession::statContext() const
 {
-    return d_queueHandleRequesterContext_sp->statContext();
+    return d_statContext_sp;
 }
 
 inline const bsl::vector<int>& ClusterNodeSession::primaryPartitions() const

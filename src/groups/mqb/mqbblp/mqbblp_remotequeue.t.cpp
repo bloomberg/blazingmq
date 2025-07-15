@@ -110,7 +110,7 @@ class TestBench {
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
-        PutEvent(const bmqp::PutHeader               header,
+        PutEvent(const bmqp::PutHeader&              header,
                  const bsl::shared_ptr<bdlbb::Blob>& appData,
                  const bsl::shared_ptr<bdlbb::Blob>& options);
     };
@@ -224,7 +224,7 @@ bsl::shared_ptr<mqbmock::Queue> TestBench::getQueue()
     return queue_sp;
 }
 
-TestBench::PutEvent::PutEvent(const bmqp::PutHeader               header,
+TestBench::PutEvent::PutEvent(const bmqp::PutHeader&              header,
                               const bsl::shared_ptr<bdlbb::Blob>& appData,
                               const bsl::shared_ptr<bdlbb::Blob>& options)
 : d_header(header)

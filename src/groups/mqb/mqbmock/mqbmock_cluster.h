@@ -156,9 +156,6 @@ class Cluster : public mqbi::Cluster {
         bsls::Types::Uint64                       genCount)>
         PutFunctor;
 
-    // Signature of a functor method with one parameter, the processor
-    // handle on which it is being executed.
-
   public:
     // CONSTANTS
 

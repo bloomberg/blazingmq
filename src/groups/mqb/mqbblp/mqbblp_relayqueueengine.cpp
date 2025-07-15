@@ -977,7 +977,7 @@ int RelayQueueEngine::rebuildInternalState(
 }
 
 mqbi::QueueHandle* RelayQueueEngine::getHandle(
-    const mqbi::OpenQueueConfirmationCookie&                  context,
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -1117,12 +1117,16 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         }
     }
 
-    mqbi::QueueHandle::SubStreams::const_iterator citSubStream =
-        queueHandle->registerSubStream(
-            downstreamInfo,
-            upstreamSubQueueId,
-            mqbi::QueueCounts(handleParameters.readCount(),
-                              handleParameters.writeCount()));
+    {
+        mqbi::QueueHandle::SubStreams::const_iterator citSubStream =
+            queueHandle->registerSubStream(
+                downstreamInfo,
+                upstreamSubQueueId,
+                mqbi::QueueCounts(handleParameters.readCount(),
+                                  handleParameters.writeCount()));
+
+        context->d_stats_sp = citSubStream->second.d_clientStats_sp;
+    }
 
     // If a new reader/write, insert its (default-valued) stream parameters
     // into our map of consumer stream parameters advertised upstream.
@@ -1137,8 +1141,6 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
             &insertResult.first->second.d_handleParameters,
             handleParameters);
     }
-
-    context->d_stats = citSubStream->second.d_clientStats;
 
     // Inform the requester of the success
     CALLBACK(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "", queueHandle);

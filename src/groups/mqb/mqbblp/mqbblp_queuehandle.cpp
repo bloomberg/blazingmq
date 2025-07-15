@@ -108,9 +108,9 @@ const bsl::string& QueueHandle::Subscription::appId() const
     return d_downstream->d_appId;
 }
 
-const QueueHandle::Stats& QueueHandle::Subscription::stats() const
+const QueueHandle::StatsSp& QueueHandle::Subscription::stats() const
 {
-    return d_downstream->d_stats;
+    return d_downstream->d_stats_sp;
 }
 
 // ----------------------------------
@@ -185,7 +185,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
     unsigned int upstreamSubQueueId = subStream->d_upstreamSubQueueId;
 
     // Update client stats
-    subStream->d_stats->onEvent(
+    subStream->d_stats_sp->onEvent(
         mqbstat::QueueStatsClient::EventType::e_CONFIRM,
         1);
 
@@ -661,7 +661,7 @@ QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
     else {
         BSLS_ASSERT_SAFE(!validateDownstreamId(stream.subId()));
 
-        Stats stats;
+        StatsSp stats;
 
         if (d_clientContext_sp->statContext()) {
             stats.createInplace(d_allocator_p);
@@ -691,7 +691,7 @@ QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
                                            upstreamSubQueueId,
                                            d_allocator_p))
                        .first;
-        infoIter->second.d_clientStats = stats;
+        infoIter->second.d_clientStats_sp = stats;
     }
 
     return infoIter;
@@ -822,7 +822,6 @@ bool QueueHandle::unregisterSubStream(
         d_subStreamInfos.erase(infoIter);
 
         if (subStreamInfo.subId() == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
-            // cache producer stats to avoid lookup
             d_producerStats.reset();
         }
 
@@ -1323,7 +1322,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
                    << ", GUID: " << ackMessage.messageGUID() << ", node '"
                    << d_clientContext_sp->description() << "']";
 
-    mqbi::InlineResult::Enum result = inlineClient->sendAck(ackMessage, id());
+    mqbi::InlineResult::Enum result = inlineClient->sendAck(id(), ackMessage);
     // Override with correct downstream queueId
 
     if (result == mqbi::InlineResult::e_SUCCESS) {

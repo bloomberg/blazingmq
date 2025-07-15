@@ -71,7 +71,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
   private:
     // TYPES
-    typedef bsl::shared_ptr<mqbstat::QueueStatsClient> Stats;
+    typedef bsl::shared_ptr<mqbstat::QueueStatsClient> StatsSp;
 
     /// VST representing downstream substream with all redelivery data.
     /// (Re)created upon `registerSubStream`
@@ -80,11 +80,11 @@ class QueueHandle : public mqbi::QueueHandle {
         const bsl::string               d_appId;
         unsigned int                    d_upstreamSubQueueId;
         mqbi::QueueHandle::RedeliverySp d_data;
-        const Stats                     d_stats;
+        const StatsSp                   d_stats_sp;
 
         Downstream(const bsl::string& appId,
                    unsigned int       upstreamSubQueueId,
-                   const Stats&       stats,
+                   const StatsSp&     stats,
                    bslma::Allocator*  allocator_p);
     };
 
@@ -121,7 +121,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
         const bsl::string& appId() const;
 
-        const Stats& stats() const;
+        const StatsSp& stats() const;
     };
 
     typedef bsl::shared_ptr<Subscription> SubscriptionSp;
@@ -200,7 +200,8 @@ class QueueHandle : public mqbi::QueueHandle {
 
     bmqp::SchemaLearner::Context d_schemaLearnerPushContext;
 
-    Stats d_producerStats;
+    /// cache producer stats to avoid lookup
+    StatsSp d_producerStats;
 
     bslma::Allocator* d_allocator_p;
 
@@ -254,7 +255,7 @@ class QueueHandle : public mqbi::QueueHandle {
     void makeSubStream(const bsl::string& appId,
                        unsigned int       downstreamSubQueueId,
                        unsigned int       upstreamSubQueueId,
-                       const Stats&       stats);
+                       const StatsSp&     stats);
 
     const bsl::shared_ptr<Downstream>&
          downstream(unsigned int subQueueId) const;
@@ -569,7 +570,7 @@ inline mqbi::DispatcherClient* QueueHandle::client()
 inline void QueueHandle::makeSubStream(const bsl::string& appId,
                                        unsigned int       downstreamSubQueueId,
                                        unsigned int       upstreamSubQueueId,
-                                       const Stats&       stats)
+                                       const StatsSp&     stats)
 {
     if (downstreamSubQueueId >= d_downstreams.size()) {
         d_downstreams.resize(downstreamSubQueueId + 1);
@@ -649,15 +650,15 @@ inline bmqp::SchemaLearner::Context& QueueHandle::schemaLearnerContext() const
 }
 
 inline QueueHandle::Downstream::Downstream(const bsl::string& appId,
-                                           unsigned int upstreamSubQueueId,
-                                           const Stats& stats,
+                                           unsigned int   upstreamSubQueueId,
+                                           const StatsSp& stats,
                                            bslma::Allocator* allocator_p)
 : d_appId(appId)
 , d_upstreamSubQueueId(upstreamSubQueueId)
 , d_data(new(*allocator_p)
              mqbi::QueueHandle::UnconfirmedMessageInfoMap(allocator_p),
          allocator_p)
-, d_stats(stats)
+, d_stats_sp(stats)
 {
     // NOTHING
 }

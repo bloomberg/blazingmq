@@ -84,7 +84,7 @@ class QueueHandle;
 class QueueHandleRequesterContext;
 struct OpenQueueContext;
 
-typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookie;
+typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookieSp;
 
 // ============
 // class Domain
@@ -111,10 +111,10 @@ class Domain {
     /// requester (see meaning in the
     /// `mqbi::Cluster::OpenQueueConfirmationCookie` typedef).
     typedef bsl::function<void(
-        const bmqp_ctrlmsg::Status&              status,
-        QueueHandle*                             handle,
-        const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-        const mqbi::OpenQueueConfirmationCookie& confirmationCookie)>
+        const bmqp_ctrlmsg::Status&                status,
+        QueueHandle*                               handle,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie)>
         OpenQueueCallback;
 
   public:

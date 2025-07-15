@@ -52,6 +52,7 @@ ClusterNodeSession::ClusterNodeSession(
 , d_gateAck()
 , d_gatePut()
 , d_gateConfirm()
+, d_statContext_sp(statContext)
 {
     // Note regarding 'd_nodeStatus': it must be initialized with E_UNAVAILABLE
     // because this value indicates that self node is not connected to this
@@ -258,8 +259,7 @@ mqbi::InlineResult::Enum ClusterNodeSession::sendPush(
 }
 
 mqbi::InlineResult::Enum
-ClusterNodeSession::sendAck(const bmqp::AckMessage& ackMessage,
-                            unsigned int            queueId)
+ClusterNodeSession::sendAck(int queueId, const bmqp::AckMessage& ackMessage)
 {
     // executed by the *QUEUE DISPATCHER* thread
 

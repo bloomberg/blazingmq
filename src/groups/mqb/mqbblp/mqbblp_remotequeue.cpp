@@ -621,7 +621,7 @@ void RemoteQueue::close()
 }
 
 void RemoteQueue::getHandle(
-    const mqbi::OpenQueueConfirmationCookie&                  context,
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -1047,10 +1047,9 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                                     options,
                                     state,
                                     ctx.d_genCount);
-        bmqt::AckResult::Enum ackResult = bmqt::AckResult::e_SUCCESS;
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                mqbi::InlineResult::isPermanentError(&ackResult, rc))) {
+                mqbi::InlineResult::isPermanentError(rc))) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // Cannot make progress with this PUT.  NACK and drop it
@@ -1064,6 +1063,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                     << "]. Reason: " << mqbi::InlineResult::toAscii(rc);
             }
             bmqp::AckMessage ackMessage;
+            bmqt::AckResult::Enum ackResult = mqbi::InlineResult::toAckResult(
+                rc);
             ackMessage.setStatus(
                 bmqp::ProtocolUtil::ackResultToCode(ackResult));
 
@@ -1510,14 +1511,13 @@ void RemoteQueue::retransmitPendingMessagesDispatched(
                     it->second.d_state_sp,
                     genCount);
 
-                bmqt::AckResult::Enum ackResult = bmqt::AckResult::e_SUCCESS;
                 if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                        mqbi::InlineResult::isPermanentError(&ackResult,
-                                                             rc))) {
+                        mqbi::InlineResult::isPermanentError(rc))) {
                     BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
                     bmqp::AckMessage ackMessage;
-
+                    bmqt::AckResult::Enum ackResult =
+                        mqbi::InlineResult::toAckResult(rc);
                     ackMessage.setStatus(
                         bmqp::ProtocolUtil::ackResultToCode(ackResult));
                     it = nack(it, ackMessage);

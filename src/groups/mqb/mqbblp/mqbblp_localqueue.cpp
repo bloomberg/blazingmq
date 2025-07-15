@@ -255,7 +255,7 @@ void LocalQueue::close()
 }
 
 void LocalQueue::getHandle(
-    const mqbi::OpenQueueConfirmationCookie&                  context,
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,

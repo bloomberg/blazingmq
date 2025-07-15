@@ -764,7 +764,7 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
             bdlf::PlaceHolders::_1,   // status
             bdlf::PlaceHolders::_2);  // handle
 
-        mqbi::OpenQueueConfirmationCookie confirmationCookie;
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie;
         confirmationCookie.createInplace(d_allocator_p);
 
         d_mockQueue_sp->getHandle(confirmationCookie,
@@ -803,7 +803,7 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
             bdlf::PlaceHolders::_1,
             bdlf::PlaceHolders::_2);
 
-        mqbi::OpenQueueConfirmationCookie confirmationCookie;
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie;
         confirmationCookie.createInplace(d_allocator_p);
 
         d_mockQueue_sp->getHandle(confirmationCookie,

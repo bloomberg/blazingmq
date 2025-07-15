@@ -409,7 +409,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     mqbi::QueueHandle*
-    getHandle(const mqbi::OpenQueueConfirmationCookie& context,
+    getHandle(const mqbi::OpenQueueConfirmationCookieSp& context,
               const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                           clientContext,
               const bmqp_ctrlmsg::QueueHandleParameters&  handleParameters,

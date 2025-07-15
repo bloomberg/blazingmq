@@ -57,9 +57,6 @@ class DomainQualification;
 namespace mqbi {
 class DispatcherClient;
 }
-namespace bmqst {
-class StatContext;
-}
 
 namespace mqbblp {
 
@@ -91,7 +88,7 @@ class QueueSessionManager {
     /// opened in the session
     struct SubQueueInfo {
         /// Stats of this `SubQueue`, with regards to the client.
-        bsl::shared_ptr<mqbstat::QueueStatsClient> d_stats;
+        bsl::shared_ptr<mqbstat::QueueStatsClient> d_stats_sp;
 
         // queueId (id, subId) of the `SubQueue`
         bmqp::QueueId d_queueId;
@@ -165,7 +162,6 @@ class QueueSessionManager {
     // DomainFactory to use, held not owned.
     mqbi::DomainFactory* d_domainFactory_p;
 
-    bslma::Allocator* d_allocator_p;
     // Once this flag is set, either the channel has been destroyed and is no
     // longer valid or we sent the `DisconnectResponse` to the client; in
     // either way, *NO* messages of any sort should be delivered to the client.
@@ -233,14 +229,14 @@ class QueueSessionManager {
                         const bmqp_ctrlmsg::ControlMessage& request,
                         const bmqu::AtomicValidatorSp&      validator);
 
-    void
-    onQueueOpenCb(const bmqp_ctrlmsg::Status&              status,
-                  mqbi::QueueHandle*                       queueHandle,
-                  const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-                  const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
-                  const GetHandleCallback&                 responseCallback,
-                  const bmqp_ctrlmsg::ControlMessage&      request,
-                  const bmqu::AtomicValidatorSp&           validator);
+    void onQueueOpenCb(
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+        const GetHandleCallback&                   responseCallback,
+        const bmqp_ctrlmsg::ControlMessage&        request,
+        const bmqu::AtomicValidatorSp&             validator);
 
     /// Callback invoked in response to an open queue request (in the
     /// specified `controlMessage`).  If the specified `status` is SUCCESS,
@@ -252,12 +248,12 @@ class QueueSessionManager {
     /// of the failure.  The `queueHandle` must be released once no longer
     /// needed.
     void onQueueOpenCbDispatched(
-        const bmqp_ctrlmsg::Status&              status,
-        mqbi::QueueHandle*                       queueHandle,
-        const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
-        const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
-        const GetHandleCallback&                 responseCallback,
-        const bmqp_ctrlmsg::ControlMessage&      request);
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+        const GetHandleCallback&                   responseCallback,
+        const bmqp_ctrlmsg::ControlMessage&        request);
 
     void onHandleReleased(const bsl::shared_ptr<mqbi::QueueHandle>& handle,
                           const mqbi::QueueHandleReleaseResult&     result,
@@ -296,11 +292,12 @@ class QueueSessionManager {
     // CREATORS
 
     /// Create a `QueueSessionManager` object.
-    QueueSessionManager(mqbi::DispatcherClient*             dispatcherClient,
-                        const bmqp_ctrlmsg::ClientIdentity& clientIdentity,
-                        const bsl::shared_ptr<bmqst::StatContext>& statContext,
-                        mqbi::DomainFactory* domainFactory,
-                        bslma::Allocator*    allocator);
+    QueueSessionManager(
+        mqbi::DispatcherClient*                    dispatcherClient,
+        const bmqp_ctrlmsg::ClientIdentity&        clientIdentity,
+        const bsl::shared_ptr<bmqst::StatContext>& statContext_sp,
+        mqbi::DomainFactory*                       domainFactory,
+        bslma::Allocator*                          allocator);
 
     ~QueueSessionManager();
 
@@ -339,7 +336,7 @@ class QueueSessionManager {
 
 inline QueueSessionManager::SubQueueInfo::SubQueueInfo(
     const bmqp::QueueId& queueId)
-: d_stats()
+: d_stats_sp()
 , d_queueId(queueId)
 {
 }
@@ -348,8 +345,8 @@ inline void QueueSessionManager::SubQueueInfo::onEvent(
     mqbstat::QueueStatsClient::EventType::Enum type,
     bsls::Types::Int64                         value) const
 {
-    if (d_stats) {
-        d_stats->onEvent(type, value);
+    if (d_stats_sp) {
+        d_stats_sp->onEvent(type, value);
     }
 }
 

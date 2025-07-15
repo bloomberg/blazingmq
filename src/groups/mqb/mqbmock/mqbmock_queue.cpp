@@ -112,7 +112,7 @@ int Queue::configure(BSLA_UNUSED bsl::ostream& errorDescription,
 }
 
 void Queue::getHandle(
-    const mqbi::OpenQueueConfirmationCookie&                  context,
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
