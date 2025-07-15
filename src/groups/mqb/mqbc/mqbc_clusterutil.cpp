@@ -1066,6 +1066,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster);
     BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
@@ -1128,6 +1129,16 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
                     << "].  PartitionId/QueueKey/AppInfos in storage ["
                     << partitionId << "], [" << queueKey << "], ["
                     << storageAppInfos << "]." << BMQTSK_ALARMLOG_END;
+
+                if (!cluster->isFSMWorkflow()) {
+                    // TODO (FSM); remove this code after switching to FSM
+
+                    // Cache and wait for primary to unregister the queue from
+                    // 'partitionId'
+
+                    clusterState->cacheDoubleAssignment(uri, partitionId);
+                }
+
                 return;  // RETURN
             }
 
