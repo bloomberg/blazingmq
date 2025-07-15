@@ -726,6 +726,32 @@ void ClusterState::clear()
     d_cluster_p = 0;
 }
 
+/// TODO (FSM); remove after switching to FSM
+bool ClusterState::cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId)
+{
+    return d_doubleAssignments.emplace(uri, partitionId).second;
+}
+
+/// TODO (FSM); remove after switching to FSM
+bool ClusterState::extractDoubleAssignment(bmqt::Uri* uri, int* partitionId)
+{
+    for (bsl::unordered_map<const bmqt::Uri, int>::const_iterator cit =
+             d_doubleAssignments.cbegin();
+         cit != d_doubleAssignments.cend();
+         ++cit) {
+        if (mqbs::DataStore::k_ANY_PARTITION_ID == *partitionId ||
+            *partitionId == cit->second) {
+            *uri         = cit->first;
+            *partitionId = cit->second;
+
+            d_doubleAssignments.erase(cit);
+
+            return true;  // RETURN
+        }
+    }
+    return false;
+}
+
 // --------------------------------
 // struct ClusterState::DomainState
 // --------------------------------

@@ -550,6 +550,9 @@ class ClusterState {
     /// Regexp wrapper used to get partition Id.
     PartitionIdExtractor d_partitionIdExtractor;
 
+    /// TODO (FSM); remove after switching to FSM
+    bsl::unordered_map<const bmqt::Uri, int> d_doubleAssignments;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterState, bslma::UsesBslmaAllocator)
@@ -657,6 +660,11 @@ class ClusterState {
 
     /// Clear this cluster state object, without firing any observers.
     void clear();
+
+    /// TODO (FSM); remove after switching to FSM
+    bool cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId);
+
+    bool extractDoubleAssignment(bmqt::Uri* uri, int* partitionId);
 
     // ACCESSORS
     const mqbi::Cluster*  cluster() const;
@@ -965,6 +973,7 @@ inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
 , d_queueKeys(allocator)
 , d_observers(allocator)
 , d_partitionIdExtractor(allocator)
+, d_doubleAssignments(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p);
