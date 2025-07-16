@@ -4786,7 +4786,6 @@ static void test21_post_Limit()
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     PVV_SAFE("Step 4. Create and post PUT message");
-    bmqp::Crc32c::initialize();
     bmqp::PutEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
@@ -10526,7 +10525,6 @@ int main(int argc, char* argv[])
     bmqsys::Time::initialize();
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqp::Crc32c::initialize();
 
     switch (_testCase) {
     case 0:
