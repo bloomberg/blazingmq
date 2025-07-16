@@ -116,10 +116,8 @@ def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     messagesCounter.assert_posted(consumer, uri_priority)
 
 
-# Ensure the leader is not changing during cluster restart.
-# Otherwise cluster gets stuck on leader reelection (in legacy mode)
 @start_cluster(False)
-@tweak.cluster.elector.quorum(7)
+@tweak.cluster.partition_config.sync_config.startup_wait_duration_ms(60000)
 def test_redeploy_whole_cluster_restart(
     multi7_node: Cluster, domain_urls: tc.DomainUrls
 ):
@@ -128,23 +126,29 @@ def test_redeploy_whole_cluster_restart(
     Every time a node is upgraded, all the nodes are restarted.
     """
 
-    # Modify cluster config for node "east1".
-    # Set quorum to 1 to make sure it is the leader
-    cluster = multi7_node
-    with open(
-        cluster.work_dir.joinpath(
-            cluster.config.nodes["east1"].config_dir, "clusters.json"
-        ),
-        "r+",
-        encoding="utf-8",
-    ) as f:
-        data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 1
-        f.seek(0)
-        json.dump(data, f, indent=4)
-        f.truncate()
+    # Modify cluster config for the leader node "east1".
+    # Set startupWaitDurationMs to 5000 ms (smaller then default 60000 ms)
+    # to make "east1" the source of truth during partitions recovery.
+    for broker_name, broker_config in multi7_node.config.nodes.items():
+        if broker_name != "east1":
+            continue
 
-    cluster.start(wait_leader=True, wait_ready=True)
+        path = multi7_node.work_dir.joinpath(broker_config.config_dir, "clusters.json")
+
+        with open(
+            path,
+            "r+",
+            encoding="utf-8",
+        ) as f:
+            data = json.load(f)
+            data["myClusters"][0]["partitionConfig"]["syncConfig"][
+                "startupWaitDurationMs"
+            ] = 5000
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+
+    multi7_node.start(wait_leader=True, wait_ready=True)
 
     uri_priority = domain_urls.uri_priority
 
@@ -166,7 +170,7 @@ def test_redeploy_whole_cluster_restart(
 
     for broker in multi7_node.nodes():
         # Stop all nodes
-        multi7_node.stop_nodes()
+        multi7_node.stop_nodes(prevent_leader_bounce=True)
 
         # Update binary for the given broker
         multi7_node.update_broker_binary(broker.config, NEW_VERSION_SUFFIX)
