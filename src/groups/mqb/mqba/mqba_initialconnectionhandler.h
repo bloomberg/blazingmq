@@ -114,6 +114,12 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                     const bdlbb::Blob&                blob,
                     const InitialConnectionContextSp& context);
 
+    int handleNegotiationMessage(
+        bsl::ostream&                           errorDescription,
+        bsl::shared_ptr<mqbnet::Session>*       session,
+        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+        const InitialConnectionContextSp&       context);
+
     /// Decode the initial connection messages received in the specified
     /// `blob` and store it, on success, in the specified optional
     /// `negotiationMsg`, returning 0.  Return a non-zero code on error and
