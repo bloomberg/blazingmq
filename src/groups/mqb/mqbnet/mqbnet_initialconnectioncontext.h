@@ -100,6 +100,11 @@ class InitialConnectionContext {
                               InitialConnectionContext*         context)>
         NegotiationCb;
 
+    typedef bsl::function<int(
+        bsl::ostream&                                    errorDescription,
+        const bsl::shared_ptr<InitialConnectionContext>& context)>
+        ScheduleReadCb;
+
   private:
     // DATA
 
@@ -157,6 +162,10 @@ class InitialConnectionContext {
     /// finishes.
     NegotiationCb d_negotiationCb;
 
+    /// The callback to invoke to schedule a read.  We call this function to
+    /// continue reading when authentication is finished.
+    ScheduleReadCb d_scheduleReadCb;
+
     /// The AuthenticationContext updated upon receiving an
     /// authentication message.
     bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
@@ -193,6 +202,7 @@ class InitialConnectionContext {
     InitialConnectionContext&
     setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
     InitialConnectionContext& setNegotiationCb(const NegotiationCb& value);
+    InitialConnectionContext& setScheduleReadCb(const ScheduleReadCb& value);
     InitialConnectionContext& setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
     InitialConnectionContext&
@@ -210,6 +220,7 @@ class InitialConnectionContext {
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
     bmqp::EncodingType::Enum               authenticationEncodingType() const;
     const NegotiationCb&                   negotiationCb() const;
+    const ScheduleReadCb&                  scheduleReadCb() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;

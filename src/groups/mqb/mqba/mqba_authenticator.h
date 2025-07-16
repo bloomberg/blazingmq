@@ -208,13 +208,11 @@ class Authenticator : public mqbnet::Authenticator {
     void stop() BSLS_KEYWORD_OVERRIDE;
 
     /// Authenticate the connection based on the type of AuthenticationMessage
-    /// `authenticationMsg`.  Set `isContinueRead` to true if we want to
-    /// continue reading instead of finishing authentication.  Create an
+    /// `authenticationMsg`.  Create an
     /// AuthenticationContext and store into `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int handleAuthentication(bsl::ostream& errorDescription,
-                             bool*         isContinueRead,
                              const InitialConnectionContextSp& context,
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
