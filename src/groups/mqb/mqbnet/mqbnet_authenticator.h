@@ -62,13 +62,11 @@ class Authenticator {
     virtual void stop() = 0;
 
     /// Authenticate the connection based on the type of AuthenticationMessage
-    /// in the specified `context`.  Set `isContinueRead` to true if we want to
-    /// continue reading instead of finishing authentication.
+    /// in the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleAuthentication(
         bsl::ostream&                                    errorDescription,
-        bool*                                            isContinueRead,
         const bsl::shared_ptr<InitialConnectionContext>& context,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 

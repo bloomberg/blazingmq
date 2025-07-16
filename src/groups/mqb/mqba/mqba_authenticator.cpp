@@ -285,6 +285,16 @@ void Authenticator::authenticate(
                           bsl::shared_ptr<mqbnet::Session>());
     }
 
+    // Authentication succeeded, continue to read
+    bmqu::MemOutStream readErrorStream;
+    rc = context->scheduleReadCb()(readErrorStream, context);
+    if (rc != 0) {
+        context->complete(rc,
+                          bsl::string(readErrorStream.str().data(),
+                                      readErrorStream.str().length()),
+                          bsl::shared_ptr<mqbnet::Session>());
+    }
+
     return;
 }
 
@@ -340,7 +350,7 @@ void Authenticator::reauthenticate(
                                                authenticateRequest.mechanism(),
                                                authenticationData);
     if (rc != 0) {
-        BALL_LOG_ERROR << "Authentication failed for connection '"
+        BALL_LOG_ERROR << "Reauthentication failed for connection '"
                        << channel->peerUri() << "' with mechanism '"
                        << authenticateRequest.mechanism() << "' [rc: " << rc
                        << ", error: " << authenticationErrorStream.str()
@@ -444,7 +454,6 @@ void Authenticator::stop()
 
 int Authenticator::handleAuthentication(
     bsl::ostream&                              errorDescription,
-    bool*                                      isContinueRead,
     const InitialConnectionContextSp&          context,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
@@ -472,10 +481,6 @@ int Authenticator::handleAuthentication(
             << authenticationMsg;
         return rc_ERROR;  // RETURN
     }
-    }
-
-    if (rc == rc_SUCCESS) {
-        *isContinueRead = true;
     }
 
     return rc;

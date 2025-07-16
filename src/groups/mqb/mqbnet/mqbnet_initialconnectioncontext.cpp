@@ -85,6 +85,13 @@ InitialConnectionContext::setNegotiationCb(const NegotiationCb& value)
     return *this;
 }
 
+InitialConnectionContext&
+InitialConnectionContext::setScheduleReadCb(const ScheduleReadCb& value)
+{
+    d_scheduleReadCb = value;
+    return *this;
+}
+
 InitialConnectionContext& InitialConnectionContext::setAuthenticationContext(
     const bsl::shared_ptr<AuthenticationContext>& value)
 {
@@ -134,6 +141,12 @@ const InitialConnectionContext::NegotiationCb&
 InitialConnectionContext::negotiationCb() const
 {
     return d_negotiationCb;
+}
+
+const InitialConnectionContext::ScheduleReadCb&
+InitialConnectionContext::scheduleReadCb() const
+{
+    return d_scheduleReadCb;
 }
 
 const bsl::shared_ptr<AuthenticationContext>&
