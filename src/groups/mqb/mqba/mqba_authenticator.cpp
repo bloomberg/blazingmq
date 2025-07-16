@@ -182,6 +182,15 @@ void Authenticator::authenticate(
     // PRECONDITIONS
     BSLS_ASSERT(context);
 
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                             = 0,
+        rc_AUTHENTICATION_STATE_INCORRECT      = -1,
+        rc_AUTHENTICATION_FAILED               = -2,
+        rc_SEND_AUTHENTICATION_RESPONSE_FAILED = -3,
+        rc_CONTINUE_READ_FAILED                = -4
+    };
+
     const AuthenticationContextSp& authenticationContext =
         context->authenticationContext();
 
@@ -233,7 +242,7 @@ void Authenticator::authenticate(
                 << "Failed to set authentication state for '"
                 << channel->peerUri()
                 << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-            context->complete(rc,
+            context->complete((rc * 10) + rc_AUTHENTICATION_STATE_INCORRECT,
                               authenticationErrorStream.str(),
                               bsl::shared_ptr<mqbnet::Session>());
             return;  // RETURN
@@ -246,7 +255,7 @@ void Authenticator::authenticate(
         if (response.status().category() !=
             bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
             // If the authentication failed, we do not create a session.
-            context->complete(rc,
+            context->complete(rc_AUTHENTICATION_FAILED,
                               authenticationErrorStream.str(),
                               bsl::shared_ptr<mqbnet::Session>());
             return;  // RETURN
@@ -255,14 +264,9 @@ void Authenticator::authenticate(
         bsl::shared_ptr<mqbnet::Session> session;
         bmqu::MemOutStream               errStream;
         bsl::string                      error;
+
         rc = context->negotiationCb()(errStream, &session, context.get());
-
-        if (rc != 0) {
-            error = bsl::string(errStream.str().data(),
-                                errStream.str().length());
-        }
-
-        context->complete(rc, error, session);
+        context->complete(rc, errStream.str(), session);
 
         return;  // RETURN
     }
@@ -275,12 +279,12 @@ void Authenticator::authenticate(
                                    context->authenticationEncodingType());
     if (response.status().category() !=
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-        context->complete(rc,
+        context->complete(rc_AUTHENTICATION_FAILED,
                           authenticationErrorStream.str(),
                           bsl::shared_ptr<mqbnet::Session>());
     }
     else if (rc != 0) {
-        context->complete(rc,
+        context->complete((rc * 10) + rc_SEND_AUTHENTICATION_RESPONSE_FAILED,
                           sendResponseErrorStream.str(),
                           bsl::shared_ptr<mqbnet::Session>());
     }
@@ -289,9 +293,8 @@ void Authenticator::authenticate(
     bmqu::MemOutStream readErrorStream;
     rc = context->scheduleReadCb()(readErrorStream, context);
     if (rc != 0) {
-        context->complete(rc,
-                          bsl::string(readErrorStream.str().data(),
-                                      readErrorStream.str().length()),
+        context->complete((rc * 10) + rc_CONTINUE_READ_FAILED,
+                          readErrorStream.str(),
                           bsl::shared_ptr<mqbnet::Session>());
     }
 
