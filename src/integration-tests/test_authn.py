@@ -23,6 +23,7 @@ import pytest
 
 from blazingmq.dev.paths import paths
 from blazingmq.dev.it.process.rawclient import RawClient
+from blazingmq.dev.it.process.admin import AdminClient
 
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
@@ -316,3 +317,23 @@ def test_anony_credential_specified_without_plugin_support(
         client.send_negotiation_request()
 
     client.stop()
+
+
+def test_anony_credential_with_admin(single_node: Cluster) -> None:
+    """
+    This test sends an admin command without prior authentication.
+    It succeeds since we use the default anonymous credential.
+    """
+
+    # Start the admin client
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    # Check basic "help" command
+    assert (
+        "This process responds to the following CMD subcommands:"
+        in admin.send_admin("help")
+    )
+
+    # Stop the admin session
+    admin.stop()
