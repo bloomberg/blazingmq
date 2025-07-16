@@ -151,8 +151,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
     mqbi::StorageManager* d_storageManager_p;
 
-    bool d_isFirstLeaderAdvisory;
-
     AfterPartitionPrimaryAssignmentCb d_afterPartitionPrimaryAssignmentCb;
 
   private:
@@ -486,9 +484,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void onNodeStopped() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    //   (virtual: mqbi::ClusterStateManager)
-    bool isFirstLeaderAdvisory() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return the cluster state managed by this instacne.
     const mqbc::ClusterState* clusterState() const BSLS_KEYWORD_OVERRIDE;
 
@@ -550,12 +545,6 @@ inline void ClusterStateManager::setAfterPartitionPrimaryAssignmentCb(
 }
 
 // ACCESSORS
-//   (virtual: mqbi::ClusterStateManager)
-inline bool ClusterStateManager::isFirstLeaderAdvisory() const
-{
-    return d_isFirstLeaderAdvisory;
-}
-
 inline const mqbc::ClusterState* ClusterStateManager::clusterState() const
 {
     return d_state_p;
