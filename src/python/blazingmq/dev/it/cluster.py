@@ -24,6 +24,8 @@ import shutil
 import signal
 from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
+import os
+import time
 
 from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.proc
@@ -159,7 +161,7 @@ class Cluster(contextlib.AbstractContextManager):
         See also: 'wait_status' for more information on the 'ready' flags.
         """
 
-        need_preset_leader = leader_name is not None
+        need_preset_leader = bool(leader_name)
 
         with internal_use(self):
             for broker in self.config.configurator.brokers.values():
@@ -237,7 +239,8 @@ class Cluster(contextlib.AbstractContextManager):
                     self._clients.remove(process)
 
         self.last_known_leader = None
-        bad_exit = False
+        bad_exit_code = False
+        bad_exit_still_alive = False
         cores_dir = None if self.copy_cores is None else self._find_cores_dir()
 
         for process in processes:
@@ -255,7 +258,7 @@ class Cluster(contextlib.AbstractContextManager):
                             break
                     if not core_found:
                         self._logger.warning("could not find core for %s", process.name)
-                bad_exit = True
+                bad_exit_code = True
                 self._logger.error(
                     "%s [%d] exited with rc = %s",
                     process.name,
@@ -267,17 +270,22 @@ class Cluster(contextlib.AbstractContextManager):
             if process.is_alive():
                 self._logger.error("killing recalcitrant process %s", process.name)
                 process.force_stop()
-                bad_exit = True
+                bad_exit_still_alive = True
 
         for process in self._other_processes:
             self._logger.info("killing subordinate process %s", process.name)
             process.force_stop()
 
-        if bad_exit:
-            raise RuntimeError("cluster did not shut down cleanly")
+        if bad_exit_code:
+            raise RuntimeError("cluster did not shut down cleanly: non-zero exit code")
+
+        if bad_exit_still_alive:
+            raise RuntimeError(
+                "cluster did not shut down cleanly: some processes are still alive"
+            )
 
     def start_nodes(self, wait_leader=True, wait_ready=False):
-        """Start the nodes in the cluster.
+        """Start all the nodes in the cluster.
 
         If 'wait_leader' is 'True', wait for a leader to be elected.  If
         'wait_ready' is True, wait until the cluster is available in all nodes.
@@ -305,20 +313,40 @@ class Cluster(contextlib.AbstractContextManager):
         """
 
         self._logger.info("stopping all nodes")
+
         if prevent_leader_bounce:
+            if self.last_known_leader is not None:
+                # Setting leader's quorum to 1, so it does not lose its leadership
+                # while supporting nodes shutting down.
+                # In case of 7-node cluster (with default quorum of 4),
+                # shutting down 4 nodes would initiate leader bounce.
+                self.last_known_leader.set_quorum(QUORUM_TO_ENSURE_LEADER)
+
+            # Stop all non-leader nodes
             for node in self.nodes():
                 if node is not self.last_known_leader:
-                    node.set_quorum(100)
+                    with internal_use(node):
+                        node.stop()
+
+            # Make sure all non-leader nodes are stopped
+            for node in self.nodes():
+                if node is not self.last_known_leader:
+                    self.make_sure_node_stopped(node)
+
+            # Finally stop the leader node
+            if self.last_known_leader is not None:
+                with internal_use(self.last_known_leader):
+                    self.last_known_leader.stop()
+                    self.make_sure_node_stopped(self.last_known_leader)
+        else:
+            for node in self.nodes():
+                with internal_use(node):
+                    node.stop()
+
+            for node in self.nodes():
+                self.make_sure_node_stopped(node)
 
         self.last_known_leader = None
-        for node in self.nodes():
-            with internal_use(node):
-                node.stop()
-
-        for node in self.nodes():
-            if node.is_alive():
-                error = f"node {node.name} refused to stop"
-                self._error(error)
 
     def restart_nodes(self, wait_leader=True, wait_ready=False):
         """Restart all the nodes.
@@ -350,14 +378,23 @@ class Cluster(contextlib.AbstractContextManager):
         """Free the resources owned by this cluster."""
         # self._esx.close()
 
+    def resolve_broker_name(self, broker: Union[cfg.Broker, str]) -> cfg.Broker:
+        """
+        Return the broker configuration specified by 'broker name'.
+        """
+
+        if isinstance(broker, str):
+            broker = self.config.nodes[broker]
+
+        return broker
+
     # TODO: fold following three in start_broker
     def start_node(self, broker: Union[cfg.Broker, str]):
         """
         Start a process for 'broker'.
         """
 
-        if isinstance(broker, str):
-            broker = self.config.nodes[broker]
+        broker = self.resolve_broker_name(broker)
 
         self._logger.info("starting broker %s", broker)
 
@@ -369,8 +406,7 @@ class Cluster(contextlib.AbstractContextManager):
     def start_virtual_node(self, broker: Union[cfg.Broker, str]):
         """Start the node specified by 'name'."""
 
-        if isinstance(broker, str):
-            broker = self.config.nodes[broker]
+        broker = self.resolve_broker_name(broker)
 
         if len(broker.clusters.my_virtual_clusters) != 1:
             raise RuntimeError(f"Cannot use start_virtual_node to start {broker.name}")
@@ -751,11 +787,44 @@ class Cluster(contextlib.AbstractContextManager):
             ]
         )
 
-    def deploy_domains(self):
+    def update_all_brokers_binary(self, new_version: str):
+        """Update all brokers to the specified version."""
+
         for broker in self.configurator.brokers.values():
-            self.configurator.deploy_domains(
-                broker, LocalSite(self.work_dir / broker.name)
+            self.update_broker_binary(broker, new_version)
+
+    def update_broker_binary(self, broker: cfg.Broker, new_version: str):
+        """Update the specified broker to the specified version."""
+
+        broker_path_var = f"BLAZINGMQ_BROKER_{broker.name.upper()}"
+        newversion_path_var = f"BLAZINGMQ_BROKER_{new_version.upper()}"
+
+        if newversion_path_var in os.environ:
+            new_path = os.environ[newversion_path_var]
+            os.environ[broker_path_var] = new_path
+            self.deploy_broker_local(broker)
+
+            self._logger.debug(f"Updated {broker_path_var} to {new_path}")
+        else:
+            self._logger.warning(
+                f"Skipped updating binary for broker {broker.name.upper()}. {newversion_path_var} is undefined"
             )
+
+    def get_broker_local_site(self, broker: cfg.Broker):
+        """Return the local site for the specified broker."""
+
+        return LocalSite(self.work_dir / broker.name)
+
+    def deploy_broker_local(self, broker: cfg.Broker):
+        """Deploy the specified broker to the local site."""
+
+        self.configurator.deploy_programs(broker, self.get_broker_local_site(broker))
+
+    def deploy_domains(self):
+        """Deploy the domains for all brokers in the cluster."""
+
+        for broker in self.configurator.brokers.values():
+            self.configurator.deploy_domains(broker, self.get_broker_local_site(broker))
 
     def reconfigure_domain(
         self,
@@ -851,3 +920,27 @@ class Cluster(contextlib.AbstractContextManager):
     def _error(self, error: str):
         self._logger.error(error)
         raise RuntimeError(error)
+
+    def make_sure_node_stopped(self, process: Broker, num_retries: int = 4):
+        """Make sure that the given broker process is stopped.
+
+        If the process is still alive, try to stop it several times.
+        If it is still alive after 'num_retries' attempts, raise an error.
+        """
+
+        self._logger.info("making sure that %s is stopped", process.name)
+
+        is_alive = True
+        for attempt in range(num_retries):
+            if process.is_alive():
+                # Empirical experiements show that usually wait time is 6 seconds
+                # So it takes 2 retry attampts to stop a node
+                delay = pow(2, attempt + 1)
+                time.sleep(delay)
+            else:
+                is_alive = False
+                break
+
+        if is_alive:
+            error = f"node {process.name} refused to stop"
+            self._error(error)

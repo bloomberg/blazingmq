@@ -20,116 +20,24 @@ jobs:
     uses: ./.github/workflows/dependencies.yaml
 
   build_ubuntu:
-    name: Build [ubuntu]
-    runs-on: ubuntu-latest
+    name: "Build [ubuntu]"
     needs: get_dependencies
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
-
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
-
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
-
-      - name: Build BlazingMQ
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqstoragetool all.it
-
-      - name: Clean-up build directories before caching
-        run: |
-          find . -name "*.o" -type f -delete
-          find . -name "*.a" -type f -delete
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      target: "bmqbrkr bmqtool bmqstoragetool all.it"
+      save_build_as_artifacts: true
+      run_unit_tests: false
 
   unit_tests_cxx:
-    name: UT [c++]
-    runs-on: ubuntu-latest
+    name: "UT [c++]"
     needs: get_dependencies
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
-
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
-
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
-
-      - name: Build BlazingMQ UTs
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all.t
-
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure -L \^unit\$
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      target: "all.t"
+      save_build_as_artifacts: false
+      run_unit_tests: true
 
   unit_tests_python:
     name: UT [python]
@@ -137,14 +45,6 @@ jobs:
     needs: build_ubuntu
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/cache/@v4
-        with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
 
       - name: Run Python Unit Tests
         env:
@@ -172,13 +72,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
+          name: ${{needs.build_ubuntu.outputs.artifact_key }}
+
+        # Set execution permissions for all .tsk
+        # which were lost when the artifact was created
+      - name: Chmod all .tsk        
+        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Setup core_pattern
         run: |
@@ -194,10 +95,13 @@ jobs:
         run: |
           # Allow core dumps
           ulimit -c unlimited
+
           go install github.com/kevwan/tproxy@latest
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
+
           ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \
@@ -248,14 +152,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
-      
+          name: ${{needs.build_ubuntu.outputs.artifact_key }}
+
+        # Set execution permissions for all .tsk
+        # which were lost when the artifact was created
+      - name: Chmod all .tsk
+        run: |
+          find ./build -type f -name "*.tsk" -exec chmod +x {} +
+          chmod +x ./build/blazingmq/src/applications/bmqbrkr/run
+
       - name: Setup core_pattern
         run: |
           sudo mkdir /cores
@@ -284,13 +191,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/cache/@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
+          name: ${{needs.build_ubuntu.outputs.artifact_key }}
+
+        # Set execution permissions for all .tsk
+        # which were lost when the artifact was created
+      - name: Chmod all .tsk        
+        run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Storage Tool integration tests
         run: |
@@ -329,11 +237,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The following steps restore cached deps
+      # If the cache is not hit, it will build and install the dependencies
+      # If the cache is hit, building deps is skipped, only make install is run
       - uses: actions/cache/restore@v4
         with:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
-
       - name: Set up plugins dependencies
         run: |
           sudo apt-get update
@@ -351,7 +261,6 @@ jobs:
             libz-dev \
             autoconf \
             libtool
-
       - name: Install cached non packaged dependencies
         working-directory: deps
         run: ../docker/build_deps.sh
