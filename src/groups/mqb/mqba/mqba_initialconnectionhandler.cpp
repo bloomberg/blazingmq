@@ -80,15 +80,12 @@ void InitialConnectionHandler::readCallback(
     bmqu::MemOutStream               errStream;
     bdlbb::Blob                      outPacket;
 
-    bool isFullBlob     = true;
-    bool isContinueRead = false;
+    bool isFullBlob = true;
 
     int         rc = rc_SUCCESS;
     bsl::string error;
 
-    // The completeCb is not triggered only when there's more to read
-    // (didn't receive a full blob; or received a full blob and
-    // successfully scheduled another read)
+    // The completeCb is NOT triggered only when we didn't receive a full blob
     bdlb::ScopeExitAny guard(
         bdlf::BindUtil::bind(&InitialConnectionHandler::complete,
                              context,
@@ -108,21 +105,7 @@ void InitialConnectionHandler::readCallback(
         return;  // RETURN
     }
 
-    rc = processBlob(errStream, &session, &isContinueRead, outPacket, context);
-    if (rc != rc_SUCCESS) {
-        rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
-        error = bsl::string(errStream.str().data(), errStream.str().length());
-        return;  // RETURN
-    }
-
-    if (isContinueRead) {
-        rc = scheduleRead(errStream, context);
-
-        if (rc == rc_SUCCESS) {
-            guard.release();
-        }
-    }
-
+    rc = processBlob(errStream, &session, outPacket, context);
     if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
@@ -173,7 +156,6 @@ int InitialConnectionHandler::readBlob(bsl::ostream&        errorDescription,
 int InitialConnectionHandler::processBlob(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
-    bool*                             isContinueRead,
     const bdlbb::Blob&                blob,
     const InitialConnectionContextSp& context)
 {
@@ -208,7 +190,6 @@ int InitialConnectionHandler::processBlob(
             message.value())) {
         rc = d_authenticator_p->handleAuthentication(
             errorDescription,
-            isContinueRead,
             context,
             bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message.value()));
     }
@@ -272,11 +253,8 @@ int InitialConnectionHandler::processBlob(
 
                 rc = d_authenticator_p->handleAuthentication(
                     errorDescription,
-                    isContinueRead,
                     context,
                     authenticationMessage);
-
-                *isContinueRead = false;
 
                 return rc;  // RETURN
             }
@@ -388,8 +366,6 @@ int InitialConnectionHandler::scheduleRead(
                              bdlf::PlaceHolders::_3,  // blob
                              context),
         bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
-    // NOTE: In the above binding, we skip '_4' (i.e., Channel*) and
-    //       replace it by the channel shared_ptr (inside the context)
 
     if (!status) {
         errorDescription << "Read failed while negotiating: " << status;
@@ -452,6 +428,15 @@ void InitialConnectionHandler::handleInitialConnection(
                              bsl::shared_ptr<mqbnet::Session>()));
 
     bmqu::MemOutStream errStream;
+
+    // Set the read callback to continue reading when the
+    // authentication is finished.
+    context->setScheduleReadCb(
+        bdlf::BindUtil::bind(&InitialConnectionHandler::scheduleRead,
+                             this,
+                             bdlf::PlaceHolders::_1,  // errorDescription
+                             bdlf::PlaceHolders::_2   // context
+                             ));
 
     if (context->isIncoming()) {
         rc = scheduleRead(errStream, context);
