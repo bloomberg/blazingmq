@@ -729,27 +729,52 @@ void ClusterState::clear()
 /// TODO (FSM); remove after switching to FSM
 bool ClusterState::cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId)
 {
-    return d_doubleAssignments.emplace(uri, partitionId).second;
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+    return d_doubleAssignments[partitionId].emplace(uri).second;
 }
 
 /// TODO (FSM); remove after switching to FSM
-bool ClusterState::extractDoubleAssignment(bmqt::Uri* uri, int* partitionId)
+void ClusterState::iterateDoubleAssignments(int                partitionId,
+                                            AssignmentVisitor& visitor)
 {
-    for (bsl::unordered_map<const bmqt::Uri, int>::const_iterator cit =
-             d_doubleAssignments.cbegin();
-         cit != d_doubleAssignments.cend();
-         ++cit) {
-        if (mqbs::DataStore::k_ANY_PARTITION_ID == *partitionId ||
-            *partitionId == cit->second) {
-            *uri         = cit->first;
-            *partitionId = cit->second;
-
+    if (mqbs::DataStore::k_ANY_PARTITION_ID == partitionId) {
+        for (Assignments::const_iterator cit = d_doubleAssignments.cbegin();
+             cit != d_doubleAssignments.cend();
+             ++cit) {
+            iterateDoubleAssignments(cit, visitor);
+        }
+        d_doubleAssignments.clear();
+    }
+    else {
+        Assignments::const_iterator cit = d_doubleAssignments.find(
+            partitionId);
+        if (cit != d_doubleAssignments.cend()) {
+            iterateDoubleAssignments(cit, visitor);
             d_doubleAssignments.erase(cit);
-
-            return true;  // RETURN
         }
     }
-    return false;
+}
+
+void ClusterState::iterateDoubleAssignments(
+    const Assignments::const_iterator& partitionAssignments,
+    AssignmentVisitor&                 visitor)
+{
+    const bsl::unordered_set<bmqt::Uri>& uris = partitionAssignments->second;
+
+    for (bsl::unordered_set<bmqt::Uri>::const_iterator cit = uris.cbegin();
+         cit != uris.cend();
+         ++cit) {
+        const bmqt::Uri& problematicUri   = *cit;
+        int              wrongPartitionId = partitionAssignments->first;
+
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: attempting to repair double assignment of queue '"
+                      << problematicUri
+                      << "' by unregistering it from the partition ["
+                      << wrongPartitionId << "].";
+
+        visitor(*cit, wrongPartitionId);
+    }
 }
 
 // --------------------------------

@@ -283,13 +283,12 @@ struct ClusterUtil {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     static void sendClusterState(
-        ClusterData*          clusterData,
-        ClusterStateLedger*   ledger,
-        mqbi::StorageManager* storageManager,
-        const ClusterState&   clusterState,
-        bool                  sendPartitionPrimaryInfo,
-        bool                  sendQueuesInfo,
-        mqbnet::ClusterNode*  node = 0,
+        ClusterData*         clusterData,
+        ClusterStateLedger*  ledger,
+        const ClusterState&  clusterState,
+        bool                 sendPartitionPrimaryInfo,
+        bool                 sendQueuesInfo,
+        mqbnet::ClusterNode* node = 0,
         const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
             bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>());
 

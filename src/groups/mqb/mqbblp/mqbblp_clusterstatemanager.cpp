@@ -915,7 +915,6 @@ void ClusterStateManager::sendClusterState(
 
     mqbc::ClusterUtil::sendClusterState(d_clusterData_p,
                                         d_clusterStateLedger_mp.get(),
-                                        d_storageManager_p,
                                         *d_state_p,
                                         sendPartitionPrimaryInfo,
                                         sendQueuesInfo,

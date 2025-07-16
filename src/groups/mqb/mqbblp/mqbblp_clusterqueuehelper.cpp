@@ -3581,22 +3581,15 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
     /// TODO (FSM); remove after switching to FSM
     if (!d_cluster_p->isFSMWorkflow() && isSelfPrimary) {
-        bmqt::Uri problematicUri(d_allocator_p);
-        int       wrongPartitionId = partitionId;
+        // Note that this fails if there are data
+        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
+            bdlf::BindUtil::bind(&mqbi::StorageManager::unregisterQueue,
+                                 d_storageManager_p,
+                                 bdlf::PlaceHolders::_1,   // uri
+                                 bdlf::PlaceHolders::_2);  // partitionId),
 
-        while (d_clusterState_p->extractDoubleAssignment(&problematicUri,
-                                                         &wrongPartitionId)) {
-            BALL_LOG_ERROR
-                << d_cluster_p->description()
-                << ": attempting to repair double assignment of queue '"
-                << problematicUri
-                << "' by unregistering it from the partition ["
-                << wrongPartitionId << "].";
-
-            // Note that this fails if there are data
-            d_storageManager_p->unregisterQueue(problematicUri,
-                                                wrongPartitionId);
-        }
+        d_clusterState_p->iterateDoubleAssignments(partitionId,
+                                                   doubleAssignmentVisitor);
     }
 
     for (QueueContextMapConstIter cit = d_queues.cbegin();

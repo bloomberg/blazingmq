@@ -526,6 +526,12 @@ class ClusterState {
     typedef bsl::unordered_set<ClusterStateObserver*> ObserversSet;
     typedef ObserversSet::iterator                    ObserversSetIter;
 
+    /// TODO (FSM); remove after switching to FSM
+    typedef bsl::function<void(const bmqt::Uri& uri, int partitionId)>
+        AssignmentVisitor;
+    typedef bsl::unordered_map<int, bsl::unordered_set<bmqt::Uri> >
+        Assignments;
+
   private:
     // DATA
 
@@ -551,7 +557,7 @@ class ClusterState {
     PartitionIdExtractor d_partitionIdExtractor;
 
     /// TODO (FSM); remove after switching to FSM
-    bsl::unordered_map<const bmqt::Uri, int> d_doubleAssignments;
+    Assignments d_doubleAssignments;
 
   public:
     // TRAITS
@@ -664,7 +670,10 @@ class ClusterState {
     /// TODO (FSM); remove after switching to FSM
     bool cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId);
 
-    bool extractDoubleAssignment(bmqt::Uri* uri, int* partitionId);
+    void iterateDoubleAssignments(int partitionId, AssignmentVisitor& visitor);
+    void iterateDoubleAssignments(
+        const Assignments::const_iterator& partitionAssignments,
+        AssignmentVisitor&                 visitor);
 
     // ACCESSORS
     const mqbi::Cluster*  cluster() const;

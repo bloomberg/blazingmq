@@ -1384,13 +1384,12 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 }
 
 void ClusterUtil::sendClusterState(
-    ClusterData*          clusterData,
-    ClusterStateLedger*   ledger,
-    mqbi::StorageManager* storageManager,
-    const ClusterState&   clusterState,
-    bool                  sendPartitionPrimaryInfo,
-    bool                  sendQueuesInfo,
-    mqbnet::ClusterNode*  node,
+    ClusterData*         clusterData,
+    ClusterStateLedger*  ledger,
+    const ClusterState&  clusterState,
+    bool                 sendPartitionPrimaryInfo,
+    bool                 sendQueuesInfo,
+    mqbnet::ClusterNode* node,
     const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions)
 {
     // executed by the cluster *DISPATCHER* thread
