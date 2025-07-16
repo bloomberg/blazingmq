@@ -30,6 +30,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bsls_performancehint.h>
 
@@ -68,9 +69,8 @@ void PushMessageIterator::initCachedOptionsView() const
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_optionsView.isNull())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // Load options iterator
-        int rc = loadOptionsView(&d_optionsView.makeValue());
+        BSLA_MAYBE_UNUSED int rc = loadOptionsView(&d_optionsView.makeValue());
         BSLS_ASSERT_SAFE(rc == 0);
-        (void)rc;  // compiler happiness
     }
 
     BSLS_ASSERT_SAFE(!d_optionsView.isNull());
@@ -434,14 +434,13 @@ void PushMessageIterator::extractQueueInfo(int*          queueId,
     // Load SubQueueInfos
     Protocol::SubQueueInfosArray subQueueInfos;
 
-    int rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
+    BSLA_MAYBE_UNUSED int rc = optionsView.loadSubQueueInfosOption(
+        &subQueueInfos);
     BSLS_ASSERT_SAFE(rc == 0);
     BSLS_ASSERT_SAFE(subQueueInfos.size() == 1);
 
     *subscriptionId = subQueueInfos[0].id();
     *rdaInfo        = RdaInfo(subQueueInfos[0].rdaInfo());
-
-    (void)rc;  // Compiler happiness
 }
 
 void PushMessageIterator::extractMsgGroupId(
@@ -471,10 +470,8 @@ void PushMessageIterator::extractMsgGroupId(
     }
 
     // Load Group Id
-    int rc = optionsView.loadMsgGroupIdOption(msgGroupId);
+    BSLA_MAYBE_UNUSED int rc = optionsView.loadMsgGroupIdOption(msgGroupId);
     BSLS_ASSERT_SAFE(rc == 0);
-
-    (void)rc;  // Compiler happiness
 }
 
 // MANIPULATORS

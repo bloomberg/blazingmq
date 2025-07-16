@@ -25,6 +25,8 @@
 #include <bslma_testallocator.h>
 #include <bsls_assert.h>
 
+#include <bsl_cstring.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_set.h>
 #include <bsl_sstream.h>

@@ -100,9 +100,6 @@ struct ClusterUtil {
     typedef ClusterMembership::ClusterNodeSessionMapConstIter
         ClusterNodeSessionMapConstIter;
 
-    typedef mqbi::ClusterStateManager::QueueAssignmentResult
-        QueueAssignmentResult;
-
     /// Map of `NodeSession` -> number of new partitions to assign to it
     typedef bsl::unordered_map<ClusterNodeSession*, unsigned int>
                                                 NumNewPartitionsMap;
@@ -217,36 +214,31 @@ struct ClusterUtil {
     /// queue unassignment of the specified `uri` having the specified `key`
     /// and `partitionId`, using the specified `clusterData` and and
     /// `clusterState`.
-    static void populateQueueUnassignedAdvisory(
-        bmqp_ctrlmsg::QueueUnassignedAdvisory* advisory,
-        ClusterData*                           clusterData,
-        const bmqt::Uri&                       uri,
-        const mqbu::StorageKey&                key,
-        int                                    partitionId,
-        const ClusterState&                    clusterState);
+    static void populateQueueUnAssignmentAdvisory(
+        bmqp_ctrlmsg::QueueUnAssignmentAdvisory* advisory,
+        ClusterData*                             clusterData,
+        const bmqt::Uri&                         uri,
+        const mqbu::StorageKey&                  key,
+        int                                      partitionId,
+        const ClusterState&                      clusterState);
 
     /// Perform the actual assignment of the queue represented by the
     /// specified `uri` for a cluster member queue, that is assign it a
-    /// queue key, a partition id, and some appIds in the specified
-    /// `clusterState` of the specified `cluster` having the specified
-    /// `clusterData`; and applying the corresponding queue assignment
-    /// adviosry to the specified `ledger`.  Return a value indicating
-    /// whether the assignment was successful or was definitively rejected,
-    /// and populate the optionally specified `status` with a human readable
-    /// error code and string in case of failure.  Use the specified
-    /// `allocator` for memory allocations.  This method is called only on the
-    /// leader node.
+    /// queue key, a partition id, and some appIds; and applying the
+    /// corresponding queue assignment advisory to CSL.  Return `false` in the
+    /// case of permanent failure when need to reject the assignment.  Return
+    /// `true` if the assignment is successful or can be retried.
+    /// This method is called only on the leader node.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    static QueueAssignmentResult::Enum
-    assignQueue(ClusterState*         clusterState,
-                ClusterData*          clusterData,
-                ClusterStateLedger*   ledger,
-                const mqbi::Cluster*  cluster,
-                const bmqt::Uri&      uri,
-                bslma::Allocator*     allocator,
-                bmqp_ctrlmsg::Status* status = 0);
+    static bool assignQueue(ClusterState*         clusterState,
+                            ClusterData*          clusterData,
+                            ClusterStateLedger*   ledger,
+                            const mqbi::Cluster*  cluster,
+                            const bmqt::Uri&      uri,
+                            bslma::Allocator*     allocator,
+                            bmqp_ctrlmsg::Status* status = 0);
 
     /// Register a queue info for the queue with the values in the specified
     /// `advisory` to the specified `clusterState` of the specified `cluster`.

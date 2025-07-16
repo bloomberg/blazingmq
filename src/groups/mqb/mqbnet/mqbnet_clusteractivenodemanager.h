@@ -199,6 +199,7 @@
 #include <ball_log.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_iostream.h>
+#include <bsl_map.h>
 #include <bsl_string.h>
 #include <bsls_assert.h>
 

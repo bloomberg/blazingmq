@@ -102,16 +102,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Signature of a `void` callback method.
     typedef bsl::function<void(void)> VoidFunctor;
 
-    /// Signature of a callback invoked upon assignment of a queue by this
-    /// leader.
-    typedef bsl::function<void(const bmqp_ctrlmsg::QueueAssignmentAdvisory&)>
-        OnQueueAssignedCb;
-
-    /// Signature of a callback invoked upon un-assignment of a queue by
-    /// this leader.
-    typedef bsl::function<void(const bmqp_ctrlmsg::QueueUnassignedAdvisory&)>
-        OnQueueUnassignedCb;
-
   private:
     // PRIVATE TYPES
     typedef bsl::shared_ptr<const mqbc::ClusterStateQueueInfo>
@@ -217,7 +207,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // and in-flight requests are zero).
         int d_numHandleCreationsInProgress;
 
-        // Timerstamp (high resolution timer) in milliseconds after which queue
+        // Timestamp (high resolution timer) in milliseconds after which queue
         // will expire.  Zero if queue cannot expire (because it has non-zero
         // messages or handles or both).
         bsls::Types::Int64 d_queueExpirationTimestampMs;
@@ -231,11 +221,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         // Number of in flight contexts, that is the number of contexts for
         // which `d_callback` has not yet been called. Note that this may be
-        // different than `d_pending.size` because the `d_pending` vector
+        // different than `d_pending.size()` because the `d_pending` vector
         // doesn't contain the requests which have been sent and are awaiting
         // an answer (those contexts are stored through binding in the response
         // callback).
-        int d_inFlight;
+        // Note that this value is modified from `OpenQueueContext` possibly
+        // from different threads.
+        bsls::AtomicInt d_inFlight;
 
       public:
         // TRAITS
@@ -245,12 +237,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // CREATORS
 
         /// Create a new object using the specified `allocator`.
-        QueueLiveState(bslma::Allocator* allocator);
+        explicit QueueLiveState(bslma::Allocator* allocator);
 
-        /// Copy constructor from the specified `other` using the optionally
-        /// specified `allocator`.
-        QueueLiveState(const QueueLiveState& other,
-                       bslma::Allocator*     allocator = 0);
+        // NOT IMPLEMENTED
+        /// QueueContext owns `bsls::AtomicInt` that cannot be
+        /// copy-constructed.
+        QueueLiveState(const QueueLiveState&) BSLS_KEYWORD_DELETED;
+        QueueLiveState& operator=(const QueueLiveState&) BSLS_KEYWORD_DELETED;
 
         // MANIPULATORS
 
@@ -298,9 +291,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     typedef mqbc::ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
     typedef mqbc::ClusterState::DomainStates           DomainStates;
     typedef mqbc::ClusterState::DomainStatesCIter      DomainStatesCIter;
-
-    typedef mqbi::ClusterStateManager::QueueAssignmentResult
-        QueueAssignmentResult;
 
     typedef mqbc::ClusterNodeSession::SubQueueInfo CNSSubQueueInfo;
     typedef mqbc::ClusterNodeSession::QueueState   CNSQueueState;
@@ -385,12 +375,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         /// Create a new object representing the queue identified by the
         /// specified `uri` and using the specified `allocator`.
-        QueueContext(const bmqt::Uri& uri, bslma::Allocator* allocator);
+        explicit QueueContext(const bmqt::Uri&  uri,
+                              bslma::Allocator* allocator);
 
-        /// Copy constructor from the specified `other` using the optionally
-        /// specified `allocator`.
-        QueueContext(const QueueContext& other,
-                     bslma::Allocator*   allocator = 0);
+        // NOT IMPLEMENTED
+        /// QueueContext owns QueueLiveState that cannot be copy-constructed.
+        QueueContext(const QueueContext&) BSLS_KEYWORD_DELETED;
+        QueueContext& operator=(const QueueContext&) BSLS_KEYWORD_DELETED;
 
         // ACCESSORS
 
@@ -489,15 +480,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                     mqbnet::ClusterNode* primary,
                                     bmqp_ctrlmsg::PrimaryStatus::Value status);
 
-    /// Assign the queue represented by the specified `queueContext`, that
-    /// is give it an id and eventually a partition id, by initiating
-    /// assignment request communication with the leader.  Return a value
-    /// indicating whether the assignment was successful or was definitively
-    /// rejected.  This method is called regardless of proxy or member, and
-    /// leader or replica and will initiate the proper sequence of operation
-    /// based on the role of the current node within the cluster.
-    QueueAssignmentResult::Enum
-    assignQueue(const QueueContextSp& queueContext);
+    /// Try to assign the queue represented by the specified `queueContext`,
+    /// that is give it an id and eventually a partition id, by initiating
+    /// assignment request communication with the leader.   This method is
+    /// called regardless of proxy or member, and leader or replica and will
+    /// initiate the proper sequence of operation based on the role of the
+    /// current node within the cluster.
+    void assignQueue(const QueueContextSp& queueContext);
 
     /// Send a queueAssignment request to the leader, requesting assignment
     /// of the queue with the specified `uri`.  This method is called only
@@ -513,11 +502,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const bmqt::Uri&                     uri,
         mqbnet::ClusterNode*                 responder);
 
-    /// Send a failure response for the pending contexts associated to the
-    /// states in the specified `rejected` vector.  Also remove the
-    /// associated queues from `d_queues`.
-    void processRejectedQueueAssignments(
-        const bsl::vector<QueueContext*>& rejected);
+    /// Send a failure response with the specified `status` for the pending
+    /// context associated to the states in the specified `rejected`.  Also
+    /// remove the associated queue from `d_queues`.
+    void processRejectedQueueAssignment(const QueueContext*         rejected,
+                                        const bmqp_ctrlmsg::Status& status);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.
@@ -1169,16 +1158,6 @@ inline ClusterQueueHelper::QueueContext::QueueContext(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(uri.asString() == uri.canonical() &&
                      "'uri' must be the canonical URI");
-}
-
-inline ClusterQueueHelper::QueueContext::QueueContext(
-    const ClusterQueueHelper::QueueContext& other,
-    bslma::Allocator*                       allocator)
-: d_liveQInfo(other.d_liveQInfo, allocator)
-, d_stateQInfo_sp(other.d_stateQInfo_sp)
-, d_uri(other.d_uri, allocator)
-{
-    // NOTHING
 }
 
 // ACCESSORS

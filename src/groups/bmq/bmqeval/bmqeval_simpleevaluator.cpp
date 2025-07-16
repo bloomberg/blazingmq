@@ -20,6 +20,7 @@
 #include <bmqeval_simpleevaluatorscanner.h>
 
 // BDE
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {

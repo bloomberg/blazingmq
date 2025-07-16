@@ -55,6 +55,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_functional.h>
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -165,7 +166,7 @@ class Queue : public mqbi::Queue {
 
     /// Create a `mqbi::MockQueue` object associated with the specified
     /// `domain`.  Use the specified `allocator` for any memory allocation.
-    Queue(mqbi::Domain* domain, bslma::Allocator* allocator);
+    explicit Queue(mqbi::Domain* domain, bslma::Allocator* allocator = 0);
 
     /// Destructor.
     ~Queue() BSLS_KEYWORD_OVERRIDE;

@@ -29,6 +29,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
+#include <bsl_memory.h>
 #include <bslma_allocator.h>
 
 namespace BloombergLP {

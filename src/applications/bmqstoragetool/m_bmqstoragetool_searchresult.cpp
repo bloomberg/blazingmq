@@ -28,7 +28,11 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_algorithm.h>
 #include <bsl_cmath.h>
+#include <bsl_cstddef.h>
+#include <bsl_memory.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -254,7 +258,7 @@ bool SearchResultOffsetDecorator::processDeletionRecord(
 bool SearchResultSequenceNumberDecorator::stop(
     const CompositeSequenceNumber& sequenceNumber) const
 {
-    return sequenceNumberLt <= sequenceNumber &&
+    return d_sequenceNumberLt <= sequenceNumber &&
            !SearchResultDecorator::hasCache();
 }
 
@@ -263,7 +267,7 @@ SearchResultSequenceNumberDecorator::SearchResultSequenceNumberDecorator(
     const CompositeSequenceNumber&       sequenceNumberLt,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
-, sequenceNumberLt(sequenceNumberLt)
+, d_sequenceNumberLt(sequenceNumberLt)
 {
     // NOTHING
 }
@@ -547,8 +551,8 @@ bool SearchDetailResult::processDeletionRecord(
 
 bool SearchDetailResult::processQueueOpRecord(
     const mqbs::QueueOpRecord& record,
-    BSLA_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLA_UNUSED bsls::Types::Uint64 recordOffset)
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
     bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
         d_queueMap.findInfoByKey(record.queueKey());
@@ -576,8 +580,8 @@ bool SearchDetailResult::processQueueOpRecord(
 
 bool SearchDetailResult::processJournalOpRecord(
     const mqbs::JournalOpRecord& record,
-    BSLA_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLA_UNUSED bsls::Types::Uint64 recordOffset)
+    bsls::Types::Uint64          recordIndex,
+    bsls::Types::Uint64          recordOffset)
 {
     RecordDetails<mqbs::JournalOpRecord> details(record,
                                                  recordIndex,

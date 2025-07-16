@@ -17,6 +17,7 @@
 #include <bmqio_testchannelfactory.h>
 
 #include <bmqscm_version.h>
+#include <bsl_memory.h>
 namespace BloombergLP {
 namespace bmqio {
 

@@ -97,6 +97,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>

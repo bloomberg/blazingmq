@@ -31,8 +31,10 @@
 #include <bmqst_tableinfoprovider.h>
 
 #include <bdlb_nullablevalue.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmf_nil.h>
@@ -327,9 +329,8 @@ class BasicTableInfoProvider : public bmqst::TableInfoProvider {
 // ACCESSORS
 template <typename TYPE>
 int BasicTableInfoProvider_ValueSizeVisitor::operator()(
-    const TYPE& value) const
+    BSLA_UNUSED const TYPE& value) const
 {
-    (void)value;  // compiler warning unused parameter 'value'
     return 1;
 }
 

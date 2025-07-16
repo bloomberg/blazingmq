@@ -28,6 +28,7 @@
 #include <bdlf_bind.h>
 #include <bsl_cstdlib.h>
 #include <bsl_list.h>
+#include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmt_lockguard.h>
@@ -322,10 +323,9 @@ void ClusterActiveNodeManager::loadNodesInfo(mqbcmd::NodeStatuses* out) const
         mqbcmd::ClusterNodeInfo& node = nodes.back();
         node.description()            = it->first->nodeDescription();
         node.isAvailable().makeValue(it->first->isAvailable());
-        int rc = mqbcmd::NodeStatus::fromInt(&node.status(),
-                                             it->second.d_status);
+        BSLA_MAYBE_UNUSED int rc =
+            mqbcmd::NodeStatus::fromInt(&node.status(), it->second.d_status);
         BSLS_ASSERT_SAFE(!rc && "Unsupported node status");
-        (void)rc;
     }
 }
 

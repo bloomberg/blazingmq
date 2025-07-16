@@ -75,6 +75,8 @@
 #include <balst_stacktracetestallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
+#include <bsl_istream.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>

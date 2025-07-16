@@ -55,9 +55,11 @@
 #include <bdlt_epochutil.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_iterator.h>
 #include <bsl_limits.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -701,11 +703,11 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
     if (queueHandle) {
         // Already aware of this queueId from this client.
 
-        bmqt::Uri   uri;
-        bsl::string error;
-        int rc = bmqt::UriParser::parse(&uri, &error, handleParameters.uri());
+        bmqt::Uri             uri;
+        bsl::string           error;
+        BSLA_MAYBE_UNUSED int rc =
+            bmqt::UriParser::parse(&uri, &error, handleParameters.uri());
         BSLS_ASSERT_SAFE(rc == 0);
-        (void)rc;  // compiler happiness
         BSLS_ASSERT_SAFE(queueHandle->queue()->uri().asString() ==
                          queueHandle->queue()->uri().canonical());
         // Queue's 'uri' should always be the canonical uri
@@ -1324,13 +1326,12 @@ void RootQueueEngine::afterNewMessage(
 
     if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
         // Clear storage status
-        mqbi::StorageResult::Enum rc =
+        BSLA_MAYBE_UNUSED mqbi::StorageResult::Enum rc =
             d_queueState_p->queue()->storage()->removeAll(
                 mqbu::StorageKey::k_NULL_KEY);
         // Intended to be used with 'InMemoryStorage'.  Since 'appKey' isn't
         //  used while calling 'removeAll()', it should always succeed.
         BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
-        (void)rc;  // Compiler happiness
 
         d_storageIter_mp->reset();
     }
@@ -1404,9 +1405,10 @@ int RootQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
     return rc_ERROR;
 }
 
-int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
-                                     const bmqt::MessageGUID& msgGUID,
-                                     unsigned int             subQueueId)
+int RootQueueEngine::onRejectMessage(
+    BSLA_MAYBE_UNUSED mqbi::QueueHandle* handle,
+    const bmqt::MessageGUID&             msgGUID,
+    unsigned int                         subQueueId)
 {
     // executed by the *QUEUE DISPATCHER* thread
 

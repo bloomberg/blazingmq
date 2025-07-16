@@ -37,6 +37,7 @@
 #include <bdlt_datetime.h>
 #include <bdlt_datetimetz.h>
 #include <bsl_algorithm.h>
+#include <bsla_annotations.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
@@ -95,9 +96,9 @@ int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
         appKey = mqbu::StorageKey::k_NULL_KEY;
     }
     else {
-        bool hasTheStorage = storage->hasVirtualStorage(appId, &appKey);
+        BSLA_MAYBE_UNUSED bool hasTheStorage =
+            storage->hasVirtualStorage(appId, &appKey);
         BSLS_ASSERT_SAFE(hasTheStorage);
-        (void)hasTheStorage;
     }
 
     const bsls::Types::Int64 numMessages        = storage->numMessages(appKey);

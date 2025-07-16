@@ -35,6 +35,8 @@
 // BDE
 #include <bdlt_epochutil.h>
 #include <bsl_optional.h>
+#include <bsl_unordered_map.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

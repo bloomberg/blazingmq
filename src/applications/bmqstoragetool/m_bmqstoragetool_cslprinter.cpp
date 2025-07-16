@@ -24,6 +24,11 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_cstring.h>
+#include <bsl_iomanip.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 #include <bslim_printer.h>
 
 namespace BloombergLP {
@@ -61,10 +66,10 @@ void printQueueInfo(bsl::ostream&     ostream,
                     unsigned int      queuesLimit,
                     bslma::Allocator* allocator)
 {
-    const QueueInfos& queueInfos = queueMap.queueInfos();
+    const QueueMap::QueueInfos& queueInfos = queueMap.queueInfos();
     if (!queueInfos.empty()) {
         ostream << ",\n";
-        QueueInfos::const_iterator itEnd = queueInfos.cend();
+        QueueMap::QueueInfos::const_iterator itEnd = queueInfos.cend();
         if (queueInfos.size() > queuesLimit) {
             ostream << "    \"First" << queuesLimit << "Queues\": [";
             itEnd = queueInfos.cbegin() + queuesLimit;
@@ -72,7 +77,7 @@ void printQueueInfo(bsl::ostream&     ostream,
         else {
             ostream << "    \"Queues\": [";
         }
-        QueueInfos::const_iterator it = queueInfos.cbegin();
+        QueueMap::QueueInfos::const_iterator it = queueInfos.cbegin();
         for (; it != itEnd; ++it) {
             if (it != queueInfos.cbegin()) {
                 ostream << ",";
@@ -112,188 +117,222 @@ class HumanReadableCslPrinter : public CslPrinter {
   public:
     // CREATORS
     explicit HumanReadableCslPrinter(bsl::ostream&     os,
-                                     bslma::Allocator* allocator = 0)
-    : d_ostream(os)
-    , d_allocator_p(allocator)
-    {
-        BSLS_ASSERT(os.good());
-    }
+                                     bslma::Allocator* allocator = 0);
 
-    ~HumanReadableCslPrinter() BSLS_KEYWORD_OVERRIDE { d_ostream << '\n'; }
+    ~HumanReadableCslPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
     void printShortResult(const mqbc::ClusterStateRecordHeader& header,
                           const mqbsi::LedgerRecordId&          recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        bslim::Printer printer(&d_ostream, 0, -1);
-        printer.start();
-        printer.printAttribute("recordType", header.recordType());
-        printer.printAttribute("electorTerm", header.electorTerm());
-        printer.printAttribute("sequenceNumber", header.sequenceNumber());
-        printer.printAttribute("timestamp", header.timestamp());
-        printer.end();
-
-        d_ostream << recordId << '\n';
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
                            const mqbc::ClusterStateRecordHeader& header,
                            const mqbsi::LedgerRecordId& recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        // Print aligned delimiter
-        bsl::string aiignedDelimiter(
-            bsl::strlen(
-                mqbc::ClusterStateRecordType::toAscii(header.recordType())),
-            '=',
-            d_allocator_p);
-        d_ostream << "===========================" << aiignedDelimiter
-                  << "\n\n";
+        BSLS_KEYWORD_OVERRIDE;
 
-        bmqu::MemOutStream recordStream(d_allocator_p);
-        record.print(recordStream, 2, 2);
-
-        CslRecordPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                       d_allocator_p);
-        printer.printRecordDetails(recordStream.str(), header, recordId);
-    }
-
-    void
-    printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
-    {
-        if (!offsets.empty()) {
-            d_ostream << "\nThe following " << offsets.size()
-                      << " offset(s) not found:\n";
-            for (OffsetsVec::const_iterator it = offsets.cbegin();
-                 it != offsets.cend();
-                 ++it) {
-                d_ostream << *it << '\n';
-            }
-        }
-    }
+    void printOffsetsNotFound(const OffsetsVec& offsets) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void printCompositesNotFound(const CompositesVec& seqNums) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        if (!seqNums.empty()) {
-            d_ostream << "\nThe following " << seqNums.size()
-                      << " sequence number(s) not found:\n";
-            CompositesVec::const_iterator it = seqNums.cbegin();
-            for (; it != seqNums.cend(); ++it) {
-                d_ostream << *it << '\n';
-            }
-        }
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printSummaryResult(
         const CslRecordCount&                    recordCount,
         const CslUpdateChoiceMap&                updateChoiceMap,
         const QueueMap&                          queueMap,
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
-        unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
-    {
-        if (processCslRecordTypes.d_snapshot) {
-            recordCount.d_snapshotCount > 0
-                ? (d_ostream << '\n'
-                             << recordCount.d_snapshotCount << " snapshot")
-                : d_ostream << "\nNo snapshot";
-            d_ostream << " record(s) found.\n";
-        }
-        if (processCslRecordTypes.d_update) {
-            if (recordCount.d_updateCount > 0) {
-                d_ostream << '\n'
-                          << recordCount.d_updateCount
-                          << " update record(s) found, including:" << '\n';
-                bsl::vector<const char*>           fields(d_allocator_p);
-                bmqp_ctrlmsg::ClusterMessageChoice clusterMessageChoice(
-                    d_allocator_p);
-                for (CslUpdateChoiceMap::const_iterator it =
-                         updateChoiceMap.begin();
-                     it != updateChoiceMap.end();
-                     ++it) {
-                    clusterMessageChoice.makeSelection(it->first);
-                    fields.push_back(clusterMessageChoice.selectionName());
-                }
-                bmqu::AlignedPrinter printer(d_ostream, &fields);
-                for (CslUpdateChoiceMap::const_iterator it =
-                         updateChoiceMap.begin();
-                     it != updateChoiceMap.end();
-                     ++it) {
-                    printer << it->second;
-                }
-            }
-            else {
-                d_ostream << "\nNo update record(s) found." << '\n';
-            }
-        }
-        if (processCslRecordTypes.d_commit) {
-            recordCount.d_commitCount > 0
-                ? (d_ostream << '\n'
-                             << recordCount.d_commitCount << " commit")
-                : d_ostream << "\nNo commit";
-            d_ostream << " record(s) found.\n";
-        }
-        if (processCslRecordTypes.d_ack) {
-            recordCount.d_ackCount > 0
-                ? (d_ostream << '\n'
-                             << recordCount.d_ackCount << " ack")
-                : d_ostream << "\nNo ack";
-            d_ostream << " record(s) found.\n";
-        }
-
-        // Print queues info
-        const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
-            queueMap.queueInfos();
-        if (!queueInfos.empty()) {
-            size_t queueInfosSize = queueInfos.size();
-            d_ostream << '\n' << queueInfosSize << " Queues found:\n";
-            bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
-                queueInfos.cend();
-            if (queueInfosSize > queuesLimit) {
-                d_ostream << "Only first " << queuesLimit
-                          << " queues are displayed.\n";
-                itEnd = queueInfos.cbegin() + queuesLimit;
-            }
-            bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-                queueInfos.cbegin();
-            for (; it != itEnd; ++it) {
-                d_ostream << *it << '\n';
-            }
-        }
-    }
+        unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 
     void printFooter(const CslRecordCount& recordCount,
                      const Parameters::ProcessCslRecordTypes&
-                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
-    {
-        if (processCslRecordTypes.d_snapshot) {
-            recordCount.d_snapshotCount > 0
-                ? (d_ostream << recordCount.d_snapshotCount << " snapshot")
-                : d_ostream << "No snapshot";
-            d_ostream << " record(s) found.\n";
-        }
-        if (processCslRecordTypes.d_update) {
-            recordCount.d_updateCount > 0
-                ? (d_ostream << recordCount.d_updateCount << " update")
-                : d_ostream << "No update";
-            d_ostream << " record(s) found.\n";
-        }
-        if (processCslRecordTypes.d_commit) {
-            recordCount.d_commitCount > 0
-                ? (d_ostream << recordCount.d_commitCount << " commit")
-                : d_ostream << "No commit";
-            d_ostream << " record(s) found.\n";
-        }
-        if (processCslRecordTypes.d_ack) {
-            recordCount.d_ackCount > 0
-                ? (d_ostream << recordCount.d_ackCount << " ack")
-                : d_ostream << "No ack";
-            d_ostream << " record(s) found.\n";
+                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE;
+};
+
+// CREATORS
+HumanReadableCslPrinter::HumanReadableCslPrinter(bsl::ostream&     os,
+                                                 bslma::Allocator* allocator)
+: d_ostream(os)
+, d_allocator_p(allocator)
+{
+    BSLS_ASSERT(os.good());
+}
+
+HumanReadableCslPrinter::~HumanReadableCslPrinter()
+{
+    d_ostream << '\n';
+}
+
+// ACCESSORS
+void HumanReadableCslPrinter::printShortResult(
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recordId) const
+{
+    bslim::Printer printer(&d_ostream, 0, -1);
+    printer.start();
+    printer.printAttribute("recordType", header.recordType());
+    printer.printAttribute("electorTerm", header.electorTerm());
+    printer.printAttribute("sequenceNumber", header.sequenceNumber());
+    printer.printAttribute("timestamp", header.timestamp());
+    printer.end();
+
+    d_ostream << recordId << '\n';
+}
+
+void HumanReadableCslPrinter::printDetailResult(
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recordId) const
+{
+    // Print aligned delimiter
+    bsl::string aiignedDelimiter(
+        bsl::strlen(
+            mqbc::ClusterStateRecordType::toAscii(header.recordType())),
+        '=',
+        d_allocator_p);
+    d_ostream << "===========================" << aiignedDelimiter << "\n\n";
+
+    bmqu::MemOutStream recordStream(d_allocator_p);
+    record.print(recordStream, 2, 2);
+
+    CslRecordPrinter<bmqu::AlignedPrinter> printer(d_ostream, d_allocator_p);
+    printer.printRecordDetails(recordStream.str(), header, recordId);
+}
+
+void HumanReadableCslPrinter::printOffsetsNotFound(
+    const OffsetsVec& offsets) const
+{
+    if (!offsets.empty()) {
+        d_ostream << "\nThe following " << offsets.size()
+                  << " offset(s) not found:\n";
+        for (OffsetsVec::const_iterator it = offsets.cbegin();
+             it != offsets.cend();
+             ++it) {
+            d_ostream << *it << '\n';
         }
     }
-};
+}
+
+void HumanReadableCslPrinter::printCompositesNotFound(
+    const CompositesVec& seqNums) const
+{
+    if (!seqNums.empty()) {
+        d_ostream << "\nThe following " << seqNums.size()
+                  << " sequence number(s) not found:\n";
+        CompositesVec::const_iterator it = seqNums.cbegin();
+        for (; it != seqNums.cend(); ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
+
+void HumanReadableCslPrinter::printSummaryResult(
+    const CslRecordCount&                    recordCount,
+    const CslUpdateChoiceMap&                updateChoiceMap,
+    const QueueMap&                          queueMap,
+    const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+    unsigned int                             queuesLimit) const
+{
+    if (processCslRecordTypes.d_snapshot) {
+        recordCount.d_snapshotCount > 0
+            ? (d_ostream << '\n'
+                         << recordCount.d_snapshotCount << " snapshot")
+            : d_ostream << "\nNo snapshot";
+        d_ostream << " record(s) found.\n";
+    }
+    if (processCslRecordTypes.d_update) {
+        if (recordCount.d_updateCount > 0) {
+            d_ostream << '\n'
+                      << recordCount.d_updateCount
+                      << " update record(s) found, including:" << '\n';
+            bsl::vector<const char*>           fields(d_allocator_p);
+            bmqp_ctrlmsg::ClusterMessageChoice clusterMessageChoice(
+                d_allocator_p);
+            for (CslUpdateChoiceMap::const_iterator it =
+                     updateChoiceMap.begin();
+                 it != updateChoiceMap.end();
+                 ++it) {
+                clusterMessageChoice.makeSelection(it->first);
+                fields.push_back(clusterMessageChoice.selectionName());
+            }
+            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            for (CslUpdateChoiceMap::const_iterator it =
+                     updateChoiceMap.begin();
+                 it != updateChoiceMap.end();
+                 ++it) {
+                printer << it->second;
+            }
+        }
+        else {
+            d_ostream << "\nNo update record(s) found." << '\n';
+        }
+    }
+    if (processCslRecordTypes.d_commit) {
+        recordCount.d_commitCount > 0
+            ? (d_ostream << '\n'
+                         << recordCount.d_commitCount << " commit")
+            : d_ostream << "\nNo commit";
+        d_ostream << " record(s) found.\n";
+    }
+    if (processCslRecordTypes.d_ack) {
+        recordCount.d_ackCount > 0
+            ? (d_ostream << '\n'
+                         << recordCount.d_ackCount << " ack")
+            : d_ostream << "\nNo ack";
+        d_ostream << " record(s) found.\n";
+    }
+
+    // Print queues info
+    const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
+        queueMap.queueInfos();
+    if (!queueInfos.empty()) {
+        size_t queueInfosSize = queueInfos.size();
+        d_ostream << '\n' << queueInfosSize << " Queues found:\n";
+        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
+            queueInfos.cend();
+        if (queueInfosSize > queuesLimit) {
+            d_ostream << "Only first " << queuesLimit
+                      << " queues are displayed.\n";
+            itEnd = queueInfos.cbegin() + queuesLimit;
+        }
+        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
+            queueInfos.cbegin();
+        for (; it != itEnd; ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
+
+void HumanReadableCslPrinter::printFooter(
+    const CslRecordCount&                    recordCount,
+    const Parameters::ProcessCslRecordTypes& processCslRecordTypes) const
+{
+    if (processCslRecordTypes.d_snapshot) {
+        recordCount.d_snapshotCount > 0
+            ? (d_ostream << recordCount.d_snapshotCount << " snapshot")
+            : d_ostream << "No snapshot";
+        d_ostream << " record(s) found.\n";
+    }
+    if (processCslRecordTypes.d_update) {
+        recordCount.d_updateCount > 0
+            ? (d_ostream << recordCount.d_updateCount << " update")
+            : d_ostream << "No update";
+        d_ostream << " record(s) found.\n";
+    }
+    if (processCslRecordTypes.d_commit) {
+        recordCount.d_commitCount > 0
+            ? (d_ostream << recordCount.d_commitCount << " commit")
+            : d_ostream << "No commit";
+        d_ostream << " record(s) found.\n";
+    }
+    if (processCslRecordTypes.d_ack) {
+        recordCount.d_ackCount > 0
+            ? (d_ostream << recordCount.d_ackCount << " ack")
+            : d_ostream << "No ack";
+        d_ostream << " record(s) found.\n";
+    }
+}
 
 // ====================
 // class JsonCslPrinter
@@ -310,102 +349,125 @@ class JsonCslPrinter : public CslPrinter {
 
     // PROTECTED METHODS
 
-    void openBraceIfNotOpen(const std::string& fieldName) const
-    {
-        if (!d_braceOpen) {
-            d_ostream << "  \"" << fieldName << "\": [\n";
-            d_braceOpen = true;
-        }
-        else {
-            d_ostream << ",\n";
-        }
-    }
+    void openBraceIfNotOpen(const std::string& fieldName) const;
 
-    void closeBraceIfOpen() const
-    {
-        if (d_braceOpen) {
-            d_ostream << "\n  ]";
-            d_braceOpen = false;
-            d_firstRow  = false;
-        }
-        if (!d_firstRow) {
-            d_ostream << ",\n";
-        }
-        else {
-            d_firstRow = false;
-        }
-    }
+    void closeBraceIfOpen() const;
 
   public:
     // CREATORS
 
-    explicit JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator = 0)
-    : d_ostream(os)
-    , d_allocator_p(allocator)
-    , d_braceOpen(false)
-    , d_firstRow(true)
-    {
-        d_ostream << "{\n";
-    }
+    explicit JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator = 0);
 
-    ~JsonCslPrinter() BSLS_KEYWORD_OVERRIDE
-    {
-        if (d_braceOpen) {
-            d_ostream << "\n  ]";
-            d_braceOpen = false;
-        }
-        d_ostream << "\n}\n";
-    }
+    ~JsonCslPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
-    void
-    printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"OffsetsNotFound\": [";
-        OffsetsVec::const_iterator it = offsets.cbegin();
-        for (; it != offsets.cend(); ++it) {
-            if (it != offsets.cbegin()) {
-                d_ostream << ",";
-            }
-            d_ostream << "\n    " << *it;
-        }
-        d_ostream << "\n  ]";
-    }
+    void printOffsetsNotFound(const OffsetsVec& offsets) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void printCompositesNotFound(const CompositesVec& seqNums) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"SequenceNumbersNotFound\": [";
-        CompositesVec::const_iterator it = seqNums.cbegin();
-        for (; it != seqNums.cend(); ++it) {
-            if (it != seqNums.cbegin()) {
-                d_ostream << ',';
-            }
-
-            d_ostream << "\n    {\"leaseId\": " << it->leaseId()
-                      << ", \"sequenceNumber\": " << it->sequenceNumber()
-                      << "}";
-        }
-        d_ostream << "\n  ]";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printFooter(const CslRecordCount& recordCount,
                      BSLA_UNUSED const     Parameters::ProcessCslRecordTypes&
-                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"SnapshotRecords\": \"" << recordCount.d_snapshotCount
-                  << "\",\n";
-        d_ostream << "  \"UpdateRecords\": \"" << recordCount.d_updateCount
-                  << "\",\n";
-        d_ostream << "  \"CommitRecords\": \"" << recordCount.d_commitCount
-                  << "\",\n";
-        d_ostream << "  \"AckRecords\": \"" << recordCount.d_ackCount << "\"";
-    }
+                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE;
 };
+
+// PROTECTED METHODS
+
+void JsonCslPrinter::openBraceIfNotOpen(const std::string& fieldName) const
+{
+    if (!d_braceOpen) {
+        d_ostream << "  \"" << fieldName << "\": [\n";
+        d_braceOpen = true;
+    }
+    else {
+        d_ostream << ",\n";
+    }
+}
+
+void JsonCslPrinter::closeBraceIfOpen() const
+{
+    if (d_braceOpen) {
+        d_ostream << "\n  ]";
+        d_braceOpen = false;
+        d_firstRow  = false;
+    }
+    if (!d_firstRow) {
+        d_ostream << ",\n";
+    }
+    else {
+        d_firstRow = false;
+    }
+}
+
+// CREATORS
+
+JsonCslPrinter::JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+: d_ostream(os)
+, d_allocator_p(allocator)
+, d_braceOpen(false)
+, d_firstRow(true)
+{
+    d_ostream << "{\n";
+}
+
+JsonCslPrinter::~JsonCslPrinter()
+{
+    if (d_braceOpen) {
+        d_ostream << "\n  ]";
+        d_braceOpen = false;
+    }
+    d_ostream << "\n}\n";
+}
+
+// PUBLIC METHODS
+
+void JsonCslPrinter::printOffsetsNotFound(const OffsetsVec& offsets) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"OffsetsNotFound\": [";
+    OffsetsVec::const_iterator it = offsets.cbegin();
+    for (; it != offsets.cend(); ++it) {
+        if (it != offsets.cbegin()) {
+            d_ostream << ",";
+        }
+        d_ostream << "\n    " << *it;
+    }
+    d_ostream << "\n  ]";
+}
+
+void JsonCslPrinter::printCompositesNotFound(
+    const CompositesVec& seqNums) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"SequenceNumbersNotFound\": [";
+    CompositesVec::const_iterator it = seqNums.cbegin();
+    for (; it != seqNums.cend(); ++it) {
+        if (it != seqNums.cbegin()) {
+            d_ostream << ',';
+        }
+
+        d_ostream << "\n    {\"leaseId\": " << it->leaseId()
+                  << ", \"sequenceNumber\": " << it->sequenceNumber() << "}";
+    }
+    d_ostream << "\n  ]";
+}
+
+void JsonCslPrinter::printFooter(
+    const CslRecordCount& recordCount,
+    BSLA_UNUSED const Parameters::ProcessCslRecordTypes& processCslRecordTypes)
+    const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"SnapshotRecords\": \"" << recordCount.d_snapshotCount
+              << "\",\n";
+    d_ostream << "  \"UpdateRecords\": \"" << recordCount.d_updateCount
+              << "\",\n";
+    d_ostream << "  \"CommitRecords\": \"" << recordCount.d_commitCount
+              << "\",\n";
+    d_ostream << "  \"AckRecords\": \"" << recordCount.d_ackCount << "\"";
+}
 
 // ==========================
 // class JsonPrettyCslPrinter
@@ -414,49 +476,20 @@ class JsonCslPrinter : public CslPrinter {
 class JsonPrettyCslPrinter : public JsonCslPrinter {
   public:
     // CREATORS
-    JsonPrettyCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
-    : JsonCslPrinter(os, allocator)
-    {
-        // NOTHING
-    }
+    JsonPrettyCslPrinter(bsl::ostream& os, bslma::Allocator* allocator);
 
-    ~JsonPrettyCslPrinter() BSLS_KEYWORD_OVERRIDE {}
+    ~JsonPrettyCslPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
     void printShortResult(const mqbc::ClusterStateRecordHeader& header,
                           const mqbsi::LedgerRecordId&          recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-
-        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails("", header, recordId);
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
                            const mqbc::ClusterStateRecordHeader& header,
                            const mqbsi::LedgerRecordId& recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-
-        // Print record.
-        // Since `record` uses `bslim::Printer` to print its objects hierarchy,
-        // it is not easy (and error prone) to do the same for json printer
-        // without changing nested `record` objects.
-        // So, we will use the output of `print` method and store it in json as
-        // escaped string.
-        bsl::string recStr = recordToJsonString(&record, d_allocator_p);
-
-        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-
-        printer.printRecordDetails(recStr, header, recordId);
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void
     printSummaryResult(const CslRecordCount&     recordCount,
@@ -464,19 +497,76 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
                        const QueueMap&           queueMap,
                        BSLA_UNUSED const Parameters::ProcessCslRecordTypes&
                                          processCslRecordTypes,
-                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "    \"Summary\":\n";
-
-        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-
-        printer.printRecordsSummary(recordCount, updateChoiceMap);
-
-        printQueueInfo(d_ostream, queueMap, queuesLimit, d_allocator_p);
-    }
+                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 };
+
+// CREATORS
+
+JsonPrettyCslPrinter::JsonPrettyCslPrinter(bsl::ostream&     os,
+                                           bslma::Allocator* allocator)
+: JsonCslPrinter(os, allocator)
+{
+    // NOTHING
+}
+
+JsonPrettyCslPrinter::~JsonPrettyCslPrinter()
+{
+    // NOTHING
+}
+
+// PUBLIC METHODS
+
+void JsonPrettyCslPrinter::printShortResult(
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recordId) const
+{
+    openBraceIfNotOpen("Records");
+
+    CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails("", header, recordId);
+}
+
+void JsonPrettyCslPrinter::printDetailResult(
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recordId) const
+{
+    openBraceIfNotOpen("Records");
+
+    // Print record.
+    // Since `record` uses `bslim::Printer` to print its objects hierarchy,
+    // it is not easy (and error prone) to do the same for json printer
+    // without changing nested `record` objects.
+    // So, we will use the output of `print` method and store it in json as
+    // escaped string.
+    bsl::string recStr = recordToJsonString(&record, d_allocator_p);
+
+    CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+
+    printer.printRecordDetails(recStr, header, recordId);
+}
+
+void JsonPrettyCslPrinter::printSummaryResult(
+    const CslRecordCount&     recordCount,
+    const CslUpdateChoiceMap& updateChoiceMap,
+    const QueueMap&           queueMap,
+    BSLA_UNUSED const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+    unsigned int                                         queuesLimit) const
+{
+    d_ostream << "    \"Summary\":\n";
+
+    CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+
+    printer.printRecordsSummary(recordCount, updateChoiceMap);
+
+    printQueueInfo(d_ostream, queueMap, queuesLimit, d_allocator_p);
+}
 
 // ========================
 // class JsonLineCslPrinter
@@ -485,48 +575,19 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
 class JsonLineCslPrinter : public JsonCslPrinter {
   public:
     // CREATORS
-    JsonLineCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
-    : JsonCslPrinter(os, allocator)
-    {
-        // NOTHING
-    }
+    JsonLineCslPrinter(bsl::ostream& os, bslma::Allocator* allocator);
 
-    ~JsonLineCslPrinter() BSLS_KEYWORD_OVERRIDE {}
+    ~JsonLineCslPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
     void printShortResult(const mqbc::ClusterStateRecordHeader& header,
                           const mqbsi::LedgerRecordId&          recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-
-        CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails("", header, recordId);
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
                            const mqbc::ClusterStateRecordHeader& header,
                            const mqbsi::LedgerRecordId& recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-
-        // Print record.
-        // Since `record` uses `bslim::Printer` to print its objects hierarchy,
-        // it is not easy (and error prone) to do the same for json printer
-        // without changing nested `record` objects.
-        // So, we will use the output of `print` method and store it in json as
-        // escaped string.
-        bsl::string recStr = recordToJsonString(&record, d_allocator_p);
-
-        CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-
-        printer.printRecordDetails(recStr, header, recordId);
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void
     printSummaryResult(const CslRecordCount&     recordCount,
@@ -534,19 +595,73 @@ class JsonLineCslPrinter : public JsonCslPrinter {
                        const QueueMap&           queueMap,
                        BSLA_UNUSED const Parameters::ProcessCslRecordTypes&
                                          processCslRecordTypes,
-                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "    \"Summary\": ";
-
-        CslRecordPrinter<bmqu::JsonPrinter<false, true, 0, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-
-        printer.printRecordsSummary(recordCount, updateChoiceMap);
-
-        printQueueInfo(d_ostream, queueMap, queuesLimit, d_allocator_p);
-    }
+                       unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 };
+
+// CREATORS
+JsonLineCslPrinter::JsonLineCslPrinter(bsl::ostream&     os,
+                                       bslma::Allocator* allocator)
+: JsonCslPrinter(os, allocator)
+{
+    // NOTHING
+}
+
+JsonLineCslPrinter::~JsonLineCslPrinter()
+{
+}
+
+// PUBLIC METHODS
+void JsonLineCslPrinter::printShortResult(
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recordId) const
+{
+    openBraceIfNotOpen("Records");
+
+    CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails("", header, recordId);
+}
+
+void JsonLineCslPrinter::printDetailResult(
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recordId) const
+{
+    openBraceIfNotOpen("Records");
+
+    // Print record.
+    // Since `record` uses `bslim::Printer` to print its objects hierarchy,
+    // it is not easy (and error prone) to do the same for json printer
+    // without changing nested `record` objects.
+    // So, we will use the output of `print` method and store it in json as
+    // escaped string.
+    bsl::string recStr = recordToJsonString(&record, d_allocator_p);
+
+    CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+
+    printer.printRecordDetails(recStr, header, recordId);
+}
+
+void JsonLineCslPrinter::printSummaryResult(
+    const CslRecordCount&     recordCount,
+    const CslUpdateChoiceMap& updateChoiceMap,
+    const QueueMap&           queueMap,
+    BSLA_UNUSED const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+    unsigned int                                         queuesLimit) const
+{
+    d_ostream << "    \"Summary\": ";
+
+    CslRecordPrinter<bmqu::JsonPrinter<false, true, 0, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+
+    printer.printRecordsSummary(recordCount, updateChoiceMap);
+
+    printQueueInfo(d_ostream, queueMap, queuesLimit, d_allocator_p);
+}
 
 bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
                                              std::ostream&         stream,

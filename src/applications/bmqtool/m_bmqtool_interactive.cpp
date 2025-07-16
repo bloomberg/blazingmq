@@ -41,7 +41,11 @@
 #include <bdlf_memfn.h>
 #include <bdls_processutil.h>
 #include <bdlt_currenttime.h>
+#include <bsl_algorithm.h>
+#include <bsl_iomanip.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
+#include <bsl_utility.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_turnstile.h>
 
@@ -265,7 +269,8 @@ void Interactive::processCommand(const OpenQueueCommand& command)
         .setConsumerPriority(command.consumerPriority());
 
     if (!InputUtil::populateSubscriptions(&queueOptions,
-                                          command.subscriptions())) {
+                                          command.subscriptions(),
+                                          d_allocator_p)) {
         BALL_LOG_ERROR << "Invalid subscriptions";
         return;  // RETURN
     }
@@ -353,7 +358,8 @@ void Interactive::processCommand(const ConfigureQueueCommand& command)
         .setConsumerPriority(command.consumerPriority());
 
     if (!InputUtil::populateSubscriptions(&queueOptions,
-                                          command.subscriptions())) {
+                                          command.subscriptions(),
+                                          d_allocator_p)) {
         BALL_LOG_ERROR << "Invalid subscriptions";
         return;  // RETURN
     }

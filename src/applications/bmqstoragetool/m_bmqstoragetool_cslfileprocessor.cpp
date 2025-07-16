@@ -14,6 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_cslfileprocessor.h>
 #include <m_bmqstoragetool_filters.h>

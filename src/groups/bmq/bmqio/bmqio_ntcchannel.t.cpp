@@ -31,6 +31,7 @@
 #include <bsls_types.h>
 
 #include <bmqtst_testhelper.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -77,8 +78,8 @@ void doFail()
     BMQTST_ASSERT(false && "Must not be invoked");
 }
 
-void executeOnClosedChannelFunc(bmqio::NtcChannel* channel,
-                                const Status&      status)
+void executeOnClosedChannelFunc(bmqio::NtcChannel*        channel,
+                                BSLA_UNUSED const Status& status)
 {
     // PRECONDITIONS
     BMQTST_ASSERT(channel);
@@ -145,6 +146,7 @@ class Tester {
 
   public:
     // TRAITS
+    BSLA_MAYBE_UNUSED
     BSLMF_NESTED_TRAIT_DECLARATION(Tester, bslma::UsesBslmaAllocator)
 
     // CREATORS
@@ -251,9 +253,9 @@ void Tester::onAcceptConnection(
     d_semaphore.post();
 }
 
-void Tester::onChannelResult(ChannelFactoryEvent::Enum       event,
-                             const Status&                   status,
-                             const bsl::shared_ptr<Channel>& channel)
+void Tester::onChannelResult(BSLA_UNUSED ChannelFactoryEvent::Enum event,
+                             BSLA_UNUSED const Status&             status,
+                             const bsl::shared_ptr<Channel>&       channel)
 {
     d_connectChannels.push_back(channel);
 }

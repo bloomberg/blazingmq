@@ -40,6 +40,7 @@
 #pragma push_macro("TEST_F")
 #pragma push_macro("TEST")
 
+#include <bsl_cstddef.h>
 #include <gmock/gmock.h>
 
 #undef ASSERT_EQ
@@ -70,9 +71,9 @@ namespace m_bmqstoragetool {
 class PrinterMock : public Printer {
   public:
     // CREATORS
-    PrinterMock() {}
+    PrinterMock();
 
-    ~PrinterMock() BSLS_KEYWORD_OVERRIDE {}
+    ~PrinterMock() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
@@ -113,9 +114,9 @@ class PrinterMock : public Printer {
 class CslPrinterMock : public CslPrinter {
   public:
     // CREATORS
-    CslPrinterMock() {}
+    CslPrinterMock();
 
-    ~CslPrinterMock() BSLS_KEYWORD_OVERRIDE {}
+    ~CslPrinterMock() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 

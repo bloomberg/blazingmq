@@ -25,7 +25,9 @@
 
 // BDE
 #include <bsl_cstddef.h>
+#include <bsl_limits.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace mqbs {

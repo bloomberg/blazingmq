@@ -31,7 +31,7 @@ import glob
 pytestmark = order(4)
 
 default_app_ids = ["foo", "bar", "baz"]
-timeout = 120
+timeout = 5
 
 
 class TestRolloverCSL:
@@ -101,8 +101,6 @@ class TestRolloverCSL:
                 f"bmq://{du.domain_priority}/q{i}", flags=["write,ack"], succeed=True
             )
             self.producer.close(f"bmq://{du.domain_priority}/q{i}", succeed=True)
-        for i in range(0, 3):
-            assert leader.outputs_regex(r"QueueUnassignedAdvisory", timeout)
 
         # Assigning these two queues will cause rollover
         self.producer.open(
@@ -111,7 +109,14 @@ class TestRolloverCSL:
         self.producer.open(
             f"bmq://{du.domain_priority}/q_last_2", flags=["write,ack"], succeed=True
         )
+
+        # do not wait for success, otherwise the following capture will fail
+        leader.force_gc_queues(block=False)
+
         assert leader.outputs_regex(r"Rolling over from log with logId", timeout)
+
+        # Rollover and queueUnAssignmentAdvisory interleave
+        assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout)
 
         cluster.restart_nodes()
         # For a standard cluster, states have already been restored as part of

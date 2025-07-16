@@ -35,6 +35,9 @@
 #include <bdlbb_blob.h>
 #include <bmqu_blob.h>
 #include <bmqu_printutil.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 #include <bsls_asserttest.h>
 #include <bsls_bsltestutil.h>
 

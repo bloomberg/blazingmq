@@ -2215,10 +2215,8 @@ void Cluster::onRecoveryStatusDispatched(
     // This must be done before setting self status to AVAILABLE, which will
     // proceed with any pending queue-open requests etc.
 
-    BALL_LOG_INFO << description() << ": Transitioning to AVAILABLE, applying "
-                  << "buffered queue [un]assignment advisories, if any.";
+    BALL_LOG_INFO << description() << ": Transitioning to AVAILABLE.";
 
-    d_clusterOrchestrator.processBufferedQueueAdvisories();
     if (!isFSMWorkflow()) {
         d_clusterOrchestrator.validateClusterStateLedger();
     }
@@ -2716,28 +2714,6 @@ void Cluster::terminate(mqbu::ExitCode::Enum reason)
     mqbu::ExitUtil::shutdown(reason);  // EXIT
 }
 
-void Cluster::registerStateObserver(mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&mqbc::ClusterState::registerObserver,
-                             &d_state,
-                             observer),
-        this);
-}
-
-void Cluster::unregisterStateObserver(mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&mqbc::ClusterState::unregisterObserver,
-                             &d_state,
-                             observer),
-        this);
-}
-
 void Cluster::openQueue(
     const bmqt::Uri&                                          uri,
     mqbi::Domain*                                             domain,
@@ -3013,21 +2989,10 @@ void Cluster::processClusterControlMessage(
         d_stopRequestsManager_p->processResponse(message);
     } break;
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processPartitionPrimaryAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
+        // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(&ClusterOrchestrator::processLeaderAdvisory,
-                                 &d_clusterOrchestrator,
-                                 message,
-                                 source),
-            this);
+        // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
         // NO-OP
@@ -3114,22 +3079,9 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processQueueUnAssignmentAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
-    } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processQueueUnassignedAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
+        // NO-OP
+        // This version unconditionally applies all CSL commits including
+        // unassignment advisories.
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_STATE_NOTIFICATION: {
         dispatcher()->execute(

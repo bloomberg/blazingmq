@@ -19,6 +19,9 @@
 #include <m_bmqstoragetool_journalfileprocessor.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 

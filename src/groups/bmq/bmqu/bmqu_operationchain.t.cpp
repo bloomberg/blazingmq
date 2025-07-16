@@ -27,6 +27,8 @@
 #include <bdlf_placeholder.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bslmf_movableref.h>
 #include <bslmt_semaphore.h>
@@ -333,7 +335,8 @@ static void test1_usageExample()
     chain.join();
 }
 
-static void test2_chain_creators(bdlmt::ThreadPool* threadPool)
+static void
+test2_chain_creators(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
 // ------------------------------------------------------------------------
 // CHAIN CREATORS
 //
@@ -665,7 +668,8 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
     }
 }
 
-static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
+static void
+test6_chain_append2(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
 // ------------------------------------------------------------------------
 // CHAIN APPEND 2
 //
@@ -766,7 +770,8 @@ static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
     }
 }
 
-static void test7_chain_appendInplace(bdlmt::ThreadPool* threadPool)
+static void
+test7_chain_appendInplace(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
 // ------------------------------------------------------------------------
 // CHAIN APPEND INPLACE
 //
@@ -1129,7 +1134,8 @@ static void test10_chain_serialization(bdlmt::ThreadPool* threadPool)
     }
 }
 
-static void test11_chain_exceptionHandling(bdlmt::ThreadPool* threadPool)
+static void
+test11_chain_exceptionHandling(BSLA_MAYBE_UNUSED bdlmt::ThreadPool* threadPool)
 // ------------------------------------------------------------------------
 // CHAIN EXCEPTION HANDLING
 //

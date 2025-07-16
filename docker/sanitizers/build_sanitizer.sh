@@ -59,6 +59,7 @@ apt-get install -qy --no-install-recommends \
     bison \
     libfl-dev \
     pkg-config \
+    python3.12-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
@@ -91,6 +92,17 @@ DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
 
 DIR_SRC_BMQ="${DIR_ROOT}"
 DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
+# Create Python venv
+python3 -m venv venv
+if [ -f "venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source venv/bin/activate
+    pip install -r "${DIR_SRC_BMQ}/src/python/requirements.txt"
+else
+    echo "Virtual environment not found."
+    exit 1
+fi
 
 # Parse sanitizers config
 cfgquery() {
@@ -270,7 +282,9 @@ if [ "${FUZZER}" == "on" ]; then
     TARGETS="fuzztests"
 else
     CMAKE_OPTIONS+=(-UINSTALL_TARGETS);
-    TARGETS="all.t"
+    # Need both all.t for UT run and `bmqbrkr and bmqtool` to run ITs
+    # Thus set TARGETS to "all"
+    TARGETS="all"
 fi
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake --preset fuzz-tests -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
@@ -320,5 +334,11 @@ mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 
 # 'run-unittests.sh' runs all instrumented unit-tests.
 CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
-CMD+="./run-env.sh ctest --output-on-failure"
+CMD+="./run-env.sh ctest --output-on-failure -L \\^unit\\$"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
+
+# 'run-it.sh' runs instrumented integration tests.
+CMD="source ./venv/bin/activate && "
+CMD+="BLAZINGMQ_BUILD_DIR=${DIR_BUILD_BMQ} "
+CMD+="${DIR_BUILD_BMQ}/run-env.sh ./src/integration-tests/run-tests -v \$@"
+mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-it.sh"

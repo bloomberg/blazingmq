@@ -24,6 +24,8 @@
 #include <bmqio_testchannelfactory.h>
 #include <bmqtst_testhelper.h>
 
+#include <bsl_deque.h>
+#include <bsl_vector.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
 

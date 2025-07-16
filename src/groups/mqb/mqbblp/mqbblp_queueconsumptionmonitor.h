@@ -92,6 +92,8 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_functional.h>
+#include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bslh_hash.h>

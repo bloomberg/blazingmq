@@ -46,6 +46,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_cstddef.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
@@ -70,8 +71,8 @@ const int k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE = 5;
 /// external source and called after all the interesting
 /// processing is done.
 void onDomain(const bmqp_ctrlmsg::Status& status,
-              mqbi::Domain*               domain,
-              bslmt::Latch*               latch)
+              BSLA_MAYBE_UNUSED mqbi::Domain* domain,
+              bslmt::Latch*                   latch)
 {
     // executed by *ANY* thread
 

@@ -47,6 +47,7 @@
 #include <bdlb_print.h>
 #include <bdlde_md5.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_limits.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bslma_managedptr.h>
@@ -64,6 +65,7 @@ const char   k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
     "maximum number of queues reached";
 const char k_SELF_NODE_IS_STOPPING[]   = "self node is stopping";
 const char k_DOMAIN_CREATION_FAILURE[] = "failed to create domain";
+const char k_CSL_FAILURE[]             = "CSL failure";
 
 // TYPES
 typedef ClusterUtil::AppInfos      AppInfos;
@@ -488,30 +490,6 @@ void ClusterUtil::assignPartitions(
         for (unsigned int i = 0; i < cit->second; ++i) {
             const mqbc::ClusterStatePartitionInfo& pinfo = *cit2;
 
-            // In CSL mode, we apply the new partition assignments at the
-            // commit callback of 'PartitionPrimaryAdvisory' or
-            // 'LeaderAdvisory' instead.
-            if (!isCSLMode) {
-                if (pinfo.primaryNode()) {
-                    mqbc::ClusterNodeSession* ns =
-                        clusterData.membership().getClusterNodeSession(
-                            pinfo.primaryNode());
-                    BSLS_ASSERT_SAFE(ns);
-
-                    // Currently assigned primary node is not AVAILABLE.
-                    // Remove this partition from this node.
-                    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-                                     ns->nodeStatus());
-                    ns->removePartitionRaw(pinfo.partitionId());
-                }
-
-                primaryNs->addPartitionRaw(pinfo.partitionId());
-
-                clusterState->setPartitionPrimary(pinfo.partitionId(),
-                                                  pinfo.primaryLeaseId() + 1,
-                                                  primary);
-            }
-
             BALL_LOG_INFO << clusterData.identity().description()
                           << ": Partition [" << pinfo.partitionId()
                           << "]: Leader (self) has assigned "
@@ -546,7 +524,7 @@ int ClusterUtil::getNextPartitionId(const ClusterState& clusterState,
     const bsl::string&       latencyMonitorDomain =
         mqbcfg::BrokerConfig::get().latencyMonitorDomain();
 
-    if (domainName.find(latencyMonitorDomain) != bsl::string::npos) {
+    if (domainName.starts_with(latencyMonitorDomain)) {
         // latemon domain
         const int partitionId = clusterState.extractPartitionId(queueName);
         if (partitionId < 0) {
@@ -800,13 +778,13 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
                   << ": Populated QueueAssignmentAdvisory: " << *advisory;
 }
 
-void ClusterUtil::populateQueueUnassignedAdvisory(
-    bmqp_ctrlmsg::QueueUnassignedAdvisory* advisory,
-    ClusterData*                           clusterData,
-    const bmqt::Uri&                       uri,
-    const mqbu::StorageKey&                key,
-    int                                    partitionId,
-    const ClusterState&                    clusterState)
+void ClusterUtil::populateQueueUnAssignmentAdvisory(
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory* advisory,
+    ClusterData*                             clusterData,
+    const bmqt::Uri&                         uri,
+    const mqbu::StorageKey&                  key,
+    int                                      partitionId,
+    const ClusterState&                      clusterState)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -835,17 +813,16 @@ void ClusterUtil::populateQueueUnassignedAdvisory(
     key.loadBinary(&queueInfo.key());
 
     BALL_LOG_INFO << clusterData->identity().description()
-                  << ": Populated QueueUnassignedAdvisory: " << *advisory;
+                  << ": Populated QueueUnAssignmentAdvisory: " << *advisory;
 }
 
-ClusterUtil::QueueAssignmentResult::Enum
-ClusterUtil::assignQueue(ClusterState*         clusterState,
-                         ClusterData*          clusterData,
-                         ClusterStateLedger*   ledger,
-                         const mqbi::Cluster*  cluster,
-                         const bmqt::Uri&      uri,
-                         bslma::Allocator*     allocator,
-                         bmqp_ctrlmsg::Status* status)
+bool ClusterUtil::assignQueue(ClusterState*         clusterState,
+                              ClusterData*          clusterData,
+                              ClusterStateLedger*   ledger,
+                              const mqbi::Cluster*  cluster,
+                              const bmqt::Uri&      uri,
+                              bslma::Allocator*     allocator,
+                              bmqp_ctrlmsg::Status* status)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -858,6 +835,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
     BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
     BSLS_ASSERT_SAFE(uri.isCanonical());
     BSLS_ASSERT_SAFE(allocator);
+    BSLS_ASSERT_SAFE(status);
 
     // We are the leader and received a request to assign a queue URI with a
     // partitionId and queueKey.  Note that we don't check the status of a
@@ -873,14 +851,12 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                       << " Cannot proceed with queueAssignment of '" << uri
                       << "' because self is " << nodeStatus;
 
-        if (status) {
-            status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-            status->code()     = mqbi::ClusterErrorCode::e_STOPPING;
-            status->message()  = k_SELF_NODE_IS_STOPPING;
-        }
+        status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status->code()     = mqbi::ClusterErrorCode::e_STOPPING;
+        status->message()  = k_SELF_NODE_IS_STOPPING;
 
-        return QueueAssignmentResult::
-            k_ASSIGNMENT_WHILE_UNAVAILABLE;  // RETURN
+        // Transient failure, can continue
+        return true;  // RETURN
     }
 
     ClusterState::DomainStates& domainStates = clusterState->domainStates();
@@ -913,13 +889,12 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                            << ": Unable to create domain '"
                            << uri.qualifiedDomain() << "'";
 
-            if (status) {
-                status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-                status->code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
-                status->message()  = k_DOMAIN_CREATION_FAILURE;
-            }
+            status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status->code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+            status->message()  = k_DOMAIN_CREATION_FAILURE;
 
-            return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
+            // Permanent failure, cannot continue
+            return false;  // RETURN
         }
     }
 
@@ -935,13 +910,13 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
             BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                           << uri << "' is already pending.";
-            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
+            return true;  // RETURN
         }
 
         if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
             BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                           << uri << "' is already done.";
-            return QueueAssignmentResult::k_ASSIGNMENT_OK;  // RETURN
+            return true;  // RETURN
         }
     }
 
@@ -991,14 +966,12 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             }
 
             if (requestedQueues > maxQueues) {
-                if (status) {
-                    status->category() =
-                        bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-                    status->code()    = mqbi::ClusterErrorCode::e_LIMIT;
-                    status->message() = k_MAXIMUM_NUMBER_OF_QUEUES_REACHED;
-                }
+                status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+                status->code()     = mqbi::ClusterErrorCode::e_LIMIT;
+                status->message()  = k_MAXIMUM_NUMBER_OF_QUEUES_REACHED;
 
-                return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
+                // Permanent failure, cannot continue
+                return false;  // RETURN
             }
         }
 
@@ -1067,13 +1040,22 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                   << " cluster state ledger: " << queueAdvisory;
 
     const int rc = ledger->apply(queueAdvisory);
-    if (rc != 0) {
+
+    if (rc == 0) {
+        return true;  // RETURN
+    }
+    else {
         BALL_LOG_ERROR << clusterData->identity().description()
                        << ": Failed to apply queue assignment advisory: "
                        << queueAdvisory << ", rc: " << rc;
-    }
 
-    return QueueAssignmentResult::k_ASSIGNMENT_OK;
+        status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status->code()     = mqbi::ClusterErrorCode::e_CSL_FAILURE;
+        status->message()  = k_CSL_FAILURE;
+
+        // Permanent failure, cannot continue
+        return false;  // RETURN
+    }
 }
 
 void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
@@ -1465,6 +1447,8 @@ void ClusterUtil::sendClusterState(
         loadQueuesInfo(&advisory.queues(), clusterState);
     }
 
+    // Need to send the control message for the old brokers to process
+    // LeaderAdvisory.
     if (!clusterData->cluster().isCSLModeEnabled()) {
         if (node) {
             clusterData->messageTransmitter().sendMessage(controlMessage,
@@ -1472,22 +1456,6 @@ void ClusterUtil::sendClusterState(
         }
         else {
             clusterData->messageTransmitter().broadcastMessage(controlMessage);
-
-            // Inform local storage.  This should be done after broadcasting
-            // advisory above, because storageMgr or its partitions may also
-            // send some events to peer nodes in
-            // StorageManager::setPrimaryForPartition() below.
-            // TBD: This should be done in the caller of this routine.
-            BSLS_ASSERT_SAFE(storageManager);
-
-            for (unsigned int i = 0; i < partitions.size(); ++i) {
-                const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
-                storageManager->setPrimaryForPartition(
-                    info.partitionId(),
-                    clusterData->membership().netCluster()->lookupNode(
-                        info.primaryNodeId()),
-                    info.primaryLeaseId());
-            }
         }
     }
 
@@ -1550,9 +1518,9 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
             clusterMessage.choice().queueAssignmentAdvisory();
         applyQueueAssignment(clusterState, queueAdvisory.queues());
     } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        const bmqp_ctrlmsg::QueueUnassignedAdvisory& queueAdvisory =
-            clusterMessage.choice().queueUnassignedAdvisory();
+    case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
+            clusterMessage.choice().queueUnAssignmentAdvisory();
 
         applyQueueUnassignment(clusterState, queueAdvisory.queues());
     } break;  // BREAK
@@ -1939,7 +1907,7 @@ int ClusterUtil::load(ClusterState*               state,
         case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY:
         case MsgChoice::SELECTION_ID_LEADER_ADVISORY:
         case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY:
-        case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
+        case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY:
         case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
             BALL_LOG_INFO << "#CSL_RECOVERY "
                           << clusterData.identity().description()

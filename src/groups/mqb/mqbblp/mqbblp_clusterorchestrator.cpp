@@ -38,6 +38,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_cstddef.h>  // size_t
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
@@ -129,15 +130,15 @@ void ClusterOrchestrator::onElectorStateChange(
     }
 }
 
-void ClusterOrchestrator::electorTransitionToDormant(int leaderNodeId,
-                                                     bsls::Types::Uint64 term)
+void ClusterOrchestrator::electorTransitionToDormant(
+    BSLA_MAYBE_UNUSED int leaderNodeId,
+    bsls::Types::Uint64   term)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT(mqbnet::Elector::k_INVALID_NODE_ID == leaderNodeId);
-    (void)leaderNodeId;  // Compiler happiness
 
     if (mqbnet::ElectorState::e_DORMANT ==
         d_clusterData_p->electorInfo().electorState()) {
@@ -236,8 +237,8 @@ void ClusterOrchestrator::electorTransitionToFollower(int leaderNodeId,
 }
 
 void ClusterOrchestrator::electorTransitionToCandidate(
-    int                 leaderNodeId,
-    bsls::Types::Uint64 term)
+    BSLA_MAYBE_UNUSED int leaderNodeId,
+    bsls::Types::Uint64   term)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -246,7 +247,6 @@ void ClusterOrchestrator::electorTransitionToCandidate(
     BSLS_ASSERT(mqbnet::ElectorState::e_CANDIDATE !=
                 d_clusterData_p->electorInfo().electorState());
     BSLS_ASSERT(mqbnet::Elector::k_INVALID_NODE_ID == leaderNodeId);
-    (void)leaderNodeId;  // Compiler happiness
 
     d_clusterData_p->electorInfo().setElectorInfo(
         mqbnet::ElectorState::e_CANDIDATE,
@@ -255,8 +255,9 @@ void ClusterOrchestrator::electorTransitionToCandidate(
         mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
 }
 
-void ClusterOrchestrator::electorTransitionToLeader(int leaderNodeId,
-                                                    bsls::Types::Uint64 term)
+void ClusterOrchestrator::electorTransitionToLeader(
+    BSLA_MAYBE_UNUSED int leaderNodeId,
+    bsls::Types::Uint64   term)
 {
     // executed by the *DISPATCHER* thread
 
@@ -267,7 +268,6 @@ void ClusterOrchestrator::electorTransitionToLeader(int leaderNodeId,
         leaderNodeId);
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_CANDIDATE ==
                      d_clusterData_p->electorInfo().electorState());
-    (void)leaderNodeId;  // Compiler happiness
 
     // The 'leaderMessageSequence' of this node should NOT be updated with new
     // term and sequenceNum of zero, because it will be used during leader
@@ -280,17 +280,6 @@ void ClusterOrchestrator::electorTransitionToLeader(int leaderNodeId,
         mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
 
     d_stateManager_mp->initiateLeaderSync(true);
-}
-
-void ClusterOrchestrator::processBufferedQueueAdvisories()
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processBufferedQueueAdvisories();
 }
 
 void ClusterOrchestrator::registerQueueInfo(const bmqt::Uri& uri,
@@ -1270,32 +1259,6 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
     d_stateManager_mp->processQueueAssignmentRequest(request, requester);
 }
 
-void ClusterOrchestrator::processQueueUnassignedAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& msg,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processQueueUnassignedAdvisory(msg, source);
-}
-
-void ClusterOrchestrator::processQueueUnAssignmentAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& msg,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processQueueUnAssignmentAdvisory(msg, source);
-}
-
 void ClusterOrchestrator::processLeaderSyncDataQuery(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
@@ -1317,30 +1280,6 @@ void ClusterOrchestrator::processClusterStateEvent(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
     d_stateManager_mp->processClusterStateEvent(event);
-}
-
-void ClusterOrchestrator::processPartitionPrimaryAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processPartitionPrimaryAdvisory(message, source);
-}
-
-void ClusterOrchestrator::processLeaderAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processLeaderAdvisory(message, source);
 }
 
 void ClusterOrchestrator::processStorageSyncRequest(
@@ -1524,6 +1463,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
     // This routine is invoked when the status of a primary 'source' node has
     // changed.
 
+    BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
     BSLS_ASSERT_SAFE(message.choice()
                          .clusterMessage()
@@ -1666,7 +1606,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
                       << ". Self node status: "
                       << d_clusterData_p->membership().selfNodeStatus();
 
-        if (pinfo.primaryNode() == source) {
+        if (pinfo.primaryNodeId() == source->nodeId()) {
             // Self node is receiving primary status advisory the second time.
 
             BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() ==
@@ -1676,9 +1616,6 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
                 ns->isPrimaryForPartition(primaryAdv.partitionId()));
         }
         else {
-            if (!d_cluster_p->isCSLModeEnabled()) {
-                ns->addPartitionRaw(primaryAdv.partitionId());
-            }
             d_stateManager_mp->setPrimary(primaryAdv.partitionId(),
                                           primaryAdv.primaryLeaseId(),
                                           source);

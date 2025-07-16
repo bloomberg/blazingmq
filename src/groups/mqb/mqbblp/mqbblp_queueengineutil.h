@@ -39,8 +39,12 @@
 #include <ball_log.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_throttle.h>
+#include <bsl_functional.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 

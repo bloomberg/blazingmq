@@ -25,6 +25,7 @@
 // BDE
 #include <bdlbb_blobutil.h>
 #include <bsl_cstring.h>  // for bsl::memset
+#include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bsls_performancehint.h>
 
@@ -243,8 +244,8 @@ bool OptionUtil::loadOptionsPosition(int*                      optionsSize,
     return true;
 }
 
-bmqt::EventBuilderResult::Enum
-OptionUtil::isValidMsgGroupId(const Protocol::MsgGroupId& msgGroupId)
+bmqt::EventBuilderResult::Enum OptionUtil::isValidMsgGroupId(
+    BSLA_MAYBE_UNUSED const Protocol::MsgGroupId& msgGroupId)
 {
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const int length = msgGroupId.length();
@@ -259,7 +260,6 @@ OptionUtil::isValidMsgGroupId(const Protocol::MsgGroupId& msgGroupId)
     }
     return bmqt::EventBuilderResult::e_SUCCESS;
 #else
-    (void)msgGroupId;
     return bmqt::EventBuilderResult::e_UNKNOWN;
 #endif
 }

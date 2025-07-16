@@ -31,8 +31,11 @@
 #include <bmqt_messageguid.h>
 
 // BDE
+#include <bsl_cstddef.h>
 #include <bsl_list.h>
 #include <bsl_map.h>
+#include <bsl_memory.h>
+#include <bsl_vector.h>
 #include <bslma_managedptr.h>
 
 namespace BloombergLP {
@@ -59,7 +62,7 @@ class Printer {
   public:
     // CREATORS
 
-    virtual ~Printer() {}
+    virtual ~Printer();
 
     // PUBLIC METHODS
 

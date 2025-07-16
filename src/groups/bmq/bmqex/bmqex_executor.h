@@ -110,6 +110,7 @@
 #include <bdlb_variant.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_type_traits.h>
 #include <bsl_typeinfo.h>
 #include <bslma_allocator.h>
 #include <bslma_constructionutil.h>

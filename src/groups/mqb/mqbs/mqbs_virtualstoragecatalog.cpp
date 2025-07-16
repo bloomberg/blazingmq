@@ -94,16 +94,17 @@ namespace mqbs {
 // CREATORS
 VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
                                              bslma::Allocator* allocator)
-: d_storage_p(storage)
-, d_virtualStorages(allocator)
-, d_dataStream(allocator)
+: d_allocator_p(allocator)
+, d_storage_p(storage)
+, d_virtualStorages(d_allocator_p)
+, d_ordinals(d_allocator_p)
+, d_dataStream(d_allocator_p)
 , d_totalBytes(0)
 , d_numMessages(0)
 , d_defaultAppMessage(bmqp::RdaInfo())
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
 , d_isProxy(false)
 , d_queue_p(0)
-, d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
@@ -741,11 +742,12 @@ void VirtualStorageCatalog::loadVirtualStorageDetails(AppInfos* buffer) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(buffer);
 
-    for (VirtualStoragesConstIter cit = d_virtualStorages.begin();
-         cit != d_virtualStorages.end();
-         ++cit) {
-        BSLS_ASSERT_SAFE(cit->key2() == cit->value()->appKey());
-        buffer->insert(bsl::make_pair(cit->key1(), cit->key2()));
+    // Return ordered by ordinals
+    for (size_t i = 0; i < d_ordinals.size(); ++i) {
+        BSLS_ASSERT_SAFE(d_ordinals[i]);
+        const VirtualStorage& storage = *d_ordinals[i];
+
+        buffer->insert(bsl::make_pair(storage.appId(), storage.appKey()));
     }
 }
 

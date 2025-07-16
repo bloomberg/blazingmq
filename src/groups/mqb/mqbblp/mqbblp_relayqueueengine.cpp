@@ -49,12 +49,15 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
@@ -741,12 +744,11 @@ void RelayQueueEngine::configureApp(
 
     // Update effective upstream parameters if specified 'handle' is a reader
     bmqp_ctrlmsg::StreamParameters streamParamsToSend;
-    bool hasStreamParamsToSend = d_queueState_p->getUpstreamParameters(
-        &streamParamsToSend,
-        upstreamSubQueueId);
+    BSLA_MAYBE_UNUSED bool         hasStreamParamsToSend =
+        d_queueState_p->getUpstreamParameters(&streamParamsToSend,
+                                              upstreamSubQueueId);
 
     BSLS_ASSERT_SAFE(hasStreamParamsToSend);
-    (void)hasStreamParamsToSend;
 
     if (hadParameters && previousParameters == streamParamsToSend) {
         // Last advertised stream parameters for this queue are same as the
@@ -1709,9 +1711,10 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
     iter->second->authorize(appKey, appOrdinal);
 }
 
-void RelayQueueEngine::unregisterStorage(const bsl::string&      appId,
-                                         const mqbu::StorageKey& appKey,
-                                         unsigned int            appOrdinal)
+void RelayQueueEngine::unregisterStorage(
+    const bsl::string&      appId,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
+    BSLA_UNUSED unsigned int                  appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1731,8 +1734,6 @@ void RelayQueueEngine::unregisterStorage(const bsl::string&      appId,
 
         iter->second->unauthorize();
     }
-
-    (void)appOrdinal;
 }
 
 bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(

@@ -165,7 +165,10 @@
 // BDE
 #include <bdlb_nullablevalue.h>
 #include <bdlf_memfn.h>
+#include <bsl_exception.h>
 #include <bsl_memory.h>
+#include <bsl_type_traits.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>

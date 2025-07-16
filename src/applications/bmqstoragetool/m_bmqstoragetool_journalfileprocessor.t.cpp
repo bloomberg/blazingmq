@@ -39,6 +39,12 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cmath.h>
+#include <bsl_cstddef.h>
+#include <bsl_cstring.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -309,7 +315,7 @@ namespace BloombergLP::m_bmqstoragetool {
 // failures.
 
 /// Print the specified 'details' to the specified 'stream'
-void PrintTo(const QueueDetails& details, bsl::ostream* stream)
+inline void PrintTo(const QueueDetails& details, bsl::ostream* stream)
 {
     *stream << "\trecordsNumber : " << details.d_recordsNumber
             << "\n\tmessageRecordsNumber : " << details.d_messageRecordsNumber
@@ -324,7 +330,7 @@ void PrintTo(const QueueDetails& details, bsl::ostream* stream)
 }
 
 /// Print the specified 'detailsMap' to the specified 'stream'
-void PrintTo(const QueueDetailsMap& detailsMap, std::ostream* stream)
+inline void PrintTo(const QueueDetailsMap& detailsMap, std::ostream* stream)
 {
     for (const auto& d : detailsMap) {
         *stream << d.first << " :\n";

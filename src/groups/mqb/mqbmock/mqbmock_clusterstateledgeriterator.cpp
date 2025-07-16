@@ -81,8 +81,8 @@ int ClusterStateLedgerIterator::next()
         d_currRecordHeader.setRecordType(
             mqbc::ClusterStateRecordType::e_UPDATE);
     } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-        lsn = &choice.queueUnassignedAdvisory().sequenceNumber();
+    case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
+        lsn = &choice.queueUnAssignmentAdvisory().sequenceNumber();
         d_currRecordHeader.setRecordType(
             mqbc::ClusterStateRecordType::e_UPDATE);
     } break;  // BREAK

@@ -27,6 +27,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
@@ -218,9 +219,8 @@ bmqp_ctrlmsg::QueueHandleParameters QueueUtil::createHandleParameters(
 
         bmqt::UriBuilder uriBuilder(uri);
         uriBuilder.setId(subStreamInfo.appId());
-        int rc = uriBuilder.uri(&uri, 0);
+        BSLA_MAYBE_UNUSED int rc = uriBuilder.uri(&uri, 0);
         BSLS_ASSERT_SAFE(rc == 0);
-        (void)rc;
 
         result.uri() = uri.asString();
     }

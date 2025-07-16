@@ -29,6 +29,8 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstdlib.h>
+#include <bsl_cstring.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -87,11 +89,11 @@ static void test2_readingTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   queueEngine(theLearner.createContext());
-    bmqp::SchemaLearner::Context   clientSession(theLearner.createContext());
-    bmqp::MessageProperties        in(bmqtst::TestHelperUtil::allocator());
-    bmqp::MessagePropertiesInfo    input(true, 1, false);
-    bmqp::MessagePropertiesInfo    recycledInput(true, 1, true);
+    bmqp::SchemaLearner::Context queueEngine(theLearner.createContext());
+    bmqp::SchemaLearner::Context clientSession(theLearner.createContext());
+    bmqp::MessageProperties      in(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessagePropertiesInfo  input(true, 1, false);
+    bmqp::MessagePropertiesInfo  recycledInput(true, 1, true);
 
     const int num = bmqp::MessageProperties::k_MAX_NUM_PROPERTIES;
 
@@ -178,7 +180,7 @@ static void test3_observingTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   server(theLearner.createContext());
+    bmqp::SchemaLearner::Context server(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
@@ -227,7 +229,7 @@ static void test4_demultiplexingTest()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   queueHandle(theLearner.createContext());
+    bmqp::SchemaLearner::Context queueHandle(theLearner.createContext());
 
     bmqp::MessagePropertiesInfo muxIn(true, 1, false);
     bmqp::MessagePropertiesInfo recycledMuxIn(true, 1, true);
@@ -259,7 +261,7 @@ static void test5_emptyMPs()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   context(theLearner.createContext());
+    bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -285,7 +287,7 @@ static void test6_partialRead()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   context(theLearner.createContext());
+    bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
@@ -311,7 +313,8 @@ static void test6_partialRead()
         BMQTST_ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
 
         BMQTST_ASSERT_EQ(0, out2.setPropertyAsString("y", mod));
-        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+        BMQTST_ASSERT_EQ(out1.totalSize() + static_cast<int>(sizeof(mod)) -
+                             static_cast<int>(sizeof(y)),
                          out2.totalSize());
 
         BMQTST_ASSERT_EQ(out2.getPropertyAsString("z"), z);
@@ -351,7 +354,8 @@ static void test6_partialRead()
 
         BMQTST_ASSERT_EQ(y, out4.getPropertyAsString("y"));
         BMQTST_ASSERT_EQ(0, out4.setPropertyAsString("y", mod));
-        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+        BMQTST_ASSERT_EQ(out1.totalSize() + static_cast<int>(sizeof(mod)) -
+                             static_cast<int>(sizeof(y)),
                          out4.totalSize());
 
         BMQTST_ASSERT_EQ(out4.getPropertyAsString("z"), z);
@@ -366,7 +370,7 @@ static void test7_removeBeforeRead()
         128,
         bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
-    bmqp::SchemaLearner::Context   context(theLearner.createContext());
+    bmqp::SchemaLearner::Context context(theLearner.createContext());
 
     bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
@@ -400,16 +404,19 @@ static void test7_removeBeforeRead()
                     // modify before remove
                     BMQTST_ASSERT_EQ(0,
                                      out2.setPropertyAsString(current, mod));
-                    BMQTST_ASSERT_EQ(out1.totalSize() + bsl::strlen(mod) -
-                                         bsl::strlen(current),
-                                     out2.totalSize());
+                    BMQTST_ASSERT_EQ(
+                        out1.totalSize() + static_cast<int>(bsl::strlen(mod)) -
+                            static_cast<int>(bsl::strlen(current)),
+                        out2.totalSize());
                 }
             }
             BMQTST_ASSERT(out2.remove(current));
-            BMQTST_ASSERT_EQ(out1.totalSize() -
-                                 sizeof(bmqp::MessagePropertyHeader) -
-                                 bsl::strlen(current) - bsl::strlen(current),
-                             out2.totalSize());
+            BMQTST_ASSERT_EQ(
+                out1.totalSize() -
+                    static_cast<int>(sizeof(bmqp::MessagePropertyHeader)) -
+                    static_cast<int>(bsl::strlen(current)) -
+                    static_cast<int>(bsl::strlen(current)),
+                out2.totalSize());
 
             BMQTST_ASSERT(!out2.hasProperty(current));
 
@@ -439,8 +446,9 @@ static void test7_removeBeforeRead()
             // Add the property back
             BMQTST_ASSERT_EQ(0, out2.setPropertyAsString(current, mod));
 
-            BMQTST_ASSERT_EQ(out1.totalSize() + bsl::strlen(mod) -
-                                 bsl::strlen(current),
+            BMQTST_ASSERT_EQ(out1.totalSize() +
+                                 static_cast<int>(bsl::strlen(mod)) -
+                                 static_cast<int>(bsl::strlen(current)),
                              out2.totalSize());
 
             for (int i = 0; i < numProps; ++i) {

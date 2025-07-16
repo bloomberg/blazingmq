@@ -27,6 +27,11 @@
 #include <mqbs_filestoreprotocolprinter.h>
 
 // BDE
+#include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_iomanip.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 
 namespace BloombergLP {
@@ -34,6 +39,15 @@ namespace m_bmqstoragetool {
 
 // CONVENIENCE
 using namespace RecordPrinter;
+
+// =============
+// class Printer
+// =============
+
+Printer::~Printer()
+{
+    // NOTHING
+}
 
 namespace {
 
@@ -276,12 +290,12 @@ void printQueueDetails(bsl::ostream&          ostream,
                 // Sort Apps by number of records ascending
                 AppsData appsData(allocator);
                 appsData.reserve(appKeysCount);
-                for (QueueDetails::AppDetailsMap::const_iterator it =
+                for (QueueDetails::AppDetailsMap::const_iterator appIt =
                          details.d_appDetailsMap.cbegin();
-                     it != details.d_appDetailsMap.cend();
-                     ++it) {
-                    appsData.emplace_back(it->second.d_recordsNumber,
-                                          it->first);
+                     appIt != details.d_appDetailsMap.cend();
+                     ++appIt) {
+                    appsData.emplace_back(appIt->second.d_recordsNumber,
+                                          appIt->first);
                 }
                 bsl::sort(appsData.begin(), appsData.end());
 
@@ -319,229 +333,294 @@ class HumanReadablePrinter : public Printer {
 
   public:
     // CREATORS
-    HumanReadablePrinter(bsl::ostream& os, bslma::Allocator* allocator)
-    : d_ostream(os)
-    , d_allocator_p(allocator)
-    {
-    }
+    HumanReadablePrinter(bsl::ostream& os, bslma::Allocator* allocator);
 
-    ~HumanReadablePrinter() BSLS_KEYWORD_OVERRIDE { d_ostream << "\n"; }
+    ~HumanReadablePrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
     void
-    printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "==============================\n\n";
-        printMessageDetails<bmqu::AlignedPrinter>(d_ostream,
-                                                  details,
-                                                  d_allocator_p);
-        d_ostream << "\n";
-    }
+    printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE;
 
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "==============================\n\n";
-        RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                           d_allocator_p);
-        printer.printRecordDetails(rec);
-        d_ostream << "\n";
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printJournalOpRecord(const RecordDetails<mqbs::JournalOpRecord>& rec)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "==============================\n\n";
-        RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                           d_allocator_p);
-        printer.printRecordDetails(rec);
-        d_ostream << "\n";
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printGuidNotFound(const bmqt::MessageGUID& guid) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "Logic error : guid " << guid << " not found\n";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
-    void printGuid(const bmqt::MessageGUID& guid) const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << guid << '\n';
-    }
+    void printGuid(const bmqt::MessageGUID& guid) const BSLS_KEYWORD_OVERRIDE;
 
     void printFooter(bsl::size_t                           foundMessagesCount,
                      bsls::Types::Uint64                   foundQueueOpCount,
                      bsls::Types::Uint64                   foundJournalOpCount,
                      const Parameters::ProcessRecordTypes& processRecordTypes)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        if (processRecordTypes.d_message) {
-            foundMessagesCount > 0
-                ? (d_ostream << foundMessagesCount << " message record(s)")
-                : d_ostream << "No message record";
-            d_ostream << " found.\n";
-        }
-        if (processRecordTypes.d_queueOp) {
-            foundQueueOpCount > 0
-                ? (d_ostream << foundQueueOpCount << " queueOp record(s)")
-                : d_ostream << "No queueOp record";
-            d_ostream << " found.\n";
-        }
-        if (processRecordTypes.d_journalOp) {
-            foundJournalOpCount > 0
-                ? (d_ostream << foundJournalOpCount << " journalOp record(s)")
-                : d_ostream << "No journalOp record";
-            d_ostream << " found.\n";
-        }
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printOutstandingRatio(int         ratio,
                                bsl::size_t outstandingMessagesCount,
                                bsl::size_t totalMessagesCount) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "Outstanding ratio: " << ratio << "% ("
-                  << outstandingMessagesCount << "/" << totalMessagesCount
-                  << ")" << '\n';
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printMessageSummary(bsl::size_t totalMessagesCount,
                              bsl::size_t partiallyConfirmedCount,
                              bsl::size_t confirmedCount,
                              bsl::size_t outstandingCount) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        if (totalMessagesCount == 0) {
-            d_ostream << "\nNo messages found.\n";
-        }
-        else {
-            d_ostream << "\nTotal number of messages: " << totalMessagesCount
-                      << '\n';
-            d_ostream << "Number of partially confirmed messages: "
-                      << partiallyConfirmedCount << '\n';
-            d_ostream << "Number of confirmed messages: " << confirmedCount
-                      << '\n';
-            d_ostream << "Number of outstanding messages: " << outstandingCount
-                      << '\n';
-        }
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printQueueOpSummary(bsls::Types::Uint64     queueOpRecordsCount,
                              const QueueOpCountsVec& queueOpCountsVec) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        BSLS_ASSERT_SAFE(queueOpCountsVec.size() >
-                         mqbs::QueueOpType::e_ADDITION);
-        if (queueOpRecordsCount == 0) {
-            d_ostream << "\nNo queueOp records found.\n";
-        }
-        else {
-            d_ostream << "\nTotal number of queueOp records: "
-                      << queueOpRecordsCount << '\n';
-
-            bsl::vector<const char*> fields(d_allocator_p);
-            fields.reserve(4);
-            fields.push_back("Number of 'purge' operations");
-            fields.push_back("Number of 'creation' operations");
-            fields.push_back("Number of 'deletion' operations");
-            fields.push_back("Number of 'addition' operations");
-            bmqu::AlignedPrinter printer(d_ostream, &fields);
-            printer << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
-                    << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
-                    << queueOpCountsVec[mqbs::QueueOpType::e_DELETION]
-                    << queueOpCountsVec[mqbs::QueueOpType::e_ADDITION];
-        }
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printJournalOpSummary(bsls::Types::Uint64 journalOpRecordsCount) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        if (journalOpRecordsCount == 0) {
-            d_ostream << "\nNo journalOp records found." << '\n';
-        }
-        else {
-            d_ostream << "\nNumber of journalOp records: "
-                      << journalOpRecordsCount << '\n';
-        }
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,
                             const QueueDetailsMap& queueDetailsMap) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "Total number of records: " << totalRecordsCount << "\n";
-
-        // Print information per Queue:
-        if (!queueDetailsMap.empty()) {
-            d_ostream << "Number of records per Queue:\n";
-            printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
-                                                    queueDetailsMap,
-                                                    d_allocator_p);
-        }
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printJournalFileMeta(const mqbs::JournalFileIterator* journalFile_p)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "\nDetails of journal file:\n";
-        m_bmqstoragetool::printJournalFileMeta<bmqu::AlignedPrinter,
-                                               bmqu::AlignedPrinter>(
-            d_ostream,
-            journalFile_p,
-            d_allocator_p);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        d_ostream << "\nDetails of data file: \n";
-        m_bmqstoragetool::printDataFileMeta<bmqu::AlignedPrinter,
-                                            bmqu::AlignedPrinter>(
-            d_ostream,
-            dataFile_p,
-            d_allocator_p);
-    }
-
-    void printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE
-    {
-        // Print non found GUIDs
-        if (!guids.empty()) {
-            d_ostream << "\nThe following " << guids.size()
-                      << " GUID(s) not found:\n";
-            GuidsList::const_iterator it = guids.cbegin();
-            for (; it != guids.cend(); ++it) {
-                d_ostream << *it << '\n';
-            }
-        }
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void
-    printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
-    {
-        if (!offsets.empty()) {
-            d_ostream << "\nThe following " << offsets.size()
-                      << " offset(s) not found:\n";
-            OffsetsVec::const_iterator it = offsets.cbegin();
-            for (; it != offsets.cend(); ++it) {
-                d_ostream << *it << '\n';
-            }
-        }
-    }
+    printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE;
+
+    void printOffsetsNotFound(const OffsetsVec& offsets) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void printCompositesNotFound(const CompositesVec& seqNums) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        if (!seqNums.empty()) {
-            d_ostream << "\nThe following " << seqNums.size()
-                      << " sequence number(s) not found:\n";
-            CompositesVec::const_iterator it = seqNums.cbegin();
-            for (; it != seqNums.cend(); ++it) {
-                d_ostream << *it << '\n';
-            }
+        BSLS_KEYWORD_OVERRIDE;
+};
+
+// CREATORS
+HumanReadablePrinter::HumanReadablePrinter(bsl::ostream&     os,
+                                           bslma::Allocator* allocator)
+: d_ostream(os)
+, d_allocator_p(allocator)
+{
+}
+
+HumanReadablePrinter::~HumanReadablePrinter()
+{
+    d_ostream << "\n";
+}
+
+// PUBLIC METHODS
+
+void HumanReadablePrinter::printMessage(const MessageDetails& details) const
+{
+    d_ostream << "==============================\n\n";
+    printMessageDetails<bmqu::AlignedPrinter>(d_ostream,
+                                              details,
+                                              d_allocator_p);
+    d_ostream << "\n";
+}
+
+void HumanReadablePrinter::printQueueOpRecord(
+    const RecordDetails<mqbs::QueueOpRecord>& rec) const
+{
+    d_ostream << "==============================\n\n";
+    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
+                                                       d_allocator_p);
+    printer.printRecordDetails(rec);
+    d_ostream << "\n";
+}
+
+void HumanReadablePrinter::printJournalOpRecord(
+    const RecordDetails<mqbs::JournalOpRecord>& rec) const
+{
+    d_ostream << "==============================\n\n";
+    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
+                                                       d_allocator_p);
+    printer.printRecordDetails(rec);
+    d_ostream << "\n";
+}
+
+void HumanReadablePrinter::printGuidNotFound(
+    const bmqt::MessageGUID& guid) const
+{
+    d_ostream << "Logic error : guid " << guid << " not found\n";
+}
+
+void HumanReadablePrinter::printGuid(const bmqt::MessageGUID& guid) const
+{
+    d_ostream << guid << '\n';
+}
+
+void HumanReadablePrinter::printFooter(
+    bsl::size_t                           foundMessagesCount,
+    bsls::Types::Uint64                   foundQueueOpCount,
+    bsls::Types::Uint64                   foundJournalOpCount,
+    const Parameters::ProcessRecordTypes& processRecordTypes) const
+{
+    if (processRecordTypes.d_message) {
+        foundMessagesCount > 0
+            ? (d_ostream << foundMessagesCount << " message record(s)")
+            : d_ostream << "No message record";
+        d_ostream << " found.\n";
+    }
+    if (processRecordTypes.d_queueOp) {
+        foundQueueOpCount > 0
+            ? (d_ostream << foundQueueOpCount << " queueOp record(s)")
+            : d_ostream << "No queueOp record";
+        d_ostream << " found.\n";
+    }
+    if (processRecordTypes.d_journalOp) {
+        foundJournalOpCount > 0
+            ? (d_ostream << foundJournalOpCount << " journalOp record(s)")
+            : d_ostream << "No journalOp record";
+        d_ostream << " found.\n";
+    }
+}
+
+void HumanReadablePrinter::printOutstandingRatio(
+    int         ratio,
+    bsl::size_t outstandingMessagesCount,
+    bsl::size_t totalMessagesCount) const
+{
+    d_ostream << "Outstanding ratio: " << ratio << "% ("
+              << outstandingMessagesCount << "/" << totalMessagesCount << ")"
+              << '\n';
+}
+
+void HumanReadablePrinter::printMessageSummary(
+    bsl::size_t totalMessagesCount,
+    bsl::size_t partiallyConfirmedCount,
+    bsl::size_t confirmedCount,
+    bsl::size_t outstandingCount) const
+{
+    if (totalMessagesCount == 0) {
+        d_ostream << "\nNo messages found.\n";
+    }
+    else {
+        d_ostream << "\nTotal number of messages: " << totalMessagesCount
+                  << '\n';
+        d_ostream << "Number of partially confirmed messages: "
+                  << partiallyConfirmedCount << '\n';
+        d_ostream << "Number of confirmed messages: " << confirmedCount
+                  << '\n';
+        d_ostream << "Number of outstanding messages: " << outstandingCount
+                  << '\n';
+    }
+}
+
+void HumanReadablePrinter::printQueueOpSummary(
+    bsls::Types::Uint64     queueOpRecordsCount,
+    const QueueOpCountsVec& queueOpCountsVec) const
+{
+    BSLS_ASSERT_SAFE(queueOpCountsVec.size() > mqbs::QueueOpType::e_ADDITION);
+    if (queueOpRecordsCount == 0) {
+        d_ostream << "\nNo queueOp records found.\n";
+    }
+    else {
+        d_ostream << "\nTotal number of queueOp records: "
+                  << queueOpRecordsCount << '\n';
+
+        bsl::vector<const char*> fields(d_allocator_p);
+        fields.reserve(4);
+        fields.push_back("Number of 'purge' operations");
+        fields.push_back("Number of 'creation' operations");
+        fields.push_back("Number of 'deletion' operations");
+        fields.push_back("Number of 'addition' operations");
+        bmqu::AlignedPrinter printer(d_ostream, &fields);
+        printer << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
+                << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
+                << queueOpCountsVec[mqbs::QueueOpType::e_DELETION]
+                << queueOpCountsVec[mqbs::QueueOpType::e_ADDITION];
+    }
+}
+
+void HumanReadablePrinter::printJournalOpSummary(
+    bsls::Types::Uint64 journalOpRecordsCount) const
+{
+    if (journalOpRecordsCount == 0) {
+        d_ostream << "\nNo journalOp records found." << '\n';
+    }
+    else {
+        d_ostream << "\nNumber of journalOp records: " << journalOpRecordsCount
+                  << '\n';
+    }
+}
+
+void HumanReadablePrinter::printRecordSummary(
+    bsls::Types::Uint64    totalRecordsCount,
+    const QueueDetailsMap& queueDetailsMap) const
+{
+    d_ostream << "Total number of records: " << totalRecordsCount << "\n";
+
+    // Print information per Queue:
+    if (!queueDetailsMap.empty()) {
+        d_ostream << "Number of records per Queue:\n";
+        printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
+                                                queueDetailsMap,
+                                                d_allocator_p);
+    }
+}
+
+void HumanReadablePrinter::printJournalFileMeta(
+    const mqbs::JournalFileIterator* journalFile_p) const
+{
+    d_ostream << "\nDetails of journal file:\n";
+    m_bmqstoragetool::printJournalFileMeta<bmqu::AlignedPrinter,
+                                           bmqu::AlignedPrinter>(
+        d_ostream,
+        journalFile_p,
+        d_allocator_p);
+}
+
+void HumanReadablePrinter::printDataFileMeta(
+    const mqbs::DataFileIterator* dataFile_p) const
+{
+    d_ostream << "\nDetails of data file: \n";
+    m_bmqstoragetool::printDataFileMeta<bmqu::AlignedPrinter,
+                                        bmqu::AlignedPrinter>(d_ostream,
+                                                              dataFile_p,
+                                                              d_allocator_p);
+}
+
+void HumanReadablePrinter::printGuidsNotFound(const GuidsList& guids) const
+{
+    // Print non found GUIDs
+    if (!guids.empty()) {
+        d_ostream << "\nThe following " << guids.size()
+                  << " GUID(s) not found:\n";
+        GuidsList::const_iterator it = guids.cbegin();
+        for (; it != guids.cend(); ++it) {
+            d_ostream << *it << '\n';
         }
     }
-};
+}
+
+void HumanReadablePrinter::printOffsetsNotFound(
+    const OffsetsVec& offsets) const
+{
+    if (!offsets.empty()) {
+        d_ostream << "\nThe following " << offsets.size()
+                  << " offset(s) not found:\n";
+        OffsetsVec::const_iterator it = offsets.cbegin();
+        for (; it != offsets.cend(); ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
+
+void HumanReadablePrinter::printCompositesNotFound(
+    const CompositesVec& seqNums) const
+{
+    if (!seqNums.empty()) {
+        d_ostream << "\nThe following " << seqNums.size()
+                  << " sequence number(s) not found:\n";
+        CompositesVec::const_iterator it = seqNums.cbegin();
+        for (; it != seqNums.cend(); ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
 
 class JsonPrinter : public Printer {
   protected:
@@ -550,363 +629,463 @@ class JsonPrinter : public Printer {
     mutable bool      d_braceOpen;
     mutable bool      d_firstRow;
 
-    void openBraceIfNotOpen(const std::string& fieldName) const
-    {
-        if (!d_braceOpen) {
-            d_ostream << "  \"" << fieldName << "\": [\n";
-            d_braceOpen = true;
-        }
-        else {
-            RecordPrinter::printDelimeter<void>(d_ostream);
-        }
-    }
+    void openBraceIfNotOpen(const std::string& fieldName) const;
 
-    void closeBraceIfOpen() const
-    {
-        if (d_braceOpen) {
-            d_ostream << "\n  ]";
-            d_braceOpen = false;
-            d_firstRow  = false;
-        }
-        if (!d_firstRow) {
-            RecordPrinter::printDelimeter<void>(d_ostream);
-        }
-        else {
-            d_firstRow = false;
-        }
-    }
+    void closeBraceIfOpen() const;
 
   public:
     // CREATORS
-    JsonPrinter(bsl::ostream& os, bslma::Allocator* allocator)
-    : d_ostream(os)
-    , d_allocator_p(allocator)
-    , d_braceOpen(false)
-    , d_firstRow(true)
-    {
-        d_ostream << "{\n";
-    }
+    JsonPrinter(bsl::ostream& os, bslma::Allocator* allocator);
 
-    ~JsonPrinter() BSLS_KEYWORD_OVERRIDE
-    {
-        if (d_braceOpen) {
-            d_ostream << "\n  ]";
-            d_braceOpen = false;
-        }
-        d_ostream << "\n}\n";
-    }
+    ~JsonPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
-    void printGuid(const bmqt::MessageGUID& guid) const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        d_ostream << bsl::setw(4) << ' ' << "\"" << guid << "\"";
-    }
+    void printGuid(const bmqt::MessageGUID& guid) const BSLS_KEYWORD_OVERRIDE;
 
     void printGuidNotFound(const bmqt::MessageGUID& guid) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        d_ostream << bsl::setw(4) << ' ' << "{\"LogicError\" : \"guid " << guid
-                  << " not found\"}";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printFooter(bsl::size_t                           foundMessagesCount,
                      bsls::Types::Uint64                   foundQueueOpCount,
                      bsls::Types::Uint64                   foundJournalOpCount,
                      const Parameters::ProcessRecordTypes& processRecordTypes)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        if (processRecordTypes.d_message) {
-            closeBraceIfOpen();
-            d_ostream << "  \"TotalMessages\": \"" << foundMessagesCount
-                      << "\"";
-        }
-        if (processRecordTypes.d_queueOp) {
-            closeBraceIfOpen();
-            d_ostream << "  \"QueueOpRecords\": \"" << foundQueueOpCount
-                      << "\"";
-        }
-        if (processRecordTypes.d_journalOp) {
-            closeBraceIfOpen();
-            d_ostream << "  \"JournalOpRecords\": \"" << foundJournalOpCount
-                      << "\"";
-        }
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
-    void printOutstandingRatio(
-        int         ratio,
-        bsl::size_t outstandingMessagesCount,
-        BSLA_UNUSED bsl::size_t totalMessagesCount) const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"OutstandingRatio\": \"" << ratio
-                  << "\",\n  \"OutstandingMessages\": \""
-                  << outstandingMessagesCount << "\"";
-    }
+    void printOutstandingRatio(int         ratio,
+                               bsl::size_t outstandingMessagesCount,
+                               BSLA_UNUSED bsl::size_t totalMessagesCount)
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printMessageSummary(bsl::size_t totalMessagesCount,
                              bsl::size_t partiallyConfirmedCount,
                              bsl::size_t confirmedCount,
                              bsl::size_t outstandingCount) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"TotalMessagesNumber\": \"" << totalMessagesCount
-                  << "\",\n  \"PartiallyConfirmedMessagesNumber\": \""
-                  << partiallyConfirmedCount
-                  << "\",\n  \"ConfirmedMessagesNumber\": \"" << confirmedCount
-                  << "\",\n  \"OutstandingMessagesNumber\": \""
-                  << outstandingCount << "\"";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printQueueOpSummary(bsls::Types::Uint64     queueOpRecordsCount,
                              const QueueOpCountsVec& queueOpCountsVec) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        BSLS_ASSERT_SAFE(queueOpCountsVec.size() >
-                         mqbs::QueueOpType::e_ADDITION);
-        closeBraceIfOpen();
-        bsl::vector<const char*> fields(d_allocator_p);
-        fields.reserve(5);
-        fields.push_back("TotalQueueOperationsNumber");
-        fields.push_back("PurgeOperationsNumber");
-        fields.push_back("CreationOperationsNumber");
-        fields.push_back("DeletionOperationsNumber");
-        fields.push_back("AdditionOperationsNumber");
-
-        bmqu::JsonPrinter<true, false, 0, 2> printer(d_ostream, &fields);
-        printer << queueOpRecordsCount
-                << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
-                << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
-                << queueOpCountsVec[mqbs::QueueOpType::e_DELETION]
-                << queueOpCountsVec[mqbs::QueueOpType::e_ADDITION];
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printJournalOpSummary(bsls::Types::Uint64 journalOpRecordsCount) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"JournalOperationsNumber\": \""
-                  << journalOpRecordsCount << "\"";
-    }
-
-    void printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"GuidsNotFound\": [";
-        GuidsList::const_iterator it = guids.cbegin();
-        for (; it != guids.cend(); ++it) {
-            if (it != guids.cbegin()) {
-                d_ostream << ',';
-            }
-            d_ostream << '\n' << bsl::setw(4) << ' ' << '\"' << *it << "\"";
-        }
-        d_ostream << "\n  ]";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void
-    printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"OffsetsNotFound\": [";
-        OffsetsVec::const_iterator it = offsets.cbegin();
-        for (; it != offsets.cend(); ++it) {
-            if (it != offsets.cbegin()) {
-                d_ostream << ",";
-            }
-            d_ostream << "\n    " << *it;
-        }
-        d_ostream << "\n  ]";
-    }
+    printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE;
+
+    void printOffsetsNotFound(const OffsetsVec& offsets) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void printCompositesNotFound(const CompositesVec& seqNums) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"SequenceNumbersNotFound\": [";
-        CompositesVec::const_iterator it = seqNums.cbegin();
-        for (; it != seqNums.cend(); ++it) {
-            if (it != seqNums.cbegin()) {
-                d_ostream << ',';
-            }
-
-            d_ostream << "\n    {\"leaseId\": \"" << it->leaseId()
-                      << "\", \"sequenceNumber\": \"" << it->sequenceNumber()
-                      << "\"}";
-        }
-        d_ostream << "\n  ]";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 };
+
+// PROTECTED METHODS
+
+void JsonPrinter::openBraceIfNotOpen(const std::string& fieldName) const
+{
+    if (!d_braceOpen) {
+        d_ostream << "  \"" << fieldName << "\": [\n";
+        d_braceOpen = true;
+    }
+    else {
+        RecordPrinter::printDelimeter<void>(d_ostream);
+    }
+}
+
+void JsonPrinter::closeBraceIfOpen() const
+{
+    if (d_braceOpen) {
+        d_ostream << "\n  ]";
+        d_braceOpen = false;
+        d_firstRow  = false;
+    }
+    if (!d_firstRow) {
+        RecordPrinter::printDelimeter<void>(d_ostream);
+    }
+    else {
+        d_firstRow = false;
+    }
+}
+
+// CREATORS
+
+JsonPrinter::JsonPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+: d_ostream(os)
+, d_allocator_p(allocator)
+, d_braceOpen(false)
+, d_firstRow(true)
+{
+    d_ostream << "{\n";
+}
+
+JsonPrinter::~JsonPrinter()
+{
+    if (d_braceOpen) {
+        d_ostream << "\n  ]";
+        d_braceOpen = false;
+    }
+    d_ostream << "\n}\n";
+}
+
+// PUBLIC METHODS
+
+void JsonPrinter::printGuid(const bmqt::MessageGUID& guid) const
+{
+    openBraceIfNotOpen("Records");
+    d_ostream << bsl::setw(4) << ' ' << "\"" << guid << "\"";
+}
+
+void JsonPrinter::printGuidNotFound(const bmqt::MessageGUID& guid) const
+{
+    openBraceIfNotOpen("Records");
+    d_ostream << bsl::setw(4) << ' ' << "{\"LogicError\" : \"guid " << guid
+              << " not found\"}";
+}
+
+void JsonPrinter::printFooter(
+    bsl::size_t                           foundMessagesCount,
+    bsls::Types::Uint64                   foundQueueOpCount,
+    bsls::Types::Uint64                   foundJournalOpCount,
+    const Parameters::ProcessRecordTypes& processRecordTypes) const
+{
+    if (processRecordTypes.d_message) {
+        closeBraceIfOpen();
+        d_ostream << "  \"TotalMessages\": \"" << foundMessagesCount << "\"";
+    }
+    if (processRecordTypes.d_queueOp) {
+        closeBraceIfOpen();
+        d_ostream << "  \"QueueOpRecords\": \"" << foundQueueOpCount << "\"";
+    }
+    if (processRecordTypes.d_journalOp) {
+        closeBraceIfOpen();
+        d_ostream << "  \"JournalOpRecords\": \"" << foundJournalOpCount
+                  << "\"";
+    }
+}
+
+void JsonPrinter::printOutstandingRatio(
+    int         ratio,
+    bsl::size_t outstandingMessagesCount,
+    BSLA_UNUSED bsl::size_t totalMessagesCount) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"OutstandingRatio\": \"" << ratio
+              << "\",\n  \"OutstandingMessages\": \""
+              << outstandingMessagesCount << "\"";
+}
+
+void JsonPrinter::printMessageSummary(bsl::size_t totalMessagesCount,
+                                      bsl::size_t partiallyConfirmedCount,
+                                      bsl::size_t confirmedCount,
+                                      bsl::size_t outstandingCount) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"TotalMessagesNumber\": \"" << totalMessagesCount
+              << "\",\n  \"PartiallyConfirmedMessagesNumber\": \""
+              << partiallyConfirmedCount
+              << "\",\n  \"ConfirmedMessagesNumber\": \"" << confirmedCount
+              << "\",\n  \"OutstandingMessagesNumber\": \"" << outstandingCount
+              << "\"";
+}
+
+void JsonPrinter::printQueueOpSummary(
+    bsls::Types::Uint64     queueOpRecordsCount,
+    const QueueOpCountsVec& queueOpCountsVec) const
+{
+    BSLS_ASSERT_SAFE(queueOpCountsVec.size() > mqbs::QueueOpType::e_ADDITION);
+    closeBraceIfOpen();
+    bsl::vector<const char*> fields(d_allocator_p);
+    fields.reserve(5);
+    fields.push_back("TotalQueueOperationsNumber");
+    fields.push_back("PurgeOperationsNumber");
+    fields.push_back("CreationOperationsNumber");
+    fields.push_back("DeletionOperationsNumber");
+    fields.push_back("AdditionOperationsNumber");
+
+    bmqu::JsonPrinter<true, false, 0, 2> printer(d_ostream, &fields);
+    printer << queueOpRecordsCount
+            << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
+            << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
+            << queueOpCountsVec[mqbs::QueueOpType::e_DELETION]
+            << queueOpCountsVec[mqbs::QueueOpType::e_ADDITION];
+}
+
+void JsonPrinter::printJournalOpSummary(
+    bsls::Types::Uint64 journalOpRecordsCount) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"JournalOperationsNumber\": \"" << journalOpRecordsCount
+              << "\"";
+}
+
+void JsonPrinter::printGuidsNotFound(const GuidsList& guids) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"GuidsNotFound\": [";
+    GuidsList::const_iterator it = guids.cbegin();
+    for (; it != guids.cend(); ++it) {
+        if (it != guids.cbegin()) {
+            d_ostream << ',';
+        }
+        d_ostream << '\n' << bsl::setw(4) << ' ' << '\"' << *it << "\"";
+    }
+    d_ostream << "\n  ]";
+}
+
+void JsonPrinter::printOffsetsNotFound(const OffsetsVec& offsets) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"OffsetsNotFound\": [";
+    OffsetsVec::const_iterator it = offsets.cbegin();
+    for (; it != offsets.cend(); ++it) {
+        if (it != offsets.cbegin()) {
+            d_ostream << ",";
+        }
+        d_ostream << "\n    " << *it;
+    }
+    d_ostream << "\n  ]";
+}
+
+void JsonPrinter::printCompositesNotFound(const CompositesVec& seqNums) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"SequenceNumbersNotFound\": [";
+    CompositesVec::const_iterator it = seqNums.cbegin();
+    for (; it != seqNums.cend(); ++it) {
+        if (it != seqNums.cbegin()) {
+            d_ostream << ',';
+        }
+
+        d_ostream << "\n    {\"leaseId\": \"" << it->leaseId()
+                  << "\", \"sequenceNumber\": \"" << it->sequenceNumber()
+                  << "\"}";
+    }
+    d_ostream << "\n  ]";
+}
 
 class JsonPrettyPrinter : public JsonPrinter {
   public:
     // CREATORS
-    JsonPrettyPrinter(bsl::ostream& os, bslma::Allocator* allocator)
-    : JsonPrinter(os, allocator)
-    {
-    }
+    JsonPrettyPrinter(bsl::ostream& os, bslma::Allocator* allocator);
 
-    ~JsonPrettyPrinter() BSLS_KEYWORD_OVERRIDE {}
+    ~JsonPrettyPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
     void
-    printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        printMessageDetails<bmqu::JsonPrinter<true, true, 4, 6> >(
-            d_ostream,
-            details,
-            d_allocator_p);
-    }
+    printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE;
 
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails(rec);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printJournalOpRecord(const RecordDetails<mqbs::JournalOpRecord>& rec)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails(rec);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printJournalFileMeta(const mqbs::JournalFileIterator* journalFile_p)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"JournalFileDetails\":\n";
-        m_bmqstoragetool::printJournalFileMeta<
-            bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
-                                                  journalFile_p,
-                                                  d_allocator_p);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"DataFileDetails\":\n";
-        m_bmqstoragetool::printDataFileMeta<
-            bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
-                                                  dataFile_p,
-                                                  d_allocator_p);
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,
                             const QueueDetailsMap& queueDetailsMap) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
-                  << "\",\n";
-
-        // Print information per Queue:
-        d_ostream << "  \"PerQueueRecordsNumber\": [\n";
-        printQueueDetails<bmqu::JsonPrinter<true, true, 4, 6> >(
-            d_ostream,
-            queueDetailsMap,
-            d_allocator_p);
-        d_ostream << "\n  ]";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 };
+
+// CREATORS
+JsonPrettyPrinter::JsonPrettyPrinter(bsl::ostream&     os,
+                                     bslma::Allocator* allocator)
+: JsonPrinter(os, allocator)
+{
+    // NOTHING
+}
+
+JsonPrettyPrinter::~JsonPrettyPrinter()
+{
+    // NOTHING
+}
+
+// PUBLIC METHODS
+
+void JsonPrettyPrinter::printMessage(const MessageDetails& details) const
+{
+    openBraceIfNotOpen("Records");
+    printMessageDetails<bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
+                                                              details,
+                                                              d_allocator_p);
+}
+
+void JsonPrettyPrinter::printQueueOpRecord(
+    const RecordDetails<mqbs::QueueOpRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
+}
+
+void JsonPrettyPrinter::printJournalOpRecord(
+    const RecordDetails<mqbs::JournalOpRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
+}
+
+void JsonPrettyPrinter::printJournalFileMeta(
+    const mqbs::JournalFileIterator* journalFile_p) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"JournalFileDetails\":\n";
+    m_bmqstoragetool::printJournalFileMeta<
+        bmqu::JsonPrinter<true, true, 2, 4>,
+        bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
+                                              journalFile_p,
+                                              d_allocator_p);
+}
+
+void JsonPrettyPrinter::printDataFileMeta(
+    const mqbs::DataFileIterator* dataFile_p) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"DataFileDetails\":\n";
+    m_bmqstoragetool::printDataFileMeta<bmqu::JsonPrinter<true, true, 2, 4>,
+                                        bmqu::JsonPrinter<true, true, 4, 6> >(
+        d_ostream,
+        dataFile_p,
+        d_allocator_p);
+}
+
+void JsonPrettyPrinter::printRecordSummary(
+    bsls::Types::Uint64    totalRecordsCount,
+    const QueueDetailsMap& queueDetailsMap) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
+              << "\",\n";
+
+    // Print information per Queue:
+    d_ostream << "  \"PerQueueRecordsNumber\": [\n";
+    printQueueDetails<bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
+                                                            queueDetailsMap,
+                                                            d_allocator_p);
+    d_ostream << "\n  ]";
+}
 
 class JsonLinePrinter : public JsonPrinter {
   public:
     // CREATORS
-    JsonLinePrinter(bsl::ostream& os, bslma::Allocator* allocator)
-    : JsonPrinter(os, allocator)
-    {
-    }
+    JsonLinePrinter(bsl::ostream& os, bslma::Allocator* allocator);
 
-    ~JsonLinePrinter() BSLS_KEYWORD_OVERRIDE {}
+    ~JsonLinePrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
 
     void
-    printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        printMessageDetails<bmqu::JsonPrinter<false, true, 4, 6> >(
-            d_ostream,
-            details,
-            d_allocator_p);
-    }
+    printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE;
 
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails(rec);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printJournalOpRecord(const RecordDetails<mqbs::JournalOpRecord>& rec)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-        RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails(rec);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printJournalFileMeta(const mqbs::JournalFileIterator* journalFile_p)
-        const BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"JournalFileDetails\":\n";
-        m_bmqstoragetool::printJournalFileMeta<
-            bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
-                                                   journalFile_p,
-                                                   d_allocator_p);
-    }
+        const BSLS_KEYWORD_OVERRIDE;
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"DataFileDetails\": \n";
-        m_bmqstoragetool::printDataFileMeta<
-            bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
-                                                   dataFile_p,
-                                                   d_allocator_p);
-    }
+        BSLS_KEYWORD_OVERRIDE;
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,
                             const QueueDetailsMap& queueDetailsMap) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        closeBraceIfOpen();
-        d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
-                  << "\",\n";
-
-        // Print information per Queue:
-        d_ostream << "  \"PerQueueRecordsNumber\": [\n";
-        printQueueDetails<bmqu::JsonPrinter<false, true, 4, 6> >(
-            d_ostream,
-            queueDetailsMap,
-            d_allocator_p);
-        d_ostream << "\n  ]";
-    }
+        BSLS_KEYWORD_OVERRIDE;
 };
+
+// CREATORS
+JsonLinePrinter::JsonLinePrinter(bsl::ostream& os, bslma::Allocator* allocator)
+: JsonPrinter(os, allocator)
+{
+    // NOTHING
+}
+
+JsonLinePrinter::~JsonLinePrinter()
+{
+    // NOTHING
+}
+
+// PUBLIC METHODS
+
+void JsonLinePrinter::printMessage(const MessageDetails& details) const
+{
+    openBraceIfNotOpen("Records");
+    printMessageDetails<bmqu::JsonPrinter<false, true, 4, 6> >(d_ostream,
+                                                               details,
+                                                               d_allocator_p);
+}
+
+void JsonLinePrinter::printQueueOpRecord(
+    const RecordDetails<mqbs::QueueOpRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
+}
+
+void JsonLinePrinter::printJournalOpRecord(
+    const RecordDetails<mqbs::JournalOpRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
+}
+
+void JsonLinePrinter::printJournalFileMeta(
+    const mqbs::JournalFileIterator* journalFile_p) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"JournalFileDetails\":\n";
+    m_bmqstoragetool::printJournalFileMeta<
+        bmqu::JsonPrinter<true, true, 2, 4>,
+        bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
+                                               journalFile_p,
+                                               d_allocator_p);
+}
+
+void JsonLinePrinter::printDataFileMeta(
+    const mqbs::DataFileIterator* dataFile_p) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"DataFileDetails\": \n";
+    m_bmqstoragetool::printDataFileMeta<bmqu::JsonPrinter<true, true, 2, 4>,
+                                        bmqu::JsonPrinter<false, true, 6, 0> >(
+        d_ostream,
+        dataFile_p,
+        d_allocator_p);
+}
+
+void JsonLinePrinter::printRecordSummary(
+    bsls::Types::Uint64    totalRecordsCount,
+    const QueueDetailsMap& queueDetailsMap) const
+{
+    closeBraceIfOpen();
+    d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
+              << "\",\n";
+
+    // Print information per Queue:
+    d_ostream << "  \"PerQueueRecordsNumber\": [\n";
+    printQueueDetails<bmqu::JsonPrinter<false, true, 4, 6> >(d_ostream,
+                                                             queueDetailsMap,
+                                                             d_allocator_p);
+    d_ostream << "\n  ]";
+}
 
 bsl::shared_ptr<Printer> createPrinter(Parameters::PrintMode mode,
                                        std::ostream&         stream,

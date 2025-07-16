@@ -61,6 +61,7 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_functional.h>
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -313,16 +314,6 @@ class Cluster : public mqbi::Cluster {
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;
-
-    /// Register the specified `observer` to be notified of cluster state
-    /// changes.
-    void registerStateObserver(mqbc::ClusterStateObserver* observer)
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Un-register the specified `observer` from being notified of cluster
-    /// state changes.
-    void unregisterStateObserver(mqbc::ClusterStateObserver* observer)
-        BSLS_KEYWORD_OVERRIDE;
 
     /// Return a reference offering modifiable access to the net cluster
     /// used by this cluster.

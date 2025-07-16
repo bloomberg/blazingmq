@@ -36,6 +36,8 @@
 #include <bdlf_placeholder.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
 
@@ -182,14 +184,14 @@ mqbi::QueueHandle* QueueHandleCatalog::createHandle(
         d_allocator_p);
 
     // Insert handle into map
-    bsl::pair<HandleMap::iterator, HandleMap::InsertResult> insertResult =
-        d_handles.insert(handle,
-                         bsl::make_pair(clientContext->requesterId(),
-                                        handleParameters.qId()),
-                         queueHandleSp);
+    BSLA_MAYBE_UNUSED bsl::pair<HandleMap::iterator, HandleMap::InsertResult>
+                      insertResult = d_handles.insert(
+            handle,
+            bsl::make_pair(clientContext->requesterId(),
+                           handleParameters.qId()),
+            queueHandleSp);
 
     BSLS_ASSERT_SAFE(insertResult.second == HandleMap::e_INSERTED);
-    (void)insertResult;  // Compiler happiness
 
     return handle;
 }

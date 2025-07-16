@@ -23,17 +23,17 @@
 #include <bdlb_string.h>
 
 #include <bdlb_nullablevalue.h>
-#include <bsl_string.h>
-#include <bsl_vector.h>
-#include <bslim_printer.h>
-#include <bsls_assert.h>
-#include <bsls_types.h>
-
 #include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_string.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
+#include <bsla_annotations.h>
+#include <bslim_printer.h>
+#include <bsls_assert.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -410,10 +410,9 @@ const char CloseStorageCommand::CLASS_NAME[] = "CloseStorageCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-CloseStorageCommand::lookupAttributeInfo(const char* name, int nameLength)
+CloseStorageCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
+                                         BSLA_UNUSED int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
     return 0;
 }
 
@@ -1479,10 +1478,9 @@ const char ListQueuesCommand::CLASS_NAME[] = "ListQueuesCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-ListQueuesCommand::lookupAttributeInfo(const char* name, int nameLength)
+ListQueuesCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
+                                       BSLA_UNUSED int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
     return 0;
 }
 
@@ -1706,10 +1704,9 @@ const char MetadataCommand::CLASS_NAME[] = "MetadataCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-MetadataCommand::lookupAttributeInfo(const char* name, int nameLength)
+MetadataCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
+                                     BSLA_UNUSED int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
     return 0;
 }
 
@@ -4354,6 +4351,8 @@ const char
     CommandLineParameters::DEFAULT_INITIALIZER_SEQUENTIAL_MESSAGE_PATTERN[] =
         "";
 
+const int CommandLineParameters::DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO = 0;
+
 const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_MODE,
      "mode",
@@ -4479,14 +4478,19 @@ const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "subscriptions",
      sizeof("subscriptions") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO,
+     "autoPubSubModulo",
+     sizeof("autoPubSubModulo") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 CommandLineParameters::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 25; ++i) {
+    for (int i = 0; i < 26; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             CommandLineParameters::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4551,6 +4555,8 @@ const bdlat_AttributeInfo* CommandLineParameters::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES];
     case ATTRIBUTE_ID_SUBSCRIPTIONS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS];
+    case ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO];
     default: return 0;
     }
 }
@@ -4580,6 +4586,7 @@ CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
 , d_postInterval(DEFAULT_INITIALIZER_POST_INTERVAL)
 , d_threads(DEFAULT_INITIALIZER_THREADS)
 , d_shutdownGrace(DEFAULT_INITIALIZER_SHUTDOWN_GRACE)
+, d_autoPubSubModulo(DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO)
 , d_dumpMsg(DEFAULT_INITIALIZER_DUMP_MSG)
 , d_confirmMsg(DEFAULT_INITIALIZER_CONFIRM_MSG)
 , d_memoryDebug(DEFAULT_INITIALIZER_MEMORY_DEBUG)
@@ -4612,6 +4619,7 @@ CommandLineParameters::CommandLineParameters(
 , d_postInterval(original.d_postInterval)
 , d_threads(original.d_threads)
 , d_shutdownGrace(original.d_shutdownGrace)
+, d_autoPubSubModulo(original.d_autoPubSubModulo)
 , d_dumpMsg(original.d_dumpMsg)
 , d_confirmMsg(original.d_confirmMsg)
 , d_memoryDebug(original.d_memoryDebug)
@@ -4644,6 +4652,7 @@ CommandLineParameters::CommandLineParameters(
   d_postInterval(bsl::move(original.d_postInterval)),
   d_threads(bsl::move(original.d_threads)),
   d_shutdownGrace(bsl::move(original.d_shutdownGrace)),
+  d_autoPubSubModulo(bsl::move(original.d_autoPubSubModulo)),
   d_dumpMsg(bsl::move(original.d_dumpMsg)),
   d_confirmMsg(bsl::move(original.d_confirmMsg)),
   d_memoryDebug(bsl::move(original.d_memoryDebug)),
@@ -4675,6 +4684,7 @@ CommandLineParameters::CommandLineParameters(CommandLineParameters&& original,
 , d_postInterval(bsl::move(original.d_postInterval))
 , d_threads(bsl::move(original.d_threads))
 , d_shutdownGrace(bsl::move(original.d_shutdownGrace))
+, d_autoPubSubModulo(bsl::move(original.d_autoPubSubModulo))
 , d_dumpMsg(bsl::move(original.d_dumpMsg))
 , d_confirmMsg(bsl::move(original.d_confirmMsg))
 , d_memoryDebug(bsl::move(original.d_memoryDebug))
@@ -4718,6 +4728,7 @@ CommandLineParameters::operator=(const CommandLineParameters& rhs)
         d_sequentialMessagePattern = rhs.d_sequentialMessagePattern;
         d_messageProperties        = rhs.d_messageProperties;
         d_subscriptions            = rhs.d_subscriptions;
+        d_autoPubSubModulo         = rhs.d_autoPubSubModulo;
     }
 
     return *this;
@@ -4754,6 +4765,7 @@ CommandLineParameters::operator=(CommandLineParameters&& rhs)
         d_sequentialMessagePattern = bsl::move(rhs.d_sequentialMessagePattern);
         d_messageProperties        = bsl::move(rhs.d_messageProperties);
         d_subscriptions            = bsl::move(rhs.d_subscriptions);
+        d_autoPubSubModulo         = bsl::move(rhs.d_autoPubSubModulo);
     }
 
     return *this;
@@ -4788,6 +4800,7 @@ void CommandLineParameters::reset()
         DEFAULT_INITIALIZER_SEQUENTIAL_MESSAGE_PATTERN;
     bdlat_ValueTypeFunctions::reset(&d_messageProperties);
     bdlat_ValueTypeFunctions::reset(&d_subscriptions);
+    d_autoPubSubModulo = DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO;
 }
 
 // ACCESSORS
@@ -4825,6 +4838,7 @@ bsl::ostream& CommandLineParameters::print(bsl::ostream& stream,
                            this->sequentialMessagePattern());
     printer.printAttribute("messageProperties", this->messageProperties());
     printer.printAttribute("subscriptions", this->subscriptions());
+    printer.printAttribute("autoPubSubModulo", this->autoPubSubModulo());
     printer.end();
     return stream;
 }
@@ -6815,6 +6829,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

@@ -35,6 +35,8 @@
 #include <bdlb_scopeexit.h>
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {

@@ -57,6 +57,8 @@
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_string.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
@@ -751,15 +753,12 @@ void RemoteQueue::onHandleReleased(
                     // previously added virtual storage
                     const bsl::string& appId =
                         handleParameters.subIdInfo().value().appId();
-                    mqbu::StorageKey appKey;
-                    const bool       hasVirtualStorage =
+                    mqbu::StorageKey             appKey;
+                    BSLA_MAYBE_UNUSED const bool hasVirtualStorage =
                         d_state_p->storage()->hasVirtualStorage(appId,
                                                                 &appKey);
                     BSLS_ASSERT_SAFE(hasVirtualStorage);
                     d_state_p->storage()->removeVirtualStorage(appKey, false);
-
-                    (void)
-                        hasVirtualStorage;  // Compiler happiness in opt build
                 }
             }
             else if (!bmqt::QueueFlagsUtil::isReader(

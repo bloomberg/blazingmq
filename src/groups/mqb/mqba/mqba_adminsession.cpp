@@ -226,12 +226,10 @@ void AdminSession::finalizeAdminCommand(
 
 void AdminSession::onProcessedAdminCommand(
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
-    int                                 rc,
+    BSLA_UNUSED int                     rc,
     const bsl::string&                  commandExecResults)
 {
     // executed by the *ANY* thread
-    (void)rc;
-
     dispatcher()->execute(
         bdlf::BindUtil::bind(&AdminSession::finalizeAdminCommand,
                              this,
@@ -384,12 +382,10 @@ void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
     semaphore->post();
 }
 
-void AdminSession::tearDown(const bsl::shared_ptr<void>& session,
-                            bool                         isBrokerShutdown)
+void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
+                            BSLA_UNUSED bool isBrokerShutdown)
 {
     // executed by the *IO* thread
-    (void)session;
-    (void)isBrokerShutdown;
 
     // Cancel the reads on the channel
     d_channel_sp->cancelRead();
@@ -414,13 +410,12 @@ void AdminSession::tearDown(const bsl::shared_ptr<void>& session,
     // 'session' go out of scope.
 }
 
-void AdminSession::initiateShutdown(const ShutdownCb&         callback,
-                                    const bsls::TimeInterval& timeout,
-                                    bool supportShutdownV2)
+void AdminSession::initiateShutdown(
+    const ShutdownCb& callback,
+    BSLA_UNUSED const bsls::TimeInterval& timeout,
+    BSLA_UNUSED bool                      supportShutdownV2)
 {
     // executed by the *ANY* thread
-    (void)timeout;
-    (void)supportShutdownV2;
 
     dispatcher()->execute(
         bdlf::BindUtil::bind(&AdminSession::initiateShutdownDispatched,

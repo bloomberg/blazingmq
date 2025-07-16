@@ -49,6 +49,7 @@
 #include <bsl_iosfwd.h>
 #include <bsl_optional.h>
 #include <bsl_unordered_map.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>

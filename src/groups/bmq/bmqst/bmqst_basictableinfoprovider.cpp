@@ -22,8 +22,10 @@
 
 #include <bmqst_value.h>
 
+#include <bsl_iomanip.h>
 #include <bsl_ios.h>
 #include <bsl_limits.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {
@@ -206,7 +208,8 @@ int BasicTableInfoProvider_ValueSizeVisitor::operator()(
 
 int BasicTableInfoProvider_ValueSizeVisitor::operator()(int value) const
 {
-    return operator()((bsls::Types::Int64)value);
+    // Static cast to explicitly pick our overload.
+    return operator()(static_cast<bsls::Types::Int64>(value));
 }
 
 int BasicTableInfoProvider_ValueSizeVisitor::operator()(
@@ -294,7 +297,8 @@ int BasicTableInfoProvider_ValuePrintVisitor::operator()(
 
 int BasicTableInfoProvider_ValuePrintVisitor::operator()(int value) const
 {
-    operator()((bsls::Types::Int64)value);
+    // Static cast to explicitly pick our overload.
+    operator()(static_cast<bsls::Types::Int64>(value));
     return 0;
 }
 

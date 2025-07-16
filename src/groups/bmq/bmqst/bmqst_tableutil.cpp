@@ -28,6 +28,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bdlsb_fixedmemoutstreambuf.h>
 
+#include <bsl_algorithm.h>
 #include <bsl_iomanip.h>
 #include <bsls_alignedbuffer.h>
 

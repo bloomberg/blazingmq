@@ -22,6 +22,9 @@
 // BDE
 #include <bdlt_currenttime.h>
 #include <bsl_cmath.h>
+#include <bsl_cstdlib.h>
+#include <bsl_limits.h>
+#include <bsl_vector.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 

@@ -21,6 +21,7 @@
 // BDE
 #include <bsl_cstring.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
 
@@ -296,10 +297,9 @@ const mqbi::StorageMessageAttributes& StorageIterator::attributes() const
     if (d_attributes.refCount() == 0) {
         // No loaded Attributes for the current message yet.
 
-        mqbi::StorageResult::Enum rc = d_storage_p->get(&d_attributes,
-                                                        d_iterator->first);
+        BSLA_MAYBE_UNUSED mqbi::StorageResult::Enum rc =
+            d_storage_p->get(&d_attributes, d_iterator->first);
         BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
-        (void)rc;
     }
     // else return reference to the previously loaded attributes.
 

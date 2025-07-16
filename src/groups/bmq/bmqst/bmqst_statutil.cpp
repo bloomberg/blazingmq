@@ -17,6 +17,7 @@
 #include <bmqst_statutil.h>
 
 #include <bmqscm_version.h>
+#include <bsl_algorithm.h>
 #include <bsl_limits.h>
 
 namespace BloombergLP {

@@ -54,8 +54,15 @@
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_algorithm.h>
+#include <bsl_fstream.h>
+#include <bsl_iomanip.h>
+#include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_numeric.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmt_semaphore.h>
@@ -598,7 +605,17 @@ int Application::initialize()
             .setMaxUnconfirmedBytes(d_parameters.maxUnconfirmedBytes());
 
         if (!InputUtil::populateSubscriptions(&queueOptions,
-                                              d_parameters.subscriptions())) {
+                                              d_parameters.subscriptions(),
+                                              d_allocator_p)) {
+            BALL_LOG_ERROR << "Invalid subscriptions";
+            return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
+        }
+
+        if (!InputUtil::populateSubscriptions(
+                &queueOptions,
+                d_parameters.autoPubSubModulo(),
+                d_parameters.autoPubSubPropertyName(),
+                d_allocator_p)) {
             BALL_LOG_ERROR << "Invalid subscriptions";
             return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
         }
@@ -752,14 +769,13 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                     const bmqa::Message& message)>
                     f(&bmqa::ConfirmEventBuilder::addMessageConfirmation);
 
-                bmqt::EventBuilderResult::Enum rc =
+                BSLA_MAYBE_UNUSED bmqt::EventBuilderResult::Enum rc =
                     bmqp::ProtocolUtil::buildEvent(
                         BuildConfirmFunctor(confirmBuilder, message),
                         BuildConfirmOverflowFunctor(*d_session_mp.get(),
                                                     confirmBuilder));
 
                 BSLS_ASSERT_SAFE(rc == 0);
-                (void)rc;  // compiler happiness
 
                 // Write to log file
                 d_fileLogger.writeConfirmMessage(message);
@@ -987,9 +1003,8 @@ int Application::start()
     d_scheduler.start();
 
     if (!d_parameters.logFilePath().empty()) {
-        bool rc = d_fileLogger.open();
+        BSLA_MAYBE_UNUSED bool rc = d_fileLogger.open();
         BSLS_ASSERT_SAFE(rc);
-        (void)rc;  // Compiler happiness
     }
 
     int rc = initialize();

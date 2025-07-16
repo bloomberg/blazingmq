@@ -585,11 +585,11 @@ void StorageManager::processStorageEventDispatched(
     mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
     BSLS_ASSERT_SAFE(fs);
 
-    const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+    BSLA_MAYBE_UNUSED const PartitionInfo& pinfo =
+        d_partitionInfoVec[partitionId];
     BSLS_ASSERT_SAFE(pinfo.primary() == source);
     BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
                      bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
-    (void)pinfo;  // silence compiler warning
 
     if (d_recoveryManager_mp->isRecoveryInProgress(partitionId)) {
         d_recoveryManager_mp->processStorageEvent(partitionId, blob, source);

@@ -14,6 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <bsl_algorithm.h>
+#include <bsl_vector.h>
 #include <m_bmqstoragetool_filters.h>
 
 namespace BloombergLP {
@@ -116,7 +118,6 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
         }
     }
     if (!queueUris.empty()) {
-        mqbu::StorageKey                         key;
         bsl::vector<bsl::string>::const_iterator uriIt = queueUris.cbegin();
         for (; uriIt != queueUris.cend(); ++uriIt) {
             bsl::optional<mqbu::StorageKey> key = queueMap.findKeyByUri(
@@ -181,14 +182,6 @@ bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
                 ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
                 const QueueAssignmentAdvisory& queueAdvisory =
                     record.choice().queueAssignmentAdvisory();
-                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
-                                                d_queueKeys);
-            }
-            else if (selectionId ==
-                     ClusterMessageChoice::
-                         SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY) {
-                const QueueUnassignedAdvisory& queueAdvisory =
-                    record.choice().queueUnassignedAdvisory();
                 queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
                                                 d_queueKeys);
             }

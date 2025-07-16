@@ -33,6 +33,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bmqp_protocol.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>
@@ -1451,8 +1452,9 @@ void ClusterStateManager::setPrimaryStatus(
     d_state_p->setPartitionPrimaryStatus(partitionId, status);
 }
 
-void ClusterStateManager::markOrphan(const bsl::vector<int>& partitions,
-                                     mqbnet::ClusterNode*    primary)
+void ClusterStateManager::markOrphan(
+    const bsl::vector<int>& partitions,
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primary)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1487,9 +1489,8 @@ void ClusterStateManager::assignPartitions(
                                   true);  // isCSLMode
 }
 
-ClusterStateManager::QueueAssignmentResult::Enum
-ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
-                                 bmqp_ctrlmsg::Status* status)
+bool ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
+                                      bmqp_ctrlmsg::Status* status)
 {
     // executed by the cluster *DISPATCHER* thread
     // PRECONDITIONS
@@ -1520,7 +1521,7 @@ void ClusterStateManager::registerQueueInfo(
 }
 
 void ClusterStateManager::unassignQueue(
-    const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1736,15 +1737,6 @@ void ClusterStateManager::processClusterStateEvent(
     }
 }
 
-void ClusterStateManager::processBufferedQueueAdvisories()
-{
-    // While this method could be invoked by mqbblp::Cluster as part of
-    // pre-CSL workflow, we can do a no-op here because there won't be any
-    // buffered queue advisories anymore under the new CSL logic.
-
-    // NOTHING
-}
-
 void ClusterStateManager::processQueueAssignmentRequest(
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbnet::ClusterNode*                requester)
@@ -1764,39 +1756,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         d_allocator_p);
 }
 
-void ClusterStateManager::processQueueUnassignedAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
-}
-
-void ClusterStateManager::processQueueUnAssignmentAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source,
-    BSLA_UNUSED bool                 delayed)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
-}
-
-void ClusterStateManager::processPartitionPrimaryAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
-}
-
-void ClusterStateManager::processLeaderAdvisory(
-    BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLA_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_SAFE(false &&
-                     "This method should only be invoked in non-CSL mode");
-}
-
 void ClusterStateManager::processShutdownEvent()
 {
     // executed by *ANY* thread
@@ -1804,10 +1763,9 @@ void ClusterStateManager::processShutdownEvent()
     applyFSMEvent(ClusterFSM::Event::e_STOP_NODE, ClusterFSMEventMetadata());
 }
 
-void ClusterStateManager::onNodeUnavailable(mqbnet::ClusterNode* node)
+void ClusterStateManager::onNodeUnavailable(
+    BSLA_UNUSED mqbnet::ClusterNode* node)
 {
-    (void)node;
-
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }
 
@@ -1823,8 +1781,9 @@ void ClusterStateManager::onNodeStopped()
 
 // MANIPULATORS
 //   (virtual: mqbc::ElectorInfoObserver)
-void ClusterStateManager::onClusterLeader(mqbnet::ClusterNode*          node,
-                                          ElectorInfoLeaderStatus::Enum status)
+void ClusterStateManager::onClusterLeader(
+    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* node,
+    BSLA_MAYBE_UNUSED ElectorInfoLeaderStatus::Enum status)
 {
     // executed by the cluster *DISPATCHER* thread
 

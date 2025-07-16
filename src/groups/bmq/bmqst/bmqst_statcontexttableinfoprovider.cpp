@@ -26,7 +26,12 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsls_alignedbuffer.h>
 
+#include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_iomanip.h>
 #include <bsl_ios.h>
+#include <bsl_limits.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {
@@ -492,9 +497,8 @@ int StatContextTableInfoProvider::getValueSize(int row, int column) const
         }
         else if (colInfo.d_doubleFunc) {
             double funcValue = colInfo.d_doubleFunc(value);
-            return bmqst::PrintUtil::printedValueLength(
-                       (bsls::Types::Int64)funcValue) +
-                   d_precision + 1;
+            return bmqst::PrintUtil::printedValueLength(funcValue,
+                                                        d_precision);
         }
     }
 

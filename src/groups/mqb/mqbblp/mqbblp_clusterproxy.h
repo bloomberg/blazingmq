@@ -76,9 +76,13 @@
 #include <bdlcc_sharedobjectpool.h>
 #include <bdld_manageddatum.h>
 #include <bsl_deque.h>
+#include <bsl_functional.h>
+#include <bsl_map.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -457,16 +461,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Return a reference offering modifiable access to the net cluster
     /// used by this cluster.
     mqbnet::Cluster& netCluster() BSLS_KEYWORD_OVERRIDE;
-
-    /// Register the specified `observer` to be notified of cluster state
-    /// changes.
-    void registerStateObserver(mqbc::ClusterStateObserver* observer)
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Un-register the specified `observer` from being notified of cluster
-    /// state changes.
-    void unregisterStateObserver(mqbc::ClusterStateObserver* observer)
-        BSLS_KEYWORD_OVERRIDE;
 
     /// Open the queue with the specified `uri`, belonging to the specified
     /// `domain` with the specified `parameters` from a client identified

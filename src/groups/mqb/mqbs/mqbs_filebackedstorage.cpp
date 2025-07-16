@@ -112,24 +112,24 @@ FileBackedStorage::FileBackedStorage(
 , d_store_p(dataStore)
 , d_queueKey(queueKey)
 , d_config()
-, d_queueUri(queueUri, allocator)
+, d_queueUri(queueUri, d_allocator_p)
 , d_virtualStorageCatalog(
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
 , d_ttlSeconds(domain->config().messageTtl())
 , d_capacityMeter(
-      "queue [" + queueUri.asString() + "]",
+      bsl::string("queue [", d_allocator_p) + queueUri.asString() + "]",
       domain->capacityMeter(),
-      allocator,
-      bdlf::BindUtil::bind(&FileBackedStorage::logAppsSubscriptionInfoCb,
-                           this,
-                           bdlf::PlaceHolders::_1)  // stream
-      )
+      bdlf::BindUtil::bindS(d_allocator_p,
+                            &FileBackedStorage::logAppsSubscriptionInfoCb,
+                            this,
+                            bdlf::PlaceHolders::_1),  // stream
+      d_allocator_p)
 , d_handles(bsls::TimeInterval()
                 .addMilliseconds(domain->config().deduplicationTimeMs())
                 .totalNanoseconds(),
             allocatorStore ? allocatorStore->get("Handles") : d_allocator_p)
-, d_queueOpRecordHandles(allocator)
+, d_queueOpRecordHandles(d_allocator_p)
 , d_isEmpty(1)
 , d_hasReceipts(!domain->config().consistency().isStrongValue())
 , d_currentlyAutoConfirming()
@@ -296,9 +296,10 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appData);
-    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+    BSLS_ASSERT_SAFE(static_cast<unsigned int>(appData->length()) ==
+                     attributes->appDataLen());
 
-    const int msgSize = attributes->appDataLen();
+    const int msgSize = static_cast<int>(attributes->appDataLen());
 
     // Store the specified message in the 'physical' as well as *all*
     // virtual storages.

@@ -151,8 +151,8 @@
 // Include version that can be compiled with C++03
 // Generated on Wed Jun 18 14:44:15 2025
 // Command line: sim_cpp11_features.pl bmqex_future.h
-# define COMPILING_BMQEX_FUTURE_H
-# include <bmqex_future_cpp03.h>
+#define COMPILING_BMQEX_FUTURE_H
+#include <bmqex_future_cpp03.h>
 #undef COMPILING_BMQEX_FUTURE_H
 #else
 
@@ -1898,5 +1898,6 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 }  // close enterprise namespace
 
 #endif  // End C++11 code
+#include <bsl_type_traits.h>
 
 #endif

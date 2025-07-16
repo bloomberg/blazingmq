@@ -40,6 +40,7 @@
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
@@ -51,6 +52,11 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_algorithm.h>
+#include <bsl_functional.h>
+#include <bsl_ios.h>
+#include <bsl_limits.h>
+#include <bsl_map.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -578,7 +584,7 @@ void regress(Operations*       operations,
 
 /// Populate the specified `strings` with messages parsed from the
 /// specified `str`.  The format of `str` must be:
-///   `<s_1>,<s_2>,...,<s_N>`
+///   `[s_1],[s_2],...,[s_N]`
 ///
 /// The behavior is undefined unless `str` is formatted as above.  Note that
 /// `strings` will be cleared.
@@ -601,7 +607,7 @@ static void parseStrings(bsl::vector<bsl::string>* strings, bsl::string str)
 
 /// Return a fanout domain configured with appIds from the specified
 /// `appIds`.  The format of `appIdsStr` must be:
-///  `<appId_1>,<appId_2>,...,<appIdN>`
+///  `[appId_1],[appId_2],...,[appIdN]`
 ///
 /// The behavior is undefined unless `appIdsStr` is formatted as above.
 mqbconfm::Domain fanoutConfig(const bsl::string& appIdsStr)
@@ -727,7 +733,8 @@ static void test2_broadcastConfirmAssertFails()
     mqbblp::QueueEngineTesterGuard<mqbblp::RootQueueEngine> guard(&tester);
 
     // 1) 1 consumer
-    mqbmock::QueueHandle* C1 = tester.getHandle("C1 readCount=1");
+    BSLA_MAYBE_UNUSED mqbmock::QueueHandle* C1 = tester.getHandle(
+        "C1 readCount=1");
     tester.configureHandle("C1 consumerPriority=-1 consumerPriorityCount=1");
 
     // 2) Post 1 message to the queue, and invoke the engine to broadcast it
@@ -740,7 +747,6 @@ static void test2_broadcastConfirmAssertFails()
     BMQTST_ASSERT_SAFE_FAIL(tester.confirm(
         "C1",
         mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(), "0")));
-    (void)C1;  // Compiler happiness
 }
 
 static void test3_broadcastCannotDeliver()

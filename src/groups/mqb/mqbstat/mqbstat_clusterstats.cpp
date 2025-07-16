@@ -30,6 +30,7 @@
 #include <bdld_manageddatum.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
+#include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
@@ -251,7 +252,8 @@ void ClusterStats::initialize(const bsl::string&  name,
             bsl::shared_ptr<bmqst::StatContext>(
                 d_statContext_mp->addSubcontext(
                     bmqst::StatContextConfiguration(partitionName,
-                                                    &localAllocator))));
+                                                    &localAllocator)),
+                allocator));
         setNodeRoleForPartition(pId, PrimaryStatus::e_UNKNOWN);
     }
 }

@@ -64,6 +64,7 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bdlmt_throttle.h>
 #include <bsl_deque.h>
+#include <bsl_functional.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>

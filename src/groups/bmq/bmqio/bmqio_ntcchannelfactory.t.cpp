@@ -38,6 +38,8 @@
 #include <bsls_types.h>
 
 #include <bmqtst_testhelper.h>
+#include <bsl_iostream.h>
+#include <bsl_map.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -487,10 +489,9 @@ void Tester::resultCb(const bsl::string&              handleName,
 }
 
 void Tester::preCreationCb(
-    const bsl::shared_ptr<NtcChannel>&               channel,
-    const bsl::shared_ptr<ChannelFactory::OpHandle>& handle)
+    const bsl::shared_ptr<NtcChannel>& channel,
+    BSLA_UNUSED const bsl::shared_ptr<ChannelFactory::OpHandle>& handle)
 {
-    (void)handle;
     d_preCreateCbCalls.push_back(channel);
 }
 

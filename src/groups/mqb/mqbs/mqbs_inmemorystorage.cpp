@@ -57,17 +57,17 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
 , d_key(queueKey)
-, d_uri(uri, allocator)
+, d_uri(uri, d_allocator_p)
 , d_partitionId(partitionId)
 , d_config()
 , d_capacityMeter(
-      "queue [" + uri.asString() + "]",
+      bsl::string("queue [", d_allocator_p) + uri.asString() + "]",
       parentCapacityMeter,
-      allocator,
-      bdlf::BindUtil::bind(&InMemoryStorage::logAppsSubscriptionInfoCb,
-                           this,
-                           bdlf::PlaceHolders::_1)  // stream
-      )
+      bdlf::BindUtil::bindS(d_allocator_p,
+                            &InMemoryStorage::logAppsSubscriptionInfoCb,
+                            this,
+                            bdlf::PlaceHolders::_1),  // stream
+      d_allocator_p)
 , d_items(bsls::TimeInterval()
               .addMilliseconds(config.deduplicationTimeMs())
               .totalNanoseconds(),
@@ -78,7 +78,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
 , d_ttlSeconds(config.messageTtl())
 , d_isEmpty(1)
 , d_currentlyAutoConfirming()
-, d_autoConfirms(allocator)
+, d_autoConfirms(d_allocator_p)
 {
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
 
@@ -174,9 +174,10 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appData);
-    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+    BSLS_ASSERT_SAFE(static_cast<unsigned int>(appData->length()) ==
+                     attributes->appDataLen());
 
-    const int    msgSize  = attributes->appDataLen();
+    const int    msgSize  = static_cast<int>(attributes->appDataLen());
     unsigned int refCount = attributes->refCount();
     // Proxies are unaware of the number of apps unlike Replicas.
     // The latter can check for duplicates.
@@ -544,10 +545,8 @@ void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 
 mqbi::StorageResult::Enum
 InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                             bsls::Types::Uint64     timestamp)
+                             BSLA_UNUSED bsls::Types::Uint64 timestamp)
 {
-    (void)timestamp;
-
     d_autoConfirms.emplace_back(appKey);
 
     return mqbi::StorageResult::e_SUCCESS;

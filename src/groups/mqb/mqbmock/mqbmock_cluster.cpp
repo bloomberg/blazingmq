@@ -33,6 +33,7 @@
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_iostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslmt_semaphore.h>
 #include <bsls_assert.h>
@@ -366,22 +367,6 @@ void Cluster::stop()
     d_scheduler.stop();
 
     d_isStarted = false;
-}
-
-void Cluster::registerStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-}
-
-void Cluster::unregisterStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
 }
 
 mqbnet::Cluster& Cluster::netCluster()

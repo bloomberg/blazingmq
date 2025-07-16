@@ -23,6 +23,9 @@
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 
+#include <bsl_iostream.h>
+#include <bsl_ostream.h>
+
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;

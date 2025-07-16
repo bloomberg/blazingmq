@@ -47,7 +47,9 @@
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_type_traits.h>
 #include <bsl_vector.h>
 #include <bslh_hash.h>
 #include <bslma_usesbslmaallocator.h>
@@ -458,10 +460,11 @@ class Ledger {
                             const void*     record,
                             int             offset,
                             int             length) = 0;
+
     virtual int writeRecord(LedgerRecordId*           recordId,
                             const bdlbb::Blob&        record,
                             const bmqu::BlobPosition& offset,
-                            int                       length)             = 0;
+                            int                       length) = 0;
 
     /// Write the specified `section` of the specified `record` into this
     /// ledger and load into `recordId` an identifier which can be used to

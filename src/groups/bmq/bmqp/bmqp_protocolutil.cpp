@@ -31,9 +31,11 @@
 #include <bdlb_stringrefutil.h>
 #include <bdlb_tokenizer.h>
 #include <bdlbb_blobutil.h>
+#include <bsl_algorithm.h>
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
+#include <bsl_utility.h>
 #include <bslma_default.h>
 #include <bslmt_qlock.h>
 #include <bsls_objectbuffer.h>

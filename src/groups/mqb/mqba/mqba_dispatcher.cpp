@@ -29,6 +29,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
@@ -151,8 +152,8 @@ Dispatcher_ClientExecutor::processorHandle() const BSLS_CPP11_NOEXCEPT
 
 // CREATORS
 Dispatcher_ClientExecutor::Dispatcher_ClientExecutor(
-    const Dispatcher*             dispacher,
-    const mqbi::DispatcherClient* client) BSLS_CPP11_NOEXCEPT
+    BSLA_MAYBE_UNUSED const Dispatcher* dispacher,
+    const mqbi::DispatcherClient*       client) BSLS_CPP11_NOEXCEPT
 : d_client_p(client)
 {
     // PRECONDITIONS

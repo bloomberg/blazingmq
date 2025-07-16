@@ -557,9 +557,9 @@ class TestPutsRetransmission:
         self.inspect_results(allow_duplicates=True)
 
     def test_kill_primary_keep_replica(
-        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+        self, multi_node: Cluster, sc_domain_urls: tc.DomainUrls
     ):
-        self.setup_cluster_fanout(multi_node, domain_urls)
+        self.setup_cluster_fanout(multi_node, sc_domain_urls)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)

@@ -61,6 +61,7 @@
 #include <bsl_cstdlib.h>  // for bsl::rand()
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
@@ -3388,7 +3389,6 @@ void RecoveryManager::processRecoveryEvent(
         }
 
         BSLS_ASSERT_SAFE(isData || isJournal || isQlist);
-        (void)isJournal;  // Compiler happiness
 
         if (header.fileChunkType() != recoveryCtx.expectedChunkFileType()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")

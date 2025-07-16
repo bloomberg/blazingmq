@@ -26,6 +26,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_cstddef.h>
 
 // CONVENIENCE
 using namespace BloombergLP;

@@ -25,6 +25,7 @@
 
 // BDE
 #include <bsl_cstring.h>
+#include <bsl_memory.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {

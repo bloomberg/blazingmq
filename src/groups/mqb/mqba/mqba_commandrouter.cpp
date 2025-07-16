@@ -26,6 +26,7 @@
 
 // BDE
 #include <bsl_iostream.h>
+#include <bsl_utility.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {

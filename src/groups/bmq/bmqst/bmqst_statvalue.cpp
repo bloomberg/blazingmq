@@ -21,6 +21,7 @@
 #include <bsl_algorithm.h>
 
 #include <bmqstm_values.h>
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace bmqst {
@@ -144,8 +145,9 @@ void StatValue::addSnapshot(const StatValue& other)
             d_currentStats.d_min = otherSnapshot.d_min;
         }
         else if (otherSnapshot.d_min != MAX_INT) {
+            // Static cast to truncate away decimal.
             d_currentStats.d_min = bsl::min(
-                (bsls::Types::Int64)d_currentStats.d_min,
+                static_cast<bsls::Types::Int64>(d_currentStats.d_min),
                 otherSnapshot.d_min);
         }
 
@@ -153,8 +155,9 @@ void StatValue::addSnapshot(const StatValue& other)
             d_currentStats.d_max = otherSnapshot.d_max;
         }
         else if (otherSnapshot.d_max != MIN_INT) {
+            // Static cast to truncate away decimal.
             d_currentStats.d_max = bsl::max(
-                (bsls::Types::Int64)d_currentStats.d_max,
+                static_cast<bsls::Types::Int64>(d_currentStats.d_max),
                 otherSnapshot.d_max);
         }
     }

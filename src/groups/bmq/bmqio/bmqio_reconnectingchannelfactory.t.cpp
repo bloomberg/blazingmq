@@ -29,6 +29,7 @@
 #include <bdlmt_eventscheduler.h>
 #include <bsl_cstdlib.h>
 #include <bsl_ctime.h>
+#include <bsl_deque.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>

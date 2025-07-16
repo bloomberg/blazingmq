@@ -40,6 +40,7 @@
 #include <m_bmqstoragetool_queuemap.h>
 
 // MQB
+#include <bsl_ostream.h>
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbmock_logidgenerator.h>
@@ -191,7 +192,7 @@ inline FileManagerImpl::FileHandler<ITER>::FileHandler(
 }
 
 template <typename ITER>
-inline FileManagerImpl::FileHandler<ITER>::~FileHandler()
+inline FileManagerImpl::FileHandler<ITER>::FileHandler::~FileHandler()
 {
     d_iter.clear();
     if (d_mfd.isValid()) {

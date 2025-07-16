@@ -84,6 +84,7 @@
 // BDE
 #include <bdlma_concurrentpoolallocator.h>
 #include <bsl_memory.h>
+#include <bsl_type_traits.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

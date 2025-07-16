@@ -87,7 +87,7 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     ///   - `PartitionPrimaryAdvisory`,
     ///   - `QueueAssignmentAdvisory`,
     ///   - `LeaderAdvisory`,
-    ///   - `QueueUnassignedAdvisory`.
+    ///   - `QueueUnAssignmentAdvisory`.
     bmqp_ctrlmsg::ClusterMessage d_clusterMessage;
 
     /// Number of ACKs received for this `ClusterMessage`.
@@ -343,7 +343,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         BSLS_KEYWORD_OVERRIDE;
     int apply(const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
-    int apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)
+    int apply(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
     int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
@@ -356,7 +356,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// consistency level has been achieved.  Note that *only* a leader node
     /// may invoke this routine.  Behavior is undefined unless the contained
     /// advisory is one of `PartitionPrimaryAdvisory`,
-    /// `QueueAssignmentAdvisory`, `QueueUnassignedAdvisory`.
+    /// `QueueAssignmentAdvisory`, `QueueUnAssignmentAdvisory`.
     /// `QueueUpdateAdvisory` or `LeaderAdvisory`.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's

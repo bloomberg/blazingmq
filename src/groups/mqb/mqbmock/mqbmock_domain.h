@@ -50,6 +50,7 @@
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -181,12 +182,9 @@ class Domain : public mqbi::Domain {
                    const mqbi::Domain::OpenQueueCallback&     callback)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Take ownership of the specified `queue`, and eventually configure
-    /// it.  Return 0 on success, or a non-zero return code otherwise,
-    /// populating the specified `errorDescription` with a description of
-    /// the failure.
-    int registerQueue(bsl::ostream&                       errorDescription,
-                      const bsl::shared_ptr<mqbi::Queue>& queueSp)
+    /// Take ownership of the specified `queue`.  Return 0 on success, or a
+    /// non-zero return code otherwise.
+    int registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Reverse method of `registerQueue`, invoked when the last

@@ -19,36 +19,23 @@
 
 //@PURPOSE: Provide value-semantic attribute classes
 
-#include <bslalg_typetraits.h>
-
 #include <bdlat_attributeinfo.h>
-
 #include <bdlat_enumeratorinfo.h>
-
 #include <bdlat_selectioninfo.h>
-
 #include <bdlat_typetraits.h>
-
-#include <bslh_hash.h>
-#include <bsls_objectbuffer.h>
-
-#include <bslma_default.h>
-
-#include <bsls_assert.h>
-
 #include <bdlb_nullablevalue.h>
-
-#include <bsl_string.h>
-
-#include <bsl_vector.h>
-
-#include <bsls_types.h>
-
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
-
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
+#include <bsla_annotations.h>
+#include <bslalg_typetraits.h>
+#include <bslh_hash.h>
+#include <bslma_default.h>
+#include <bsls_assert.h>
+#include <bsls_objectbuffer.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 
@@ -5212,6 +5199,7 @@ class CommandLineParameters {
     int                          d_postInterval;
     int                          d_threads;
     int                          d_shutdownGrace;
+    int                          d_autoPubSubModulo;
     bool                         d_dumpMsg;
     bool                         d_confirmMsg;
     bool                         d_memoryDebug;
@@ -5250,10 +5238,11 @@ class CommandLineParameters {
         ATTRIBUTE_ID_LOG                        = 21,
         ATTRIBUTE_ID_SEQUENTIAL_MESSAGE_PATTERN = 22,
         ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 23,
-        ATTRIBUTE_ID_SUBSCRIPTIONS              = 24
+        ATTRIBUTE_ID_SUBSCRIPTIONS              = 24,
+        ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO        = 25
     };
 
-    enum { NUM_ATTRIBUTES = 25 };
+    enum { NUM_ATTRIBUTES = 26 };
 
     enum {
         ATTRIBUTE_INDEX_MODE                       = 0,
@@ -5280,7 +5269,8 @@ class CommandLineParameters {
         ATTRIBUTE_INDEX_LOG                        = 21,
         ATTRIBUTE_INDEX_SEQUENTIAL_MESSAGE_PATTERN = 22,
         ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 23,
-        ATTRIBUTE_INDEX_SUBSCRIPTIONS              = 24
+        ATTRIBUTE_INDEX_SUBSCRIPTIONS              = 24,
+        ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO        = 25
     };
 
     // CONSTANTS
@@ -5331,6 +5321,8 @@ class CommandLineParameters {
     static const char DEFAULT_INITIALIZER_LOG[];
 
     static const char DEFAULT_INITIALIZER_SEQUENTIAL_MESSAGE_PATTERN[];
+
+    static const int DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5524,6 +5516,10 @@ class CommandLineParameters {
     // Return a reference to the modifiable "Subscriptions" attribute of
     // this object.
 
+    int& autoPubSubModulo();
+    // Return a reference to the modifiable "AutoPubSubModulo" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -5657,6 +5653,9 @@ class CommandLineParameters {
     const bsl::vector<Subscription>& subscriptions() const;
     // Return a reference offering non-modifiable access to the
     // "Subscriptions" attribute of this object.
+
+    int autoPubSubModulo() const;
+    // Return the value of the "AutoPubSubModulo" attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const CommandLineParameters& lhs,
@@ -6866,9 +6865,9 @@ class Command {
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(m_bmqtool::Command)
 
-//=============================================================================
+// ============================================================================
 //                          INLINE DEFINITIONS
-//=============================================================================
+// ============================================================================
 
 namespace m_bmqtool {
 
@@ -7345,17 +7344,17 @@ inline bool CloseQueueCommand::async() const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int CloseStorageCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+int CloseStorageCommand::manipulateAttributes(
+    BSLA_UNUSED t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int CloseStorageCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                             int            id)
+int CloseStorageCommand::manipulateAttribute(
+    BSLA_UNUSED t_MANIPULATOR& manipulator,
+    int                        id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -7381,16 +7380,16 @@ int CloseStorageCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int CloseStorageCommand::accessAttributes(t_ACCESSOR& accessor) const
+int CloseStorageCommand::accessAttributes(
+    BSLA_UNUSED t_ACCESSOR& accessor) const
 {
-    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int CloseStorageCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+int CloseStorageCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
+                                         int                     id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8075,16 +8074,17 @@ inline const bdlb::NullableValue<bsl::string>& ListCommand::uri() const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int ListQueuesCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+int ListQueuesCommand::manipulateAttributes(
+    BSLA_UNUSED t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int ListQueuesCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+int ListQueuesCommand::manipulateAttribute(
+    BSLA_UNUSED t_MANIPULATOR& manipulator,
+    int                        id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8110,16 +8110,15 @@ int ListQueuesCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int ListQueuesCommand::accessAttributes(t_ACCESSOR& accessor) const
+int ListQueuesCommand::accessAttributes(BSLA_UNUSED t_ACCESSOR& accessor) const
 {
-    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int ListQueuesCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+int ListQueuesCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
+                                       int                     id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8298,16 +8297,17 @@ MessagePropertyType::print(bsl::ostream&              stream,
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int MetadataCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+int MetadataCommand::manipulateAttributes(
+    BSLA_UNUSED t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int MetadataCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+int MetadataCommand::manipulateAttribute(
+    BSLA_UNUSED t_MANIPULATOR& manipulator,
+    int                        id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8333,16 +8333,15 @@ int MetadataCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int MetadataCommand::accessAttributes(t_ACCESSOR& accessor) const
+int MetadataCommand::accessAttributes(BSLA_UNUSED t_ACCESSOR& accessor) const
 {
-    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int MetadataCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+int MetadataCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
+                                     int                     id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -10549,6 +10548,7 @@ void CommandLineParameters::hashAppendImpl(
     hashAppend(hashAlgorithm, this->sequentialMessagePattern());
     hashAppend(hashAlgorithm, this->messageProperties());
     hashAppend(hashAlgorithm, this->subscriptions());
+    hashAppend(hashAlgorithm, this->autoPubSubModulo());
 }
 
 inline bool
@@ -10577,7 +10577,8 @@ CommandLineParameters::isEqualTo(const CommandLineParameters& rhs) const
            this->sequentialMessagePattern() ==
                rhs.sequentialMessagePattern() &&
            this->messageProperties() == rhs.messageProperties() &&
-           this->subscriptions() == rhs.subscriptions();
+           this->subscriptions() == rhs.subscriptions() &&
+           this->autoPubSubModulo() == rhs.autoPubSubModulo();
 }
 
 // CLASS METHODS
@@ -10737,6 +10738,13 @@ int CommandLineParameters::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_autoPubSubModulo,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -10853,6 +10861,11 @@ int CommandLineParameters::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(
             &d_subscriptions,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS]);
+    }
+    case ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO: {
+        return manipulator(
+            &d_autoPubSubModulo,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO]);
     }
     default: return NOT_FOUND;
     }
@@ -10997,6 +11010,11 @@ inline bsl::vector<MessageProperty>& CommandLineParameters::messageProperties()
 inline bsl::vector<Subscription>& CommandLineParameters::subscriptions()
 {
     return d_subscriptions;
+}
+
+inline int& CommandLineParameters::autoPubSubModulo()
+{
+    return d_autoPubSubModulo;
 }
 
 // ACCESSORS
@@ -11149,6 +11167,12 @@ int CommandLineParameters::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_autoPubSubModulo,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -11258,6 +11282,11 @@ int CommandLineParameters::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_SUBSCRIPTIONS: {
         return accessor(d_subscriptions,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS]);
+    }
+    case ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO: {
+        return accessor(
+            d_autoPubSubModulo,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO]);
     }
     default: return NOT_FOUND;
     }
@@ -11405,6 +11434,11 @@ inline const bsl::vector<Subscription>&
 CommandLineParameters::subscriptions() const
 {
     return d_subscriptions;
+}
+
+inline int CommandLineParameters::autoPubSubModulo() const
+{
+    return d_autoPubSubModulo;
 }
 
 // --------------------
@@ -12366,6 +12400,6 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

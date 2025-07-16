@@ -152,6 +152,7 @@
 #include <bdls_filesystemutil.h>
 #include <bdls_pathutil.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_platform.h>
 
@@ -172,6 +173,8 @@
 #include <sys/mount.h>
 #include <sys/param.h>  // for statfs
 #endif
+#include <bsl_cstring.h>
+#include <bsl_ios.h>
 
 // GCC on Solaris 10 cannot find madvise declaration. Providing one explicitly.
 #if defined(BSLS_PLATFORM_OS_SOLARIS) && defined(BSLS_PLATFORM_CMP_GNU)
@@ -663,7 +666,8 @@ int FileSystemUtil::flush(void*               mapping,
     return rc_SUCCESS;
 }
 
-void FileSystemUtil::disableDump(void* mapping, bsls::Types::Uint64 size)
+void FileSystemUtil::disableDump(BSLA_MAYBE_UNUSED void* mapping,
+                                 BSLA_MAYBE_UNUSED bsls::Types::Uint64 size)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(mapping);
@@ -677,9 +681,6 @@ void FileSystemUtil::disableDump(void* mapping, bsls::Types::Uint64 size)
 #if defined(BSLS_PLATFORM_OS_LINUX) && defined(MADV_DONTDUMP)
     madvise(mapping, size, MADV_DONTDUMP);
 #endif
-
-    (void)mapping;
-    (void)size;  // Compiler happiness
 }
 
 }  // close package namespace

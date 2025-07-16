@@ -17,7 +17,11 @@
 
 #include <mqbblp_pushstream.h>
 
+#include <bsl_memory.h>
 #include <mqbscm_version.h>
+
+// BDE
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbblp {
@@ -321,14 +325,13 @@ bool VirtualPushStreamIterator::atEnd() const
 }
 
 PushStream::Element*
-VirtualPushStreamIterator::element(unsigned int appOrdinal) const
+VirtualPushStreamIterator::element(BSLA_UNUSED unsigned int appOrdinal) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    // Ignore ordinal  when the app is fixed;
+    // Ignore ordinal when the app is fixed;
     // 'd_currentElement' does not depend on 'appOrdinal'
-    (void)appOrdinal;
 
     return d_currentElement;
 }

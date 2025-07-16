@@ -23,9 +23,11 @@
 #include <bdlf_bind.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_functional.h>
+#include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>  // bsl::allocator_arg
 #include <bsl_numeric.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_testallocator.h>
@@ -262,14 +264,17 @@ class ThrowingExecutor {
     }
 
     template <class FUNCTION>
-    BSLA_NORETURN void dispatch(FUNCTION) const
+    BSLA_MAYBE_UNUSED BSLA_NORETURN void dispatch(FUNCTION) const
     {
         throw ExceptionType();
     }
 
   public:
     // ACCESSORS
-    bool operator==(const ThrowingExecutor&) const { return true; }
+    BSLA_MAYBE_UNUSED bool operator==(const ThrowingExecutor&) const
+    {
+        return true;
+    }
 };
 
 // ==========================
@@ -408,12 +413,6 @@ static void test1_strand_creators()
 // ------------------------------------------------------------------------
 {
     typedef bmqex::Strand<IdentifiableExecutor> Strand;
-
-    // compiler hapiness
-    {
-        (void)&ThrowingExecutor::dispatch<int>;
-        (void)&ThrowingExecutor::operator==;
-    }
 
     // 1. default constructor
     {

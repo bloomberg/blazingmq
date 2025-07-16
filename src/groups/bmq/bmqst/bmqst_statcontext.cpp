@@ -37,6 +37,9 @@
 #include <bsls_timeutil.h>
 
 #include <bmqstm_values.h>
+#include <bsl_cstddef.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace bmqst {
@@ -164,7 +167,7 @@ inline static bsls::Types::Int64 convertFromEpoch(bsls::Types::Int64 epochTime)
 // PRIVATE CLASS METHODS
 void StatContext::statContextDeleter(void* context_vp, void* allocator_vp)
 {
-    StatContext* context = (StatContext*)context_vp;
+    StatContext* context = static_cast<StatContext*>(context_vp);
     context->d_isDeleted = true;
     if (context->d_released.swap(true)) {
         // Context was already release by its parent context, therefore we are
@@ -267,7 +270,8 @@ void StatContext::moveNewSubcontexts()
          iter != localNewSubcontexts.end();
          ++iter) {
         StatContext*               context = *iter;
-        StatContextMap::value_type val(context->d_id, context);
+        StatContextMap::value_type val(Id(context->d_id, d_allocator_p),
+                                       context);
         d_subcontexts.insert(val);
 
         BSLS_ASSERT(d_subcontextsById.find(context->d_uniqueId) ==

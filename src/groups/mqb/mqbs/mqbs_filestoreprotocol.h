@@ -132,10 +132,10 @@
 #include <bsl_cstddef.h>
 #include <bsl_cstring.h>  // for bsl::memset & bsl::memcpy
 #include <bsl_ostream.h>
-#include <bsls_types.h>
-
+#include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbs {
@@ -374,11 +374,11 @@ struct FileHeader {
 
     char d_bitnessAndFileType;
 
-    char d_reserved1[10];
+    BSLA_MAYBE_UNUSED char d_reserved1[10];
 
     bdlb::BigEndianInt32 d_partitionId;
 
-    char d_reserved2[8];
+    BSLA_MAYBE_UNUSED char d_reserved2[8];
 
   public:
     // CREATORS
@@ -453,11 +453,11 @@ struct DataFileHeader {
     // DATA
     unsigned char d_headerWords;
 
-    char d_reserved1;
+    BSLA_MAYBE_UNUSED char d_reserved1;
 
     char d_fileKey[FileStoreProtocol::k_KEY_LENGTH];
 
-    char d_reserved2;
+    BSLA_MAYBE_UNUSED char d_reserved2;
 
   public:
     // CREATORS
@@ -517,7 +517,7 @@ struct JournalFileHeader {
 
     unsigned char d_recordWords;
 
-    char d_reserved[k_NUM_RESERVED_BYTES];
+    BSLA_MAYBE_UNUSED char d_reserved[k_NUM_RESERVED_BYTES];
 
     bdlb::BigEndianUint32 d_firstSyncPointOffsetUpperBits;
 
@@ -579,7 +579,7 @@ struct QlistFileHeader {
     // DATA
     unsigned char d_headerWords;
 
-    char d_reserved[k_NUM_RESERVED_BYTES];
+    BSLA_MAYBE_UNUSED char d_reserved[k_NUM_RESERVED_BYTES];
 
   public:
     // CREATORS
@@ -763,7 +763,7 @@ struct DataHeader {
 
     bmqp::SchemaWireId d_schemaId;
 
-    unsigned char d_reserved[2];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[2];
     // Reserved.
   public:
     // CREATORS
@@ -1391,7 +1391,7 @@ struct ConfirmRecord {
     // DATA
     RecordHeader d_header;
 
-    char d_reserved1[2];
+    BSLA_MAYBE_UNUSED char d_reserved1[2];
 
     char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
@@ -1399,7 +1399,7 @@ struct ConfirmRecord {
 
     unsigned char d_guid[bmqt::MessageGUID::e_SIZE_BINARY];
 
-    char d_reserved2[8];
+    BSLA_MAYBE_UNUSED char d_reserved2[8];
 
     bdlb::BigEndianUint32 d_magic;
 
@@ -1569,13 +1569,13 @@ struct DeletionRecord {
     // DATA
     RecordHeader d_header;
 
-    char d_reserved1[3];
+    BSLA_MAYBE_UNUSED char d_reserved1[3];
 
     char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
     unsigned char d_guid[bmqt::MessageGUID::e_SIZE_BINARY];
 
-    char d_reserved2[12];
+    BSLA_MAYBE_UNUSED char d_reserved2[12];
 
     bdlb::BigEndianUint32 d_magic;
 
@@ -1754,7 +1754,7 @@ struct QueueOpRecord {
     // DATA
     RecordHeader d_header;
 
-    char d_reserved1[2];
+    BSLA_MAYBE_UNUSED char d_reserved1[2];
 
     char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
@@ -1770,7 +1770,7 @@ struct QueueOpRecord {
 
     bdlb::BigEndianUint32 d_startPrimaryLeaseId;
 
-    char d_reserved2[4];
+    BSLA_MAYBE_UNUSED char d_reserved2[4];
 
     bdlb::BigEndianUint32 d_magic;
 
@@ -2015,7 +2015,7 @@ struct JournalOpRecord {
     // DATA
     RecordHeader d_header;
 
-    char d_reserved1[3];
+    BSLA_MAYBE_UNUSED char d_reserved1[3];
 
     unsigned char d_syncPointType;
 
@@ -2033,7 +2033,7 @@ struct JournalOpRecord {
 
     bdlb::BigEndianUint32 d_qlistFileOffsetWords;
 
-    char d_reserved2[4];
+    BSLA_MAYBE_UNUSED char d_reserved2[4];
 
     bdlb::BigEndianUint32 d_magic;
 
@@ -2138,9 +2138,6 @@ inline FileHeader::FileHeader()
     setBitness(static_cast<Bitness::Enum>(sizeof(size_t) / 4));
     setMagic1(FileHeader::k_MAGIC1);
     setMagic2(FileHeader::k_MAGIC2);
-
-    (void)d_reserved1[0];  // warning: private field 'd_reserved1' is not used
-    (void)d_reserved2[0];  // warning: private field 'd_reserved2' is not used
 }
 
 // MANIPULATORS
@@ -2256,10 +2253,6 @@ inline DataFileHeader::DataFileHeader()
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(DataFileHeader));
     setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     setFileKey(mqbu::StorageKey::k_NULL_KEY);
-
-    // Suppress "unused variable" warning
-    (void)d_reserved1;
-    (void)d_reserved2;
 }
 
 // MANIPULATORS
@@ -2299,7 +2292,6 @@ inline JournalFileHeader::JournalFileHeader()
     setRecordWords(FileStoreProtocol::k_JOURNAL_RECORD_SIZE /
                    bmqp::Protocol::k_WORD_SIZE);
     setFirstSyncPointOffsetWords(0);
-    (void)d_reserved;  // suppress 'unused variable' compiler diagnostic
 }
 
 // MANIPULATORS
@@ -2352,7 +2344,6 @@ inline QlistFileHeader::QlistFileHeader()
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(QlistFileHeader));
     setHeaderWords(sizeof(QlistFileHeader) / bmqp::Protocol::k_WORD_SIZE);
-    (void)d_reserved[0];  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -2400,8 +2391,6 @@ inline DataHeader::DataHeader()
     const size_t size = sizeof(DataHeader) / bmqp::Protocol::k_WORD_SIZE;
     setHeaderWords(size);
     setMessageWords(size);
-
-    (void)d_reserved;
 }
 
 // MANIPULATORS
@@ -2811,9 +2800,6 @@ inline ConfirmRecord::ConfirmRecord()
     d_header.setType(RecordType::e_CONFIRM);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setAppKey(mqbu::StorageKey::k_NULL_KEY);
-
-    (void)d_reserved1[0];  // warning: private field 'd_reserved' is not used
-    (void)d_reserved2[0];  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -2894,9 +2880,6 @@ inline DeletionRecord::DeletionRecord()
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(DeletionRecord));
     d_header.setType(RecordType::e_DELETION);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
-
-    (void)d_reserved1[0];  // warning: private field 'd_reserved1' is not used
-    (void)d_reserved2[0];  // warning: private field 'd_reserved2' is not used
 }
 
 // MANIPULATORS
@@ -2968,9 +2951,6 @@ inline QueueOpRecord::QueueOpRecord()
     d_header.setType(RecordType::e_QUEUE_OP);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setAppKey(mqbu::StorageKey::k_NULL_KEY);
-
-    (void)d_reserved1[0];  // warning: private field 'd_reserved' is not used
-    (void)d_reserved2[0];  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -3087,9 +3067,6 @@ inline JournalOpRecord::JournalOpRecord()
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
-
-    (void)d_reserved1[0];  // warning: private field 'd_reserved1' is not used
-    (void)d_reserved2[0];  // warning: private field 'd_reserved2' is not used
 }
 
 inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,

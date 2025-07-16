@@ -41,6 +41,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>

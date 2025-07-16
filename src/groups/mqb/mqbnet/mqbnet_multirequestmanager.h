@@ -44,9 +44,12 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlf_bind.h>
+#include <bsl_cstddef.h>
 #include <bsl_functional.h>
+#include <bsl_memory.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
@@ -467,11 +470,11 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
             numRequests = --(context->d_numOutstandingRequests);
 
             bmqp_ctrlmsg::Status& failure = it->second.choice().makeStatus();
-            const int             rc = bmqp_ctrlmsg::StatusCategory::fromInt(
-                &failure.category(),
-                static_cast<int>(sendRc));
+            BSLA_MAYBE_UNUSED const int rc =
+                bmqp_ctrlmsg::StatusCategory::fromInt(
+                    &failure.category(),
+                    static_cast<int>(sendRc));
             BSLS_ASSERT_SAFE(rc == 0);
-            (void)rc;  // compiler happiness
             failure.code() = static_cast<int>(sendRc);
 
             bmqu::MemOutStream errorMsg;

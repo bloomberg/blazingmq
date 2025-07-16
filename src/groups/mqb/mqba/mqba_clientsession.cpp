@@ -191,6 +191,7 @@
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_memory.h>
@@ -425,11 +426,15 @@ void ClientSession::sendErrorResponse(
 void ClientSession::sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                bool flushBuilders)
 {
+    // executed by *ANY* thread
+
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::sendPacketDispatched,
-                             this,
-                             blob,
-                             flushBuilders),
+        bdlf::BindUtil::bindS(d_state.d_allocator_p,
+                              bmqu::WeakMemFnUtil::weakMemFn(
+                                  &ClientSession::sendPacketDispatched,
+                                  d_self.acquireWeak()),
+                              blob,
+                              flushBuilders),
         this);
 }
 
@@ -952,7 +957,10 @@ void ClientSession::initiateShutdownDispatched(
         ShutdownContextSp context;
         context.createInplace(
             d_state.d_allocator_p,
-            bdlf::BindUtil::bind(&ClientSession::closeChannel, this),
+            bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::closeChannel,
+                                               d_self.acquireWeak())),
             timeout);
 
         deconfigureAndWait(context);
@@ -1274,13 +1282,14 @@ void ClientSession::processDisconnectAllQueuesDone(
 }
 
 void ClientSession::processDisconnect(
-    const bmqp_ctrlmsg::ControlMessage&             controlMessage,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    const bmqp_ctrlmsg::ControlMessage& controlMessage,
+    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
-    // operation execution time.
+    // operation execution time, but we don't use it directly, so it's marked
+    // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1361,15 +1370,16 @@ void ClientSession::processOpenQueue(
 
 void ClientSession::openQueueCb(
     const bmqp_ctrlmsg::Status& status,
-    BSLA_UNUSED mqbi::QueueHandle*                  handle,
-    const bmqp_ctrlmsg::OpenQueueResponse&          openQueueResponse,
-    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    BSLA_UNUSED mqbi::QueueHandle*         handle,
+    const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
+    const bmqp_ctrlmsg::ControlMessage&    handleParamsCtrlMsg,
+    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
-    // operation execution time.
+    // operation execution time, but we don't use it directly, so it's marked
+    // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -1442,14 +1452,15 @@ void ClientSession::processCloseQueue(
 }
 
 void ClientSession::closeQueueCb(
-    const bsl::shared_ptr<mqbi::QueueHandle>&       handle,
-    const bmqp_ctrlmsg::ControlMessage&             handleParamsCtrlMsg,
-    const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
+    const bsl::shared_ptr<mqbi::QueueHandle>& handle,
+    const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg,
+    BSLA_UNUSED const bsl::shared_ptr<bmqsys::OperationLogger>& opLogger)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // Want to keep `opLogger` until the end of this scope to log the current
-    // operation execution time.
+    // operation execution time, but we don't use it directly, so it's marked
+    // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
@@ -2959,7 +2970,8 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
     }
     else {
         dispatcher()->execute(
-            bdlf::BindUtil::bind(
+            bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
                 bdlf::MemFnUtil::memFn(
                     &ClientSession::initiateShutdownDispatched,
                     d_self.acquire()),
@@ -3182,10 +3194,12 @@ void ClientSession::processClusterMessage(
         ShutdownContextSp context;
         context.createInplace(
             d_state.d_allocator_p,
-            bdlf::BindUtil::bind(&ClientSession::sendPacket,
-                                 this,
-                                 d_state.d_schemaEventBuilder.blob(),
-                                 false));
+            bdlf::BindUtil::bindS(
+                d_state.d_allocator_p,
+                bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::sendPacket,
+                                               d_self.acquireWeak()),
+                d_state.d_schemaEventBuilder.blob(),
+                false));
 
         processStopRequest(context);
     }
@@ -3195,9 +3209,10 @@ void ClientSession::processClusterMessage(
     }
 }
 
-void ClientSession::onDeconfiguredHandle(const ShutdownContextSp& contextSp)
+void ClientSession::onDeconfiguredHandle(
+    BSLA_UNUSED const ShutdownContextSp& contextSp)
 {
-    (void)contextSp;
+    // empty
 }
 
 void ClientSession::processStopRequest(ShutdownContextSp& contextSp)

@@ -27,6 +27,8 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blobutil.h>
+#include <bsl_cstring.h>
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -142,7 +144,7 @@ void PostingContext::postNext()
 
             if (!d_parameters.sequentialMessagePattern().empty()) {
                 char buffer[16];
-                length      = snprintf(buffer,
+                length = snprintf(buffer,
                                   sizeof(buffer),
                                   "%09d",
                                   d_numMessagesPosted);
@@ -172,14 +174,23 @@ void PostingContext::postNext()
                 length = d_blob.length();
             }
 
+            bsls::Types::Uint64 autoIncrementedValue =
+                d_autoIncrementedValue++;
+
             if (!d_parameters.autoIncrementedField().empty()) {
                 d_properties.setPropertyAsInt64(
                     d_parameters.autoIncrementedField(),
-                    d_autoIncrementedValue++);
+                    autoIncrementedValue);
             }
 
             if (d_properties.numProperties()) {
                 msg.setPropertiesRef(&d_properties);
+            }
+
+            if (d_parameters.autoPubSubModulo()) {
+                d_properties.setPropertyAsInt64(
+                    d_parameters.autoPubSubPropertyName(),
+                    autoIncrementedValue % d_parameters.autoPubSubModulo());
             }
 
             bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(

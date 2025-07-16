@@ -50,6 +50,7 @@
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_functional.h>  // for bsl::ref()
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>
@@ -579,33 +580,14 @@ int Queue::configure(bsl::ostream& errorDescription,
                      bool          isReconfigure,
                      bool          wait)
 {
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        dispatcher()->inDispatcherThread(d_state.domain()->cluster()));
-
-    if (!isReconfigure) {
-        // Register this queue to the dispatcher.
-        if (d_state.domain()->cluster()->isRemote()) {
-            dispatcher()->registerClient(this,
-                                         mqbi::DispatcherClientType::e_QUEUE);
-        }
-        else {
-            dispatcher()->registerClient(
-                this,
-                mqbi::DispatcherClientType::e_QUEUE,
-                d_state.storageManager()->processorForPartition(
-                    d_state.partitionId()));
-        }
-    }
+    // executed by *ANY* thread
 
     // Enqueue a configure callback in the queue-dispatcher thread.
     int result = 0;
     dispatcher()->execute(
         bdlf::BindUtil::bind(&Queue::configureDispatched,
                              this,
-                             &result,
+                             (wait ? &result : NULL),
                              (wait ? &errorDescription : NULL),
                              isReconfigure),
         this);

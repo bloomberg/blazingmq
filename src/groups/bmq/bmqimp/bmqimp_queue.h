@@ -46,6 +46,7 @@
 #include <bsl_iosfwd.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

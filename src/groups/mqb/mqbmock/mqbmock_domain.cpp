@@ -47,7 +47,9 @@ Domain::Domain(mqbi::Cluster* cluster, bslma::Allocator* allocator)
 // NOTE: Some test drivers require a few snapshot, hence the 'arbitrary' 5
 //       used here
 , d_config(allocator)
-, d_capacityMeter("domain [" + d_name + "]", allocator)
+, d_capacityMeter(bsl::string("domain [", allocator) + d_name + "]",
+                  0,
+                  allocator)
 , d_queues(allocator)
 {
     // NOTE: Traditionally done in 'configure()' where the limits can be
@@ -97,20 +99,12 @@ void Domain::openQueue(
     // NOTHING
 }
 
-int Domain::registerQueue(bsl::ostream&                       errorDescription,
-                          const bsl::shared_ptr<mqbi::Queue>& queueSp)
+int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueSp && "'queue' must not be null");
     BSLS_ASSERT_SAFE(lookupQueue(0, queueSp->uri()) != 0 &&
                      "'queue' already registered with the domain");
-
-    int rc = queueSp->configure(errorDescription,
-                                false,  // isReconfigure
-                                true);  // wait
-    if (rc != 0) {
-        return rc;  // RETURN
-    }
 
     d_queues[queueSp->uri().queue()] = queueSp;
 

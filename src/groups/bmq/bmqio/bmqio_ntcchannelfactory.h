@@ -42,7 +42,9 @@
 #include <bdlbb_blob.h>
 #include <bdlcc_objectcatalog.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_vector.h>
 #include <bslmt_condition.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>

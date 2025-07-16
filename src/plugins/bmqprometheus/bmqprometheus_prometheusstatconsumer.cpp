@@ -38,6 +38,10 @@
 #include <bdlf_bind.h>
 #include <bdlt_currenttime.h>
 #include <bsl_atomic.h>
+#include <bsl_cstddef.h>
+#include <bsl_exception.h>
+#include <bsl_ostream.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmt_condition.h>

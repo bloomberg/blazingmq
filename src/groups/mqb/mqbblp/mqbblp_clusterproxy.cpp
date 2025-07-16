@@ -49,6 +49,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlt_timeunitratio.h>
+#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_list.h>
 #include <bsl_utility.h>
@@ -1198,28 +1199,6 @@ void ClusterProxy::stop()
     // itself performs some async operations, so we need to synchronize twice.
 
     dispatcher()->synchronize(this);
-}
-
-void ClusterProxy::registerStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-    //
-    // TODO_CSL Register the observer to 'dummy state' after it becomes the
-    //          true state.
-}
-
-void ClusterProxy::unregisterStateObserver(
-    BSLA_UNUSED mqbc::ClusterStateObserver* observer)
-{
-    // executed by *ANY* thread
-
-    // NOTHING
-    //
-    // TODO_CSL Register the observer to 'dummy state' after it becomes the
-    //          true state.
 }
 
 void ClusterProxy::openQueue(

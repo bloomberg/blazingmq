@@ -155,6 +155,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bsl_functional.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
@@ -197,36 +198,34 @@ class CapacityMeter {
 
   private:
     // DATA
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
+    /// Name of this object (typically the name of the resource monitored by
+    /// this meter); internally used for log printing
     bsl::string d_name;
-    // Name of this object (typically the name of
-    // the resource monitored by this meter);
-    // internally used for log printing.
 
+    /// True if this meter is disabled (refer to 'Enablement' section in the
+    /// component level documentation for more information)
     bool d_isDisabled;
-    // True if this meter is disabled (refer to
-    // 'Enablement' section in the component level
-    // documentation for more information).
 
+    /// Optional parent meter
     CapacityMeter* d_parent_p;
-    // Optional parent meter
 
+    /// Monitor for the bytes and messages capacity of this meter
     ResourceUsageMonitor d_monitor;
-    // Monitor for the bytes and messages capacity
-    // of this meter
 
+    /// Number of messages reserved
     bsls::Types::Int64 d_nbMessagesReserved;
-    // Number of messages reserved
 
+    /// Number of bytes reserved
     bsls::Types::Int64 d_nbBytesReserved;
-    // Number of bytes reserved
 
+    /// SpinLock for synchronization of this component
     mutable bsls::SpinLock d_lock;
-    // SpinLock for synchronization of this
-    // component
 
+    /// Callback to log enhanced storage info into the specified `stream`
     LogEnhancedStorageInfoCb d_logEnhancedStorageInfoCb;
-    // Callback function to log enhanced storage info into the
-    // specified `stream`.
 
     // FRIENDS
     friend struct CapacityMeterUtil;
@@ -254,19 +253,19 @@ class CapacityMeter {
     // CREATORS
 
     /// Create a new un-configured object having the specified `name`,
-    /// using the specified `allocator` and optionally specified
+    /// using the specified `allocator` and the specified
     /// `logEnhancedStorageInfoCb`.
-    CapacityMeter(const bsl::string&       name,
-                  bslma::Allocator*        allocator,
-                  LogEnhancedStorageInfoCb logEnhancedStorageInfoCb = 0);
+    explicit CapacityMeter(const bsl::string&       name,
+                           LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
+                           bslma::Allocator*        allocator);
 
     /// Create a new un-configured object having the specified `name`, being
     /// a child of the specified `parent` meter and using the specified
-    /// `allocator` and optionally specified `logEnhancedStorageInfoCb`.
-    CapacityMeter(const bsl::string&       name,
-                  CapacityMeter*           parent,
-                  bslma::Allocator*        allocator,
-                  LogEnhancedStorageInfoCb logEnhancedStorageInfoCb = 0);
+    /// `allocator` and the specified `logEnhancedStorageInfoCb`.
+    explicit CapacityMeter(const bsl::string&       name,
+                           CapacityMeter*           parent,
+                           LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
+                           bslma::Allocator*        allocator);
 
     // MANIPULATORS
 

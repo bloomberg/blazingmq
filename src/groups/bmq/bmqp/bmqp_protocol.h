@@ -155,7 +155,7 @@
 
 #include <bsl_limits.h>
 #include <bsl_string.h>  // for bslstl::StringRef
-
+#include <bsla_annotations.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
@@ -805,7 +805,7 @@ struct EventHeader {
     unsigned char d_typeSpecific;
     // Options and flags specific to this event's type
 
-    unsigned char d_reserved;
+    BSLA_MAYBE_UNUSED unsigned char d_reserved;
     // Reserved.
 
   public:
@@ -1179,7 +1179,7 @@ struct MessagePropertiesHeader {
 
     bdlb::BigEndianUint16 d_msgPropsAreaWordsLower;
 
-    char d_reserved;
+    BSLA_MAYBE_UNUSED char d_reserved;
 
     unsigned char d_numProperties;
 
@@ -1476,7 +1476,7 @@ struct PutHeader {
 
     SchemaWireId d_schemaId;
 
-    unsigned char d_reserved[2];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[2];
     // Reserved.
 
   public:
@@ -1779,7 +1779,7 @@ struct AckHeader {
     unsigned char d_flags;
     // Bitmask of flags.
 
-    unsigned char d_reserved[2];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[2];
     // Reserved.
 
   public:
@@ -2072,7 +2072,7 @@ struct PushHeader {
 
     SchemaWireId d_schemaId;
 
-    unsigned char d_reserved[2];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[2];
     // Reserved.
   public:
     // PUBLIC CLASS DATA
@@ -2344,7 +2344,7 @@ struct ConfirmHeader {
     // Total size (words) of this header and number of words of
     // each ConfirmMessage in the payload that follows.
 
-    unsigned char d_reserved[3];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[3];
     // Reserved
 
   public:
@@ -2514,7 +2514,7 @@ struct RejectHeader {
     // Total size (words) of this header and number of words of
     // each RejectMessage in the payload that follows.
 
-    unsigned char d_reserved[3];
+    BSLA_MAYBE_UNUSED unsigned char d_reserved[3];
     // Reserved
 
   public:
@@ -3211,7 +3211,7 @@ struct RecoveryHeader {
     // the message (including this header
     // and message payload)
 
-    char d_reserved;
+    BSLA_MAYBE_UNUSED char d_reserved;
 
     unsigned char d_headerWordsAndFileChunkType;
 
@@ -3731,8 +3731,6 @@ inline EventHeader::EventHeader()
     setType(EventType::e_UNDEFINED);
     setHeaderWords(sizeof(EventHeader) / Protocol::k_WORD_SIZE);
     setLength(sizeof(EventHeader));
-
-    (void)d_reserved;  // warning: private field 'd_reserved' is not used
 }
 
 inline EventHeader::EventHeader(EventType::Enum type)
@@ -3961,7 +3959,6 @@ inline MessagePropertiesHeader::MessagePropertiesHeader()
         static_cast<int>(roundedSize / Protocol::k_WORD_SIZE));
 
     setMessagePropertyHeaderSize(sizeof(MessagePropertyHeader));
-    static_cast<void>(d_reserved);
 }
 
 // MANIPULATORS
@@ -4173,8 +4170,6 @@ inline PutHeader::PutHeader()
     const int headerSizeWords = sizeof(PutHeader) / Protocol::k_WORD_SIZE;
     setHeaderWords(headerSizeWords);
     setMessageWords(headerSizeWords);
-
-    (void)d_reserved;
 }
 
 // MANIPULATORS
@@ -4351,8 +4346,6 @@ inline AckHeader::AckHeader()
     bsl::memset(this, 0, sizeof(AckHeader));
     setHeaderWords(sizeof(AckHeader) / Protocol::k_WORD_SIZE);
     setPerMessageWords(sizeof(AckMessage) / Protocol::k_WORD_SIZE);
-    (void)
-        d_reserved;  // silent warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -4498,8 +4491,6 @@ inline PushHeader::PushHeader()
     const int headerWords = sizeof(PushHeader) / Protocol::k_WORD_SIZE;
     setHeaderWords(headerWords);
     setMessageWords(headerWords);
-
-    (void)d_reserved;
 }
 
 // MANIPULATORS
@@ -4658,7 +4649,6 @@ inline ConfirmHeader::ConfirmHeader()
     bsl::memset(this, 0, sizeof(ConfirmHeader));
     setHeaderWords(sizeof(ConfirmHeader) / Protocol::k_WORD_SIZE);
     setPerMessageWords(sizeof(ConfirmMessage) / Protocol::k_WORD_SIZE);
-    (void)d_reserved;  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -4753,7 +4743,6 @@ inline RejectHeader::RejectHeader()
     bsl::memset(this, 0, sizeof(RejectHeader));
     setHeaderWords(sizeof(RejectHeader) / Protocol::k_WORD_SIZE);
     setPerMessageWords(sizeof(RejectMessage) / Protocol::k_WORD_SIZE);
-    (void)d_reserved;  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -5034,7 +5023,6 @@ inline RecoveryHeader::RecoveryHeader()
     const int headerWords = sizeof(RecoveryHeader) / Protocol::k_WORD_SIZE;
     setMessageWords(headerWords);
     setHeaderWords(headerWords);
-    static_cast<void>(d_reserved);
 }
 
 // MANIPULATORS

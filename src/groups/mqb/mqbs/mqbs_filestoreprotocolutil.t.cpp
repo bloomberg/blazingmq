@@ -38,6 +38,9 @@
 #include <bmqtst_testhelper.h>
 
 // BDE
+#include <bsl_algorithm.h>
+#include <bsl_cstddef.h>
+#include <bsl_cstring.h>
 #include <bsl_limits.h>
 
 // CONVENIENCE
@@ -686,7 +689,7 @@ static void test4_loadAppInfos()
         for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
              cit != appIdKeyPairs.end();
              ++cit) {
-            BMQTST_ASSERT_EQ(expectedAppInfos.count(cit->first), 1);
+            BMQTST_ASSERT_EQ(expectedAppInfos.count(cit->first), 1u);
         }
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
@@ -728,7 +731,7 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
     bdlbb::PooledBlobBufferFactory factory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqu::BlobPosition             startPos;
+    bmqu::BlobPosition startPos;
 
     barrier->wait();
     for (int i = 0; i < 1000; ++i) {

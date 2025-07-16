@@ -21,6 +21,7 @@
 
 // BDE
 #include <bdlf_bind.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace bmqp {

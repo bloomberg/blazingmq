@@ -59,6 +59,7 @@
 #include <bslstl_sharedptr.h>
 
 // MQB
+#include <bsl_memory.h>
 #include <mqbcmd_messages.h>
 
 namespace BloombergLP {

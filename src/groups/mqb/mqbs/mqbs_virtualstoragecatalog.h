@@ -36,11 +36,14 @@
 #include <bmqt_messageguid.h>
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_set.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -112,6 +115,9 @@ class VirtualStorageCatalog {
 
   private:
     // DATA
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
     /// Physical storage underlying all virtual storages known to this object
     mqbi::Storage* d_storage_p;
 
@@ -148,9 +154,6 @@ class VirtualStorageCatalog {
     /// This could be null if a local or remote
     /// queue instance has not been created.
     mqbi::Queue* d_queue_p;
-
-    /// Allocator to use
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
