@@ -649,6 +649,7 @@ void SessionNegotiator::createSession(
             AdminSession(context->channel(),
                          negoMsg,
                          description,
+                         context->authenticationContext(),
                          d_dispatcher_p,
                          d_blobSpPool_p,
                          d_scheduler_p,
