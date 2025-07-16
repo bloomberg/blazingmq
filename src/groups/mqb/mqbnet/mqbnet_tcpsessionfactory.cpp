@@ -529,11 +529,9 @@ void TCPSessionFactory::initialConnectionComplete(
     }
 
     if (!session) {
-        BALL_LOG_INFO << "initialConnectionComplete is called for default "
-                         "credential. Return.";
-        // Initial authentication succeeded, but negotiation will be executed
-        // by the authentication thread, and no session is created in IO
-        // thread.
+        BALL_LOG_INFO
+            << "Authentication succeeded, but no session was created yet"
+            << "[channel: '" << channel.get() << "']";
         return;  // RETURN
     }
 

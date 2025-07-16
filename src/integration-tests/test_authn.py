@@ -21,17 +21,19 @@ from pathlib import Path
 import threading
 import pytest
 
+from blazingmq.dev.paths import paths
 from blazingmq.dev.it.process.rawclient import RawClient
 
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
     single_node,
+    multi_node,
     tweak,
     cluster,
 )
 
-PLUGIN_DIR = str(Path(__file__).parent.parent.parent / "build/blazingmq/src/plugins")
+PLUGIN_DIR = str(Path(__file__).parent.parent.parent / paths.build_dir / "src/plugins")
 
 
 pytestmark = order(99)

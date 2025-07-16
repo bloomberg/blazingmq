@@ -14,10 +14,6 @@
 // limitations under the License.
 
 // mqba_clientsession.t.cpp                                           -*-C++-*-
-#include "mqbnet_authenticationcontext.h"
-#include "mqbnet_initialconnectioncontext.h"
-#include <bsls_nullptr.h>
-#include <bslstl_sharedptr.h>
 #include <mqba_clientsession.h>
 
 // MQB
@@ -30,6 +26,7 @@
 #include <mqbmock_queue.h>
 #include <mqbmock_queueengine.h>
 #include <mqbmock_queuehandle.h>
+#include <mqbnet_authenticationcontext.h>
 #include <mqbstat_brokerstats.h>
 #include <mqbstat_queuestats.h>
 #include <mqbu_messageguidutil.h>
