@@ -784,7 +784,6 @@ MessageProperties::findProperty(const bsl::string& name) const
         // Starts with '0'
 
         Property theProperty;
-        Property next;
         int      totalLength = d_dataOffset;
         int      offset      = d_mphOffset + index * d_mphSize;
         int      rc          = 0;
@@ -807,6 +806,7 @@ MessageProperties::findProperty(const bsl::string& name) const
         }
 
         if (index < (d_originalNumProps - 1)) {
+            Property next;
             rc = streamInPropertyHeader(&next,
                                         0,
                                         &theProperty,
