@@ -178,22 +178,20 @@ void Routers::MessagePropertiesReader::next(
 
 bool Routers::Expression::evaluate()
 {
-    // Consider anything other than SimpleEvaluator as 'true'.
-    if (!d_evaluator.isCompiled()) {
-        return true;  // RETURN
-    }
+    /// |============|=========|========================|
+    /// | isCompiled | isValid | evaluate() = ?         |
+    /// |============|=========|========================|
+    /// | false      | false   | true                   |
+    /// | false      | true    | IMPOSSIBLE             |
+    /// | true       | false   | true                   |
+    /// | true       | true    | d_evaluator.evaluate() |
+    /// |============|=========|========================|
 
     if (d_evaluator.isValid()) {
-        bool result = d_evaluator.evaluate(*d_evaluationContext_p);
-
-        if (d_evaluationContext_p->hasError()) {
-            return false;  // RETURN
-        }
-
-        return result;  // RETURN
+        /// Evaluator returns `false` if there are any errors.
+        return d_evaluator.evaluate(*d_evaluationContext_p);  // RETURN
     }
 
-    // Consider compiled but not valid expressions as 'true'.
     return true;
 }
 
