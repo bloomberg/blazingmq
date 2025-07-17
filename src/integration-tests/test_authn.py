@@ -21,6 +21,8 @@ from pathlib import Path
 import threading
 import pytest
 
+import blazingmq.dev.it.testconstants as tc
+
 from blazingmq.dev.paths import paths
 from blazingmq.dev.it.process.rawclient import RawClient
 from blazingmq.dev.it.process.admin import AdminClient
@@ -57,7 +59,9 @@ config_authentication = tweak.broker.app_config.authentication(
 )
 @libraries
 @config_authentication
-def test_authenticate_pass_basic(single_node: Cluster) -> None:
+def test_authenticate_pass_basic(
+    single_node: Cluster, domain_urls: tc.DomainUrls
+) -> None:
     """
     This test uses the PassAuthenticator plugin to simulate a successful authentication.
     """
