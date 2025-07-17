@@ -134,6 +134,9 @@ class MessageProperties {
         PropertyVariant;
 
     struct Property {
+        mutable PropertyVariant d_value;
+        // Property value; gets read on on demand.
+
         int d_offset;
         // Offset in the blob to the value (not the
         // name) or '0' for newly added properties.
@@ -144,9 +147,6 @@ class MessageProperties {
         bmqt::PropertyType::Enum d_type;
         // Type of the value.  Available even if
         // the value is 'unSet'.
-
-        mutable PropertyVariant d_value;
-        // Property value; gets read on on demand.
 
         bool d_isValid;
         // If the property is removed, it stays in
@@ -589,10 +589,10 @@ class MessagePropertiesIterator {
 // class MessageProperties::Property
 // ---------------------------------
 inline MessageProperties::Property::Property()
-: d_offset(0)
+: d_value()
+, d_offset(0)
 , d_length(0)
 , d_type(bmqt::PropertyType::e_UNDEFINED)
-, d_value()
 , d_isValid(true)
 {
     // NOTHING
