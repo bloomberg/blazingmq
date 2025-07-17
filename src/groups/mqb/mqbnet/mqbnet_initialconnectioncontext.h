@@ -32,6 +32,12 @@
 /// allow to bind specific user data, which then can be retrieved at
 /// application layer during negotiation).
 
+// MQB
+#include <mqbplug_authenticator.h>
+
+// BMQ
+#include <bmqp_protocol.h>
+
 // BDE
 #include <bsl_functional.h>
 #include <bsl_memory.h>
@@ -51,7 +57,7 @@ class SessionEventProcessor;
 class Cluster;
 class Session;
 class AuthenticationContext;
-struct NegotiationContext;
+class NegotiationContext;
 
 // =====================
 // struct ConnectionType
@@ -88,6 +94,16 @@ class InitialConnectionContext {
         const bsl::shared_ptr<bmqio::Channel>& channel,
         const InitialConnectionContext*        initialConnectionContext)>
         InitialConnectionCompleteCb;
+
+    typedef bsl::function<int(bsl::ostream& errorDescription,
+                              bsl::shared_ptr<mqbnet::Session>* session,
+                              InitialConnectionContext*         context)>
+        NegotiationCb;
+
+    typedef bsl::function<int(
+        bsl::ostream&                                    errorDescription,
+        const bsl::shared_ptr<InitialConnectionContext>& context)>
+        ScheduleReadCb;
 
   private:
     // DATA
@@ -138,6 +154,23 @@ class InitialConnectionContext {
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
 
+    /// The encoding type that an authentication message uses.
+    /// This is set by the `Authenticator` when it receives an
+    /// authentication message, and is used when it sends an
+    /// authentication message back to the remote peer.
+    bmqp::EncodingType::Enum d_authenticationEncodingType;
+
+    /// The callback to invoke to negotiate the session.
+    /// This is used when we receive a negotiation message without an prior
+    /// authentication message, and we used default credentials to
+    /// authenticate.  This callback is invoked after the authentication
+    /// finishes.
+    NegotiationCb d_negotiationCb;
+
+    /// The callback to invoke to schedule a read.  We call this function to
+    /// continue reading when authentication is finished.
+    ScheduleReadCb d_scheduleReadCb;
+
     /// The AuthenticationContext updated upon receiving an
     /// authentication message.
     bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
@@ -163,6 +196,10 @@ class InitialConnectionContext {
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
     setCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext&
+    setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
+    InitialConnectionContext& setNegotiationCb(const NegotiationCb& value);
+    InitialConnectionContext& setScheduleReadCb(const ScheduleReadCb& value);
     InitialConnectionContext& setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
     InitialConnectionContext&
@@ -175,6 +212,9 @@ class InitialConnectionContext {
     void*                                  userData() const;
     void*                                  resultState() const;
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    bmqp::EncodingType::Enum               authenticationEncodingType() const;
+    const NegotiationCb&                   negotiationCb() const;
+    const ScheduleReadCb&                  scheduleReadCb() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;

@@ -443,8 +443,8 @@ ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
     // be re-processed once we have an active leader.
 
     BALL_LOG_INFO << d_cluster_p->description()
-                  << " Cannot proceed with queueAssignment of "
-                  << "'" << queueContext->uri()
+                  << " Cannot proceed with queueAssignment of '"
+                  << queueContext->uri()
                   << "' (waiting for an ACTIVE leader).";
 
     return QueueAssignmentResult::k_ASSIGNMENT_OK;
