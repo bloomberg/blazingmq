@@ -237,8 +237,6 @@ class MessageProperties {
 
     SchemaPtr d_schema;
 
-    mutable int d_lastError;
-
     int d_originalNumProps;
     // The count as read from the wire
     // _before_ any property can change.
@@ -805,7 +803,6 @@ MessageProperties::findProperty(const bsl::string& name) const
         if (rc) {
             // REVISIT: there are no means to report the error other than
             //          returning 'end()'
-            d_lastError = rc;
             return d_properties.end();  // RETURN
         }
 
