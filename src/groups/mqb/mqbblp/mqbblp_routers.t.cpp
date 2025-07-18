@@ -186,7 +186,13 @@ static void test1_registry()
     BMQTST_ASSERT_EQ(registry.size(), size_t(0));
 }
 
-static void test2_priority()
+#if defined(__clang__)
+// Suppress UBSan error 'applying non-zero offset to null pointer'
+// for '++handle' (It'is done deliberately for test simplification).
+__attribute__((no_sanitize("undefined")))
+#endif
+static void
+test2_priority()
 // ------------------------------------------------------------------------
 // Testing mqbblp::Routers::Expressions, mqbblp::Routers::Consumers, and
 // mqbblp::Routers::Priority combination for memory leaks.
@@ -439,7 +445,13 @@ static void test3_parse()
                      true);
 }
 
-static void test4_generate()
+#if defined(__clang__)
+// Suppress UBSan error 'applying non-zero offset to null pointer'
+// for '++handle' (It'is done deliberately for test simplification).
+__attribute__((no_sanitize("undefined")))
+#endif
+static void
+test4_generate()
 // ------------------------------------------------------------------------
 //  Testing mqbblp::Routers::AppContext::generate method
 //
