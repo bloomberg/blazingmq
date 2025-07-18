@@ -1076,7 +1076,11 @@ static void test7_printing()
         out.reset();
     }
 
-    {
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PV("Skip 'Bad enum value' for UBSan due to out of range enum value "
+           "casting");
+    }
+    else {
         PV("Bad enum value test");
         bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         obj.setType(static_cast<bmqimp::Event::EventType::Enum>(

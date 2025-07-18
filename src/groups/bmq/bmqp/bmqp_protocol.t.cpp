@@ -1127,6 +1127,14 @@ static void test3_flagUtils()
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::PutHeaderFlags::k_VALUE_COUNT);
                  currFlagVal = currFlagVal << 1) {
+                if (bmqtst::TestHelperUtil::k_UBSAN &&
+                    currFlagVal > bmqp::PutHeaderFlags::k_HIGHEST_PUT_FLAG) {
+                    PVV("Skip line [" << test.d_line
+                                      << "] for UBSan due to out of range "
+                                         "enum value casting");
+                    continue;
+                }
+
                 bmqp::PutHeaderFlags::Enum currFlag =
                     static_cast<bmqp::PutHeaderFlags::Enum>(currFlagVal);
 
@@ -1195,6 +1203,14 @@ static void test3_flagUtils()
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::PushHeaderFlags::k_VALUE_COUNT);
                  currFlagVal = currFlagVal << 1) {
+                if (bmqtst::TestHelperUtil::k_UBSAN &&
+                    currFlagVal > bmqp::PushHeaderFlags::k_HIGHEST_PUSH_FLAG) {
+                    PVV("Skip line [" << test.d_line
+                                      << "] for UBSan due to out of range "
+                                         "enum value casting");
+                    continue;
+                }
+
                 bmqp::PushHeaderFlags::Enum currFlag =
                     static_cast<bmqp::PushHeaderFlags::Enum>(currFlagVal);
 
@@ -1268,6 +1284,15 @@ static void test3_flagUtils()
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::StorageHeaderFlags::k_VALUE_COUNT);
                  currFlagVal = currFlagVal << 1) {
+                if (bmqtst::TestHelperUtil::k_UBSAN &&
+                    currFlagVal >
+                        bmqp::StorageHeaderFlags::k_HIGHEST_STORAGE_FLAG) {
+                    PVV("Skip line [" << test.d_line
+                                      << "] for UBSan due to out of range "
+                                         "enum value casting");
+                    continue;
+                }
+
                 bmqp::StorageHeaderFlags::Enum currFlag =
                     static_cast<bmqp::StorageHeaderFlags::Enum>(currFlagVal);
 
@@ -1309,6 +1334,14 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
         const PrintTestData& test = data[idx];
 
         PVVV("Line [" << test.d_line << "]");
+
+        if (bmqtst::TestHelperUtil::k_UBSAN &&
+            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
+            PVVV("Skip line ["
+                 << test.d_line
+                 << "] for UBSan due to out of range enum value casting");
+            continue;
+        }
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());

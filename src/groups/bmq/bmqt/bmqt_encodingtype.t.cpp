@@ -56,6 +56,14 @@ static void test1_toAscii()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
+        if (bmqtst::TestHelperUtil::k_UBSAN &&
+            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
+            PV("Skip line ["
+               << test.d_line
+               << "] for UBSan due to out of range enum value casting");
+            continue;
+        }
+
         bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = bmqt::EncodingType::toAscii(
             bmqt::EncodingType::Enum(test.d_value));
@@ -155,7 +163,16 @@ static void test4_printTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test = k_DATA[idx];
+
+        if (bmqtst::TestHelperUtil::k_UBSAN &&
+            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
+            PVVV("Skip value ["
+                 << test.d_type
+                 << "] for UBSan due to out of range enum value casting");
+            continue;
+        }
+
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
