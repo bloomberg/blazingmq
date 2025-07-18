@@ -1779,7 +1779,7 @@ void ClusterOrchestrator::validateClusterStateLedger()
     d_stateManager_mp->validateClusterStateLedger();
 }
 
-void ClusterOrchestrator::updateAppIds(
+mqbi::ClusterErrorCode::Enum ClusterOrchestrator::updateAppIds(
     const bsl::shared_ptr<const bsl::vector<bsl::string> >& added,
     const bsl::shared_ptr<const bsl::vector<bsl::string> >& removed,
     const bsl::string&                                      domainName)
@@ -1789,10 +1789,10 @@ void ClusterOrchestrator::updateAppIds(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    d_stateManager_mp->updateAppIds(*added,
-                                    *removed,
-                                    domainName,
-                                    "");  // for all queues
+    return d_stateManager_mp->updateAppIds(*added,
+                                           *removed,
+                                           domainName,
+                                           "");  // for all queues
 }
 
 void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
