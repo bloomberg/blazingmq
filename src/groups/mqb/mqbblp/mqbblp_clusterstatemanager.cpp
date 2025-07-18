@@ -497,6 +497,8 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
                 proposedPrimaryNode);
         BSLS_ASSERT_SAFE(proposedPrimaryNs);
 
+        mqbc::ClusterNodeSession* effectivePrimaryNs = proposedPrimaryNs;
+
         if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
             proposedPrimaryNs->nodeStatus()) {
             // Self node does not perceive proposed primary node as AVAILABLE,
@@ -507,6 +509,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             // continuing with next iteration.
 
             effectivePrimaryNode = 0;
+            effectivePrimaryNs   = 0;
 
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << ": specified primary node "
@@ -551,7 +554,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
         // TODO CSL Please review this code path during node startup sequence.
         d_state_p->setPartitionPrimary(peerPinfo.partitionId(),
                                        effectiveLeaseId,
-                                       effectivePrimaryNode);  // Could be null
+                                       effectivePrimaryNs);  // Could be null
 
         // Update primary node-specific list of assigned partitions only if it
         // needs to be.
@@ -788,7 +791,11 @@ void ClusterStateManager::setPrimary(int                  partitionId,
                      d_state_p->partitions().size());
     BSLS_ASSERT_SAFE(primary);
 
-    d_state_p->setPartitionPrimary(partitionId, leaseId, primary);
+    mqbc::ClusterNodeSession* ns =
+        d_clusterData_p->membership().getClusterNodeSession(primary);
+    BSLS_ASSERT_SAFE(ns);
+
+    d_state_p->setPartitionPrimary(partitionId, leaseId, ns);
 }
 
 void ClusterStateManager::setPrimaryStatus(

@@ -127,9 +127,10 @@ mqbi::DispatcherClient* QueueHandle::client()
     return d_client_p;
 }
 
-void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
-                                    unsigned int upstreamSubQueueId,
-                                    const mqbi::QueueCounts& counts)
+mqbi::QueueHandle::SubStreams::const_iterator
+QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
+                               unsigned int             upstreamSubQueueId,
+                               const mqbi::QueueCounts& counts)
 {
     assertConsistentSubStreamInfo(stream.appId(), stream.subId());
 
@@ -138,15 +139,19 @@ void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
     if (it == d_subStreamInfos.end()) {
         d_downstreams.emplace(stream.subId(),
                               Downstream(upstreamSubQueueId, d_allocator_p));
-        d_subStreamInfos.insert(bsl::make_pair(stream.appId(),
-                                               StreamInfo(counts,
-                                                          stream.subId(),
-                                                          upstreamSubQueueId,
-                                                          d_allocator_p)));
-        return;  // RETURN
+        it = d_subStreamInfos
+                 .insert(bsl::make_pair(stream.appId(),
+                                        StreamInfo(counts,
+                                                   stream.subId(),
+                                                   upstreamSubQueueId,
+                                                   d_allocator_p)))
+                 .first;
+    }
+    else {
+        it->second.d_counts += counts;
     }
 
-    it->second.d_counts += counts;
+    return it;
 }
 
 void QueueHandle::registerSubscription(unsigned int downstreamSubId,
