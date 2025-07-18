@@ -343,7 +343,6 @@ MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
 , d_numProps(0)
 , d_dataOffset(0)
 , d_schema()
-, d_lastError(0)
 , d_originalNumProps(0)
 {
 }
@@ -362,7 +361,6 @@ MessageProperties::MessageProperties(const MessageProperties& other,
 , d_numProps(other.d_numProps)
 , d_dataOffset(other.d_dataOffset)
 , d_schema(other.d_schema)
-, d_lastError(other.d_lastError)
 , d_originalNumProps(other.d_originalNumProps)
 {
     if (other.d_isBlobConstructed) {
@@ -404,7 +402,6 @@ MessageProperties& MessageProperties::operator=(const MessageProperties& rhs)
     d_numProps         = rhs.d_numProps;
     d_dataOffset       = rhs.d_dataOffset;
     d_schema           = rhs.d_schema;
-    d_lastError        = rhs.d_lastError;
     d_originalNumProps = rhs.d_originalNumProps;
 
     return *this;
@@ -421,8 +418,6 @@ void MessageProperties::clear()
     d_numProps     = 0;
     d_dataOffset   = 0;
     d_schema.clear();
-
-    d_lastError = 0;
 
     d_originalNumProps = 0;
 
@@ -739,7 +734,6 @@ int MessageProperties::loadProperties(bool isFirstTime,
                                         start,
                                         i);
         if (rc) {
-            d_lastError = rc;
             return rc;
         }
 
@@ -1029,10 +1023,6 @@ bsl::ostream& MessageProperties::print(bsl::ostream& stream,
     printer.start();
 
     MessagePropertiesIterator msgPropIter(this);
-
-    if (d_lastError) {
-        printer.printAttribute("lastError", d_lastError);
-    }
 
     while (msgPropIter.hasNext()) {
         bdlma::LocalSequentialAllocator<64> nameLsa(0);
