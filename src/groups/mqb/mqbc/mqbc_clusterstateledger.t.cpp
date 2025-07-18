@@ -345,6 +345,14 @@ static void test4_commitStatus_print()
         PVV(test.d_line << ": Testing: print(" << test.d_value
                         << ") == " << test.d_expected);
 
+        if (bmqtst::TestHelperUtil::k_UBSAN &&
+            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
+            PVV("Skip line ["
+                << test.d_line
+                << "] for UBSan due to out of range enum value casting");
+            continue;
+        }
+
         // 1.
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterStateLedgerCommitStatus::Enum obj(
@@ -470,6 +478,14 @@ static void test6_clusterStateLedgerConsistency_toAscii()
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
 
+        if (bmqtst::TestHelperUtil::k_UBSAN &&
+            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
+            PVV("Skip line ["
+                << test.d_line
+                << "] for UBSan due to out of range enum value casting");
+            continue;
+        }
+
         bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbc::ClusterStateLedgerConsistency::toAscii(
             mqbc::ClusterStateLedgerConsistency::Enum(test.d_value));
@@ -516,6 +532,14 @@ static void test7_clusterStateLedgerConsistency_print()
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
                         << ") == " << test.d_expected);
+
+        if (bmqtst::TestHelperUtil::k_UBSAN &&
+            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
+            PVV("Skip line ["
+                << test.d_line
+                << "] for UBSan due to out of range enum value casting");
+            continue;
+        }
 
         // 1.
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());

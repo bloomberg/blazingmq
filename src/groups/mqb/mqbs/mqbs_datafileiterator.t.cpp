@@ -274,9 +274,12 @@ static void test2_forwardIteration()
 
         it.loadOptions(&data, &length);
         BMQTST_ASSERT_EQ_D(i, bsl::strlen(MESSAGES[i].d_options_p), length);
-        BMQTST_ASSERT_EQ_D(i,
-                           bsl::memcmp(data, MESSAGES[i].d_options_p, length),
-                           0);
+        if (data) {
+            BMQTST_ASSERT_EQ_D(
+                i,
+                bsl::memcmp(data, MESSAGES[i].d_options_p, length),
+                0);
+        }
 
         offset += (dh.messageWords() * bmqp::Protocol::k_WORD_SIZE);
         ++i;
@@ -380,10 +383,12 @@ static void test3_reverseIteration()
         BMQTST_ASSERT_EQ_D(i, rc, 0);
 
         it.loadOptions(&data, &length);
-        rc = bsl::memcmp(data,
-                         MESSAGES[k_NUM_MSGS - i - 2].d_options_p,
-                         length);
-        BMQTST_ASSERT_EQ_D(i, rc, 0);
+        if (data) {
+            rc = bsl::memcmp(data,
+                             MESSAGES[k_NUM_MSGS - i - 2].d_options_p,
+                             length);
+            BMQTST_ASSERT_EQ_D(i, rc, 0);
+        }
 
         ++i;
     }
