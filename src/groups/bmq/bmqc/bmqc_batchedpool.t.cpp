@@ -335,6 +335,164 @@ static void testN1_legacyPool_benchmark(benchmark::State& state)
     workThreadPool.stop();
 }
 
+static void
+testN1_legacyPool_basic_contention_benchmark(benchmark::State& state)
+// ------------------------------------------------------------------------
+// PERFORMANCE TEST
+//
+// Concerns:
+//  a) Check the overhead of the MQTP with multiple producer threads
+//
+// Plan:
+//  1) Create a MQTP with a single queue and enqueue events as quickly as
+//     possible on it from multiple producer threads.  See how many we can
+//     process in a few seconds.
+//
+// Testing:
+//  Performance
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    bmqtst::TestHelper::printTestName("MQTP MULTI PRODUCER PERFORMANCE TEST");
+
+    /// 1 releaser thread and 1 getter thread
+    static const size_t k_NUM_THREADS = 2;
+
+    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
+        CreatorFn;
+
+    typedef bdlcc::ObjectPool<TestItem,
+                              CreatorFn,
+                              bdlcc::ObjectPoolFunctors::Reset<TestItem> >
+        TestItemPool;
+
+    struct Local {
+        static void releaserFn(TestItemPool*           pool_p,
+                               bsl::vector<TestItem*>* toRelease_p,
+                               bslmt::Latch*           initLatch_p,
+                               bslmt::Barrier*         startBarrier_p,
+                               bslmt::Latch*           finishLatch_p)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT_OPT(pool_p);
+            BSLS_ASSERT_OPT(toRelease_p);
+            BSLS_ASSERT_OPT(toRelease_p->size() == k_NUM_ITERATIONS);
+            BSLS_ASSERT_OPT(initLatch_p);
+            BSLS_ASSERT_OPT(startBarrier_p);
+            BSLS_ASSERT_OPT(finishLatch_p);
+
+            initLatch_p->arrive();
+            startBarrier_p->wait();
+
+            for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+                pool_p->releaseObject((*toRelease_p)[i]);
+            }
+
+            finishLatch_p->arrive();
+        }
+
+        static void getterFn(TestItemPool*           pool_p,
+                             bsl::vector<TestItem*>* toGet_p,
+                             bslmt::Latch*           initLatch_p,
+                             bslmt::Barrier*         startBarrier_p,
+                             bslmt::Latch*           finishLatch_p)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT_OPT(pool_p);
+            BSLS_ASSERT_OPT(toGet_p);
+            BSLS_ASSERT_OPT(toGet_p->empty());
+            BSLS_ASSERT_OPT(initLatch_p);
+            BSLS_ASSERT_OPT(startBarrier_p);
+            BSLS_ASSERT_OPT(finishLatch_p);
+
+            toGet_p->resize(k_NUM_ITERATIONS);
+
+            initLatch_p->arrive();
+            startBarrier_p->wait();
+
+            for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+                TestItem* item = pool_p->getObject();
+                item->value()  = i;  // Basic work with object
+                (*toGet_p)[i]  = item;
+            }
+
+            finishLatch_p->arrive();
+        }
+    };
+
+    TestItemPool itemPool(&creatorFn,
+                          128,
+                          bmqtst::TestHelperUtil::allocator());
+    itemPool.reserveCapacity(2 * k_NUM_ITERATIONS);
+
+    bsl::vector<TestItem*> toRelease(bmqtst::TestHelperUtil::allocator());
+    bsl::vector<TestItem*> toGet(bmqtst::TestHelperUtil::allocator());
+    toRelease.reserve(k_NUM_ITERATIONS);
+    toGet.reserve(k_NUM_ITERATIONS);
+
+    for (size_t i = 0; i < k_NUM_ITERATIONS; i++) {
+        toRelease.push_back(itemPool.getObject());
+    }
+
+    bdlmt::ThreadPool workThreadPool(
+        bslmt::ThreadAttributes(),        // default
+        k_NUM_THREADS,                    // minThreads
+        k_NUM_THREADS,                    // maxThreads
+        bsl::numeric_limits<int>::max(),  // maxIdleTime
+        bmqtst::TestHelperUtil::allocator());
+    BSLS_ASSERT_OPT(workThreadPool.start() == 0);
+
+    bslmt::Latch   initThreadLatch(k_NUM_THREADS);
+    bslmt::Barrier startBenchmarkBarrier(k_NUM_THREADS + 1);
+    bslmt::Latch   finishBenchmarkLatch(k_NUM_THREADS);
+
+    workThreadPool.enqueueJob(
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &Local::getterFn,
+                              &itemPool,
+                              &toGet,
+                              &initThreadLatch,
+                              &startBenchmarkBarrier,
+                              &finishBenchmarkLatch));
+
+    workThreadPool.enqueueJob(
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &Local::releaserFn,
+                              &itemPool,
+                              &toRelease,
+                              &initThreadLatch,
+                              &startBenchmarkBarrier,
+                              &finishBenchmarkLatch));
+
+    initThreadLatch.wait();
+
+    size_t iter = 0;
+    for (auto _ : state) {
+        // Benchmark time start
+
+        // We don't support running multi-iteration benchmarks because we
+        // prepare and start complex tasks in separate threads.
+        // Once these tasks are finished, we cannot simply re-run them without
+        // reinitialization, and it goes against benchmark library design.
+        // Make sure we run this only once.
+        BSLS_ASSERT_OPT(0 == iter++ && "Must be run only once");
+
+        startBenchmarkBarrier.wait();
+        finishBenchmarkLatch.wait();
+
+        // Benchmark time end
+    }
+
+    workThreadPool.stop();
+
+    toRelease.clear();
+    for (size_t i = 0; i < k_NUM_ITERATIONS; i++) {
+        itemPool.releaseObject(toGet[i]);
+    }
+    toGet.clear();
+}
+
 /// Function alias to simplify benchmark table output.
 template <size_t k_NUM_THREADS>
 static void testN1_batchedPool_batch_1_benchmark(benchmark::State& state) {
@@ -366,63 +524,68 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case -1:
 #ifdef BMQTST_BENCHMARK_ENABLED
+        BENCHMARK(testN1_legacyPool_basic_contention_benchmark)
+            ->Name("bdlcc::ObjectPool threads=2 (get/release) ")
+            ->Iterations(1)
+            ->Unit(benchmark::kMillisecond);
+
         /// Basic `bdlcc::ObjectPool` usage benchmarks.
         /// Test objects are acquired and released one by one.
         BENCHMARK(testN1_legacyPool_benchmark<1>)
-            ->Name("bdlcc::ObjectPool threads=1             ")
+            ->Name("bdlcc::ObjectPool threads=1               ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_legacyPool_benchmark<4>)
-            ->Name("bdlcc::ObjectPool threads=4             ")
+            ->Name("bdlcc::ObjectPool threads=4               ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_legacyPool_benchmark<10>)
-            ->Name("bdlcc::ObjectPool threads=10            ")
+            ->Name("bdlcc::ObjectPool threads=10              ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
-        
+
         /// Using `bmqc::BatchedPool` with batch size 1.
         /// Expecting similar or worse performance than the basic
         /// `bdlcc::ObjectPool`, because batches contain only one test object
         /// and we still pay the full price for batch management.
         BENCHMARK(testN1_batchedPool_batch_1_benchmark<1>)
-            ->Name("bmqc::BatchedPool threads=1   batch=1   ")
+            ->Name("bmqc::BatchedPool threads=1   batch=1     ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_1_benchmark<4>)
-            ->Name("bmqc::BatchedPool threads=4   batch=1   ")
+            ->Name("bmqc::BatchedPool threads=4   batch=1     ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_1_benchmark<10>)
-            ->Name("bmqc::BatchedPool threads=10  batch=1   ")
+            ->Name("bmqc::BatchedPool threads=10  batch=1     ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
 
         /// Using `bmqc::BatchedPool` with batch size 32.
         BENCHMARK(testN1_batchedPool_batch_32_benchmark<1>)
-            ->Name("bmqc::BatchedPool threads=1   batch=32  ")
+            ->Name("bmqc::BatchedPool threads=1   batch=32    ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_32_benchmark<4>)
-            ->Name("bmqc::BatchedPool threads=4   batch=32  ")
+            ->Name("bmqc::BatchedPool threads=4   batch=32    ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_32_benchmark<10>)
-            ->Name("bmqc::BatchedPool threads=10  batch=32  ")
+            ->Name("bmqc::BatchedPool threads=10  batch=32    ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
 
         /// Using `bmqc::BatchedPool` with batch size 128.
         BENCHMARK(testN1_batchedPool_batch_128_benchmark<1>)
-            ->Name("bmqc::BatchedPool threads=1   batch=128 ")
+            ->Name("bmqc::BatchedPool threads=1   batch=128   ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_128_benchmark<4>)
-            ->Name("bmqc::BatchedPool threads=4   batch=128 ")
+            ->Name("bmqc::BatchedPool threads=4   batch=128   ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_128_benchmark<10>)
-            ->Name("bmqc::BatchedPool threads=10  batch=128 ")
+            ->Name("bmqc::BatchedPool threads=10  batch=128   ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
 
@@ -430,15 +593,15 @@ int main(int argc, char* argv[])
         /// Spawning so many threads that desktop CPU cannot process at the
         /// same time.
         BENCHMARK(testN1_batchedPool_batch_128_benchmark<64>)
-            ->Name("bmqc::BatchedPool threads=64  batch=128 ")
+            ->Name("bmqc::BatchedPool threads=64  batch=128   ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_128_benchmark<128>)
-            ->Name("bmqc::BatchedPool threads=128 batch=128 ")
+            ->Name("bmqc::BatchedPool threads=128 batch=128   ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_batchedPool_batch_128_benchmark<256>)
-            ->Name("bmqc::BatchedPool threads=256 batch=128 ")
+            ->Name("bmqc::BatchedPool threads=256 batch=128   ")
             ->Iterations(1)
             ->Unit(benchmark::kMillisecond);
         benchmark::Initialize(&argc, argv);
