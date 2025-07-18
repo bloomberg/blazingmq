@@ -196,9 +196,10 @@ class MessageProperties {
     // DATA
     bslma::Allocator* d_allocator_p;
 
+    /// Rb-tree containing property name->value pairs.
+    /// Note: when the number of properties is small map works faster than
+    ///       unordered_map. Also, map takes less space.
     mutable PropertyMap d_properties;
-    // Hash table containing property
-    // name->value pairs.
 
     int d_totalSize;
     // Total size of the BlazingMQ wire
