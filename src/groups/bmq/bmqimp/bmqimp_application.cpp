@@ -381,8 +381,8 @@ bmqt::GenericResult::Enum Application::startChannel()
     bsls::TimeInterval attemptInterval;
     attemptInterval.setTotalMilliseconds(k_RECONNECT_INTERVAL_MS);
 
-    bmqio::Status         status;
-    bmqio::ConnectOptions options;
+    bmqio::Status         status(&d_allocator);
+    bmqio::ConnectOptions options(&d_allocator);
     options.setEndpoint(out.str())
         .setNumAttempts(k_RECONNECT_COUNT)
         .setAttemptInterval(attemptInterval)
@@ -392,12 +392,13 @@ bmqt::GenericResult::Enum Application::startChannel()
         &status,
         &d_connectHandle_mp,
         options,
-        bdlf::BindUtil::bind(&Application::channelStateCallback,
-                             this,
-                             options.endpoint(),
-                             bdlf::PlaceHolders::_1,    // event
-                             bdlf::PlaceHolders::_2,    // status
-                             bdlf::PlaceHolders::_3));  // channel
+        bdlf::BindUtil::bindS(&d_allocator,
+                              &Application::channelStateCallback,
+                              this,
+                              options.endpoint(),
+                              bdlf::PlaceHolders::_1,    // event
+                              bdlf::PlaceHolders::_2,    // status
+                              bdlf::PlaceHolders::_3));  // channel
     if (!status) {
         BALL_LOG_ERROR << id() << "Failed to connect to broker at '"
                        << d_sessionOptions.brokerUri()
@@ -453,7 +454,7 @@ void Application::printStats(bool isFinal)
     //         executed by the *SCHEDULER* thread
     // (and by the *MAIN* thread (in destructor))
 
-    bmqu::MemOutStream os;
+    bmqu::MemOutStream os(&d_allocator);
 
     os << "#### stats [delta = last "
        << d_sessionOptions.statsDumpInterval().seconds() << " seconds] ####\n";
@@ -482,8 +483,8 @@ void Application::printStats(bool isFinal)
     os << "::::: TCP Channels >>";
     if (isFinal) {
         // For the final stats, no need to print the 'delta' columns
-        bmqst::Table                  table;
-        bmqst::BasicTableInfoProvider tip;
+        bmqst::Table                  table(&d_allocator);
+        bmqst::BasicTableInfoProvider tip(&d_allocator);
         bmqio::StatChannelFactoryUtil::initializeStatsTable(
             &table,
             &tip,
@@ -577,14 +578,15 @@ Application::Application(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
                                          d_allocators.get("BlobSpPool")))
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, &d_allocator)
-, d_channelFactory(ntcCreateInterfaceConfig(sessionOptions, allocator),
+, d_channelFactory(ntcCreateInterfaceConfig(sessionOptions, &d_allocator),
                    &d_blobBufferFactory,
-                   allocator)
+                   &d_allocator)
 , d_resolvingChannelFactory(
       bmqio::ResolvingChannelFactoryConfig(
           &d_channelFactory,
           bmqex::ExecutionPolicyUtil::oneWay().alwaysBlocking().useExecutor(
-              bmqex::SystemExecutor())),
+              bmqex::SystemExecutor()),
+          allocator),
       allocator)
 , d_reconnectingChannelFactory(
       bmqio::ReconnectingChannelFactoryConfig(&d_resolvingChannelFactory,

@@ -4533,7 +4533,7 @@ void BrokerSession::cancel(const bsl::shared_ptr<Queue>&       queue,
     // Cancel pending configureQueue
     if (queue->pendingConfigureId() != Queue::k_INVALID_CONFIGURE_ID) {
         // Prepare canceled response.
-        bmqp_ctrlmsg::ControlMessage controlMessage;
+        bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         controlMessage.rId().makeValue(queue->pendingConfigureId());
 
         bmqp::ControlMessageUtil::makeStatus(&controlMessage,
@@ -4569,7 +4569,7 @@ void BrokerSession::cancel(int                                 groupId,
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
     // Cancel all pending requests with CANCELED reason.
-    bmqp_ctrlmsg::ControlMessage controlMessage;
+    bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
     bmqp::ControlMessageUtil::makeStatus(&controlMessage, status, -1, reason);
     if (groupId >= 0) {
         d_requestManager.cancelAllRequests(controlMessage, groupId);
@@ -4695,7 +4695,8 @@ void BrokerSession::cancelPendingMessages(
     bmqp::AckEventBuilder  ackBuilder(d_blobSpPool_p, d_allocator_p);
     bsl::shared_ptr<Event> ackEvent = createEvent();
 
-    MessageCorrelationIdContainer::KeyIdsCb callback = bdlf::BindUtil::bind(
+    MessageCorrelationIdContainer::KeyIdsCb callback = bdlf::BindUtil::bindS(
+        d_allocator_p,
         &BrokerSession::cancelPendingMessageImp,
         this,
         &ackBuilder,
@@ -5924,12 +5925,13 @@ int BrokerSession::startAsync()
     // Add to the FSM event queue
     bsl::shared_ptr<Event> queueEvent = createEvent();
     queueEvent->configureAsRequestEvent(
-        bdlf::BindUtil::bind(&BrokerSession::doStart,
-                             this,
-                             &fsmAcceptedSemaphore,
-                             &startStatus,
-                             bdlf::PlaceHolders::_1,  // eventImpl
-                             createDTSpan("bmq.session.start")));
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &BrokerSession::doStart,
+                              this,
+                              &fsmAcceptedSemaphore,
+                              &startStatus,
+                              bdlf::PlaceHolders::_1,  // eventImpl
+                              createDTSpan("bmq.session.start")));
 
     if (enqueueFsmEvent(queueEvent) != bmqt::GenericResult::e_SUCCESS) {
         return bmqt::GenericResult::e_REFUSED;  // RETURN
