@@ -30,6 +30,7 @@
 #include <bmqp_protocol.h>
 
 // BDE
+#include <bdlmt_eventscheduler.h>
 #include <bslma_allocator.h>
 #include <bslmt_mutex.h>
 #include <bsls_atomic.h>
@@ -49,6 +50,8 @@ class AuthenticationContext {
         e_AUTHENTICATING = 0,
         e_AUTHENTICATED,
     };
+
+    typedef bdlmt::EventScheduler::EventHandle EventHandle;
 
     typedef bsl::function<int(
         bsl::ostream&                                 errorDescription,
@@ -70,6 +73,9 @@ class AuthenticationContext {
     InitialConnectionContext* d_initialConnectionContext_p;
 
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
+
+    EventHandle  d_timeoutHandle;
+    bslmt::Mutex d_timeoutHandleMutex;
 
     /// The encoding type used for sending a message. It should match with the
     /// encoding type of the received message.
@@ -127,6 +133,9 @@ class AuthenticationContext {
     bmqp::EncodingType::Enum authenticationEncodingType() const;
     const ReauthenticateCb&  reauthenticateCb() const;
     ConnectionType::Enum     connectionType() const;
+
+    EventHandle&  timeoutHandle();
+    bslmt::Mutex& timeoutHandleMutex();
 };
 
 }  // close package namespace
