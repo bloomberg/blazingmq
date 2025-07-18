@@ -46,9 +46,12 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
+#include <bdlmt_eventscheduler.h>
 #include <bdlmt_threadpool.h>
+#include <bdlmt_timereventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -97,6 +100,12 @@ class Authenticator : public mqbnet::Authenticator {
     mqbauthn::AuthenticationController* d_authnController_p;
 
     bdlmt::ThreadPool d_threadPool;
+
+    /// Used to track the duration of a valid authenticated connection.
+    /// If reauthentication does not occur within the specified time,
+    /// an event is triggered to close the channel.
+    // bdlmt::TimerEventScheduler d_scheduler;
+    bdlmt::EventScheduler d_scheduler;
 
     BlobSpPool* d_blobSpPool_p;
 
@@ -177,6 +186,11 @@ class Authenticator : public mqbnet::Authenticator {
     /// state of `context` as appropriate.
     void reauthenticate(const AuthenticationContextSp&         context,
                         const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void reauthenticateErrorOrTimeout(
+        int                                    errorCode,
+        bsl::string_view                       errorName,
+        const bsl::shared_ptr<bmqio::Channel>& channel);
 
   public:
     // TRAITS
