@@ -188,7 +188,13 @@ bool Routers::Expression::evaluate()
     /// |============|=========|========================|
 
     if (d_evaluator.isValid()) {
-        /// Evaluator returns `false` if there are any errors.
+        /// 1. If there are no errors during evaluation, evaluator returns
+        ///    the expression evaluation result (a bool).
+        /// 2. If there are any errors during evaluation, evaluator returns
+        ///    `false`.  Possible error types are:
+        /// - Result type is not a boolean
+        /// - Property used in the expression is not found in the message
+        /// - Unexpected type for expression operand
         return d_evaluator.evaluate(*d_evaluationContext_p);  // RETURN
     }
 
