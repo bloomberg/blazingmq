@@ -444,9 +444,9 @@ void test1_breathingTest()
         // Populate blob, 0 options
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 0;
+        size_t             numSubQueueIds = 0;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = false;
+        bool               hasMsgGroupId = false;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -514,9 +514,9 @@ void test1_breathingTest()
         // Populate blob, 1 option header and 1 sub-queue id
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 1;
+        size_t             numSubQueueIds = 1;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = false;
+        bool               hasMsgGroupId = false;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -581,9 +581,9 @@ void test1_breathingTest()
         // Populate blob, 1 option header, multiple sub-queue ids)
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 3;
+        size_t             numSubQueueIds = 3;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = false;
+        bool               hasMsgGroupId = false;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -638,9 +638,9 @@ void test1_breathingTest()
         // Populate blob, 1 option header, multiple sub-queue ids)
         bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
-        size_t                          numSubQueueIds = 3;
+        size_t             numSubQueueIds = 3;
         NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-        bool                            hasMsgGroupId = true;
+        bool               hasMsgGroupId = true;
 
         populateBlob(&blob,
                      &optionsAreaPosition,
@@ -742,9 +742,9 @@ void test2_subQueueIdsOld()
     // Populate blob, 1 option header, multiple old sub-queue ids)
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    size_t                             numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                               hasMsgGroupId = false;
+    bool               hasMsgGroupId = false;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -999,7 +999,11 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
 
-    {
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PV("Skip 'OPTION HEADER WITH UNSUPPORTED TYPES' for UBSan due to out "
+           "of range enum value casting");
+    }
+    else {
         // [4]
         PV("OPTION HEADER WITH UNSUPPORTED TYPES");
 
@@ -1228,9 +1232,9 @@ void test5_iteratorTest()
     // Populate blob, 1 option header, multiple sub-queue ids
     bsl::vector<bmqp::SubQueueInfo> subQueueIds(
         bmqtst::TestHelperUtil::allocator());
-    size_t                          numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                            hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -1308,9 +1312,9 @@ void test6_iteratorTestSubQueueIdsOld()
     // Populate blob, 1 option header, multiple sub-queue ids
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    size_t                             numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                               hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -1388,9 +1392,9 @@ void test7_dumpBlob()
     // Populate blob, 1 option header, multiple sub-queue ids)
     bsl::vector<bmqp::SubQueueInfo> subQueueIds(
         bmqtst::TestHelperUtil::allocator());
-    size_t                          numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                            hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
@@ -1478,9 +1482,9 @@ void test8_dumpBlobSubQueueIdsOld()
     // Populate blob, 1 option header, multiple sub-queue ids)
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    size_t                             numSubQueueIds = 3;
+    size_t             numSubQueueIds = 3;
     NullableMsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    bool                               hasMsgGroupId = true;
+    bool               hasMsgGroupId = true;
 
     populateBlob(&blob,
                  &optionsAreaPosition,
