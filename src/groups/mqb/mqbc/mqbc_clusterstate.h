@@ -671,9 +671,6 @@ class ClusterState {
     bool cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId);
 
     void iterateDoubleAssignments(int partitionId, AssignmentVisitor& visitor);
-    void iterateDoubleAssignments(
-        const Assignments::const_iterator& partitionAssignments,
-        AssignmentVisitor&                 visitor);
 
     // ACCESSORS
     const mqbi::Cluster*  cluster() const;
@@ -737,6 +734,11 @@ class ClusterState {
     /// otherwise.
     ClusterStateQueueInfo*
     getAssignedOrUnassigning(const bmqt::Uri& uri) const;
+
+    /// TODO (FSM); remove after switching to FSM
+    void iterateDoubleAssignments(
+        const Assignments::const_iterator& partitionAssignments,
+        AssignmentVisitor&                 visitor) const;
 };
 
 // ============================================================================

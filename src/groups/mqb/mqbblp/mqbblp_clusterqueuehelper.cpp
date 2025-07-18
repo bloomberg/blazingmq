@@ -3583,10 +3583,11 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
     if (!d_cluster_p->isFSMWorkflow() && isSelfPrimary) {
         // Note that this fails if there are data
         mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
-            bdlf::BindUtil::bind(&mqbi::StorageManager::unregisterQueue,
-                                 d_storageManager_p,
-                                 bdlf::PlaceHolders::_1,   // uri
-                                 bdlf::PlaceHolders::_2);  // partitionId),
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &mqbi::StorageManager::unregisterQueue,
+                                  d_storageManager_p,
+                                  bdlf::PlaceHolders::_1,   // uri
+                                  bdlf::PlaceHolders::_2);  // partitionId),
 
         d_clusterState_p->iterateDoubleAssignments(partitionId,
                                                    doubleAssignmentVisitor);
