@@ -757,7 +757,7 @@ void ClusterState::iterateDoubleAssignments(int                partitionId,
 
 void ClusterState::iterateDoubleAssignments(
     const Assignments::const_iterator& partitionAssignments,
-    AssignmentVisitor&                 visitor)
+    AssignmentVisitor&                 visitor) const
 {
     const bsl::unordered_set<bmqt::Uri>& uris = partitionAssignments->second;
 
@@ -765,9 +765,9 @@ void ClusterState::iterateDoubleAssignments(
          cit != uris.cend();
          ++cit) {
         const bmqt::Uri& problematicUri   = *cit;
-        int              wrongPartitionId = partitionAssignments->first;
+        const int        wrongPartitionId = partitionAssignments->first;
 
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+        BALL_LOG_WARN << "Cluster [" << d_cluster_p->name()
                       << "]: attempting to repair double assignment of queue '"
                       << problematicUri
                       << "' by unregistering it from the partition ["
