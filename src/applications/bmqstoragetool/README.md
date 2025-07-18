@@ -53,9 +53,9 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [-h|help]
 Where:
   -r | --record-type          <record type>
-          record type to search {<message>|queue-op|journal-op} (default: message)
+          record type to search {<all>|<message|queue-op|journal-op} (default: all record types)
        --csl-record-type      <csl record type>
-          CSL record type to search {<snapshot>|update|commit|ack} (default: all record types)
+          CSL record type to search {<all>|snapshot|update|commit|ack} (default: all record types)
        --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files

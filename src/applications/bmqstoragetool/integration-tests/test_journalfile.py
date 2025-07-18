@@ -33,7 +33,9 @@ def test_short_result(storagetool, journal_file, expected_short_result):
      - checks GUID searching.
     """
     res = subprocess.run(
-        [storagetool, "--journal-file", journal_file], capture_output=True, check=True
+        [storagetool, "--journal-file", journal_file, "-r=message"],
+        capture_output=True,
+        check=True,
     )
     assert res.returncode == EX_OK
     assert res.stdout == expected_short_result
@@ -43,6 +45,7 @@ def test_short_result(storagetool, journal_file, expected_short_result):
             storagetool,
             "--journal-file",
             journal_file,
+            "-r=message",
             "--guid",
             TEST_GUID_1,
         ],
@@ -61,7 +64,13 @@ def test_short_json(storagetool, journal_file):
     """
     for mode in ["pretty", "line"]:
         res = subprocess.run(
-            [storagetool, "--journal-file", journal_file, f"--print-mode=json-{mode}"],
+            [
+                storagetool,
+                "--journal-file",
+                journal_file,
+                "-r=message",
+                f"--print-mode=json-{mode}",
+            ],
             capture_output=True,
             check=True,
         )
@@ -79,7 +88,7 @@ def test_detail_result(storagetool, journal_file, csl_file, expected_detail_resu
      - checks that storage tool can process journal and csl files and output details with queue names.
     """
     res = subprocess.run(
-        [storagetool, "--journal-file", journal_file, "--details"],
+        [storagetool, "--journal-file", journal_file, "-r=message", "--details"],
         capture_output=True,
         check=True,
     )
@@ -121,6 +130,7 @@ def test_detail_json(storagetool, journal_file, csl_file):
                 journal_file,
                 "--csl-file",
                 csl_file,
+                "-r=message",
                 "--details",
                 f"--print-mode=json-{mode}",
             ],
@@ -148,6 +158,7 @@ def test_payload_dump(
             journal_file,
             "--data-file",
             data_file,
+            "-r=message",
             "--dump-payload",
         ],
         capture_output=True,
@@ -157,7 +168,7 @@ def test_payload_dump(
     assert res.stdout == expected_payload_dump
 
     res = subprocess.run(
-        [storagetool, "--journal-path", journal_path, "--dump-payload"],
+        [storagetool, "--journal-path", journal_path, "-r=message", "--dump-payload"],
         capture_output=True,
         check=True,
     )
@@ -169,6 +180,7 @@ def test_payload_dump(
             storagetool,
             "--journal-path",
             journal_path,
+            "-r=message",
             "--dump-payload",
             "--dump-limit=5",
         ],
@@ -190,6 +202,7 @@ def test_summary_result(storagetool, journal_path, csl_file, expected_summary_re
             journal_path,
             "--csl-file",
             csl_file,
+            "-r=message",
             "--summary",
         ],
         capture_output=True,
@@ -212,6 +225,7 @@ def test_summary_result_with_queue_info(
             journal_path,
             "--csl-file",
             csl_file,
+            "-r=message",
             "--summary",
             "--min-records-per-queue",
             "1",
@@ -235,6 +249,7 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
                 journal_path,
                 "--csl-file",
                 csl_file,
+                "-r=message",
                 "--summary",
                 "--min-records-per-queue",
                 "1",
@@ -266,7 +281,7 @@ def test_confirmed_outstanding_result(storagetool, journal_file):
      - checks that storage tool can search outstanding messages and output short result (message GUIDs).
     """
     res = subprocess.run(
-        [storagetool, "--journal-file", journal_file, "--confirmed"],
+        [storagetool, "--journal-file", journal_file, "-r=message", "--confirmed"],
         capture_output=True,
         check=True,
     )
@@ -275,7 +290,7 @@ def test_confirmed_outstanding_result(storagetool, journal_file):
     assert re.search(TEST_GUID_1, res.stdout) is None
 
     res = subprocess.run(
-        [storagetool, "--journal-file", journal_file, "--outstanding"],
+        [storagetool, "--journal-file", journal_file, "-r=message", "--outstanding"],
         capture_output=True,
         check=True,
     )
