@@ -22,6 +22,7 @@ functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 import functools
 import re
 import time
+from typing import List
 
 import pytest
 
@@ -36,10 +37,12 @@ from blazingmq.dev.it.fixtures import (
     order,
     tweak,
 )  # pylint: disable=unused-import
+from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
 
 pytestmark = order(2)
+timeout = 20
 
 
 def configure_cluster(cluster: Cluster, is_fsm: bool):
@@ -54,6 +57,111 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
             cluster_attr.is_fsmworkflow = is_fsm
             cluster_attr.does_fsmwrite_qlist = True
     cluster.deploy_domains()
+
+
+def verifyMessages(consumer: Client, queue: str, appId: str, expected_count: int):
+    """
+    Instruct the `consumer` to open the `queue` with the optional `appId`, and verify that there are `expected_count` unconfirmed messages.
+    """
+    queue_with_appid = queue if not appId else queue + f"?id={appId}"
+    consumer.open(queue_with_appid, flags=["read"], succeed=True)
+    consumer.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer.list(queue_with_appid, block=True)) == expected_count, 2
+    )
+    consumer.close(queue_with_appid, succeed=True)
+
+
+def post_new_queues_and_verify(
+    cluster: Cluster,
+    producer: Client,
+    consumer_foo: Client,
+    existing_queues_pair: List[List[str]],
+    domain_urls: tc.DomainUrls,
+):
+    """
+    On the `cluster`, create a new priority queue and a
+    new fanout queue based on `domain_urls`, and append them to the
+    `existing_queues_pair` of existing priority and fanout
+    queues respectively.  Then, instruct the `producer` to post one message on
+    the two new queues.  Finally, instrcut `consumer_foo` to confirm one message on appId 'foo'.
+    """
+    # Preconditions
+    assert len(existing_queues_pair) == 2
+
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+    existing_priority_queues, existing_fanout_queues = existing_queues_pair
+    assert len(existing_priority_queues) == len(existing_fanout_queues)
+
+    # Post a message on new priority queue and new fanout queue
+    n = len(existing_priority_queues)
+    partition_id = (n * 2) % num_partitions
+    for domain, queues in [
+        (domain_urls.domain_priority, existing_priority_queues),
+        (domain_urls.domain_fanout, existing_fanout_queues),
+    ]:
+        new_queue = f"bmq://{domain}/qqq{n}"
+        queues.append((new_queue, partition_id))
+
+        producer.open(new_queue, flags=["write", "ack"], succeed=True)
+        producer.post(new_queue, payload=["msg0"], wait_ack=True, succeed=True)
+        ensureMessageAtStorageLayer(cluster, partition_id, new_queue, 1)
+
+        partition_id = (partition_id + 1) % num_partitions
+
+    # Consumer for new fanout queue
+    new_fanout_queue = existing_fanout_queues[-1][0]
+    consumer_foo.open(new_fanout_queue + "?id=foo", flags=["read"], succeed=True)
+    consumer_foo.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer_foo.list(new_fanout_queue + "?id=foo", block=True)) == 1, 2
+    )
+
+    # Save one confirm to the storage for new fanout queue
+    consumer_foo.confirm(new_fanout_queue + "?id=foo", "+1", succeed=True)
+    consumer_foo.close(new_fanout_queue + "?id=foo", succeed=True)
+
+    # Postconditions
+    assert len(existing_priority_queues) == len(existing_fanout_queues)
+
+
+def post_existing_queues_and_verify(
+    cluster: Cluster,
+    producer: Client,
+    consumers: List[Client],
+    existing_priority_queues: List[str],
+    existing_fanout_queues: List[str],
+):
+    """
+    On the `cluster`, instruct the `producer` to post one message to
+    each of the `existing_priority_queues` and `existing_fanout_queues`.
+    Verify that the messages are posted successfully and that the `consumers`
+    list of priority, foo, and bar consumers ` have the expected number of
+    messages in their respective queues.
+    """
+    # Preconditions
+    assert len(existing_priority_queues) == len(existing_fanout_queues)
+    assert len(consumers) == 3
+
+    consumer_priority, consumer_foo, consumer_bar = consumers
+
+    n = len(existing_priority_queues)
+    for queues in [existing_priority_queues, existing_fanout_queues]:
+        for i in range(n):
+            producer.post(
+                queues[i][0],
+                payload=[f"msg{n - i}"],
+                wait_ack=True,
+                succeed=True,
+            )
+            ensureMessageAtStorageLayer(cluster, queues[i][1], queues[i][0], n + 1 - i)
+
+    for i in range(n):
+        verifyMessages(
+            consumer_priority, existing_priority_queues[i][0], None, n + 1 - i
+        )
+        verifyMessages(consumer_foo, existing_fanout_queues[i][0], "foo", n - i)
+        verifyMessages(consumer_bar, existing_fanout_queues[i][0], "bar", n + 1 - i)
 
 
 def ensureMessageAtStorageLayer(
@@ -83,6 +191,60 @@ def ensureMessageAtStorageLayer(
         # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
         # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,
         # QueueUri respectively.
+
+
+def close_and_unassign_queue(queueUri: str, client: Client, leader: Broker):
+    """
+    Close and unassign the `queueUri` connected to by the `client`.  Instruct the `leader` to force garbage collection of queues.
+    """
+    assert client.close(queueUri, succeed=True) == Client.e_SUCCESS
+
+    leader.force_gc_queues(succeed=True)
+
+
+def assignUnassignNewQueues(
+    existing_queues: List[str],
+    domain_urls: tc.DomainUrls,
+    consumer: Client,
+    leader: Broker,
+):
+    """
+    Create two new priority queues based on `domain_urls`, and append them
+    to `existing_queues`.  The first queue is assigned and then unassigned,
+    while the second queue is only assigned.  The `consumer` is used to open
+    and close the queues, while the `leader` is used to force garbage collection of queues.
+    """
+    n = len(existing_queues)
+    new_queue_1 = f"bmq://{domain_urls.domain_priority}/qqq{n}"
+    consumer.open(new_queue_1, flags=["read"], succeed=True)
+    close_and_unassign_queue(new_queue_1, consumer, leader)
+    existing_queues.append(new_queue_1)
+
+    new_queue_2 = f"bmq://{domain_urls.domain_priority}/qqq{n + 1}"
+    consumer.open(new_queue_2, flags=["read"], succeed=True)
+    existing_queues.append(new_queue_2)
+
+
+def assignUnassignExistingQueues(
+    existing_queues: List[str], consumer: Client, leader: Broker
+):
+    """
+    Enumerate through `existing_queues` and perform the following operations:
+    - For even indexed queues, assign then unassign.
+    - For odd indexed queues, unassign then assign.
+
+    The `consumer` is used to open and close the queues, while the `leader`
+    is used to force garbage collection of queues.
+    """
+    for i, queue in enumerate(existing_queues):
+        if i % 2 == 0:
+            # Even index: assign -> unassign
+            consumer.open(queue, flags=["read"], succeed=True)
+            close_and_unassign_queue(queue, consumer, leader)
+        else:
+            # Odd index: unassign -> assign
+            close_and_unassign_queue(queue, consumer, leader)
+            consumer.open(queue, flags=["read"], succeed=True)
 
 
 def test_basic(cluster: Cluster, domain_urls: tc.DomainUrls):
@@ -193,7 +355,7 @@ def test_migrate_domain_to_another_cluster(
         )
     ]
 )
-def switch_fsm_cluster(request):
+def switch_fsm_cluster(request: pytest.FixtureRequest):
     yield from cluster_fixture(request, request.param)
 
 
@@ -210,29 +372,23 @@ def test_restart_between_non_FSM_and_FSM(
     cluster = switch_fsm_cluster
     du = domain_urls
 
-    # Start a producer. Then, post a message on priority queue #1 and fanout
-    # queue #1
+    # Start a producer.
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
-    producer.open(du.uri_priority, flags=["write", "ack"], succeed=True)
-    producer.post(du.uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
-    producer.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
-    producer.post(du.uri_fanout, payload=["fanout_msg1"], wait_ack=True, succeed=True)
 
-    ensureMessageAtStorageLayer(cluster, 0, du.uri_priority, 1)
-    ensureMessageAtStorageLayer(cluster, 1, du.uri_fanout, 1)
+    existing_priority_queues = []
+    existing_fanout_queues = []
 
-    # Consumer for fanout queue #1
     consumer_foo = next(proxies).create_client("consumer_foo")
-    consumer_foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer_foo.list(du.uri_fanout_foo, block=True)) == 1, 2
-    )
 
-    # Save one confirm to the storage for fanout queue #1
-    consumer_foo.confirm(du.uri_fanout_foo, "+1", succeed=True)
-    consumer_foo.close(du.uri_fanout_foo, succeed=True)
+    # PROLOGUE
+    post_new_queues_and_verify(
+        cluster,
+        producer,
+        consumer_foo,
+        [existing_priority_queues, existing_fanout_queues],
+        du,
+    )
 
     cluster.stop_nodes(prevent_leader_bounce=True)
 
@@ -245,58 +401,27 @@ def test_restart_between_non_FSM_and_FSM(
     if cluster.is_single_node:
         producer.wait_state_restored()
 
-    # The producers posts one more message on priority queue #1 and fanout
-    # queue #1
-    producer.post(du.uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
-    producer.post(du.uri_fanout, payload=["fanout_msg2"], wait_ack=True, succeed=True)
-
-    # Consumer for priority queue #1
-    consumer = next(proxies).create_client("consumer")
-    consumer.open(du.uri_priority, flags=["read"], succeed=True)
-    consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(du.uri_priority, block=True)) == 2, 2)
-    consumer.close(du.uri_priority, succeed=True)
-
-    # Consumers for fanout queue #1
+    consumer_priority = next(proxies).create_client("consumer")
     consumer_bar = next(proxies).create_client("consumer_bar")
-    consumer_bar.open(du.uri_fanout_bar, flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer_bar.list(du.uri_fanout_bar, block=True)) == 2, 2
-    )
-    consumer_bar.close(du.uri_fanout_bar, succeed=True)
+    consumers = [consumer_priority, consumer_foo, consumer_bar]
 
-    # make sure the previously saved confirm is not lost
-    consumer_foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer_foo.list(du.uri_fanout_foo, block=True)) == 1, 2
-    )
-    consumer_foo.close(du.uri_fanout_foo, succeed=True)
-
-    # The producer now posts on priority queue #2 and fanout queue #2
-    producer.open(du.uri_priority_2, flags=["write", "ack"], succeed=True)
-    producer.post(du.uri_priority_2, payload=["new_msg1"], wait_ack=True, succeed=True)
-    producer.open(du.uri_fanout_2, flags=["write", "ack"], succeed=True)
-    producer.post(
-        du.uri_fanout_2, payload=["new_fanout_msg1"], wait_ack=True, succeed=True
+    # EPILOGUE
+    post_existing_queues_and_verify(
+        cluster,
+        producer,
+        consumers,
+        existing_priority_queues,
+        existing_fanout_queues,
     )
 
-    ensureMessageAtStorageLayer(cluster, 0, du.uri_priority, 2)
-    ensureMessageAtStorageLayer(cluster, 1, du.uri_fanout, 2)
-    ensureMessageAtStorageLayer(cluster, 2, du.uri_priority_2, 1)
-    ensureMessageAtStorageLayer(cluster, 3, du.uri_fanout_2, 1)
-
-    # Consumer for fanout queue #2
-    consumer_foo.open(du.uri_fanout_2_foo, flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer_foo.list(du.uri_fanout_2_foo, block=True)) == 1, 2
+    # PROLOGUE
+    post_new_queues_and_verify(
+        cluster,
+        producer,
+        consumer_foo,
+        [existing_priority_queues, existing_fanout_queues],
+        du,
     )
-
-    # Save one confirm to the storage for fanout queue #2
-    consumer_foo.confirm(du.uri_fanout_2_foo, "+1", succeed=True)
-    consumer_foo.close(du.uri_fanout_2_foo, succeed=True)
 
     # Non-FSM mode has poor healing mechanism, and can have flaky dirty
     # shutdowns, so let's disable checking exit code here.
@@ -323,45 +448,66 @@ def test_restart_between_non_FSM_and_FSM(
     if cluster.is_single_node:
         producer.wait_state_restored()
 
-    # The producers posts one more message on every queue
-    producer.post(du.uri_priority, payload=["msg3"], wait_ack=True, succeed=True)
-    producer.post(du.uri_fanout, payload=["fanout_msg3"], wait_ack=True, succeed=True)
-    producer.post(du.uri_priority_2, payload=["new_msg2"], wait_ack=True, succeed=True)
-    producer.post(
-        du.uri_fanout_2, payload=["new_fanout_msg2"], wait_ack=True, succeed=True
+    # EPILOGUE
+    post_existing_queues_and_verify(
+        cluster,
+        producer,
+        consumers,
+        existing_priority_queues,
+        existing_fanout_queues,
     )
 
-    ensureMessageAtStorageLayer(cluster, 0, du.uri_priority, 3)
-    ensureMessageAtStorageLayer(cluster, 1, du.uri_fanout, 3)
-    ensureMessageAtStorageLayer(cluster, 2, du.uri_priority_2, 2)
-    ensureMessageAtStorageLayer(cluster, 3, du.uri_fanout_2, 2)
 
-    # Consumer for both priority queues
+@tweak.cluster.queue_operations.keepalive_duration_ms(1000)
+def test_restart_between_non_FSM_and_FSM_unassign_queue(
+    switch_fsm_cluster: Cluster, domain_urls: tc.DomainUrls
+):
+    """
+    This test verifies that we can safely assign and unassign queues while
+    switching the cluster between non-FSM and FSM modes.  We start the cluster
+    in non-FSM mode, then conduct queue assignment/unassignment operations as
+    follows:
+
+    q1: assign -> unassign ---> assign -> unassign ---> assign -> unassign
+    q2: assign ---> unassign -> assign ---> unassign -> assign
+    q3: None ---> assign -> unassign ---> assign -> unassign
+    q4: None ---> assign ---> unassign -> assign
+
+    where  `--->` indicates a switch in cluster mode
+    """
+    cluster = switch_fsm_cluster
+    leader = cluster.last_known_leader
+    du = domain_urls
+
+    proxies = cluster.proxy_cycle()
     consumer = next(proxies).create_client("consumer")
-    consumer.open(du.uri_priority, flags=["read"], succeed=True)
-    consumer.open(du.uri_priority_2, flags=["read"], succeed=True)
-    # for _ in range(4):
-    consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(du.uri_priority, block=True)) == 3, 2)
-    assert wait_until(lambda: len(consumer.list(du.uri_priority_2, block=True)) == 2, 2)
 
-    # Consumers for both fanout queues
-    consumer_foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
-    consumer_foo.open(du.uri_fanout_2_foo, flags=["read"], succeed=True)
-    consumer.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer_foo.list(du.uri_fanout_foo, block=True)) == 2, 2
-    )
-    assert wait_until(
-        lambda: len(consumer_foo.list(du.uri_fanout_2_foo, block=True)) == 1, 2
-    )
+    existing_queues = []
 
-    consumer_bar.open(du.uri_fanout_bar, flags=["read"], succeed=True)
-    consumer_bar.open(du.uri_fanout_2_bar, flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer_bar.list(du.uri_fanout_bar, block=True)) == 3, 2
-    )
-    assert wait_until(
-        lambda: len(consumer_bar.list(du.uri_fanout_2_bar, block=True)) == 2, 2
-    )
+    # PROLOGUE
+    assignUnassignNewQueues(existing_queues, du, consumer, leader)
+
+    cluster.stop_nodes(prevent_leader_bounce=True)
+    configure_cluster(cluster, is_fsm=True)
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        consumer.wait_state_restored()
+
+    # EPILOGUE
+    assignUnassignExistingQueues(existing_queues, consumer, leader)
+
+    # PROLOGUE
+    assignUnassignNewQueues(existing_queues, du, consumer, leader)
+
+    cluster.stop_nodes(prevent_leader_bounce=True)
+    configure_cluster(cluster, is_fsm=False)
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        consumer.wait_state_restored()
+
+    # EPILOGUE
+    assignUnassignExistingQueues(existing_queues, consumer, leader)
