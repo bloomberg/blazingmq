@@ -615,10 +615,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     if (d_cslMode) {
         if (arguments.d_cslRecordType.empty()) {
             // Set all CSL record types to process by default.
-            d_processCslRecordTypes.d_snapshot = true;
-            d_processCslRecordTypes.d_update   = true;
-            d_processCslRecordTypes.d_commit   = true;
-            d_processCslRecordTypes.d_ack      = true;
+            d_processCslRecordTypes.setAll();
         }
         else {
             for (bsl::vector<bsl::string>::const_iterator cit =
@@ -626,10 +623,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                  cit != arguments.d_cslRecordType.end();
                  ++cit) {
                 if (*cit == CommandLineArguments::k_CSL_ALL_TYPE) {
-                    d_processCslRecordTypes.d_snapshot = true;
-                    d_processCslRecordTypes.d_update   = true;
-                    d_processCslRecordTypes.d_commit   = true;
-                    d_processCslRecordTypes.d_ack      = true;
+                    d_processCslRecordTypes.setAll();
                 }
                 else if (*cit == CommandLineArguments::k_CSL_SNAPSHOT_TYPE) {
                     d_processCslRecordTypes.d_snapshot = true;
