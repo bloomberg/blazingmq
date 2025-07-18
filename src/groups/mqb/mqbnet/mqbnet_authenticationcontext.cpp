@@ -40,8 +40,10 @@ AuthenticationContext::AuthenticationContext(
     State                                      state,
     ConnectionType::Enum                       connectionType,
     BSLA_UNUSED bslma::Allocator* allocator)
-: d_initialConnectionContext_p(initialConnectionContext)
+: d_authenticationResultSp()
+, d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
+, d_timeoutHandle()
 , d_authenticationEncodingType(authenticationEncodingType)
 , d_reauthenticateCb(reauthenticateCb)
 , d_state(state)
@@ -134,6 +136,16 @@ AuthenticationContext::reauthenticateCb() const
 ConnectionType::Enum AuthenticationContext::connectionType() const
 {
     return d_connectionType;
+}
+
+AuthenticationContext::EventHandle& AuthenticationContext::timeoutHandle()
+{
+    return d_timeoutHandle;
+}
+
+bslmt::Mutex& AuthenticationContext::timeoutHandleMutex()
+{
+    return d_timeoutHandleMutex;
 }
 
 }  // namespace mqbnet
