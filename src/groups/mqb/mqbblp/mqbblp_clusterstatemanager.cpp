@@ -641,8 +641,6 @@ void ClusterStateManager::onClusterLeader(
 
     if (!node) {
         BSLS_ASSERT_SAFE(mqbc::ElectorInfoLeaderStatus::e_UNDEFINED == status);
-
-        d_isFirstLeaderAdvisory = true;
     }
 }
 
@@ -677,8 +675,6 @@ void ClusterStateManager::onPartitionPrimaryAssignment(
                                                     oldPrimary,
                                                     oldLeaseId);
 
-    d_isFirstLeaderAdvisory = false;
-
     d_afterPartitionPrimaryAssignmentCb(partitionId, primary, status);
 }
 
@@ -699,7 +695,6 @@ ClusterStateManager::ClusterStateManager(
 , d_state_p(clusterState)
 , d_clusterStateLedger_mp(clusterStateLedger)
 , d_storageManager_p(0)
-, d_isFirstLeaderAdvisory(true)
 {
     // executed by *ANY* thread
 
@@ -909,9 +904,6 @@ void ClusterStateManager::sendClusterState(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      d_clusterData_p->electorInfo().electorState());
-
-    // Self is leader and has published advisory above, so update it.
-    d_isFirstLeaderAdvisory = false;
 
     mqbc::ClusterUtil::sendClusterState(d_clusterData_p,
                                         d_clusterStateLedger_mp.get(),

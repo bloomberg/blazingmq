@@ -599,9 +599,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    //   (virtual: mqbi::ClusterStateManager)
-    bool isFirstLeaderAdvisory() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return the cluster state managed by this instacne.
     const mqbc::ClusterState* clusterState() const BSLS_KEYWORD_OVERRIDE;
 
@@ -663,13 +660,6 @@ inline void ClusterStateManager::setAfterPartitionPrimaryAssignmentCb(
 
 // ACCESSORS
 //   (virtual: mqbi::ClusterStateManager)
-inline bool ClusterStateManager::isFirstLeaderAdvisory() const
-{
-    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
-
-    return false;
-}
-
 inline const mqbc::ClusterState* ClusterStateManager::clusterState() const
 {
     return d_state_p;

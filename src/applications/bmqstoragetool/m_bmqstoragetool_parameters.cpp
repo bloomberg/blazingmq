@@ -91,6 +91,7 @@ const char* CommandLineArguments::k_ALL_TYPE          = "all";
 const char* CommandLineArguments::k_MESSAGE_TYPE      = "message";
 const char* CommandLineArguments::k_QUEUEOP_TYPE      = "queue-op";
 const char* CommandLineArguments::k_JOURNALOP_TYPE    = "journal-op";
+const char* CommandLineArguments::k_CSL_ALL_TYPE      = "all";
 const char* CommandLineArguments::k_CSL_SNAPSHOT_TYPE = "snapshot";
 const char* CommandLineArguments::k_CSL_UPDATE_TYPE   = "update";
 const char* CommandLineArguments::k_CSL_COMMIT_TYPE   = "commit";
@@ -476,7 +477,8 @@ bool CommandLineArguments::isValidCslRecordType(
     const bsl::string* cslRecordType,
     bsl::ostream&      stream)
 {
-    if (*cslRecordType != k_CSL_SNAPSHOT_TYPE &&
+    if (*cslRecordType != k_CSL_ALL_TYPE &&
+        *cslRecordType != k_CSL_SNAPSHOT_TYPE &&
         *cslRecordType != k_CSL_UPDATE_TYPE &&
         *cslRecordType != k_CSL_COMMIT_TYPE &&
         *cslRecordType != k_CSL_ACK_TYPE) {
@@ -532,6 +534,13 @@ Parameters::ProcessRecordTypes::ProcessRecordTypes()
     // NOTHING
 }
 
+void Parameters::ProcessRecordTypes::setAll()
+{
+    d_message   = true;
+    d_queueOp   = true;
+    d_journalOp = true;
+}
+
 bool Parameters::ProcessRecordTypes::operator==(
     ProcessRecordTypes const& other) const
 {
@@ -546,6 +555,14 @@ Parameters::ProcessCslRecordTypes::ProcessCslRecordTypes()
 , d_ack(false)
 {
     // NOTHING
+}
+
+void Parameters::ProcessCslRecordTypes::setAll()
+{
+    d_snapshot = true;
+    d_update   = true;
+    d_commit   = true;
+    d_ack      = true;
 }
 
 bool Parameters::ProcessCslRecordTypes::operator==(
@@ -598,17 +615,17 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     if (d_cslMode) {
         if (arguments.d_cslRecordType.empty()) {
             // Set all CSL record types to process by default.
-            d_processCslRecordTypes.d_snapshot = true;
-            d_processCslRecordTypes.d_update   = true;
-            d_processCslRecordTypes.d_commit   = true;
-            d_processCslRecordTypes.d_ack      = true;
+            d_processCslRecordTypes.setAll();
         }
         else {
             for (bsl::vector<bsl::string>::const_iterator cit =
                      arguments.d_cslRecordType.begin();
                  cit != arguments.d_cslRecordType.end();
                  ++cit) {
-                if (*cit == CommandLineArguments::k_CSL_SNAPSHOT_TYPE) {
+                if (*cit == CommandLineArguments::k_CSL_ALL_TYPE) {
+                    d_processCslRecordTypes.setAll();
+                }
+                else if (*cit == CommandLineArguments::k_CSL_SNAPSHOT_TYPE) {
                     d_processCslRecordTypes.d_snapshot = true;
                 }
                 else if (*cit == CommandLineArguments::k_CSL_UPDATE_TYPE) {
@@ -628,7 +645,8 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
     else {
         if (arguments.d_recordType.empty()) {
-            d_processRecordTypes.d_message = true;
+            // Set all journal record types to process by default.
+            d_processRecordTypes.setAll();
         }
         else {
             for (bsl::vector<bsl::string>::const_iterator cit =
@@ -636,9 +654,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                  cit != arguments.d_recordType.end();
                  ++cit) {
                 if (*cit == CommandLineArguments::k_ALL_TYPE) {
-                    d_processRecordTypes.d_message   = true;
-                    d_processRecordTypes.d_queueOp   = true;
-                    d_processRecordTypes.d_journalOp = true;
+                    d_processRecordTypes.setAll();
                     break;  // BREAK
                 }
                 else if (*cit == CommandLineArguments::k_MESSAGE_TYPE) {

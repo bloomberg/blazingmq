@@ -312,8 +312,6 @@ class ClusterStateManager {
     virtual void onNodeStopped() = 0;
 
     // ACCESSORS
-    virtual bool isFirstLeaderAdvisory() const = 0;
-
     /// Return the cluster state managed by this instacne.
     virtual const mqbc::ClusterState* clusterState() const = 0;
 
