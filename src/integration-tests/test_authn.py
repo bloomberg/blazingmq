@@ -21,6 +21,7 @@ from pathlib import Path
 import threading
 import pytest
 
+import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.paths import paths
 from blazingmq.dev.it.process.rawclient import RawClient
 from blazingmq.dev.it.process.admin import AdminClient
@@ -184,7 +185,10 @@ def test_default_anony_credential(single_node: Cluster) -> None:
     client.stop()
 
 
-def test_default_anony_credential_multi(multi_node: Cluster) -> None:
+def test_default_anony_credential_multi(
+    multi_node: Cluster,
+    sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     This test sends a negotiation request without prior authentication
     for a multi-node cluster.
