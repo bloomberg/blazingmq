@@ -184,14 +184,11 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
   public:
     // CREATORS
 
-    /// Create an instance of virtual storage catalog associated with the
-    /// specified `storage`.  Use the specified `queueStats_sp` to collect
-    /// metrics for the associated queue.  Use the specified `allocator` for
-    /// all memory allocations.
-    explicit VirtualStorageCatalog(
-        mqbi::Storage*                                    storage,
-        const bsl::shared_ptr<mqbstat::QueueStatsDomain>& queueStats_sp,
-        bslma::Allocator*                                 allocator);
+    /// Create an instance of virtual storage catalog.
+    /// @param storage Storage associated with this catalog.
+    /// @param allocator Allocator to use.
+    explicit VirtualStorageCatalog(mqbi::Storage*    storage,
+                                   bslma::Allocator* allocator);
 
     /// Destructor
     ~VirtualStorageCatalog();
@@ -310,6 +307,9 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// 'appKey'.
     VirtualStorage* virtualStorage(const mqbu::StorageKey& appKey);
 
+    /// @return Stat context associated with this storage.
+    bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats();
+
     /// (Auto)Confirm the specified 'msgGUID' for the specified 'appKey'.
     /// Behavior is undefined unless there is an App with the 'appKey'.
     void autoConfirm(mqbi::DataStreamMessage* dataStreamMessage,
@@ -389,6 +389,12 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
 // class VirtualStorageCatalog
 // ---------------------------
 
+inline bsl::shared_ptr<mqbstat::QueueStatsDomain>&
+VirtualStorageCatalog::stats()
+{
+    return d_queueStats_sp;
+}
+
 inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
 {
     if (maxDeliveryAttempts > 0) {
@@ -402,11 +408,6 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
 inline void VirtualStorageCatalog::configureAsProxy()
 {
     d_isProxy = true;
-}
-
-inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
-{
-    d_queue_p = queue;
 }
 
 // ACCESSORS
