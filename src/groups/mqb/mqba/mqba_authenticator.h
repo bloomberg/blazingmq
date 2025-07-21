@@ -187,10 +187,22 @@ class Authenticator : public mqbnet::Authenticator {
     void reauthenticate(const AuthenticationContextSp&         context,
                         const bsl::shared_ptr<bmqio::Channel>& channel);
 
+    /// Close the specified `channel` with an error code and name
+    /// indicating the re-authentication error or authentication timeout.
     void reauthenticateErrorOrTimeout(
-        int                                    errorCode,
-        bsl::string_view                       errorName,
+        const int                              errorCode,
+        const bsl::string&                     errorName,
         const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Process the authentication request in `request` and store the
+    /// result in `response`.  Return 0 on success, or a non-zero error
+    /// code and populate `error` with a description of the error otherwise.
+    int processAuthentication(
+        bsl::string&                             error,
+        bmqp_ctrlmsg::AuthenticateResponse*      response,
+        const bmqp_ctrlmsg::AuthenticateRequest& request,
+        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        const AuthenticationContextSp&           authenticationContext);
 
   public:
     // TRAITS
