@@ -1279,16 +1279,28 @@ void StorageManager::do_closeRecoveryFileSet(const PartitionFSMArgsSp& args)
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    const int rc = d_recoveryManager_mp->closeRecoveryFileSet(partitionId);
-    if (rc != 0) {
-        // TBD: Is it safe to continue if we failed to closed recovery file
-        // set?
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Failure while closing recovery file set"
-                       << ", rc: " << rc;
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs->config().partitionId() == partitionId);
+    if (fs->isOpen()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Since FileStore is already open, we can deduce that "
+                      << "we didn't need to open recovery file set earlier, "
+                      << "so there is no need to close now.";
 
         return;  // RETURN
+    }
+
+    const int rc = d_recoveryManager_mp->closeRecoveryFileSet(partitionId);
+    if (rc != 0) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Failure while closing recovery file set, rc: " << rc
+            << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
     }
 }
 
