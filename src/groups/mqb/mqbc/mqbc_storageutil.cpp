@@ -1268,10 +1268,9 @@ int StorageUtil::assignPartitionDispatcherThreads(
 }
 
 void StorageUtil::clearPrimaryForPartition(
-    mqbs::FileStore*   fs,
-    PartitionInfo*     partitionInfo,
-    const bsl::string& clusterDescription,
-
+    mqbs::FileStore*     fs,
+    PartitionInfo*       partitionInfo,
+    const bsl::string&   clusterDescription,
     int                  partitionId,
     mqbnet::ClusterNode* primary)
 {
