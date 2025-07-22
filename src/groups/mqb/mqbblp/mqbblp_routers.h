@@ -155,7 +155,6 @@
 /// NOT Thread-Safe.
 
 // MQB
-#include <mqbblp_messagegroupidhelper.h>
 #include <mqbcmd_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
