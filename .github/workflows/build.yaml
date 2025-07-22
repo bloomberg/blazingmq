@@ -198,7 +198,7 @@ jobs:
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ret=${{ github.workspace }}/src/integration-tests/run-tests \
+          ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
@@ -209,12 +209,7 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             --durations=0                       \
-            -n logical -v -rs
-          if [ "$ret" = 5 ]; then
-            echo "No tests collected. Exiting with 0."
-            exit 0
-          fi
-          exit "$ret"
+            -n logical -v -rs || [ $? -eq 5 ]
       - name: Print core information
         if: failure()
         run: |
