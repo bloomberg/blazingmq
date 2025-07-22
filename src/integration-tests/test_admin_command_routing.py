@@ -22,6 +22,8 @@ This test suite does not concern itself with verifying the functional details
 of commands; only that they get routed to the proper nodes.
 """
 
+import pytest
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -30,7 +32,6 @@ from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 import json
 import multiprocessing.pool
-import pytest
 
 pytest.skip(
     "Skip admin command routing tests until admin command routing is re-enabled",
