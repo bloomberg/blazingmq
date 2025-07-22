@@ -147,8 +147,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
         // continue the delivery from the queue position in the stream.
         // Cannot rely on 'LocalQueue' calling 'afterNewMessage' since it turns
         // off 'd_hasNewMessages'.  Just call it explicitly.
-        const bmqt::MessageGUID dummy;
-        afterNewMessage(dummy, 0);
+        afterNewMessage();
     }
 }
 
@@ -1281,9 +1280,7 @@ void RootQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
     }
 }
 
-void RootQueueEngine::afterNewMessage(
-    BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLA_UNUSED mqbi::QueueHandle* source)
+void RootQueueEngine::afterNewMessage()
 {
     // executed by the *QUEUE DISPATCHER* thread
 
