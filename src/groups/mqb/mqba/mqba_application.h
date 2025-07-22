@@ -136,7 +136,7 @@ class Application {
 
     BlobSpPool d_blobSpPool;
 
-    bdlma::ConcurrentPool d_pushElementsPool;
+    bsl::shared_ptr<bdlma::ConcurrentPool> d_pushElementsPool_sp;
 
     /// Stat context of the counting allocators, if used.
     bmqst::StatContext* d_allocatorsStatContext_p;
