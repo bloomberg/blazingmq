@@ -75,7 +75,11 @@ namespace mqbblp {
 struct RelayQueueEngine_AppState;
 
 /// The ordered sequence of GUIDs for one-time delivery.
-struct PushStream {
+class PushStream {
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(PushStream, bslma::UsesBslmaAllocator)
+
     // forward declaration
     struct Element;
 
@@ -203,7 +207,8 @@ struct PushStream {
     // CREATORS
     /// @brief Construct this object.
     /// @param pushElementsPool_sp The shared push element pool used to supply
-    ///        objects to this PushStream.  Must be not null.
+    ///        objects to this PushStream.  If the provided pointer is null,
+    ///        create its own object pool.
     /// @param allocator The allocator to use.
     explicit PushStream(
         const bsl::shared_ptr<bdlma::ConcurrentPool>& pushElementsPool_sp,

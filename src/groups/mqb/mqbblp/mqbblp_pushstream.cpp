@@ -35,7 +35,14 @@ PushStream::PushStream(
     bslma::Allocator*                             allocator)
 : d_stream(allocator)
 , d_apps(allocator)
-, d_pushElementsPool_sp(pushElementsPool_sp)
+, d_pushElementsPool_sp(
+      pushElementsPool_sp
+          ? pushElementsPool_sp
+          : bsl::allocate_shared<bdlma::ConcurrentPool>(allocator,
+                                                        sizeof(Element),
+                                                        allocator))
+// ConcurrentPool doesn't have allocator traits, have to pass allocator
+// twice
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_pushElementsPool_sp);

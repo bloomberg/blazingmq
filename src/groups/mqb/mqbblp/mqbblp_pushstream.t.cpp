@@ -44,7 +44,8 @@ static void test1_basic()
     bsl::shared_ptr<bdlma::ConcurrentPool> pushElementsPool(
         bsl::allocate_shared<bdlma::ConcurrentPool>(
             bmqtst::TestHelperUtil::allocator(),
-            sizeof(mqbblp::PushStream::Element)));
+            sizeof(mqbblp::PushStream::Element),
+            bmqtst::TestHelperUtil::allocator()));
 
     mqbblp::PushStream                                 ps(pushElementsPool,
                           bmqtst::TestHelperUtil::allocator());
@@ -74,7 +75,8 @@ static void test2_iterations()
     bsl::shared_ptr<bdlma::ConcurrentPool> pushElementsPool(
         bsl::allocate_shared<bdlma::ConcurrentPool>(
             bmqtst::TestHelperUtil::allocator(),
-            sizeof(mqbblp::PushStream::Element)));
+            sizeof(mqbblp::PushStream::Element),
+            bmqtst::TestHelperUtil::allocator()));
 
     mqbblp::PushStream ps(pushElementsPool,
                           bmqtst::TestHelperUtil::allocator());

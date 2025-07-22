@@ -163,7 +163,10 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                d_allocators.get("BlobSpPool"))
 , d_pushElementsPool_sp(bsl::allocate_shared<bdlma::ConcurrentPool>(
       d_allocators.get("PushElementsPool"),
-      sizeof(mqbblp::PushStream::Element)))
+      sizeof(mqbblp::PushStream::Element),
+      d_allocators.get("PushElementsPool")))
+// ConcurrentPool doesn't have allocator class trait, have to pass
+// allocator twice.
 , d_allocatorsStatContext_p(allocatorsStatContext)
 , d_pluginManager_mp()
 , d_statController_mp()
