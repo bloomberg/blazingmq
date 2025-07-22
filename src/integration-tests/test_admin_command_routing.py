@@ -30,9 +30,15 @@ from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 import json
 import multiprocessing.pool
+import pytest
+
+pytest.skip(
+    "Skip admin command routing tests until admin command routing is re-enabled",
+    allow_module_level=True,
+)
 
 
-def test_primary_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
+def test_primary_rerouting(multi_node: Cluster) -> None:
     """
     Test: commands intended only for primary node are automatically routed to
           primary node and response it sent back when executed from non-primary
@@ -48,11 +54,6 @@ def test_primary_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> N
     - CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
     - CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE
     """
-
-    # TODO Skip admin command routing tests until admin command routing is re-enabled
-    return
-
-    du = domain_urls
 
     admin = AdminClient()
 
@@ -115,7 +116,7 @@ def test_primary_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> N
     admin.stop()
 
 
-def test_cluster_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
+def test_cluster_rerouting(multi_node: Cluster) -> None:
     """
     Test: commands intended for cluster are routed to all nodes in the cluster
           regardless of the node the command is initially sent to
@@ -132,11 +133,6 @@ def test_cluster_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> N
     - CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <param> <value>
     - CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <param> <value>
     """
-
-    # TODO Skip admin command routing tests until admin command routing is re-enabled
-    return
-
-    du = domain_urls
 
     admin = AdminClient()
 
@@ -190,7 +186,7 @@ def test_cluster_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> N
     admin.stop()
 
 
-def test_multi_response_encoding(multi_node: Cluster, domain_urls: tc.DomainUrls):
+def test_multi_response_encoding(multi_node: Cluster):
     """
     Test: JSON encoding options work with multiple responses (when routing to
           multiple nodes)
@@ -205,11 +201,6 @@ def test_multi_response_encoding(multi_node: Cluster, domain_urls: tc.DomainUrls
     Stage 3: Test pretty json formatting
 
     """
-
-    # TODO Skip admin command routing tests until admin command routing is re-enabled
-    return
-
-    du = domain_urls
 
     def is_compact(json_str: str) -> bool:
         return "    " not in json_str
@@ -277,8 +268,6 @@ def test_concurrently_routed_commands(multi_node: Cluster, domain_urls: tc.Domai
     Stage 2: Issue command in parallel
     Stage 3: Expect
     """
-    # TODO Skip admin command routing tests until admin command routing is re-enabled
-    return
 
     # Connect a client to each node in the cluster
     clients = []

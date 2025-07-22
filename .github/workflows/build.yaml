@@ -163,7 +163,7 @@ jobs:
       matrix:
         mode: ["legacy_mode", "fsm_mode"]
         cluster: ["single", "multi"]
-        consistency: ["eventual_consistency", "strong_consistency"]
+        consistency: ["eventual_consistency", "strong_consistency", "not (eventual_consistency or strong_consistency)"]
       fail-fast: false
     runs-on: ubuntu-latest
     needs: build_ubuntu
@@ -198,7 +198,7 @@ jobs:
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ${{ github.workspace }}/src/integration-tests/run-tests \
+          ret=${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
@@ -209,8 +209,12 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             --durations=0                       \
-            -n logical -v
-
+            -n logical -v -rs
+          if [ "$ret" = 5 ]; then
+            echo "No tests collected. Exiting with 0."
+            exit 0
+          fi
+          exit "$ret"
       - name: Print core information
         if: failure()
         run: |
@@ -255,7 +259,7 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
-      
+
       - name: Setup core_pattern
         run: |
           sudo mkdir /cores
@@ -267,7 +271,7 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
-      
+
       - name: Print core information
         if: failure()
         run: |
