@@ -563,7 +563,7 @@
         <element name='primaryStatusAdvisory'           type='tns:PrimaryStatusAdvisory'/>
         <element name='clusterSyncRequest'              type='tns:DummyType'/>
         <element name='clusterSyncResponse'             type='tns:DummyType'/>
-        <element name='queueUnassignedAdvisory'         type='tns:DummyType'/>        
+        <element name='queueUnassignedAdvisory'         type='tns:DummyType'/>
         <element name='queueUnAssignmentAdvisory'       type='tns:QueueUnAssignmentAdvisory'/>
         <element name='leaderAdvisoryAck'               type='tns:LeaderAdvisoryAck'/>
         <element name='leaderAdvisoryCommit'            type='tns:LeaderAdvisoryCommit'/>
@@ -1751,7 +1751,8 @@
         lifetimeMs.: The duration (in milliseconds) the client's session is
                      valid for. The client must reauthenticate before the
                      lifetime expires or it will be disconnected.
-                     The session lifetime is undefined if this value is unset.
+                     The session lifetime is valid indefinitely if this value
+                     is unset.
       </documentation>
     </annotation>
     <sequence>
