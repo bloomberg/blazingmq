@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbblp_recoverymanager.cpp                                         -*-C++-*-
+#include <bsls_assert.h>
 #include <mqbblp_recoverymanager.h>
 
 #include <mqbscm_version.h>
@@ -693,6 +694,12 @@ void RecoveryManager::partitionSyncCleanupDispatched(int partitionId)
 
     BSLS_ASSERT_SAFE(0 == fti.aliasedChunksCount());
     BSLS_ASSERT_SAFE(true == fti.areFilesMapped());
+
+    BALL_LOG_INFO << "For Partition [" << partitionId << "], "
+                  << "closing one or more partition files "
+                  << "[journalFd: " << fti.journalFd().fd()
+                  << ", dataFd: " << fti.dataFd().fd()
+                  << ", qlistFd: " << fti.qlistFd().fd();
 
     int rc = mqbs::FileStoreUtil::closePartitionSet(&fti.dataFd(),
                                                     &fti.journalFd(),
@@ -2692,8 +2699,20 @@ void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      static_cast<unsigned int>(partitionId) <
                          d_primarySyncContexts.size());
+    BSLS_ASSERT_SAFE(responder);
 
     PrimarySyncContext& primarySyncCtx = d_primarySyncContexts[partitionId];
+    if (!primarySyncCtx.primarySyncInProgress()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: received partition sync data response : "
+                      << context->response()
+                      << " from: " << responder->nodeDescription()
+                      << " for request: " << context->request()
+                      << ", but partition is no longer waiting to sync. "
+                      << "Ignoring this response.";
+        return;  // RETURN
+    }
 
     const bmqp_ctrlmsg::PartitionSyncDataQuery& req =
         context->request()
