@@ -34,6 +34,36 @@ from blazingmq.dev.it.util import wait_until
 
 NEW_VERSION_SUFFIX = "NEW_VERSION"
 CONSUMER_WAIT_TIMEOUT_SEC = 60
+LEADER_STARTUP_WAIT_DURATION_MS = 5000
+
+
+def update_leader_config_and_start_cluster(multi7_node: Cluster):
+    """
+    Modify cluster config for the leader node "east1".
+    Set startupWaitDurationMs to smaller value then default 60000 ms
+    to make "east1" the source of truth during partitions recovery.
+    """
+
+    for broker_name, broker_config in multi7_node.config.nodes.items():
+        if broker_name != "east1":
+            continue
+
+        path = multi7_node.work_dir.joinpath(broker_config.config_dir, "clusters.json")
+
+        with open(
+            path,
+            "r+",
+            encoding="utf-8",
+        ) as f:
+            data = json.load(f)
+            data["myClusters"][0]["partitionConfig"]["syncConfig"][
+                "startupWaitDurationMs"
+            ] = LEADER_STARTUP_WAIT_DURATION_MS
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+
+    multi7_node.start(wait_leader=True, wait_ready=True)
 
 
 def disable_exit_code_check(cluster: Cluster):
@@ -80,9 +110,12 @@ class MessagesCounter:
         ), f"Consumer did not receive message {self.number_posted} after confirm"
 
 
-@start_cluster(start=True, wait_leader=True, wait_ready=True)
+@start_cluster(False)
+@tweak.cluster.partition_config.sync_config.startup_wait_duration_ms(60000)
 def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test start, stop, update broker version for all nodes and restart."""
+
+    update_leader_config_and_start_cluster(multi7_node)
 
     uri_priority = domain_urls.uri_priority
 
@@ -102,7 +135,7 @@ def test_redeploy_basic(multi7_node: Cluster, domain_urls: tc.DomainUrls):
 
     # Stop all nodes
     disable_exit_code_check(multi7_node)
-    multi7_node.stop_nodes()
+    multi7_node.stop_nodes(prevent_leader_bounce=True)
 
     # Update env var for all node, i.e. BLAZINGMQ_BROKER_{NAME}
     # to the value stored in BLAZINGMQ_BROKER_NEW_VERSION
@@ -126,29 +159,7 @@ def test_redeploy_whole_cluster_restart(
     Every time a node is upgraded, all the nodes are restarted.
     """
 
-    # Modify cluster config for the leader node "east1".
-    # Set startupWaitDurationMs to 5000 ms (smaller then default 60000 ms)
-    # to make "east1" the source of truth during partitions recovery.
-    for broker_name, broker_config in multi7_node.config.nodes.items():
-        if broker_name != "east1":
-            continue
-
-        path = multi7_node.work_dir.joinpath(broker_config.config_dir, "clusters.json")
-
-        with open(
-            path,
-            "r+",
-            encoding="utf-8",
-        ) as f:
-            data = json.load(f)
-            data["myClusters"][0]["partitionConfig"]["syncConfig"][
-                "startupWaitDurationMs"
-            ] = 5000
-            f.seek(0)
-            json.dump(data, f, indent=4)
-            f.truncate()
-
-    multi7_node.start(wait_leader=True, wait_ready=True)
+    update_leader_config_and_start_cluster(multi7_node)
 
     uri_priority = domain_urls.uri_priority
 
@@ -223,8 +234,8 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
         # Restart the stopped node
         broker.start()
         broker.wait_until_started()
-        # When updating just a single node, wait mechanism is not reliable
-        multi7_node.wait_status(wait_leader=False, wait_ready=False)
+        # Wait for the leader to be elected
+        multi7_node.wait_status(wait_leader=True, wait_ready=False)
 
         # Post and receive message after each redeploy
         messagesCounter.post_message(producer, uri_priority)
