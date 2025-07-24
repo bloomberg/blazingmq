@@ -1944,13 +1944,12 @@ bool ClusterQueueHelper::createQueue(
     const unsigned int upstreamQueueId = parameters.qId();
 
     if (result == mqbi::ClusterErrorCode::e_OK) {
-        BMQ_LOGTHROTTLE_INFO() 
-                           << d_cluster_p->description()
-                           << ": createQueue called [upstreamQueueId: "
-                           << upstreamQueueId
-                           << ", openQueueResponse: " << openQueueResponse
-                           << ", context.d_handleParameters: "
-                           << context->d_handleParameters << "]";
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": createQueue called [upstreamQueueId: " << upstreamQueueId
+            << ", openQueueResponse: " << openQueueResponse
+            << ", context.d_handleParameters: " << context->d_handleParameters
+            << "]";
 
         mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
             new (*d_allocator_p) mqbi::QueueHandle * (0),
@@ -2825,8 +2824,8 @@ void ClusterQueueHelper::configureQueueDispatched(
     if (state != SubQueueContext::k_OPEN) {
         BMQ_LOGTHROTTLE_WARN()
             << d_cluster_p->description()
-            << ": For a 'configureHandle' request, indicating "
-            << "success even though the upstream state is not OPEN (" << state
+            << ": For a 'configureHandle' request, indicating success even"
+            << " though the upstream state is not OPEN (" << state
             << "). Queue [" << uri << "], queueId [" << queueId
             << "], stream parameters: " << streamParameters;
         if (callback) {
@@ -2864,10 +2863,10 @@ void ClusterQueueHelper::configureQueueDispatched(
 
         BMQ_LOGTHROTTLE_WARN()
             << d_cluster_p->description()
-            << ": For a 'configureHandle' request, indicating "
-            << "success even though there is currently no upstream ("
-            << "or self is primary). Queue [" << uri << "], queueId ["
-            << queueId << "], stream parameters: " << streamParameters;
+            << ": For a 'configureHandle' request, indicating success even"
+            << " though there is currently no upstream (or self is primary)."
+            << " Queue [" << uri << "], queueId [" << queueId
+            << "], stream parameters: " << streamParameters;
 
         if (callback) {
             // Note that we use 'E_SUCCESS' for the category.  Perhaps a more
@@ -3040,9 +3039,9 @@ void ClusterQueueHelper::sendCloseQueueRequest(
 
         BMQ_LOGTHROTTLE_WARN()
             << d_cluster_p->description()
-            << ": For a 'releaseHandle' request, indicating "
-            << "success even though there is currently no upstream ("
-            << "or self is primary). Queue [" << handleParameters << "].";
+            << ": For a 'releaseHandle' request, indicating success even"
+            << " though there is currently no upstream (or self is primary)."
+            << " Queue [" << handleParameters << "].";
 
         if (callback) {
             // Note that we use 'E_SUCCESS' for the category.  Perhaps a more
