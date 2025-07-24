@@ -7,8 +7,6 @@ mqbblp_clusterstatemanager
 mqbblp_clusterstatemonitor
 mqbblp_domain
 mqbblp_localqueue
-mqbblp_messagegroupidhelper
-mqbblp_messagegroupidmanager
 mqbblp_pushstream
 mqbblp_queue
 mqbblp_queueconsumptionmonitor

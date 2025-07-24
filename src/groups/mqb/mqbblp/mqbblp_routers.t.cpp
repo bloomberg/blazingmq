@@ -208,14 +208,14 @@ test2_priority()
         bmqp_ctrlmsg::Expression(bmqtst::TestHelperUtil::allocator()),
         mqbblp::Routers::Expression());
 
-    mqbi::QueueHandle* handle = 0;
-    ++handle;
+    bsls::ObjectBuffer<mqbmock::QueueHandle> handle;
+
     const bmqp_ctrlmsg::StreamParameters streamParameters(
         bmqtst::TestHelperUtil::allocator());
     mqbblp::Routers::Consumers consumers(bmqtst::TestHelperUtil::allocator());
     const unsigned int         subQueueId           = 13;
     mqbblp::Routers::Consumers::SharedItem consumer = consumers.record(
-        handle,
+        handle.address(),
         mqbblp::Routers::Consumer(streamParameters,
                                   subQueueId,
                                   bmqtst::TestHelperUtil::allocator()));
@@ -223,7 +223,7 @@ test2_priority()
     mqbblp::Routers::Priority priority(bmqtst::TestHelperUtil::allocator());
 
     priority.d_subscribers.record(
-        handle,
+        handle.address(),
         mqbblp::Routers::Subscriber(consumer,
                                     bmqtst::TestHelperUtil::allocator()));
 }
@@ -475,7 +475,6 @@ test4_generate()
     bsl::string           appId("foo", bmqtst::TestHelperUtil::allocator());
     int                   priorityCount = 2;
     int                   priority      = 2;
-    mqbmock::QueueHandle* handle        = 0;
     unsigned int          subQueueId    = 13;
 
     in.appId() = appId;
@@ -499,10 +498,16 @@ test4_generate()
         }
     }
 
-    appContext
-        .load(++handle, &errorStream, subQueueId, upstreamSubQueueId, in, 0);
+    bsls::ObjectBuffer<mqbmock::QueueHandle> handle1, handle2;
+
+    appContext.load(handle1.address(),
+                    &errorStream,
+                    subQueueId,
+                    upstreamSubQueueId,
+                    in,
+                    0);
     BMQTST_ASSERT_EQ(errorStream.str(), "");
-    appContext.load(++handle,
+    appContext.load(handle2.address(),
                     &errorStream,
                     subQueueId + 1,
                     upstreamSubQueueId,

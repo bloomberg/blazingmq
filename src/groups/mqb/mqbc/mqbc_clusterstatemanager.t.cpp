@@ -469,6 +469,7 @@ struct Tester {
             }
         }
 
+        BSLS_ASSERT_OPT(highestLSNFollower);
         BSLS_ASSERT_OPT(highestLSNFollower->nodeId() !=
                         d_cluster_mp->netCluster().selfNodeId());
 
