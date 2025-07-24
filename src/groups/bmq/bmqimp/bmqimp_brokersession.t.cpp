@@ -3823,16 +3823,24 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
-    PVV_SAFE("Close unopened queue async");
-    int rc = obj.session().closeQueueAsync(pQueue, timeout);
+    int rc;
 
-    // Verify the result
-    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PVV_SAFE("Skip 'Close unopened queue async' for UBSan due to out of "
+                 "range enum value casting");
+    }
+    else {
+        PVV_SAFE("Close unopened queue async");
+        rc = obj.session().closeQueueAsync(pQueue, timeout);
 
-    PVV_SAFE("Waiting QUEUE_CLOSE_RESULT event...");
-    BMQTST_ASSERT(
-        obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
-                                  bmqt::CloseQueueResult::e_UNKNOWN_QUEUE));
+        // Verify the result
+        BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
+
+        PVV_SAFE("Waiting QUEUE_CLOSE_RESULT event...");
+        BMQTST_ASSERT(obj.verifyOperationResult(
+            bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
+            bmqt::CloseQueueResult::e_UNKNOWN_QUEUE));
+    }
 
     PVV_SAFE("Open the queue async");
     rc = obj.session().openQueueAsync(pQueue, timeout);
@@ -5039,13 +5047,19 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
     BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
-    PVV_SAFE("Step 5. Try to close the queue again");
-    rc = obj.session().closeQueue(pQueue, timeout);
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PVV_SAFE("Skip 'close the queue again' for UBSan due to out of range "
+                 "enum value casting");
+    }
+    else {
+        PVV_SAFE("Step 5. Try to close the queue again");
+        rc = obj.session().closeQueue(pQueue, timeout);
 
-    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_UNKNOWN_QUEUE);
+        BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_UNKNOWN_QUEUE);
 
-    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
+        BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+        BMQTST_ASSERT_EQ(pQueue->isValid(), false);
+    }
 
     PVV_SAFE("Step 6. Stop the session");
     BMQTST_ASSERT(obj.stop());
@@ -5875,7 +5889,11 @@ static void test25_sessionFsmTable()
         obj.onStartTimeout();
     }
 
-    {
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PVV_SAFE("Skip 'Start failure' for UBSan due to out of range enum "
+                 "value casting");
+    }
+    else {
         // STOPPED  -> STARTING
         tcpRc = 11;
 
@@ -6565,9 +6583,15 @@ static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 2. Open the first  queue");
     obj.openQueue(pQueue1, timeout);
 
-    PVV_SAFE("Step 3. Open the second queue and check the error");
-    int rc = obj.session().openQueue(pQueue2, timeout);
-    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_ALREADY_OPENED);
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PVV_SAFE(
+            "Skip 'Step 3' for UBSan due to out of range enum value casting");
+    }
+    else {
+        PVV_SAFE("Step 3. Open the second queue and check the error");
+        int rc = obj.session().openQueue(pQueue2, timeout);
+        BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_ALREADY_OPENED);
+    }
 
     BMQTST_ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_OPENED);
     BMQTST_ASSERT(pQueue1->isValid());
@@ -6655,9 +6679,16 @@ static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 2. Open the first  queue");
     obj.openQueue(pQueue1, timeout);
 
-    PVV_SAFE("Step 3. Open the second queue and check the error");
-    int rc = obj.session().openQueue(pQueue2, timeout);
-    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE);
+    if (bmqtst::TestHelperUtil::k_UBSAN) {
+        PVV_SAFE(
+            "Skip 'Step 3' for UBSan due to out of range enum value casting");
+    }
+    else {
+        PVV_SAFE("Step 3. Open the second queue and check the error");
+        int rc = obj.session().openQueue(pQueue2, timeout);
+        BMQTST_ASSERT_EQ(rc,
+                         bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE);
+    }
 
     BMQTST_ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_OPENED);
     BMQTST_ASSERT(pQueue1->isValid());
