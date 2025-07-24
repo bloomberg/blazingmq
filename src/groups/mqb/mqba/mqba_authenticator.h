@@ -249,6 +249,12 @@ class Authenticator : public mqbnet::Authenticator {
     int authenticationOutbound(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Cancel any reauthentication timer for the specified `context`.
+    /// This method is called when the channel is being closed, to ensure that
+    /// no reauthentication is attempted afterwards.
+    void cancelReauthenticationTimer(const AuthenticationContextSp& context)
+        BSLS_KEYWORD_OVERRIDE;
+
     /// ACCESSORS
 
     /// Return the anonymous credential used for authentication.
