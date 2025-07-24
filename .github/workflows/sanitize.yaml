@@ -1,8 +1,9 @@
 name: Sanitize
 
 on:
-  pull_request_review:
-    types: [submitted]
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
