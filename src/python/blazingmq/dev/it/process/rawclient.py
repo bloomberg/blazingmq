@@ -23,6 +23,7 @@ PURPOSE: Provide a BMQ raw client.
 import socket
 import json
 import base64
+from enum import Enum
 from typing import Optional, Union
 
 from blazingmq.schemas import broker
@@ -101,8 +102,10 @@ class RawClient:
 
         assert self._channel is not None
 
-        self._channel.send(message)
-        return self._receive_event()
+        try:
+            self._channel.send(message)
+        except Exception as e:
+            raise ConnectionError(f"Failed to send message: {e}")
 
     def _receive_event(self) -> tuple[bytes, bytes]:
         """
@@ -112,31 +115,62 @@ class RawClient:
         bytes at the end of the message.
         """
 
+        # Process the event header
+
         header_bytes = 8
-        header = self._channel.recv(header_bytes)
-        # The situation when the event header is not fully received with one
-        # 'recv' call is highly improbable.
 
-        if len(header) != header_bytes:
-            raise ConnectionError(
-                f"Failed to receive event header from the broker, "
-                f"expected {header_bytes} bytes, got {len(header)} bytes"
-            )
+        while True:
+            try:
+                # The situation when the event header is not fully received
+                # with one 'recv' call is highly improbable.
+                header = self._channel.recv(header_bytes)
+            except socket.timeout:
+                raise ConnectionError("Timeout while waiting for event header")
+            except Exception as e:
+                raise ConnectionError(f"Failed to receive event header: {e}")
+            if len(header) != header_bytes:
+                raise ConnectionError(
+                    f"Failed to receive event header from the broker, "
+                    f"expected {header_bytes} bytes, got {len(header)} bytes"
+                )
+            event_type = header[4] & 0b00111111
+            if event_type not in broker.EventType._value2member_map_:
+                raise ValueError(
+                    f"Unknown event type: {event_type}, "
+                    "expected one of the EventType values"
+                )
+            elif event_type != broker.EventType.HEARTBEAT_REQ:
+                print("Received event with type: ", broker.EventType(event_type).name)
+                break
+            else:
+                print("Received heartbeat request.")
 
-        message = b""
+        # Process the event body
+
+        message = bytearray()
 
         # The first 4 bytes of the message contain message full size in bytes.
         # See also: bmqp_protocol.h / EventHeader
         remaining = int.from_bytes(header[:4], "big") - header_bytes
         while remaining > 0:
             part = self._channel.recv(remaining)
-            remaining -= len(part)
+            if not part:
+                raise ConnectionError(
+                    "Connection closed by broker while receiving event body."
+                )
             message += part
+            remaining -= len(part)
 
-        padding_bytes = message[-1]
+        if len(message) < 1:
+            raise ConnectionError("Received empty message from the broker")
+
+        try:
+            padding_bytes = message[-1]
+        except IndexError:
+            raise ConnectionError("Received message too short to contain padding byte")
 
         # expect correct padding byte value
-        if padding_bytes < 1 or padding_bytes > 4:
+        if not (1 <= padding_bytes <= 4):
             raise ValueError(
                 f"Invalid padding bytes value: {padding_bytes}, "
                 "expected value in range [1, 4]"
@@ -192,9 +226,9 @@ class RawClient:
             auth_data.encode("utf-8")  # or "ascii" if you know it's ASCII
         ).decode("ascii")
 
-        response_header, response_body = self._send_raw(
-            self._wrap_authentication_event(auth_request)
-        )
+        self._send_raw(self._wrap_authentication_event(auth_request))
+        response_header, response_body = self._receive_event()
+
         response = self.decode_event_bytes(response_header, response_body)
         return response
 
@@ -207,8 +241,21 @@ class RawClient:
         raw_client_identity = broker.CLIENT_IDENTITY_SCHEMA
         raw_client_identity["clientIdentity"]["clientType"] = "E_TCPCLIENT"
 
-        _, response_body = self._send_raw(self._wrap_control_event(raw_client_identity))
+        self._send_raw(self._wrap_control_event(raw_client_identity))
+        _, response_body = self._receive_event()
+
         return json.loads(response_body)
+
+    def send_heartbeat_response(self) -> None:
+        """
+        Send a heartbeat response to the broker.
+        This is used to acknowledge the heartbeat request.
+        """
+        assert self._channel is not None
+
+        heartbeat_response = broker.HEARTBEAT_RESPONSE_SCHEMA
+
+        self._send_raw(self._wrap_control_event(heartbeat_response))
 
     def stop(self) -> None:
         """
