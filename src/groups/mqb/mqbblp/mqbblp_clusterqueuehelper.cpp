@@ -1848,9 +1848,13 @@ bool ClusterQueueHelper::createQueue(
                            d_clusterState_p->isSelfPrimary(pid);
     mqbi::Domain* domain = context->d_domain_p;
 
+    mqbi::ClusterErrorCode::Enum result = mqbi::ClusterErrorCode::e_OK;
+    bdlma::LocalSequentialAllocator<1024> la(d_allocator_p);
+    bmqu::MemOutStream                    errorDescription(&la);
+
     if (isPrimary) {
         // Make sure the Cluster state and the domain config agrees.
-        // If there are missing/extra Apps, repair the Cluste state with a
+        // If there are missing/extra Apps, repair the Cluster state with a
         // QueueUpdateAdvisory and wait for 'onQueueUpdated' to continue to
         // 'registerQueue'.
 
@@ -1863,17 +1867,22 @@ bool ClusterQueueHelper::createQueue(
               domain->config().mode());
 
         if (!removed.empty() || !added.empty()) {
-            // Add to 'd_pending' before calling 'updateAppIds' which can be
-            // both synchronous (legacy) and asynchronous (CSL)
+            // Add to 'd_pending' before calling 'updateAppIds' which is
+            // asynchronous (CSL commit)
             queueContext->d_liveQInfo.d_pending.push_back(context);
 
-            d_clusterStateManager_p->updateAppIds(added,
-                                                  removed,
-                                                  domain->name(),
-                                                  "");
-            // Cannot continue until 'onQueueUpdated'
+            result = d_clusterStateManager_p->updateAppIds(added,
+                                                           removed,
+                                                           domain->name(),
+                                                           "");
+            if (result == mqbi::ClusterErrorCode::e_OK) {
+                // Wait for 'onQueueUpdated'
 
-            return false;  // RETURN
+                return false;  // RETURN
+            }
+
+            // Fall through to the failure handling at the end of the method.
+            errorDescription << "failure updating Apps";
         }
     }
 
@@ -1881,76 +1890,74 @@ bool ClusterQueueHelper::createQueue(
         openQueueResponse.originalRequest().handleParameters();
     const unsigned int upstreamQueueId = parameters.qId();
 
-    BALL_LOG_INFO << d_cluster_p->description()
-                  << ": createQueue called [upstreamQueueId: "
-                  << upstreamQueueId
-                  << ", openQueueResponse: " << openQueueResponse << ", "
-                  << "context.d_handleParameters: "
-                  << context->d_handleParameters << "]";
+    if (result == mqbi::ClusterErrorCode::e_OK) {
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": createQueue called [upstreamQueueId: "
+                      << upstreamQueueId
+                      << ", openQueueResponse: " << openQueueResponse << ", "
+                      << "context.d_handleParameters: "
+                      << context->d_handleParameters << "]";
 
-    mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
-        new (*d_allocator_p) mqbi::QueueHandle * (0),
-        bdlf::BindUtil::bind(
-            &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
-            this,
-            bdlf::PlaceHolders::_1,  // queue handle*
-            context->d_handleParameters),
-        d_allocator_p);
+        mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
+            new (*d_allocator_p) mqbi::QueueHandle * (0),
+            bdlf::BindUtil::bind(
+                &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
+                this,
+                bdlf::PlaceHolders::_1,  // queue handle*
+                context->d_handleParameters),
+            d_allocator_p);
 
-    bdlma::LocalSequentialAllocator<1024> la(d_allocator_p);
-    bmqu::MemOutStream                    errorDescription(&la);
-    bmqp_ctrlmsg::Status                  status;
+        bsl::shared_ptr<mqbi::Queue> queue =
+            createQueueFactory(errorDescription, *context, openQueueResponse);
 
-    bsl::shared_ptr<mqbi::Queue> queue = createQueueFactory(errorDescription,
-                                                            *context,
-                                                            openQueueResponse);
+        if (queue) {
+            ++qinfo.d_numHandleCreationsInProgress;
 
-    if (queue) {
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-        status.code()     = 0;
-        status.message()  = "";
-        ++qinfo.d_numHandleCreationsInProgress;
+            if (bmqt::QueueFlagsUtil::isWriter(parameters.flags()) &&
+                !bmqt::QueueFlagsUtil::isReader(parameters.flags())) {
+                // Writer's configure request gets optimized out so notify the
+                // queue now.
+                bsls::Types::Uint64 genCount;
 
-        if (bmqt::QueueFlagsUtil::isWriter(parameters.flags()) &&
-            !bmqt::QueueFlagsUtil::isReader(parameters.flags())) {
-            // Writer's configure request gets optimized out so notify the
-            // queue now.
-            bsls::Types::Uint64 genCount;
-
-            if (!d_cluster_p->isRemote()) {
-                genCount = d_clusterState_p->partition(pid).primaryLeaseId();
+                if (!d_cluster_p->isRemote()) {
+                    genCount =
+                        d_clusterState_p->partition(pid).primaryLeaseId();
+                }
+                else {
+                    genCount = d_clusterData_p->electorInfo().electorTerm();
+                }
+                notifyQueue(queueContext,
+                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                            genCount,
+                            true,   // isOpen
+                            true);  // isWriterOnly
             }
-            else {
-                genCount = d_clusterData_p->electorInfo().electorTerm();
-            }
-            notifyQueue(queueContext,
-                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                        genCount,
-                        true,   // isOpen
-                        true);  // isWriterOnly
+
+            const unsigned int upstreamSubQueueId =
+                bmqp::QueueUtil::extractSubQueueId(parameters);
+
+            queue->getHandle(
+                context->d_clientContext,
+                context->d_handleParameters,
+                upstreamSubQueueId,
+                bdlf::BindUtil::bind(&ClusterQueueHelper::onGetQueueHandle,
+                                     this,
+                                     bdlf::PlaceHolders::_1,  // status
+                                     bdlf::PlaceHolders::_2,  // handle
+                                     context,
+                                     openQueueResponse,
+                                     confirmationCookie));
+
+            return true;  // RETURN
         }
-
-        const unsigned int upstreamSubQueueId =
-            bmqp::QueueUtil::extractSubQueueId(parameters);
-
-        queue->getHandle(
-            context->d_clientContext,
-            context->d_handleParameters,
-            upstreamSubQueueId,
-            bdlf::BindUtil::bind(&ClusterQueueHelper::onGetQueueHandle,
-                                 this,
-                                 bdlf::PlaceHolders::_1,  // status
-                                 bdlf::PlaceHolders::_2,  // handle
-                                 context,
-                                 openQueueResponse,
-                                 confirmationCookie));
-
-        return true;  // RETURN
+        // Fall through to the failure handling.
+        result = mqbi::ClusterErrorCode::e_UNKNOWN;
     }
 
-    // Failed to create/register the queue.
+    // Failed to update Apps or to create/register the queue.
+    bmqp_ctrlmsg::Status status(d_allocator_p);
     status.category() = bmqp_ctrlmsg::StatusCategory::E_UNKNOWN;
-    status.code()     = -1;
+    status.code()     = result;
     status.message().assign(errorDescription.str().data(),
                             errorDescription.str().length());
 
@@ -3671,16 +3678,30 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                             domain);
 
                         // Add to 'd_pendingUpdates' before calling
-                        // 'updateAppIds' which can be both synchronous
-                        // (legacy) and asynchronous (CSL)
+                        // 'updateAppIds' which is asynchronous (CSL commit)
                         liveQInfo.d_pendingUpdates.push_back(park);
 
-                        d_clusterStateManager_p->updateAppIds(added,
-                                                              removed,
-                                                              domain->name(),
-                                                              "");
-                        // Cannot continue until 'onQueueUpdated'
-                        // Send QueueUpdateAdvisory and _wait_ for commit
+                        mqbi::ClusterErrorCode::Enum result =
+                            d_clusterStateManager_p->updateAppIds(
+                                added,
+                                removed,
+                                domain->name(),
+                                "");
+
+                        if (mqbi::ClusterErrorCode::e_OK == result) {
+                            // Cannot continue until 'onQueueUpdated'
+                            // Send QueueUpdateAdvisory and _wait_ for commit
+                        }
+                        else {
+                            // An update error is CSL error (in
+                            // 'ClusterStateLedger::apply'). This queue cannot
+                            // convertToLocal
+                            // ('RootQueueEngine::initializeAppId' would assert
+                            // if there is no storage for some app).
+
+                            BSLS_ASSERT_SAFE(false && "Failure to update Apps "
+                                                      "before convertToLocal");
+                        }
                     }
                     else {
                         convertToLocal(queueContext, domain);
@@ -4335,9 +4356,6 @@ void ClusterQueueHelper::onQueueUpdated(
          cit != removedAppIds.cend();
          ++cit) {
         if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
-            // Note: In non-CSL mode, the queue deletion callback is
-            // invoked at replica nodes when they receive a queue deletion
-            // record from the primary in the partition stream.
             d_storageManager_p->unregisterQueueReplica(partitionId,
                                                        uri,
                                                        queueContext.key(),
@@ -6297,6 +6315,12 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
 
         // Apply 'QueueUnAssignmentAdvisory' to CSL
         d_clusterStateManager_p->unassignQueue(queueAdvisory);
+
+        // An unassignment error is CSL error (in 'ClusterStateLedger::apply').
+        // CSL error is critical but in this case we can ignore it.
+        // The queue gets removed from 'd_queue' in 'onQueueUnassigned' only.
+        // No more GC attempts since the state is 'k_UNASSIGNING'.
+        // Meaning, the queue is left until another primary GCs.
     }
 
     return rc_SUCCESS;  // RETURN

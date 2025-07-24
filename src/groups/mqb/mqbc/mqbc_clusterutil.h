@@ -261,14 +261,15 @@ struct ClusterUtil {
     /// Unregister the specified 'removed' and register the specified `added`
     /// for the specified  `domainName` and the specified `uri`.  if the `uri`
     /// is empty, update all queues in the domain.
-    static void updateAppIds(ClusterData*                    clusterData,
-                             ClusterStateLedger*             ledger,
-                             ClusterState&                   clusterState,
-                             const bsl::vector<bsl::string>& added,
-                             const bsl::vector<bsl::string>& removed,
-                             const bsl::string&              domainName,
-                             const bsl::string&              uri,
-                             bslma::Allocator*               allocator);
+    static mqbi::ClusterErrorCode::Enum
+    updateAppIds(ClusterData*                    clusterData,
+                 ClusterStateLedger*             ledger,
+                 ClusterState&                   clusterState,
+                 const bsl::vector<bsl::string>& added,
+                 const bsl::vector<bsl::string>& removed,
+                 const bsl::string&              domainName,
+                 const bsl::string&              uri,
+                 bslma::Allocator*               allocator);
 
     /// Send the current cluster state to follower nodes.  If the specified
     /// `sendPartitionPrimaryInfo` is true, the specified partition-primary

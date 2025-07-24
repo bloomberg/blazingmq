@@ -33,6 +33,7 @@
 
 // MQB
 
+#include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbu_storagekey.h>
 
@@ -212,13 +213,15 @@ class ClusterStateManager {
 
     /// Unregister the specified 'removed' and register the specified `added`
     /// for the specified  `domainName` and optionally specified `uri`.
+    /// Return `0` on success.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void updateAppIds(const bsl::vector<bsl::string>& added,
-                              const bsl::vector<bsl::string>& removed,
-                              const bsl::string&              domainName,
-                              const bsl::string&              uri) = 0;
+    virtual mqbi::ClusterErrorCode::Enum
+    updateAppIds(const bsl::vector<bsl::string>& added,
+                 const bsl::vector<bsl::string>& removed,
+                 const bsl::string&              domainName,
+                 const bsl::string&              uri) = 0;
 
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.

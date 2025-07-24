@@ -633,12 +633,10 @@ class ClusterState {
     /// Assign the queue with the values (such as `uri`, `key`, `partitionId`)
     /// from the specified `queueInfo`, and register the `appIdInfos` from the
     /// `queueInfo` to the queue.
-    /// If the queue already appears in cluster state, return false.  Else,
-    /// return true.
     ///
     /// THREAD: This method should only be called from the associated
     /// cluster's dispatcher thread.
-    bool assignQueue(const bmqp_ctrlmsg::QueueInfo& queueInfo);
+    void assignQueue(const bmqp_ctrlmsg::QueueInfo& queueInfo);
 
     /// Un-assign the queue with the specified `uri`.  Return true if
     /// successful, or false if the queue does not exist.
