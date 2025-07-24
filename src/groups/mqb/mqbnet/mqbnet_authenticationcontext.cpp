@@ -21,6 +21,8 @@
 #include <mqbnet_initialconnectioncontext.h>
 
 // BDE
+#include <bsla_annotations.h>
+#include <bslmt_lockguard.h>
 #include <bsls_atomic.h>
 
 namespace BloombergLP {
@@ -33,14 +35,30 @@ namespace mqbnet {
 AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    bmqp::EncodingType::Enum                   authenticationEncodingType,
+    const ReauthenticateCb&                    reauthenticateCb,
     State                                      state,
-    ConnectionType::Enum                       connectionType)
-: d_initialConnectionContext_p(initialConnectionContext)
+    ConnectionType::Enum                       connectionType,
+    BSLA_UNUSED bslma::Allocator* allocator)
+: d_authenticationResultSp()
+, d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
+, d_timeoutHandle()
+, d_authenticationEncodingType(authenticationEncodingType)
+, d_reauthenticateCb(reauthenticateCb)
 , d_state(state)
 , d_connectionType(connectionType)
 {
     // NOTHING
+}
+
+AuthenticationContext& AuthenticationContext::setAuthenticationResult(
+    const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+
+    d_authenticationResultSp = value;
+    return *this;
 }
 
 AuthenticationContext& AuthenticationContext::setInitialConnectionContext(
@@ -57,6 +75,20 @@ AuthenticationContext& AuthenticationContext::setAuthenticationMessage(
     return *this;
 }
 
+AuthenticationContext& AuthenticationContext::setAuthenticationEncodingType(
+    bmqp::EncodingType::Enum value)
+{
+    d_authenticationEncodingType = value;
+    return *this;
+}
+
+AuthenticationContext&
+AuthenticationContext::setAuthenticateCb(const ReauthenticateCb& value)
+{
+    d_reauthenticateCb = value;
+    return *this;
+}
+
 bsls::AtomicInt& AuthenticationContext::state()
 {
     return d_state;
@@ -67,6 +99,14 @@ AuthenticationContext::setConnectionType(ConnectionType::Enum value)
 {
     d_connectionType = value;
     return *this;
+}
+
+const bsl::shared_ptr<mqbplug::AuthenticationResult>&
+AuthenticationContext::authenticationResult() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+
+    return d_authenticationResultSp;
 }
 
 InitialConnectionContext*
@@ -81,9 +121,31 @@ AuthenticationContext::authenticationMessage() const
     return d_authenticationMessage;
 }
 
+bmqp::EncodingType::Enum
+AuthenticationContext::authenticationEncodingType() const
+{
+    return d_authenticationEncodingType;
+}
+
+const AuthenticationContext::ReauthenticateCb&
+AuthenticationContext::reauthenticateCb() const
+{
+    return d_reauthenticateCb;
+}
+
 ConnectionType::Enum AuthenticationContext::connectionType() const
 {
     return d_connectionType;
+}
+
+AuthenticationContext::EventHandle& AuthenticationContext::timeoutHandle()
+{
+    return d_timeoutHandle;
+}
+
+bslmt::Mutex& AuthenticationContext::timeoutHandleMutex()
+{
+    return d_timeoutHandleMutex;
 }
 
 }  // namespace mqbnet
