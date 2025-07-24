@@ -23,6 +23,7 @@
 #include <bsl_ostream.h>
 #include <bsla_annotations.h>
 #include <bslim_printer.h>
+#include <bslmt_lockguard.h>
 
 namespace BloombergLP {
 namespace mqbmock {
@@ -35,6 +36,7 @@ namespace mqbmock {
 Dispatcher::Dispatcher(bslma::Allocator* allocator)
 : d_inDispatcherThread(false)
 , d_eventsForClients(allocator)
+, d_mutex()
 , d_allocator_p(allocator)
 
 {
@@ -95,13 +97,13 @@ void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
                          BSLA_UNUSED mqbi::DispatcherClient* client,
                          BSLA_UNUSED mqbi::DispatcherEventType::Enum type)
 {
-    functor();
+    _execute(functor);
 }
 
 void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
                          BSLA_UNUSED const mqbi::DispatcherClientData& client)
 {
-    functor();
+    _execute(functor);
 }
 
 void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
@@ -109,11 +111,42 @@ void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
                          const mqbi::Dispatcher::VoidFunctor& doneCallback)
 {
     if (functor) {
-        functor();
+        _execute(functor);
     }
 
     if (doneCallback) {
-        doneCallback();
+        _execute(doneCallback);
+    }
+}
+
+void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
+{
+    bool run = false;
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
+
+        d_queue.push(functor);
+
+        if (1 == d_queue.size()) {
+            run = true;
+        }
+    }
+
+    while (run) {
+        mqbi::Dispatcher::VoidFunctor next;
+        {
+            bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
+
+            next = d_queue.front();
+
+            if (1 == d_queue.size()) {
+                run = false;
+            }
+
+            d_queue.pop();
+        }
+        next();
     }
 }
 
@@ -209,6 +242,11 @@ Dispatcher::_withEvent(const mqbi::DispatcherClient* client,
     EventGuard eventGuard;
     eventGuard.createInplace(d_allocator_p, this, client, event);
     return eventGuard;
+}
+
+bslmt::Mutex& Dispatcher::mutex()
+{
+    return d_mutex;
 }
 
 // ----------------------
