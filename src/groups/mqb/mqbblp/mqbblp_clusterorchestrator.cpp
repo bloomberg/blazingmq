@@ -840,6 +840,16 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
                     .choice()
                     .isClusterStateFSMMessageValue());
 
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Not processing cluster state FSM message : "
+                      << message << " from " << source->nodeDescription()
+                      << " since self is stopping";
+
+        return;  // RETURN
+    }
+
     typedef bmqp_ctrlmsg::ClusterStateFSMMessageChoice MsgChoice;  // shortcut
     switch (message.choice()
                 .clusterMessage()
