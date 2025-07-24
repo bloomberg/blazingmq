@@ -1073,12 +1073,7 @@ void QueueHandle::drop(bool doDeconfigure)
 
 void QueueHandle::clearClient(bool hasLostClient)
 {
-    // executed by the *CLIENT_DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clientContext_sp->client()->dispatcher()->inDispatcherThread(
-            d_clientContext_sp->client()));
+    // executed by *ANY* thread
 
     // Enqueue an event to process this event in the queue thread.
 
