@@ -33,9 +33,20 @@ class EventType(IntEnum):
     See also: bmqp::EventType
     """
 
-    CONTROL = 0x01
-    PUT = 0x02
-    CONFIRM = 0x03
+    CONTROL = 1
+    PUT = 2
+    CONFIRM = 3
+    PUSH = 4
+    ACK = 5
+    CLUSTER_STATE = 6
+    ELECTOR = 7
+    STORAGE = 8
+    RECOVERY = 9
+    PARTITION_SYNC = 10
+    HEARTBEAT_REQ = 11
+    HEARTBEAT_RSP = 12
+    REJECT = 13
+    REPLICATION_RECEIPT = 14
 
 
 class TypeSpecific(IntEnum):
@@ -141,3 +152,5 @@ ADMIN_COMMAND_SCHEMA: SchemaDescription = {
     "rId": 0,
     "adminCommand": {"command": "help"},
 }
+
+HEARTBEAT_RESPONSE_SCHEMA: SchemaDescription = {"heartbeatResponse": {}}
