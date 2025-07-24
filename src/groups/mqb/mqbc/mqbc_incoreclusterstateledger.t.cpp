@@ -493,6 +493,8 @@ struct Tester {
             }
         }
 
+        BSLS_ASSERT_OPT(blob);
+
         bdlbb::Blob record(d_cluster_mp->bufferFactory(),
                            bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&record, *blob, sizeof(bmqp::EventHeader));

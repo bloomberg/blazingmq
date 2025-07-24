@@ -118,7 +118,7 @@ jobs:
       - name: Print core information
         if: failure()
         run: |
-          sudo apt-get install -qy gdb
+          sudo apt-get update && sudo apt-get install -qy gdb
 
           python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
           --cores-dir=${{ github.workspace }}/src/integration-tests/failure-logs \
@@ -178,7 +178,7 @@ jobs:
       - name: Print core information
         if: failure()
         run: |
-          sudo apt-get install -qy gdb
+          sudo apt-get update && sudo apt-get install -qy gdb
 
           python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
           --cores-dir=/cores \
