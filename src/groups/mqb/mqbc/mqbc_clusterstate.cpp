@@ -726,6 +726,57 @@ void ClusterState::clear()
     d_cluster_p = 0;
 }
 
+/// TODO (FSM); remove after switching to FSM
+bool ClusterState::cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+    return d_doubleAssignments[partitionId].emplace(uri).second;
+}
+
+/// TODO (FSM); remove after switching to FSM
+void ClusterState::iterateDoubleAssignments(int                partitionId,
+                                            AssignmentVisitor& visitor)
+{
+    if (mqbs::DataStore::k_ANY_PARTITION_ID == partitionId) {
+        for (Assignments::const_iterator cit = d_doubleAssignments.cbegin();
+             cit != d_doubleAssignments.cend();
+             ++cit) {
+            iterateDoubleAssignments(cit, visitor);
+        }
+        d_doubleAssignments.clear();
+    }
+    else {
+        Assignments::const_iterator cit = d_doubleAssignments.find(
+            partitionId);
+        if (cit != d_doubleAssignments.cend()) {
+            iterateDoubleAssignments(cit, visitor);
+            d_doubleAssignments.erase(cit);
+        }
+    }
+}
+
+void ClusterState::iterateDoubleAssignments(
+    const Assignments::const_iterator& partitionAssignments,
+    AssignmentVisitor&                 visitor) const
+{
+    const bsl::unordered_set<bmqt::Uri>& uris = partitionAssignments->second;
+
+    for (bsl::unordered_set<bmqt::Uri>::const_iterator cit = uris.cbegin();
+         cit != uris.cend();
+         ++cit) {
+        const bmqt::Uri& problematicUri   = *cit;
+        const int        wrongPartitionId = partitionAssignments->first;
+
+        BALL_LOG_WARN << "Cluster [" << d_cluster_p->name()
+                      << "]: attempting to repair double assignment of queue '"
+                      << problematicUri
+                      << "' by unregistering it from the partition ["
+                      << wrongPartitionId << "].";
+
+        visitor(*cit, wrongPartitionId);
+    }
+}
+
 // --------------------------------
 // struct ClusterState::DomainState
 // --------------------------------

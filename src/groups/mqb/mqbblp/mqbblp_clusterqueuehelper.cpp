@@ -3579,6 +3579,20 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         d_clusterData_p->membership().selfNode();
     }
 
+    /// TODO (FSM); remove after switching to FSM
+    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimary) {
+        // Note that this fails if there are data
+        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &mqbi::StorageManager::unregisterQueue,
+                                  d_storageManager_p,
+                                  bdlf::PlaceHolders::_1,   // uri
+                                  bdlf::PlaceHolders::_2);  // partitionId),
+
+        d_clusterState_p->iterateDoubleAssignments(partitionId,
+                                                   doubleAssignmentVisitor);
+    }
+
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
          ++cit) {

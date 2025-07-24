@@ -1066,6 +1066,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster);
     BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
@@ -1128,6 +1129,16 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
                     << "].  PartitionId/QueueKey/AppInfos in storage ["
                     << partitionId << "], [" << queueKey << "], ["
                     << storageAppInfos << "]." << BMQTSK_ALARMLOG_END;
+
+                if (!cluster->isFSMWorkflow()) {
+                    // TODO (FSM); remove this code after switching to FSM
+
+                    // Cache and wait for primary to unregister the queue from
+                    // 'partitionId'
+
+                    clusterState->cacheDoubleAssignment(uri, partitionId);
+                }
+
                 return;  // RETURN
             }
 
@@ -1373,13 +1384,12 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 }
 
 void ClusterUtil::sendClusterState(
-    ClusterData*          clusterData,
-    ClusterStateLedger*   ledger,
-    mqbi::StorageManager* storageManager,
-    const ClusterState&   clusterState,
-    bool                  sendPartitionPrimaryInfo,
-    bool                  sendQueuesInfo,
-    mqbnet::ClusterNode*  node,
+    ClusterData*         clusterData,
+    ClusterStateLedger*  ledger,
+    const ClusterState&  clusterState,
+    bool                 sendPartitionPrimaryInfo,
+    bool                 sendQueuesInfo,
+    mqbnet::ClusterNode* node,
     const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions)
 {
     // executed by the cluster *DISPATCHER* thread
