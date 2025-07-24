@@ -1,0 +1,19 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "description": "Base configuration for a build of BlazingMQ",
+            "binaryDir": "cmake.bld",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BDE_BUILD_TARGET_SAFE": true,
+                "CMAKE_CXX_STANDARD": "17",
+                "BDE_BUILD_TARGET_CPP17": "17",
+                "CMAKE_INSTALL_LIBDIR": "lib64"
+            }
+        }
+    ]
+}

@@ -1,0 +1,143 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "gh-base",
+            "hidden": true,
+            "description": "GitHub Actions CI: Base configuration",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/blazingmq",
+            "cacheVariables": {
+                "BDE_BUILD_TARGET_SAFE": "ON",
+                "BDE_BUILD_TARGET_64": "ON",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_PREFIX_PATH":
+                    "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem"
+            }
+        },
+        {
+            "name": "fuzz-tests",
+            "description":
+                "Configuration for building fuzztests on x86_64-based Linux",
+            "binaryDir": "cmake.bld",
+            "cacheVariables": {
+                "DBDE_BUILD_TARGET_64": "1",
+                "DBDE_BUILD_TARGET_CPP20": "1",
+                "DBDE_BUILD_TARGET_SAFE": "1",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "1",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_INSTALL_LIBDIR": "lib64",
+                "CMAKE_CXX_STANDARD": "20",
+                "INSTALL_TARGETS": "fuzztests"
+            }
+        },
+        {
+            "name": "gh-build-ubuntu-latest-cpp17",
+            "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
+            "inherits": "gh-base",
+            "toolchainFile":
+                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+            "environment": {
+                "PKG_CONFIG_PATH":
+                    "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
+            },
+            "cacheVariables": {
+                "BDE_BUILD_TARGET_CPP17": "ON",
+                "CMAKE_INSTALL_LIBDIR": "lib64"
+            }
+        },
+        {
+            "name": "gh-prometheus-ubuntu-latest-cpp17",
+            "description":
+                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
+            "inherits": "gh-base",
+            "toolchainFile":
+                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+            "environment": {
+                "PKG_CONFIG_PATH":
+                    "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
+            },
+            "cacheVariables": {
+                "BDE_BUILD_TARGET_CPP17": "ON",
+                "CMAKE_INSTALL_LIBDIR": "lib64",
+                "INSTALL_TARGETS": "prometheus;bmqbrkr;bmqtool"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "gh-build-ubuntu-latest-cpp17",
+            "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "bmqbrkr",
+                "bmqtool",
+                "bmqstoragetool",
+                "all.t",
+                "all.it"
+            ]
+        },
+        {
+            "name": "gh-prometheus-ubuntu-latest-cpp17",
+            "description":
+                "GitHub Actions CI: Build with Prometheus plugin on ubuntu-latest, C++17",
+            "configurePreset": "gh-prometheus-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "bmqbrkr",
+                "bmqtool",
+                "bmqprometheus"
+            ]
+        },
+        {
+            "name": "gh-doxygen",
+            "description": "GitHub Actions CI: Build Doxygen Documentation",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "docs"
+            ]
+        },
+        {
+            "name": "gh-doxygen-apidocs",
+            "description":
+                "GitHub Actions CI: Build Doxygen API Documentation",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "apidocs"
+            ]
+        },
+        {
+            "name": "gh-doxygen-internaldocs",
+            "description":
+                "GitHub Actions CI: Build Doxygen Internal Documentation",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "jobs": 8,
+            "targets": [
+                "internaldocs"
+            ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "gh-build-ubuntu-latest-cpp17",
+            "description":
+                "GitHub Actions CI: Unit tests on ubuntu-latest, C++17",
+            "configurePreset": "gh-build-ubuntu-latest-cpp17",
+            "filter": {
+                "include": {
+                    "label": "^unit$"
+                }
+            },
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false
+            }
+        }
+    ]
+}
