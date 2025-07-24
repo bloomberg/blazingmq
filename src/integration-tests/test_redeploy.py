@@ -234,8 +234,11 @@ def test_redeploy_one_by_one(multi7_node: Cluster, domain_urls: tc.DomainUrls):
         # Restart the stopped node
         broker.start()
         broker.wait_until_started()
-        # Wait for the leader to be elected
-        multi7_node.wait_status(wait_leader=True, wait_ready=False)
+
+        # Here we do not have to wait for leader election and cluster ready state,
+        # because we are restarting only one node
+        # so cluster is likely to stay in ready state
+        # and leader don't lose quorum.
 
         # Post and receive message after each redeploy
         messagesCounter.post_message(producer, uri_priority)
