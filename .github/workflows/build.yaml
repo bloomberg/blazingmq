@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/dependencies.yaml
 
   build_ubuntu:
-    name: Build [ubuntu]
+    name: Build and Unit Test [ubuntu]
     runs-on: ubuntu-latest
     needs: get_dependencies
     steps:
@@ -52,24 +52,20 @@ jobs:
         working-directory: deps
         run: ../docker/build_deps.sh
 
+      - name: Configure BlazingMQ
+        run: cmake --preset gh-build-ubuntu-latest-cpp17
+
       - name: Build BlazingMQ
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqstoragetool all.it
+        run: cmake --build --preset gh-build-ubuntu-latest-cpp17
+
+      - name: Run BlazingMQ Unit Tests
+        run: ctest --preset gh-build-ubuntu-latest-cpp17
 
       - name: Clean-up build directories before caching
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
+          find . -name "*.t" -type f -delete
 
       - uses: actions/cache@v4
         with:
@@ -78,58 +74,6 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
-
-  unit_tests_cxx:
-    name: UT [c++]
-    runs-on: ubuntu-latest
-    needs: get_dependencies
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
-
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
-
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh
-
-      - name: Build BlazingMQ UTs
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all.t
-
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure -L \^unit\$
 
   unit_tests_python:
     name: UT [python]
@@ -363,22 +307,13 @@ jobs:
         working-directory: deps
         run:  ${{ github.workspace }}/src/plugins/bmqprometheus/build_prometheus_deps.sh
 
-      - name: Build plugins
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-        run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64 \
-            -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
-          cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
+      - name: Configure BlazingMQ with Prometheus plugin
+        run: cmake --preset gh-prometheus-ubuntu-latest-cpp17
 
-      - name: Create prometheus dir
+      - name: Build BlazingMQ with Prometheus plugin
+        run: cmake --build --preset gh-prometheus-ubuntu-latest-cpp17
+
+      - name: Create Prometheus dir
         run:  mkdir -p prometheus_dir
 
       - name: Download Prometheus
@@ -405,23 +340,65 @@ jobs:
         run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker
 
   documentation:
-    name: "Documentation"
+    name: Build Doxygen documentation
     runs-on: ubuntu-latest
+    needs: get_dependencies
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: ${{ needs.get_dependencies.outputs.cache_key }}
 
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qy doxygen
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            doxygen \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
 
-      - name: Set up output directory
-        run: |
-          mkdir -p docs/docs/apidocs
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
 
-      - name: Build docs
-        run: |
-          doxygen Doxyfile
+      - name: Configure Doxygen documentation
+        run: cmake --preset gh-build-ubuntu-latest-cpp17
+
+      - name: Build Doxygen API documentation
+        run: cmake --build --preset gh-doxygen-apidocs
+
+      - name: Generate Doxygen API Documentation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}_apidocs
+          path: ${{ github.workspace }}/build/blazingmq/apidocs
+          compression-level: 9
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Build Doxygen Internal documentation
+        run: cmake --build --preset gh-doxygen-internaldocs
+
+      - name: Generate Doxygen Internal Documentation Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.run_id }}_internaldocs
+          path: ${{ github.workspace }}/build/blazingmq/internaldocs
+          compression-level: 9
+          overwrite: true
+          if-no-files-found: error
 
   shellcheck:
     name: Shellcheck
