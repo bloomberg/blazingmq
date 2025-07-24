@@ -119,6 +119,7 @@ int TransportManager::createAndStartTcpInterface(
         new (*alloc) TCPSessionFactory(config,
                                        d_scheduler_p,
                                        d_blobBufferFactory_p,
+                                       d_authenticator_mp.get(),
                                        d_initialConnectionHandler_mp.get(),
                                        d_statController_p,
                                        alloc),
