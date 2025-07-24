@@ -135,6 +135,38 @@ def test_authenticate_pass_concurrent(single_node: Cluster) -> None:
 )
 @libraries
 @config_authentication
+def test_reauthenticate_basic_pass(single_node: Cluster) -> None:
+    """
+    This test checks the behavior of re-authentication with Basic mechanism.
+    It simulates a scenario where the initial authentication is successful,
+    and a subsequent re-authentication with a change of credential successes.
+    """
+
+    # Start the raw client
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Pass: Sending authentication request with Basic mechanism
+    # and valid credentials
+    auth_resp = client.send_authentication_request("Basic", "user1:password1")
+    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+
+    # Pass: Sending negotiation request after authentication
+    nego_resp = client.send_negotiation_request()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    # Pass: Sending re-authentication request with valid credentials
+    auth_resp = client.send_authentication_request("Basic", "user1:password1")
+    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+
+    client.stop()
+
+
+@tweak.broker.app_config.plugins.enabled(
+    ["BasicAuthenticator"],
+)
+@libraries
+@config_authentication
 def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
     """
     This test checks the behavior of re-authentication with Basic mechanism.
