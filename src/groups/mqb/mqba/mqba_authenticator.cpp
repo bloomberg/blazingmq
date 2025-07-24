@@ -462,6 +462,11 @@ int Authenticator::processAuthentication(
             bslmt::LockGuard<bslmt::Mutex> lockGuard(
                 &authenticationContext->timeoutHandleMutex());  // MUTEX LOCKED
 
+            if (authenticationContext->timeoutHandle()) {
+                d_scheduler.cancelEvent(
+                    &authenticationContext->timeoutHandle());
+            }
+
             d_scheduler.scheduleEvent(
                 &authenticationContext->timeoutHandle(),
                 bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
@@ -584,6 +589,17 @@ int Authenticator::authenticationOutbound(
     BALL_LOG_ERROR << "Not Implemented";
 
     return -1;
+}
+
+void Authenticator::cancelReauthenticationTimer(
+    const AuthenticationContextSp& context)
+{
+    bslmt::LockGuard<bslmt::Mutex> lockGuard(
+        &context->timeoutHandleMutex());  // MUTEX LOCKED
+
+    if (context->timeoutHandle()) {
+        d_scheduler.cancelEvent(&context->timeoutHandle());
+    }
 }
 
 // ACCESSORS

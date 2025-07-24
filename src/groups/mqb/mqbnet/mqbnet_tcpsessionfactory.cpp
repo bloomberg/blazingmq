@@ -31,6 +31,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
+#include <mqbnet_authenticator.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
@@ -837,6 +838,12 @@ void TCPSessionFactory::onClose(
                       << d_nbActiveChannels << " active channels"
                       << ", status: " << status << "]";
 
+        // Disable reauthentication timer if there's any
+        if (channelInfo->d_authenticationCtx_sp) {
+            d_authenticator_p->cancelReauthenticationTimer(
+                channelInfo->d_authenticationCtx_sp);
+        }
+
         // TearDown the session
         int isBrokerShutdown = false;
         if (status.category() == bmqio::StatusCategory::e_SUCCESS) {
@@ -949,6 +956,7 @@ TCPSessionFactory::TCPSessionFactory(
     const mqbcfg::TcpInterfaceConfig& config,
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
+    Authenticator*                    authenticator,
     InitialConnectionHandler*         initialConnectionHandler,
     mqbstat::StatController*          statController,
     bslma::Allocator*                 allocator)
@@ -957,6 +965,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_config(config, allocator)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_authenticator_p(authenticator)
 , d_initialConnectionHandler_p(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpChannelFactory_mp()

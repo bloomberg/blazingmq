@@ -79,6 +79,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
+#include <mqbnet_authenticator.h>
 #include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
@@ -294,6 +295,9 @@ class TCPSessionFactory {
 
     /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
+
+    /// Authenticator to use for authentication
+    Authenticator* d_authenticator_p;
 
     /// Initial Connection Handler to use for orchestraing
     /// authentication and negotiation
@@ -526,6 +530,7 @@ class TCPSessionFactory {
     TCPSessionFactory(const mqbcfg::TcpInterfaceConfig& config,
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
+                      Authenticator*                    authenticator,
                       InitialConnectionHandler* initialConnectionHandler,
                       mqbstat::StatController*  statController,
                       bslma::Allocator*         allocator);
