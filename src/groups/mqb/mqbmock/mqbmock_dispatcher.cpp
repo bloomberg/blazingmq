@@ -37,6 +37,7 @@ Dispatcher::Dispatcher(bslma::Allocator* allocator)
 : d_inDispatcherThread(false)
 , d_eventsForClients(allocator)
 , d_mutex()
+, d_queue(allocator)
 , d_allocator_p(allocator)
 
 {
@@ -126,11 +127,12 @@ void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
     {
         bslmt::LockGuard<bslmt::Mutex> lock(&mutex());
 
-        d_queue.push(functor);
-
-        if (1 == d_queue.size()) {
+        if (d_queue.empty()) {
+            // The thread that pushes the first functor to the queue
+            // will try to process this queue.
             run = true;
         }
+        d_queue.push(functor);
     }
 
     while (run) {
@@ -140,11 +142,12 @@ void Dispatcher::_execute(const mqbi::Dispatcher::VoidFunctor& functor)
 
             next = d_queue.front();
 
-            if (1 == d_queue.size()) {
+            d_queue.pop();
+            if (d_queue.empty()) {
+                // There is nothing more to process, this thread can stop
+                // after calling the last functor.
                 run = false;
             }
-
-            d_queue.pop();
         }
         next();
     }
