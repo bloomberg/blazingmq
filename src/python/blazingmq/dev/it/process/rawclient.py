@@ -66,13 +66,11 @@ class RawClient:
     @staticmethod
     def _wrap_heartbeat_res_event() -> bytes:
         """
-        Wraps the specified 'payload' with EventHeader and adds padding to the
-        end. Returns the raw bytes heartbeat response event. Notice that heartbeat
-        response only has header and no body.
+        Wraps the heartbeat response event with EventHeader and returns the raw bytes.
+        Notice that heartbeat response only has header and no body.
 
         See also: bmqp::EventHeader
         """
-
         event_type = broker.EventType.HEARTBEAT_RSP
         type_specific = broker.TypeSpecific.EMPTY
 
@@ -101,9 +99,7 @@ class RawClient:
         Return the header and received event contents excluding event header and padding
         bytes at the end of the message.
         """
-
         # Process the event header
-
         header_bytes = 8
 
         while True:
