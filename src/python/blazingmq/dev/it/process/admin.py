@@ -28,7 +28,7 @@ from .rawclient import RawClient
 
 class AdminClient(RawClient):
     @classmethod
-    def _make_admin_command(self, message: str) -> bytes:
+    def _make_admin_command(cls, message: str) -> bytes:
         """
         Wraps the specified 'message' with admin command and returns it as raw
         bytes control message.
@@ -36,7 +36,7 @@ class AdminClient(RawClient):
         command = broker.ADMIN_COMMAND_SCHEMA
         command["adminCommand"]["command"] = message
 
-        return self._wrap_control_event(command)
+        return cls._wrap_control_event(command)
 
     def send_admin(self, admin_command: str) -> Union[dict, str]:
         """
