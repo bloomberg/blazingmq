@@ -342,6 +342,12 @@ class HumanReadablePrinter : public Printer {
     void
     printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE;
 
+    void printConfirmRecord(const RecordDetails<mqbs::ConfirmRecord>& rec)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void printDeletionRecord(const RecordDetails<mqbs::DeletionRecord>& rec)
+        const BSLS_KEYWORD_OVERRIDE;
+
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE;
 
@@ -353,10 +359,19 @@ class HumanReadablePrinter : public Printer {
 
     void printGuid(const bmqt::MessageGUID& guid) const BSLS_KEYWORD_OVERRIDE;
 
-    void printFooter(bsl::size_t                           foundMessagesCount,
+    void printFooter(bsls::Types::Uint64                   foundMessagesCount,
                      bsls::Types::Uint64                   foundQueueOpCount,
                      bsls::Types::Uint64                   foundJournalOpCount,
                      const Parameters::ProcessRecordTypes& processRecordTypes)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void printFooter(
+        bsls::Types::Uint64                   foundMessagesCount,
+        bsls::Types::Uint64                   foundConfirmCount,
+        bsls::Types::Uint64                   foundDeletionCount,
+        bsls::Types::Uint64                   foundQueueOpCount,
+        bsls::Types::Uint64                   foundJournalOpCount,
+        const Parameters::ProcessRecordTypes& processRecordTypes) 
         const BSLS_KEYWORD_OVERRIDE;
 
     void printOutstandingRatio(int         ratio,
@@ -421,6 +436,27 @@ void HumanReadablePrinter::printMessage(const MessageDetails& details) const
     d_ostream << "\n";
 }
 
+// TODO: make template?
+void HumanReadablePrinter::printConfirmRecord(
+    const RecordDetails<mqbs::ConfirmRecord>& rec) const
+{
+    d_ostream << "==============================\n\n";
+    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
+                                                       d_allocator_p);
+    printer.printRecordDetails(rec);
+    d_ostream << "\n";
+}
+
+void HumanReadablePrinter::printDeletionRecord(
+    const RecordDetails<mqbs::DeletionRecord>& rec) const
+{
+    d_ostream << "==============================\n\n";
+    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
+                                                       d_allocator_p);
+    printer.printRecordDetails(rec);
+    d_ostream << "\n";
+}
+
 void HumanReadablePrinter::printQueueOpRecord(
     const RecordDetails<mqbs::QueueOpRecord>& rec) const
 {
@@ -449,11 +485,11 @@ void HumanReadablePrinter::printGuidNotFound(
 
 void HumanReadablePrinter::printGuid(const bmqt::MessageGUID& guid) const
 {
-    d_ostream << guid << '\n';
+    d_ostream << guid << "\n\n";
 }
 
 void HumanReadablePrinter::printFooter(
-    bsl::size_t                           foundMessagesCount,
+    bsls::Types::Uint64                   foundMessagesCount,
     bsls::Types::Uint64                   foundQueueOpCount,
     bsls::Types::Uint64                   foundJournalOpCount,
     const Parameters::ProcessRecordTypes& processRecordTypes) const
@@ -476,6 +512,31 @@ void HumanReadablePrinter::printFooter(
             : d_ostream << "No journalOp record";
         d_ostream << " found.\n";
     }
+}
+
+void HumanReadablePrinter::printFooter(
+    bsls::Types::Uint64                   foundMessagesCount,
+    bsls::Types::Uint64                   foundConfirmCount,
+    bsls::Types::Uint64                   foundDeletionCount,
+    bsls::Types::Uint64                   foundQueueOpCount,
+    bsls::Types::Uint64                   foundJournalOpCount,
+    const Parameters::ProcessRecordTypes& processRecordTypes) const
+{
+    if (processRecordTypes.d_message) {
+        foundConfirmCount > 0
+            ? (d_ostream << foundConfirmCount << " confirm record(s)")
+            : d_ostream << "No confirm record";
+        d_ostream << " found.\n";
+        foundDeletionCount > 0
+            ? (d_ostream << foundDeletionCount << " deletion record(s)")
+            : d_ostream << "No deletion record";
+        d_ostream << " found.\n";
+    }
+
+    printFooter(foundMessagesCount,
+                      foundQueueOpCount,
+                      foundJournalOpCount,
+                      processRecordTypes);
 }
 
 void HumanReadablePrinter::printOutstandingRatio(
@@ -646,10 +707,19 @@ class JsonPrinter : public Printer {
     void printGuidNotFound(const bmqt::MessageGUID& guid) const
         BSLS_KEYWORD_OVERRIDE;
 
-    void printFooter(bsl::size_t                           foundMessagesCount,
+    void printFooter(bsls::Types::Uint64                   foundMessagesCount,
                      bsls::Types::Uint64                   foundQueueOpCount,
                      bsls::Types::Uint64                   foundJournalOpCount,
                      const Parameters::ProcessRecordTypes& processRecordTypes)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void printFooter(
+        bsls::Types::Uint64                   foundMessagesCount,
+        bsls::Types::Uint64                   foundConfirmCount,
+        bsls::Types::Uint64                   foundDeletionCount,
+        bsls::Types::Uint64                   foundQueueOpCount,
+        bsls::Types::Uint64                   foundJournalOpCount,
+        const Parameters::ProcessRecordTypes& processRecordTypes) 
         const BSLS_KEYWORD_OVERRIDE;
 
     void printOutstandingRatio(int         ratio,
@@ -744,14 +814,14 @@ void JsonPrinter::printGuidNotFound(const bmqt::MessageGUID& guid) const
 }
 
 void JsonPrinter::printFooter(
-    bsl::size_t                           foundMessagesCount,
+    bsls::Types::Uint64                   foundMessagesCount,
     bsls::Types::Uint64                   foundQueueOpCount,
     bsls::Types::Uint64                   foundJournalOpCount,
     const Parameters::ProcessRecordTypes& processRecordTypes) const
 {
     if (processRecordTypes.d_message) {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalMessages\": \"" << foundMessagesCount << "\"";
+        d_ostream << "  \"MessageRecords\": \"" << foundMessagesCount << "\"";
     }
     if (processRecordTypes.d_queueOp) {
         closeBraceIfOpen();
@@ -762,6 +832,27 @@ void JsonPrinter::printFooter(
         d_ostream << "  \"JournalOpRecords\": \"" << foundJournalOpCount
                   << "\"";
     }
+}
+
+void JsonPrinter::printFooter(
+    bsls::Types::Uint64                   foundMessagesCount,
+    bsls::Types::Uint64                   foundConfirmCount,
+    bsls::Types::Uint64                   foundDeletionCount,
+    bsls::Types::Uint64                   foundQueueOpCount,
+    bsls::Types::Uint64                   foundJournalOpCount,
+    const Parameters::ProcessRecordTypes& processRecordTypes) const
+{
+    if (processRecordTypes.d_message) {
+        closeBraceIfOpen();
+        d_ostream << "  \"ConfirmRecords\": \"" << foundConfirmCount << "\"";
+        RecordPrinter::printDelimeter<void>(d_ostream);        
+        d_ostream << "  \"DeletionRecords\": \"" << foundDeletionCount << "\"";
+    }
+
+    printFooter(foundMessagesCount, 
+                foundQueueOpCount,
+                foundJournalOpCount,
+                processRecordTypes);
 }
 
 void JsonPrinter::printOutstandingRatio(
@@ -876,6 +967,12 @@ class JsonPrettyPrinter : public JsonPrinter {
     void
     printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE;
 
+    void printConfirmRecord(const RecordDetails<mqbs::ConfirmRecord>& rec)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void printDeletionRecord(const RecordDetails<mqbs::DeletionRecord>& rec)
+        const BSLS_KEYWORD_OVERRIDE;
+
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE;
 
@@ -914,6 +1011,26 @@ void JsonPrettyPrinter::printMessage(const MessageDetails& details) const
     printMessageDetails<bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
                                                               details,
                                                               d_allocator_p);
+}
+
+void JsonPrettyPrinter::printConfirmRecord(
+    const RecordDetails<mqbs::ConfirmRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
+}
+
+void JsonPrettyPrinter::printDeletionRecord(
+    const RecordDetails<mqbs::DeletionRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
 }
 
 void JsonPrettyPrinter::printQueueOpRecord(
@@ -988,6 +1105,12 @@ class JsonLinePrinter : public JsonPrinter {
     void
     printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE;
 
+    void printConfirmRecord(const RecordDetails<mqbs::ConfirmRecord>& rec)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void printDeletionRecord(const RecordDetails<mqbs::DeletionRecord>& rec)
+        const BSLS_KEYWORD_OVERRIDE;
+
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE;
 
@@ -1025,6 +1148,26 @@ void JsonLinePrinter::printMessage(const MessageDetails& details) const
     printMessageDetails<bmqu::JsonPrinter<false, true, 4, 6> >(d_ostream,
                                                                details,
                                                                d_allocator_p);
+}
+
+void JsonLinePrinter::printConfirmRecord(
+    const RecordDetails<mqbs::ConfirmRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
+}
+
+void JsonLinePrinter::printDeletionRecord(
+    const RecordDetails<mqbs::DeletionRecord>& rec) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(rec);
 }
 
 void JsonLinePrinter::printQueueOpRecord(

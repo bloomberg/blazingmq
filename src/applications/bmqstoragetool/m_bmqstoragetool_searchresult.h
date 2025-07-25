@@ -24,6 +24,8 @@
 //  short result (only GUIDs).
 // m_bmqstoragetool::SearchDetailResult: provides
 //  logic to handle and output detail result.
+// m_bmqstoragetool::SearchExactMatchResult: provides logic to handle and
+//  output exact match result (sequence numbers and offsets).
 // m_bmqstoragetool::SearchResultDecorator: provides a base decorator for
 //  search processor.
 // m_bmqstoragetool::SearchResultTimestampDecorator:
@@ -196,7 +198,7 @@ class SearchShortResult : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `ostream`, `payloadDumper`,
+    /// Constructor using the specified `printer`, `processRecordTypes`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
     explicit SearchShortResult(
         const bsl::shared_ptr<Printer>&       printer,
@@ -325,7 +327,7 @@ class SearchDetailResult : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
+    /// Constructor using the specified `printer`, `processRecordTypes`, `queueMap`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
     SearchDetailResult(
         const bsl::shared_ptr<Printer>&       printer,
@@ -380,6 +382,94 @@ class SearchDetailResult : public SearchResult {
     /// are output and search could be stopped. Return 'true' to indicate that
     /// there is incomplete data.
     bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
+};
+
+// ============================
+// class SearchExactMatchResult
+// ============================
+///
+/// This class provides logic to handle and output exact match result (only
+/// one record that matched sequince number or offset).
+class SearchExactMatchResult : public SearchResult {
+  private:
+    // PRIVATE DATA
+
+    const bsl::shared_ptr<Printer> d_printer;
+    // Pointer to 'Printer' instance.
+    Parameters::ProcessRecordTypes d_processRecordTypes;
+    // Record types to process
+    bool d_isDetail;
+    // If 'true', output detail result, otherwise output short result.
+    const QueueMap& d_queueMap;
+    // Reference to 'QueueMap' instance.
+    const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
+    // Pointer to 'PayloadDumper' instance.
+    bsls::Types::Uint64 d_printedMessagesCount;
+    // Counter of already output (printed) messages.
+    bsls::Types::Uint64 d_printedConfirmCount;
+    // Counter of already output (printed) messages.
+    bsls::Types::Uint64 d_printedDeletionCount;
+    // Counter of already output (printed) messages.
+    bsls::Types::Uint64 d_printedQueueOpCount;
+    // Counter of already output (printed) QueueOp records.
+    bsls::Types::Uint64 d_printedJournalOpCount;
+    // Counter of already output (printed) JournalOp records.
+    bslma::Allocator*                     d_allocator_p;
+    // Allocator used inside the class.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `printer`, `processRecordTypes`, `queueMap`, `payloadDumper`,
+    explicit SearchExactMatchResult(
+        const bsl::shared_ptr<Printer>&       printer,
+        const Parameters::ProcessRecordTypes& processRecordTypes,
+        bool                                  isDetail,
+        const QueueMap&                       queueMap,
+        bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
+        bslma::Allocator*                     allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
+    void outputResult() BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search filtered by the specified GUIDs filter.
+    void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
 
     /// Return a reference to the non-modifiable printer
     const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
@@ -790,6 +880,12 @@ class SearchOffsetDecorator : public SearchResultDecorator {
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
     /// Process `deletion` record with the specified `record`, `recordIndex`
     /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
@@ -826,7 +922,12 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
 
-  public:
+    // PRIVATE ACCESSORS
+    bool isSequenceNumberFound(
+        const CompositeSequenceNumber& sequenceNumber) const;
+    // Return 'true' if the specified 'sequenceNumber' is found in d_seqNums.
+
+    public:
     // CREATORS
 
     /// Constructor using the specified `component`, `seqNums`, `ostream`,
@@ -842,6 +943,13 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     /// Process `message` record with the specified `record`, `recordIndex` and
     /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
