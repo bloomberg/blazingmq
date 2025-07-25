@@ -582,10 +582,10 @@ class Cluster(contextlib.AbstractContextManager):
         There are no other guarantees on the order of the sequence.
 
         Multiple calls to this method return independent iterators, but they
-        return the proxies in the same order.  For example, if ORANGE has two
-        proxies (o1 and o2) and RIDGE has three (r1, r2, r3), and the leader is
-        in ORANGE, the sequence may consist of the endless repetition of the
-        following sub-sequence: o1, r1, o2, r2, o1, r3, o2, r1, o1, r2, o2, r3
+        return the proxies in the same order.  For example, if EAST has two
+        proxies (e1 and e2) and WEST has three (w1, w2, w3), and the leader is
+        in EAST, the sequence may consist of the endless repetition of the
+        following sub-sequence: e1, w1, e2, w2, e1, w3, e2, w1, e1, w2, e2, w3
         """
 
         proxy_map: collections.defaultdict[str, List[Broker]] = collections.defaultdict(

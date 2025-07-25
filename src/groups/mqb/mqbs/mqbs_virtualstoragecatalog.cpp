@@ -105,6 +105,8 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
 , d_isProxy(false)
 , d_queue_p(0)
+, d_queueStats_sp(
+      bsl::allocate_shared<mqbstat::QueueStatsDomain>(d_allocator_p))
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
@@ -120,6 +122,15 @@ VirtualStorageCatalog::~VirtualStorageCatalog()
 }
 
 // MANIPULATORS
+void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
+{
+    d_queue_p = queue;
+
+    if (d_queue_p) {
+        d_queue_p->setStats(d_queueStats_sp);
+    }
+}
+
 VirtualStorageCatalog::DataStreamIterator
 VirtualStorageCatalog::begin(const bmqt::MessageGUID& where)
 {
@@ -278,8 +289,8 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
     const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
-    if (queue() && mqbi::StorageResult::e_SUCCESS == rc) {
-        queue()->stats()->onEvent(
+    if (mqbi::StorageResult::e_SUCCESS == rc) {
+        d_queueStats_sp->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             data->second.d_size,
             it->key1());
@@ -291,7 +302,6 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID)
 {
-    // Remove all Apps states at once.
     if (0 == d_dataStream.erase(msgGUID)) {
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
@@ -487,12 +497,9 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
         }
     }
 
-    if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_PURGE,
-            0,
-            vs->appId());
-    }
+    d_queueStats_sp->onEvent(mqbstat::QueueStatsDomain::EventType::e_PURGE,
+                             0,
+                             vs->appId());
 
     return mqbi::StorageResult::e_SUCCESS;
 }
