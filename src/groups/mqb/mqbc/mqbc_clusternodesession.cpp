@@ -113,6 +113,10 @@ void ClusterNodeSession::addPartitionRaw(int partitionId)
                                partitionId));
 
     d_primaryPartitions.push_back(partitionId);
+
+    BALL_LOG_INFO << d_clusterNode_p->nodeDescription() << " Partition ["
+                  << partitionId
+                  << "]: added self as primary in ClusterNodeSession";
 }
 
 bool ClusterNodeSession::addPartitionSafe(int partitionId)
@@ -129,25 +133,8 @@ bool ClusterNodeSession::addPartitionSafe(int partitionId)
     }
 
     addPartitionRaw(partitionId);
+
     return true;
-}
-
-void ClusterNodeSession::removePartitionRaw(int partitionId)
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-
-    BSLS_ASSERT_SAFE(d_primaryPartitions.end() !=
-                     bsl::find(d_primaryPartitions.begin(),
-                               d_primaryPartitions.end(),
-                               partitionId));
-
-    d_primaryPartitions.erase(bsl::remove(d_primaryPartitions.begin(),
-                                          d_primaryPartitions.end(),
-                                          partitionId),
-                              d_primaryPartitions.end());
 }
 
 bool ClusterNodeSession::removePartitionSafe(int partitionId)
@@ -157,13 +144,19 @@ bool ClusterNodeSession::removePartitionSafe(int partitionId)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    if (d_primaryPartitions.end() == bsl::find(d_primaryPartitions.begin(),
-                                               d_primaryPartitions.end(),
-                                               partitionId)) {
+    bsl::vector<int>::iterator it = bsl::find(d_primaryPartitions.begin(),
+                                              d_primaryPartitions.end(),
+                                              partitionId);
+    if (it == d_primaryPartitions.end()) {
         return false;  // RETURN
     }
 
-    removePartitionRaw(partitionId);
+    d_primaryPartitions.erase(it);
+
+    BALL_LOG_INFO << d_clusterNode_p->nodeDescription() << " Partition ["
+                  << partitionId
+                  << "]: removed self as primary in ClusterNodeSession";
+
     return true;
 }
 

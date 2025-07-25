@@ -599,7 +599,7 @@ void ClusterUtil::onPartitionPrimaryAssignment(
     }
 
     // Validation
-    if (primary == oldPrimary) {
+    if (primary && oldPrimary && primary->nodeId() == oldPrimary->nodeId()) {
         if (leaseId == oldLeaseId) {
             // Leader has re-sent the primary info for this partition.
             BSLA_MAYBE_UNUSED const mqbc::ClusterNodeSession* ns =

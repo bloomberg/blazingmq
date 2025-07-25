@@ -232,11 +232,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     bool addPartitionSafe(int partitionId);
 
     /// Remove the specified `partitionId` from the list of partitions for
-    /// which this node is the primary.  Behavior is undefined if this
-    /// partition is not in the list.
-    void removePartitionRaw(int partitionId);
-
-    /// Remove the specified `partitionId` from the list of partitions for
     /// which this node is the primary, if its in the list, and return true.
     /// Return false if `partitionId` is not in the list.
     bool removePartitionSafe(int partitionId);
