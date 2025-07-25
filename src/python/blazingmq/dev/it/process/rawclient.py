@@ -63,6 +63,25 @@ class RawClient:
             + padding
         )
 
+    @staticmethod
+    def _wrap_heartbeat_res_event() -> bytes:
+        """
+        Wraps the specified 'payload' with EventHeader and adds padding to the
+        end. Returns the raw bytes heartbeat response event. Notice that heartbeat
+        response only has header and no body.
+
+        See also: bmqp::EventHeader
+        """
+
+        event_type = broker.EventType.HEARTBEAT_RSP
+        type_specific = broker.TypeSpecific.EMPTY
+
+        header_bytes = 8
+        event_size = header_bytes.to_bytes(4, "big")
+        event_desc = bytes([0x40 + event_type, 0x02, type_specific, 0x00])
+
+        return event_size + event_desc
+
     def _send_raw(self, message: bytes) -> None:
         """
         Send the specified raw "message" over the channel to the broker.
@@ -109,10 +128,12 @@ class RawClient:
                     f"Unknown event type: {event_type}, "
                     "expected one of the EventType values"
                 )
-            if event_type != broker.EventType.HEARTBEAT_REQ:
+            if event_type == broker.EventType.HEARTBEAT_REQ:
+                print("Received heartbeat request.")
+                self._send_raw(self._wrap_heartbeat_res_event())
+            else:
                 print("Received event with type: ", broker.EventType(event_type).name)
                 break
-            print("Received heartbeat request.")
 
         # Process the event body
 
@@ -195,15 +216,6 @@ class RawClient:
         _, response_body = self._receive_event()
 
         return json.loads(response_body)
-
-    def send_heartbeat_response(self) -> None:
-        """
-        Send a heartbeat response to the broker.
-        This is used to acknowledge the heartbeat request.
-        """
-        assert self._channel is not None
-        heartbeat_response = broker.HEARTBEAT_RESPONSE_SCHEMA
-        self._send_raw(self._wrap_control_event(heartbeat_response))
 
     def stop(self) -> None:
         """

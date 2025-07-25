@@ -152,5 +152,3 @@ ADMIN_COMMAND_SCHEMA: SchemaDescription = {
     "rId": 0,
     "adminCommand": {"command": "help"},
 }
-
-HEARTBEAT_RESPONSE_SCHEMA: SchemaDescription = {"heartbeatResponse": {}}
