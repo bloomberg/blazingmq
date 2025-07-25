@@ -1,4 +1,5 @@
 bmqimp_application
+bmqimp_authenticatedchannelfactory
 bmqimp_brokersession
 bmqimp_event
 bmqimp_eventqueue

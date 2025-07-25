@@ -64,8 +64,9 @@ static void test2_printTest()
         "statsDumpInterval = 300 connectTimeout = 60 disconnectTimeout = 30 "
         "openQueueTimeout = 300 configureQueueTimeout = 300 "
         "closeQueueTimeout = 300 eventQueueLowWatermark = 50 "
-        "eventQueueHighWatermark = 2000 hasHostHealthMonitor = false "
-        "hasDistributedTracing = false userAgentPrefix = \"\" ]";
+        "eventQueueHighWatermark = 2000 hasAuthnCredentialCb = false "
+        "hasHostHealthMonitor = false hasDistributedTracing = false "
+        "userAgentPrefix = \"\" ]";
     bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
     bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
