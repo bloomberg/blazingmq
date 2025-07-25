@@ -7242,7 +7242,7 @@ void FileStore::setReplicationFactor(int value)
              affectedQueues.begin();
          qit != affectedQueues.end();
          ++qit) {
-        (*qit)->queueEngine()->afterNewMessage(bmqt::MessageGUID(), 0);
+        (*qit)->queueEngine()->afterNewMessage();
     }
 }
 

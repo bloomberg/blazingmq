@@ -600,8 +600,7 @@ void LocalQueue::deliverIfNeeded()
 {
     // Now that storage messages have been flushed, notify the engine (and thus
     // any peer or downstream client) to deliver next applicable message.
-    d_queueEngine_mp->afterNewMessage(bmqt::MessageGUID(),
-                                      static_cast<mqbi::QueueHandle*>(0));
+    d_queueEngine_mp->afterNewMessage();
 }
 
 void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,

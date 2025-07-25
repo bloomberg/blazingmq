@@ -4457,8 +4457,7 @@ static void test38_unauthorizedAppIds()
 //  4. Verify that no message remains in queue after C1 confirms messages.
 //
 // Testing:
-//  virtual void afterNewMessage(const bmqt::MessageGUID&  msgGUID,
-//                               mqbi::QueueHandle        *source)
+//  virtual void afterNewMessage()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;

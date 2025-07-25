@@ -147,11 +147,9 @@ class QueueEngine : public mqbi::QueueEngine {
     void onHandleUsable(mqbi::QueueHandle* handle,
                         unsigned int upstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the mqbi::Queue when a new message with the specified
-    /// `msgGUID` is available on the queue and ready to be sent to eventual
-    /// interested clients.
-    void afterNewMessage(const bmqt::MessageGUID& msgGUID,
-                         mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+    /// Called by the mqbi::Queue when a new message is available on the queue
+    /// and ready to be sent to eventual interested clients.
+    void afterNewMessage() BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `mqbi::Queue` when the message identified by the
     /// specified `msgGUID` is confirmed for the specified `subQueueId`

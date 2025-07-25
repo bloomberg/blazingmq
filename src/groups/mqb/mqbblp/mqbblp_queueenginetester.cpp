@@ -1012,13 +1012,7 @@ void QueueEngineTester::afterNewMessage(const int numMessages)
         const bmqt::MessageGUID& msgGUID = it->second;
         BSLS_ASSERT_OPT(!msgGUID.isUnset());
 
-        // NOTE: At the time of this writing, only the 'RelayQueueEngine' uses
-        //       the 'bmqt::MessageGUID msgGUID' parameter.
-        //
-        // NOTE: At the time of this writing, none of the Queue Engines use the
-        //       'mqbi::QueueHandle source' parameter, but if that changes then
-        //       we will need to keep track of that.
-        d_queueEngine_mp->afterNewMessage(msgGUID, 0);
+        d_queueEngine_mp->afterNewMessage();
 
         // Advance and delete from 'd_newMessages'
         it = d_newMessages.erase(it);

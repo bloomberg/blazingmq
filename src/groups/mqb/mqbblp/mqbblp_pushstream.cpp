@@ -26,39 +26,25 @@
 namespace BloombergLP {
 namespace mqbblp {
 
-namespace {
-
-void noOpDeleter(bdlma::ConcurrentPool*)
-{
-    // NOTHING
-}
-
-}  // close unnamed namespace
-
 // ----------------
 // class PushStream
 // ----------------
 
 PushStream::PushStream(
-    const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool,
-    bslma::Allocator*                            allocator)
+    const bsl::shared_ptr<bdlma::ConcurrentPool>& pushElementsPool_sp,
+    bslma::Allocator*                             allocator)
 : d_stream(allocator)
 , d_apps(allocator)
-, d_pushElementsPool_sp()
+, d_pushElementsPool_sp(
+      pushElementsPool_sp
+          ? pushElementsPool_sp
+          : bsl::allocate_shared<bdlma::ConcurrentPool>(allocator,
+                                                        sizeof(Element),
+                                                        allocator))
+// ConcurrentPool doesn't have allocator traits, have to pass allocator
+// twice
 {
-    allocator = bslma::Default::allocator(allocator);
-
-    if (pushElementsPool.has_value()) {
-        d_pushElementsPool_sp.reset(pushElementsPool.value(),
-                                    noOpDeleter,
-                                    allocator);
-    }
-
-    if (!d_pushElementsPool_sp) {
-        d_pushElementsPool_sp.load(
-            new (*allocator) bdlma::ConcurrentPool(sizeof(Element), allocator),
-            allocator);
-    }
+    // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_pushElementsPool_sp);
     BSLS_ASSERT_SAFE(d_pushElementsPool_sp->blockSize() == sizeof(Element));
 }

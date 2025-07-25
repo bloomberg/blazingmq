@@ -91,8 +91,7 @@ void QueueEngine::onHandleUsable(BSLA_UNUSED mqbi::QueueHandle* handle,
     // NOTHING
 }
 
-void QueueEngine::afterNewMessage(BSLA_UNUSED const bmqt::MessageGUID& msgGUID,
-                                  BSLA_UNUSED mqbi::QueueHandle* source)
+void QueueEngine::afterNewMessage()
 {
     // NOTHING
 }
