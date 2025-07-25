@@ -22,8 +22,6 @@ PURPOSE: Provide a BMQ raw client.
 
 import socket
 import json
-import base64
-from enum import Enum
 from typing import Optional, Union
 
 from blazingmq.schemas import broker
@@ -41,7 +39,6 @@ class RawClient:
 
         See also: bmqp::EventHeader
         """
-
         if isinstance(payload, str):
             payload_str = payload
         else:
@@ -71,13 +68,12 @@ class RawClient:
         Send the specified raw "message" over the channel to the broker.
         Return the received byte response.
         """
-
         assert self._channel is not None
 
         try:
             self._channel.send(message)
         except Exception as e:
-            raise ConnectionError(f"Failed to send message: {e}")
+            raise ConnectionError(f"Failed to send message: {e}") from e
 
     def _receive_event(self) -> tuple[bytes, bytes]:
         """
@@ -96,26 +92,27 @@ class RawClient:
                 # The situation when the event header is not fully received
                 # with one 'recv' call is highly improbable.
                 header = self._channel.recv(header_bytes)
-            except socket.timeout:
-                raise ConnectionError("Timeout while waiting for event header")
-            except Exception as e:
-                raise ConnectionError(f"Failed to receive event header: {e}")
+            except socket.timeout as exc:
+                raise ConnectionError("Timeout while waiting for event header") from exc
+            except Exception as exc:
+                raise ConnectionError(f"Failed to receive event header: {exc}") from exc
+
             if len(header) != header_bytes:
                 raise ConnectionError(
                     f"Failed to receive event header from the broker, "
                     f"expected {header_bytes} bytes, got {len(header)} bytes"
                 )
+
             event_type = header[4] & 0b00111111
-            if event_type not in broker.EventType._value2member_map_:
+            if not any(event_type == et.value for et in broker.EventType):
                 raise ValueError(
                     f"Unknown event type: {event_type}, "
                     "expected one of the EventType values"
                 )
-            elif event_type != broker.EventType.HEARTBEAT_REQ:
+            if event_type != broker.EventType.HEARTBEAT_REQ:
                 print("Received event with type: ", broker.EventType(event_type).name)
                 break
-            else:
-                print("Received heartbeat request.")
+            print("Received heartbeat request.")
 
         # Process the event body
 
@@ -138,11 +135,13 @@ class RawClient:
 
         try:
             padding_bytes = message[-1]
-        except IndexError:
-            raise ConnectionError("Received message too short to contain padding byte")
+        except IndexError as exc:
+            raise ConnectionError(
+                "Received message too short to contain padding byte"
+            ) from exc
 
         # expect correct padding byte value
-        if not (1 <= padding_bytes <= 4):
+        if not 1 <= padding_bytes <= 4:
             raise ValueError(
                 f"Invalid padding bytes value: {padding_bytes}, "
                 "expected value in range [1, 4]"
@@ -175,14 +174,13 @@ class RawClient:
         type_specific = response_header[6]  # 7th byte is typeSpecific
 
         if type_specific == broker.TypeSpecific.ENCODING_JSON:
-            response_dict = json.loads(response_body.decode("utf-8"))
-        elif type_specific == broker.TypeSpecific.ENCODING_BER:
+            return json.loads(response_body.decode("utf-8"))
+        if type_specific == broker.TypeSpecific.ENCODING_BER:
             print("BER encoding is not supported in open source Python.")
             raise ValueError("Not supported encoding in response")
-        else:
-            print(f"Unknown encoding type: {type_specific}")
-            raise ValueError("Unknown encoding in response")
-        return response_dict
+
+        print(f"Unknown encoding type: {type_specific}")
+        raise ValueError("Unknown encoding in response")
 
     def send_negotiation_request(self) -> dict:
         """
@@ -204,9 +202,7 @@ class RawClient:
         This is used to acknowledge the heartbeat request.
         """
         assert self._channel is not None
-
         heartbeat_response = broker.HEARTBEAT_RESPONSE_SCHEMA
-
         self._send_raw(self._wrap_control_event(heartbeat_response))
 
     def stop(self) -> None:
