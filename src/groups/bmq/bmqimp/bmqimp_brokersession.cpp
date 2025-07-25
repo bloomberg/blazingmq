@@ -18,7 +18,7 @@
 
 #include <bmqscm_version.h>
 // BMQ
-#include <bmqimp_negotiatedchannelfactory.h>
+#include <bmqimp_initialconnectionchannelfactory.h>
 #include <bmqimp_queue.h>
 #include <bmqp_ackeventbuilder.h>
 #include <bmqp_ackmessageiterator.h>
@@ -407,7 +407,7 @@ void BrokerSession::SessionFsm::setStarted(
     // Temporary safety switch to control configure request.
     d_session.d_channel_sp->properties().load(
         &d_session.d_doConfigureStream,
-        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM);
+        InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM);
 }
 
 bmqt::GenericResult::Enum
@@ -6051,7 +6051,7 @@ void BrokerSession::onOpenQueueResponse(
 
         if (d_channel_sp->properties().load(
                 &isMPsEx,
-                NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MPS_EX)) {
+                InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_MPS_EX)) {
             BSLS_ASSERT_SAFE(isMPsEx);
             queue->setOldStyle(false);
         }
