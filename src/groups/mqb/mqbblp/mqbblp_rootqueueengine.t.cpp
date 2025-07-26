@@ -5061,10 +5061,14 @@ static void test44_throttleRedeliveryCancelledDelay()
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
+    // Timer is set for 'expectedDelay'.  Pending "2,3,4".
+
     // 3)
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
+
+    // Timer is set for 'expectedDelay'.  Pending "3,4".
 
     // 4)
     // Confirming the first message should still keep the delay between the
@@ -5073,17 +5077,32 @@ static void test44_throttleRedeliveryCancelledDelay()
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
+    // Timer is set for 'expectedDelay'.  Pending "3,4".
+
     // 5)
     // Another message should come in after the delay
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
+    // Timer is set for 'expectedDelay'.  Pending "4".
+
     // 6)
     // Since the message before the currently delayed message was confirmed,
     // the delay of the current message should be cut short.
     tester.confirm("C2", "2");
-    tester.confirm("C2", "3");
+
+    // Confirming "2" does not cancel throttling since it is not the last one.
+    // Confirming "3" does cancel throttling since it is the last one pending.
+    // Canceling throttling is done by rescheduling at 'bsls::TimeInterval()'
+    // _before_ removing the message so there is thread contention in the
+    // mock dispatcher environment.  'synchronizeScheduler()' is too late.
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&tester.dispatcher()->mutex());
+        tester.QueueEngineTester::confirm("C2", "3");
+    }
+    tester.synchronizeScheduler();
 
     PVV(L_ << ": C2 Messages: " << C2->_messages());
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
