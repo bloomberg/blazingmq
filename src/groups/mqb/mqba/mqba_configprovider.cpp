@@ -75,37 +75,6 @@ bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
     return true;
 }
 
-void ConfigProvider::onDomainConfigResponseCb(
-    const mqbconfm::Response response,
-    const GetDomainConfigCb& callback)
-{
-    if (response.isFailureValue()) {
-        callback(response.failure().code(), response.failure().message());
-        return;  // RETURN
-    }
-
-    BSLS_ASSERT_OPT(response.isDomainConfigValue());
-
-    BALL_LOG_INFO << "Received domain config for domain '"
-                  << response.domainConfig().domainName() << "': '"
-                  << response.domainConfig().config() << "'";
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
-
-        // Save to cache
-        CacheEntry cacheEntry;
-        cacheEntry.d_data = response;
-        cacheEntry.d_expireTime =
-            bmqsys::Time::nowMonotonicClock() +
-            bsls::TimeInterval(
-                mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
-        d_cache[response.domainConfig().domainName()] = cacheEntry;
-    }
-
-    // Call callback
-    callback(0, response.domainConfig().config());
-}
-
 ConfigProvider::ConfigProvider(bslma::Allocator* allocator)
 : d_mode(Mode::e_NORMAL)
 , d_cache(allocator)
@@ -148,7 +117,34 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         guard.release()->unlock();  // mutex UNLOCK
         BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                       << "from cache";
-        onDomainConfigResponseCb(response, callback);
+
+        if (response.isFailureValue()) {
+            callback(response.failure().code(), response.failure().message());
+            return;  // RETURN
+        }
+
+        BSLS_ASSERT_OPT(response.isDomainConfigValue());
+
+        BALL_LOG_INFO << "Received domain config for domain '"
+                      << response.domainConfig().domainName() << "': '"
+                      << response.domainConfig().config() << "'";
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
+
+            // Save to cache
+            CacheEntry cacheEntry;
+            cacheEntry.d_data       = response;
+            cacheEntry.d_expireTime = bmqsys::Time::nowMonotonicClock() +
+                                      bsls::TimeInterval(
+                                          mqbcfg::BrokerConfig::get()
+                                              .bmqconfConfig()
+                                              .cacheTTLSeconds());
+            d_cache[response.domainConfig().domainName()] = cacheEntry;
+        }
+
+        // Call callback
+        callback(0, response.domainConfig().config());
+
         return;  // RETURN
     }
 
@@ -197,7 +193,31 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                   << "from file '" << filePath << "'";
 
-    onDomainConfigResponseCb(response, callback);
+    if (response.isFailureValue()) {
+        callback(response.failure().code(), response.failure().message());
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_OPT(response.isDomainConfigValue());
+
+    BALL_LOG_INFO << "Received domain config for domain '"
+                  << response.domainConfig().domainName() << "': '"
+                  << response.domainConfig().config() << "'";
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
+
+        // Save to cache
+        CacheEntry cacheEntry;
+        cacheEntry.d_data = response;
+        cacheEntry.d_expireTime =
+            bmqsys::Time::nowMonotonicClock() +
+            bsls::TimeInterval(
+                mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
+        d_cache[response.domainConfig().domainName()] = cacheEntry;
+    }
+
+    // Call callback
+    callback(0, response.domainConfig().config());
 }
 
 void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
