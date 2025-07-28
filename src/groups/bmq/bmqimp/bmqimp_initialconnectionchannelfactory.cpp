@@ -68,16 +68,14 @@ enum RcEnum {
 InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
     bmqio::ChannelFactory*                     base,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
-    const bsls::TimeInterval&                  authenticationTimeout,
     const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-    const bsls::TimeInterval&                  negotiationTimeout,
+    const bsls::TimeInterval&                  connectTimeout,
     BlobSpPool*                                blobSpPool_p,
     bslma::Allocator*                          basicAllocator)
 : d_baseFactory_p(base)
 , d_authenticationMessage(authenticationMessage, basicAllocator)
-, d_authenticationTimeout(authenticationTimeout)
 , d_negotiationMessage(negotiationMessage, basicAllocator)
-, d_negotiationTimeout(negotiationTimeout)
+, d_connectTimeout(connectTimeout)
 , d_blobSpPool_p(blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -90,9 +88,8 @@ InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
     bslma::Allocator*                            basicAllocator)
 : d_baseFactory_p(original.d_baseFactory_p)
 , d_authenticationMessage(original.d_authenticationMessage, basicAllocator)
-, d_authenticationTimeout(original.d_authenticationTimeout)
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
-, d_negotiationTimeout(original.d_negotiationTimeout)
+, d_connectTimeout(original.d_connectTimeout)
 , d_blobSpPool_p(original.d_blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -215,17 +212,15 @@ void InitialConnectionChannelFactory::readResponse(
 
     bsl::string        actionStr;
     bsl::string        errorProperty;
-    bsls::TimeInterval timeout;
+    bsls::TimeInterval timeout = d_config.d_connectTimeout;
 
     if (action == AUTHENTICATION) {
         actionStr     = "authentication";
         errorProperty = "authenticationError";
-        timeout       = d_config.d_authenticationTimeout;
     }
     else if (action == NEGOTIATION) {
         actionStr     = "negotiation";
         errorProperty = "negotiationError";
-        timeout       = d_config.d_negotiationTimeout;
     }
 
     BALL_LOG_INFO << "Read response (" << actionStr << ")";
@@ -255,6 +250,15 @@ void InitialConnectionChannelFactory::authenticate(
     const ResultCallback&                  cb) const
 {
     BALL_LOG_INFO << "Client authenticate";
+
+    // If the authentication message is not an AuthenticateRequest, it means no
+    // credential is provided. In this case, we will skip the authentication
+    // step and proceed directly to the negotiation step.
+    if (!d_config.d_authenticationMessage.isAuthenticateRequestValue()) {
+        negotiate(channel, cb);
+        return;  // RETURN
+    }
+
     sendRequest(channel, AUTHENTICATION, cb);
     readResponse(channel, AUTHENTICATION, cb);
 }
@@ -457,7 +461,7 @@ void InitialConnectionChannelFactory::onBrokerAuthenticationResponse(
     // Authentication SUCCEEDED
     BALL_LOG_INFO << "Authentication with broker was successful: " << response;
 
-    // TODO: do something
+    // TODO: reauthenticate
 
     negotiate(channel, cb);
 }
