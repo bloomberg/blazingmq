@@ -39,150 +39,6 @@
 namespace BloombergLP {
 namespace mqbconfm {
 
-// --------------------
-// class BrokerIdentity
-// --------------------
-
-// CONSTANTS
-
-const char BrokerIdentity::CLASS_NAME[] = "BrokerIdentity";
-
-const bdlat_AttributeInfo BrokerIdentity::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_HOST_NAME,
-     "hostName",
-     sizeof("hostName") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_HOST_TAGS,
-     "hostTags",
-     sizeof("hostTags") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_BROKER_VERSION,
-     "brokerVersion",
-     sizeof("brokerVersion") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-BrokerIdentity::lookupAttributeInfo(const char* name, int nameLength)
-{
-    for (int i = 0; i < 3; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            BrokerIdentity::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo* BrokerIdentity::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_HOST_NAME:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME];
-    case ATTRIBUTE_ID_HOST_TAGS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS];
-    case ATTRIBUTE_ID_BROKER_VERSION:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-BrokerIdentity::BrokerIdentity(bslma::Allocator* basicAllocator)
-: d_hostName(basicAllocator)
-, d_hostTags(basicAllocator)
-, d_brokerVersion(basicAllocator)
-{
-}
-
-BrokerIdentity::BrokerIdentity(const BrokerIdentity& original,
-                               bslma::Allocator*     basicAllocator)
-: d_hostName(original.d_hostName, basicAllocator)
-, d_hostTags(original.d_hostTags, basicAllocator)
-, d_brokerVersion(original.d_brokerVersion, basicAllocator)
-{
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-BrokerIdentity::BrokerIdentity(BrokerIdentity&& original) noexcept
-: d_hostName(bsl::move(original.d_hostName)),
-  d_hostTags(bsl::move(original.d_hostTags)),
-  d_brokerVersion(bsl::move(original.d_brokerVersion))
-{
-}
-
-BrokerIdentity::BrokerIdentity(BrokerIdentity&&  original,
-                               bslma::Allocator* basicAllocator)
-: d_hostName(bsl::move(original.d_hostName), basicAllocator)
-, d_hostTags(bsl::move(original.d_hostTags), basicAllocator)
-, d_brokerVersion(bsl::move(original.d_brokerVersion), basicAllocator)
-{
-}
-#endif
-
-BrokerIdentity::~BrokerIdentity()
-{
-}
-
-// MANIPULATORS
-
-BrokerIdentity& BrokerIdentity::operator=(const BrokerIdentity& rhs)
-{
-    if (this != &rhs) {
-        d_hostName      = rhs.d_hostName;
-        d_hostTags      = rhs.d_hostTags;
-        d_brokerVersion = rhs.d_brokerVersion;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-BrokerIdentity& BrokerIdentity::operator=(BrokerIdentity&& rhs)
-{
-    if (this != &rhs) {
-        d_hostName      = bsl::move(rhs.d_hostName);
-        d_hostTags      = bsl::move(rhs.d_hostTags);
-        d_brokerVersion = bsl::move(rhs.d_brokerVersion);
-    }
-
-    return *this;
-}
-#endif
-
-void BrokerIdentity::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_hostName);
-    bdlat_ValueTypeFunctions::reset(&d_hostTags);
-    bdlat_ValueTypeFunctions::reset(&d_brokerVersion);
-}
-
-// ACCESSORS
-
-bsl::ostream& BrokerIdentity::print(bsl::ostream& stream,
-                                    int           level,
-                                    int           spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("hostName", this->hostName());
-    printer.printAttribute("hostTags", this->hostTags());
-    printer.printAttribute("brokerVersion", this->brokerVersion());
-    printer.end();
-    return stream;
-}
-
 // ---------------------
 // class DomainConfigRaw
 // ---------------------
@@ -243,13 +99,11 @@ DomainConfigRaw::DomainConfigRaw(bslma::Allocator* basicAllocator)
 DomainConfigRaw::DomainConfigRaw(const DomainConfigRaw& original,
                                  bslma::Allocator*      basicAllocator)
 : d_domainName(original.d_domainName, basicAllocator)
-, d_config(original.d_config, basicAllocator)
-{
-}
+, d_config(original.d_config, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainConfigRaw::DomainConfigRaw(DomainConfigRaw&& original) noexcept
+DomainConfigRaw::DomainConfigRaw(DomainConfigRaw && original) noexcept
 : d_domainName(bsl::move(original.d_domainName)),
   d_config(bsl::move(original.d_config))
 {
@@ -371,13 +225,11 @@ DomainResolver::DomainResolver(bslma::Allocator* basicAllocator)
 DomainResolver::DomainResolver(const DomainResolver& original,
                                bslma::Allocator*     basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_cluster(original.d_cluster, basicAllocator)
-{
-}
+, d_cluster(original.d_cluster, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainResolver::DomainResolver(DomainResolver&& original) noexcept
+DomainResolver::DomainResolver(DomainResolver && original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_cluster(bsl::move(original.d_cluster))
 {
@@ -565,13 +417,11 @@ Failure::Failure(bslma::Allocator* basicAllocator)
 
 Failure::Failure(const Failure& original, bslma::Allocator* basicAllocator)
 : d_message(original.d_message, basicAllocator)
-, d_code(original.d_code)
-{
-}
+, d_code(original.d_code){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Failure::Failure(Failure&& original) noexcept
+Failure::Failure(Failure && original) noexcept
 : d_message(bsl::move(original.d_message)),
   d_code(bsl::move(original.d_code))
 {
@@ -1095,13 +945,11 @@ QueueModeFanout::QueueModeFanout(bslma::Allocator* basicAllocator)
 QueueModeFanout::QueueModeFanout(const QueueModeFanout& original,
                                  bslma::Allocator*      basicAllocator)
 : d_appIDs(original.d_appIDs, basicAllocator)
-, d_publishAppIdMetrics(original.d_publishAppIdMetrics)
-{
-}
+, d_publishAppIdMetrics(original.d_publishAppIdMetrics){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueModeFanout::QueueModeFanout(QueueModeFanout&& original) noexcept
+QueueModeFanout::QueueModeFanout(QueueModeFanout && original) noexcept
 : d_appIDs(bsl::move(original.d_appIDs)),
   d_publishAppIdMetrics(bsl::move(original.d_publishAppIdMetrics))
 {
@@ -1564,13 +1412,11 @@ Expression::Expression(bslma::Allocator* basicAllocator)
 Expression::Expression(const Expression& original,
                        bslma::Allocator* basicAllocator)
 : d_text(original.d_text, basicAllocator)
-, d_version(original.d_version)
-{
-}
+, d_version(original.d_version){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Expression::Expression(Expression&& original) noexcept
+Expression::Expression(Expression && original) noexcept
 : d_text(bsl::move(original.d_text)),
   d_version(bsl::move(original.d_version))
 {
@@ -2791,13 +2637,11 @@ Subscription::Subscription(bslma::Allocator* basicAllocator)
 Subscription::Subscription(const Subscription& original,
                            bslma::Allocator*   basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
-, d_expression(original.d_expression, basicAllocator)
-{
-}
+, d_expression(original.d_expression, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Subscription::Subscription(Subscription&& original) noexcept
+Subscription::Subscription(Subscription && original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_expression(bsl::move(original.d_expression))
 {
@@ -3027,13 +2871,11 @@ Domain::Domain(const Domain& original, bslma::Allocator* basicAllocator)
 , d_maxQueues(original.d_maxQueues)
 , d_maxIdleTime(original.d_maxIdleTime)
 , d_maxDeliveryAttempts(original.d_maxDeliveryAttempts)
-, d_deduplicationTimeMs(original.d_deduplicationTimeMs)
-{
-}
+, d_deduplicationTimeMs(original.d_deduplicationTimeMs){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Domain::Domain(Domain&& original) noexcept
+Domain::Domain(Domain && original) noexcept
 : d_messageTtl(bsl::move(original.d_messageTtl)),
   d_subscriptions(bsl::move(original.d_subscriptions)),
   d_name(bsl::move(original.d_name)),
@@ -3220,13 +3062,11 @@ DomainDefinition::DomainDefinition(bslma::Allocator* basicAllocator)
 DomainDefinition::DomainDefinition(const DomainDefinition& original,
                                    bslma::Allocator*       basicAllocator)
 : d_location(original.d_location, basicAllocator)
-, d_parameters(original.d_parameters, basicAllocator)
-{
-}
+, d_parameters(original.d_parameters, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainDefinition::DomainDefinition(DomainDefinition&& original) noexcept
+DomainDefinition::DomainDefinition(DomainDefinition && original) noexcept
 : d_location(bsl::move(original.d_location)),
   d_parameters(bsl::move(original.d_parameters))
 {

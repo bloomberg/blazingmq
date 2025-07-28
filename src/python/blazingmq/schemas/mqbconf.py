@@ -22,44 +22,6 @@ __NAMESPACE__ = "urn:x-bloomberg-com:mqbconfm"
 
 
 @dataclass
-class BrokerIdentity:
-    """Generic type to hold identification of a broker.
-
-    hostName......: machine name
-    hostTags......: machine tags
-    brokerVersion.: version of the broker
-    """
-
-    host_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "hostName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    host_tags: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "hostTags",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    broker_version: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "brokerVersion",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
 class DomainConfigRaw:
     """
     Response of a get domain config request.
