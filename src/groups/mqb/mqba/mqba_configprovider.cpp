@@ -157,8 +157,8 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
 
         guard.release()->unlock();                                    // UNLOCK
 
-        BALL_LOG_INFO << "Config for domain '" << domainName
-                      << "' retrieved from file '" << filePath << "'";
+        BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
+                      << "' from file '" << filePath << "':" << os.str();
         callback(e_FILENOTEXIST, os.str());
         return;                                                       // RETURN
     }
@@ -171,8 +171,8 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
 
         guard.release()->unlock();                                    // UNLOCK
 
-        BALL_LOG_INFO << "Config for domain '" << domainName
-                      << "' retrieved from file '" << filePath << "'";
+        BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
+                      << "' from file '" << filePath << "':" << os.str();
         callback(e_FILENOTOPENED, os.str());
         return;                                                       // RETURN
     }
