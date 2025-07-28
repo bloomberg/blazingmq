@@ -351,7 +351,7 @@ void Queue::convertToLocalDispatched()
     // In this case, 'onHandleUsable' event did not trigger any delivery.
     // Now that the queue is local, nudge its delivery to cover for this case.
 
-    d_localQueue_mp->queueEngine()->afterNewMessage(bmqt::MessageGUID(), 0);
+    d_localQueue_mp->queueEngine()->afterNewMessage();
 }
 
 void Queue::updateStats()

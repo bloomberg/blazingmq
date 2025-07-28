@@ -874,8 +874,7 @@ void RemoteQueue::flush()
         d_state_p->storage()->gcHistory(now);
     }
     if (d_queueEngine_mp) {
-        const bmqt::MessageGUID dummy;
-        d_queueEngine_mp->afterNewMessage(dummy, 0);
+        d_queueEngine_mp->afterNewMessage();
     }
 }
 

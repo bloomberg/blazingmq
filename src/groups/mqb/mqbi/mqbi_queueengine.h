@@ -136,14 +136,11 @@ class QueueEngine {
     virtual void onHandleUsable(QueueHandle* handle,
                                 unsigned int upstreamSubscriptionId) = 0;
 
-    /// Called by the mqbi::Queue when a new message with the specified
-    /// `msgGUID` is available on the queue and ready to be sent to eventual
-    /// interested clients.  If available, the specified `source` points to
-    /// the originator of the message.
+    /// Called by the mqbi::Queue when a new message is available on the queue
+    /// and ready to be sent to eventual interested clients.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void afterNewMessage(const bmqt::MessageGUID& msgGUID,
-                                 QueueHandle*             source) = 0;
+    virtual void afterNewMessage() = 0;
 
     /// Called by the `mqbi::Queue` when the message identified by the
     /// specified `msgGUID` is confirmed for the specified

@@ -450,12 +450,9 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     onHandleUsable(mqbi::QueueHandle* handle,
                    unsigned int upstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the mqbi::Queue when a new message with the specified
-    /// `msgGUID` is available on the queue and ready to be sent to eventual
-    /// interested clients.  If available, the specified `source` points to
-    /// the originator of the message.
-    void afterNewMessage(const bmqt::MessageGUID& msgGUID,
-                         mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+    /// Called by the mqbi::Queue when a new message is available on the queue
+    /// and ready to be sent to eventual interested clients.
+    void afterNewMessage() BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `mqbi::Queue` when the message identified by the
     /// specified `msgGUID` is confirmed for the specified

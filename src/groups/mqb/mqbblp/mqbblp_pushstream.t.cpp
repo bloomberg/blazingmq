@@ -41,11 +41,13 @@ static void test1_basic()
 {
     bmqtst::TestHelper::printTestName("PushStream basic test");
 
-    bdlma::ConcurrentPool pushElementsPool(
-        sizeof(mqbblp::PushStream::Element),
-        bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bdlma::ConcurrentPool> pushElementsPool(
+        bsl::allocate_shared<bdlma::ConcurrentPool>(
+            bmqtst::TestHelperUtil::allocator(),
+            sizeof(mqbblp::PushStream::Element),
+            bmqtst::TestHelperUtil::allocator()));
 
-    mqbblp::PushStream                                 ps(&pushElementsPool,
+    mqbblp::PushStream                                 ps(pushElementsPool,
                           bmqtst::TestHelperUtil::allocator());
     unsigned int                                       subQueueId = 0;
     bsl::shared_ptr<mqbblp::RelayQueueEngine_AppState> app;  // unused
@@ -70,7 +72,13 @@ static void test2_iterations()
 
     // Imitate {m1, a1}, {m2, a2}, {m1, a2}, {m2, a1}
 
-    mqbblp::PushStream ps(bsl::optional<bdlma::ConcurrentPool*>(),
+    bsl::shared_ptr<bdlma::ConcurrentPool> pushElementsPool(
+        bsl::allocate_shared<bdlma::ConcurrentPool>(
+            bmqtst::TestHelperUtil::allocator(),
+            sizeof(mqbblp::PushStream::Element),
+            bmqtst::TestHelperUtil::allocator()));
+
+    mqbblp::PushStream ps(pushElementsPool,
                           bmqtst::TestHelperUtil::allocator());
     unsigned int       subQueueId1 = 1;
     unsigned int       subQueueId2 = 2;
