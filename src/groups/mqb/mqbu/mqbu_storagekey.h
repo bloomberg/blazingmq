@@ -79,9 +79,6 @@ class StorageKey {
   private:
     // PRIVATE CONSTANTS
 
-    // This binary buffer can be used to construct an empty storage key.
-    static const char* k_NULL_KEY_BUFFER;
-
   private:
     // DATA
     char d_buffer[e_KEY_LENGTH_BINARY];
@@ -279,7 +276,7 @@ class StorageKeyHashAlgo {
 // CREATORS
 inline StorageKey::StorageKey()
 {
-    bsl::memcpy(d_buffer, k_NULL_KEY_BUFFER, StorageKey::e_KEY_LENGTH_BINARY);
+    bsl::memset(d_buffer, '\0', StorageKey::e_KEY_LENGTH_BINARY);
 }
 
 inline StorageKey::StorageKey(const BinaryRepresentation&, const void* data)
