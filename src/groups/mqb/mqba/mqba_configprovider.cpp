@@ -75,6 +75,20 @@ bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
     return true;
 }
 
+void ConfigProvider::cacheAdd(const bslstl::StringRef&  key,
+                              const mqbconfm::Response& response)
+{
+    BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
+
+    CacheEntry cacheEntry;
+    cacheEntry.d_data = response;
+    cacheEntry.d_expireTime =
+        bmqsys::Time::nowMonotonicClock() +
+        bsls::TimeInterval(
+            mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
+    d_cache[key] = cacheEntry;
+}
+
 ConfigProvider::ConfigProvider(bslma::Allocator* allocator)
 : d_mode(Mode::e_NORMAL)
 , d_cache(allocator)
@@ -126,15 +140,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         {
             bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
-            // Save to cache
-            CacheEntry cacheEntry;
-            cacheEntry.d_data       = response;
-            cacheEntry.d_expireTime = bmqsys::Time::nowMonotonicClock() +
-                                      bsls::TimeInterval(
-                                          mqbcfg::BrokerConfig::get()
-                                              .bmqconfConfig()
-                                              .cacheTTLSeconds());
-            d_cache[response.domainConfig().domainName()] = cacheEntry;
+            cacheAdd(response.domainConfig().domainName(), response);
         }
 
         // Call callback
@@ -202,14 +208,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
-        // Save to cache
-        CacheEntry cacheEntry;
-        cacheEntry.d_data = response;
-        cacheEntry.d_expireTime =
-            bmqsys::Time::nowMonotonicClock() +
-            bsls::TimeInterval(
-                mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
-        d_cache[response.domainConfig().domainName()] = cacheEntry;
+        cacheAdd(response.domainConfig().domainName(), response);
     }
 
     // Call callback
