@@ -135,12 +135,6 @@ class ConfigProvider {
     bool cacheLookup(mqbconfm::Response*      response,
                      const bslstl::StringRef& key);
 
-    /// Callback when the configuration for the domain has been retrieved,
-    /// in the specified `response` and which should be forwarded to the
-    /// specified `callback`.
-    void onDomainConfigResponseCb(const mqbconfm::Response response,
-                                  const GetDomainConfigCb& callback);
-
   private:
     // NOT IMPLEMENTED
     ConfigProvider(const ConfigProvider&) BSLS_CPP11_DELETED;
