@@ -135,6 +135,12 @@ class ConfigProvider {
     bool cacheLookup(mqbconfm::Response*      response,
                      const bslstl::StringRef& key);
 
+    /// Add entry with the specified `key` and with the specified `response` as
+    /// data to the cache, resetting its expiry time.  Note that this will
+    /// overwrite any existing entry with the specified `key` in the cache.
+    bool cacheAdd(const bslstl::StringRef&  key,
+                  const mqbconfm::Response& response);
+
   private:
     // NOT IMPLEMENTED
     ConfigProvider(const ConfigProvider&) BSLS_CPP11_DELETED;
