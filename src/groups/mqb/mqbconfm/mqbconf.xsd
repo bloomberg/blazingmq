@@ -3,91 +3,12 @@
         xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
         xmlns:mqbconfm     = 'urn:x-bloomberg-com:mqbconfm'
         targetNamespace    = 'urn:x-bloomberg-com:mqbconfm'
-        bdem:serviceInfo   = 'bmqconf:183474-1.0'
         bdem:package       = 'mqbconfm'
         elementFormDefault = 'qualified'>
 
   <!-- ========================================================================
-                                      BAS
-  ========================================================================= -->
-  <!-- NOTE:
-        The following two lines should be added back to the <schema above tag
-           ..
-             bdem:requestType   = 'Request'
-             bdem:responseType  = 'Response'
-           ..
-
-           However, they would generate messagesutil and messagesschema file,
-           which depend on bsc. What we should do here is split this xsd in two
-           parts: one with the types, and one with the bas requests/responses
-           (which will include the former one). Then the messages file will be
-           duplicate in this mqbconfm library as well as somewhere in the
-           bmqconf library (mqc).
-  -->
-  <element name='request'  type='mqbconfm:Request'/>
-  <element name='response' type='mqbconfm:Response'/>
-
-  <!-- ========================================================================
-                               REQUEST/RESPONSE
-  ========================================================================= -->
-  <complexType name='Request'>
-    <annotation>
-      <documentation>
-        The choice between all the possible requests to the bmqconf task.
-      </documentation>
-    </annotation>
-    <choice>
-      <element name='domainConfig' type='mqbconfm:DomainConfigRequest'/>
-    </choice>
-  </complexType>
-
-  <complexType name='Response'>
-    <annotation>
-      <documentation>
-        The choice between all the possible responses from the bmqconf task.
-      </documentation>
-    </annotation>
-    <choice>
-      <element name='failure'      type='mqbconfm:Failure'/>
-      <element name='domainConfig' type='mqbconfm:DomainConfigRaw'/>
-    </choice>
-  </complexType>
-
-  <!-- ========================================================================
                                     GENERIC
   ========================================================================= -->
-
-  <complexType name='Failure'>
-    <annotation>
-      <documentation>
-        Generic type to represent an error.
-
-        code.....: an integer value representing the error
-        message..: an optional string describing the error
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='code'    type='int'/>
-      <element name='message' type='string' default=''/>
-    </sequence>
-  </complexType>
-
-  <complexType name='BrokerIdentity'>
-    <annotation>
-      <documentation>
-        Generic type to hold identification of a broker.
-
-        hostName......: machine name
-        hostTags......: machine tags
-        brokerVersion.: version of the broker
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='hostName'      type='string'/>
-      <element name='hostTags'      type='string'/>
-      <element name='brokerVersion' type='string'/>
-    </sequence>
-  </complexType>
 
   <complexType name='Limits'>
     <annotation>
@@ -110,54 +31,6 @@
       <element name='messagesWatermarkRatio' type ='decimal' default='0.8'/>
       <element name='bytes'                  type ='long'/>
       <element name='bytesWatermarkRatio'    type ='decimal' default='0.8'/>
-    </sequence>
-  </complexType>
-
-  <!-- ========================================================================
-                               GET DOMAIN CONFIG
-  ========================================================================= -->
-
-  <complexType name='DomainConfigRequest'>
-    <annotation>
-      <documentation>
-        Request to get a domain config.
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='brokerIdentity' type='mqbconfm:BrokerIdentity'/>
-      <element name='domainName'     type='string'/>
-    </sequence>
-  </complexType>
-
-  <complexType name='DomainConfigRaw'>
-    <annotation>
-      <documentation>
-        Response of a get domain config request.
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='domainName' type='string'/>
-      <element name='config'     type='string'/>
-    </sequence>
-  </complexType>
-
-  <!-- ========================================================================
-                               DOMAIN_RESOLUTION
-  ========================================================================= -->
-  <complexType name='DomainResolver'>
-    <annotation>
-      <documentation>
-        Top level type representing the information retrieved when resolving a
-        domain.
-        Review: Keep this? Why not just store the cluster name?
-
-        name....: Domain name
-        cluster.: Cluster name
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='name' type='string'/>
-      <element name='cluster'  type='string'/>
     </sequence>
   </complexType>
 
