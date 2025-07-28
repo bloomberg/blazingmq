@@ -211,9 +211,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     AutoConfirms d_autoConfirms;
     // Auto CONFIRMs waiting for 'put' or 'processMessageRecord'
 
-    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
-    // Statistics of the queue associated to this storage.
-
   private:
     // NOT IMPLEMENTED
     FileBackedStorage(const FileBackedStorage&) BSLS_KEYWORD_DELETED;

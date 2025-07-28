@@ -5266,6 +5266,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
         storageSp->reset(new (*storageAlloc)
                              InMemoryStorage(queueUri,
                                              queueKey,
+                                             domain,
                                              config().partitionId(),
                                              domain->config(),
                                              domain->capacityMeter(),
