@@ -29,7 +29,6 @@ BSLMF_ASSERT(StorageKey::e_KEY_LENGTH_BINARY == sizeof(StorageKey));
 // class StorageKey
 // ----------------
 
-const char*      StorageKey::k_NULL_KEY_BUFFER("\0\0\0\0\0");
 const StorageKey StorageKey::k_NULL_KEY;
 
 // ------------------------
