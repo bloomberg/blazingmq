@@ -51,8 +51,8 @@ namespace mqba {
 // class ConfigProvider
 // --------------------
 
-bool ConfigProvider::cacheLookup(mqbconfm::DomainConfigRaw* domainConfig,
-                                 const bslstl::StringRef&   key)
+bool ConfigProvider::cacheLookup(bsl::string*             config,
+                                 const bslstl::StringRef& key)
 {
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
@@ -71,17 +71,17 @@ bool ConfigProvider::cacheLookup(mqbconfm::DomainConfigRaw* domainConfig,
     }
 
     // Cache entry is still 'alive'
-    *domainConfig = it->second.d_data;  // Assign a copy of the object
+    *config = it->second.d_data;  // Assign a copy of the object
     return true;
 }
 
-void ConfigProvider::cacheAdd(const bslstl::StringRef&         key,
-                              const mqbconfm::DomainConfigRaw& domainConfig)
+void ConfigProvider::cacheAdd(const bslstl::StringRef& key,
+                              const bsl::string&       config)
 {
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
     CacheEntry cacheEntry;
-    cacheEntry.d_data = domainConfig;
+    cacheEntry.d_data = config;
     cacheEntry.d_expireTime =
         bmqsys::Time::nowMonotonicClock() +
         bsls::TimeInterval(
@@ -126,21 +126,20 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     // First, check in the cache
-    mqbconfm::DomainConfigRaw domainConfig;
-    if (cacheLookup(&domainConfig, domainName) == true) {
+    bsl::string config;
+    if (cacheLookup(&config, domainName) == true) {
         BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                       << "from cache";
 
-        BALL_LOG_INFO << "Received domain config for domain '"
-                      << domainConfig.domainName() << "': '"
-                      << domainConfig.config() << "'";
+        BALL_LOG_INFO << "Received domain config for domain '" << domainName
+                      << "': '" << config << "'";
 
-        cacheAdd(domainConfig.domainName(), domainConfig);
+        cacheAdd(domainName, config);
 
         guard.release()->unlock();  // UNLOCK
 
         // Call callback
-        callback(e_SUCCESS, domainConfig.config());
+        callback(e_SUCCESS, config);
 
         return;  // RETURN
     }
@@ -177,30 +176,24 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         return;  // RETURN
     }
 
-    bsl::string config;
-
     fileStream.seekg(0, bsl::ios::end);
     config.resize(fileStream.tellg());
     fileStream.seekg(0, bsl::ios::beg);
     fileStream.read(config.data(), config.size());
     fileStream.close();
 
-    domainConfig.config()     = config;
-    domainConfig.domainName() = domainName;
-
     BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                   << "from file '" << filePath << "'";
 
-    BALL_LOG_INFO << "Received domain config for domain '"
-                  << domainConfig.domainName() << "': '"
-                  << domainConfig.config() << "'";
+    BALL_LOG_INFO << "Received domain config for domain '" << domainName
+                  << "': '" << config << "'";
 
-    cacheAdd(domainConfig.domainName(), domainConfig);
+    cacheAdd(domainName, config);
 
     guard.release()->unlock();  // unlock
 
     // Call callback
-    callback(e_SUCCESS, domainConfig.config());
+    callback(e_SUCCESS, config);
 }
 
 void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
