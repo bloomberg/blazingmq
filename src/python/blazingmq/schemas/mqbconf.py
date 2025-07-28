@@ -84,32 +84,6 @@ class ExpressionVersion(Enum):
 
 
 @dataclass
-class Failure:
-    """Generic type to represent an error.
-
-    code.....: an integer value representing the error
-    message..: an optional string describing the error
-    """
-
-    code: Optional[int] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    message: str = field(
-        default="",
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
 class FileBackedStorage:
     """
     Configuration for storage using a file on disk.

@@ -10,21 +10,6 @@
                                     GENERIC
   ========================================================================= -->
 
-  <complexType name='Failure'>
-    <annotation>
-      <documentation>
-        Generic type to represent an error.
-
-        code.....: an integer value representing the error
-        message..: an optional string describing the error
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='code'    type='int'/>
-      <element name='message' type='string' default=''/>
-    </sequence>
-  </complexType>
-
   <complexType name='Limits'>
     <annotation>
       <documentation>
