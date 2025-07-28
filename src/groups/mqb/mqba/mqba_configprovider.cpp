@@ -134,6 +134,12 @@ void ConfigProvider::stop()
 void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
                                      const GetDomainConfigCb& callback)
 {
+    enum {
+        e_SUCCESS       = 0,
+        e_FILENOTEXIST  = -1,
+        e_FILENOTOPENED = -2,
+    };
+
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
     // First, check in the cache
@@ -147,7 +153,6 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     }
 
     // We don't have the config in the small cache ..
-    int         rc = 0;
     bsl::string config;
 
     bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() + "/domains/" +
@@ -158,10 +163,9 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Domain file '" << filePath << "' doesn't exist";
         config.assign(os.str().data(), os.str().length());
-        rc = -1;
 
         response.makeFailure();
-        response.failure().code()    = rc;
+        response.failure().code()    = e_FILENOTEXIST;
         response.failure().message() = config;
     }
     else {
@@ -172,10 +176,9 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
             bmqu::MemOutStream os(&localAllocator);
             os << "Unable to open domain file '" << filePath << "'";
             config.assign(os.str().data(), os.str().length());
-            rc = -2;
 
             response.makeFailure();
-            response.failure().code()    = rc;
+            response.failure().code()    = e_FILENOTOPENED;
             response.failure().message() = config;
         }
         else {
