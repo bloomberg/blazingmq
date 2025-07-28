@@ -40,23 +40,6 @@
     </sequence>
   </complexType>
 
-  <complexType name='BrokerIdentity'>
-    <annotation>
-      <documentation>
-        Generic type to hold identification of a broker.
-
-        hostName......: machine name
-        hostTags......: machine tags
-        brokerVersion.: version of the broker
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='hostName'      type='string'/>
-      <element name='hostTags'      type='string'/>
-      <element name='brokerVersion' type='string'/>
-    </sequence>
-  </complexType>
-
   <complexType name='Limits'>
     <annotation>
       <documentation>

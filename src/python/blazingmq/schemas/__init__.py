@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from blazingmq.schemas.mqbconf import (
-    BrokerIdentity,
     Consistency,
     Domain,
     DomainConfigRaw,
@@ -42,7 +41,6 @@ from blazingmq.schemas.mqbconf import (
 )
 
 __all__ = [
-    "BrokerIdentity",
     "Consistency",
     "Domain",
     "DomainConfigRaw",
