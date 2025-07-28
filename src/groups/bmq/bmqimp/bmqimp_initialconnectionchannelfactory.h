@@ -66,9 +66,8 @@ class InitialConnectionChannelFactoryConfig {
     // PRIVATE DATA
     bmqio::ChannelFactory*              d_baseFactory_p;
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
-    bsls::TimeInterval                  d_authenticationTimeout;
     bmqp_ctrlmsg::NegotiationMessage    d_negotiationMessage;
-    bsls::TimeInterval                  d_negotiationTimeout;
+    bsls::TimeInterval                  d_connectTimeout;
     BlobSpPool*                         d_blobSpPool_p;
     bslma::Allocator*                   d_allocator_p;
 
@@ -84,9 +83,8 @@ class InitialConnectionChannelFactoryConfig {
     InitialConnectionChannelFactoryConfig(
         bmqio::ChannelFactory*                     base,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
-        const bsls::TimeInterval&                  authenticationTimeout,
         const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-        const bsls::TimeInterval&                  negotiationTimeout,
+        const bsls::TimeInterval&                  d_connectTimeout,
         BlobSpPool*                                blobSpPool_p,
         bslma::Allocator*                          basicAllocator = 0);
 
