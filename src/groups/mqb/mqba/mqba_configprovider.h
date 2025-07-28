@@ -120,13 +120,6 @@ class ConfigProvider {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Invoke the script to generate the configuration for the specified
-    /// `domainName` and store the result in the specified `output` on
-    /// success, returning 0; or return a non-zero result code and populate
-    /// `output` with the error on failure.
-    int generateConfig(bsl::string*             output,
-                       const bslstl::StringRef& domainName);
-
     /// Lookup entry with the specified `key` in the cache and fill the data
     /// in the specified `domainConfig` if found and expiry time has not yet
     /// been reached; otherwise return false and leave `domainConfig`
