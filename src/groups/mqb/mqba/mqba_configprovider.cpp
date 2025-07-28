@@ -118,11 +118,6 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                       << "from cache";
 
-        if (response.isFailureValue()) {
-            callback(response.failure().code(), response.failure().message());
-            return;  // RETURN
-        }
-
         BSLS_ASSERT_OPT(response.isDomainConfigValue());
 
         BALL_LOG_INFO << "Received domain config for domain '"
