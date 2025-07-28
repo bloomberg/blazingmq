@@ -85,18 +85,6 @@
                                GET DOMAIN CONFIG
   ========================================================================= -->
 
-  <complexType name='DomainConfigRequest'>
-    <annotation>
-      <documentation>
-        Request to get a domain config.
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='brokerIdentity' type='mqbconfm:BrokerIdentity'/>
-      <element name='domainName'     type='string'/>
-    </sequence>
-  </complexType>
-
   <complexType name='DomainConfigRaw'>
     <annotation>
       <documentation>

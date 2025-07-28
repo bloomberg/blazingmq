@@ -341,32 +341,6 @@ class Consistency:
 
 
 @dataclass
-class DomainConfigRequest:
-    """
-    Request to get a domain config.
-    """
-
-    broker_identity: Optional[BrokerIdentity] = field(
-        default=None,
-        metadata={
-            "name": "brokerIdentity",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    domain_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "domainName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
 class Expression:
     """This complex type contains expression to evaluate when selecting
     Subscription for delivery.
