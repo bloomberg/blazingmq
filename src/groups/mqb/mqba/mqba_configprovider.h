@@ -27,9 +27,6 @@
 /// @todo Add commandHandler.
 /// @todo Add statistics.
 
-// MQB
-#include <mqbconfm_messages.h>
-
 // BDE
 #include <ball_log.h>
 #include <bsl_functional.h>
@@ -125,14 +122,12 @@ class ConfigProvider {
     /// reached; otherwise return false and leave `config` untouched.  Note
     /// that if the entry is found but has expired, this will erase it from the
     /// cache.
-    bool cacheLookup(bsl::string*             config,
-                     const bslstl::StringRef& key);
+    bool cacheLookup(bsl::string* config, const bslstl::StringRef& key);
 
     /// Add entry with the specified `key` and with the specified `config` as
     /// data to the cache, resetting its expiry time.  Note that this will
     /// overwrite any existing entry with the specified `key` in the cache.
-    bool cacheAdd(const bslstl::StringRef& key,
-                  const bsl::string&       config);
+    bool cacheAdd(const bslstl::StringRef& key, const bsl::string& config);
 
   private:
     // NOT IMPLEMENTED
