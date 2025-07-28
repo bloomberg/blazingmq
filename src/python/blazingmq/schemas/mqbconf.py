@@ -478,26 +478,6 @@ class Storage:
 
 
 @dataclass
-class Request1:
-    """
-    The choice between all the possible requests to the bmqconf task.
-    """
-
-    class Meta:
-        name = "Request"
-
-    domain_config: Optional[DomainConfigRequest] = field(
-        default=None,
-        metadata={
-            "name": "domainConfig",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
 class StorageDefinition:
     """Type representing the configuration for a Storage.
 
@@ -717,13 +697,6 @@ class Domain:
             "min_occurs": 1,
         },
     )
-
-
-@dataclass
-class Request(Request1):
-    class Meta:
-        name = "request"
-        namespace = "urn:x-bloomberg-com:mqbconfm"
 
 
 @dataclass
