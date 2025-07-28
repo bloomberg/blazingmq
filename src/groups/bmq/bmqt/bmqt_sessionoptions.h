@@ -106,6 +106,18 @@
 ///     to avoid a constant back and forth toggling of state resulting from
 ///     push pop of events.
 ///
+///
+///   - *credentialProvider*:
+///     Optional instance of a class derived from
+///     @bbref{bmqpi::CredentialProvider}, responsible for providing the
+///     credentials to authenticate with the broker.
+///     If not specified, then the session will not authenticate with the
+///     broker. If the broker requires authentication, then the session will
+///     fail to start; If the broker does not require authentication, then the
+///     session will skip the authentication step and proceed directly to the
+///     negotiation step.
+///
+///
 ///   - *hostHealthMonitor*:
 ///     Optional instance of a class derived from
 ///     @bbref{bmqpi::HostHealthMonitor}, responsible for notifying the
@@ -148,6 +160,9 @@ class DTTracer;
 }
 namespace bmqpi {
 class HostHealthMonitor;
+}
+namespace bmqpi {
+class CredentialProvider;
 }
 
 namespace bmqt {
@@ -216,6 +231,8 @@ class SessionOptions {
     /// future release of libbmq.
     int d_eventQueueSize;
 
+    bsl::shared_ptr<bmqpi::CredentialProvider> d_credentialProvider_sp;
+
     bsl::shared_ptr<bmqpi::HostHealthMonitor> d_hostHealthMonitor_sp;
 
     bsl::shared_ptr<bmqpi::DTContext> d_dtContext_sp;
@@ -277,6 +294,11 @@ class SessionOptions {
     /// Set the timeout for closing a queue to the specified `value`.
     SessionOptions& setCloseQueueTimeout(const bsls::TimeInterval& value);
 
+    /// Set an `CredentialProvider` object that will load the identity of the
+    /// client.
+    SessionOptions& setCredentialProvider(
+        const bsl::shared_ptr<bmqpi::CredentialProvider>& credentialProvider);
+
     /// Set a `HostHealthMonitor` object that will notify the session when
     /// the health of the host has changed.
     SessionOptions& setHostHealthMonitor(
@@ -337,6 +359,9 @@ class SessionOptions {
 
     /// Get the timeout for closing a queue.
     const bsls::TimeInterval& closeQueueTimeout() const;
+
+    const bsl::shared_ptr<bmqpi::CredentialProvider>&
+    credentialProvider() const;
 
     const bsl::shared_ptr<bmqpi::HostHealthMonitor>& hostHealthMonitor() const;
 
@@ -479,6 +504,13 @@ SessionOptions::setCloseQueueTimeout(const bsls::TimeInterval& value)
     return *this;
 }
 
+inline SessionOptions& SessionOptions::setCredentialProvider(
+    const bsl::shared_ptr<bmqpi::CredentialProvider>& credentialProvider)
+{
+    d_credentialProvider_sp = credentialProvider;
+    return *this;
+}
+
 inline SessionOptions& SessionOptions::setHostHealthMonitor(
     const bsl::shared_ptr<bmqpi::HostHealthMonitor>& monitor)
 {
@@ -571,6 +603,12 @@ inline const bsls::TimeInterval& SessionOptions::configureQueueTimeout() const
 inline const bsls::TimeInterval& SessionOptions::closeQueueTimeout() const
 {
     return d_closeQueueTimeout;
+}
+
+inline const bsl::shared_ptr<bmqpi::CredentialProvider>&
+SessionOptions::credentialProvider() const
+{
+    return d_credentialProvider_sp;
 }
 
 inline const bsl::shared_ptr<bmqpi::HostHealthMonitor>&
