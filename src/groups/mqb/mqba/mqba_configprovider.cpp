@@ -159,6 +159,10 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         os << "Domain file '" << filePath << "' doesn't exist";
         config.assign(os.str().data(), os.str().length());
         rc = -1;
+
+        response.makeFailure();
+        response.failure().code()    = rc;
+        response.failure().message() = config;
     }
     else {
         bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
@@ -169,6 +173,10 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
             os << "Unable to open domain file '" << filePath << "'";
             config.assign(os.str().data(), os.str().length());
             rc = -2;
+
+            response.makeFailure();
+            response.failure().code()    = rc;
+            response.failure().message() = config;
         }
         else {
             fileStream.seekg(0, bsl::ios::end);
@@ -176,18 +184,11 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
             fileStream.seekg(0, bsl::ios::beg);
             fileStream.read(config.data(), config.size());
             fileStream.close();
-        }
-    }
 
-    if (rc != 0) {
-        response.makeFailure();
-        response.failure().code()    = rc;
-        response.failure().message() = config;
-    }
-    else {
-        response.makeDomainConfig();
-        response.domainConfig().config()     = config;
-        response.domainConfig().domainName() = domainName;
+            response.makeDomainConfig();
+            response.domainConfig().config() = config;
+            response.domainConfig().domainName() = domainName;
+        }
     }
     guard.release()->unlock();  // unlock
 
