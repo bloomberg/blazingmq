@@ -51,7 +51,7 @@ namespace mqba {
 // class ConfigProvider
 // --------------------
 
-bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
+bool ConfigProvider::cacheLookup(bsl::string*             config,
                                  const bslstl::StringRef& key)
 {
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
@@ -71,39 +71,22 @@ bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
     }
 
     // Cache entry is still 'alive'
-    *response = it->second.d_data;  // Assign a copy of the object
+    *config = it->second.d_data;  // Assign a copy of the object
     return true;
 }
 
-void ConfigProvider::onDomainConfigResponseCb(
-    const mqbconfm::Response response,
-    const GetDomainConfigCb& callback)
+void ConfigProvider::cacheAdd(const bslstl::StringRef& key,
+                              const bsl::string&       config)
 {
-    if (response.isFailureValue()) {
-        callback(response.failure().code(), response.failure().message());
-        return;  // RETURN
-    }
+    BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
-    BSLS_ASSERT_OPT(response.isDomainConfigValue());
-
-    BALL_LOG_INFO << "Received domain config for domain '"
-                  << response.domainConfig().domainName() << "': '"
-                  << response.domainConfig().config() << "'";
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
-
-        // Save to cache
-        CacheEntry cacheEntry;
-        cacheEntry.d_data = response;
-        cacheEntry.d_expireTime =
-            bmqsys::Time::nowMonotonicClock() +
-            bsls::TimeInterval(
-                mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
-        d_cache[response.domainConfig().domainName()] = cacheEntry;
-    }
-
-    // Call callback
-    callback(0, response.domainConfig().config());
+    CacheEntry cacheEntry;
+    cacheEntry.d_data = config;
+    cacheEntry.d_expireTime =
+        bmqsys::Time::nowMonotonicClock() +
+        bsls::TimeInterval(
+            mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
+    d_cache[key] = cacheEntry;
 }
 
 ConfigProvider::ConfigProvider(bslma::Allocator* allocator)
@@ -134,21 +117,29 @@ void ConfigProvider::stop()
 void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
                                      const GetDomainConfigCb& callback)
 {
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
+    enum {
+        e_SUCCESS       = 0,
+        e_FILENOTEXIST  = -1,
+        e_FILENOTOPENED = -2,
+    };
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     // First, check in the cache
-    mqbconfm::Response response;
-    if (cacheLookup(&response, domainName) == true) {
-        guard.release()->unlock();  // mutex UNLOCK
-        BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
-                      << "from cache";
-        onDomainConfigResponseCb(response, callback);
+    bsl::string config;
+    if (cacheLookup(&config, domainName) == true) {
+        BALL_LOG_INFO << "Retrieved config for domain '" << domainName
+                      << "' from cache: '" << config << "'";
+
+        // Update the expiration time in the cache.
+        cacheAdd(domainName, config);
+
+        guard.release()->unlock();  // UNLOCK
+        callback(e_SUCCESS, config);
         return;  // RETURN
     }
 
     // We don't have the config in the small cache ..
-    int         rc = 0;
-    bsl::string config;
 
     bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() + "/domains/" +
                            domainName + ".json";
@@ -157,44 +148,43 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Domain file '" << filePath << "' doesn't exist";
-        config.assign(os.str().data(), os.str().length());
-        rc = -1;
-    }
-    else {
-        bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
-        if (!fileStream) {
-            bdlma::LocalSequentialAllocator<1024> localAllocator(
-                d_allocator_p);
-            bmqu::MemOutStream os(&localAllocator);
-            os << "Unable to open domain file '" << filePath << "'";
-            config.assign(os.str().data(), os.str().length());
-            rc = -2;
-        }
-        else {
-            fileStream.seekg(0, bsl::ios::end);
-            config.resize(fileStream.tellg());
-            fileStream.seekg(0, bsl::ios::beg);
-            fileStream.read(config.data(), config.size());
-            fileStream.close();
-        }
+
+        guard.release()->unlock();  // UNLOCK
+
+        BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
+                      << "' from file '" << filePath << "': " << os.str();
+        callback(e_FILENOTEXIST, os.str());
+        return;  // RETURN
     }
 
-    if (rc != 0) {
-        response.makeFailure();
-        response.failure().code()    = rc;
-        response.failure().message() = config;
-    }
-    else {
-        response.makeDomainConfig();
-        response.domainConfig().config()     = config;
-        response.domainConfig().domainName() = domainName;
-    }
-    guard.release()->unlock();  // unlock
+    bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
+    if (!fileStream) {
+        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+        bmqu::MemOutStream                    os(&localAllocator);
+        os << "Unable to open domain file '" << filePath << "'";
 
-    BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
-                  << "from file '" << filePath << "'";
+        guard.release()->unlock();  // UNLOCK
 
-    onDomainConfigResponseCb(response, callback);
+        BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
+                      << "' from file '" << filePath << "': " << os.str();
+        callback(e_FILENOTOPENED, os.str());
+        return;  // RETURN
+    }
+
+    fileStream.seekg(0, bsl::ios::end);
+    config.resize(fileStream.tellg());
+    fileStream.seekg(0, bsl::ios::beg);
+    fileStream.read(config.data(), config.size());
+    fileStream.close();
+
+    BALL_LOG_INFO << "Retrieved config for domain '" << domainName
+                  << "' from file '" << filePath << "': '" << config << "'";
+
+    // Insert the newly-found configuration into the cache.
+    cacheAdd(domainName, config);
+
+    guard.release()->unlock();  // UNLOCK
+    callback(e_SUCCESS, config);
 }
 
 void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
