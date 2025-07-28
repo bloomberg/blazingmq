@@ -164,35 +164,33 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         callback(e_FILENOTEXIST, os.str());
         return;                                                       // RETURN
     }
-    else {
-        bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
-        if (!fileStream) {
-            bdlma::LocalSequentialAllocator<1024> localAllocator(
-                d_allocator_p);
-            bmqu::MemOutStream os(&localAllocator);
-            os << "Unable to open domain file '" << filePath << "'";
 
-            guard.release()->unlock();                                // UNLOCK
+    bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
+    if (!fileStream) {
+        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+        bmqu::MemOutStream os(&localAllocator);
+        os << "Unable to open domain file '" << filePath << "'";
 
-            BALL_LOG_INFO << "Config for domain '" << domainName
-                          << "' retrieved from file '" << filePath << "'";
-            callback(e_FILENOTOPENED, os.str());
-            return;                                                   // RETURN
-        }
-        else {
-            bsl::string config;
+        guard.release()->unlock();                                    // UNLOCK
 
-            fileStream.seekg(0, bsl::ios::end);
-            config.resize(fileStream.tellg());
-            fileStream.seekg(0, bsl::ios::beg);
-            fileStream.read(config.data(), config.size());
-            fileStream.close();
-
-            response.makeDomainConfig();
-            response.domainConfig().config() = config;
-            response.domainConfig().domainName() = domainName;
-        }
+        BALL_LOG_INFO << "Config for domain '" << domainName
+                      << "' retrieved from file '" << filePath << "'";
+        callback(e_FILENOTOPENED, os.str());
+        return;                                                       // RETURN
     }
+
+    bsl::string config;
+
+    fileStream.seekg(0, bsl::ios::end);
+    config.resize(fileStream.tellg());
+    fileStream.seekg(0, bsl::ios::beg);
+    fileStream.read(config.data(), config.size());
+    fileStream.close();
+
+    response.makeDomainConfig();
+    response.domainConfig().config() = config;
+    response.domainConfig().domainName() = domainName;
+
     guard.release()->unlock();  // unlock
 
     BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
