@@ -22,31 +22,6 @@ __NAMESPACE__ = "urn:x-bloomberg-com:mqbconfm"
 
 
 @dataclass
-class DomainConfigRaw:
-    """
-    Response of a get domain config request.
-    """
-
-    domain_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "domainName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    config: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
 class DomainResolver:
     """Top level type representing the information retrieved when resolving a
     domain.

@@ -35,22 +35,6 @@
   </complexType>
 
   <!-- ========================================================================
-                               GET DOMAIN CONFIG
-  ========================================================================= -->
-
-  <complexType name='DomainConfigRaw'>
-    <annotation>
-      <documentation>
-        Response of a get domain config request.
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='domainName' type='string'/>
-      <element name='config'     type='string'/>
-    </sequence>
-  </complexType>
-
-  <!-- ========================================================================
                                DOMAIN_RESOLUTION
   ========================================================================= -->
   <complexType name='DomainResolver'>

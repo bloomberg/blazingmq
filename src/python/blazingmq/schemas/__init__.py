@@ -16,7 +16,6 @@
 from blazingmq.schemas.mqbconf import (
     Consistency,
     Domain,
-    DomainConfigRaw,
     DomainDefinition,
     DomainResolver,
     DomainVariant,
@@ -40,7 +39,6 @@ from blazingmq.schemas.mqbconf import (
 __all__ = [
     "Consistency",
     "Domain",
-    "DomainConfigRaw",
     "DomainDefinition",
     "DomainResolver",
     "DomainVariant",
