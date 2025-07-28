@@ -126,20 +126,16 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     // First, check in the cache
     bsl::string config;
     if (cacheLookup(&config, domainName) == true) {
-        BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
-                      << "from cache";
+        BALL_LOG_INFO << "Retrieved config for domain '"
+                      << domainName << "' from cache: '"
+                      << config << "'";
 
-        BALL_LOG_INFO << "Received domain config for domain '" << domainName
-                      << "': '" << config << "'";
-
+        // Update the expiration time in the cache.
         cacheAdd(domainName, config);
 
         guard.release()->unlock();                                    // UNLOCK
-
-        // Call callback
         callback(e_SUCCESS, config);
-
-        return;  // RETURN
+        return;                                                       // RETURN
     }
 
     // We don't have the config in the small cache ..
@@ -155,7 +151,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         guard.release()->unlock();                                    // UNLOCK
 
         BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
-                      << "' from file '" << filePath << "':" << os.str();
+                      << "' from file '" << filePath << "': " << os.str();
         callback(e_FILENOTEXIST, os.str());
         return;                                                       // RETURN
     }
@@ -169,7 +165,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         guard.release()->unlock();                                    // UNLOCK
 
         BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
-                      << "' from file '" << filePath << "':" << os.str();
+                      << "' from file '" << filePath << "': " << os.str();
         callback(e_FILENOTOPENED, os.str());
         return;                                                       // RETURN
     }
@@ -180,18 +176,14 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     fileStream.read(config.data(), config.size());
     fileStream.close();
 
-    BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
-                  << "from file '" << filePath << "'";
-
-    BALL_LOG_INFO << "Received domain config for domain '"
-                  << domainName << "': '"
+    BALL_LOG_INFO << "Retrieved config for domain '"
+                  << domainName << "' from file '" << filePath << "': '"
                   << config << "'";
 
+    // Insert the newly-found configuration into the cache.
     cacheAdd(domainName, config);
 
-    guard.release()->unlock();  // unlock
-
-    // Call callback
+    guard.release()->unlock();                                        // UNLOCK
     callback(e_SUCCESS, config);
 }
 
