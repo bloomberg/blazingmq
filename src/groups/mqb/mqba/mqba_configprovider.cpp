@@ -138,7 +138,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         }
 
         // Call callback
-        callback(0, response.domainConfig().config());
+        callback(e_SUCCESS, response.domainConfig().config());
 
         return;  // RETURN
     }
@@ -213,7 +213,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     }
 
     // Call callback
-    callback(0, response.domainConfig().config());
+    callback(e_SUCCESS, response.domainConfig().config());
 }
 
 void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
