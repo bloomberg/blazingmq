@@ -99,11 +99,13 @@ DomainConfigRaw::DomainConfigRaw(bslma::Allocator* basicAllocator)
 DomainConfigRaw::DomainConfigRaw(const DomainConfigRaw& original,
                                  bslma::Allocator*      basicAllocator)
 : d_domainName(original.d_domainName, basicAllocator)
-, d_config(original.d_config, basicAllocator){}
+, d_config(original.d_config, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainConfigRaw::DomainConfigRaw(DomainConfigRaw && original) noexcept
+DomainConfigRaw::DomainConfigRaw(DomainConfigRaw&& original) noexcept
 : d_domainName(bsl::move(original.d_domainName)),
   d_config(bsl::move(original.d_config))
 {
@@ -225,11 +227,13 @@ DomainResolver::DomainResolver(bslma::Allocator* basicAllocator)
 DomainResolver::DomainResolver(const DomainResolver& original,
                                bslma::Allocator*     basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_cluster(original.d_cluster, basicAllocator){}
+, d_cluster(original.d_cluster, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainResolver::DomainResolver(DomainResolver && original) noexcept
+DomainResolver::DomainResolver(DomainResolver&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_cluster(bsl::move(original.d_cluster))
 {
@@ -417,11 +421,13 @@ Failure::Failure(bslma::Allocator* basicAllocator)
 
 Failure::Failure(const Failure& original, bslma::Allocator* basicAllocator)
 : d_message(original.d_message, basicAllocator)
-, d_code(original.d_code){}
+, d_code(original.d_code)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Failure::Failure(Failure && original) noexcept
+Failure::Failure(Failure&& original) noexcept
 : d_message(bsl::move(original.d_message)),
   d_code(bsl::move(original.d_code))
 {
@@ -945,11 +951,13 @@ QueueModeFanout::QueueModeFanout(bslma::Allocator* basicAllocator)
 QueueModeFanout::QueueModeFanout(const QueueModeFanout& original,
                                  bslma::Allocator*      basicAllocator)
 : d_appIDs(original.d_appIDs, basicAllocator)
-, d_publishAppIdMetrics(original.d_publishAppIdMetrics){}
+, d_publishAppIdMetrics(original.d_publishAppIdMetrics)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueModeFanout::QueueModeFanout(QueueModeFanout && original) noexcept
+QueueModeFanout::QueueModeFanout(QueueModeFanout&& original) noexcept
 : d_appIDs(bsl::move(original.d_appIDs)),
   d_publishAppIdMetrics(bsl::move(original.d_publishAppIdMetrics))
 {
@@ -1412,11 +1420,13 @@ Expression::Expression(bslma::Allocator* basicAllocator)
 Expression::Expression(const Expression& original,
                        bslma::Allocator* basicAllocator)
 : d_text(original.d_text, basicAllocator)
-, d_version(original.d_version){}
+, d_version(original.d_version)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Expression::Expression(Expression && original) noexcept
+Expression::Expression(Expression&& original) noexcept
 : d_text(bsl::move(original.d_text)),
   d_version(bsl::move(original.d_version))
 {
@@ -1876,323 +1886,6 @@ const char* QueueMode::selectionName() const
     }
 }
 
-// --------------
-// class Response
-// --------------
-
-// CONSTANTS
-
-const char Response::CLASS_NAME[] = "Response";
-
-const bdlat_SelectionInfo Response::SELECTION_INFO_ARRAY[] = {
-    {SELECTION_ID_FAILURE,
-     "failure",
-     sizeof("failure") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_DOMAIN_CONFIG,
-     "domainConfig",
-     sizeof("domainConfig") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT}};
-
-// CLASS METHODS
-
-const bdlat_SelectionInfo* Response::lookupSelectionInfo(const char* name,
-                                                         int nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_SelectionInfo& selectionInfo =
-            Response::SELECTION_INFO_ARRAY[i];
-
-        if (nameLength == selectionInfo.d_nameLength &&
-            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
-            return &selectionInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_SelectionInfo* Response::lookupSelectionInfo(int id)
-{
-    switch (id) {
-    case SELECTION_ID_FAILURE:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_FAILURE];
-    case SELECTION_ID_DOMAIN_CONFIG:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN_CONFIG];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-Response::Response(const Response& original, bslma::Allocator* basicAllocator)
-: d_selectionId(original.d_selectionId)
-, d_allocator_p(bslma::Default::allocator(basicAllocator))
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_FAILURE: {
-        new (d_failure.buffer())
-            Failure(original.d_failure.object(), d_allocator_p);
-    } break;
-    case SELECTION_ID_DOMAIN_CONFIG: {
-        new (d_domainConfig.buffer())
-            DomainConfigRaw(original.d_domainConfig.object(), d_allocator_p);
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Response::Response(Response&& original) noexcept
-: d_selectionId(original.d_selectionId),
-  d_allocator_p(original.d_allocator_p)
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_FAILURE: {
-        new (d_failure.buffer())
-            Failure(bsl::move(original.d_failure.object()), d_allocator_p);
-    } break;
-    case SELECTION_ID_DOMAIN_CONFIG: {
-        new (d_domainConfig.buffer())
-            DomainConfigRaw(bsl::move(original.d_domainConfig.object()),
-                            d_allocator_p);
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-}
-
-Response::Response(Response&& original, bslma::Allocator* basicAllocator)
-: d_selectionId(original.d_selectionId)
-, d_allocator_p(bslma::Default::allocator(basicAllocator))
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_FAILURE: {
-        new (d_failure.buffer())
-            Failure(bsl::move(original.d_failure.object()), d_allocator_p);
-    } break;
-    case SELECTION_ID_DOMAIN_CONFIG: {
-        new (d_domainConfig.buffer())
-            DomainConfigRaw(bsl::move(original.d_domainConfig.object()),
-                            d_allocator_p);
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-}
-#endif
-
-// MANIPULATORS
-
-Response& Response::operator=(const Response& rhs)
-{
-    if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_FAILURE: {
-            makeFailure(rhs.d_failure.object());
-        } break;
-        case SELECTION_ID_DOMAIN_CONFIG: {
-            makeDomainConfig(rhs.d_domainConfig.object());
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Response& Response::operator=(Response&& rhs)
-{
-    if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_FAILURE: {
-            makeFailure(bsl::move(rhs.d_failure.object()));
-        } break;
-        case SELECTION_ID_DOMAIN_CONFIG: {
-            makeDomainConfig(bsl::move(rhs.d_domainConfig.object()));
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
-    }
-
-    return *this;
-}
-#endif
-
-void Response::reset()
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_FAILURE: {
-        d_failure.object().~Failure();
-    } break;
-    case SELECTION_ID_DOMAIN_CONFIG: {
-        d_domainConfig.object().~DomainConfigRaw();
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-
-    d_selectionId = SELECTION_ID_UNDEFINED;
-}
-
-int Response::makeSelection(int selectionId)
-{
-    switch (selectionId) {
-    case SELECTION_ID_FAILURE: {
-        makeFailure();
-    } break;
-    case SELECTION_ID_DOMAIN_CONFIG: {
-        makeDomainConfig();
-    } break;
-    case SELECTION_ID_UNDEFINED: {
-        reset();
-    } break;
-    default: return -1;
-    }
-    return 0;
-}
-
-int Response::makeSelection(const char* name, int nameLength)
-{
-    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
-                                                                   nameLength);
-    if (0 == selectionInfo) {
-        return -1;
-    }
-
-    return makeSelection(selectionInfo->d_id);
-}
-
-Failure& Response::makeFailure()
-{
-    if (SELECTION_ID_FAILURE == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_failure.object());
-    }
-    else {
-        reset();
-        new (d_failure.buffer()) Failure(d_allocator_p);
-        d_selectionId = SELECTION_ID_FAILURE;
-    }
-
-    return d_failure.object();
-}
-
-Failure& Response::makeFailure(const Failure& value)
-{
-    if (SELECTION_ID_FAILURE == d_selectionId) {
-        d_failure.object() = value;
-    }
-    else {
-        reset();
-        new (d_failure.buffer()) Failure(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_FAILURE;
-    }
-
-    return d_failure.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Failure& Response::makeFailure(Failure&& value)
-{
-    if (SELECTION_ID_FAILURE == d_selectionId) {
-        d_failure.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_failure.buffer()) Failure(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_FAILURE;
-    }
-
-    return d_failure.object();
-}
-#endif
-
-DomainConfigRaw& Response::makeDomainConfig()
-{
-    if (SELECTION_ID_DOMAIN_CONFIG == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_domainConfig.object());
-    }
-    else {
-        reset();
-        new (d_domainConfig.buffer()) DomainConfigRaw(d_allocator_p);
-        d_selectionId = SELECTION_ID_DOMAIN_CONFIG;
-    }
-
-    return d_domainConfig.object();
-}
-
-DomainConfigRaw& Response::makeDomainConfig(const DomainConfigRaw& value)
-{
-    if (SELECTION_ID_DOMAIN_CONFIG == d_selectionId) {
-        d_domainConfig.object() = value;
-    }
-    else {
-        reset();
-        new (d_domainConfig.buffer()) DomainConfigRaw(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_DOMAIN_CONFIG;
-    }
-
-    return d_domainConfig.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainConfigRaw& Response::makeDomainConfig(DomainConfigRaw&& value)
-{
-    if (SELECTION_ID_DOMAIN_CONFIG == d_selectionId) {
-        d_domainConfig.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_domainConfig.buffer())
-            DomainConfigRaw(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_DOMAIN_CONFIG;
-    }
-
-    return d_domainConfig.object();
-}
-#endif
-
-// ACCESSORS
-
-bsl::ostream&
-Response::print(bsl::ostream& stream, int level, int spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    switch (d_selectionId) {
-    case SELECTION_ID_FAILURE: {
-        printer.printAttribute("failure", d_failure.object());
-    } break;
-    case SELECTION_ID_DOMAIN_CONFIG: {
-        printer.printAttribute("domainConfig", d_domainConfig.object());
-    } break;
-    default: stream << "SELECTION UNDEFINED\n";
-    }
-    printer.end();
-    return stream;
-}
-
-const char* Response::selectionName() const
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_FAILURE:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_FAILURE].name();
-    case SELECTION_ID_DOMAIN_CONFIG:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN_CONFIG].name();
-    default:
-        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-        return "(* UNDEFINED *)";
-    }
-}
-
 // -------------
 // class Storage
 // -------------
@@ -2637,11 +2330,13 @@ Subscription::Subscription(bslma::Allocator* basicAllocator)
 Subscription::Subscription(const Subscription& original,
                            bslma::Allocator*   basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
-, d_expression(original.d_expression, basicAllocator){}
+, d_expression(original.d_expression, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Subscription::Subscription(Subscription && original) noexcept
+Subscription::Subscription(Subscription&& original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_expression(bsl::move(original.d_expression))
 {
@@ -2871,11 +2566,13 @@ Domain::Domain(const Domain& original, bslma::Allocator* basicAllocator)
 , d_maxQueues(original.d_maxQueues)
 , d_maxIdleTime(original.d_maxIdleTime)
 , d_maxDeliveryAttempts(original.d_maxDeliveryAttempts)
-, d_deduplicationTimeMs(original.d_deduplicationTimeMs){}
+, d_deduplicationTimeMs(original.d_deduplicationTimeMs)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Domain::Domain(Domain && original) noexcept
+Domain::Domain(Domain&& original) noexcept
 : d_messageTtl(bsl::move(original.d_messageTtl)),
   d_subscriptions(bsl::move(original.d_subscriptions)),
   d_name(bsl::move(original.d_name)),
@@ -3062,11 +2759,13 @@ DomainDefinition::DomainDefinition(bslma::Allocator* basicAllocator)
 DomainDefinition::DomainDefinition(const DomainDefinition& original,
                                    bslma::Allocator*       basicAllocator)
 : d_location(original.d_location, basicAllocator)
-, d_parameters(original.d_parameters, basicAllocator){}
+, d_parameters(original.d_parameters, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainDefinition::DomainDefinition(DomainDefinition && original) noexcept
+DomainDefinition::DomainDefinition(DomainDefinition&& original) noexcept
 : d_location(bsl::move(original.d_location)),
   d_parameters(bsl::move(original.d_parameters))
 {

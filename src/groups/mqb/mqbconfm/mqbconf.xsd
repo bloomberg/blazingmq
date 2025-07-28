@@ -7,21 +7,6 @@
         elementFormDefault = 'qualified'>
 
   <!-- ========================================================================
-                               REQUEST/RESPONSE
-  ========================================================================= -->
-  <complexType name='Response'>
-    <annotation>
-      <documentation>
-        The choice between all the possible responses from the bmqconf task.
-      </documentation>
-    </annotation>
-    <choice>
-      <element name='failure'      type='mqbconfm:Failure'/>
-      <element name='domainConfig' type='mqbconfm:DomainConfigRaw'/>
-    </choice>
-  </complexType>
-
-  <!-- ========================================================================
                                     GENERIC
   ========================================================================= -->
 

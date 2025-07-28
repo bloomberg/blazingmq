@@ -363,32 +363,6 @@ class QueueMode:
 
 
 @dataclass
-class Response1:
-    """
-    The choice between all the possible responses from the bmqconf task.
-    """
-
-    class Meta:
-        name = "Response"
-
-    failure: Optional[Failure] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-        },
-    )
-    domain_config: Optional[DomainConfigRaw] = field(
-        default=None,
-        metadata={
-            "name": "domainConfig",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-        },
-    )
-
-
-@dataclass
 class Storage:
     """
     Choice of all the various Storage backends inMemory....: store data in memory
@@ -478,13 +452,6 @@ class Subscription:
             "required": True,
         },
     )
-
-
-@dataclass
-class Response(Response1):
-    class Meta:
-        name = "response"
-        namespace = "urn:x-bloomberg-com:mqbconfm"
 
 
 @dataclass
