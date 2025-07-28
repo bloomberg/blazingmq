@@ -94,7 +94,7 @@ class ConfigProvider {
         // PUBLIC DATA
 
         /// Data to cache.
-        mqbconfm::DomainConfigRaw d_data;
+        bsl::string d_data;
         /// Time after which this entry is no longer valid.
         bsls::TimeInterval d_expireTime;
     };
@@ -121,19 +121,18 @@ class ConfigProvider {
     // PRIVATE MANIPULATORS
 
     /// Lookup entry with the specified `key` in the cache and fill the data
-    /// in the specified `domainConfig` if found and expiry time has not yet
-    /// been reached; otherwise return false and leave `domainConfig`
-    /// untouched.  Note that if the entry is found but has expired, this
-    /// will erase it from the cache.
-    bool cacheLookup(mqbconfm::DomainConfigRaw* domainConfig,
-                     const bslstl::StringRef&   key);
+    /// in the specified `config` if found and expiry time has not yet been
+    /// reached; otherwise return false and leave `config` untouched.  Note
+    /// that if the entry is found but has expired, this will erase it from the
+    /// cache.
+    bool cacheLookup(bsl::string*             config,
+                     const bslstl::StringRef& key);
 
-    /// Add entry with the specified `key` and with the specified
-    /// `domainConfig` as data to the cache, resetting its expiry time.  Note
-    /// that this will overwrite any existing entry with the specified `key` in
-    /// the cache.
-    bool cacheAdd(const bslstl::StringRef&         key,
-                  const mqbconfm::DomainConfigRaw& domainConfig);
+    /// Add entry with the specified `key` and with the specified `config` as
+    /// data to the cache, resetting its expiry time.  Note that this will
+    /// overwrite any existing entry with the specified `key` in the cache.
+    bool cacheAdd(const bslstl::StringRef& key,
+                  const bsl::string&       config);
 
   private:
     // NOT IMPLEMENTED
