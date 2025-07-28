@@ -375,6 +375,9 @@ class BrokerIdentity {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::BrokerIdentity)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::BrokerIdentity> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -598,6 +601,9 @@ class DomainConfigRaw {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainConfigRaw)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainConfigRaw> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -822,6 +828,9 @@ class DomainResolver {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainResolver)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainResolver> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -1102,6 +1111,8 @@ class Failure {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Failure)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Failure> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1250,6 +1261,9 @@ class FileBackedStorage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::FileBackedStorage)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::FileBackedStorage>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1398,6 +1412,9 @@ class InMemoryStorage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::InMemoryStorage)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::InMemoryStorage> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -1614,6 +1631,8 @@ class Limits {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Limits)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Limits> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1832,6 +1851,9 @@ class MsgGroupIdConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::MsgGroupIdConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::MsgGroupIdConfig>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1982,6 +2004,9 @@ class QueueConsistencyEventual {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbconfm::QueueConsistencyEventual)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueConsistencyEventual>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -2132,6 +2157,9 @@ class QueueConsistencyStrong {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbconfm::QueueConsistencyStrong)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueConsistencyStrong>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -2281,6 +2309,9 @@ class QueueModeBroadcast {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModeBroadcast)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModeBroadcast>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -2514,6 +2545,9 @@ class QueueModeFanout {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::QueueModeFanout)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModeFanout> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -2662,6 +2696,9 @@ class QueueModePriority {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModePriority)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModePriority>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -3121,6 +3158,9 @@ class DomainConfigRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainConfigRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainConfigRequest>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -3341,6 +3381,8 @@ class Expression {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Expression)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Expression> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -4512,6 +4554,9 @@ class StorageDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::StorageDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::StorageDefinition>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -4735,6 +4780,8 @@ class Subscription {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::Subscription)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Subscription> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -5107,6 +5154,8 @@ class Domain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Domain)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Domain> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -5334,6 +5383,9 @@ class DomainDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainDefinition>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -9166,14 +9218,6 @@ inline bool DomainVariant::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.11.06
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
-// VERSION bmqconf:183474-1.0
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------
