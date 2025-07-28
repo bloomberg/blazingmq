@@ -27,9 +27,6 @@
 /// @todo Add commandHandler.
 /// @todo Add statistics.
 
-// MQB
-#include <mqbconfm_messages.h>
-
 // BDE
 #include <ball_log.h>
 #include <bsl_functional.h>
