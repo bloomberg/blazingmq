@@ -158,9 +158,12 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Domain file '" << filePath << "' doesn't exist";
 
-        response.makeFailure();
-        response.failure().code()    = e_FILENOTEXIST;
-        response.failure().message() = os.str();
+        guard.release()->unlock();  // UNLOCK
+
+        BALL_LOG_INFO << "Config for domain '" << domainName
+                      << "' retrieved from file '" << filePath << "'";
+        callback(e_FILENOTEXIST, os.str());
+        return;  // RETURN
     }
     else {
         bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
@@ -170,9 +173,12 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
             bmqu::MemOutStream os(&localAllocator);
             os << "Unable to open domain file '" << filePath << "'";
 
-            response.makeFailure();
-            response.failure().code()    = e_FILENOTOPENED;
-            response.failure().message() = os.str();
+            guard.release()->unlock();  // UNLOCK
+
+            BALL_LOG_INFO << "Config for domain '" << domainName
+                          << "' retrieved from file '" << filePath << "'";
+            callback(e_FILENOTOPENED, os.str());
+            return;  // RETURN
         }
         else {
             bsl::string config;
@@ -192,11 +198,6 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
 
     BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                   << "from file '" << filePath << "'";
-
-    if (response.isFailureValue()) {
-        callback(response.failure().code(), response.failure().message());
-        return;  // RETURN
-    }
 
     BSLS_ASSERT_OPT(response.isDomainConfigValue());
 
