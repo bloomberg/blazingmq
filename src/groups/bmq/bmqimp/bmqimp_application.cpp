@@ -605,14 +605,12 @@ Application::Application(
           allocator),
       allocator)
 , d_initialConnectionChannelFactory(
-      InitialConnectionChannelFactoryConfig(
-          &d_statChannelFactory,
-          authenticationMessage,
-          sessionOptions.connectTimeout(),  // TODO: different for authn?
-          negotiationMessage,
-          sessionOptions.connectTimeout(),
-          d_blobSpPool_sp.get(),
-          allocator),
+      InitialConnectionChannelFactoryConfig(&d_statChannelFactory,
+                                            authenticationMessage,
+                                            negotiationMessage,
+                                            sessionOptions.connectTimeout(),
+                                            d_blobSpPool_sp.get(),
+                                            allocator),
       allocator)
 , d_connectHandle_mp()
 , d_brokerSession(&d_scheduler,

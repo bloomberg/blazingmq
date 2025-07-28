@@ -33,6 +33,8 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_messageguidgenerator.h>
 #include <bmqp_protocol.h>
+#include <bmqpi_credentialprovider.h>
+#include <bmqt_authncredential.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
 
@@ -59,6 +61,7 @@
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_performancehint.h>
+#include <bslstl_sharedptr.h>
 
 namespace BloombergLP {
 namespace bmqa {
@@ -251,11 +254,18 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
 
     // Authentication Message
     bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
-    bmqp_ctrlmsg::AuthenticateRequest&  ar =
-        authenticaionMessage.makeAuthenticateRequest();
-    bsl::string str = "username:password";
-    ar.mechanism()  = "basic";
-    ar.data()       = bsl::vector<char>(str.begin(), str.end());  // hexBinary
+
+    bmqt::AuthnCredential                             credential;
+    const bsl::shared_ptr<bmqpi::CredentialProvider>& credentialProvider =
+        sessionImpl->d_sessionOptions.credentialProvider();
+    if (credentialProvider) {
+        credentialProvider->loadCredential(&credential);
+
+        bmqp_ctrlmsg::AuthenticateRequest& ar =
+            authenticaionMessage.makeAuthenticateRequest();
+        ar.mechanism() = credential.mechanism();
+        ar.data()      = credential.data();
+    }
 
     // Negotiation Message
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
