@@ -27,9 +27,6 @@
 /// @todo Add commandHandler.
 /// @todo Add statistics.
 
-// MQB
-#include <mqbconfm_messages.h>
-
 // BDE
 #include <ball_log.h>
 #include <bsl_functional.h>
@@ -94,7 +91,7 @@ class ConfigProvider {
         // PUBLIC DATA
 
         /// Data to cache.
-        mqbconfm::Response d_data;
+        bsl::string d_data;
         /// Time after which this entry is no longer valid.
         bsls::TimeInterval d_expireTime;
     };
@@ -120,26 +117,17 @@ class ConfigProvider {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Invoke the script to generate the configuration for the specified
-    /// `domainName` and store the result in the specified `output` on
-    /// success, returning 0; or return a non-zero result code and populate
-    /// `output` with the error on failure.
-    int generateConfig(bsl::string*             output,
-                       const bslstl::StringRef& domainName);
-
     /// Lookup entry with the specified `key` in the cache and fill the data
-    /// in the specified `response` if found and expiry time has not yet
-    /// been reached; otherwise return false and leave `response`
-    /// untouched.  Note that if the entry is found but has expired, this
-    /// will erase it from the cache.
-    bool cacheLookup(mqbconfm::Response*      response,
-                     const bslstl::StringRef& key);
+    /// in the specified `config` if found and expiry time has not yet been
+    /// reached; otherwise return false and leave `config` untouched.  Note
+    /// that if the entry is found but has expired, this will erase it from the
+    /// cache.
+    bool cacheLookup(bsl::string* config, const bslstl::StringRef& key);
 
-    /// Callback when the configuration for the domain has been retrieved,
-    /// in the specified `response` and which should be forwarded to the
-    /// specified `callback`.
-    void onDomainConfigResponseCb(const mqbconfm::Response response,
-                                  const GetDomainConfigCb& callback);
+    /// Add entry with the specified `key` and with the specified `config` as
+    /// data to the cache, resetting its expiry time.  Note that this will
+    /// overwrite any existing entry with the specified `key` in the cache.
+    void cacheAdd(const bslstl::StringRef& key, const bsl::string& config);
 
   private:
     // NOT IMPLEMENTED
