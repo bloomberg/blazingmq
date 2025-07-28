@@ -51,8 +51,8 @@ namespace mqba {
 // class ConfigProvider
 // --------------------
 
-bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
-                                 const bslstl::StringRef& key)
+bool ConfigProvider::cacheLookup(mqbconfm::DomainConfigRaw* domainConfig,
+                                 const bslstl::StringRef&   key)
 {
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
@@ -71,17 +71,17 @@ bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
     }
 
     // Cache entry is still 'alive'
-    *response = it->second.d_data;  // Assign a copy of the object
+    *domainConfig = it->second.d_data;  // Assign a copy of the object
     return true;
 }
 
-void ConfigProvider::cacheAdd(const bslstl::StringRef&  key,
-                              const mqbconfm::Response& response)
+void ConfigProvider::cacheAdd(const bslstl::StringRef&         key,
+                              const mqbconfm::DomainConfigRaw& domainConfig)
 {
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
     CacheEntry cacheEntry;
-    cacheEntry.d_data = response;
+    cacheEntry.d_data = domainConfig;
     cacheEntry.d_expireTime = bmqsys::Time::nowMonotonicClock() +
                 bsls::TimeInterval(mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
     d_cache[key] = cacheEntry;
@@ -124,25 +124,23 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
     // First, check in the cache
-    mqbconfm::Response response;
-    if (cacheLookup(&response, domainName) == true) {
+    mqbconfm::DomainConfigRaw domainConfig;
+    if (cacheLookup(&domainConfig, domainName) == true) {
         guard.release()->unlock();  // mutex UNLOCK
         BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                       << "from cache";
 
-        BSLS_ASSERT_OPT(response.isDomainConfigValue());
-
         BALL_LOG_INFO << "Received domain config for domain '"
-                      << response.domainConfig().domainName() << "': '"
-                      << response.domainConfig().config() << "'";
+                      << domainConfig.domainName() << "': '"
+                      << domainConfig.config() << "'";
         {
             bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
-            cacheAdd(response.domainConfig().domainName(), response);
+            cacheAdd(domainConfig.domainName(), domainConfig);
         }
 
         // Call callback
-        callback(e_SUCCESS, response.domainConfig().config());
+        callback(e_SUCCESS, domainConfig.config());
 
         return;  // RETURN
     }
@@ -187,28 +185,25 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     fileStream.read(config.data(), config.size());
     fileStream.close();
 
-    response.makeDomainConfig();
-    response.domainConfig().config() = config;
-    response.domainConfig().domainName() = domainName;
+    domainConfig.config()     = config;
+    domainConfig.domainName() = domainName;
 
     guard.release()->unlock();  // unlock
 
     BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                   << "from file '" << filePath << "'";
 
-    BSLS_ASSERT_OPT(response.isDomainConfigValue());
-
     BALL_LOG_INFO << "Received domain config for domain '"
-                  << response.domainConfig().domainName() << "': '"
-                  << response.domainConfig().config() << "'";
+                  << domainConfig.domainName() << "': '"
+                  << domainConfig.config() << "'";
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
-        cacheAdd(response.domainConfig().domainName(), response);
+        cacheAdd(domainConfig.domainName(), domainConfig);
     }
 
     // Call callback
-    callback(e_SUCCESS, response.domainConfig().config());
+    callback(e_SUCCESS, domainConfig.config());
 }
 
 void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
