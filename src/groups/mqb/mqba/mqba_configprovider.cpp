@@ -123,23 +123,21 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         e_FILENOTOPENED = -2,
     };
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     // First, check in the cache
     mqbconfm::DomainConfigRaw domainConfig;
     if (cacheLookup(&domainConfig, domainName) == true) {
-        guard.release()->unlock();  // mutex UNLOCK
         BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                       << "from cache";
 
         BALL_LOG_INFO << "Received domain config for domain '"
                       << domainConfig.domainName() << "': '"
                       << domainConfig.config() << "'";
-        {
-            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
-            cacheAdd(domainConfig.domainName(), domainConfig);
-        }
+        cacheAdd(domainConfig.domainName(), domainConfig);
+
+        guard.release()->unlock();  // UNLOCK
 
         // Call callback
         callback(e_SUCCESS, domainConfig.config());
@@ -190,19 +188,16 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     domainConfig.config()     = config;
     domainConfig.domainName() = domainName;
 
-    guard.release()->unlock();  // unlock
-
     BALL_LOG_INFO << "Config for domain '" << domainName << "' retrieved "
                   << "from file '" << filePath << "'";
 
     BALL_LOG_INFO << "Received domain config for domain '"
                   << domainConfig.domainName() << "': '"
                   << domainConfig.config() << "'";
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
-        cacheAdd(domainConfig.domainName(), domainConfig);
-    }
+    cacheAdd(domainConfig.domainName(), domainConfig);
+
+    guard.release()->unlock();  // unlock
 
     // Call callback
     callback(e_SUCCESS, domainConfig.config());
