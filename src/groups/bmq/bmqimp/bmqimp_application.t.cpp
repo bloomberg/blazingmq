@@ -52,7 +52,6 @@ static void test1_breathingTest()
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
-                            authenticaionMessage,
                             negotiationMessage,
                             emptyEventHandler,
                             bmqtst::TestHelperUtil::allocator());
@@ -88,7 +87,6 @@ static void test2_startStopTest()
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
-                            authenticaionMessage,
                             negotiationMessage,
                             emptyEventHandler,
                             bmqtst::TestHelperUtil::allocator());
@@ -143,7 +141,6 @@ static void test3_startStopAsyncTest()
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
-                            authenticaionMessage,
                             negotiationMessage,
                             emptyEventHandler,
                             bmqtst::TestHelperUtil::allocator());
