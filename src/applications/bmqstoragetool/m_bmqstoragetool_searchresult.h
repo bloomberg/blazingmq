@@ -394,7 +394,7 @@ class SearchDetailResult : public SearchResult {
 // ============================
 ///
 /// This class provides logic to handle and output exact match result (only
-/// one record that matched sequince number or offset).
+/// one record that matched sequence number or offset).
 class SearchExactMatchResult : public SearchResult {
   private:
     // PRIVATE DATA
@@ -435,7 +435,7 @@ class SearchExactMatchResult : public SearchResult {
     // CREATORS
 
     /// Constructor using the specified `printer`, `processRecordTypes`,
-    /// `queueMap`, `payloadDumper`,
+    /// `isDetail`, `queueMap`, `payloadDumper` and `allocator`.
     explicit SearchExactMatchResult(
         const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,

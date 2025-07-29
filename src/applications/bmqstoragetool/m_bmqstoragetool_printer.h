@@ -73,7 +73,7 @@ class Printer {
     virtual void printConfirmRecord(
         const RecordDetails<mqbs::ConfirmRecord>& record) const = 0;
 
-    /// Print the specified Confirm record `record`.
+    /// Print the specified Deletion record `record`.
     virtual void printDeletionRecord(
         const RecordDetails<mqbs::DeletionRecord>& record) const = 0;
 
