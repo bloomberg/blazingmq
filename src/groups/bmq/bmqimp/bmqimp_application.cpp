@@ -555,11 +555,10 @@ Application::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
 }
 
 Application::Application(
-    const bmqt::SessionOptions&                sessionOptions,
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
-    const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-    const EventQueue::EventHandlerCallback&    eventHandlerCB,
-    bslma::Allocator*                          allocator)
+    const bmqt::SessionOptions&             sessionOptions,
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+    const EventQueue::EventHandlerCallback& eventHandlerCB,
+    bslma::Allocator*                       allocator)
 : d_allocatorStatContext(bmqst::StatContextConfiguration("Allocators",
                                                          allocator),
                          allocator)
@@ -605,12 +604,13 @@ Application::Application(
           allocator),
       allocator)
 , d_initialConnectionChannelFactory(
-      InitialConnectionChannelFactoryConfig(&d_statChannelFactory,
-                                            authenticationMessage,
-                                            negotiationMessage,
-                                            sessionOptions.connectTimeout(),
-                                            d_blobSpPool_sp.get(),
-                                            allocator),
+      InitialConnectionChannelFactoryConfig(
+          &d_statChannelFactory,
+          negotiationMessage,
+          sessionOptions.connectTimeout(),
+          sessionOptions.credentialProvider().get(),
+          d_blobSpPool_sp.get(),
+          allocator),
       allocator)
 , d_connectHandle_mp()
 , d_brokerSession(&d_scheduler,
