@@ -720,7 +720,21 @@ int Application::start(const bsls::TimeInterval& timeout)
                   << "::: START (SYNC) << [state: " << d_brokerSession.state()
                   << "] :::";
 
-    return d_brokerSession.start(timeout);
+    int rc = d_initialConnectionChannelFactory.start();
+    if (rc != 0) {
+        BALL_LOG_ERROR << id()
+                       << "Failed to start initialConnectionChannelFactory "
+                       << "[rc: " << rc << "]";
+        return rc;  // RETURN
+    }
+
+    rc = d_brokerSession.start(timeout);
+    if (rc != 0) {
+        d_initialConnectionChannelFactory.stop();
+        return rc;  // RETURN
+    }
+
+    return rc;
 }
 
 int Application::startAsync(const bsls::TimeInterval& timeout)
@@ -755,6 +769,9 @@ void Application::stop()
 
     // Stop the brokerSession
     d_brokerSession.stop();
+
+    // Stop the channel factories
+    d_initialConnectionChannelFactory.stop();
 }
 
 void Application::stopAsync()
