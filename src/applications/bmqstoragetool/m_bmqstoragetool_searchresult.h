@@ -934,11 +934,6 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
 
-    // PRIVATE ACCESSORS
-    bool
-    isSequenceNumberFound(const CompositeSequenceNumber& sequenceNumber) const;
-    // Return 'true' if the specified 'sequenceNumber' is found in d_seqNums.
-
   public:
     // CREATORS
 

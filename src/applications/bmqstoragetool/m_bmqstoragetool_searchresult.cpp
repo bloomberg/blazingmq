@@ -1222,13 +1222,6 @@ SearchSequenceNumberDecorator::SearchSequenceNumberDecorator(
     // NOTHING
 }
 
-bool SearchSequenceNumberDecorator::isSequenceNumberFound(
-    const CompositeSequenceNumber& sequenceNumber) const
-{
-    return bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), sequenceNumber) !=
-           d_seqNums.cend();
-}
-
 bool SearchSequenceNumberDecorator::processMessageRecord(
     const mqbs::MessageRecord& record,
     bsls::Types::Uint64        recordIndex,
