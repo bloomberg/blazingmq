@@ -37,8 +37,8 @@
 // BMQ
 
 #include <bmqimp_brokersession.h>
+#include <bmqimp_connectionchannelfactory.h>
 #include <bmqimp_eventqueue.h>
-#include <bmqimp_initialconnectionchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_heartbeatmonitor.h>
 #include <bmqt_sessionoptions.h>
@@ -134,7 +134,7 @@ class Application {
 
     bmqio::StatChannelFactory d_statChannelFactory;
 
-    InitialConnectionChannelFactory d_initialConnectionChannelFactory;
+    ConnectionChannelFactory d_connectionChannelFactory;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
