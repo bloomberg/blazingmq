@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_initialconnectionchannelfactory.cpp -*-C++-*-
-#include <bmqimp_initialconnectionchannelfactory.h>
+// bmqimp_connectionchannelfactory.cpp                      -*-C++-*-
+#include <bmqimp_connectionchannelfactory.h>
 
 #include <bmqscm_version.h>
 // BMQ
@@ -67,10 +67,10 @@ enum RcEnum {
 }  // close unnamed namespace
 
 // ------------------------------------
-// class InitialConnectionChannelFactoryConfig
+// class ConnectionChannelFactoryConfig
 // ------------------------------------
 
-InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
+ConnectionChannelFactoryConfig::ConnectionChannelFactoryConfig(
     bmqio::ChannelFactory*                  base,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const bsls::TimeInterval&               connectTimeout,
@@ -89,9 +89,9 @@ InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
     BSLS_ASSERT(base);
 }
 
-InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
-    const InitialConnectionChannelFactoryConfig& original,
-    bslma::Allocator*                            basicAllocator)
+ConnectionChannelFactoryConfig::ConnectionChannelFactoryConfig(
+    const ConnectionChannelFactoryConfig& original,
+    bslma::Allocator*                     basicAllocator)
 : d_baseFactory_p(original.d_baseFactory_p)
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
 , d_authenticationMessage(original.d_authenticationMessage, basicAllocator)
@@ -104,28 +104,27 @@ InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
 }
 
 // ------------------------------
-// class InitialConnectionChannelFactory
+// class ConnectionChannelFactory
 // ------------------------------
 
 /// Temporary; shall remove after 2nd roll out of "new style" brokers.
-const char* InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_MPS_EX =
+const char* ConnectionChannelFactory::k_CHANNEL_PROPERTY_MPS_EX =
     "broker.response.mps.ex";
 
 /// Temporary safety switch to control configure request.
-const char*
-    InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM =
-        "broker.response.configure_stream";
+const char* ConnectionChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM =
+    "broker.response.configure_stream";
 
 const char*
-    InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS =
+    ConnectionChannelFactory::k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS =
         "broker.response.heartbeat_interval_ms";
 
 const char*
-    InitialConnectionChannelFactory::k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS =
+    ConnectionChannelFactory::k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS =
         "broker.response.max_missed_heartbeats";
 
 // PRIVATE ACCESSORS
-void InitialConnectionChannelFactory::baseResultCallback(
+void ConnectionChannelFactory::baseResultCallback(
     const ResultCallback&                  userCb,
     bmqio::ChannelFactoryEvent::Enum       event,
     const bmqio::Status&                   status,
@@ -139,12 +138,12 @@ void InitialConnectionChannelFactory::baseResultCallback(
     initialConnect(channel, userCb);
 }
 
-void InitialConnectionChannelFactory::sendRequest(
+void ConnectionChannelFactory::sendRequest(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ACTION                           action,
     const ResultCallback&                  cb) const
 {
-    BALL_LOG_INFO << "At InitialConnectionChannelFactory::sendRequest";
+    BALL_LOG_INFO << "At ConnectionChannelFactory::sendRequest";
 
     bsl::string actionStr;
     bsl::string errorProperty;
@@ -210,7 +209,7 @@ void InitialConnectionChannelFactory::sendRequest(
     }
 }
 
-void InitialConnectionChannelFactory::readResponse(
+void ConnectionChannelFactory::readResponse(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ACTION                           action,
     const ResultCallback&                  cb) const
@@ -235,7 +234,7 @@ void InitialConnectionChannelFactory::readResponse(
     // Initiate a read for the broker's response message
     bmqio::Channel::ReadCallback readCb = bdlf::BindUtil::bind(
         bmqu::WeakMemFnUtil::weakMemFn(
-            &InitialConnectionChannelFactory::readPacketsCb,
+            &ConnectionChannelFactory::readPacketsCb,
             d_self.acquireWeak()),
         channel,
         cb,
@@ -252,7 +251,7 @@ void InitialConnectionChannelFactory::readResponse(
     }
 }
 
-void InitialConnectionChannelFactory::initialConnect(
+void ConnectionChannelFactory::initialConnect(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb)
 {
@@ -260,7 +259,7 @@ void InitialConnectionChannelFactory::initialConnect(
     negotiate(channel, cb);
 }
 
-void InitialConnectionChannelFactory::authenticate(
+void ConnectionChannelFactory::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb)
 {
@@ -285,7 +284,7 @@ void InitialConnectionChannelFactory::authenticate(
     }
 }
 
-void InitialConnectionChannelFactory::negotiate(
+void ConnectionChannelFactory::negotiate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb) const
 {
@@ -294,7 +293,7 @@ void InitialConnectionChannelFactory::negotiate(
     readResponse(channel, NEGOTIATION, cb);
 }
 
-void InitialConnectionChannelFactory::readPacketsCb(
+void ConnectionChannelFactory::readPacketsCb(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb,
     const bmqio::Status&                   status,
@@ -368,7 +367,7 @@ void InitialConnectionChannelFactory::readPacketsCb(
     }
 }
 
-int InitialConnectionChannelFactory::decodeInitialConnectionMessage(
+int ConnectionChannelFactory::decodeInitialConnectionMessage(
     const bdlbb::Blob&                                  packet,
     bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
     bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg,
@@ -460,7 +459,7 @@ int InitialConnectionChannelFactory::decodeInitialConnectionMessage(
     return 0;
 }
 
-void InitialConnectionChannelFactory::onBrokerAuthenticationResponse(
+void ConnectionChannelFactory::onBrokerAuthenticationResponse(
     const bmqp_ctrlmsg::AuthenticationMessage& response,
     const ResultCallback&                      cb,
     const bsl::shared_ptr<bmqio::Channel>&     channel)
@@ -492,18 +491,17 @@ void InitialConnectionChannelFactory::onBrokerAuthenticationResponse(
         d_scheduler.scheduleRecurringEvent(
             &d_authnEventHandle,
             bsls::TimeInterval(intervalMs),
-            bdlf::BindUtil::bind(
-                bmqu::WeakMemFnUtil::weakMemFn(
-                    &InitialConnectionChannelFactory::authenticate,
-                    d_self.acquireWeak()),
-                channel,
-                cb));
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                                     &ConnectionChannelFactory::authenticate,
+                                     d_self.acquireWeak()),
+                                 channel,
+                                 cb));
     }
 
     negotiate(channel, cb);
 }
 
-void InitialConnectionChannelFactory::onBrokerNegotiationResponse(
+void ConnectionChannelFactory::onBrokerNegotiationResponse(
     const bmqp_ctrlmsg::NegotiationMessage& response,
     const ResultCallback&                   cb,
     const bsl::shared_ptr<bmqio::Channel>&  channel) const
@@ -582,7 +580,7 @@ void InitialConnectionChannelFactory::onBrokerNegotiationResponse(
 }
 
 // CREATORS
-InitialConnectionChannelFactory::InitialConnectionChannelFactory(
+ConnectionChannelFactory::ConnectionChannelFactory(
     const Config&     config,
     bslma::Allocator* basicAllocator)
 : d_config(config, basicAllocator)
@@ -593,14 +591,14 @@ InitialConnectionChannelFactory::InitialConnectionChannelFactory(
     // NOTHING
 }
 
-InitialConnectionChannelFactory::~InitialConnectionChannelFactory()
+ConnectionChannelFactory::~ConnectionChannelFactory()
 {
     // synchronize with any currently running callbacks and prevent future
     // callback invocations
     d_self.invalidate();
 }
 
-int InitialConnectionChannelFactory::start()
+int ConnectionChannelFactory::start()
 {
     int rc = d_scheduler.start();
     if (rc != 0) {
@@ -609,7 +607,7 @@ int InitialConnectionChannelFactory::start()
     return rc;
 }
 
-void InitialConnectionChannelFactory::stop()
+void ConnectionChannelFactory::stop()
 {
     // Cancel any scheduled reauthentication events
     d_scheduler.cancelEvent(&d_authnEventHandle);
@@ -617,7 +615,7 @@ void InitialConnectionChannelFactory::stop()
 }
 
 // MANIPULATORS
-void InitialConnectionChannelFactory::listen(
+void ConnectionChannelFactory::listen(
     BSLA_UNUSED bmqio::Status* status,
     BSLA_UNUSED bslma::ManagedPtr<OpHandle>* handle,
     BSLA_UNUSED const bmqio::ListenOptions& options,
@@ -627,24 +625,22 @@ void InitialConnectionChannelFactory::listen(
     BSLS_ASSERT_OPT(false && "SDK should not be listening");
 }
 
-void InitialConnectionChannelFactory::connect(
-    bmqio::Status*               status,
-    bslma::ManagedPtr<OpHandle>* handle,
-    const bmqio::ConnectOptions& options,
-    const ResultCallback&        cb)
+void ConnectionChannelFactory::connect(bmqio::Status*               status,
+                                       bslma::ManagedPtr<OpHandle>* handle,
+                                       const bmqio::ConnectOptions& options,
+                                       const ResultCallback&        cb)
 {
     d_config.d_baseFactory_p->connect(
         status,
         handle,
         options,
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(
-                &InitialConnectionChannelFactory::baseResultCallback,
-                d_self.acquireWeak()),
-            cb,
-            bdlf::PlaceHolders::_1,    // event
-            bdlf::PlaceHolders::_2,    // status
-            bdlf::PlaceHolders::_3));  // channel
+        bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                                 &ConnectionChannelFactory::baseResultCallback,
+                                 d_self.acquireWeak()),
+                             cb,
+                             bdlf::PlaceHolders::_1,    // event
+                             bdlf::PlaceHolders::_2,    // status
+                             bdlf::PlaceHolders::_3));  // channel
 }
 
 }  // close package namespace

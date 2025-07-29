@@ -13,21 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_initialconnectionchannelfactory.h                     -*-C++-*-
+// bmqimp_connectionchannelfactory.h                     -*-C++-*-
 #ifndef INCLUDED_BMQIMP_NEGOTIATEDCHANNELFACTORY
 #define INCLUDED_BMQIMP_NEGOTIATEDCHANNELFACTORY
 
-//@PURPOSE: Provide a 'ChannelFactory' that negotiates upon connecting to peer
-//
-//@CLASSES:
-// bmqimp::InitialConnectionChannelFactory
-//
-//@SEE_ALSO:
-//
-//@DESCRIPTION: This component defines a mechanism,
-// 'bmqimp::InitialConnectionChannelFactory', which is an implementation of the
-// 'bmqio::ChannelFactory' protocol that performs initial connection with a
-// peer on top of a channel created using a base 'bmqio::ChannelFactory'.
+/// @file bmqimp_connectionchannelfactory.h
+///
+/// @brief Provides a 'ChannelFactory' that performs authentication and
+/// negotiation when connecting to a peer, and automatically reauthenticates as
+/// the session approaches expiration.
+///
+/// This component provides 'bmqimp::ConnectionChannelFactory', an
+/// implementation of the 'bmqio::ChannelFactory' protocol that manages both
+/// initial connection (authentication and negotiation) and automatic
+/// re-authentication with a peer over a channel created by a base
+/// 'bmqio::ChannelFactory'. It ensures secure session establishment and
+/// renewal as the authenticated session lifetime
+/// approaches expiration.
 
 // BMQ
 #include <bmqio_channel.h>
@@ -54,12 +56,12 @@ namespace BloombergLP {
 
 namespace bmqimp {
 
-// ===========================================
-// class InitialConnectionChannelFactoryConfig
-// ===========================================
+// ====================================
+// class ConnectionChannelFactoryConfig
+// ====================================
 
-/// Configuration for a `InitialConnectionChannelFactory`.
-class InitialConnectionChannelFactoryConfig {
+/// Configuration for a `ConnectionChannelFactory`.
+class ConnectionChannelFactoryConfig {
   public:
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
@@ -75,15 +77,15 @@ class InitialConnectionChannelFactoryConfig {
     bslma::Allocator*                   d_allocator_p;
 
     // FRIENDS
-    friend class InitialConnectionChannelFactory;
+    friend class ConnectionChannelFactory;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(InitialConnectionChannelFactoryConfig,
+    BSLMF_NESTED_TRAIT_DECLARATION(ConnectionChannelFactoryConfig,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    InitialConnectionChannelFactoryConfig(
+    ConnectionChannelFactoryConfig(
         bmqio::ChannelFactory*                  base,
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
         const bsls::TimeInterval&               connectTimeout,
@@ -91,21 +93,21 @@ class InitialConnectionChannelFactoryConfig {
         BlobSpPool*                             blobSpPool_p,
         bslma::Allocator*                       basicAllocator = 0);
 
-    InitialConnectionChannelFactoryConfig(
-        const InitialConnectionChannelFactoryConfig& original,
-        bslma::Allocator*                            basicAllocator = 0);
+    ConnectionChannelFactoryConfig(
+        const ConnectionChannelFactoryConfig& original,
+        bslma::Allocator*                     basicAllocator = 0);
 };
 
-// =====================================
-// class InitialConnectionChannelFactory
-// =====================================
+// ==============================
+// class ConnectionChannelFactory
+// ==============================
 
 /// `ChannelFactory` implementation that performs initial connection
 /// (authentication and negotiation) with peer upon channel connection.
-class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
+class ConnectionChannelFactory : public bmqio::ChannelFactory {
   public:
     // TYPES
-    typedef InitialConnectionChannelFactoryConfig Config;
+    typedef ConnectionChannelFactoryConfig Config;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle EventHandle;
 
@@ -143,17 +145,17 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
     EventHandle d_authnEventHandle;
 
     // Used to make sure no callback is invoked on a destroyed object.
-    mutable bmqu::SharedResource<InitialConnectionChannelFactory> d_self;
+    mutable bmqu::SharedResource<ConnectionChannelFactory> d_self;
 
     // NOT IMPLEMENTED
-    InitialConnectionChannelFactory(const InitialConnectionChannelFactory&)
+    ConnectionChannelFactory(const ConnectionChannelFactory&)
         BSLS_KEYWORD_DELETED;
-    InitialConnectionChannelFactory&
-    operator=(const InitialConnectionChannelFactory&) BSLS_KEYWORD_DELETED;
+    ConnectionChannelFactory&
+    operator=(const ConnectionChannelFactory&) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(InitialConnectionChannelFactory,
+    BSLMF_NESTED_TRAIT_DECLARATION(ConnectionChannelFactory,
                                    bslma::UsesBslmaAllocator)
 
   private:
@@ -207,11 +209,10 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
 
   public:
     // CREATORS
-    explicit InitialConnectionChannelFactory(
-        const Config&     config,
-        bslma::Allocator* basicAllocator = 0);
+    explicit ConnectionChannelFactory(const Config&     config,
+                                      bslma::Allocator* basicAllocator = 0);
 
-    ~InitialConnectionChannelFactory() BSLS_KEYWORD_OVERRIDE;
+    ~ConnectionChannelFactory() BSLS_KEYWORD_OVERRIDE;
 
   public:
     // MANIPULATORS
