@@ -37,6 +37,7 @@
 #include <bmqio_status.h>
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqpi_credentialprovider.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -66,9 +67,10 @@ class InitialConnectionChannelFactoryConfig {
   private:
     // PRIVATE DATA
     bmqio::ChannelFactory*              d_baseFactory_p;
-    bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
     bmqp_ctrlmsg::NegotiationMessage    d_negotiationMessage;
+    bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
     bsls::TimeInterval                  d_connectTimeout;
+    bmqpi::CredentialProvider*          d_credentialProvider_p;
     BlobSpPool*                         d_blobSpPool_p;
     bslma::Allocator*                   d_allocator_p;
 
@@ -82,12 +84,12 @@ class InitialConnectionChannelFactoryConfig {
 
     // CREATORS
     InitialConnectionChannelFactoryConfig(
-        bmqio::ChannelFactory*                     base,
-        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
-        const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-        const bsls::TimeInterval&                  d_connectTimeout,
-        BlobSpPool*                                blobSpPool_p,
-        bslma::Allocator*                          basicAllocator = 0);
+        bmqio::ChannelFactory*                  base,
+        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+        const bsls::TimeInterval&               connectTimeout,
+        bmqpi::CredentialProvider*              credentialProvider_p,
+        BlobSpPool*                             blobSpPool_p,
+        bslma::Allocator*                       basicAllocator = 0);
 
     InitialConnectionChannelFactoryConfig(
         const InitialConnectionChannelFactoryConfig& original,
@@ -158,11 +160,10 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
     // PRIVATE ACCESSORS
 
     /// Handle an event from our base ChannelFactory.
-    void
-    baseResultCallback(const ResultCallback&                  userCb,
-                       bmqio::ChannelFactoryEvent::Enum       event,
-                       const bmqio::Status&                   status,
-                       const bsl::shared_ptr<bmqio::Channel>& channel) const;
+    void baseResultCallback(const ResultCallback&                  userCb,
+                            bmqio::ChannelFactoryEvent::Enum       event,
+                            const bmqio::Status&                   status,
+                            const bsl::shared_ptr<bmqio::Channel>& channel);
 
     void sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
                      const ACTION                           action,
@@ -172,8 +173,11 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
                       const ACTION                           action,
                       const ResultCallback&                  cb) const;
 
+    void initialConnect(const bsl::shared_ptr<bmqio::Channel>& channel,
+                        const ResultCallback&                  cb);
+
     void authenticate(const bsl::shared_ptr<bmqio::Channel>& channel,
-                      const ResultCallback&                  cb) const;
+                      const ResultCallback&                  cb);
 
     void negotiate(const bsl::shared_ptr<bmqio::Channel>& channel,
                    const ResultCallback&                  cb) const;
