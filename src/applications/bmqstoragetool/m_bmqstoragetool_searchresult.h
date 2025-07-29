@@ -403,7 +403,7 @@ class SearchExactMatchResult : public SearchResult {
     // Pointer to 'Printer' instance.
     Parameters::ProcessRecordTypes d_processRecordTypes;
     // Record types to process
-    bool d_isDetail;
+    const bool d_isDetail;
     // If 'true', output detail result, otherwise output short result.
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
