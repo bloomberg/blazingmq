@@ -699,7 +699,7 @@ void RecoveryManager::partitionSyncCleanupDispatched(int partitionId)
                   << "closing one or more partition files "
                   << "[journalFd: " << fti.journalFd().fd()
                   << ", dataFd: " << fti.dataFd().fd()
-                  << ", qlistFd: " << fti.qlistFd().fd();
+                  << ", qlistFd: " << fti.qlistFd().fd() << "]";
 
     int rc = mqbs::FileStoreUtil::closePartitionSet(&fti.dataFd(),
                                                     &fti.journalFd(),
