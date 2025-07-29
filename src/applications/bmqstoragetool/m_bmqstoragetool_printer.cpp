@@ -328,8 +328,15 @@ void printQueueDetails(bsl::ostream&          ostream,
 }  // close anonymous namespace
 
 class HumanReadablePrinter : public Printer {
+  private:
+    // DATA
     bsl::ostream&     d_ostream;
     bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename RECORD_TYPE>
+    void
+    printRecordDetails(const RecordDetails<RECORD_TYPE>& recordDetails) const;
 
   public:
     // CREATORS
@@ -436,45 +443,28 @@ void HumanReadablePrinter::printMessage(const MessageDetails& details) const
     d_ostream << "\n";
 }
 
-// TODO: make template?
 void HumanReadablePrinter::printConfirmRecord(
     const RecordDetails<mqbs::ConfirmRecord>& rec) const
 {
-    d_ostream << "==============================\n\n";
-    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                       d_allocator_p);
-    printer.printRecordDetails(rec);
-    d_ostream << "\n";
+    printRecordDetails(rec);
 }
 
 void HumanReadablePrinter::printDeletionRecord(
     const RecordDetails<mqbs::DeletionRecord>& rec) const
 {
-    d_ostream << "==============================\n\n";
-    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                       d_allocator_p);
-    printer.printRecordDetails(rec);
-    d_ostream << "\n";
+    printRecordDetails(rec);
 }
 
 void HumanReadablePrinter::printQueueOpRecord(
     const RecordDetails<mqbs::QueueOpRecord>& rec) const
 {
-    d_ostream << "==============================\n\n";
-    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                       d_allocator_p);
-    printer.printRecordDetails(rec);
-    d_ostream << "\n";
+    printRecordDetails(rec);
 }
 
 void HumanReadablePrinter::printJournalOpRecord(
     const RecordDetails<mqbs::JournalOpRecord>& rec) const
 {
-    d_ostream << "==============================\n\n";
-    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
-                                                       d_allocator_p);
-    printer.printRecordDetails(rec);
-    d_ostream << "\n";
+    printRecordDetails(rec);
 }
 
 void HumanReadablePrinter::printGuidNotFound(
@@ -681,6 +671,17 @@ void HumanReadablePrinter::printCompositesNotFound(
             d_ostream << *it << '\n';
         }
     }
+}
+
+template <typename RECORD_TYPE>
+void HumanReadablePrinter::printRecordDetails(
+    const RecordDetails<RECORD_TYPE>& recordDetails) const
+{
+    d_ostream << "==============================\n\n";
+    RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream,
+                                                       d_allocator_p);
+    printer.printRecordDetails(recordDetails);
+    d_ostream << "\n";
 }
 
 class JsonPrinter : public Printer {
@@ -956,6 +957,13 @@ void JsonPrinter::printCompositesNotFound(const CompositesVec& seqNums) const
 }
 
 class JsonPrettyPrinter : public JsonPrinter {
+  private:
+    // PRIVATE ACCESSORS
+
+    template <typename RECORD_TYPE>
+    void
+    printRecordDetails(const RecordDetails<RECORD_TYPE>& recordDetails) const;
+
   public:
     // CREATORS
     JsonPrettyPrinter(bsl::ostream& os, bslma::Allocator* allocator);
@@ -1016,41 +1024,25 @@ void JsonPrettyPrinter::printMessage(const MessageDetails& details) const
 void JsonPrettyPrinter::printConfirmRecord(
     const RecordDetails<mqbs::ConfirmRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonPrettyPrinter::printDeletionRecord(
     const RecordDetails<mqbs::DeletionRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonPrettyPrinter::printQueueOpRecord(
     const RecordDetails<mqbs::QueueOpRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonPrettyPrinter::printJournalOpRecord(
     const RecordDetails<mqbs::JournalOpRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonPrettyPrinter::printJournalFileMeta(
@@ -1093,7 +1085,25 @@ void JsonPrettyPrinter::printRecordSummary(
     d_ostream << "\n  ]";
 }
 
+template <typename RECORD_TYPE>
+void JsonPrettyPrinter::printRecordDetails(
+    const RecordDetails<RECORD_TYPE>& recordDetails) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(recordDetails);
+}
+
 class JsonLinePrinter : public JsonPrinter {
+  private:
+    // PRIVATE ACCESSORS
+
+    template <typename RECORD_TYPE>
+    void
+    printRecordDetails(const RecordDetails<RECORD_TYPE>& recordDetails) const;
+
   public:
     // CREATORS
     JsonLinePrinter(bsl::ostream& os, bslma::Allocator* allocator);
@@ -1153,41 +1163,25 @@ void JsonLinePrinter::printMessage(const MessageDetails& details) const
 void JsonLinePrinter::printConfirmRecord(
     const RecordDetails<mqbs::ConfirmRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonLinePrinter::printDeletionRecord(
     const RecordDetails<mqbs::DeletionRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonLinePrinter::printQueueOpRecord(
     const RecordDetails<mqbs::QueueOpRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonLinePrinter::printJournalOpRecord(
     const RecordDetails<mqbs::JournalOpRecord>& rec) const
 {
-    openBraceIfNotOpen("Records");
-    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails(rec);
+    printRecordDetails(rec);
 }
 
 void JsonLinePrinter::printJournalFileMeta(
@@ -1228,6 +1222,17 @@ void JsonLinePrinter::printRecordSummary(
                                                              queueDetailsMap,
                                                              d_allocator_p);
     d_ostream << "\n  ]";
+}
+
+template <typename RECORD_TYPE>
+void JsonLinePrinter::printRecordDetails(
+    const RecordDetails<RECORD_TYPE>& recordDetails) const
+{
+    openBraceIfNotOpen("Records");
+    RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        d_ostream,
+        d_allocator_p);
+    printer.printRecordDetails(recordDetails);
 }
 
 bsl::shared_ptr<Printer> createPrinter(Parameters::PrintMode mode,

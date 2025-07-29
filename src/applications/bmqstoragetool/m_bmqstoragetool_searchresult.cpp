@@ -743,18 +743,7 @@ bool SearchExactMatchResult::processConfirmRecord(
                                                    recordOffset,
                                                    d_allocator_p);
 
-        bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
-            d_queueMap.findInfoByKey(record.queueKey());
-
-        // TODO: move to method to avoid duplicate
-        if (queueInfo.has_value()) {
-            details.d_queueUri = queueInfo->uri();
-            if (!findQueueAppIdByAppKey(&details.d_appId,
-                                        queueInfo->appIds(),
-                                        record.appKey())) {
-                details.d_appId = "** NULL **";
-            }
-        }
+        addQueueInfo(details, record.queueKey(), record.appKey());
 
         d_printer->printConfirmRecord(details);
     }
@@ -778,13 +767,7 @@ bool SearchExactMatchResult::processDeletionRecord(
                                                     recordOffset,
                                                     d_allocator_p);
 
-        bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
-            d_queueMap.findInfoByKey(record.queueKey());
-
-        // TODO: move to method to avoid duplicate
-        if (queueInfo.has_value()) {
-            details.d_queueUri = queueInfo->uri();
-        }
+        addQueueInfo(details, record.queueKey(), mqbu::StorageKey());
 
         d_printer->printDeletionRecord(details);
     }
@@ -807,17 +790,7 @@ bool SearchExactMatchResult::processQueueOpRecord(
                                                recordOffset,
                                                d_allocator_p);
 
-    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
-        d_queueMap.findInfoByKey(record.queueKey());
-
-    if (queueInfo.has_value()) {
-        details.d_queueUri = queueInfo->uri();
-        if (!findQueueAppIdByAppKey(&details.d_appId,
-                                    queueInfo->appIds(),
-                                    record.appKey())) {
-            details.d_appId = "** NULL **";
-        }
-    }
+    addQueueInfo(details, record.queueKey(), record.appKey());
 
     d_printer->printQueueOpRecord(details);
 
@@ -861,6 +834,23 @@ void SearchExactMatchResult::outputResult(
 const bsl::shared_ptr<Printer>& SearchExactMatchResult::printer() const
 {
     return d_printer;
+}
+
+template <typename RECORD_TYPE>
+void SearchExactMatchResult::addQueueInfo(RECORD_TYPE&            record,
+                                          const mqbu::StorageKey& queueKey,
+                                          const mqbu::StorageKey& appKey) const
+{
+    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
+        d_queueMap.findInfoByKey(queueKey);
+    if (queueInfo.has_value()) {
+        record.d_queueUri = queueInfo->uri();
+        if (!appKey.isNull() && !findQueueAppIdByAppKey(&record.d_appId,
+                                                        queueInfo->appIds(),
+                                                        appKey)) {
+            record.d_appId = "** NULL **";
+        }
+    }
 }
 
 // ========================

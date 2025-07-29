@@ -422,6 +422,15 @@ class SearchExactMatchResult : public SearchResult {
     bslma::Allocator* d_allocator_p;
     // Allocator used inside the class.
 
+    // PRIVATE ACCESSORS
+
+    template <typename RECORD_TYPE>
+    void addQueueInfo(RECORD_TYPE&            record,
+                      const mqbu::StorageKey& queueKey,
+                      const mqbu::StorageKey& appKey) const;
+    // Add queue info to the record with the specified 'record', 'queueKey' and
+    // 'appKey'.
+
   public:
     // CREATORS
 
