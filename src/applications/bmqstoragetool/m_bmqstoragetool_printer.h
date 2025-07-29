@@ -110,10 +110,11 @@ class Printer {
         bsls::Types::Uint64                   foundJournalOpCount,
         const Parameters::ProcessRecordTypes& processRecordTypes) const = 0;
 
-    /// Print footer with the specified numbers `foundMessagesCount`, `foundConfirmCount`, `foundDeletionCount`,
+    /// Print exact match footer with the specified numbers
+    /// `foundMessagesCount`, `foundConfirmCount`, `foundDeletionCount`,
     /// `foundQueueOpCount` and `foundJournalOpCount` if the corresponding
     /// flags are set in the specified `processRecordTypes`.
-    virtual void printFooter(
+    virtual void printExactMatchFooter(
         bsls::Types::Uint64                   foundMessagesCount,
         bsls::Types::Uint64                   foundConfirmCount,
         bsls::Types::Uint64                   foundDeletionCount,

@@ -701,7 +701,7 @@ SearchExactMatchResult::SearchExactMatchResult(
 , d_printedJournalOpCount(0)
 , d_allocator_p(allocator)
 {
-    // NOTHING    
+    // NOTHING
 }
 
 bool SearchExactMatchResult::processMessageRecord(
@@ -712,13 +712,14 @@ bool SearchExactMatchResult::processMessageRecord(
     if (d_isDetail) {
         bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
             d_queueMap.findInfoByKey(record.queueKey());
-        MessageDetails details (record,
-                        recordIndex,
-                        recordOffset,
-                        queueInfo,
-                        d_allocator_p);
+        MessageDetails details(record,
+                               recordIndex,
+                               recordOffset,
+                               queueInfo,
+                               d_allocator_p);
         d_printer->printMessage(details);
-    } else {
+    }
+    else {
         d_printer->printGuid(record.messageGUID());
     }
 
@@ -738,9 +739,9 @@ bool SearchExactMatchResult::processConfirmRecord(
 {
     if (d_isDetail) {
         RecordDetails<mqbs::ConfirmRecord> details(record,
-                                           recordIndex,
-                                           recordOffset,
-                                           d_allocator_p);
+                                                   recordIndex,
+                                                   recordOffset,
+                                                   d_allocator_p);
 
         bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
             d_queueMap.findInfoByKey(record.queueKey());
@@ -756,12 +757,13 @@ bool SearchExactMatchResult::processConfirmRecord(
         }
 
         d_printer->printConfirmRecord(details);
-    } else {
+    }
+    else {
         d_printer->printGuid(record.messageGUID());
     }
 
     d_printedConfirmCount++;
-    
+
     return false;
 }
 
@@ -772,9 +774,9 @@ bool SearchExactMatchResult::processDeletionRecord(
 {
     if (d_isDetail) {
         RecordDetails<mqbs::DeletionRecord> details(record,
-                                           recordIndex,
-                                           recordOffset,
-                                           d_allocator_p);
+                                                    recordIndex,
+                                                    recordOffset,
+                                                    d_allocator_p);
 
         bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
             d_queueMap.findInfoByKey(record.queueKey());
@@ -785,7 +787,8 @@ bool SearchExactMatchResult::processDeletionRecord(
         }
 
         d_printer->printDeletionRecord(details);
-    } else {
+    }
+    else {
         d_printer->printGuid(record.messageGUID());
     }
 
@@ -799,7 +802,6 @@ bool SearchExactMatchResult::processQueueOpRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-
     RecordDetails<mqbs::QueueOpRecord> details(record,
                                                recordIndex,
                                                recordOffset,
@@ -842,15 +844,16 @@ bool SearchExactMatchResult::processJournalOpRecord(
 
 void SearchExactMatchResult::outputResult()
 {
-    d_printer->printFooter(d_printedMessagesCount,
-                            d_printedConfirmCount,
-                            d_printedDeletionCount,
-                           d_printedQueueOpCount,
-                           d_printedJournalOpCount,
-                           d_processRecordTypes);
+    d_printer->printExactMatchFooter(d_printedMessagesCount,
+                                     d_printedConfirmCount,
+                                     d_printedDeletionCount,
+                                     d_printedQueueOpCount,
+                                     d_printedJournalOpCount,
+                                     d_processRecordTypes);
 }
 
-void SearchExactMatchResult::outputResult(BSLA_UNUSED const GuidsList& guidFilter)
+void SearchExactMatchResult::outputResult(
+    BSLA_UNUSED const GuidsList& guidFilter)
 {
     BSLS_ASSERT_SAFE(false && "NOT SUPPORTED!");
 }
@@ -1149,15 +1152,15 @@ bool SearchOffsetDecorator::processConfirmRecord(
 
 bool SearchOffsetDecorator::processDeletionRecord(
     const mqbs::DeletionRecord& record,
-    bsls::Types::Uint64        recordIndex,
-    bsls::Types::Uint64        recordOffset)
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
 {
     bsl::vector<bsls::Types::Int64>::const_iterator it =
         bsl::find(d_offsets.cbegin(), d_offsets.cend(), recordOffset);
     if (it != d_offsets.cend()) {
         SearchResultDecorator::processDeletionRecord(record,
-                                                    recordIndex,
-                                                    recordOffset);
+                                                     recordIndex,
+                                                     recordOffset);
         // Remove processed offset.
         d_offsets.erase(it);
     }
@@ -1230,9 +1233,10 @@ SearchSequenceNumberDecorator::SearchSequenceNumberDecorator(
 }
 
 bool SearchSequenceNumberDecorator::isSequenceNumberFound(
-        const CompositeSequenceNumber& sequenceNumber) const
+    const CompositeSequenceNumber& sequenceNumber) const
 {
-    return bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), sequenceNumber) != d_seqNums.cend();
+    return bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), sequenceNumber) !=
+           d_seqNums.cend();
 }
 
 bool SearchSequenceNumberDecorator::processMessageRecord(
@@ -1259,15 +1263,15 @@ bool SearchSequenceNumberDecorator::processMessageRecord(
 
 bool SearchSequenceNumberDecorator::processConfirmRecord(
     const mqbs::ConfirmRecord& record,
-    bsls::Types::Uint64         recordIndex,
-    bsls::Types::Uint64         recordOffset)
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
     CompositeSequenceNumber seqNum(record.header().primaryLeaseId(),
                                    record.header().sequenceNumber());
     bsl::vector<CompositeSequenceNumber>::const_iterator it =
         bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), seqNum);
-    if (it != d_seqNums.cend()) {    
-         SearchResultDecorator::processConfirmRecord(record,
+    if (it != d_seqNums.cend()) {
+        SearchResultDecorator::processConfirmRecord(record,
                                                     recordIndex,
                                                     recordOffset);
         // Remove processed sequence number.
@@ -1290,8 +1294,8 @@ bool SearchSequenceNumberDecorator::processDeletionRecord(
         bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), seqNum);
     if (it != d_seqNums.cend()) {
         SearchResultDecorator::processDeletionRecord(record,
-                                                    recordIndex,
-                                                    recordOffset);
+                                                     recordIndex,
+                                                     recordOffset);
         // Remove processed sequence number.
         d_seqNums.erase(it);
     }

@@ -39,8 +39,9 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
     // Set up processing flags
-    const bool details = params->d_details;
-    const bool exactMatch = !params->d_seqNum.empty() || !params->d_offset.empty();    
+    const bool details    = params->d_details;
+    const bool exactMatch = !params->d_seqNum.empty() ||
+                            !params->d_offset.empty();
     // Print data immediately as soon as it is completed to save memory, except
     // the foollowing cases, where data should be kept
     const bool printImmediately = !(params->d_outstanding ||
@@ -67,15 +68,15 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                           alloc),
             alloc);
     }
-    else if (exactMatch)  {
-        searchResult.reset(new (*alloc)
-                               SearchExactMatchResult(printer,
-                                                 params->d_processRecordTypes,
-                                                 details,
-                                                 params->d_queueMap,
-                                                 payloadDumper,
-                                                 alloc),
-                           alloc);
+    else if (exactMatch) {
+        searchResult.reset(
+            new (*alloc) SearchExactMatchResult(printer,
+                                                params->d_processRecordTypes,
+                                                details,
+                                                params->d_queueMap,
+                                                payloadDumper,
+                                                alloc),
+            alloc);
     }
     else if (details) {
         searchResult.reset(new (*alloc)

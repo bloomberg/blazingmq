@@ -365,14 +365,14 @@ class HumanReadablePrinter : public Printer {
                      const Parameters::ProcessRecordTypes& processRecordTypes)
         const BSLS_KEYWORD_OVERRIDE;
 
-    void printFooter(
+    void printExactMatchFooter(
         bsls::Types::Uint64                   foundMessagesCount,
         bsls::Types::Uint64                   foundConfirmCount,
         bsls::Types::Uint64                   foundDeletionCount,
         bsls::Types::Uint64                   foundQueueOpCount,
         bsls::Types::Uint64                   foundJournalOpCount,
-        const Parameters::ProcessRecordTypes& processRecordTypes) 
-        const BSLS_KEYWORD_OVERRIDE;
+        const Parameters::ProcessRecordTypes& processRecordTypes) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void printOutstandingRatio(int         ratio,
                                bsl::size_t outstandingMessagesCount,
@@ -514,7 +514,7 @@ void HumanReadablePrinter::printFooter(
     }
 }
 
-void HumanReadablePrinter::printFooter(
+void HumanReadablePrinter::printExactMatchFooter(
     bsls::Types::Uint64                   foundMessagesCount,
     bsls::Types::Uint64                   foundConfirmCount,
     bsls::Types::Uint64                   foundDeletionCount,
@@ -534,9 +534,9 @@ void HumanReadablePrinter::printFooter(
     }
 
     printFooter(foundMessagesCount,
-                      foundQueueOpCount,
-                      foundJournalOpCount,
-                      processRecordTypes);
+                foundQueueOpCount,
+                foundJournalOpCount,
+                processRecordTypes);
 }
 
 void HumanReadablePrinter::printOutstandingRatio(
@@ -713,14 +713,14 @@ class JsonPrinter : public Printer {
                      const Parameters::ProcessRecordTypes& processRecordTypes)
         const BSLS_KEYWORD_OVERRIDE;
 
-    void printFooter(
+    void printExactMatchFooter(
         bsls::Types::Uint64                   foundMessagesCount,
         bsls::Types::Uint64                   foundConfirmCount,
         bsls::Types::Uint64                   foundDeletionCount,
         bsls::Types::Uint64                   foundQueueOpCount,
         bsls::Types::Uint64                   foundJournalOpCount,
-        const Parameters::ProcessRecordTypes& processRecordTypes) 
-        const BSLS_KEYWORD_OVERRIDE;
+        const Parameters::ProcessRecordTypes& processRecordTypes) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void printOutstandingRatio(int         ratio,
                                bsl::size_t outstandingMessagesCount,
@@ -834,7 +834,7 @@ void JsonPrinter::printFooter(
     }
 }
 
-void JsonPrinter::printFooter(
+void JsonPrinter::printExactMatchFooter(
     bsls::Types::Uint64                   foundMessagesCount,
     bsls::Types::Uint64                   foundConfirmCount,
     bsls::Types::Uint64                   foundDeletionCount,
@@ -845,11 +845,11 @@ void JsonPrinter::printFooter(
     if (processRecordTypes.d_message) {
         closeBraceIfOpen();
         d_ostream << "  \"ConfirmRecords\": \"" << foundConfirmCount << "\"";
-        RecordPrinter::printDelimeter<void>(d_ostream);        
+        RecordPrinter::printDelimeter<void>(d_ostream);
         d_ostream << "  \"DeletionRecords\": \"" << foundDeletionCount << "\"";
     }
 
-    printFooter(foundMessagesCount, 
+    printFooter(foundMessagesCount,
                 foundQueueOpCount,
                 foundJournalOpCount,
                 processRecordTypes);

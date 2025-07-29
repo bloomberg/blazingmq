@@ -198,8 +198,9 @@ class SearchShortResult : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `printer`, `processRecordTypes`, `payloadDumper`,
-    /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
+    /// Constructor using the specified `printer`, `processRecordTypes`,
+    /// `payloadDumper`, `printImmediately`, `eraseDeleted`, `printOnDelete`
+    /// and `allocator`.
     explicit SearchShortResult(
         const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,
@@ -327,8 +328,9 @@ class SearchDetailResult : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `printer`, `processRecordTypes`, `queueMap`, `payloadDumper`,
-    /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
+    /// Constructor using the specified `printer`, `processRecordTypes`,
+    /// `queueMap`, `payloadDumper`, `printImmediately`, `eraseDeleted`,
+    /// `cleanUnprinted` and `allocator`.
     SearchDetailResult(
         const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,
@@ -417,13 +419,14 @@ class SearchExactMatchResult : public SearchResult {
     // Counter of already output (printed) QueueOp records.
     bsls::Types::Uint64 d_printedJournalOpCount;
     // Counter of already output (printed) JournalOp records.
-    bslma::Allocator*                     d_allocator_p;
+    bslma::Allocator* d_allocator_p;
     // Allocator used inside the class.
 
   public:
     // CREATORS
 
-    /// Constructor using the specified `printer`, `processRecordTypes`, `queueMap`, `payloadDumper`,
+    /// Constructor using the specified `printer`, `processRecordTypes`,
+    /// `queueMap`, `payloadDumper`,
     explicit SearchExactMatchResult(
         const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,
@@ -883,8 +886,8 @@ class SearchOffsetDecorator : public SearchResultDecorator {
     /// Process `confirm` record with the specified `record`, `recordIndex`
     /// and `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
-                               bsls::Types::Uint64         recordIndex,
-                               bsls::Types::Uint64         recordOffset)
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     /// Process `deletion` record with the specified `record`, `recordIndex`
     /// and `recordOffset`.
@@ -923,11 +926,11 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     // If 'true', output detailed result, output short one otherwise.
 
     // PRIVATE ACCESSORS
-    bool isSequenceNumberFound(
-        const CompositeSequenceNumber& sequenceNumber) const;
+    bool
+    isSequenceNumberFound(const CompositeSequenceNumber& sequenceNumber) const;
     // Return 'true' if the specified 'sequenceNumber' is found in d_seqNums.
 
-    public:
+  public:
     // CREATORS
 
     /// Constructor using the specified `component`, `seqNums`, `ostream`,
