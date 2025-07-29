@@ -21,6 +21,7 @@
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqsys_time.h>
 
 #include <bmqio_channelutil.h>
 #include <bmqu_blob.h>
@@ -32,12 +33,14 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_algorithm.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsla_annotations.h>
 #include <bsla_unused.h>
 #include <bslma_default.h>
 #include <bsls_assert.h>
+#include <bsls_timeinterval.h>
 
 namespace BloombergLP {
 namespace bmqimp {
@@ -277,7 +280,7 @@ void InitialConnectionChannelFactory::readPacketsCb(
     const ResultCallback&                  cb,
     const bmqio::Status&                   status,
     int*                                   numNeeded,
-    bdlbb::Blob*                           blob) const
+    bdlbb::Blob*                           blob)
 {
     BALL_LOG_INFO << "At readPacketsCb";
 
@@ -441,7 +444,7 @@ int InitialConnectionChannelFactory::decodeInitialConnectionMessage(
 void InitialConnectionChannelFactory::onBrokerAuthenticationResponse(
     const bmqp_ctrlmsg::AuthenticationMessage& response,
     const ResultCallback&                      cb,
-    const bsl::shared_ptr<bmqio::Channel>&     channel) const
+    const bsl::shared_ptr<bmqio::Channel>&     channel)
 {
     const bmqp_ctrlmsg::AuthenticateResponse& authenticateResponse =
         response.authenticateResponse();
@@ -461,7 +464,22 @@ void InitialConnectionChannelFactory::onBrokerAuthenticationResponse(
     // Authentication SUCCEEDED
     BALL_LOG_INFO << "Authentication with broker was successful: " << response;
 
-    // TODO: reauthenticate
+    // Schedule recurring reauthentication events if lifetime is specified in
+    // the response.
+    if (authenticateResponse.lifetimeMs()) {
+        int lifetimeMs = authenticateResponse.lifetimeMs().value();
+        int intervalMs = bsl::min(lifetimeMs - k_REAUTHN_EARLY_BUFFER,
+                                  lifetimeMs * k_REAUTHN_EARLY_RATIO);
+        d_scheduler.scheduleRecurringEvent(
+            &d_authnEventHandle,
+            bsls::TimeInterval(intervalMs),
+            bdlf::BindUtil::bind(
+                bmqu::WeakMemFnUtil::weakMemFn(
+                    &InitialConnectionChannelFactory::authenticate,
+                    d_self.acquireWeak()),
+                channel,
+                cb));
+    }
 
     negotiate(channel, cb);
 }
@@ -549,6 +567,8 @@ InitialConnectionChannelFactory::InitialConnectionChannelFactory(
     const Config&     config,
     bslma::Allocator* basicAllocator)
 : d_config(config, basicAllocator)
+, d_scheduler(bsls::SystemClockType::e_MONOTONIC, basicAllocator)
+, d_authnEventHandle()
 , d_self(this)  // use default allocator
 {
     // NOTHING
@@ -559,6 +579,22 @@ InitialConnectionChannelFactory::~InitialConnectionChannelFactory()
     // synchronize with any currently running callbacks and prevent future
     // callback invocations
     d_self.invalidate();
+}
+
+int InitialConnectionChannelFactory::start()
+{
+    int rc = d_scheduler.start();
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to start event scheduler [rc: " << rc << "]";
+    }
+    return rc;
+}
+
+void InitialConnectionChannelFactory::stop()
+{
+    // Cancel any scheduled reauthentication events
+    d_scheduler.cancelEvent(&d_authnEventHandle);
+    d_scheduler.stop();
 }
 
 // MANIPULATORS
