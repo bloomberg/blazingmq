@@ -41,6 +41,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -104,6 +105,8 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
     // TYPES
     typedef InitialConnectionChannelFactoryConfig Config;
 
+    typedef bdlmt::EventScheduler::RecurringEventHandle EventHandle;
+
     // CONSTANTS
 
     /// Name of a property set on the channel representing the broker's
@@ -118,12 +121,24 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
 
     static const char* k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS;
 
+    // Minimum buffer to subtract from lifetimeMs to avoid cutting too close
+    const int k_REAUTHN_EARLY_BUFFER = 1000;  // 1 second
+
+    // Proportion of lifetimeMs after which to initiate reauthentication.
+    const int k_REAUTHN_EARLY_RATIO = 0.9;
+
   private:
     // TYPES
     enum ACTION { AUTHENTICATION = 0, NEGOTIATION = 1 };
 
     // PRIVATE DATA
     Config d_config;
+
+    // Used to schedule events for sending reauthentication requests.
+    bdlmt::EventScheduler d_scheduler;
+
+    // Event handle for reauthentication events.
+    EventHandle d_authnEventHandle;
 
     // Used to make sure no callback is invoked on a destroyed object.
     mutable bmqu::SharedResource<InitialConnectionChannelFactory> d_self;
@@ -167,7 +182,7 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
                        const ResultCallback&                  cb,
                        const bmqio::Status&                   status,
                        int*                                   numNeeded,
-                       bdlbb::Blob*                           blob) const;
+                       bdlbb::Blob*                           blob);
 
     int decodeInitialConnectionMessage(
         const bdlbb::Blob&                                  packet,
@@ -179,7 +194,7 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
     void onBrokerAuthenticationResponse(
         const bmqp_ctrlmsg::AuthenticationMessage& response,
         const ResultCallback&                      cb,
-        const bsl::shared_ptr<bmqio::Channel>&     channel) const;
+        const bsl::shared_ptr<bmqio::Channel>&     channel);
 
     void onBrokerNegotiationResponse(
         const bmqp_ctrlmsg::NegotiationMessage& response,
@@ -196,6 +211,10 @@ class InitialConnectionChannelFactory : public bmqio::ChannelFactory {
 
   public:
     // MANIPULATORS
+    int start();
+
+    void stop();
+
     void listen(bmqio::Status*               status,
                 bslma::ManagedPtr<OpHandle>* handle,
                 const bmqio::ListenOptions&  options,
