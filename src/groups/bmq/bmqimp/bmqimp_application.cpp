@@ -20,7 +20,7 @@
 // BMQ
 #include <bmqex_executionpolicy.h>
 #include <bmqex_systemexecutor.h>
-#include <bmqimp_initialconnectionchannelfactory.h>
+#include <bmqimp_connectionchannelfactory.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_status.h>
@@ -389,7 +389,7 @@ bmqt::GenericResult::Enum Application::startChannel()
         .setAttemptInterval(attemptInterval)
         .setAutoReconnect(true);
 
-    d_initialConnectionChannelFactory.connect(
+    d_connectionChannelFactory.connect(
         &status,
         &d_connectHandle_mp,
         options,
@@ -603,14 +603,13 @@ Application::Application(
                                bdlf::PlaceHolders::_2),  // handle
           allocator),
       allocator)
-, d_initialConnectionChannelFactory(
-      InitialConnectionChannelFactoryConfig(
-          &d_statChannelFactory,
-          negotiationMessage,
-          sessionOptions.connectTimeout(),
-          sessionOptions.credentialProvider().get(),
-          d_blobSpPool_sp.get(),
-          allocator),
+, d_connectionChannelFactory(
+      ConnectionChannelFactoryConfig(&d_statChannelFactory,
+                                     negotiationMessage,
+                                     sessionOptions.connectTimeout(),
+                                     sessionOptions.credentialProvider().get(),
+                                     d_blobSpPool_sp.get(),
+                                     allocator),
       allocator)
 , d_connectHandle_mp()
 , d_brokerSession(&d_scheduler,
@@ -720,17 +719,16 @@ int Application::start(const bsls::TimeInterval& timeout)
                   << "::: START (SYNC) << [state: " << d_brokerSession.state()
                   << "] :::";
 
-    int rc = d_initialConnectionChannelFactory.start();
+    int rc = d_connectionChannelFactory.start();
     if (rc != 0) {
-        BALL_LOG_ERROR << id()
-                       << "Failed to start initialConnectionChannelFactory "
+        BALL_LOG_ERROR << id() << "Failed to start connectionChannelFactory "
                        << "[rc: " << rc << "]";
         return rc;  // RETURN
     }
 
     rc = d_brokerSession.start(timeout);
     if (rc != 0) {
-        d_initialConnectionChannelFactory.stop();
+        d_connectionChannelFactory.stop();
         return rc;  // RETURN
     }
 
@@ -771,7 +769,7 @@ void Application::stop()
     d_brokerSession.stop();
 
     // Stop the channel factories
-    d_initialConnectionChannelFactory.stop();
+    d_connectionChannelFactory.stop();
 }
 
 void Application::stopAsync()
@@ -791,9 +789,9 @@ Application::createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     int maxMissedHeartbeats = k_DEFAULT_MAX_MISSED_HEARTBEATS;
 
-    channel->properties().load(&maxMissedHeartbeats,
-                               InitialConnectionChannelFactory::
-                                   k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS);
+    channel->properties().load(
+        &maxMissedHeartbeats,
+        ConnectionChannelFactory::k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS);
 
     bsl::shared_ptr<bmqp::HeartbeatMonitor> monitor(
         new (d_allocator) bmqp::HeartbeatMonitor(maxMissedHeartbeats),
@@ -814,9 +812,9 @@ void Application::startHeartbeat(
 
     int heartbeatIntervalMs = k_DEFAULT_HEARTBEAT_INTERVAL_MS;
 
-    channel->properties().load(&heartbeatIntervalMs,
-                               InitialConnectionChannelFactory::
-                                   k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS);
+    channel->properties().load(
+        &heartbeatIntervalMs,
+        ConnectionChannelFactory::k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS);
 
     bsls::TimeInterval interval;
     interval.addMilliseconds(heartbeatIntervalMs);
