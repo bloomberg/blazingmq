@@ -253,12 +253,10 @@ class Application {
     /// negotiation.  The application will use the specified
     /// `eventHandlerCB`.  Use the specified `allocator` for all memory
     /// allocations.
-    Application(
-        const bmqt::SessionOptions&                sessionOptions,
-        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
-        const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-        const EventQueue::EventHandlerCallback&    eventHandlerCB,
-        bslma::Allocator*                          allocator);
+    Application(const bmqt::SessionOptions&             sessionOptions,
+                const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+                const EventQueue::EventHandlerCallback& eventHandlerCB,
+                bslma::Allocator*                       allocator);
 
     /// Destructor
     ~Application();

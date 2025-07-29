@@ -24,6 +24,8 @@
 #include <bmqsys_time.h>
 
 #include <bmqio_channelutil.h>
+#include <bmqpi_credentialprovider.h>
+#include <bmqt_authncredential.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_weakmemfn.h>
@@ -69,16 +71,17 @@ enum RcEnum {
 // ------------------------------------
 
 InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
-    bmqio::ChannelFactory*                     base,
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
-    const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-    const bsls::TimeInterval&                  connectTimeout,
-    BlobSpPool*                                blobSpPool_p,
-    bslma::Allocator*                          basicAllocator)
+    bmqio::ChannelFactory*                  base,
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+    const bsls::TimeInterval&               connectTimeout,
+    bmqpi::CredentialProvider*              credentialProvider,
+    BlobSpPool*                             blobSpPool_p,
+    bslma::Allocator*                       basicAllocator)
 : d_baseFactory_p(base)
-, d_authenticationMessage(authenticationMessage, basicAllocator)
 , d_negotiationMessage(negotiationMessage, basicAllocator)
+, d_authenticationMessage()
 , d_connectTimeout(connectTimeout)
+, d_credentialProvider_p(credentialProvider)
 , d_blobSpPool_p(blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -90,9 +93,10 @@ InitialConnectionChannelFactoryConfig::InitialConnectionChannelFactoryConfig(
     const InitialConnectionChannelFactoryConfig& original,
     bslma::Allocator*                            basicAllocator)
 : d_baseFactory_p(original.d_baseFactory_p)
-, d_authenticationMessage(original.d_authenticationMessage, basicAllocator)
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
+, d_authenticationMessage(original.d_authenticationMessage, basicAllocator)
 , d_connectTimeout(original.d_connectTimeout)
+, d_credentialProvider_p(original.d_credentialProvider_p)
 , d_blobSpPool_p(original.d_blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -125,14 +129,14 @@ void InitialConnectionChannelFactory::baseResultCallback(
     const ResultCallback&                  userCb,
     bmqio::ChannelFactoryEvent::Enum       event,
     const bmqio::Status&                   status,
-    const bsl::shared_ptr<bmqio::Channel>& channel) const
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     if (event != bmqio::ChannelFactoryEvent::e_CHANNEL_UP) {
         userCb(event, status, channel);
         return;  // RETURN
     }
 
-    authenticate(channel, userCb);
+    initialConnect(channel, userCb);
 }
 
 void InitialConnectionChannelFactory::sendRequest(
@@ -248,22 +252,37 @@ void InitialConnectionChannelFactory::readResponse(
     }
 }
 
+void InitialConnectionChannelFactory::initialConnect(
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    const ResultCallback&                  cb)
+{
+    authenticate(channel, cb);
+    negotiate(channel, cb);
+}
+
 void InitialConnectionChannelFactory::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
-    const ResultCallback&                  cb) const
+    const ResultCallback&                  cb)
 {
     BALL_LOG_INFO << "Client authenticate";
 
-    // If the authentication message is not an AuthenticateRequest, it means no
-    // credential is provided. In this case, we will skip the authentication
-    // step and proceed directly to the negotiation step.
-    if (!d_config.d_authenticationMessage.isAuthenticateRequestValue()) {
-        negotiate(channel, cb);
-        return;  // RETURN
-    }
+    // If there's no CredentialProvider, it means no credential is provided. In
+    // this case, we will skip authentication.
+    if (d_config.d_credentialProvider_p) {
+        bmqt::AuthnCredential credential;
+        d_config.d_credentialProvider_p->loadCredential(&credential);
 
-    sendRequest(channel, AUTHENTICATION, cb);
-    readResponse(channel, AUTHENTICATION, cb);
+        bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+        bmqp_ctrlmsg::AuthenticateRequest&  ar =
+            authenticaionMessage.makeAuthenticateRequest();
+        ar.mechanism() = credential.mechanism();
+        ar.data()      = credential.data();
+
+        d_config.d_authenticationMessage = authenticaionMessage;
+
+        sendRequest(channel, AUTHENTICATION, cb);
+        readResponse(channel, AUTHENTICATION, cb);
+    }
 }
 
 void InitialConnectionChannelFactory::negotiate(
