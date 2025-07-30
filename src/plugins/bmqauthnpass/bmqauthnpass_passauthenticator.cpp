@@ -99,6 +99,10 @@ int PassAuthenticator::authenticate(
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
+    BALL_LOG_INFO << "PassAuthenticator: "
+                  << "authentication passed for mechanism '" << mechanism()
+                  << "' unconditionally.";
+
     *result = bsl::allocate_shared<PassAuthenticationResult>(d_allocator_p,
                                                              "",
                                                              600 * 1000);

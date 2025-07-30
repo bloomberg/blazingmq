@@ -6286,8 +6286,8 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
         mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uriCopy);
 
         // Populate 'QueueUnAssignmentAdvisory'
-        bdlma::LocalSequentialAllocator<1024>  localAlloc(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage           controlMsg(&localAlloc);
+        bdlma::LocalSequentialAllocator<1024>    localAlloc(d_allocator_p);
+        bmqp_ctrlmsg::ControlMessage             controlMsg(&localAlloc);
         bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
             controlMsg.choice()
                 .makeClusterMessage()
