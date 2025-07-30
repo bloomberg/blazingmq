@@ -26,7 +26,7 @@
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
-#include <bsla_unused.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
