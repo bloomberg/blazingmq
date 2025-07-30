@@ -185,9 +185,11 @@ class DomainResolver {
                   const bslstl::StringRef&  domainName);
 
     /// Uses `getOrQuery()` to retrieve data corresponding to the specified
-    /// `domainName`.  Fills-in the specified `out` structure. Returns
-    /// `E_SUCCESS` on success or `E_UNKNOWN` otherwise.
-    bmqp_ctrlmsg::Status getOrReadDomain(mqbconfm::DomainResolver* out,
+    /// `domainName`.  Fills in the specified `resolvedDomainName` and
+    /// `clusterName` with the result.  Returns `E_SUCCESS` on success or
+    /// `E_UNKNOWN` otherwise.
+    bmqp_ctrlmsg::Status getOrReadDomain(bsl::string* resolvedDomainName,
+                                         bsl::string* clusterName,
                                          const bslstl::StringRef&  domainName);
 
   private:

@@ -300,14 +300,15 @@ void DomainResolver::stop()
 }
 
 bmqp_ctrlmsg::Status
-DomainResolver::getOrReadDomain(mqbconfm::DomainResolver* out,
+DomainResolver::getOrReadDomain(bsl::string* resolvedDomainName,
+                                bsl::string* clusterName,
                                 const bslstl::StringRef&  domainName)
 {
     // executed by *ANY* thread
 
     bmqu::MemOutStream errorDescription;
 
-    int rc = getOrRead(errorDescription, &out->name(), &out->cluster(), domainName);
+    int rc = getOrRead(errorDescription, resolvedDomainName, clusterName, domainName);
 
     bmqp_ctrlmsg::Status status;
     status.category() = (rc == 0 ? bmqp_ctrlmsg::StatusCategory::E_SUCCESS
@@ -325,10 +326,11 @@ void DomainResolver::qualifyDomain(
 {
     // executed by *ANY* thread
 
-    mqbconfm::DomainResolver response;
-    bmqp_ctrlmsg::Status     status = getOrReadDomain(&response, domainName);
+    bsl::string resolvedDomainName;
+    bsl::string clusterName;
+    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName, &clusterName, domainName);
 
-    callback(status, response.name());
+    callback(status, resolvedDomainName);
 }
 
 void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
@@ -336,10 +338,11 @@ void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
 {
     // executed by *ANY* thread
 
-    mqbconfm::DomainResolver response;
-    bmqp_ctrlmsg::Status     status = getOrReadDomain(&response, domainName);
+    bsl::string resolvedDomainName;
+    bsl::string clusterName;
+    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName, &clusterName, domainName);
 
-    callback(status, response.cluster());
+    callback(status, clusterName);
 }
 
 void DomainResolver::clearCache(const bslstl::StringRef& domainName)
