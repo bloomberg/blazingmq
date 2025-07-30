@@ -35,26 +35,6 @@
   </complexType>
 
   <!-- ========================================================================
-                               DOMAIN_RESOLUTION
-  ========================================================================= -->
-  <complexType name='DomainResolver'>
-    <annotation>
-      <documentation>
-        Top level type representing the information retrieved when resolving a
-        domain.
-        Review: Keep this? Why not just store the cluster name?
-
-        name....: Domain name
-        cluster.: Cluster name
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='name' type='string'/>
-      <element name='cluster'  type='string'/>
-    </sequence>
-  </complexType>
-
-  <!-- ========================================================================
                                     DOMAIN_PARAMETERS
   ========================================================================= -->
 
