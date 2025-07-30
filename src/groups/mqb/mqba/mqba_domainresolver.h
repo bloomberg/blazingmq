@@ -160,15 +160,17 @@ class DomainResolver {
     void updateTimestamps();
 
     /// Lookup entry for the specified `domainName` in the cache, and fill
-    /// the data in the specified `out` if found and not stale; otherwise
-    /// return false and leave `out` untouched.  Note that if the entry is
-    /// found but has expired, this will erase it from the cache.
+    /// the data in the specified `resolvedDomainName` and `clusterName` if
+    /// found and not stale; otherwise return false and leave
+    /// `resolvedDomainName` and `clusterName` untouched.  Note that if the
+    /// entry is found but has expired, this will erase it from the cache.
     ///
     /// @attention `d_mutex` *MUST* be locked prior to calling this function.
     ///
     /// @attention The caller must call `updateScriptTimestamp()` to update the
     ///            timestamps prior to calling this method.
-    bool cacheLookup(mqbconfm::DomainResolver* out,
+    bool cacheLookup(bsl::string* resolvedDomainName,
+                     bsl::string* clusterName,
                      const bslstl::StringRef&  domainName);
 
     /// Get the data corresponding to the specified `domainName` from the

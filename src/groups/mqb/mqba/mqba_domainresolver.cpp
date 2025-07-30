@@ -85,7 +85,8 @@ void DomainResolver::updateTimestamps()
     d_timestampsValidUntil = now + k_DIR_CHECK_TTL;
 }
 
-bool DomainResolver::cacheLookup(mqbconfm::DomainResolver* out,
+bool DomainResolver::cacheLookup(bsl::string* resolvedDomainName,
+                                 bsl::string* clusterName,
                                  const bslstl::StringRef&  domainName)
 {
     // executed by the thread that holds the 'd_mutex'
@@ -111,8 +112,8 @@ bool DomainResolver::cacheLookup(mqbconfm::DomainResolver* out,
     }
 
     // Copy cached data.
-    out->name()    = it->second.d_name;
-    out->cluster() = it->second.d_cluster;
+    *resolvedDomainName = it->second.d_name;
+    *clusterName        = it->second.d_cluster;
     return true;
 }
 
@@ -128,8 +129,14 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
     updateTimestamps();
 
     // First, check in the cache
-    if (cacheLookup(out, domainName)) {
+    bsl::string resolvedDomainName;
+    bsl::string clusterName;
+    if (cacheLookup(&resolvedDomainName, &clusterName, domainName)) {
         BALL_LOG_INFO << "Domain '" << domainName << "' resolved from cache";
+
+        // Copy cached data.
+        out->name() = resolvedDomainName;
+        out->cluster() = clusterName;
         return 0;  // RETURN
     }
 
@@ -145,8 +152,9 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
 
     int         rc = rc_SUCCESS;
     bsl::string content;
-    bsl::string resolvedDomainName = domainName;
-    int         redirection        = 0;
+    int         redirection = 0;
+
+    resolvedDomainName = domainName;
 
     for (; redirection < 2; ++redirection) {
         // 1. read config
