@@ -117,8 +117,9 @@ bool DomainResolver::cacheLookup(bsl::string* resolvedDomainName,
     return true;
 }
 
-int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
-                              mqbconfm::DomainResolver* out,
+int DomainResolver::getOrRead(bsl::ostream& errorDescription,
+                              bsl::string*  resolvedDomainName,
+                              bsl::string*  clusterName,
                               const bslstl::StringRef&  domainName)
 {
     // executed by *ANY* thread
@@ -129,14 +130,8 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
     updateTimestamps();
 
     // First, check in the cache
-    bsl::string resolvedDomainName;
-    bsl::string clusterName;
-    if (cacheLookup(&resolvedDomainName, &clusterName, domainName)) {
+    if (cacheLookup(resolvedDomainName, clusterName, domainName)) {
         BALL_LOG_INFO << "Domain '" << domainName << "' resolved from cache";
-
-        // Copy cached data.
-        out->name() = resolvedDomainName;
-        out->cluster() = clusterName;
         return 0;  // RETURN
     }
 
@@ -154,12 +149,12 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
     bsl::string content;
     int         redirection = 0;
 
-    resolvedDomainName = domainName;
+    bsl::string redirectedDomainName = domainName;
 
     for (; redirection < 2; ++redirection) {
         // 1. read config
         bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() +
-                               "/domains/" + resolvedDomainName + ".json";
+                               "/domains/" + redirectedDomainName + ".json";
 
         // This is copy-pasted from mqba_configprovider.cpp. Maybe we are
         // going to merge the two? If not, consider factoring this bit.
@@ -242,15 +237,15 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
         }
 
         if (domainVariant.isRedirectValue()) {
-            BALL_LOG_INFO << "Redirecting " << resolvedDomainName << " to "
+            BALL_LOG_INFO << "Redirecting " << redirectedDomainName << " to "
                           << domainVariant.redirect();
-            resolvedDomainName = domainVariant.redirect();
+            redirectedDomainName = domainVariant.redirect();
             continue;
         }
 
         // Add to cache
         CacheEntry cacheEntry;
-        cacheEntry.d_name    = resolvedDomainName;
+        cacheEntry.d_name    = redirectedDomainName;
         cacheEntry.d_cluster = domainVariant.definition().location();
         // REVIEW: suggestion: s/location/cluster/
         cacheEntry.d_cfgDirTimestamp = d_lastCfgDirTimestamp;
@@ -260,8 +255,8 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
         d_cache[domainName] = cacheEntry;
 
         // Copy resolved data.
-        out->name()    = cacheEntry.d_name;
-        out->cluster() = cacheEntry.d_cluster;
+        *resolvedDomainName = cacheEntry.d_name;
+        *clusterName        = cacheEntry.d_cluster;
         return rc_SUCCESS;  // RETURN
     }
 
@@ -312,7 +307,7 @@ DomainResolver::getOrReadDomain(mqbconfm::DomainResolver* out,
 
     bmqu::MemOutStream errorDescription;
 
-    int rc = getOrRead(errorDescription, out, domainName);
+    int rc = getOrRead(errorDescription, &out->name(), &out->cluster(), domainName);
 
     bmqp_ctrlmsg::Status status;
     status.category() = (rc == 0 ? bmqp_ctrlmsg::StatusCategory::E_SUCCESS

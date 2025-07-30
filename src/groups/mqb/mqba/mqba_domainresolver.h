@@ -175,11 +175,13 @@ class DomainResolver {
 
     /// Get the data corresponding to the specified `domainName` from the
     /// cache, or query it from the script storing the result in the cache.
-    /// Return 0 on success, populating the specified `out` with the result,
-    /// or return a non-zero value otherwise, populating the specified
-    /// `errorDescription` with a description of the error otherwise.
-    int getOrRead(bsl::ostream&             errorDescription,
-                  mqbconfm::DomainResolver* out,
+    /// Return 0 on success, populating the specified `resolvedDomainName` and
+    /// `clusterName` with the result, or return a non-zero value otherwise,
+    /// populating the specified `errorDescription` with a description of the
+    /// error otherwise.
+    int getOrRead(bsl::ostream& errorDescription,
+                  bsl::string*  resolvedDomainName,
+                  bsl::string*  clusterName,
                   const bslstl::StringRef&  domainName);
 
     /// Uses `getOrQuery()` to retrieve data corresponding to the specified
