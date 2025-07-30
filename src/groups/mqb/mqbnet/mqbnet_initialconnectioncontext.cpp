@@ -27,9 +27,9 @@
 namespace BloombergLP {
 namespace mqbnet {
 
-// -------------------------------------
+// ------------------------------
 // class InitialConnectionContext
-// -------------------------------------
+// ------------------------------
 
 InitialConnectionContext::InitialConnectionContext(bool isIncoming)
 : d_isIncoming(isIncoming)

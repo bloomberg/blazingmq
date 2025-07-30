@@ -64,7 +64,7 @@ class AuthenticationContext {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticationContext,
                                    bslma::UsesBslmaAllocator)
     // CREATORS
     AuthenticationContext(
