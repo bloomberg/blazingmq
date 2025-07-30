@@ -67,7 +67,8 @@ def verifyMessages(consumer: Client, queue: str, appId: str, expected_count: int
     consumer.open(queue_with_appid, flags=["read"], succeed=True)
     consumer.wait_push_event()
     assert wait_until(
-        lambda: len(consumer.list(queue_with_appid, block=True)) == expected_count, 2
+        lambda: len(consumer.list(queue_with_appid, block=True)) == expected_count,
+        timeout=2,
     )
     consumer.close(queue_with_appid, succeed=True)
 
@@ -87,15 +88,19 @@ def post_new_queues_and_verify(
     the two new queues.  Finally, instrcut `consumer_foo` to confirm one message on appId 'foo'.
     """
     # Preconditions
-    assert len(existing_queues_pair) == 2
+    NUM_QUEUE_MODES = (
+        2  # We only test on priority and fanout queues; broadcast queues are omitted.
+    )
+    assert len(existing_queues_pair) == NUM_QUEUE_MODES
 
     num_partitions = cluster.config.definition.partition_config.num_partitions
     existing_priority_queues, existing_fanout_queues = existing_queues_pair
+    # Since we always append a queue to both lists, their length must be equal.
     assert len(existing_priority_queues) == len(existing_fanout_queues)
 
     # Post a message on new priority queue and new fanout queue
     n = len(existing_priority_queues)
-    partition_id = (n * 2) % num_partitions
+    partition_id = (n * NUM_QUEUE_MODES) % num_partitions
     for domain, queues in [
         (domain_urls.domain_priority, existing_priority_queues),
         (domain_urls.domain_fanout, existing_fanout_queues),
@@ -107,14 +112,17 @@ def post_new_queues_and_verify(
         producer.post(new_queue, payload=["msg0"], wait_ack=True, succeed=True)
         ensureMessageAtStorageLayer(cluster, partition_id, new_queue, 1)
 
+        # Per our queue assignment logic, the new queue will be assigned to the next partition in a round-robin fashion.
         partition_id = (partition_id + 1) % num_partitions
 
     # Consumer for new fanout queue
-    new_fanout_queue = existing_fanout_queues[-1][0]
+    QUEUE_ELEMENT_IDX = 0
+    new_fanout_queue = existing_fanout_queues[-1][QUEUE_ELEMENT_IDX]
     consumer_foo.open(new_fanout_queue + "?id=foo", flags=["read"], succeed=True)
     consumer_foo.wait_push_event()
     assert wait_until(
-        lambda: len(consumer_foo.list(new_fanout_queue + "?id=foo", block=True)) == 1, 2
+        lambda: len(consumer_foo.list(new_fanout_queue + "?id=foo", block=True)) == 1,
+        timeout=2,
     )
 
     # Save one confirm to the storage for new fanout queue
@@ -136,32 +144,59 @@ def post_existing_queues_and_verify(
     On the `cluster`, instruct the `producer` to post one message to
     each of the `existing_priority_queues` and `existing_fanout_queues`.
     Verify that the messages are posted successfully and that the `consumers`
-    list of priority, foo, and bar consumers ` have the expected number of
+    list of priority, foo, and bar consumers have the expected number of
     messages in their respective queues.
     """
     # Preconditions
     assert len(existing_priority_queues) == len(existing_fanout_queues)
-    assert len(consumers) == 3
+    NUM_CONSUMER_TYPES = 3  # priority, foo, bar
+    assert len(consumers) == NUM_CONSUMER_TYPES
 
     consumer_priority, consumer_foo, consumer_bar = consumers
 
+    QUEUE_ELEMENT_IDX, PARTITION_ELEMENT_IDX = 0, 1
     n = len(existing_priority_queues)
-    for queues in [existing_priority_queues, existing_fanout_queues]:
-        for i in range(n):
+    for i in range(n):
+        # Every time we append a new queue, we post one message to it as well as
+        # all existing queues.  When there are `n` queues, the last queue (index
+        # `n-1`) will have 1 message, the second last queue (index `n-2`) will
+        # have 2 messages, and so on.  Therefore, the number of messages in the
+        # i-th queue will be `n - i`.
+        NUM_MESSAGES_IN_QUEUE = n - i
+
+        for queues in [existing_priority_queues, existing_fanout_queues]:
             producer.post(
-                queues[i][0],
-                payload=[f"msg{n - i}"],
+                queues[i][QUEUE_ELEMENT_IDX],
+                payload=[f"msg{NUM_MESSAGES_IN_QUEUE}"],
                 wait_ack=True,
                 succeed=True,
             )
-            ensureMessageAtStorageLayer(cluster, queues[i][1], queues[i][0], n + 1 - i)
+            ensureMessageAtStorageLayer(
+                cluster,
+                queues[i][PARTITION_ELEMENT_IDX],
+                queues[i][QUEUE_ELEMENT_IDX],
+                NUM_MESSAGES_IN_QUEUE + 1,
+            )
+        NUM_MESSAGES_IN_QUEUE += 1  # Increment by 1 for the new message posted
 
-    for i in range(n):
         verifyMessages(
-            consumer_priority, existing_priority_queues[i][0], None, n + 1 - i
+            consumer_priority,
+            existing_priority_queues[i][QUEUE_ELEMENT_IDX],
+            None,
+            NUM_MESSAGES_IN_QUEUE,
         )
-        verifyMessages(consumer_foo, existing_fanout_queues[i][0], "foo", n - i)
-        verifyMessages(consumer_bar, existing_fanout_queues[i][0], "bar", n + 1 - i)
+        verifyMessages(
+            consumer_foo,
+            existing_fanout_queues[i][QUEUE_ELEMENT_IDX],
+            "foo",
+            NUM_MESSAGES_IN_QUEUE - 1,  # Already confirmed one message on `foo`
+        )
+        verifyMessages(
+            consumer_bar,
+            existing_fanout_queues[i][QUEUE_ELEMENT_IDX],
+            "bar",
+            NUM_MESSAGES_IN_QUEUE,
+        )
 
 
 def ensureMessageAtStorageLayer(
@@ -269,7 +304,9 @@ def test_basic(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer = next(proxies).create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
+    assert wait_until(
+        lambda: len(consumer.list(uri_priority, block=True)) == 2, timeout=2
+    )
 
 
 def test_wrong_domain(cluster: Cluster, domain_urls: tc.DomainUrls):
@@ -468,10 +505,10 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     in non-FSM mode, then conduct queue assignment/unassignment operations as
     follows:
 
-    q1: assign -> unassign ---> assign -> unassign ---> assign -> unassign
-    q2: assign ---> unassign -> assign ---> unassign -> assign
-    q3: None ---> assign -> unassign ---> assign -> unassign
-    q4: None ---> assign ---> unassign -> assign
+    q0: assign -> unassign ---> assign -> unassign                         ---> assign -> unassign
+    q1: assign             ---> unassign -> assign                         ---> unassign -> assign
+    q2:                         None               ---> assign -> unassign ---> assign -> unassign
+    q3:                         None               ---> assign             ---> unassign -> assign
 
     where  `--->` indicates a switch in cluster mode
     """
