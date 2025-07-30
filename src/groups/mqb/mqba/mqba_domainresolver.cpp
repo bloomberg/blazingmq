@@ -110,7 +110,9 @@ bool DomainResolver::cacheLookup(mqbconfm::DomainResolver* out,
         return false;  // RETURN
     }
 
-    *out = it->second.d_data;  // Assign a copy of the object
+    // Copy cached data.
+    out->name()    = it->second.d_name;
+    out->cluster() = it->second.d_cluster;
     return true;
 }
 
@@ -240,17 +242,18 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
 
         // Add to cache
         CacheEntry cacheEntry;
-        cacheEntry.d_data.name()    = resolvedDomainName;
-        cacheEntry.d_data.cluster() = domainVariant.definition().location();
-        *out                        = cacheEntry.d_data;
+        cacheEntry.d_name    = resolvedDomainName;
+        cacheEntry.d_cluster = domainVariant.definition().location();
         // REVIEW: suggestion: s/location/cluster/
         cacheEntry.d_cfgDirTimestamp = d_lastCfgDirTimestamp;
         // This is fine, because we updated
         // them by calling
         // 'updateTimestamps()'.
-
         d_cache[domainName] = cacheEntry;
 
+        // Copy resolved data.
+        out->name()    = cacheEntry.d_name;
+        out->cluster() = cacheEntry.d_cluster;
         return rc_SUCCESS;  // RETURN
     }
 

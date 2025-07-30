@@ -106,13 +106,16 @@ class DomainResolver {
   private:
     // PRIVATE TYPES
 
-    /// Structure representing a script query response entry in the cache
+    /// Structure representing the result of resolving a domain in the cache
     /// map.
     struct CacheEntry {
         // PUBLIC DATA
 
-        /// Cached response data.
-        mqbconfm::DomainResolver d_data;
+        /// Cached resolved domain name.
+        bsl::string d_name;
+
+        /// Cached cluster name.
+        bsl::string d_cluster;
 
         /// Last modification timestamp of the config directory at the time
         /// this data was generated.
