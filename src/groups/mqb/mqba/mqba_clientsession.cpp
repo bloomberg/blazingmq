@@ -181,6 +181,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <ball_logthrottle.h>
 #include <bdlb_nullablevalue.h>
 #include <bdlb_scopeexit.h>
 #include <bdld_datum.h>
@@ -210,6 +211,16 @@ namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.CLIENTSESSION");
 
 const int k_NAGLE_PACKET_SIZE = 1024 * 1024;  // 1MB
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+#define BMQ_LOGTHROTTLE_WARN                                                  \
+    BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
 
 /// This method does nothing other than calling the 'initiateShutdown' callback
 /// if it is present; it is just used so that we can control when the session
@@ -1769,14 +1780,13 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
             queueHandle->confirmMessage(confIt.message().messageGUID(), subId);
         }
         else {
-            BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR " << description()
-                          << ": Received CONFIRM message " << errorStream.str()
-                          << " [queue: '"
-                          << (queueHandle ? queueHandle->queue()->uri()
-                                          : "<UNKNOWN>")
-                          << "', queueId: " << queueId
-                          << ", GUID: " << confIt.message().messageGUID()
-                          << "].";
+            BMQ_LOGTHROTTLE_WARN
+                << "#CLIENT_IMPROPER_BEHAVIOR " << description()
+                << ": Received CONFIRM message " << errorStream.str()
+                << " [queue: '"
+                << (queueHandle ? queueHandle->queue()->uri() : "<UNKNOWN>")
+                << "', queueId: " << queueId
+                << ", GUID: " << confIt.message().messageGUID() << "].";
             errorStream.reset();
         }
     }
