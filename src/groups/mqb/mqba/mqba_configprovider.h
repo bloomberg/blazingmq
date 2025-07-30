@@ -127,7 +127,7 @@ class ConfigProvider {
     /// Add entry with the specified `key` and with the specified `config` as
     /// data to the cache, resetting its expiry time.  Note that this will
     /// overwrite any existing entry with the specified `key` in the cache.
-    bool cacheAdd(const bslstl::StringRef& key, const bsl::string& config);
+    void cacheAdd(const bslstl::StringRef& key, const bsl::string& config);
 
   private:
     // NOT IMPLEMENTED
