@@ -55,7 +55,6 @@
 ///       separate entities.
 
 // MQB
-#include <mqbconfm_messages.h>
 #include <mqbi_domain.h>
 
 // BMQ
@@ -161,9 +160,9 @@ class DomainResolver {
     ///
     /// @attention The caller must call `updateScriptTimestamp()` to update the
     ///            timestamps prior to calling this method.
-    bool cacheLookup(bsl::string* resolvedDomainName,
-                     bsl::string* clusterName,
-                     const bslstl::StringRef&  domainName);
+    bool cacheLookup(bsl::string*             resolvedDomainName,
+                     bsl::string*             clusterName,
+                     const bslstl::StringRef& domainName);
 
     /// Get the data corresponding to the specified `domainName` from the
     /// cache, or query it from the script storing the result in the cache.
@@ -171,10 +170,10 @@ class DomainResolver {
     /// `clusterName` with the result, or return a non-zero value otherwise,
     /// populating the specified `errorDescription` with a description of the
     /// error otherwise.
-    int getOrRead(bsl::ostream& errorDescription,
-                  bsl::string*  resolvedDomainName,
-                  bsl::string*  clusterName,
-                  const bslstl::StringRef&  domainName);
+    int getOrRead(bsl::ostream&            errorDescription,
+                  bsl::string*             resolvedDomainName,
+                  bsl::string*             clusterName,
+                  const bslstl::StringRef& domainName);
 
     /// Uses `getOrQuery()` to retrieve data corresponding to the specified
     /// `domainName`.  Fills in the specified `resolvedDomainName` and
@@ -182,7 +181,7 @@ class DomainResolver {
     /// `E_UNKNOWN` otherwise.
     bmqp_ctrlmsg::Status getOrReadDomain(bsl::string* resolvedDomainName,
                                          bsl::string* clusterName,
-                                         const bslstl::StringRef&  domainName);
+                                         const bslstl::StringRef& domainName);
 
   private:
     // NOT IMPLEMENTED

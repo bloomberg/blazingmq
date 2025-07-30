@@ -16,11 +16,12 @@
 // mqba_domainresolver.cpp                                            -*-C++-*-
 #include <mqba_domainresolver.h>
 
-#include <mqbscm_version.h>
 // MQB
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
+#include <mqbconfm_messages.h>
+#include <mqbscm_version.h>
 
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
@@ -85,9 +86,9 @@ void DomainResolver::updateTimestamps()
     d_timestampsValidUntil = now + k_DIR_CHECK_TTL;
 }
 
-bool DomainResolver::cacheLookup(bsl::string* resolvedDomainName,
-                                 bsl::string* clusterName,
-                                 const bslstl::StringRef&  domainName)
+bool DomainResolver::cacheLookup(bsl::string*             resolvedDomainName,
+                                 bsl::string*             clusterName,
+                                 const bslstl::StringRef& domainName)
 {
     // executed by the thread that holds the 'd_mutex'
 
@@ -117,10 +118,10 @@ bool DomainResolver::cacheLookup(bsl::string* resolvedDomainName,
     return true;
 }
 
-int DomainResolver::getOrRead(bsl::ostream& errorDescription,
-                              bsl::string*  resolvedDomainName,
-                              bsl::string*  clusterName,
-                              const bslstl::StringRef&  domainName)
+int DomainResolver::getOrRead(bsl::ostream&            errorDescription,
+                              bsl::string*             resolvedDomainName,
+                              bsl::string*             clusterName,
+                              const bslstl::StringRef& domainName)
 {
     // executed by *ANY* thread
 
@@ -300,15 +301,18 @@ void DomainResolver::stop()
 }
 
 bmqp_ctrlmsg::Status
-DomainResolver::getOrReadDomain(bsl::string* resolvedDomainName,
-                                bsl::string* clusterName,
-                                const bslstl::StringRef&  domainName)
+DomainResolver::getOrReadDomain(bsl::string*             resolvedDomainName,
+                                bsl::string*             clusterName,
+                                const bslstl::StringRef& domainName)
 {
     // executed by *ANY* thread
 
     bmqu::MemOutStream errorDescription;
 
-    int rc = getOrRead(errorDescription, resolvedDomainName, clusterName, domainName);
+    int rc = getOrRead(errorDescription,
+                       resolvedDomainName,
+                       clusterName,
+                       domainName);
 
     bmqp_ctrlmsg::Status status;
     status.category() = (rc == 0 ? bmqp_ctrlmsg::StatusCategory::E_SUCCESS
@@ -326,9 +330,11 @@ void DomainResolver::qualifyDomain(
 {
     // executed by *ANY* thread
 
-    bsl::string resolvedDomainName;
-    bsl::string clusterName;
-    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName, &clusterName, domainName);
+    bsl::string          resolvedDomainName;
+    bsl::string          clusterName;
+    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName,
+                                                  &clusterName,
+                                                  domainName);
 
     callback(status, resolvedDomainName);
 }
@@ -338,9 +344,11 @@ void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
 {
     // executed by *ANY* thread
 
-    bsl::string resolvedDomainName;
-    bsl::string clusterName;
-    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName, &clusterName, domainName);
+    bsl::string          resolvedDomainName;
+    bsl::string          clusterName;
+    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName,
+                                                  &clusterName,
+                                                  domainName);
 
     callback(status, clusterName);
 }
