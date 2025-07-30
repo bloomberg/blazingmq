@@ -144,14 +144,6 @@ class DomainResolver {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Execute the script to resolve the specified `domainName`.  On
-    /// success, return 0 and store the result in the specified `out`;
-    /// return non-zero on error and populate the specified
-    /// `errorDescription` with a description of the error.
-    int executeScript(bsl::ostream&             errorDescription,
-                      mqbconfm::DomainResolver* out,
-                      const bslstl::StringRef&  domainName);
-
     /// Update the `d_lastCfgDirTimestamp` if the check happened longer
     /// than the TTL time ago.
     void updateTimestamps();
