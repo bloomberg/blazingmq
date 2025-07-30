@@ -335,7 +335,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
          !d_offset.empty() || d_outstanding || d_confirmed ||
          d_partiallyConfirmed || rangeArgPresent || d_summary)) {
         stream
-            << "Secnum filter can't be combined with any other filters, as it "
+            << "SeqNum filter can't be combined with any other filters, as it "
                "is "
                "specific enough to find a particular message\n";
     }

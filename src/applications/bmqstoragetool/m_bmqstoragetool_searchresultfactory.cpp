@@ -138,6 +138,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
         }
         else if (params->d_partiallyConfirmed) {
             // Search partially confirmed
+            BSLS_ASSERT(!exactMatch);
             searchResult.reset(
                 new (*alloc)
                     SearchPartiallyConfirmedDecorator(searchResult, alloc),
