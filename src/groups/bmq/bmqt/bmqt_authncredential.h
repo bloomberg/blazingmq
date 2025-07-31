@@ -22,8 +22,6 @@
 /// @brief Provide a value-semantic type for credentials used for
 /// authentication.
 
-// BMQ
-
 // BDE
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -80,10 +78,7 @@ class AuthnCredential {
     const bsl::vector<char>& data() const;
 };
 
-// FREE OPERATORS
-
 }  // close package namespace
-
 }  // close enterprise namespace
 
 #endif
