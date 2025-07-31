@@ -105,7 +105,7 @@ static void test1_humanReadableGuidTest()
 
         // Prepare expected output
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        expectedStream << guid << '\n';
+        expectedStream << guid << "\n\n";
 
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
@@ -483,7 +483,8 @@ static void test6_humanReadableFooterTest()
 //   Exercise the output of the HumanReadablePrinter.
 //
 // Testing:
-//   HumanReadablePrinter::printFooter
+//   HumanReadablePrinter::printFooter,
+//   HumanReadablePrinter::printExactMatchFooter
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("HUMAN FOOTER TEST");
@@ -495,6 +496,7 @@ static void test6_humanReadableFooterTest()
         resultStream,
         bmqtst::TestHelperUtil::allocator());
 
+    // Test printFooter
     {
         Parameters::ProcessRecordTypes recordTypes;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -525,6 +527,31 @@ static void test6_humanReadableFooterTest()
         expectedStream << 11u << " message record(s) found.\n"
                        << 22u << " queueOp record(s) found.\n"
                        << 33u << " journalOp record(s) found.\n";
+        BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
+    }
+
+    // Test printExactMatchFooter
+    {
+        resultStream.reset();
+        Parameters::ProcessRecordTypes recordTypes;
+        printer->printExactMatchFooter(0ul, 0ul, 0ul, 0ul, 0ul, recordTypes);
+        BMQTST_ASSERT(resultStream.isEmpty());
+    }
+
+    {
+        resultStream.reset();
+        bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
+        recordTypes.d_queueOp   = true;
+        recordTypes.d_journalOp = true;
+        printer
+            ->printExactMatchFooter(11ul, 22ul, 33ul, 44ul, 55ul, recordTypes);
+        expectedStream << 22u << " confirm record(s) found.\n"
+                       << 33u << " deletion record(s) found.\n"
+                       << 11u << " message record(s) found.\n"
+                       << 44u << " queueOp record(s) found.\n"
+                       << 55u << " journalOp record(s) found.\n";
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
@@ -1311,6 +1338,7 @@ static void test14_jsonPrettyFooterTest()
 //
 // Testing:
 //   JsonPrettyPrinter::printFooter
+//   JsonPrettyPrinter::printExactMatchFooter
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PRETTY FOOTER TEST");
@@ -1353,7 +1381,7 @@ static void test14_jsonPrettyFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": \"0\",\n"
+                           << "  \"MessageRecords\": \"0\",\n"
                            << "  \"QueueOpRecords\": \"0\",\n"
                            << "  \"JournalOpRecords\": \"0\"\n"
                            << "}\n";
@@ -1385,9 +1413,49 @@ static void test14_jsonPrettyFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": \"11\",\n"
+                           << "  \"MessageRecords\": \"11\",\n"
                            << "  \"QueueOpRecords\": \"22\",\n"
                            << "  \"JournalOpRecords\": \"33\"\n"
+                           << "}\n";
+        }
+        bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
+        bdljsn::Error error(bmqtst::TestHelperUtil::allocator());
+        const int     rc = bdljsn::JsonUtil::read(&json,
+                                              &error,
+                                              resultStream.str());
+        BMQTST_ASSERT_D(error, (rc == 0));
+        BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
+    }
+
+    // Test printExactMatchFooter
+    {
+        bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+        {
+            // Create printer
+            bsl::shared_ptr<Printer> printer = createPrinter(
+                Parameters::PrintMode::e_JSON_PRETTY,
+                resultStream,
+                bmqtst::TestHelperUtil::allocator());
+
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
+            recordTypes.d_queueOp   = true;
+            recordTypes.d_journalOp = true;
+            printer->printExactMatchFooter(11ul,
+                                           22ul,
+                                           33ul,
+                                           44ul,
+                                           55ul,
+                                           recordTypes);
+
+            // Prepare expected output
+            expectedStream << "{\n"
+                           << "  \"ConfirmRecords\": \"22\",\n"
+                           << "  \"DeletionRecords\": \"33\",\n"
+                           << "  \"MessageRecords\": \"11\",\n"
+                           << "  \"QueueOpRecords\": \"44\",\n"
+                           << "  \"JournalOpRecords\": \"55\"\n"
                            << "}\n";
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2233,11 +2301,11 @@ static void test22_jsonLineFooterTest()
             recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
-            printer->printFooter(0u, 0ul, 0ul, recordTypes);
+            printer->printFooter(0ul, 0ul, 0ul, recordTypes);
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": \"0\",\n"
+                           << "  \"MessageRecords\": \"0\",\n"
                            << "  \"QueueOpRecords\": \"0\",\n"
                            << "  \"JournalOpRecords\": \"0\"\n"
                            << "}\n";
@@ -2269,7 +2337,7 @@ static void test22_jsonLineFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": \"11\",\n"
+                           << "  \"MessageRecords\": \"11\",\n"
                            << "  \"QueueOpRecords\": \"22\",\n"
                            << "  \"JournalOpRecords\": \"33\"\n"
                            << "}\n";

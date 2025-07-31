@@ -72,9 +72,9 @@ Where:
        --guid                 <guid>
           message guid
        --seqnum               <seqnum>
-          message composite sequence number
+          record composite sequence number
        --offset               <offset>
-          message offset
+          record offset
        --queue-name           <queue name>
           message queue name
        --queue-key            <queue key>
@@ -210,8 +210,8 @@ Example:
 ```
 NOTE: no other filters are allowed with this one. Not suitable for CSL file search.
 
-Filter messages with corresponding composite sequence numbers
--------------------------------------------------------------
+Filter records with corresponding composite sequence numbers
+------------------------------------------------------------
 
 Composite sequence numbers are defined in form `primaryLeaseId-sequenceNumber` for journal file or `electorTerm-sequenceNumber` for CSL file.
 
@@ -222,8 +222,8 @@ Example:
 ```
 NOTE: no other filters are allowed with this one
 
-Filter messages with corresponding record offsets
--------------------------------------------------
+Filter records with corresponding record offsets
+------------------------------------------------
 Example:
 ```bash
 ./bmqstoragetool.tsk --journal-file=<path> --offset=<offset_1> --offset=<offset_N>
@@ -231,24 +231,8 @@ Example:
 ```
 NOTE: no other filters are allowed with this one
 
-Filter messages with corresponding composite sequence numbers (defined in form <primaryLeaseId-sequenceNumber>)
----------------------------------------------------------------------------------------------------------------
-Example:
-```bash
-./bmqstoragetool.tsk --journal-file=<path> --seqnum=<leaseId-sequenceNumber_1> --seqnum=<leaseId-sequenceNumber_N>
-```
-NOTE: no other filters are allowed with this one
-
-Filter messages with corresponding record offsets
--------------------------------------------------
-Example:
-```bash
-./bmqstoragetool.tsk --journal-file=<path> --offset=<offset_1> --offset=<offset_N>
-```
-NOTE: no other filters are allowed with this one
-
-Filter messages within time range
----------------------------------
+Filter records within time range
+--------------------------------
 Example:
 ```bash
 ./bmqstoragetool.tsk --journal-file=<path> --timestamp-lt=<stamp>
@@ -257,7 +241,7 @@ Example:
 ./bmqstoragetool.tsk --csl-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
 ```
 
-Filter messages within composite sequence numbers (primaryLeaseId/electorTerm, sequenceNumber) range
+Filter records within composite sequence numbers (primaryLeaseId/electorTerm, sequenceNumber) range
 ----------------------------------------------------------------------------------------------------
 Example:
 ```bash
@@ -267,8 +251,8 @@ Example:
 ./bmqstoragetool.tsk --csl-file=<path> --seqnum-lt=<electorTerm1-sequenceNumber1> --seqnum-gt=<electorTerm2-sequenceNumber2>
 ```
 
-Filter messages within record offsets range
--------------------------------------------
+Filter records within record offsets range
+------------------------------------------
 Example:
 ```bash
 ./bmqstoragetool.tsk --journal-file=<path> --offset-lt=<offset>
@@ -277,22 +261,13 @@ Example:
 ./bmqstoragetool.tsk --csl-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
 ```
 
-Filter messages within composite sequence numbers (primaryLeaseId, sequenceNumber) range
+Filter records within composite sequence numbers (primaryLeaseId, sequenceNumber) range
 ----------------------------------------------------------------------------------------
 Example:
 ```bash
 ./bmqstoragetool.tsk --journal-file=<path> --seqnum-lt=<leaseId-sequenceNumber>
 ./bmqstoragetool.tsk --journal-file=<path> --seqnum-gt=<leaseId-sequenceNumber>
 ./bmqstoragetool.tsk --journal-file=<path> --seqnum-lt=<leaseId1-sequenceNumber1> --seqnum-gt=<leaseId2-sequenceNumber2>
-```
-
-Filter messages within record offsets range
--------------------------------------------
-Example:
-```bash
-./bmqstoragetool.tsk --journal-file=<path> --offset-lt=<offset>
-./bmqstoragetool.tsk --journal-file=<path> --offset-gt=<offset>
-./bmqstoragetool.tsk --journal-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
 ```
 
 Filter messages by queue key
