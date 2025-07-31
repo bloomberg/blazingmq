@@ -296,6 +296,7 @@ if(DOXYGEN_FOUND)
     apidocs
     docs/mainpage.dox
     src/groups/bmq/bmqa
+    src/groups/bmq/bmqauthn
     src/groups/bmq/bmqt
     src/groups/bmq/bmqpi
     COMMENT "Generate public Doxygen documentation for libbmq"

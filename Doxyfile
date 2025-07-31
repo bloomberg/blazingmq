@@ -944,6 +944,7 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = src/groups/bmq/bmqa \
+                         src/groups/bmq/bmqauthn \
                          src/groups/bmq/bmqt \
                          src/groups/bmq/bmqpi \
                          README.md
