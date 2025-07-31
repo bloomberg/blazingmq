@@ -808,7 +808,7 @@ static void test1_write()
     size_t writeBlobs = 0;
 
     // Flush ACKs which are secondary
-    channel.flush();
+    channel.wakeUp();
 
     BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(3)), true);
 
@@ -923,7 +923,7 @@ static void test2_highWatermark()
     size_t writeBlobs = 0;
 
     // Flush ACKs which are secondary
-    channel.flush();
+    channel.wakeUp();
 
     BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
 
@@ -1040,7 +1040,7 @@ static void test3_highWatermarkInWriteCb()
     testChannel->setLimit(0);
 
     // Flush ACKs which are secondary
-    channel.flush();
+    channel.wakeUp();
     BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(10)),
                      true);
 
@@ -1125,7 +1125,7 @@ static void test4_controlBlob()
     payload_sp->appendDataBuffer(blobBuffer);
 
     // Flush ACKs which are secondary
-    channel.flush();
+    channel.wakeUp();
 
     BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp, bmqp::EventType::e_CONTROL),
                      bmqt::GenericResult::e_SUCCESS);

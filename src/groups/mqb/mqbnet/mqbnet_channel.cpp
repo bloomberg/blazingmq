@@ -255,13 +255,9 @@ void Channel::resetChannel()
 
         d_stateCondition.signal();
     }
-    // Wake up the writing thread in case it is blocked by 'popFront'
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(d_allocator_p),
-                                 this,
-                                 deleteItem);
 
-    d_buffer.pushBack(bslmf::MovableRefUtil::move(item));
+    // `threadFn` might be blocked by `popFront`, wake it up
+    wakeUp();
 }
 
 void Channel::closeChannel()
@@ -296,9 +292,20 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
     // type
     d_channel_wp = value;
     d_state      = e_RESET;
-    // Signal the writing thread to pick up new channel.
+
+    // Case 1: this is the initial thread setting for `mqbnet::Channel`.
+    // In this case, `mqbnet::Channel::threadFn` is waiting on condition.
+    // Need to signal it to continue execution and pick up the new channel.
     d_stateCondition.signal();
 
+    // Case 2: `mqbnet::Channel::threadFn` has a channel that is blocked
+    // at `d_buffer.popFront(&item)`, but there are no new items in the buffer.
+    // At the same time, the channel goes down and reconnects, so `setChannel`
+    // is called.  We need to unblock `threadFn` by enqueueing a placeholder
+    // item to `d_buffer`:
+    wakeUp();
+
+    // Case 1, 2: wait until `threadFn` gets the new channel.
     while (d_state == e_RESET) {
         // Synchronize with the writing thread.
         // This is to not reject writes after 'setChannel' returns.
@@ -333,12 +340,8 @@ void Channel::reset()
     d_ackBuilder.reset();
 }
 
-void Channel::flush()
+void Channel::wakeUp()
 {
-    if (!isAvailable()) {
-        return;  // RETURN
-    }
-
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(d_allocator_p),
                                  this,
