@@ -524,7 +524,7 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
                           << ": Partition [" << partitionId
                           << "] will be truncated to the last syncPt "
                           << "offsets & then local recovery will be performed."
-                          << "Offset details: JOURNAL: "
+                          << " Offset details: JOURNAL: "
                           << recoveryCtx.oldSyncPointOffset()
                           << ", DATA: " << recoveryCtx.dataFileOffset()
                           << ", QLIST: " << recoveryCtx.qlistFileOffset();
