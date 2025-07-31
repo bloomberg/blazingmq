@@ -37,7 +37,6 @@
 #include <bmqt_authncredential.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
-
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -52,6 +51,7 @@
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
 #include <bsl_type_traits.h>
 #include <bsla_annotations.h>
 #include <bslma_default.h>
@@ -61,7 +61,6 @@
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_performancehint.h>
-#include <bslstl_sharedptr.h>
 
 namespace BloombergLP {
 namespace bmqa {
