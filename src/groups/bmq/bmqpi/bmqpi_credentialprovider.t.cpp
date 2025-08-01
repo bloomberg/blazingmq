@@ -31,16 +31,15 @@ using namespace bsl;
 /// A test implementation of the 'bmqpi::CredentialProvider` protocol.
 struct CredentialProviderTestImp
 : public bsls::ProtocolTestImp<bmqpi::CredentialProvider> {
-    void loadCredential(bmqt::AuthnCredential* credential) const
-        BSLS_KEYWORD_OVERRIDE;
+    bmqt::AuthnCredential operator()() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // Define one of CredentialProviderTestImp methods out-of-line, to instruct the
 // compiler to bake the class's vtable into *this* translation unit.
-void CredentialProviderTestImp::loadCredential(
-    BSLA_UNUSED bmqt::AuthnCredential* credential) const
+bmqt::AuthnCredential CredentialProviderTestImp::operator()() const
 {
     markDone();
+    return bmqt::AuthnCredential();
 }
 
 // ============================================================================
@@ -93,7 +92,7 @@ static void test1_breathingTest()
 
     PV("Verify that all methods are public and virtual");
 
-    BSLS_PROTOCOLTEST_ASSERT(provider, loadCredential(NULL));
+    BSLS_PROTOCOLTEST_ASSERT(provider, operator()());
 }
 
 // ============================================================================

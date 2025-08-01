@@ -62,8 +62,7 @@ class BasicCredentialProvider : public bmqpi::CredentialProvider {
 
     // MANIPULATORS
 
-    void loadCredential(bmqt::AuthnCredential* credential) const
-        BSLS_KEYWORD_OVERRIDE;
+    bmqt::AuthnCredential operator()() const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

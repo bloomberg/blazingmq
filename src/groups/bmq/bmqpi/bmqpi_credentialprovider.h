@@ -44,7 +44,7 @@ class CredentialProvider {
 
     // MANIPULATORS
 
-    virtual void loadCredential(bmqt::AuthnCredential* credential) const = 0;
+    virtual bmqt::AuthnCredential operator()() const = 0;
 };
 
 }  // close package namespace
