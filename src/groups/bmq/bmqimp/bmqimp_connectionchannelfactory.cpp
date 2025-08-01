@@ -268,8 +268,8 @@ void ConnectionChannelFactory::authenticate(
     // If there's no CredentialProvider, it means no credential is provided. In
     // this case, we will skip authentication.
     if (d_config.d_credentialProvider_p) {
-        bmqt::AuthnCredential credential;
-        d_config.d_credentialProvider_p->loadCredential(&credential);
+        bmqt::AuthnCredential credential =
+            (*d_config.d_credentialProvider_p)();
 
         bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
         bmqp_ctrlmsg::AuthenticateRequest&  ar =

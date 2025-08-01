@@ -18,6 +18,9 @@
 
 #include <bmqscm_version.h>
 
+// BMQ
+#include <bmqt_authncredential.h>
+
 // BDE
 #include <bsl_string.h>
 #include <bsl_string_view.h>
@@ -51,13 +54,12 @@ BasicCredentialProvider::~BasicCredentialProvider()
 }
 
 // MANIPULATORS
-void BasicCredentialProvider::loadCredential(
-    bmqt::AuthnCredential* credential) const
+bmqt::AuthnCredential BasicCredentialProvider::operator()() const
 {
     bsl::string       data(d_username + ":" + d_password, d_allocator_p);
     bsl::vector<char> vec(data.begin(), data.end(), d_allocator_p);
-    credential->setData(vec);
-    credential->setMechanism(d_mechanism);
+
+    return bmqt::AuthnCredential(d_mechanism, vec);
 }
 
 }  // close package namespace
