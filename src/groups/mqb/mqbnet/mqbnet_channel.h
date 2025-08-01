@@ -596,8 +596,9 @@ class Channel {
               bmqp::EventType::Enum                     type,
               const bsl::shared_ptr<bmqu::AtomicState>& state = 0);
 
-    /// Write everything unless there is a thread actively writing already.
-    void flush();
+    /// Wake up the internal thread if it's waiting for a new item to write.
+    /// This leads to flushing of the inner message builders.
+    void wakeUp();
 
     /// Notify the channel when a watermark of the specified `type` is being
     /// reached.
