@@ -195,6 +195,8 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                        int                                        code,
                        const bslstl::StringRef&                   message);
 
+        void setStatus(const bmqp_ctrlmsg::Status& status);
+
         void invokeCallback();
 
         void resetCallback();
@@ -635,6 +637,12 @@ inline void RelayQueueEngine::ConfigureContext::setStatus(
     d_status.category() = category;
     d_status.code()     = code;
     d_status.message()  = message;
+}
+
+inline void RelayQueueEngine::ConfigureContext::setStatus(
+    const bmqp_ctrlmsg::Status& status)
+{
+    d_status = status;
 }
 
 inline void RelayQueueEngine::ConfigureContext::invokeCallback()
