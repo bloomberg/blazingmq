@@ -184,6 +184,11 @@ jobs:
           --cores-dir=/cores \
           --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
 
+  sanitize_ubuntu:
+    name: Sanitize
+    uses: ./.github/workflows/sanitize.yaml
+    needs: integration_tests_ubuntu
+
   integration_tests_storagetool_ubuntu:
     name: IT [Storage tool]
     runs-on: ubuntu-latest
