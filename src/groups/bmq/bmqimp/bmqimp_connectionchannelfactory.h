@@ -46,6 +46,7 @@
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
+#include <bsl_variant.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -191,11 +192,12 @@ class ConnectionChannelFactory : public bmqio::ChannelFactory {
                        bdlbb::Blob*                           blob);
 
     int decodeInitialConnectionMessage(
-        const bdlbb::Blob&                                  packet,
-        bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
-        bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg,
-        const ResultCallback&                               cb,
-        const bsl::shared_ptr<bmqio::Channel>&              channel) const;
+        const bdlbb::Blob& packet,
+        bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                                   bmqp_ctrlmsg::NegotiationMessage> >*
+                                               message,
+        const ResultCallback&                  cb,
+        const bsl::shared_ptr<bmqio::Channel>& channel) const;
 
     void onBrokerAuthenticationResponse(
         const bmqp_ctrlmsg::AuthenticationMessage& response,
