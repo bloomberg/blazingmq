@@ -19,6 +19,7 @@ import collections
 import contextlib
 import inspect
 import itertools
+import json
 import logging
 import shutil
 import signal
@@ -944,3 +945,42 @@ class Cluster(contextlib.AbstractContextManager):
         if is_alive:
             error = f"node {process.name} refused to stop"
             self._error(error)
+
+    def lower_leader_startup_wait(self):
+        """
+        Modify cluster config for the leader node "east1".
+        Set startupWaitDurationMs to smaller value then default 60000 ms
+        to make "east1" the source of truth during partitions recovery.
+        """
+
+        for broker_name, broker_config in self.config.nodes.items():
+            if broker_name != "east1":
+                continue
+
+            LEADER_STARTUP_WAIT_DURATION_MS = 5000
+            path = self.work_dir.joinpath(broker_config.config_dir, "clusters.json")
+
+            with open(
+                path,
+                "r+",
+                encoding="utf-8",
+            ) as f:
+                data = json.load(f)
+                data["myClusters"][0]["partitionConfig"]["syncConfig"][
+                    "startupWaitDurationMs"
+                ] = LEADER_STARTUP_WAIT_DURATION_MS
+                f.seek(0)
+                json.dump(data, f, indent=4)
+                f.truncate()
+
+    def disable_exit_code_check(self):
+        """Disable exit code check for all nodes in the cluster."""
+
+        # Non-FSM mode has poor healing mechanism, and can have flaky dirty
+        # shutdowns, so it often makes sense to disable checking exit code.
+        #
+        # To give an example, an in-sync node might attempt to syncrhonize with
+        # an out-of-sync node, and become out-of-sync too.  FSM mode is
+        # determined to eliminate these kinds of defects.
+        for node in self.nodes():
+            node.check_exit_code = False
