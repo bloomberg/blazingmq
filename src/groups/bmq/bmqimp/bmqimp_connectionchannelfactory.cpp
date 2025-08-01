@@ -38,6 +38,7 @@
 #include <bsl_algorithm.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
+#include <bsl_variant.h>
 #include <bsla_annotations.h>
 #include <bsla_unused.h>
 #include <bslma_default.h>
@@ -143,22 +144,16 @@ void ConnectionChannelFactory::sendRequest(
     const ACTION                           action,
     const ResultCallback&                  cb) const
 {
-    BALL_LOG_INFO << "At ConnectionChannelFactory::sendRequest";
-
     bsl::string actionStr;
     bsl::string errorProperty;
 
     if (action == AUTHENTICATION) {
         actionStr     = "authentication";
         errorProperty = "authenticationError";
-        BALL_LOG_INFO << "User " << actionStr << " with "
-                      << d_config.d_authenticationMessage;
     }
     else if (action == NEGOTIATION) {
         actionStr     = "negotiation";
         errorProperty = "negotiationError";
-        BALL_LOG_INFO << "User " << actionStr << " with "
-                      << d_config.d_negotiationMessage;
     }
 
     static const bmqp::EncodingType::Enum k_DEFAULT_ENCODING =
@@ -170,14 +165,10 @@ void ConnectionChannelFactory::sendRequest(
     int rc = 0;
 
     if (action == AUTHENTICATION) {
-        BALL_LOG_INFO << "Trying to send authn message: "
-                      << d_config.d_authenticationMessage;
         rc = builder.setMessage(d_config.d_authenticationMessage,
                                 bmqp::EventType::e_AUTHENTICATION);
     }
     else if (action == NEGOTIATION) {
-        BALL_LOG_INFO << "Trying to send nego message: "
-                      << d_config.d_negotiationMessage;
         rc = builder.setMessage(d_config.d_negotiationMessage,
                                 bmqp::EventType::e_CONTROL);
     }
@@ -191,9 +182,6 @@ void ConnectionChannelFactory::sendRequest(
         cb(bmqio::ChannelFactoryEvent::e_CONNECT_FAILED, status, channel);
         return;
     }
-
-    BALL_LOG_INFO << "Sending " << actionStr << " message to '"
-                  << channel->peerUri();
 
     bmqio::Status status;
     BALL_LOG_TRACE << "Sending blob:\n"
@@ -229,8 +217,6 @@ void ConnectionChannelFactory::readResponse(
         errorProperty = "negotiationError";
     }
 
-    BALL_LOG_INFO << "Read response (" << actionStr << ")";
-
     // Initiate a read for the broker's response message
     bmqio::Channel::ReadCallback readCb = bdlf::BindUtil::bind(
         bmqu::WeakMemFnUtil::weakMemFn(
@@ -263,32 +249,38 @@ void ConnectionChannelFactory::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb)
 {
-    BALL_LOG_INFO << "Client authenticate";
-
     // If there's no CredentialProvider, it means no credential is provided. In
     // this case, we will skip authentication.
-    if (d_config.d_credentialProvider_p) {
-        bmqt::AuthnCredential credential =
-            (*d_config.d_credentialProvider_p)();
-
-        bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
-        bmqp_ctrlmsg::AuthenticateRequest&  ar =
-            authenticaionMessage.makeAuthenticateRequest();
-        ar.mechanism() = credential.mechanism();
-        ar.data()      = credential.data();
-
-        d_config.d_authenticationMessage = authenticaionMessage;
-
-        sendRequest(channel, AUTHENTICATION, cb);
-        readResponse(channel, AUTHENTICATION, cb);
+    if (!d_config.d_credentialProvider_p) {
+        return;
     }
+
+    bmqt::AuthnCredential credential = (*d_config.d_credentialProvider_p)();
+
+    bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
+    bmqp_ctrlmsg::AuthenticateRequest&  ar =
+        authenticaionMessage.makeAuthenticateRequest();
+    ar.mechanism() = credential.mechanism();
+    ar.data()      = credential.data();
+
+    d_config.d_authenticationMessage = authenticaionMessage;
+
+    BALL_LOG_DEBUG << "Sending AuthenticationMessage to channel: "
+                   << channel->peerUri()
+                   << " with AuthenticationMessage: " << authenticaionMessage;
+
+    sendRequest(channel, AUTHENTICATION, cb);
+    readResponse(channel, AUTHENTICATION, cb);
 }
 
 void ConnectionChannelFactory::negotiate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb) const
 {
-    BALL_LOG_INFO << "Client negotiate";
+    BALL_LOG_DEBUG << "Sending NegotiationMessage to channel: "
+                   << channel->peerUri() << " with NegotiationMessage: "
+                   << d_config.d_negotiationMessage;
+
     sendRequest(channel, NEGOTIATION, cb);
     readResponse(channel, NEGOTIATION, cb);
 }
@@ -300,8 +292,6 @@ void ConnectionChannelFactory::readPacketsCb(
     int*                                   numNeeded,
     bdlbb::Blob*                           blob)
 {
-    BALL_LOG_INFO << "At readPacketsCb";
-
     if (!status) {
         // Read failure.
         BALL_LOG_ERROR << "Broker read callback failed [peer: "
@@ -334,48 +324,49 @@ void ConnectionChannelFactory::readPacketsCb(
 
     // We have the whole message.
     *numNeeded = 0;  // No more packets are expected
-    BALL_LOG_TRACE << "Read blob:\n" << bmqu::BlobStartHexDumper(&packet);
 
     // Process the received blob
-    bsl::optional<bmqp_ctrlmsg::AuthenticationMessage> authenticationMsg;
-    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>    negotiationMsg;
+    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                               bmqp_ctrlmsg::NegotiationMessage> >
+        message;
 
-    BALL_LOG_INFO << "[readPacketsCb]: decode Message (auth or nego)";
-    rc = decodeInitialConnectionMessage(packet,
-                                        &authenticationMsg,
-                                        &negotiationMsg,
-                                        cb,
-                                        channel);
+    rc = decodeInitialConnectionMessage(packet, &message, cb, channel);
 
     // Handle authentication or negotiation based on the response message type
-    if (rc == 0) {
-        if (authenticationMsg.has_value()) {
-            BALL_LOG_INFO
-                << "[readPacketsCb]: read an AuthenticationMessage (response)";
-            onBrokerAuthenticationResponse(authenticationMsg.value(),
-                                           cb,
-                                           channel);
-        }
-        else if (negotiationMsg.has_value()) {
-            BALL_LOG_INFO
-                << "[readPacketsCb]: read a NegotiationMessage (response)";
-            onBrokerNegotiationResponse(negotiationMsg.value(), cb, channel);
-        }
-        else {
-            BALL_LOG_ERROR << "HAS TO BE EITHER";
-        }
+
+    if (rc != 0) {
+        return;  // RETURN
+    }
+
+    if (!message.has_value()) {
+        BALL_LOG_ERROR << "Decode AuthenticationMessage or NegotiationMessage "
+                          "succeeds but nothing gets loaded in.";
+        return;  // RETURN
+    }
+
+    if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+            message.value())) {
+        onBrokerAuthenticationResponse(
+            bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message.value()),
+            cb,
+            channel);
+    }
+    else {
+        onBrokerNegotiationResponse(
+            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value()),
+            cb,
+            channel);
     }
 }
 
 int ConnectionChannelFactory::decodeInitialConnectionMessage(
-    const bdlbb::Blob&                                  packet,
-    bsl::optional<bmqp_ctrlmsg::AuthenticationMessage>* authenticationMsg,
-    bsl::optional<bmqp_ctrlmsg::NegotiationMessage>*    negotiationMsg,
-    const ResultCallback&                               cb,
-    const bsl::shared_ptr<bmqio::Channel>&              channel) const
+    const bdlbb::Blob&                                              packet,
+    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                               bmqp_ctrlmsg::NegotiationMessage> >* message,
+    const ResultCallback&                                           cb,
+    const bsl::shared_ptr<bmqio::Channel>& channel) const
 {
-    BALL_LOG_TRACE << "Received a packet:\n"
-                   << bmqu::BlobStartHexDumper(&packet);
+    BSLS_ASSERT(message);
 
     bmqp::Event event(&packet, d_config.d_allocator_p);
     if (!event.isValid()) {
@@ -392,6 +383,8 @@ int ConnectionChannelFactory::decodeInitialConnectionMessage(
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
     if (event.isAuthenticationEvent()) {
+        BALL_LOG_DEBUG << "Received AuthenticationEvent: "
+                       << bmqu::BlobStartHexDumper(&packet);
         const int rc = event.loadAuthenticationEvent(&authenticaionMessage);
         if (rc != 0) {
             BALL_LOG_ERROR
@@ -417,9 +410,11 @@ int ConnectionChannelFactory::decodeInitialConnectionMessage(
             return bmqio::ChannelFactoryEvent::e_CONNECT_FAILED;  // RETURN
         }
 
-        *authenticationMsg = authenticaionMessage;
+        *message = authenticaionMessage;
     }
     else if (event.isControlEvent()) {
+        BALL_LOG_DEBUG << "Received ControlEvent: "
+                       << bmqu::BlobStartHexDumper(&packet);
         const int rc = event.loadControlEvent(&negotiationMessage);
         if (rc != 0) {
             BALL_LOG_ERROR << "Invalid response from broker [reason: 'control "
@@ -443,12 +438,13 @@ int ConnectionChannelFactory::decodeInitialConnectionMessage(
             return bmqio::ChannelFactoryEvent::e_CONNECT_FAILED;  // RETURN
         }
 
-        *negotiationMsg = negotiationMessage;
+        *message = negotiationMessage;
     }
     else {
-        BALL_LOG_ERROR << "Invalid response from broker [reason: 'packet is "
-                       << "not a control event or authentication event']: "
-                       << event;
+        BALL_LOG_ERROR
+            << "Invalid response from broker [reason: 'packet is "
+            << "not an Authentication event or Control (Negotiation) Event']: "
+            << event;
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "initialConnectionError",
                              rc_INVALID_BROKER_RESPONSE);
