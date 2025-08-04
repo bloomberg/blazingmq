@@ -246,7 +246,10 @@ class ClusterStateMonitor {
     /// useful information on other changes in state.
     ///
     /// THREAD: This method is called from the Cluster's dispatcher thread.
-    void onMonitorStateChange(const StateType& state);
+
+    void onMonitorStateChangeToThreshold();
+    void onMonitorStateChangeToAlarming(bsls::Types::Uint64 alarmCode);
+    void onMonitorStateChangeToValid();
 
   public:
     // CREATORS
