@@ -30,10 +30,10 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
     Mode,
-    cluster,
     cluster_fixture,
     multi_node_cluster_config,
     single_node_cluster_config,
+    test_logger,
     order,
     tweak,
 )  # pylint: disable=unused-import
@@ -57,6 +57,27 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
             cluster_attr.is_fsmworkflow = is_fsm
             cluster_attr.does_fsmwrite_qlist = True
     cluster.deploy_domains()
+
+
+def check_exited_nodes_and_restart(cluster: Cluster):
+    """
+    Wait and check if any nodes in the `cluster` have exited.  Attempt to
+    start them again.
+    """
+    # Wait for some seconds in case of a node start-up failure.
+    NODE_START_UP_FAILURE_WAIT_TIME_SEC = 12.5
+    time.sleep(NODE_START_UP_FAILURE_WAIT_TIME_SEC)
+    test_logger.info("Checking if any nodes have exited")
+    for node in cluster.nodes():
+        if not node.is_alive():
+            test_logger.info(
+                "Node %s has exited with code: %d, attempting to start it again",
+                node.name,
+                node.returncode,
+            )
+            node.start()
+            node.wait_until_started()
+    cluster.wait_status(wait_leader=True, wait_ready=True)
 
 
 def verifyMessages(consumer: Client, queue: str, appId: str, expected_count: int):
@@ -513,8 +534,9 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     where  `--->` indicates a switch in cluster mode
     """
     cluster = switch_fsm_cluster
-    leader = cluster.last_known_leader
+    cluster.lower_leader_startup_wait()
     du = domain_urls
+    leader = cluster.last_known_leader
 
     proxies = cluster.proxy_cycle()
     consumer = next(proxies).create_client("consumer")
@@ -524,27 +546,63 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     # PROLOGUE
     assignUnassignNewQueues(existing_queues, du, consumer, leader)
 
-    cluster.stop_nodes(prevent_leader_bounce=True)
+    # Wait one second to ensure that the primary has issued a sync point
+    # containing the latest queue (un)assignment records.  This way, when the
+    # cluster stops, we can ensure that every node already has a sync point
+    # covering the latest queue (un)assignment records.
+    SYNC_POINT_WAIT_TIME_SEC = 1.1
+    time.sleep(SYNC_POINT_WAIT_TIME_SEC)
+
+    cluster.disable_exit_code_check()
+    cluster.stop_nodes(prevent_leader_bounce=True, exclude=[leader])
     configure_cluster(cluster, is_fsm=True)
-    cluster.start_nodes(wait_leader=True, wait_ready=True)
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
+
+    # TODO Test assign/unassign queues before stopping leader
+    leader.stop()
+    # TODO When you start, start the leader first
+    cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
+        cluster.start_nodes(wait_leader=True, wait_ready=True)
+        # For a standard cluster, states have already been restored as part of
+        # leader re-election.
         consumer.wait_state_restored()
+    else:
+        # Switching from non-FSM to FSM mode could introduce start-up failure,
+        # which auto-resolve upon a second restart.
+        cluster.start_nodes(wait_leader=False, wait_ready=False)
+        check_exited_nodes_and_restart(cluster)
 
     # EPILOGUE
+    leader = cluster.last_known_leader
     assignUnassignExistingQueues(existing_queues, consumer, leader)
 
     # PROLOGUE
     assignUnassignNewQueues(existing_queues, du, consumer, leader)
 
-    cluster.stop_nodes(prevent_leader_bounce=True)
+    # Wait one second to ensure that the primary has issued a sync point
+    # containing the latest queue (un)assignment records.  This way, when the
+    # cluster stops, we can ensure that every node already has a sync point
+    # covering the latest queue (un)assignment records.
+    time.sleep(SYNC_POINT_WAIT_TIME_SEC)
+
+    cluster.stop_nodes(prevent_leader_bounce=True, exclude=[leader])
+
+    # TODO Test assign/unassign queues before stopping leader
+    leader.stop()
+    # TODO When you start, start the leader first
     configure_cluster(cluster, is_fsm=False)
-    cluster.start_nodes(wait_leader=True, wait_ready=True)
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
+    cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
+        cluster.start_nodes(wait_leader=True, wait_ready=True)
+        # For a standard cluster, states have already been restored as part of
+        # leader re-election.
         consumer.wait_state_restored()
+    else:
+        # Switching from FSM to non-FSM mode could introduce start-up failure,
+        # which auto-resolve upon a second restart.
+        cluster.start_nodes(wait_leader=False, wait_ready=False)
+        check_exited_nodes_and_restart(cluster)
 
     # EPILOGUE
+    leader = cluster.last_known_leader
     assignUnassignExistingQueues(existing_queues, consumer, leader)
