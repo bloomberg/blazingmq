@@ -348,20 +348,6 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.last_known_leader = None
 
-    def delete_node(self, broker: Union[cfg.Broker, str]):
-        """
-        Delete the 'broker' process from the cluster.
-        """
-
-        if isinstance(broker, str):
-            broker = self.config.nodes[broker]
-
-        self._processes.pop(broker.name)
-        for i, node in enumerate(self._nodes):
-            if node.config.name == broker.name:
-                self._nodes.pop(i)
-                break
-
     def restart_nodes(self, wait_leader=True, wait_ready=False):
         """Restart all the nodes.
 

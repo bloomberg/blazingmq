@@ -3467,6 +3467,10 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
             if (d_state.isSelfPrimary()) {
                 // We encountered the leader / primary divergence.
                 // Initiate a graceful shutdown of the broker
+                BALL_LOG_ERROR
+                    << "Encountered leader-primary divergence: this node is "
+                       "still the primary but the leadership has gone to "
+                    << (node ? node->hostName() : "UNDEFINED");
                 mqbu::ExitUtil::shutdown(
                     mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
             }

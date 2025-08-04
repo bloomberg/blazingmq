@@ -33,6 +33,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     start_cluster,
 )
 from blazingmq.dev.it.process.admin import AdminClient
+from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.process.proc import Process
 
@@ -175,10 +176,16 @@ def test_force_leader_primary_divergence(
     # still primary. Hence, it is expected to shutdown itself gracefully.
     rc = old_leader.wait()
     assert rc == 0
-    cluster.delete_node(old_leader.name)
 
     # Restart "east1"
-    cluster.start_node("east1")
+    old_leader = Broker(
+        old_leader,
+        cluster=cluster,
+        cwd=cluster.work_dir / old_leader.name,
+    )
+    old_leader.add_sync_log_hook(lambda _: cluster.check_processes())
+    old_leader.start()
+    old_leader.wait_until_started()
 
     # Request partitions summary with admin command. Check that primary for all partitions is
     # "west2" - the same as the leader
