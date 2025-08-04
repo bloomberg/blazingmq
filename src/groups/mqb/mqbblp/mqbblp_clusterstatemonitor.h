@@ -203,9 +203,8 @@ class ClusterStateMonitor {
     /// observers.
     ///
     /// THREAD: This method is called from the Cluster's dispatcher thread.
-    void notifyObserversIfNeededHelper(
+    bool notifyObserversIfNeededHelper(
         State*                                                  state,
-        bool*                                                   shouldAlarm,
         const bsl::function<void(mqbc::ClusterStateObserver*)>& notificationCb,
         int                                                     thresholdTime,
         int                                                     maxTime,
@@ -248,7 +247,7 @@ class ClusterStateMonitor {
     /// THREAD: This method is called from the Cluster's dispatcher thread.
 
     void onMonitorStateChangeToThreshold();
-    void onMonitorStateChangeToAlarming(bsls::Types::Uint64 alarmCode);
+    void onMonitorStateChangeToAlarming(const bmqu::MemOutStream& alarmOs);
     void onMonitorStateChangeToValid();
 
   public:
