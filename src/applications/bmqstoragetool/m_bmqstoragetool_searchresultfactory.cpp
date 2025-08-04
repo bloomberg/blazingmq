@@ -39,7 +39,9 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
     // Set up processing flags
-    const bool details = params->d_details;
+    const bool details    = params->d_details;
+    const bool exactMatch = !params->d_seqNum.empty() ||
+                            !params->d_offset.empty();
     // Print data immediately as soon as it is completed to save memory, except
     // the foollowing cases, where data should be kept
     const bool printImmediately = !(params->d_outstanding ||
@@ -52,7 +54,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     // Clean unprinted/unerased data for specific case
     const bool cleanUnprinted = params->d_confirmed;
 
-    // Create searchResult implementation
+    // Create searchResult implementation in the following order:
+    // summary, exact match, detail or short result.
     bsl::shared_ptr<SearchResult> searchResult;
     if (params->d_summary) {
         searchResult.reset(
@@ -63,6 +66,16 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                           params->d_queueMap,
                                           params->d_minRecordsPerQueue,
                                           alloc),
+            alloc);
+    }
+    else if (exactMatch) {
+        searchResult.reset(
+            new (*alloc) SearchExactMatchResult(printer,
+                                                params->d_processRecordTypes,
+                                                details,
+                                                params->d_queueMap,
+                                                payloadDumper,
+                                                alloc),
             alloc);
     }
     else if (details) {
@@ -100,7 +113,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                alloc);
         }
         else if (!params->d_seqNum.empty()) {
-            // Search offsets
+            // Search composite sequence numbers
             searchResult.reset(
                 new (*alloc) SearchSequenceNumberDecorator(searchResult,
                                                            params->d_seqNum,
@@ -109,7 +122,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                 alloc);
         }
         else if (!params->d_offset.empty()) {
-            // Search composite sequence numbers
+            // Search offsets
             searchResult.reset(new (*alloc)
                                    SearchOffsetDecorator(searchResult,
                                                          params->d_offset,
@@ -125,6 +138,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
         }
         else if (params->d_partiallyConfirmed) {
             // Search partially confirmed
+            BSLS_ASSERT(!exactMatch);
             searchResult.reset(
                 new (*alloc)
                     SearchPartiallyConfirmedDecorator(searchResult, alloc),

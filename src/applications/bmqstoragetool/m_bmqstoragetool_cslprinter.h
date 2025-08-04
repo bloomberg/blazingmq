@@ -82,7 +82,7 @@ class CslPrinter {
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         unsigned int                             queuesLimit) const = 0;
 
-    /// Print footer of thr result
+    /// Print footer of the result
     virtual void printFooter(const CslRecordCount& recordCount,
                              const Parameters::ProcessCslRecordTypes&
                                  processCslRecordTypes) const = 0;

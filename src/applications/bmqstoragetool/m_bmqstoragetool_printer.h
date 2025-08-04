@@ -69,6 +69,14 @@ class Printer {
     /// Print the specified message details `details`.
     virtual void printMessage(const MessageDetails& details) const = 0;
 
+    /// Print the specified Confirm record `record`.
+    virtual void printConfirmRecord(
+        const RecordDetails<mqbs::ConfirmRecord>& record) const = 0;
+
+    /// Print the specified Deletion record `record`.
+    virtual void printDeletionRecord(
+        const RecordDetails<mqbs::DeletionRecord>& record) const = 0;
+
     /// Print the specified queueOp record `record`.
     virtual void printQueueOpRecord(
         const RecordDetails<mqbs::QueueOpRecord>& record) const = 0;
@@ -97,7 +105,19 @@ class Printer {
     /// `foundQueueOpCount` and `foundJournalOpCount` if the corresponding
     /// flags are set in the specified `processRecordTypes`.
     virtual void printFooter(
-        bsl::size_t                           foundMessagesCount,
+        bsls::Types::Uint64                   foundMessagesCount,
+        bsls::Types::Uint64                   foundQueueOpCount,
+        bsls::Types::Uint64                   foundJournalOpCount,
+        const Parameters::ProcessRecordTypes& processRecordTypes) const = 0;
+
+    /// Print exact match footer with the specified numbers
+    /// `foundMessagesCount`, `foundConfirmCount`, `foundDeletionCount`,
+    /// `foundQueueOpCount` and `foundJournalOpCount` if the corresponding
+    /// flags are set in the specified `processRecordTypes`.
+    virtual void printExactMatchFooter(
+        bsls::Types::Uint64                   foundMessagesCount,
+        bsls::Types::Uint64                   foundConfirmCount,
+        bsls::Types::Uint64                   foundDeletionCount,
         bsls::Types::Uint64                   foundQueueOpCount,
         bsls::Types::Uint64                   foundJournalOpCount,
         const Parameters::ProcessRecordTypes& processRecordTypes) const = 0;

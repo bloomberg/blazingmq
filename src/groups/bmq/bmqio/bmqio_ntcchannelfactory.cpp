@@ -93,6 +93,10 @@ void NtcChannelFactory::processListenerResult(
             bslstl::SharedPtrUtil::dynamicCast(&alias, channel);
             if (alias) {
                 int catalogHandle = d_channels.add(alias);
+
+                // Increment resource usage count for new channel
+                d_resourceMonitor.acquire();
+
                 alias->setChannelId(catalogHandle);
                 alias->onClose(bdlf::BindUtil::bind(
                                    &NtcChannelFactory::processChannelClosed,
@@ -123,16 +127,7 @@ void NtcChannelFactory::processListenerClosed(int handle)
                        << BALL_LOG_END;
     }
 
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
-    if (d_state == e_STATE_STOPPING) {
-        if (d_channels.length() == 0 && d_listeners.length() == 0) {
-            BALL_LOG_TRACE << "NTC factory channels and listeners have closed"
-                           << BALL_LOG_END;
-
-            d_state = e_STATE_STOPPED;
-            d_stateCondition.signal();
-        }
-    }
+    d_resourceMonitor.release();  // Decrement resource usage count
 }
 
 void NtcChannelFactory::processChannelResult(
@@ -167,16 +162,7 @@ void NtcChannelFactory::processChannelClosed(int handle)
                        << BALL_LOG_END;
     }
 
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
-    if (d_state == e_STATE_STOPPING) {
-        if (d_channels.length() == 0 && d_listeners.length() == 0) {
-            BALL_LOG_TRACE << "NTC factory channels and listeners have closed"
-                           << BALL_LOG_END;
-
-            d_state = e_STATE_STOPPED;
-            d_stateCondition.signal();
-        }
-    }
+    d_resourceMonitor.release();  // Decrement resource usage count
 }
 
 // CREATORS
@@ -190,9 +176,9 @@ NtcChannelFactory::NtcChannelFactory(
 , d_createSignaler(basicAllocator)
 , d_limitSignaler(basicAllocator)
 , d_owned(false)
-, d_stateMutex()
-, d_stateCondition()
-, d_state(e_STATE_DEFAULT)
+, d_validator(false)
+, d_resourceMonitor(false)
+, d_isInterfaceStarted(false)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
@@ -207,9 +193,9 @@ NtcChannelFactory::NtcChannelFactory(
 , d_createSignaler(basicAllocator)
 , d_limitSignaler(basicAllocator)
 , d_owned(true)
-, d_stateMutex()
-, d_stateCondition()
-, d_state(e_STATE_DEFAULT)
+, d_validator(false)
+, d_resourceMonitor(false)
+, d_isInterfaceStarted(false)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     bsl::shared_ptr<bdlbb::BlobBufferFactory> blobBufferFactory_sp(
@@ -233,7 +219,6 @@ NtcChannelFactory::~NtcChannelFactory()
         d_interface_sp.reset();
     }
 
-    BSLS_ASSERT_OPT(d_state == e_STATE_DEFAULT || d_state == e_STATE_STOPPED);
     BSLS_ASSERT_OPT(d_listeners.length() == 0);
     BSLS_ASSERT_OPT(d_channels.length() == 0);
     BSLS_ASSERT_OPT(d_createSignaler.slotCount() == 0);
@@ -244,65 +229,60 @@ NtcChannelFactory::~NtcChannelFactory()
 // MANIPULATORS
 int NtcChannelFactory::start()
 {
-    ntsa::Error error;
+    bmqu::AtomicValidatorGuard valGuard(&d_validator);
 
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
+    if (valGuard.isValid()) {
+        // Already started.
+        return 1;  // RETURN
+    }
 
-    switch (d_state) {
-    case e_STATE_DEFAULT:
-        error = d_interface_sp->start();
+    if (!d_isInterfaceStarted) {
+        // Make sure we don't restart the same interface if we have
+        // `start()`, `stop()`, `start()` sequence.
+        d_isInterfaceStarted    = true;
+        const ntsa::Error error = d_interface_sp->start();
         if (error) {
             return error.number();  // RETURN
         }
-        d_state = e_STATE_STARTED;
-        return 0;                                               // RETURN
-    case e_STATE_STOPPED: d_state = e_STATE_STARTED; return 0;  // RETURN
-    case e_STATE_STARTED: return 0;                             // RETURN
-    case e_STATE_STOPPING: return 1;                            // RETURN
-    default: return 1;                                          // RETURN
     }
+
+    d_resourceMonitor.reset();
+    d_validator.reset();
+
+    return 0;
 }
 
 void NtcChannelFactory::stop()
 {
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
+    bmqu::AtomicValidatorGuard valGuard(&d_validator);
 
-    if (d_state != e_STATE_STARTED) {
+    if (!valGuard.isValid()) {
         return;  // RETURN
     }
 
-    d_state = e_STATE_STOPPING;
+    valGuard.release()->release();
+    d_validator.invalidate();  // Disallow new listen/connect
 
     BALL_LOG_TRACE << "NTC factory is stopping" << BALL_LOG_END;
 
-    if (d_channels.length() == 0 && d_listeners.length() == 0) {
-        d_state = e_STATE_STOPPED;
-    }
-    else {
-        {
-            ChannelIterator iterator(d_channels);
-            while (iterator) {
-                iterator.value()->close(bmqio::Status());
-                ++iterator;
-            }
-        }
-
-        {
-            ListenerIterator iterator(d_listeners);
-            while (iterator) {
-                iterator.value()->cancel();
-                ++iterator;
-            }
-        }
-
-        while (d_state != e_STATE_STOPPED) {
-            d_stateCondition.wait(&d_stateMutex);
+    {
+        ChannelIterator iterator(d_channels);
+        while (iterator) {
+            iterator.value()->close(bmqio::Status());
+            ++iterator;
         }
     }
 
-    BSLS_ASSERT_OPT(d_state == e_STATE_STOPPED);
+    {
+        ListenerIterator iterator(d_listeners);
+        while (iterator) {
+            iterator.value()->cancel();
+            ++iterator;
+        }
+    }
 
-    lock.release()->unlock();
+    // Wait until all channels and listeners are finished
+    d_resourceMonitor.invalidate();
 
     d_createSignaler.disconnectAllSlots();
     d_limitSignaler.disconnectAllSlots();
@@ -326,9 +306,9 @@ void NtcChannelFactory::listen(Status*                      status,
         handle->reset();
     }
 
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
+    bmqu::AtomicValidatorGuard valGuard(&d_validator);
 
-    if (d_state != e_STATE_STARTED) {
+    if (!valGuard.isValid()) {
         bmqio::NtcListenerUtil::fail(status,
                                      bmqio::StatusCategory::e_GENERIC_ERROR,
                                      "state",
@@ -364,6 +344,9 @@ void NtcChannelFactory::listen(Status*                      status,
         return;  // RETURN
     }
 
+    // Increment resource usage count for new listener
+    d_resourceMonitor.acquire();
+
     if (handle) {
         bslma::ManagedPtr<bmqio::NtcListener> alias(listener.managedPtr());
         handle->loadAlias(alias, listener.get());
@@ -390,9 +373,9 @@ void NtcChannelFactory::connect(Status*                      status,
         handle->reset();
     }
 
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
+    bmqu::AtomicValidatorGuard valGuard(&d_validator);
 
-    if (d_state != e_STATE_STARTED) {
+    if (!valGuard.isValid()) {
         bmqio::NtcChannelUtil::fail(status,
                                     bmqio::StatusCategory::e_GENERIC_ERROR,
                                     "state",
@@ -434,6 +417,9 @@ void NtcChannelFactory::connect(Status*                      status,
         bslma::ManagedPtr<bmqio::NtcChannel> alias(channel.managedPtr());
         handle->loadAlias(alias, channel.get());
     }
+
+    // Increment resource usage count for new channel
+    d_resourceMonitor.acquire();
 
     BALL_LOG_TRACE << "NTC channel " << AddressFormatter(channel.get())
                    << " to " << channel->peerUri() << " registered"

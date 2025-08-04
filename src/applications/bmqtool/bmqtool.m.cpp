@@ -66,22 +66,56 @@ static void ignoreSigpipe()
     sa.sa_flags   = 0;
     sa.sa_handler = SIG_IGN;
     if (0 != sigaction(SIGPIPE, &sa, NULL)) {
-        bsl::cerr << "Failed to ignore SIGPIPE!"
-                  << "\n";
+        bsl::cerr << "Failed to ignore SIGPIPE!" << bsl::endl;
     }
 #endif
 }
 
-// Raw pointer to the semaphore to keep the application alive
-static BloombergLP::bslmt::Semaphore* s_shutdownSemaphore_p = 0;
+class ShutdownContext {
+  public:
+    // PUBLIC DATA
+
+    /// The semaphore that keeps the application alive.
+    bslmt::Semaphore d_appSemaphore;
+
+    /// The number of times a user tried to close bmqtool.
+    bsls::AtomicInt d_shutdownCount;
+
+    // CREATORS
+    ShutdownContext()
+    : d_appSemaphore(0)
+    , d_shutdownCount(0){
+          // NOTHING
+      };
+};
+
+static ShutdownContext* s_shutdownContext_p = 0;
 
 extern "C" {
 static void shutdownApp(int sig)
 {
-    bsl::cerr << "Signal " << sig << " - shutting down..."
-              << "\n";
-    if (s_shutdownSemaphore_p) {
-        s_shutdownSemaphore_p->post();
+    // The number of received signals for immediate termination.
+    static const int k_NUM_TO_TERMINATE = 5;
+
+    if (s_shutdownContext_p) {
+        const int numRetries = s_shutdownContext_p->d_shutdownCount.addRelaxed(
+            1);
+        if (k_NUM_TO_TERMINATE <= numRetries) {
+            bsl::cerr << "Received a signal [" << sig << "] " << numRetries
+                      << " times, terminating immediately" << bsl::endl;
+            bsl::exit(128 + sig);
+        }
+        else {
+            bsl::cerr << "Received a signal [" << sig << "], shutting down... "
+                      << "Please send a signal "
+                      << k_NUM_TO_TERMINATE - numRetries
+                      << " more times to terminate immediately" << bsl::endl;
+            s_shutdownContext_p->d_appSemaphore.post();
+        }
+    }
+    else {
+        bsl::cerr << "No shutdown context provided to handle a signal [" << sig
+                  << "]" << bsl::endl;
     }
 }
 }  // close extern "C"
@@ -417,6 +451,9 @@ int main(int argc, const char* argv[])
     bool isInteractive = parameters.mode() == ParametersMode::e_CLI ||
                          parameters.mode() == ParametersMode::e_STORAGE;
 
+    ShutdownContext shutdownContext;
+    s_shutdownContext_p = &shutdownContext;
+
     // If we are running in interactive mode, we don't want to intercept
     // ctrl-C, the application will exit on ctrl-D from the stdin stream
     if (!isInteractive) {
@@ -426,17 +463,15 @@ int main(int argc, const char* argv[])
         signal(SIGTERM, shutdownApp);
     }
 
-    bslmt::Semaphore shutdownSemaphore(0);
-    s_shutdownSemaphore_p       = &shutdownSemaphore;
     bslma::Allocator* allocator = parameters.memoryDebug()
                                       ? &ta
                                       : bslma::Default::allocator();
 
-    Application app(parameters, &shutdownSemaphore, allocator);
+    Application app(parameters, &shutdownContext.d_appSemaphore, allocator);
     if (app.start() != 0) {
         return 2;  // RETURN
     }
-    shutdownSemaphore.wait();
+    shutdownContext.d_appSemaphore.wait();
     app.stop();
 
     // Memory debugging
