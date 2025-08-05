@@ -132,6 +132,8 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     typedef bsl::function<void(void)> VoidFunctor;
 
     typedef mqbnet::AuthenticationContext::State AuthnState;
+    typedef bsl::shared_ptr<mqbnet::AuthenticationContext>
+        AuthenticationContextSp;
 
   private:
     // DATA
@@ -157,7 +159,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     /// The authenticationContext first created during authentication in
     /// initial connection, and later on may get updated during
     /// re-authentication.
-    bsl::shared_ptr<mqbnet::AuthenticationContext> d_authenticationContext;
+    AuthenticationContextSp d_authenticationContext;
 
     /// Channel associated to this session.
     bsl::shared_ptr<bmqio::Channel> d_channel_sp;
@@ -233,11 +235,10 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     AdminSession(const bsl::shared_ptr<bmqio::Channel>&  channel,
                  const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
                  const bsl::string&                      sessionDescription,
-                 const bsl::shared_ptr<mqbnet::AuthenticationContext>&
-                                                authenticationContext,
-                 mqbi::Dispatcher*              dispatcher,
-                 AdminSessionState::BlobSpPool* blobSpPool,
-                 bdlmt::EventScheduler*         scheduler,
+                 const AuthenticationContextSp&          authenticationContext,
+                 mqbi::Dispatcher*                       dispatcher,
+                 AdminSessionState::BlobSpPool*          blobSpPool,
+                 bdlmt::EventScheduler*                  scheduler,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminEnqueueCb,
                  bslma::Allocator*                             allocator);
 

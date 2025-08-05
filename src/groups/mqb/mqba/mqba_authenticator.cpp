@@ -20,10 +20,14 @@
 
 /// Implementation Notes
 ///====================
-/// The 'Authenticator' class is responsible for handling authentication when
-/// the InitialConnectionHanlder receives and passes over an authentication
-/// message. It authenticates based on the received AuthenticationRequest and
-/// sends back an AuthenticationResponse.
+/// The 'Authenticator' class manages both authentication and reauthentication
+/// for connections.  For incoming connections, it authenticates using the
+/// received AuthenticationRequest and responds with an AuthenticationResponse.
+/// For outgoing connections, it initiates authentication by sending an
+/// AuthenticationRequest and awaits an AuthenticationResponse.  Upon
+/// successful authentication during initial connection, the negotiation
+/// process continues.  All authentication operations are performed
+/// asynchronously.
 
 // MQB
 #include <mqbblp_clustercatalog.h>
@@ -58,7 +62,11 @@ namespace BloombergLP {
 namespace mqba {
 
 namespace {
+
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.AUTHENTICATOR");
+
+const int k_MIN_THREADS = 0;  // Minimum number of threads in the thread pool
+const int k_MAX_THREADS = 1;  // Maximum number of threads in the thread pool
 
 }
 
@@ -220,7 +228,8 @@ void Authenticator::authenticate(
                   << "' with mechanism '" << authenticateRequest.mechanism()
                   << "'";
 
-    int processRc = processAuthentication(error,
+    bmqu::MemOutStream processAuthnErrStream;
+    int                processRc = processAuthentication(processAuthnErrStream,
                                           &response,
                                           authenticateRequest,
                                           channel,
@@ -229,8 +238,9 @@ void Authenticator::authenticate(
     // If the authentication failed, we still need to continue sending the
     // AuthenticationResponse back to the client.
     if (processRc != rc_SUCCESS) {
-        rc = (processRc * 10) + rc_PROCESS_AUTHENTICATION_FAILED;
-        return;
+        rc    = (processRc * 10) + rc_PROCESS_AUTHENTICATION_FAILED;
+        error = processAuthnErrStream.str();
+        return;  // RETURN
     }
 
     // This is when we authenticate with default credentials
@@ -336,7 +346,7 @@ void Authenticator::reauthenticate(
     bsl::string                      error;
 
     bdlb::ScopeExitAny reauthenticateErrorGuard(
-        bdlf::BindUtil::bind(&Authenticator::reauthenticateErrorOrTimeout,
+        bdlf::BindUtil::bind(&Authenticator::onReauthenticateErrorOrTimeout,
                              this,
                              bsl::ref(rc),
                              bsl::ref(error),
@@ -346,7 +356,8 @@ void Authenticator::reauthenticate(
                   << "' with mechanism '" << authenticateRequest.mechanism()
                   << "'";
 
-    const int processRc = processAuthentication(error,
+    bmqu::MemOutStream processAuthnErrStream;
+    const int          processRc = processAuthentication(processAuthnErrStream,
                                                 &response,
                                                 authenticateRequest,
                                                 channel,
@@ -389,7 +400,7 @@ void Authenticator::reauthenticate(
     return;
 }
 
-void Authenticator::reauthenticateErrorOrTimeout(
+void Authenticator::onReauthenticateErrorOrTimeout(
     const int                              errorCode,
     const bsl::string&                     errorName,
     const bsl::shared_ptr<bmqio::Channel>& channel)
@@ -406,7 +417,7 @@ void Authenticator::reauthenticateErrorOrTimeout(
 }
 
 int Authenticator::processAuthentication(
-    bsl::string&                             error,
+    bsl::ostream&                            errorDescription,
     bmqp_ctrlmsg::AuthenticateResponse*      response,
     const bmqp_ctrlmsg::AuthenticateRequest& request,
     const bsl::shared_ptr<bmqio::Channel>&   channel,
@@ -429,11 +440,6 @@ int Authenticator::processAuthentication(
                                                           authenticationData);
 
     if (authnRc != 0) {
-        BALL_LOG_ERROR << "Authentication failed for connection '"
-                       << channel->peerUri() << "' with mechanism '"
-                       << request.mechanism() << "' [rc: " << authnRc
-                       << ", error: " << errorStream.str() << "]";
-
         response->status().code() = authnRc;
         response->status().category() =
             bmqp_ctrlmsg::StatusCategory::E_REFUSED;
@@ -450,10 +456,10 @@ int Authenticator::processAuthentication(
         if (authenticationContext->state().testAndSwap(
                 State::e_AUTHENTICATING,
                 State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
-            errorStream << "Failed to set authentication state for '"
-                        << channel->peerUri()
-                        << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-            error = errorStream.str();
+            errorDescription
+                << "Failed to set authentication state for '"
+                << channel->peerUri()
+                << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
             return rc_AUTHENTICATION_STATE_INCORRECT;
         }
 
@@ -472,7 +478,7 @@ int Authenticator::processAuthentication(
                 bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
                     .addMilliseconds(result->lifetimeMs().value()),
                 bdlf::BindUtil::bind(
-                    &Authenticator::reauthenticateErrorOrTimeout,
+                    &Authenticator::onReauthenticateErrorOrTimeout,
                     this,                     // authenticator
                     -1,                       // errorCode
                     "authenticationTimeout",  // errorName
@@ -489,10 +495,11 @@ Authenticator::Authenticator(
     mqbauthn::AuthenticationController* authnController,
     BlobSpPool*                         blobSpPool,
     bslma::Allocator*                   allocator)
-: d_authnController_p(authnController)
+: d_isStarted(false)
+, d_authnController_p(authnController)
 , d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
-               0,                                            // min threads
-               100,                                          // max threads
+               k_MIN_THREADS,                                // min threads
+               k_MAX_THREADS,                                // max threads
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
@@ -505,11 +512,19 @@ Authenticator::Authenticator(
 /// Destructor
 Authenticator::~Authenticator()
 {
-    // NOTHING: (required because of inheritance)
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(!d_isStarted &&
+                    "stop() must be called before destroying this object");
 }
 
 int Authenticator::start(bsl::ostream& errorDescription)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(!d_isStarted &&
+                    "start() can only be called once on this object");
+
+    BALL_LOG_INFO << "Starting Authenticator";
+
     int rc = d_threadPool.start();
     if (rc != 0) {
         errorDescription << "Failed to start thread pool for Authenticator"
@@ -524,11 +539,19 @@ int Authenticator::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
+    d_isStarted = true;
+
     return 0;
 }
 
 void Authenticator::stop()
 {
+    if (!d_isStarted) {
+        return;  // RETURN
+    }
+
+    d_isStarted = false;
+
     d_scheduler.stop();
     d_threadPool.stop();
 }
@@ -603,7 +626,8 @@ void Authenticator::cancelReauthenticationTimer(
 }
 
 // ACCESSORS
-const bsl::optional<mqbcfg::Credential>& Authenticator::anonymousCredential()
+const bsl::optional<mqbcfg::Credential>&
+Authenticator::anonymousCredential() const
 {
     return d_authnController_p->anonymousCredential();
 }
