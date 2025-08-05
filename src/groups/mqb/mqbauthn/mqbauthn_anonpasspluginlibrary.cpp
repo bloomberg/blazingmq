@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mqbauthn_anonypasspluginlibrary.h>
+#include <mqbauthn_anonpasspluginlibrary.h>
 
 // MQB
-#include <mqbauthn_anonypassauthenticator.h>
+#include <mqbauthn_anonpassauthenticator.h>
 
 // BDE
 #include <bsl_vector.h>
@@ -36,10 +36,10 @@ PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
 
     mqbplug::PluginInfo& authnpassPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
-        "AnonyPassAuthenticator");
+        mqbauthn::AnonPassAuthenticator::k_NAME);
 
     authnpassPluginInfo.setFactory(
-        bsl::allocate_shared<AnonyPassAuthenticatorPluginFactory>(allocator));
+        bsl::allocate_shared<AnonPassAuthenticatorPluginFactory>(allocator));
     authnpassPluginInfo.setDescription("Anonymous Pass Authenticator");
 }
 
