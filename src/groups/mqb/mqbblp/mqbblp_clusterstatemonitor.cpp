@@ -221,7 +221,7 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
     if (!alarmOs.isEmpty()) {
         BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE_MONITOR")
             << "'" << d_clusterData_p->identity().name() << "'"
-            << " is still in a bad state. " << alarmOs.str()
+            << " is still in a bad state.\n" << alarmOs.str()
             << BMQTSK_ALARMLOG_END;
     }
 }
