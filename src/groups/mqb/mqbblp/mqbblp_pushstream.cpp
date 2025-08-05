@@ -84,13 +84,13 @@ PushStreamIterator::PushStreamIterator(
     PushStream*                 owner,
     const PushStream::iterator& initialPosition)
 : d_storage_p(storage)
-, d_iterator(initialPosition)
 , d_attributes()
 , d_appData_sp()
 , d_options_sp()
 , d_owner_p(owner)
 , d_currentElement(0)
 , d_currentOrdinal(mqbi::Storage::k_INVALID_ORDINAL)
+, d_iterator(initialPosition)
 {
     BSLS_ASSERT_SAFE(d_storage_p);
     BSLS_ASSERT_SAFE(d_owner_p);
@@ -256,8 +256,12 @@ VirtualPushStreamIterator::VirtualPushStreamIterator(
     d_itApp = owner->d_apps.find(upstreamSubQueueId);
 
     if (d_itApp != owner->d_apps.end()) {
+        // Assume VirtualPushStreamIterator always starts with the first
+        // element in the App
+
         d_currentElement = d_itApp->second.d_elements.front();
 
+        BSLS_ASSERT_SAFE(d_currentElement->iteratorGuid() == initialPosition);
         BSLS_ASSERT_SAFE(d_currentElement->app().d_app ==
                          d_itApp->second.d_app);
     }
@@ -301,6 +305,8 @@ bool VirtualPushStreamIterator::advance()
 
     BSLS_ASSERT_SAFE(d_itApp->second.d_elements.numElements());
     BSLS_ASSERT_SAFE(d_currentElement);
+
+    d_iterator = d_currentElement->iteratorGuid();
 
     return true;
 }

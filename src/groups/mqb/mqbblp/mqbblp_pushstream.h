@@ -184,10 +184,6 @@ class PushStream {
         void eraseGuid(Stream& stream);
         void eraseApp(Apps& apps);
 
-        /// Return true if this Element is associated with the specified
-        /// `iterator` position in the PushStream.
-        bool equal(const PushStream::Stream::iterator& iterator) const;
-
         /// Return pointer to the next Element associated with the same GUID
         /// or `0` if this is the last Element.
         Element* next() const;
@@ -195,6 +191,9 @@ class PushStream {
         /// Return pointer to the next Element associated with the same App
         /// or `0` if this is the last Element.
         Element* nextInApp() const;
+
+        // Return the datastream iterator referencing the GUID of this element.
+        const iterator& iteratorGuid() const;
     };
 
     // PUBLIC DATA
@@ -265,8 +264,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
     // DATA
     mqbi::Storage* d_storage_p;
 
-    PushStream::iterator d_iterator;
-
     mutable mqbi::StorageMessageAttributes d_attributes;
 
     /// If this variable is empty, it is assumed that attributes, message, and
@@ -284,6 +281,8 @@ class PushStreamIterator : public mqbi::StorageIterator {
 
     /// Current ordinal corresponding to the `d_currentElement`.
     mutable unsigned int d_currentOrdinal;
+
+    PushStream::iterator d_iterator;
 
   private:
     // NOT IMPLEMENTED
@@ -503,12 +502,6 @@ inline PushStream::App& PushStream::Element::app() const
     return d_iteratorApp->second;
 }
 
-inline bool
-PushStream::Element::equal(const PushStream::Stream::iterator& iterator) const
-{
-    return d_iteratorGuid == iterator;
-}
-
 inline PushStream::Element* PushStream::Element::next() const
 {
     return d_base[e_GUID].d_next_p;
@@ -517,6 +510,11 @@ inline PushStream::Element* PushStream::Element::next() const
 inline PushStream::Element* PushStream::Element::nextInApp() const
 {
     return d_base[e_APP].d_next_p;
+}
+
+inline const PushStream::iterator& PushStream::Element::iteratorGuid() const
+{
+    return d_iteratorGuid;
 }
 
 // ---------------------------
@@ -687,7 +685,7 @@ inline void PushStream::add(Element* element)
 {
     // Add to the GUID
     BSLS_ASSERT_SAFE(element);
-    BSLS_ASSERT_SAFE(!element->equal(d_stream.end()));
+    BSLS_ASSERT_SAFE(element->iteratorGuid() != d_stream.end());
 
     element->guid().add(element, e_GUID);
 
@@ -698,7 +696,7 @@ inline void PushStream::add(Element* element)
 inline void PushStream::remove(Element* element, bool canEraseGuid)
 {
     BSLS_ASSERT_SAFE(element);
-    BSLS_ASSERT_SAFE(!element->equal(d_stream.end()));
+    BSLS_ASSERT_SAFE(element->iteratorGuid() != d_stream.end());
 
     // remove from the App
     element->app().remove(element);

@@ -411,10 +411,10 @@ struct QueueEngineUtil_AppState {
     /// to all consumers (broadcast mode), or in a round-robin manner (every
     /// other mode).
     /// Use the specified `reader` to read data for delivery.
-    size_t deliverMessages(bsls::TimeInterval*          delay,
-                           mqbi::StorageIterator*       reader,
-                           mqbi::StorageIterator*       start,
-                           const mqbi::StorageIterator* end);
+    size_t catchUp(bsls::TimeInterval*          delay,
+                   mqbi::StorageIterator*       reader,
+                   mqbi::StorageIterator*       start,
+                   const mqbi::StorageIterator* end);
 
     /// Try to deliver to the next available consumer the specified `message`.
     /// If poisonous message handling requires a delay in the delivery, iterate
