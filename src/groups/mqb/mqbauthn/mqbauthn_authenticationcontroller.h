@@ -49,6 +49,9 @@ class AuthenticationController {
 
     // DATA
 
+    /// True if this component is started.
+    bool d_isStarted;
+
     /// Used to instantiate 'Authenticator'
     /// plugins at start-time.
     mqbplug::PluginManager* d_pluginManager_p;

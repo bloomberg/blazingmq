@@ -265,11 +265,10 @@ void AdminSession::enqueueAdminCommand(
 
 // CREATORS
 AdminSession::AdminSession(
-    const bsl::shared_ptr<bmqio::Channel>&  channel,
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-    const bsl::string&                      sessionDescription,
-    const bsl::shared_ptr<mqbnet::AuthenticationContext>&
-                                                  authenticationContext,
+    const bsl::shared_ptr<bmqio::Channel>&        channel,
+    const bmqp_ctrlmsg::NegotiationMessage&       negotiationMessage,
+    const bsl::string&                            sessionDescription,
+    const AuthenticationContextSp&                authenticationContext,
     mqbi::Dispatcher*                             dispatcher,
     AdminSessionState::BlobSpPool*                blobSpPool,
     bdlmt::EventScheduler*                        scheduler,
@@ -320,12 +319,8 @@ void AdminSession::processEvent(const bmqp::Event& event,
 {
     // executed by the *IO* thread
 
-    if (!event.isAuthenticationEvent() && !d_authenticationContext) {
-        BALL_LOG_ERROR << "The session is not authenticated, but received "
-                          "event: "
-                       << event;
-        return;  // RETURN
-    }
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_authenticationContext);
 
     if (event.isAuthenticationEvent()) {
         if (d_authenticationContext->state().testAndSwap(
