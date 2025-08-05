@@ -89,8 +89,6 @@ bool ClusterStateMonitor::notifyObserversIfNeededHelper(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
     BSLS_ASSERT_SAFE(state);
 
-    bool shouldAlarm = false;
-
     if (state->d_state == e_THRESHOLD || state->d_state == e_ALARMING) {
         // Emit threshold notification?
         if ((now - state->d_lastThreshold) >= thresholdTime) {
@@ -105,12 +103,12 @@ bool ClusterStateMonitor::notifyObserversIfNeededHelper(
         // Emit periodic alarm?
         if ((state->d_state == e_ALARMING) &&
             (now - state->d_lastAlarm) >= maxTime) {
-            shouldAlarm        = true;
             state->d_lastAlarm = now;
+            return true;  // RETURN
         }
     }
 
-    return shouldAlarm;
+    return false;
 }
 
 // PRIVATE MANIPULATORS
@@ -225,7 +223,9 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
         os << "'" << d_clusterData_p->identity().name() << "'"
            << " is still in a bad state. " << alarmOs.str();
         BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE_MONITOR")
-            << os.str() << BMQTSK_ALARMLOG_END;
+            << "'" << d_clusterData_p->identity().name() << "'"
+            << " is still in a bad state. " << alarmOs.str()
+            << BMQTSK_ALARMLOG_END;
     }
 }
 
@@ -310,16 +310,14 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
     State*          state;
     StateTransition stateTransition;
 
-    size_t numPartitions = d_partitionStates.size();
-
     // partitions primary state
-    for (size_t i = 0; i != numPartitions; ++i) {
+    for (size_t i = 0; i != d_partitionStates.size(); ++i) {
         state              = &d_partitionStates[i];
         status             = d_clusterState_p->hasActivePrimary(i);
         isCurrentlyHealthy = isCurrentlyHealthy && status;
         stateTransition    = checkAndUpdateState(state, status, now);
         if (stateTransition == e_BAD) {
-            alarmOs << "Partition [" << i << "] going to alarming state\n";
+            alarmOs << "Partition [" << i << "] goes to alarming state\n";
         }
     }
 
@@ -337,7 +335,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
         stateTransition    = checkAndUpdateState(state, status, now);
         if (stateTransition == e_BAD) {
             alarmOs << "Node [" << cit->first->nodeId()
-                    << "] going to alarming state\n";
+                    << "] goes to alarming state\n";
         }
     }
 
@@ -348,7 +346,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
         stateTransition    = checkAndUpdateState(&d_leaderState, status, now);
         reachedThreshold   = (stateTransition == e_THRESHOLD_REACHED);
         if (stateTransition == e_BAD) {
-            alarmOs << "State of the leader going to alarming state\n";
+            alarmOs << "State of the leader goes to alarming state\n";
         }
     }
 
@@ -359,7 +357,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
         stateTransition  = checkAndUpdateState(&d_failoverState, status, now);
         reachedThreshold = (stateTransition == e_THRESHOLD_REACHED);
         if (stateTransition == e_BAD) {
-            alarmOs << "State of failover process going to alarming state\n";
+            alarmOs << "State of failover process goes to alarming state\n";
         }
     }
 
@@ -416,7 +414,7 @@ void ClusterStateMonitor::onMonitorStateChangeToAlarming(
 
     bmqu::MemOutStream os;
     os << "'" << d_clusterData_p->identity().name() << "' is in a bad "
-       << "state." << alarmOs.str() << ".\n";
+       << "state.\n" << alarmOs.str() << ".\n";
     // Log the entire cluster state in the alarm
     mqbcmd::Result        result;
     mqbcmd::ClusterResult clusterResult;
