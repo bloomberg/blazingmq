@@ -53,7 +53,7 @@
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
-#include <bslstl_variant.h>
+#include <bsl_variant.h>
 
 namespace BloombergLP {
 

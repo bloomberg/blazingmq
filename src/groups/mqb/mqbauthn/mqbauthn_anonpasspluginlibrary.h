@@ -13,15 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbauthn_anonypasspluginlibrary.h                             -*-C++-*-
-#ifndef INCLUDED_AUTHNPASS_PLUGINLIBRARY
-#define INCLUDED_AUTHNPASS_PLUGINLIBRARY
+// mqbauthn_anonpasspluginlibrary.h                             -*-C++-*-
+#ifndef INCLUDED_MQBAUTHN_ANONPASSPLUGINLIBRARY
+#define INCLUDED_MQBAUTHN_ANONPASSPLUGINLIBRARY
 
-/// @file mqbauthn_anonypasspluginlibrary.h
+/// @file mqbauthn_anonpasspluginlibrary.h
 ///
 /// @brief Provide library of anonymous pass authenticator plugin for broker.
 ///
-/// @bbref{mqbauthnpass::PluginLibrary} provides the definition for the
+/// @bbref{mqbauthn::PluginLibrary} provides the definition for the
 /// 'PluginLibrary' class, which represents and publishes anonymous pass
 /// authenticator plugin for interfacing with the BMQ broker (i.e.,
 /// 'bmqbrkr.tsk').

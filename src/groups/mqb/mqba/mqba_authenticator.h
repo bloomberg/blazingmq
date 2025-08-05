@@ -28,8 +28,7 @@
 ///
 /// Thread Safety                              {#mqba_authenticator_thread}
 /// =============
-/// This component is owned by `InitialConnectionHandler`, and its functions
-/// are called only from there.  It is not thread safe.
+/// This component is *NOT* thread safe.
 
 // MQB
 #include <mqbauthn_authenticationcontroller.h>
@@ -48,7 +47,6 @@
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_threadpool.h>
-#include <bdlmt_timereventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string_view.h>
@@ -96,15 +94,18 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // DATA
 
+    /// True if this component is started.
+    bool d_isStarted;
+
     /// Authentication Controller.
     mqbauthn::AuthenticationController* d_authnController_p;
 
+    /// Thread pool to run authentication and reauthentication tasks.
     bdlmt::ThreadPool d_threadPool;
 
     /// Used to track the duration of a valid authenticated connection.
     /// If reauthentication does not occur within the specified time,
     /// an event is triggered to close the channel.
-    // bdlmt::TimerEventScheduler d_scheduler;
     bdlmt::EventScheduler d_scheduler;
 
     BlobSpPool* d_blobSpPool_p;
@@ -189,16 +190,17 @@ class Authenticator : public mqbnet::Authenticator {
 
     /// Close the specified `channel` with an error code and name
     /// indicating the re-authentication error or authentication timeout.
-    void reauthenticateErrorOrTimeout(
+    void onReauthenticateErrorOrTimeout(
         const int                              errorCode,
         const bsl::string&                     errorName,
         const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Process the authentication request in `request` and store the
     /// result in `response`.  Return 0 on success, or a non-zero error
-    /// code and populate `error` with a description of the error otherwise.
+    /// code and populate `errorDescription` with a description of the error
+    /// otherwise.
     int processAuthentication(
-        bsl::string&                             error,
+        bsl::ostream&                            errorDescription,
         bmqp_ctrlmsg::AuthenticateResponse*      response,
         const bmqp_ctrlmsg::AuthenticateRequest& request,
         const bsl::shared_ptr<bmqio::Channel>&   channel,
@@ -260,7 +262,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// Return the anonymous credential used for authentication.
     /// If no anonymous credential is set, return an empty optional.
     const bsl::optional<mqbcfg::Credential>&
-    anonymousCredential() BSLS_KEYWORD_OVERRIDE;
+    anonymousCredential() const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

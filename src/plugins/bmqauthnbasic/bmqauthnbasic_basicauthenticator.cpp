@@ -37,6 +37,13 @@
 namespace BloombergLP {
 namespace bmqauthnbasic {
 
+namespace {
+
+const int k_TIMEOUT_SECONDS   = 600;
+const int k_MILLISECS_PER_SEC = 1000;
+
+}  // namespace
+
 // -------------------------------
 // class BasicAuthenticationResult
 // -------------------------------
@@ -94,7 +101,7 @@ bsl::string_view BasicAuthenticator::name() const
 
 bsl::string_view BasicAuthenticator::mechanism() const
 {
-    return "Basic";
+    return k_MECHANISM;
 }
 
 int BasicAuthenticator::authenticate(
@@ -126,7 +133,7 @@ int BasicAuthenticator::authenticate(
     *result = bsl::allocate_shared<BasicAuthenticationResult>(
         d_allocator_p,
         "VALID_USER-" + bsl::string(username),
-        600 * 1000);
+        k_TIMEOUT_SECONDS * k_MILLISECS_PER_SEC);
     return 0;
 }
 
