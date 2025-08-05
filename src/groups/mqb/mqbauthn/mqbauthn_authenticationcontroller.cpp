@@ -22,7 +22,7 @@
 #include <bmqu_memoutstream.h>
 
 // MQB
-#include <mqbauthn_anonypassauthenticator.h>
+#include <mqbauthn_anonpassauthenticator.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
@@ -50,23 +50,27 @@ typedef bsl::unordered_set<mqbplug::PluginFactory*> PluginFactories;
 AuthenticationController::AuthenticationController(
     mqbplug::PluginManager* pluginManager,
     bslma::Allocator*       allocator)
-: d_pluginManager_p(pluginManager)
+: d_isStarted(false)
+, d_pluginManager_p(pluginManager)
 , d_allocator_p(allocator)
 {
 }
 
 int AuthenticationController::start(bsl::ostream& errorDescription)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(!d_isStarted &&
+                    "start() can only be called once on this object");
+
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS             = 0,
         rc_DUPLICATE_MECHANISM = -1
     };
 
-    int                rc = rc_SUCCESS;
     bmqu::MemOutStream errorStream(d_allocator_p);
 
-    BALL_LOG_INFO << "Starting AuthenticationController...";
+    BALL_LOG_INFO << "Starting AuthenticationController";
 
     const mqbcfg::AuthenticatorConfig& authenticatorConfig =
         mqbcfg::BrokerConfig::get().authentication();
@@ -80,13 +84,13 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
         BALL_LOG_INFO << "No anonymous credential configured, "
                          "using Anonymous as default mechanism and empty "
                          "string as default identity.";
-        d_anonymousCredential              = mqbcfg::Credential();
-        d_anonymousCredential->mechanism() = "Anonymous";
-        d_anonymousCredential->identity()  = "";
+        d_anonymousCredential = mqbcfg::Credential();
+        d_anonymousCredential->mechanism() =
+            mqbauthn::AnonPassAuthenticator::k_MECHANISM;
+        d_anonymousCredential->identity() = "";
     }
     else if (anonymousCredential->isCredentialValue()) {
-        BALL_LOG_INFO << "Using anonymous credential: '"
-                      << anonymousCredential->credential() << "'";
+        BALL_LOG_INFO << "Using configured anonymous credential.'";
         d_anonymousCredential = anonymousCredential->credential();
     }
     else if (anonymousCredential->isDisallowValue()) {
@@ -145,11 +149,11 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
         // are configured.
         if (d_authenticators.empty()) {
             BALL_LOG_INFO << "No authenticators configured, using "
-                             "AnonyPassAuthenticator as default.";
+                             "AnonPassAuthenticator as default.";
 
             // Create an anonymous pass authenticator
-            AnonyPassAuthenticatorPluginFactory anonyFactory;
-            AuthenticatorMp authenticator = anonyFactory.create(d_allocator_p);
+            AnonPassAuthenticatorPluginFactory anonFactory;
+            AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
 
             // Start the anonymous pass authenticator
             if (int status = authenticator->start(errorStream)) {
@@ -169,11 +173,27 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
         }
     }
 
-    return rc;
+    d_isStarted = true;
+
+    return rc_SUCCESS;
 }
 
 void AuthenticationController::stop()
 {
+    if (!d_isStarted) {
+        return;  // RETURN
+    }
+
+    d_isStarted = false;
+
+    // Stop all authenticators
+    for (AuthenticatorMap::iterator it = d_authenticators.begin();
+         it != d_authenticators.end();
+         ++it) {
+        it->second->stop();
+    }
+
+    d_authenticators.clear();
 }
 
 int AuthenticationController::authenticate(
