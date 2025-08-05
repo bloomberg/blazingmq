@@ -219,9 +219,6 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
     // [2] Keep alarming that the cluster is still in bad state as long as
     //     applicable
     if (!alarmOs.isEmpty()) {
-        bmqu::MemOutStream os;
-        os << "'" << d_clusterData_p->identity().name() << "'"
-           << " is still in a bad state. " << alarmOs.str();
         BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE_MONITOR")
             << "'" << d_clusterData_p->identity().name() << "'"
             << " is still in a bad state. " << alarmOs.str()
@@ -414,7 +411,8 @@ void ClusterStateMonitor::onMonitorStateChangeToAlarming(
 
     bmqu::MemOutStream os;
     os << "'" << d_clusterData_p->identity().name() << "' is in a bad "
-       << "state.\n" << alarmOs.str() << ".\n";
+       << "state.\n"
+       << alarmOs.str() << ".\n";
     // Log the entire cluster state in the alarm
     mqbcmd::Result        result;
     mqbcmd::ClusterResult clusterResult;
