@@ -78,9 +78,8 @@ ClusterStateMonitor::State::State(const bsls::TimeInterval& maxInvalid,
 // class ClusterStateMonitor
 // -------------------------
 
-void ClusterStateMonitor::notifyObserversIfNeededHelper(
+bool ClusterStateMonitor::notifyObserversIfNeededHelper(
     State*                                                  state,
-    bool*                                                   shouldAlarm,
     const bsl::function<void(mqbc::ClusterStateObserver*)>& notificationCb,
     int                                                     thresholdTime,
     int                                                     maxTime,
@@ -104,10 +103,12 @@ void ClusterStateMonitor::notifyObserversIfNeededHelper(
         // Emit periodic alarm?
         if ((state->d_state == e_ALARMING) &&
             (now - state->d_lastAlarm) >= maxTime) {
-            *shouldAlarm       = true;
             state->d_lastAlarm = now;
+            return true;  // RETURN
         }
     }
+
+    return false;
 }
 
 // PRIVATE MANIPULATORS
@@ -125,8 +126,7 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
     //      etc.) as long as applicable
     //   2. Periodically continue to alarm "cluster still in bad state" as long
     //      as applicable.
-
-    bool shouldAlarm = false;
+    bmqu::MemOutStream alarmOs;
 
     const mqbcfg::ClusterMonitorConfig& config =
         d_clusterData_p->clusterConfig().clusterMonitorConfig();
@@ -139,12 +139,17 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
                 &mqbc::ClusterStateObserver::onPartitionOrphanThreshold,
                 bdlf::PlaceHolders::_1,  // observer
                 i);                      // partitionId
-        notifyObserversIfNeededHelper(state,
-                                      &shouldAlarm,
-                                      notificationCb,
-                                      config.thresholdMaster(),
-                                      config.maxTimeMaster(),
-                                      now);
+
+        const bool shouldAlarm = notifyObserversIfNeededHelper(
+            state,
+            notificationCb,
+            config.thresholdMaster(),
+            config.maxTimeMaster(),
+            now);
+
+        if (shouldAlarm) {
+            alarmOs << "Partition [" << i << "] is orphaned\n";
+        }
     }
 
     // [1.2] Cluster nodes state
@@ -159,47 +164,65 @@ void ClusterStateMonitor::notifyObserversIfNeeded()
                 &mqbc::ClusterStateObserver::onNodeUnavailableThreshold,
                 bdlf::PlaceHolders::_1,  // observer
                 cit->first);             // node
-        notifyObserversIfNeededHelper(state,
-                                      &shouldAlarm,
-                                      notificationCb,
-                                      config.thresholdNode(),
-                                      config.maxTimeNode(),
-                                      now);
+
+        const bool shouldAlarm = notifyObserversIfNeededHelper(
+            state,
+            notificationCb,
+            config.thresholdNode(),
+            config.maxTimeNode(),
+            now);
+
+        if (shouldAlarm) {
+            alarmOs << "Node [" << cit->first->nodeId()
+                    << "] is unavailable\n";
+        }
     }
 
     // [1.3] Cluster leader state
-    bsl::function<void(mqbc::ClusterStateObserver*)> notificationCb =
-        bdlf::BindUtil::bind(
-            &mqbc::ClusterStateObserver::onLeaderPassiveThreshold,
-            bdlf::PlaceHolders::_1);  // observer
+    {
+        bsl::function<void(mqbc::ClusterStateObserver*)> notificationCb =
+            bdlf::BindUtil::bind(
+                &mqbc::ClusterStateObserver::onLeaderPassiveThreshold,
+                bdlf::PlaceHolders::_1);  // observer
 
-    notifyObserversIfNeededHelper(&d_leaderState,
-                                  &shouldAlarm,
-                                  notificationCb,
-                                  config.thresholdLeader(),
-                                  config.maxTimeLeader(),
-                                  now);
+        const bool shouldAlarm = notifyObserversIfNeededHelper(
+            &d_leaderState,
+            notificationCb,
+            config.thresholdLeader(),
+            config.maxTimeLeader(),
+            now);
+
+        if (shouldAlarm) {
+            alarmOs << "Cluster leader is not active\n";
+        }
+    }
 
     // [1.4] State of the failover process
-    notificationCb = bdlf::BindUtil::bind(
-        &mqbc::ClusterStateObserver::onFailoverThreshold,
-        bdlf::PlaceHolders::_1);  // observer
+    {
+        bsl::function<void(mqbc::ClusterStateObserver*)> notificationCb =
+            bdlf::BindUtil::bind(
+                &mqbc::ClusterStateObserver::onFailoverThreshold,
+                bdlf::PlaceHolders::_1);  // observer
 
-    notifyObserversIfNeededHelper(&d_failoverState,
-                                  &shouldAlarm,
-                                  notificationCb,
-                                  config.thresholdFailover(),
-                                  config.maxTimeFailover(),
-                                  now);
+        const bool shouldAlarm = notifyObserversIfNeededHelper(
+            &d_failoverState,
+            notificationCb,
+            config.thresholdFailover(),
+            config.maxTimeFailover(),
+            now);
+
+        if (shouldAlarm) {
+            alarmOs << "Failover is not completed\n";
+        }
+    }
 
     // [2] Keep alarming that the cluster is still in bad state as long as
     //     applicable
-    if (shouldAlarm) {
-        bmqu::MemOutStream os;
-        os << "'" << d_clusterData_p->identity().name() << "'"
-           << " is still in a bad state.";
+    if (!alarmOs.isEmpty()) {
         BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE_MONITOR")
-            << os.str() << BMQTSK_ALARMLOG_END;
+            << "'" << d_clusterData_p->identity().name() << "'"
+            << " is still in a bad state.\n"
+            << alarmOs.str() << BMQTSK_ALARMLOG_END;
     }
 }
 
@@ -276,8 +299,9 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
     const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
 
     bool isCurrentlyHealthy = true;
-    bool shouldAlarm        = false;
     bool reachedThreshold   = false;
+
+    bmqu::MemOutStream alarmOs;
 
     bool            status;
     State*          state;
@@ -289,7 +313,9 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
         status             = d_clusterState_p->hasActivePrimary(i);
         isCurrentlyHealthy = isCurrentlyHealthy && status;
         stateTransition    = checkAndUpdateState(state, status, now);
-        shouldAlarm        = shouldAlarm || (stateTransition == e_BAD);
+        if (stateTransition == e_BAD) {
+            alarmOs << "Partition [" << i << "] goes to alarming state\n";
+        }
     }
 
     const ClusterNodeSessionMap& nodeMap =
@@ -304,7 +330,10 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
                  !cit->first->isAvailable();
         isCurrentlyHealthy = isCurrentlyHealthy && status;
         stateTransition    = checkAndUpdateState(state, status, now);
-        shouldAlarm        = shouldAlarm || (stateTransition == e_BAD);
+        if (stateTransition == e_BAD) {
+            alarmOs << "Node [" << cit->first->nodeId()
+                    << "] goes to alarming state\n";
+        }
     }
 
     // cluster leader state
@@ -312,8 +341,10 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
         status             = d_clusterData_p->electorInfo().hasActiveLeader();
         isCurrentlyHealthy = isCurrentlyHealthy && status;
         stateTransition    = checkAndUpdateState(&d_leaderState, status, now);
-        shouldAlarm        = shouldAlarm || (stateTransition == e_BAD);
         reachedThreshold   = (stateTransition == e_THRESHOLD_REACHED);
+        if (stateTransition == e_BAD) {
+            alarmOs << "State of the leader goes to alarming state\n";
+        }
     }
 
     // failover state
@@ -321,25 +352,27 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
         status = !d_clusterData_p->cluster().isFailoverInProgress();
         isCurrentlyHealthy = isCurrentlyHealthy && status;
         stateTransition  = checkAndUpdateState(&d_failoverState, status, now);
-        shouldAlarm      = shouldAlarm || (stateTransition == e_BAD);
         reachedThreshold = (stateTransition == e_THRESHOLD_REACHED);
+        if (stateTransition == e_BAD) {
+            alarmOs << "State of failover process goes to alarming state\n";
+        }
     }
 
     // Update state, etc.
     d_isHealthy = isCurrentlyHealthy;
 
-    if (shouldAlarm && !d_hasAlarmed) {
+    if (!alarmOs.isEmpty() && !d_hasAlarmed) {
         d_hasAlarmed = true;
-        onMonitorStateChange(e_ALARMING);
+        onMonitorStateChangeToAlarming(alarmOs);
     }
     else if (reachedThreshold && !d_hasAlarmed && !d_thresholdReached) {
         d_thresholdReached = true;
-        onMonitorStateChange(e_THRESHOLD);
+        onMonitorStateChangeToThreshold();
     }
     else if (d_isHealthy && (d_hasAlarmed || d_thresholdReached)) {
         d_thresholdReached = false;
         d_hasAlarmed       = false;
-        onMonitorStateChange(e_VALID);
+        onMonitorStateChangeToValid();
     }
 
     d_clusterData_p->stats().setHealthStatus(d_isHealthy);
@@ -357,53 +390,52 @@ mqbi::DispatcherClient* ClusterStateMonitor::dispatcherClient()
     return &d_clusterData_p->cluster();
 }
 
-void ClusterStateMonitor::onMonitorStateChange(const StateType& state)
+void ClusterStateMonitor::onMonitorStateChangeToThreshold()
 {
-    // executed by the *DISPATCHER* thread
-
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
 
-    switch (state) {
-    case ClusterStateMonitor::e_THRESHOLD: {
-        bmqu::MemOutStream os;
-        os << "'" << d_clusterData_p->identity().name() << "' has been in "
-           << "invalid state above the threshold amount of time.\n";
-        // Log only a summary in the alarm
-        d_clusterData_p->cluster().printClusterStateSummary(os, 0, 4);
-        BALL_LOG_INFO << os.str();
-    } break;  // BREAK
-    case ClusterStateMonitor::e_ALARMING: {
-        bmqu::MemOutStream os;
-        os << "'" << d_clusterData_p->identity().name() << "' is in a bad "
-           << "state.\n";
-        // Log the entire cluster state in the alarm
-        mqbcmd::Result        result;
-        mqbcmd::ClusterResult clusterResult;
-        d_clusterData_p->cluster().loadClusterStatus(&clusterResult);
-        if (clusterResult.isClusterStatusValue()) {
-            result.makeClusterStatus(clusterResult.clusterStatus());
-        }
-        else {
-            result.makeClusterProxyStatus(clusterResult.clusterProxyStatus());
-        }
-        mqbcmd::HumanPrinter::print(os, result, 0, 4);
+    bmqu::MemOutStream os;
+    os << "'" << d_clusterData_p->identity().name() << "' has been in "
+       << "invalid state above the threshold amount of time.\n";
+    // Log only a summary in the alarm
+    d_clusterData_p->cluster().printClusterStateSummary(os, 0, 4);
+    BALL_LOG_INFO << os.str();
+}
 
-        BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE_MONITOR")
-            << os.str() << BMQTSK_ALARMLOG_END;
-    } break;  // BREAK
-    case ClusterStateMonitor::e_VALID: {
-        BALL_LOG_INFO << "'" << d_clusterData_p->identity().name() << "' "
-                      << "is back to healthy state.";
-    } break;  // BREAK
-    case ClusterStateMonitor::e_INVALID:
-    default: {
-        // we should never be here
-        BSLS_ASSERT_SAFE(false &&
-                         "Cluster Monitor 'onMonitorStateChange' with invalid"
-                         " state type");
+void ClusterStateMonitor::onMonitorStateChangeToAlarming(
+    const bmqu::MemOutStream& alarmOs)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+
+    bmqu::MemOutStream os;
+    os << "'" << d_clusterData_p->identity().name() << "' is in a bad "
+       << "state.\n"
+       << alarmOs.str() << ".\n";
+    // Log the entire cluster state in the alarm
+    mqbcmd::Result        result;
+    mqbcmd::ClusterResult clusterResult;
+    d_clusterData_p->cluster().loadClusterStatus(&clusterResult);
+    if (clusterResult.isClusterStatusValue()) {
+        result.makeClusterStatus(clusterResult.clusterStatus());
     }
+    else {
+        result.makeClusterProxyStatus(clusterResult.clusterProxyStatus());
     }
+    mqbcmd::HumanPrinter::print(os, result, 0, 4);
+
+    BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE_MONITOR")
+        << os.str() << BMQTSK_ALARMLOG_END;
+}
+
+void ClusterStateMonitor::onMonitorStateChangeToValid()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(dispatcherClient()));
+
+    BALL_LOG_INFO << "'" << d_clusterData_p->identity().name() << "' "
+                  << "is back to healthy state.";
 }
 
 // CREATORS
