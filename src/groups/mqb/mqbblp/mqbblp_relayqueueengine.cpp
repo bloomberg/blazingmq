@@ -667,10 +667,10 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     }
 
     bsls::TimeInterval delay;
-    app->deliverMessages(&delay,
-                         d_realStorageIter_mp.get(),
-                         start,
-                         d_storageIter_mp.get());
+    app->catchUp(&delay,
+                 d_realStorageIter_mp.get(),
+                 start,
+                 d_storageIter_mp.get());
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
@@ -1876,7 +1876,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
         else {
             const PushStream::App& app = itApp->second;
 
-            if (app.last() && app.last()->equal(itGuid)) {
+            if (app.last() && app.last()->iteratorGuid() == itGuid) {
                 BMQ_LOGTHROTTLE_INFO()
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"

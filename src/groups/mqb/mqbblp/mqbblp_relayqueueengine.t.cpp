@@ -1760,6 +1760,130 @@ static void test18_throttleRedeliveryNoMoreHandles()
     BMQTST_ASSERT_EQ(C3->_numMessages(), 0);
 }
 
+static void test19_redeliveryAndResume()
+// ------------------------------------------------------------------------
+// REDELIVERY AND RESUME
+//
+// Concerns:
+//   1. Verifying resume for a fanout appId..
+//
+// Plan:
+//  Make the data stream of 1   2   3   4   5
+//                          |   |   |   |
+//  where   "a" state is    RL PAL  RP  |
+//          "b" state is    QH  QH PAL  |
+//                                      iterator
+//  RL - RedeliveryList, PAL - PutAsideList, QH queue handle, RP - Resume Point
+//  Then remove "b".
+//  Then trigger 'processAppRedelivery' for "a".
+//  It should 'deliverMessages' from 3 to 4 in the first phase and then attempt
+//  to advance all apps.  If the first phase fails to stop at 4, then 4 (and 5)
+//  will get processed twice.
+//
+// Testing:
+//   'processAppRedelivery'.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
+    // 'mqbi' methods print with ball, which allocates.
+
+    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+
+    mqbconfm::Domain          config = fanoutConfig();
+    bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
+    appIDs.push_back("a");
+    appIDs.push_back("b");
+
+    mqbblp::QueueEngineTester                                tester(config,
+                                     false,  // start scheduler
+                                     bmqtst::TestHelperUtil::allocator());
+    mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
+
+    // 1. Bring up a consumer C1 with appId 'a', 'b', and 'c'.
+    mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
+    BMQTST_ASSERT_NE(C1, k_nullHandle_p);
+    BMQTST_ASSERT_EQ(C1, tester.getHandle("C1@b readCount=1"));
+
+    // See 'mqbmock::QueueHandle::registerSubscription' that sets canDeliver to
+    // 'true' on every reconfiguration unless maxUnconfirmedMessages=0.
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@a consumerPriority=1 consumerPriorityCount=1 "
+                         "maxUnconfirmedMessages=0"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@b consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+
+    // 2. Post 1 message
+    tester.post("1", guard.engine());
+    tester.afterNewMessage(1);
+
+    // Need to keep one more handle to the App "a" so that RelayQueueEngine
+    // does not clear its state as when the last reader goes away.
+
+    mqbmock::QueueHandle* C2 = tester.getHandle("C2@a readCount=1");
+    BMQTST_ASSERT_NE(C2, k_nullHandle_p);
+
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C2@a consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+    PVV(L_ << ": C2@a Messages: " << C2->_messages("a"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages("a"), 1);
+
+    C2->_setCanDeliver("a", false);
+
+    // Advance "b" so the queue iterator is not equal to "a" resume point.
+    tester.post("2", guard.engine());
+    tester.afterNewMessage(1);
+
+    C1->_setCanDeliver("b", false);
+
+    tester.post("3, 4, 5", guard.engine());
+    tester.afterNewMessage(1);
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages("a"), 1);
+
+    // Deconfigure before the release because RelayQueueEngine does not seem to
+    // detect release without deconfigure.
+    BMQTST_ASSERT_EQ(tester.configureHandle("C2@a"), 0);
+    tester.releaseHandle("C2@a readCount=1");
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 2);
+
+    // Drop "b"
+    tester.releaseHandle("C1@b readCount=1");
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+
+    mqbmock::QueueHandle* C3 = tester.getHandle("C3@a readCount=1");
+    BMQTST_ASSERT_NE(C3, k_nullHandle_p);
+
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C3@a consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C3@a Messages: " << C3->_messages("a"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+
+    BMQTST_ASSERT_EQ(C3->_numMessages("a"), 5);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1782,6 +1906,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 19: test19_redeliveryAndResume(); break;
         case 18: test18_throttleRedeliveryNoMoreHandles(); break;
         case 17: test17_throttleRedeliveryNewHandle(); break;
         case 16: test16_throttleRedeliveryCancelledDelay(); break;

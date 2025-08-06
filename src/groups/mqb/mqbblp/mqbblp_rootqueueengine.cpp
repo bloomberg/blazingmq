@@ -125,10 +125,10 @@ void RootQueueEngine::deliverMessages(AppState* app)
     }
 
     bsls::TimeInterval delay;
-    const size_t       numMessages = app->deliverMessages(&delay,
-                                                    d_realStorageIter_mp.get(),
-                                                    start,
-                                                    d_storageIter_mp.get());
+    const size_t       numMessages = app->catchUp(&delay,
+                                                  d_realStorageIter_mp.get(),
+                                                  start,
+                                                  d_storageIter_mp.get());
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(

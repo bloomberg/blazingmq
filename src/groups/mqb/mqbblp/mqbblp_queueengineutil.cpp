@@ -901,11 +901,10 @@ QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
     // existing `RelayQueueEngine` routing contexts.
 }
 
-size_t
-QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
-                                          mqbi::StorageIterator*       reader,
-                                          mqbi::StorageIterator*       start,
-                                          const mqbi::StorageIterator* end)
+size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
+                                         mqbi::StorageIterator*       reader,
+                                         mqbi::StorageIterator*       start,
+                                         const mqbi::StorageIterator* end)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
