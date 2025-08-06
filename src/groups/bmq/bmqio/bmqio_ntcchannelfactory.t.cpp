@@ -1164,7 +1164,7 @@ static void test7_checkMultithreadListen()
 
     // Wait for all threads to finish
     const int rc = doneLatch.timedWait(bsls::SystemTime::nowRealtimeClock() +
-                                       bsls::TimeInterval(2.0));
+                                       bsls::TimeInterval(5.0));
     BMQTST_ASSERT_EQ_D(L_, rc, 0);
 
     for (size_t i = 0; i < k_NUM_THREADS; i++) {

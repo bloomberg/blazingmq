@@ -7,7 +7,7 @@ Usually sanitizers check is done on CI, but using Docker it is possible to run s
  - Prerequisites: docker should be installed;
  - Run docker build from the BlazingMQ root folder:
  ```
- docker build -f docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=<sanitizer-name> -t sanitizer-<sanitizer-name> .
+ docker build -f docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=<sanitizer-name> --build-arg FUZZER=off -t sanitizer-<sanitizer-name> .
  ```
  NOTE: `sanitizer-name` is `asan`, `msan`, `tsan` or `ubsan`.
 
