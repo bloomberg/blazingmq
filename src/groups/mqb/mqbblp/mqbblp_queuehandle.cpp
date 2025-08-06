@@ -70,7 +70,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
 // Time interval between messages logged with throttling.
 
-#define BMQ_LOGTHROTTLE_INFO()                                                \
+#define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
@@ -633,11 +633,10 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
                                        const bmqp_ctrlmsg::ConsumerInfo& ci,
                                        unsigned int upstreamId)
 {
-    BMQ_LOGTHROTTLE_INFO() << "QueueHandle [" << this
-                           << "] registering Subscription [id = "
-                           << downstreamId
-                           << ", downstreamSubQueueId = " << downstreamSubId
-                           << ", upstreamId = " << upstreamId << "]";
+    BMQ_LOGTHROTTLE_INFO << "QueueHandle [" << this
+                         << "] registering Subscription [id = " << downstreamId
+                         << ", downstreamSubQueueId = " << downstreamSubId
+                         << ", upstreamId = " << upstreamId << "]";
 
     const bsl::shared_ptr<Downstream>& subStream = downstream(downstreamSubId);
 
@@ -739,10 +738,10 @@ bool QueueHandle::unregisterSubStream(
              itSubscription != d_subscriptions.end();) {
             const SubscriptionSp& subscription = itSubscription->second;
             if (subscription->d_downstreamSubQueueId == downstreamSubQueueId) {
-                BMQ_LOGTHROTTLE_INFO()
-                    << "Queue '" << d_queue_sp->description() << "' handle "
-                    << this << " removing Subscription "
-                    << itSubscription->first;
+                BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queue_sp->description()
+                                     << "' handle " << this
+                                     << " removing Subscription "
+                                     << itSubscription->first;
                 itSubscription = d_subscriptions.erase(itSubscription);
             }
             else {
@@ -902,7 +901,7 @@ void QueueHandle::deliverMessage(
 
             // Increasing resource usage ('update()' above) made us hit our
             // maxUnconfirmed limit.
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << "Queue '" << d_queue_sp->description()
                 << "' with subscription [" << subscriptions[i] << "]"
                 << " of client '"

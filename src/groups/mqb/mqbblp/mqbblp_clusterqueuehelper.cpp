@@ -99,15 +99,15 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
-#define BMQ_LOGTHROTTLE_INFO()                                                \
+#define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
-#define BMQ_LOGTHROTTLE_WARN()                                                \
+#define BMQ_LOGTHROTTLE_WARN                                                  \
     BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
-#define BMQ_LOGTHROTTLE_ERROR()                                               \
+#define BMQ_LOGTHROTTLE_ERROR                                                 \
     BALL_LOGTHROTTLE_ERROR(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)          \
         << "[THROTTLED] "
 
@@ -433,10 +433,10 @@ void ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
         // not active) at the moment, nothing to be done; the queue will
         // automatically be re-processed once we have an active leader.
 
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description()
-            << " Cannot proceed with queueAssignment of '"
-            << queueContext->uri() << "' (waiting for an ACTIVE leader).";
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << " Cannot proceed with queueAssignment of '"
+                             << queueContext->uri()
+                             << "' (waiting for an ACTIVE leader).";
     }
 }
 
@@ -456,9 +456,9 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
         d_clusterData_p->membership().selfNodeStatus();
 
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != status) {
-        BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                               << " Cannot proceed with queueAssignment of '"
-                               << uri << "' because self is " << status;
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << " Cannot proceed with queueAssignment of '"
+                             << uri << "' because self is " << status;
         return;  // RETURN
     }
 
@@ -468,9 +468,9 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
 
     status = leader->nodeStatus();
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != status) {
-        BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                               << " Cannot proceed with queueAssignment of '"
-                               << uri << "' because the leader is " << status;
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << " Cannot proceed with queueAssignment of '"
+                             << uri << "' because the leader is " << status;
         return;  // RETURN
     }
 
@@ -507,7 +507,7 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
     }
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << " Error while sending request to leader [rc: " << rc
             << ", request: " << request->request() << "]";
@@ -528,17 +528,17 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
     BSLS_ASSERT_SAFE(uri.isCanonical());
 
     if (responder != d_clusterData_p->electorInfo().leaderNode()) {
-        BMQ_LOGTHROTTLE_WARN() << d_cluster_p->description()
-                               << " Received queueAssignmentResponse: "
-                               << requestContext->response()
-                               << ", from: " << responder->nodeDescription()
-                               << ", but current leader/active-node is: "
-                               << (d_clusterData_p->electorInfo().leaderNode()
-                                       ? d_clusterData_p->electorInfo()
-                                             .leaderNode()
-                                             ->nodeDescription()
-                                       : "** none **")
-                               << ". Ignoring this response.";
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << " Received queueAssignmentResponse: "
+                             << requestContext->response()
+                             << ", from: " << responder->nodeDescription()
+                             << ", but current leader/active-node is: "
+                             << (d_clusterData_p->electorInfo().leaderNode()
+                                     ? d_clusterData_p->electorInfo()
+                                           .leaderNode()
+                                           ->nodeDescription()
+                                     : "** none **")
+                             << ". Ignoring this response.";
         return;  // RETURN
 
         // Note that we don't remove QueueContext from the 'pendingContext'
@@ -552,7 +552,7 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
     // Response must be a status (either 'success' or 'failure').
 
     if (!requestContext->response().choice().isStatusValue()) {
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << " Received unexpected queueAssignmentResponse from '"
             << responder->nodeDescription()
@@ -572,13 +572,13 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
         // 'queueAssignmentAdvisory' message may have been dropped due to
         // change of leader.
 
-        BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                               << " Received queueAssignment response from '"
-                               << responder->nodeDescription()
-                               << "': " << requestContext->response();
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << " Received queueAssignment response from '"
+                             << responder->nodeDescription()
+                             << "': " << requestContext->response();
     }
     else {
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << " Received queueAssignment ERROR response from '"
             << responder->nodeDescription()
@@ -638,6 +638,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
     bool       isAvailable       = true;
 
     if (d_cluster_p->isRemote()) {
+        BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID == pid);
+
         haveActivePrimary = d_clusterData_p->electorInfo().hasActiveLeader();
     }
     else {
@@ -667,62 +669,67 @@ void ClusterQueueHelper::onQueueContextAssigned(
 
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
     {
-        bmqu::MemOutStream logMsg(d_allocator_p);
-        logMsg << d_cluster_p->description() << ": ";
+        BALL_LOG_OUTPUT_STREAM << d_cluster_p->description() << ": ";
 
         if (d_cluster_p->isRemote()) {
-            BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID == pid);
-
-            logMsg << "Queue '" << queueContext->uri() << "' now assigned.";
+            BALL_LOG_OUTPUT_STREAM << "Queue '" << queueContext->uri()
+                                   << "' now assigned.";
             if (!havePending) {
                 // If no pending contexts, nothing more to do here but log.
-                logMsg << " No pending contexts for the queue.";
+                BALL_LOG_OUTPUT_STREAM
+                    << " No pending contexts for the queue.";
             }
             else if (!haveActivePrimary) {
                 // No active leader in proxy (implies no active node).
 
-                logMsg << " Queue has "
-                       << queueContext->d_liveQInfo.d_pending.size()
-                       << " pending contexts but there is no ACTIVE leader.";
+                BALL_LOG_OUTPUT_STREAM
+                    << " Queue has "
+                    << queueContext->d_liveQInfo.d_pending.size()
+                    << " pending contexts but there is no ACTIVE leader.";
             }
             else {
-                logMsg << " Proceeding with "
-                       << queueContext->d_liveQInfo.d_pending.size()
-                       << " associated pending contexts.";
+                BALL_LOG_OUTPUT_STREAM
+                    << " Proceeding with "
+                    << queueContext->d_liveQInfo.d_pending.size()
+                    << " associated pending contexts.";
             }
         }
         else {
             const mqbnet::ClusterNode* primaryNode =
                 d_clusterState_p->partition(pid).primaryNode();
 
-            logMsg << "Queue '" << queueContext->uri()
-                   << "' now assigned to Partition [" << pid << "]";
+            BALL_LOG_OUTPUT_STREAM << "Queue '" << queueContext->uri()
+                                   << "' now assigned to Partition [" << pid
+                                   << "]";
             if (primaryNode) {
-                logMsg << " (" << primaryNode->nodeDescription() << ").";
+                BALL_LOG_OUTPUT_STREAM
+                    << " (" << primaryNode->nodeDescription() << ").";
             }
             else {
-                logMsg << " (*no primary*).";
+                BALL_LOG_OUTPUT_STREAM << " (*no primary*).";
             }
 
             if (!havePending) {
                 // If no pending contexts, nothing more to do here but log.
-                logMsg << " No pending contexts for the queue.";
+                BALL_LOG_OUTPUT_STREAM
+                    << " No pending contexts for the queue.";
             }
             else if (!isAvailable) {
                 // Self is not available, we have to postpone processing the
                 // queue opening.
 
-                logMsg << " There are "
-                       << queueContext->d_liveQInfo.d_pending.size()
-                       << " associated pending contexts, but self is not "
-                       << "AVAILABLE. Current self node status: "
-                       << d_clusterData_p->membership().selfNodeStatus();
+                BALL_LOG_OUTPUT_STREAM
+                    << " There are "
+                    << queueContext->d_liveQInfo.d_pending.size()
+                    << " associated pending contexts, but self is not "
+                    << "AVAILABLE. Current self node status: "
+                    << d_clusterData_p->membership().selfNodeStatus();
             }
             else if (!haveActivePrimary) {
                 // We don't have a primary or primary is passive, we have to
                 // postpone processing the queue opening.
 
-                logMsg
+                BALL_LOG_OUTPUT_STREAM
                     << " There are "
                     << queueContext->d_liveQInfo.d_pending.size()
                     << " associated pending contexts, waiting for an ACTIVE "
@@ -731,12 +738,12 @@ void ClusterQueueHelper::onQueueContextAssigned(
                                     : "** null **");
             }
             else {
-                logMsg << " Proceeding with "
-                       << queueContext->d_liveQInfo.d_pending.size()
-                       << " associated pending contexts.";
+                BALL_LOG_OUTPUT_STREAM
+                    << " Proceeding with "
+                    << queueContext->d_liveQInfo.d_pending.size()
+                    << " associated pending contexts.";
             }
         }
-        BALL_LOG_OUTPUT_STREAM << logMsg.str();
     }
 
     if (havePending && haveActivePrimary && isAvailable) {
@@ -761,7 +768,7 @@ void ClusterQueueHelper::processPendingClose(QueueContextSp       queueContext,
 
     for (size_t i = 0; i < pendingClose.size(); ++i) {
         if (isOpen && isValid) {
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description()
                 << ": sending pending Close request with parameters ["
                 << pendingClose[i].d_handleParameters << "].";
@@ -773,7 +780,7 @@ void ClusterQueueHelper::processPendingClose(QueueContextSp       queueContext,
         }
         else {
             // 'sqit' is invalidated or the state is not OPEN.
-            BMQ_LOGTHROTTLE_WARN()
+            BMQ_LOGTHROTTLE_WARN
                 << d_cluster_p->description()
                 << ": not sending excessive pending Close request"
                 << " with parameters [" << pendingClose[i].d_handleParameters
@@ -985,7 +992,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     } while (0)
 
     if (bmqp::QueueUtil::isEmpty(context->d_handleParameters)) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << "#INVALID_OPENQUEUE_REQ " << d_cluster_p->description()
             << ": Not sending openQueueRequest to "
             << d_clusterState_p->partition(pid)
@@ -1083,7 +1090,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
         requestContext->request().choice().openQueue().handleParameters();
 
     if (bmqp::QueueUtil::isEmpty(handleParams)) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << "#INVALID_REOPENQUEUE_REQ " << d_cluster_p->description()
             << ": Not sending ReOpenQueueRequest to "
             << activeNode->nodeDescription()
@@ -1129,11 +1136,11 @@ void ClusterQueueHelper::onOpenQueueResponse(
     BSLS_ASSERT_SAFE(requestContext->request().choice().isOpenQueueValue());
     BSLS_ASSERT_SAFE(context);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": on OpenQueueResponse from "
-                           << responder->nodeDescription() << ": "
-                           << requestContext->response()
-                           << ", for request: " << requestContext->request();
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": on OpenQueueResponse from "
+                         << responder->nodeDescription() << ": "
+                         << requestContext->response()
+                         << ", for request: " << requestContext->request();
 
     const bmqt::GenericResult::Enum mainCode = requestContext->result();
 
@@ -1260,9 +1267,9 @@ void ClusterQueueHelper::onOpenQueueResponse(
         processOpenQueueRequest(context);
     }
     else {
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description()
-            << ": buffering open queue request for " << qcontext.uri();
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": buffering open queue request for "
+                             << qcontext.uri();
 
         qcontext.d_liveQInfo.d_pending.push_back(context);
     }
@@ -1282,12 +1289,12 @@ void ClusterQueueHelper::onReopenQueueResponse(
     BSLS_ASSERT_SAFE(requestContext->request().choice().isOpenQueueValue());
     BSLS_ASSERT_SAFE(0 < numAttempts);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Processing ReopenQueue "
-                           << "response [attemptNumber: " << numAttempts
-                           << ", request: " << requestContext->request()
-                           << ", response: " << requestContext->response()
-                           << "]";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Processing ReopenQueue "
+                         << "response [attemptNumber: " << numAttempts
+                         << ", request: " << requestContext->request()
+                         << ", response: " << requestContext->response()
+                         << "]";
 
     const bmqp_ctrlmsg::OpenQueue& req =
         requestContext->request().choice().openQueue();
@@ -1300,7 +1307,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
         // Can occur if client requested to close the queue or queue was GC'ed
         // before ReOpen response was received.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": ignoring ReopenQueueResponse for queue as it"
             << " no longer exists in the cluster state. Queue [" << uri
@@ -1322,7 +1329,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
     if (sqit == qinfo.d_subQueueIds.end()) {
         // REVISIT: This is the result of Close request in beteen
         // Reopen request and response.
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": ignoring ReopenQueueResponse for subQueue as it"
             << " no longer exists in the queue state. [uri: " << uri
@@ -1399,7 +1406,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
         if (d_cluster_p->isStopping()) {
             // Self is stopping.  Drop the response.
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description()
                 << ": Not retrying ReopenQueue  [reason: 'stopping'"
                 << ", request: " << requestContext->request()
@@ -1412,7 +1419,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
         // reopen-queue attempts.  Schedule a reopen-queue request after the
         // configured time interval.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": queue reopen-request failed. Request: "
             << requestContext->request()
@@ -1446,7 +1453,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
     BSLS_ASSERT_SAFE(appId == sqit->appId());
 
     if (sqit->value().d_state != SubQueueContext::k_REOPENING) {
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not sending a configure-queue request in response "
             << "to ReopenQueue response, for queue [" << uri
@@ -1458,7 +1465,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
     if (d_cluster_p->isStopping()) {
         // Self is stopping.  Drop the response.
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not sending a configure-queue request in response "
             << "to ReopenQueue response, for queue [" << uri
@@ -1469,7 +1476,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
     sqit->value().d_state = SubQueueContext::k_OPEN;
 
-    BMQ_LOGTHROTTLE_INFO()
+    BMQ_LOGTHROTTLE_INFO
         << d_cluster_p->description() << ": queue successfully reopened ["
         << requestContext->request()
         << "]. Attempting to send a configure-queue request now.";
@@ -1477,7 +1484,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
     if (queueptr == 0) {
         // Can this occur?
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not sending a configure-queue request in response "
             << "to ReopenQueue response, for queue [" << uri
@@ -1490,7 +1497,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
     if (!isQueueAssigned(*queueContext.get())) {
         // Can this occur?
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not sending a configure-queue request in response "
             << "to ReopenQueue response, for queue [" << uri
@@ -1624,7 +1631,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
 
     if (d_cluster_p->isStopping()) {
         // Self is stopping.  Drop the response.
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Dropping (re)configureQueue response [reason: 'stopping'"
             << ", request: " << requestContext->request()
@@ -1637,7 +1644,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
         // Can occur if client requested to close the queue or queue was GC'ed
         // before Configure response was received.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": ignoring (re)configureQueueResponse for queue as"
             << " it no longer exists in the cluster state. Queue [" << uri
@@ -1651,7 +1658,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
         queueContext->d_liveQInfo.d_subQueueIds.findByAppIdSafe(appId);
 
     if (itStream == queueContext->d_liveQInfo.d_subQueueIds.end()) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": ignoring (re)configureQueueResponse for queue as"
             << " the app is no longer open. Queue [" << uri
@@ -1662,7 +1669,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
     if (requestContext->response().choice().isStatusValue()) {
         // Must be a failure.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Received failed (re)configureQueueStream response:"
             << " [request: " << requestContext->request()
@@ -1725,7 +1732,7 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
         // generation (i.e., old active node crashed, came back up and became
         // the active node for this proxy again).  No action needs to be taken
         // here.
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << "#STALE_ACTIVE " << d_clusterData_p->identity().description()
             << ": not retrying ReopenQueue request as the upstream/active has "
             << "changed [requestActiveNode: "
@@ -1762,7 +1769,7 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
     if (it == d_queues.end()) {
         // Can this occur?
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not retrying ReopenQueue request again for queue [" << uri
             << "], as queue doesn't exist in cluster state.";
@@ -1775,7 +1782,7 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
     if (!queueContext->d_liveQInfo.d_queue_sp) {
         // Can this occur?
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not retrying ReopenQueue request for queue [" << uri
             << "], as queue instance has been deleted.";
@@ -1787,7 +1794,7 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
     if (!isQueueAssigned(*queueContext.get())) {
         // Can this occur?
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not retrying ReopenQueue request for queue [" << uri
             << "], as queue is not assigned.";
@@ -1802,7 +1809,7 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
         upstreamSubQueueId);
 
     if (sqit == qinfo.d_subQueueIds.end()) {
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": not retrying ReopenQueue request as it"
             << " no longer exists in the queue state. [uri: " << uri
@@ -1870,7 +1877,7 @@ void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
     // in); but upstream was a success, so we need to rollback and issue a
     // closeQueue.
 
-    BMQ_LOGTHROTTLE_WARN()
+    BMQ_LOGTHROTTLE_WARN
         << d_cluster_p->description()
         << ": OpenQueueConfirmationCookie released without "
         << "successful processing from the requester. Queue handle  "
@@ -1944,7 +1951,7 @@ bool ClusterQueueHelper::createQueue(
     const unsigned int upstreamQueueId = parameters.qId();
 
     if (result == mqbi::ClusterErrorCode::e_OK) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": createQueue called [upstreamQueueId: " << upstreamQueueId
             << ", openQueueResponse: " << openQueueResponse
@@ -2162,9 +2169,9 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     if (rc != 0) {
         // Queue.configure() failed.
 
-        BMQ_LOGTHROTTLE_ERROR()
-            << "Failure configuring queue '" << queueContext->uri()
-            << "': " << error.str() << ".";
+        BMQ_LOGTHROTTLE_ERROR << "Failure configuring queue '"
+                              << queueContext->uri() << "': " << error.str()
+                              << ".";
 
         errorDescription << error.str();
 
@@ -2248,7 +2255,7 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
 
             BSLS_ASSERT_SAFE(sqiIter != cnsSubQueueIds.end());
 
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description() << ": "
                 << requester->description() << ": Deleting subStream "
                 << sqiIter->appId() << "[subId: " << sqiIter->subId()
@@ -2259,20 +2266,20 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
 
             if (result.hasNoHandleClients()) {
                 requester->queueHandles().erase(it);
-                BMQ_LOGTHROTTLE_INFO()
-                    << d_cluster_p->description() << ": "
-                    << requester->description() << ": Deleted handle [queue: '"
-                    << handle->queue()->uri().asString()
-                    << "', id: " << queueId << "]";
+                BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": "
+                                     << requester->description()
+                                     << ": Deleted handle [queue: '"
+                                     << handle->queue()->uri().asString()
+                                     << "', id: " << queueId << "]";
             }
         }
         else {
-            BMQ_LOGTHROTTLE_ERROR()
-                << d_cluster_p->description() << ": "
-                << requester->description()
-                << ": Unable to delete handle with '"
-                << handle->queue()->uri().asString() << "' [reason: id "
-                << queueId << " not found]";
+            BMQ_LOGTHROTTLE_ERROR << d_cluster_p->description() << ": "
+                                  << requester->description()
+                                  << ": Unable to delete handle with '"
+                                  << handle->queue()->uri().asString()
+                                  << "' [reason: id " << queueId
+                                  << " not found]";
         }
     }
 
@@ -2376,7 +2383,7 @@ void ClusterQueueHelper::onHandleConfiguredDispatched(
         if (it == requester->queueHandles().end()) {
             // Failure.
 
-            BMQ_LOGTHROTTLE_WARN()
+            BMQ_LOGTHROTTLE_WARN
                 << d_cluster_p->description()
                 << ": Received configureStream response from ["
                 << requester->description() << "] for a queue with unknown Id "
@@ -2567,7 +2574,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         // logic takes care of both success and failure of this open-queue
         // result.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Rolling back open-queue result: " << status
             << " for request: " << request.choice().openQueue()
@@ -2618,7 +2625,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
 
     CNSQueueHandleMapIter iter = requester->queueHandles().find(queueId);
     if (iter != requester->queueHandles().end()) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Reused handle when processing peer "
             << "openQueueRequest [requester: " << requester->description()
@@ -2643,7 +2650,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         }
     }
     else {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Inserting handle to nodeSession, when processing "
             << "peer openQueueRequest [requester: " << requester->description()
@@ -2689,10 +2696,10 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
 
     if (isOpen) {
         if (generationCount == 0) {
-            BMQ_LOGTHROTTLE_INFO()
-                << d_cluster_p->description() << ": has deconfigured queue ["
-                << queueContext->uri() << "], subStream id ["
-                << upstreamSubQueueId << "]";
+            BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                                 << ": has deconfigured queue ["
+                                 << queueContext->uri() << "], subStream id ["
+                                 << upstreamSubQueueId << "]";
         }
         else {
             queue->dispatcher()->execute(
@@ -2743,7 +2750,7 @@ void ClusterQueueHelper::configureQueueDispatched(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     if (d_isShutdownLogicOn) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Shutting down and skipping configure queue [: " << uri
             << "], queueId: " << queueId
@@ -2770,7 +2777,7 @@ void ClusterQueueHelper::configureQueueDispatched(
         // close/drop the queue handle, and we end up here.  See similar note
         // in 'releaseQueueDispatched'.
 
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": Attempting to configure handle for a non-existing"
             << " queue [" << uri << "], queueId: " << queueId
@@ -2801,7 +2808,7 @@ void ClusterQueueHelper::configureQueueDispatched(
         // SubStream got deleted because of outgoing close request(s) but
         // before close response(s), the handle drops and tries to send
         // deconfigure request.
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": Attempting to configure handle for a non-existing"
             << " subStream id [" << upstreamSubQueueId << "], queue [" << uri
@@ -2822,7 +2829,7 @@ void ClusterQueueHelper::configureQueueDispatched(
     SubQueueContext::Enum state = iter->value().d_state;
 
     if (state != SubQueueContext::k_OPEN) {
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": For a 'configureHandle' request, indicating success even"
             << " though the upstream state is not OPEN (" << state
@@ -2861,7 +2868,7 @@ void ClusterQueueHelper::configureQueueDispatched(
         // will advertise correct stream parameters when an upstream node
         // eventually comes up.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": For a 'configureHandle' request, indicating success even"
             << " though there is currently no upstream (or self is primary)."
@@ -2919,7 +2926,7 @@ void ClusterQueueHelper::releaseQueueDispatched(
         // close/drop the queue handle, and we end up here.  See similar note
         // in 'configureQueueDispatched'.
 
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": Attempting to release handle for a non-existing"
             << " queue [" << handleParameters.uri()
@@ -2950,7 +2957,7 @@ void ClusterQueueHelper::releaseQueueDispatched(
     StreamsMap::iterator iter = qinfo.d_subQueueIds.findBySubIdSafe(
         upstreamSubQueueId);
     if (iter == qinfo.d_subQueueIds.end()) {
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": Attempting to release handle for a non-existing"
             << " stream [" << handleParameters.uri()
@@ -2977,7 +2984,7 @@ void ClusterQueueHelper::releaseQueueDispatched(
         // upstream may not be ready for it.
 
         // Save the request for later.
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Parking Close request until Reopen response for"
             << " the stream [" << handleParameters.uri()
@@ -3037,7 +3044,7 @@ void ClusterQueueHelper::sendCloseQueueRequest(
         // will advertise correct stream parameters when an upstream node
         // eventually comes up.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": For a 'releaseHandle' request, indicating success even"
             << " though there is currently no upstream (or self is primary)."
@@ -3084,11 +3091,11 @@ void ClusterQueueHelper::onReleaseQueueResponse(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Received closeQueue response: [request: "
-                           << requestContext->request()
-                           << ", response: " << requestContext->response()
-                           << "]";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Received closeQueue response: [request: "
+                         << requestContext->request()
+                         << ", response: " << requestContext->response()
+                         << "]";
 
     // Upstream node will send a 'CloseQueueResponse' in case of success, and a
     // 'status' response in case of failure.
@@ -3096,7 +3103,7 @@ void ClusterQueueHelper::onReleaseQueueResponse(
     if (requestContext->response().choice().isStatusValue()) {
         // Must be a failure.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Received failed closeQueue response: [request: "
             << requestContext->request()
@@ -3137,7 +3144,7 @@ void ClusterQueueHelper::onQueueHandleCreatedDispatched(mqbi::Queue*     queue,
 
     QueueContextMapIter queueContextIt = d_queues.find(uri);
     if (queueContextIt == d_queues.end()) {
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": Attemping to process a 'handle-created' event for queue ["
             << uri << "], queue ptr [" << queue
@@ -3157,10 +3164,10 @@ void ClusterQueueHelper::onQueueHandleCreatedDispatched(mqbi::Queue*     queue,
         ++queueContextSp->d_liveQInfo.d_numQueueHandles;
     }
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": latest num handle count for queue [" << uri
-                           << "], queue ptr [" << queue << "]: "
-                           << queueContextSp->d_liveQInfo.d_numQueueHandles;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": latest num handle count for queue [" << uri
+                         << "], queue ptr [" << queue << "]: "
+                         << queueContextSp->d_liveQInfo.d_numQueueHandles;
 
     if (0 == queueContextSp->d_liveQInfo.d_numHandleCreationsInProgress &&
         0 == queueContextSp->d_liveQInfo.d_numQueueHandles) {
@@ -3188,7 +3195,7 @@ void ClusterQueueHelper::onQueueHandleDestroyedDispatched(mqbi::Queue* queue,
         // the queue from the domain (but note that handles have a queueSp, so
         // the queue object will remain valid).
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Attempting to process a 'handle-destroyed' event for queue ["
             << uri << "], queue ptr [" << queue
@@ -3203,7 +3210,7 @@ void ClusterQueueHelper::onQueueHandleDestroyedDispatched(mqbi::Queue* queue,
         // the previous incarnation of the queue, and that previous incarnation
         // non longer exists in the cluster state.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Attempting to process a 'handle-destroyed' event for queue ["
             << uri << "], queue ptr [" << queue
@@ -3220,9 +3227,9 @@ void ClusterQueueHelper::onQueueHandleDestroyedDispatched(mqbi::Queue* queue,
 
     int numHandles = --queueContextSp->d_liveQInfo.d_numQueueHandles;
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": latest num handle count for queue [" << uri
-                           << "], queue ptr [" << queue << "]: " << numHandles;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": latest num handle count for queue [" << uri
+                         << "], queue ptr [" << queue << "]: " << numHandles;
 
     if (0 < numHandles) {
         return;  // RETURN
@@ -3231,7 +3238,7 @@ void ClusterQueueHelper::onQueueHandleDestroyedDispatched(mqbi::Queue* queue,
     BSLS_ASSERT_SAFE(0 == numHandles);
 
     if (0 != queueContextSp->d_liveQInfo.d_numHandleCreationsInProgress) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description() << ": num handle count for queue ["
             << uri << "] has gone to zero but there are ["
             << queueContextSp->d_liveQInfo.d_numHandleCreationsInProgress
@@ -3316,7 +3323,7 @@ bool ClusterQueueHelper::sendConfigureQueueRequest(
         // will be advertised upstream.  So just like above, we indicate
         // success via 'callback'.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Failed to send 'configureQueue' request "
             << "(isReconfigure: " << bsl::boolalpha << isReconfigureRequest
@@ -3392,7 +3399,7 @@ void ClusterQueueHelper::sendCloseQueueRequest(
         // will be advertised upstream.  So just like above, we indicate
         // success via 'callback'.
 
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Failed to send close-queue request: " << request->request()
             << ", for queue [" << handleParameters.uri() << "] to "
@@ -3433,7 +3440,7 @@ bool ClusterQueueHelper::subtractCounters(
 
     if (0 == itSubStream->value().d_parameters.readCount() &&
         0 == itSubStream->value().d_parameters.writeCount()) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description() << ": Erasing subStream ["
             << itSubStream->appId() << ", " << itSubStream->subId()
             << "] on close-queue request for queue [" << handleParameters.uri()
@@ -3523,9 +3530,9 @@ void ClusterQueueHelper::restoreStateRemote()
             // any pending open-queue responses.  So there is no need to
             // re-issue an open-queue request for this one.
 
-            BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                                   << ": Not performing restore of queue ["
-                                   << queueContext->uri() << "].";
+            BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                                 << ": Not performing restore of queue ["
+                                 << queueContext->uri() << "].";
             continue;  // CONTINUE
         }
 
@@ -3681,9 +3688,9 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 // TBD: Log at INFO level for now, but eventually should be
                 //      lowered to DEBUG/TRACE.
 
-                BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                                       << " Not performing restore of queue "
-                                       << "[" << queueContext->uri() << "].";
+                BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                                     << " Not performing restore of queue "
+                                     << "[" << queueContext->uri() << "].";
                 continue;  // CONTINUE
             }
 
@@ -3800,7 +3807,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         // 'state restore' sequence.
                     }
                     else {
-                        BMQ_LOGTHROTTLE_INFO()
+                        BMQ_LOGTHROTTLE_INFO
                             << d_cluster_p->description()
                             << ": Skipping restore of " << queueContext->uri()
                             << " because it has no active queue handles";
@@ -3817,7 +3824,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     // should process them.
                     if (!queueContext->d_liveQInfo.d_pending.empty()) {
                         // Proceed with pending contexts, if any.
-                        BMQ_LOGTHROTTLE_INFO()
+                        BMQ_LOGTHROTTLE_INFO
                             << d_cluster_p->description()
                             << ": Proceeding with "
                             << queueContext->d_liveQInfo.d_pending.size()
@@ -3850,9 +3857,10 @@ ClusterQueueHelper::restoreStateHelper(QueueLiveState&      queueInfo,
     BSLS_ASSERT_SAFE(activeNode);
 
 #define LOG_ERROR_SEND(REQ, RC)                                               \
-    BMQ_LOGTHROTTLE_ERROR()                                                   \
-        << d_cluster_p->description() << ": Error while sending "             \
-        << "ReopenQueue request: " << REQ << ", rc: " << RC << ".";
+    BMQ_LOGTHROTTLE_ERROR << d_cluster_p->description()                       \
+                          << ": Error while sending "                         \
+                          << "ReopenQueue request: " << REQ << ", rc: " << RC \
+                          << ".";
 
     const mqbblp::Queue* queuePtr = queueInfo.d_queue_sp.get();
 
@@ -3886,7 +3894,7 @@ ClusterQueueHelper::restoreStateHelper(QueueLiveState&      queueInfo,
         subQueueIdInfo.subId()       = iter->subId();
         subQueueIdInfo.appId()       = iter->appId();
 
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << "Attempting to re-issue open-queue request for subStream "
             << subQueueIdInfo << " of queue " << queuePtr->description()
             << ", having the consumer portion [handleParameters: "
@@ -3950,7 +3958,7 @@ void ClusterQueueHelper::cancelAllTimers(QueueContext* queueContext)
          iter != queueContext->d_liveQInfo.d_subQueueIds.end();
          ++iter) {
         if (iter->value().d_timer) {
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_clusterData_p->identity().description()
                 << ": canceling timer associated with " << queueContext->uri()
                 << ", subStream: " << iter->appId() << "(" << iter->subId()
@@ -3984,7 +3992,7 @@ void ClusterQueueHelper::removeQueue(const QueueContextMapIter& it)
             (0 < queueContextSp->d_liveQInfo.d_inFlight)) {
             // If self is not stopping, and there are pending or in-flight
             // requests, don't remove the queue.
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description()
                 << ": num handle count for queue [" << it->first
                 << "] has gone to zero but there are ["
@@ -4001,10 +4009,10 @@ void ClusterQueueHelper::removeQueue(const QueueContextMapIter& it)
         // All criteria for removing queue from the proxy has been met (no
         // handles, and no pending or in-flight contexts).
         unsigned int qId = queueContextSp->d_liveQInfo.d_id;
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description() << ": Removing queue '"
-            << queueContextSp->uri() << "' with queueId " << qId
-            << " from Partition [" << pid << "].";
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": Removing queue '" << queueContextSp->uri()
+                             << "' with queueId " << qId << " from Partition ["
+                             << pid << "].";
 
         d_queuesById.erase(qId);
 
@@ -4057,12 +4065,11 @@ void ClusterQueueHelper::removeQueueRaw(const QueueContextMapIter& it)
 
     const QueueContextSp& queueContextSp = it->second;
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Removing queue '" << queueContextSp->uri()
-                           << "' with queueId "
-                           << queueContextSp->d_liveQInfo.d_id
-                           << " from Partition ["
-                           << queueContextSp->partitionId() << "].";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": Removing queue '"
+                         << queueContextSp->uri() << "' with queueId "
+                         << queueContextSp->d_liveQInfo.d_id
+                         << " from Partition ["
+                         << queueContextSp->partitionId() << "].";
 
     mqbi::Queue* queue = queueContextSp->d_liveQInfo.d_queue_sp.get();
     if (queue) {
@@ -4208,8 +4215,8 @@ void ClusterQueueHelper::onQueueAssigned(
     // Queue assignment from the leader is honored per the info updated
     // above
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Assigned queue: " << *info;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Assigned queue: " << *info;
 
     if (!d_clusterState_p->isSelfPrimary(info->partitionId())) {
         // This is a replica node
@@ -4260,10 +4267,10 @@ void ClusterQueueHelper::onQueueUnassigned(
         // NOTE: it may happen if the node is starting, hasn't yet
         //       synchronized its cluster state but receives an
         //       unassignment advisory from the leader.
-        BMQ_LOGTHROTTLE_ERROR()
-            << d_cluster_p->description()
-            << ": Ignoring queue unassignment from leader " << leaderDesc
-            << ", for unknown queue: " << *info;
+        BMQ_LOGTHROTTLE_ERROR << d_cluster_p->description()
+                              << ": Ignoring queue unassignment from leader "
+                              << leaderDesc
+                              << ", for unknown queue: " << *info;
 
         BSLS_ASSERT_SAFE(0 ==
                          d_clusterState_p->queueKeys().count(info->key()));
@@ -4286,7 +4293,7 @@ void ClusterQueueHelper::onQueueUnassigned(
         // with this queue entry), and then received this advisory, without
         // ever hearing about this queue from the leader.
 
-        BMQ_LOGTHROTTLE_ERROR()
+        BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": Ignoring queue unassignment from leader " << leaderDesc
             << ", for queue: " << *info
@@ -4301,11 +4308,11 @@ void ClusterQueueHelper::onQueueUnassigned(
         // (note that we enqueue handleSp to various threads when it is removed
         // from a queue) until after a queue unassignment advisory is received.
 
-        BMQ_LOGTHROTTLE_WARN()
-            << d_cluster_p->description()
-            << ": Received queue unassignment from leader " << leaderDesc
-            << ", for queue: " << *info << " but num handle count is ["
-            << qinfo.d_numQueueHandles << "].";
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << ": Received queue unassignment from leader "
+                             << leaderDesc << ", for queue: " << *info
+                             << " but num handle count is ["
+                             << qinfo.d_numQueueHandles << "].";
     }
 
     if (d_clusterState_p->isSelfPrimary(info->partitionId())) {
@@ -4339,7 +4346,7 @@ void ClusterQueueHelper::onQueueUnassigned(
             // processed, or rejected (the old primary will reject it) and
             // reprocessed from the beginning with the assignment step.
 
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description()
                 << ": While processing queue assignment from leader "
                 << leaderDesc << ", for queue: " << *info
@@ -4361,9 +4368,9 @@ void ClusterQueueHelper::onQueueUnassigned(
         }
         else {
             // Nothing is pending, it is safe to delete all references.
-            BMQ_LOGTHROTTLE_INFO()
-                << d_cluster_p->description()
-                << ": All references to queue: " << *info << " removed.";
+            BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                                 << ": All references to queue: " << *info
+                                 << " removed.";
 
             removeQueueRaw(queueContextIt);
         }
@@ -4379,8 +4386,8 @@ void ClusterQueueHelper::onQueueUnassigned(
         .at(info->uri().qualifiedDomain())
         ->adjustQueueCount(-1);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Unassigned queue: " << *info;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Unassigned queue: " << *info;
 }
 
 void ClusterQueueHelper::onQueueUpdated(
@@ -4450,10 +4457,10 @@ void ClusterQueueHelper::onQueueUpdated(
 
     bmqu::Printer<AppInfos> printer1(&addedAppIds);
     bmqu::Printer<AppInfos> printer2(&removedAppIds);
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Updated queue: " << uri
-                           << ", addedAppIds: " << printer1
-                           << ", removedAppIds: " << printer2;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Updated queue: " << uri
+                         << ", addedAppIds: " << printer1
+                         << ", removedAppIds: " << printer2;
 
     // Resume open queue request(s) waiting for new App(s).
     processPendingContexts(qiter->second);
@@ -4468,8 +4475,8 @@ void ClusterQueueHelper::onQueueUpdated(
     bsl::vector<VoidFunctor> pending(d_allocator_p);
     pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description() << ": processing "
-                           << pending.size() << " pending Apps Updates.";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
+                         << pending.size() << " pending Apps Updates.";
 
     for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
          it != pending.end();
@@ -4601,13 +4608,13 @@ void ClusterQueueHelper::openQueue(
     BSLS_ASSERT_SAFE(handleParameters.qId() !=
                      bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Initiating openQueue of '" << uri << "' for '"
-                           << clientContext->description() << "'";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Initiating openQueue of '" << uri << "' for '"
+                         << clientContext->description() << "'";
 
 #define CALLBACK_FAILURE(REASON, CODE)                                        \
     do {                                                                      \
-        BMQ_LOGTHROTTLE_ERROR()                                               \
+        BMQ_LOGTHROTTLE_ERROR                                                 \
             << d_cluster_p->description()                                     \
             << ": Received an openQueue request from a cluster peer "         \
             << "node for '" << uri << "' that I can not process "             \
@@ -4885,9 +4892,9 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
     BSLS_ASSERT_SAFE(request.choice().openQueue().handleParameters().qId() !=
                      bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Received openQueueRequest from '"
-                           << requester->description() << "': " << request;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Received openQueueRequest from '"
+                         << requester->description() << "': " << request;
 
     // Unlike in 'mqba::ClientSession::processOpenQueue()', this request is
     // only invoked when receiving a request from a peer node in the cluster,
@@ -4966,10 +4973,9 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
     bmqp_ctrlmsg::ConfigureStream& req = adaptor;
 
     if (request.choice().isConfigureQueueStreamValue()) {
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description()
-            << ": Received configureQueueStreamRequest from ["
-            << requester->description() << "]: " << request;
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": Received configureQueueStreamRequest from ["
+                             << requester->description() << "]: " << request;
 
         bmqp::ProtocolUtil::convert(&adaptor,
                                     request.choice().configureQueueStream());
@@ -4977,9 +4983,9 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
     else {
         BSLS_ASSERT_SAFE(request.choice().isConfigureStreamValue());
 
-        BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                               << ": Received configureStreamRequest from ["
-                               << requester->description() << "]: " << request;
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": Received configureStreamRequest from ["
+                             << requester->description() << "]: " << request;
 
         req = request.choice().configureStream();
     }
@@ -4989,7 +4995,7 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
     if (it == requester->queueHandles().end()) {
         // Failure.
 
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Received configureQueueStream request from ["
             << requester->description() << "] for a queue with unknown Id "
@@ -5007,7 +5013,7 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
 
     const CNSQueueState& queueContext = it->second;
     if (queueContext.d_isFinalCloseQueueReceived) {
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << "Received unexpected configureQueue request from '"
             << requester->description() << "' for queue with Id (" << req.qId()
@@ -5032,12 +5038,12 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
         it->second.d_subQueueInfosMap.findByAppIdSafe(
             req.streamParameters().appId());
     if (sqiIter == it->second.d_subQueueInfosMap.end()) {
-        BMQ_LOGTHROTTLE_WARN()
-            << d_cluster_p->description()
-            << "Received configureQueueStream request from ["
-            << requester->description() << "] for a queue with id ("
-            << req.qId() << ") and unknown appId ("
-            << req.streamParameters().appId() << ").";
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << "Received configureQueueStream request from ["
+                             << requester->description()
+                             << "] for a queue with id (" << req.qId()
+                             << ") and unknown appId ("
+                             << req.streamParameters().appId() << ").";
 
         // Send error response.
         sendErrorResponse(requester->clusterNode(),
@@ -5072,9 +5078,9 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(request.choice().isCloseQueueValue());
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Received closeQueueRequest from '"
-                           << requester->description() << "': " << request;
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Received closeQueueRequest from '"
+                         << requester->description() << "': " << request;
 
     const bmqp_ctrlmsg::CloseQueue& req = request.choice().closeQueue();
     const bmqp::QueueId             queueId =
@@ -5084,11 +5090,11 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
     CNSQueueHandleMapIter it = requester->queueHandles().find(queueId.id());
     if (it == requester->queueHandles().end()) {
         // Failure ...
-        BMQ_LOGTHROTTLE_WARN()
-            << d_cluster_p->description()
-            << ": Received closeQueue request from '"
-            << requester->description() << "' for a queue with unknown id ("
-            << queueId << ")";
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << ": Received closeQueue request from '"
+                             << requester->description()
+                             << "' for a queue with unknown id (" << queueId
+                             << ")";
 
         // Send error response
         sendErrorResponse(requester->clusterNode(),
@@ -5102,7 +5108,7 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
 
     CNSQueueState& queueContext = it->second;
     if (queueContext.d_isFinalCloseQueueReceived) {
-        BMQ_LOGTHROTTLE_WARN()
+        BMQ_LOGTHROTTLE_WARN
             << d_cluster_p->description()
             << ": Received closeQueue request from '"
             << requester->description() << "' for queue with Id (" << queueId
@@ -5127,11 +5133,11 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
     CNSStreamsMap::const_iterator sqiIter =
         it->second.d_subQueueInfosMap.findBySubIdSafe(subId);
     if (sqiIter == it->second.d_subQueueInfosMap.end()) {
-        BMQ_LOGTHROTTLE_WARN()
-            << d_cluster_p->description()
-            << ": Received closeQueue request from ["
-            << requester->description()
-            << "] for a queue with unknown subQueueId (" << queueId << ").";
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << ": Received closeQueue request from ["
+                             << requester->description()
+                             << "] for a queue with unknown subQueueId ("
+                             << queueId << ").";
 
         // Send error response.
         sendErrorResponse(requester->clusterNode(),
@@ -5189,12 +5195,12 @@ void ClusterQueueHelper::processShutdownEvent()
 
         // Queue has no handles.
 
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description() << ": Deleting queue instance ["
-            << queue->uri() << "], queueKey [" << queueContextSp->key()
-            << "] which was assigned to Partition ["
-            << queueContextSp->partitionId()
-            << "], because self is going down.";
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": Deleting queue instance [" << queue->uri()
+                             << "], queueKey [" << queueContextSp->key()
+                             << "] which was assigned to Partition ["
+                             << queueContextSp->partitionId()
+                             << "], because self is going down.";
 
         deleteQueue(queueContextSp.get());
     }
@@ -5675,9 +5681,9 @@ void ClusterQueueHelper::deconfigureUri(
 
     QueueContextMapConstIter cit = d_queues.find(uri);
     if (cit == d_queues.end()) {
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description() << ": Skipping deconfiguring '"
-            << uri << "' because the queue is missing";
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": Skipping deconfiguring '" << uri
+                             << "' because the queue is missing";
         return;  // RETURN
     }
 
@@ -5698,11 +5704,11 @@ void ClusterQueueHelper::deconfigureUri(
             // shutting down -- if it was stopped before the node had a
             // chance to transition to active primary for this partition.
 
-            BMQ_LOGTHROTTLE_INFO()
-                << d_cluster_p->description()
-                << ": Skipping deconfiguring queue [" << queue->description()
-                << "] because the primary node status is "
-                << pinfo.primaryStatus();
+            BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                                 << ": Skipping deconfiguring queue ["
+                                 << queue->description()
+                                 << "] because the primary node status is "
+                                 << pinfo.primaryStatus();
             return;  // RETURN
         }
         BSLS_ASSERT(pinfo.primaryNode() == contextSp->d_peer);
@@ -5747,7 +5753,7 @@ void ClusterQueueHelper::deconfigureQueue(
             nullStreamParams.consumerPriority()       =
                                 bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID;
             */
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description()
                 << ": Sending '(de)configureQueue' request for queue ["
                 << queue->description() << ", appId: " << iter->appId()
@@ -5772,7 +5778,7 @@ void ClusterQueueHelper::deconfigureQueue(
                 iter->subId());
         }
         else {
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << d_cluster_p->description()
                 << ": Not sending '(de)configureQueue' request for"
                 << " queue [" << queue->description()
@@ -6096,7 +6102,7 @@ void ClusterQueueHelper::closeQueueDispatched(
     SubQueueContext::Enum state = itStream->value().d_state;
 
     if (state != SubQueueContext::k_OPEN) {
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << d_cluster_p->description()
             << ": Not sending 'closeQueue' requests for queue ["
             << queue->description() << ", " << itStream->appId() << "("
@@ -6119,11 +6125,11 @@ void ClusterQueueHelper::closeQueueDispatched(
                              bdlf::PlaceHolders::_1),  // Status
         contextSp->d_peer);
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": Sent 'closeQueue' request for queue ["
-                           << queue->description() << ", " << itStream->appId()
-                           << "(" << itStream->subId() << ")] to "
-                           << contextSp->d_peer->nodeDescription();
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": Sent 'closeQueue' request for queue ["
+                         << queue->description() << ", " << itStream->appId()
+                         << "(" << itStream->subId() << ")] to "
+                         << contextSp->d_peer->nodeDescription();
 
     itStream->value().d_state = SubQueueContext::k_CLOSED;
 }
@@ -6138,11 +6144,11 @@ void ClusterQueueHelper::onCloseQueueResponse(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    BMQ_LOGTHROTTLE_INFO() << d_cluster_p->description()
-                           << ": received CloseQueue response with status '"
-                           << status
-                           << "' while processing StopRequest/advisory from "
-                           << contextSp->d_peer->nodeDescription();
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": received CloseQueue response with status '"
+                         << status
+                         << "' while processing StopRequest/advisory from "
+                         << contextSp->d_peer->nodeDescription();
 }
 
 int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
@@ -6355,10 +6361,10 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
 
         BSLS_ASSERT_SAFE(qit != d_queues.end());
 
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description() << ": Garbage-collecting queue ["
-            << uriCopy << "], queueKey [" << keyCopy << "] assigned to "
-            << "Partition [" << pid << "] as it has expired.";
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << ": Garbage-collecting queue [" << uriCopy
+                             << "], queueKey [" << keyCopy << "] assigned to "
+                             << "Partition [" << pid << "] as it has expired.";
 
         mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uriCopy);
 
