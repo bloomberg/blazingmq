@@ -304,7 +304,9 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.wait_status(wait_leader, wait_ready)
 
-    def stop_nodes(self, prevent_leader_bounce=False, exclude: Optional[List[Broker]]= None):
+    def stop_nodes(
+        self, prevent_leader_bounce=False, exclude: Optional[List[Broker]] = None
+    ):
         """Stop the nodes in the cluster, except for the nodes in `exclude`.
 
         If 'prevent_leader_bounce' is 'True', prevent leader bounce during
@@ -322,8 +324,7 @@ class Cluster(contextlib.AbstractContextManager):
             self._logger.info("stopping all nodes")
 
         nodes_to_stop = (
-            node for node in self.nodes()
-            if (exclude is None or node not in exclude)
+            node for node in self.nodes() if (exclude is None or node not in exclude)
         )
 
         if prevent_leader_bounce:
