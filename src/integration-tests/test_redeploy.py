@@ -55,9 +55,9 @@ class MessagesCounter:
             CONSUMER_WAIT_TIMEOUT_SEC,
         ), f"Consumer did not receive message {self.number_posted}"
 
-        assert (
-            consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS
-        ), f"Consumer did not confirm message {self.number_posted}"
+        assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS, (
+            f"Consumer did not confirm message {self.number_posted}"
+        )
 
         assert wait_until(
             lambda: len(consumer.list(uri, block=True)) == 0,
