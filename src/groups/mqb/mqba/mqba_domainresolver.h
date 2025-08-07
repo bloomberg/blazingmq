@@ -55,7 +55,6 @@
 ///       separate entities.
 
 // MQB
-#include <mqbconfm_messages.h>
 #include <mqbi_domain.h>
 
 // BMQ
@@ -106,13 +105,16 @@ class DomainResolver {
   private:
     // PRIVATE TYPES
 
-    /// Structure representing a script query response entry in the cache
+    /// Structure representing the result of resolving a domain in the cache
     /// map.
     struct CacheEntry {
         // PUBLIC DATA
 
-        /// Cached response data.
-        mqbconfm::DomainResolver d_data;
+        /// Cached resolved domain name.
+        bsl::string d_name;
+
+        /// Cached cluster name.
+        bsl::string d_cluster;
 
         /// Last modification timestamp of the config directory at the time
         /// this data was generated.
@@ -144,44 +146,42 @@ class DomainResolver {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Execute the script to resolve the specified `domainName`.  On
-    /// success, return 0 and store the result in the specified `out`;
-    /// return non-zero on error and populate the specified
-    /// `errorDescription` with a description of the error.
-    int executeScript(bsl::ostream&             errorDescription,
-                      mqbconfm::DomainResolver* out,
-                      const bslstl::StringRef&  domainName);
-
     /// Update the `d_lastCfgDirTimestamp` if the check happened longer
     /// than the TTL time ago.
     void updateTimestamps();
 
     /// Lookup entry for the specified `domainName` in the cache, and fill
-    /// the data in the specified `out` if found and not stale; otherwise
-    /// return false and leave `out` untouched.  Note that if the entry is
-    /// found but has expired, this will erase it from the cache.
+    /// the data in the specified `resolvedDomainName` and `clusterName` if
+    /// found and not stale; otherwise return false and leave
+    /// `resolvedDomainName` and `clusterName` untouched.  Note that if the
+    /// entry is found but has expired, this will erase it from the cache.
     ///
     /// @attention `d_mutex` *MUST* be locked prior to calling this function.
     ///
     /// @attention The caller must call `updateScriptTimestamp()` to update the
     ///            timestamps prior to calling this method.
-    bool cacheLookup(mqbconfm::DomainResolver* out,
-                     const bslstl::StringRef&  domainName);
+    bool cacheLookup(bsl::string*             resolvedDomainName,
+                     bsl::string*             clusterName,
+                     const bslstl::StringRef& domainName);
 
     /// Get the data corresponding to the specified `domainName` from the
     /// cache, or query it from the script storing the result in the cache.
-    /// Return 0 on success, populating the specified `out` with the result,
-    /// or return a non-zero value otherwise, populating the specified
-    /// `errorDescription` with a description of the error otherwise.
-    int getOrRead(bsl::ostream&             errorDescription,
-                  mqbconfm::DomainResolver* out,
-                  const bslstl::StringRef&  domainName);
+    /// Return 0 on success, populating the specified `resolvedDomainName` and
+    /// `clusterName` with the result, or return a non-zero value otherwise,
+    /// populating the specified `errorDescription` with a description of the
+    /// error otherwise.
+    int getOrRead(bsl::ostream&            errorDescription,
+                  bsl::string*             resolvedDomainName,
+                  bsl::string*             clusterName,
+                  const bslstl::StringRef& domainName);
 
     /// Uses `getOrQuery()` to retrieve data corresponding to the specified
-    /// `domainName`.  Fills-in the specified `out` structure. Returns
-    /// `E_SUCCESS` on success or `E_UNKNOWN` otherwise.
-    bmqp_ctrlmsg::Status getOrReadDomain(mqbconfm::DomainResolver* out,
-                                         const bslstl::StringRef&  domainName);
+    /// `domainName`.  Fills in the specified `resolvedDomainName` and
+    /// `clusterName` with the result.  Returns `E_SUCCESS` on success or
+    /// `E_UNKNOWN` otherwise.
+    bmqp_ctrlmsg::Status getOrReadDomain(bsl::string* resolvedDomainName,
+                                         bsl::string* clusterName,
+                                         const bslstl::StringRef& domainName);
 
   private:
     // NOT IMPLEMENTED
