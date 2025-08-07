@@ -25,6 +25,7 @@
 #include <bmqio_channel.h>
 
 // BDE
+#include <bsla_annotations.h>
 #include <bsls_nullptr.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
@@ -45,6 +46,16 @@ struct InitialConnectionHandlerTestImp
 : bsls::ProtocolTestImp<mqbnet::InitialConnectionHandler> {
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
+
+    void handleEvent(BSLA_UNUSED mqbnet::InitialConnectionEvent::Enum input,
+                     BSLA_UNUSED const InitialConnectionContextSp&    context,
+                     BSLA_UNUSED const bsl::optional<
+                         bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                                      bmqp_ctrlmsg::NegotiationMessage> >&
+                         message = bsl::nullopt) BSLS_KEYWORD_OVERRIDE
+    {
+        markDone();
+    }
 };
 
 void InitialConnectionHandlerTestImp::handleInitialConnection(
