@@ -342,6 +342,8 @@ void Channel::reset()
 
 void Channel::wakeUp()
 {
+    BALL_LOG_TRACE << "'" << d_description << "': waking up";
+
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(d_allocator_p),
                                  this,
@@ -842,45 +844,67 @@ void Channel::threadFn()
                 if (d_buffer.popFront(&item) == 0) {
                     BSLS_ASSERT_SAFE(item);
                     mode = e_PRIMARY;
+                    BALL_LOG_TRACE << "'" << d_description
+                                   << "': going to PRIMARY mode";
                 }
             } break;
             case e_PRIMARY: {
                 if (d_buffer.tryPopFront(&item)) {
-                    // Primary is empty.  Flush builders and drain secondary.
-
-                    mode = e_IDLE;
+                    // Primary is empty.
+                    mode = e_IDLE_PRIMARY;
+                    BALL_LOG_TRACE << "'" << d_description
+                                   << "': going to IDLE_PRIMARY mode";
                 }
                 else if (item->isSecondary()) {
                     // Instead of writing immediately, push it to the secondary
                     // buffer which will get flushed later.
-                    // This is done to reduce the rate of 'compactable' items
-                    // such as Replication Receipts which can accumulate
-                    // multiple receipts in one item.
+                    // This is done for ACK messages to add back pressure on
+                    // producers.
                     d_secondaryBuffer.pushBack(
                         bslmf::MovableRefUtil::move(item));
                     item.reset();
                 }
             } break;
-            case e_IDLE: {
-                // Idle.  First, flush all builders.
+            case e_IDLE_PRIMARY: {
+                // Primary buffer is exhausted, flush high priority items that
+                // are written to message builders.
                 if (flushAll(channel) == bmqio::StatusCategory::e_SUCCESS) {
-                    // Then, drain the secondary buffer
+                    // Then, drain the secondary buffer.
                     mode = e_SECONDARY;
+                    BALL_LOG_TRACE << "'" << d_description
+                                   << "': going to SECONDARY mode";
                 }
             } break;
             case e_SECONDARY: {
                 if (d_secondaryBuffer.tryPopFront(&item)) {
-                    mode = e_BLOCK;
+                    // Secondary is empty.
                     BSLS_ASSERT_SAFE(!item);
+                    mode = e_IDLE_SECONDARY;
+                    BALL_LOG_TRACE << "'" << d_description
+                                   << "': going to IDLE_SECONDARY mode";
+                }
+            } break;
+            case e_IDLE_SECONDARY: {
+                // Secondary buffer is exhausted, flush low priority items that
+                // are written to message builders.
+                if (flushAll(channel) == bmqio::StatusCategory::e_SUCCESS) {
+                    // Everything was processed and flushed, circle back to
+                    // BLOCK mode and wait for the next batch of items.
+                    mode = e_BLOCK;
+                    BALL_LOG_TRACE << "'" << d_description
+                                   << "': going to BLOCK mode";
                 }
             } break;
             }
         }
         else if (item->d_type == bmqp::EventType::e_UNDEFINED) {
-            // Enqueued by 'resetChannel' to wake us up.  Ignore.
+            // Enqueued by 'wakeUp'.  Ignore.
             item.reset();
+
             // If this was 'flush', drain secondary items.
-            mode = e_IDLE;
+            mode = e_IDLE_PRIMARY;
+            BALL_LOG_TRACE << "'" << d_description
+                           << "': undefined event, going to IDLE_PRIMARY mode";
         }
         else {
             // e_READY and have channel and an item

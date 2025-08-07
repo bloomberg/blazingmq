@@ -317,13 +317,31 @@ class Channel {
     };
 
     enum Mode {
-        e_BLOCK,     // call 'popFront' on the primary buffer
-        e_PRIMARY,   // call 'tryPopFront' on the primary buffer, if it is
-                     // empty, then transition to the next state
-        e_IDLE,      // flush all builders, and transition to the next state
-        e_SECONDARY  // call 'tryPopFront' on the secondary buffer until it
-                     // gets empty, then transition 'to e_BLOCK' state
+        /// Call 'popFront' on the primary buffer.
+        /// This puts internal thread into sleep until there are any events.
+        e_BLOCK,
 
+        /// Call 'tryPopFront' on the primary buffer until this buffer is
+        /// exhausted, and transition to the next state.
+        /// During this process:
+        /// - High priority items are written to message builders directly.
+        /// - Low priority items are enqueued to the SECONDARY buffer to be
+        ///   written later.
+        e_PRIMARY,
+
+        /// Flush all builders, and transition to the next state.
+        /// - High priority items are flushed to IO.
+        e_IDLE_PRIMARY,
+
+        /// Call 'tryPopFront' on the secondary buffer until this buffer is
+        /// exhausted, and transition to the next state.
+        /// During this process:
+        /// - Low priority items are written to message builders directly.
+        e_SECONDARY,
+
+        /// Flush all builders, and circle back to `e_BLOCK` state.
+        /// - Low priority items are flushed to IO.
+        e_IDLE_SECONDARY
     };
 
     struct Stats {
