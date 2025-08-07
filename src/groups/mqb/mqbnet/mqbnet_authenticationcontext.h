@@ -78,8 +78,13 @@ class AuthenticationContext {
     /// encoding type of the received message.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
-    ReauthenticateCb     d_reauthenticateCb;
-    bsls::AtomicInt      d_state;
+    ReauthenticateCb d_reauthenticateCb;
+
+    /// This is used to store the state of the authentication process. It
+    /// serves as a premitive to ensure there's no race between reading
+    /// (authorizing) and writing (reauthenticating) the AuthenticationContext.
+    bsls::AtomicInt d_state;
+
     ConnectionType::Enum d_connectionType;
 
   private:
