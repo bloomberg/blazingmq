@@ -196,7 +196,6 @@ void Authenticator::authenticate(
         rc_AUTHENTICATION_FAILED               = -2,
         rc_NEGOTIATION_FAILED                  = -3,
         rc_SEND_AUTHENTICATION_RESPONSE_FAILED = -4,
-        rc_CONTINUE_READ_FAILED                = -5,
     };
 
     const AuthenticationContextSp& authenticationContext =
@@ -239,24 +238,20 @@ void Authenticator::authenticate(
         return;  // RETURN
     }
 
-    // This is when we authenticate with default credentials
-    // No need to send authentication response
-    if (context->negotiationContext()) {
+    // In the case of a default authentication, we do not need to send
+    // an AuthenticationResponse, we just need to continue the negotiation.
+    if (context->state() ==
+        mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING) {
         if (response.status().category() !=
             bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
             rc    = rc_AUTHENTICATION_FAILED;
             error = response.status().message();
             return;  // RETURN
         }
-
-        bmqu::MemOutStream negotiationErrStream;
-        const int negoRc = context->negotiationCb()(negotiationErrStream,
-                                                    &session,
-                                                    context.get());
-        if (negoRc != rc_SUCCESS) {
-            rc    = (negoRc * 10) + rc_NEGOTIATION_FAILED;
-            error = negotiationErrStream.str();
-        }
+        connectionCompletionGuard.release();
+        context->handleEventCb()(InitialConnectionEvent::e_AUTH_SUCCESS,
+                                 context,
+                                 bsl::nullopt);
         return;  // RETURN
     }
 
@@ -281,14 +276,12 @@ void Authenticator::authenticate(
         return;  // RETURN
     }
 
-    // Authentication succeeded, continue to read
-    bmqu::MemOutStream readErrorStream;
-    const int readRc = context->scheduleReadCb()(readErrorStream, context);
-    if (readRc != rc_SUCCESS) {
-        rc    = (readRc * 10) + rc_CONTINUE_READ_FAILED;
-        error = readErrorStream.str();
-        return;  // RETURN
-    }
+    // Authentication succeeded, release the error guard and transition to the
+    // next state.
+    connectionCompletionGuard.release();
+    context->handleEventCb()(InitialConnectionEvent::e_AUTH_SUCCESS,
+                             context,
+                             bsl::nullopt);
 
     return;
 }
@@ -327,7 +320,6 @@ void Authenticator::reauthenticate(
         rc_PROCESS_AUTHENTICATION_FAILED       = -1,
         rc_AUTHENTICATION_FAILED               = -2,
         rc_SEND_AUTHENTICATION_RESPONSE_FAILED = -3,
-        rc_CONTINUE_READ_FAILED                = -4,
     };
 
     const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
@@ -622,7 +614,8 @@ void Authenticator::cancelReauthenticationTimer(
 }
 
 // ACCESSORS
-const bsl::optional<mqbcfg::Credential>& Authenticator::anonymousCredential()
+const bsl::optional<mqbcfg::Credential>&
+Authenticator::anonymousCredential() const
 {
     return d_authnController_p->anonymousCredential();
 }

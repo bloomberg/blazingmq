@@ -28,8 +28,9 @@
 ///
 /// Thread Safety                              {#mqba_authenticator_thread}
 /// =============
-/// This component is owned by `InitialConnectionHandler`, and its functions
-/// are called only from there.  It is not thread safe.
+/// This component is owned by `TransportManager` and held by
+/// `InitialConnectionHanlder`, and its functions are called only from there.
+/// It is not thread safe.
 
 // MQB
 #include <mqbauthn_authenticationcontroller.h>
@@ -91,6 +92,8 @@ class Authenticator : public mqbnet::Authenticator {
 
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
+
+    typedef mqbnet::InitialConnectionEvent InitialConnectionEvent;
 
   private:
     // DATA
@@ -263,7 +266,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// Return the anonymous credential used for authentication.
     /// If no anonymous credential is set, return an empty optional.
     const bsl::optional<mqbcfg::Credential>&
-    anonymousCredential() BSLS_KEYWORD_OVERRIDE;
+    anonymousCredential() const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

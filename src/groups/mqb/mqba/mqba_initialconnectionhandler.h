@@ -69,6 +69,9 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
+    typedef mqbnet::InitialConnectionState::Enum State;
+    typedef mqbnet::InitialConnectionEvent::Enum Event;
+
   private:
     // DATA
 
@@ -110,15 +113,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                  bdlbb::Blob*         blob);
 
     int processBlob(bsl::ostream&                     errorDescription,
-                    bsl::shared_ptr<mqbnet::Session>* session,
                     const bdlbb::Blob&                blob,
                     const InitialConnectionContextSp& context);
-
-    int handleNegotiationMessage(
-        bsl::ostream&                           errorDescription,
-        bsl::shared_ptr<mqbnet::Session>*       session,
-        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-        const InitialConnectionContextSp&       context);
 
     /// Decode the initial connection messages received in the specified
     /// `blob` and store it, on success, in the specified optional
@@ -148,6 +144,16 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
                          const bsl::string&                      error,
                          const bsl::shared_ptr<mqbnet::Session>& session);
 
+    /// Create and initialize a `NegotiationContext` for the specified
+    /// `context`.
+    void createNegotiationContext(const InitialConnectionContextSp& context);
+
+    /// Perform default authentication using the anonymous credential for the
+    /// specified `context`.  Returns 0 on success; otherwise, returns a
+    /// non-zero error code and populates `errorDescription` with details of
+    int handleDefaultAuthentication(bsl::ostream& errorDescription,
+                                    const InitialConnectionContextSp& context);
+
   public:
     // CREATORS
 
@@ -174,6 +180,18 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     /// `handleInitialConnection()`.
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Handle an event occurs under the current state.
+    /// The specified `input` is the event to handle, the specified `context`
+    /// is the initial connection context associated to this event, and the
+    /// specified `message` is an optional message that may be used to
+    /// handle the event.
+    void handleEvent(
+        Event                             input,
+        const InitialConnectionContextSp& context,
+        const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                                         bmqp_ctrlmsg::NegotiationMessage> >&
+            message = bsl::nullopt) BSLS_KEYWORD_OVERRIDE;
 };
 }
 }

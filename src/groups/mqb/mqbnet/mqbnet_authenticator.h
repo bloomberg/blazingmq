@@ -86,7 +86,8 @@ class Authenticator {
 
     /// Return the anonymous credential used for authentication.
     /// If no anonymous credential is set, return an empty optional.
-    virtual const bsl::optional<mqbcfg::Credential>& anonymousCredential() = 0;
+    virtual const bsl::optional<mqbcfg::Credential>&
+    anonymousCredential() const = 0;
 };
 
 }  // close package namespace
