@@ -91,6 +91,8 @@ class Authenticator : public mqbnet::Authenticator {
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
         InitialConnectionContextSp;
 
+    typedef mqbnet::InitialConnectionEvent InitialConnectionEvent;
+
   private:
     // DATA
 

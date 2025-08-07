@@ -362,8 +362,8 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     bmqp_ctrlmsg::ClientIdentity& clientIdentity =
         negotiationMessage.clientIdentity();
 
-    BALL_LOG_DEBUG << "Received negotiation message from '"
-                   << context->channel()->peerUri() << "': " << clientIdentity;
+    BALL_LOG_INFO << "Received negotiation message from '"
+                  << context->channel()->peerUri() << "': " << clientIdentity;
 
     bsl::shared_ptr<mqbnet::Session> session;
 
@@ -915,22 +915,11 @@ int SessionNegotiator::negotiateOutbound(
 
     BSLS_ASSERT_SAFE(userData);
 
-    // Create NegotiationContext
-    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
-        bsl::allocate_shared<mqbnet::NegotiationContext>(
-            d_allocator_p,
-            context.get(),                       // initialConnectionContext
-            bmqp_ctrlmsg::NegotiationMessage(),  // negotiationMessage
-            userData->d_clusterName,             // clusterName
-            d_clusterCatalog_p->isMemberOf(userData->d_clusterName)
-                ? mqbnet::ConnectionType::e_CLUSTER_MEMBER
-                : mqbnet::ConnectionType::e_CLUSTER_PROXY,  // connectionType
-            0,                 // maxMissedHeartbeat
-            bsl::nullptr_t(),  // eventProcessor
-            bsl::nullptr_t()   // cluster
-        );
-
-    context->setNegotiationContext(negotiationContext);
+    context->negotiationContext()->setClusterName(userData->d_clusterName);
+    context->negotiationContext()->setConnectionType(
+        d_clusterCatalog_p->isMemberOf(userData->d_clusterName)
+            ? mqbnet::ConnectionType::e_CLUSTER_MEMBER
+            : mqbnet::ConnectionType::e_CLUSTER_PROXY);
 
     int rc = initiateOutboundNegotiation(errorDescription,
                                          context->negotiationContext());
