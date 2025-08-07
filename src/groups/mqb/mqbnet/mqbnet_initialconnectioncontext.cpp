@@ -22,21 +22,162 @@
 #include <bmqio_channel.h>
 
 // BDE
+#include <bdlb_print.h>
+#include <bdlb_string.h>
 #include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace mqbnet {
 
-// -------------------------------------
+// -----------------------------
+// struct InitialConnectionState
+// -----------------------------
+
+bsl::ostream& InitialConnectionState::print(bsl::ostream& stream,
+                                            InitialConnectionState::Enum value,
+                                            int                          level,
+                                            int spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << InitialConnectionState::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char* InitialConnectionState::toAscii(InitialConnectionState::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(INITIAL)
+        CASE(AUTHENTICATING)
+        CASE(AUTHENTICATED)
+        CASE(DEFAULT_AUTHENTICATING)
+        CASE(NEGOTIATING_OUTBOUND)
+        CASE(NEGOTIATED)
+        CASE(FAILED)
+    default: return "(* UNKNOWN *)";
+    }
+
+#undef CASE
+}
+
+bool InitialConnectionState::fromAscii(InitialConnectionState::Enum* out,
+                                       const bslstl::StringRef&      str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(                                       \
+            toAscii(InitialConnectionState::e_##M),                           \
+            str.data(),                                                       \
+            static_cast<int>(str.length()))) {                                \
+        *out = InitialConnectionState::e_##M;                                 \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(INITIAL)
+    CHECKVALUE(AUTHENTICATING)
+    CHECKVALUE(AUTHENTICATED)
+    CHECKVALUE(DEFAULT_AUTHENTICATING)
+    CHECKVALUE(NEGOTIATING_OUTBOUND)
+    CHECKVALUE(NEGOTIATED)
+    CHECKVALUE(FAILED)
+
+    // Invalid string
+    return false;
+
+#undef CHECKVALUE
+}
+
+// -----------------------------
+// struct InitialConnectionEvent
+// -----------------------------
+
+bsl::ostream& InitialConnectionEvent::print(bsl::ostream& stream,
+                                            InitialConnectionEvent::Enum value,
+                                            int                          level,
+                                            int spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << InitialConnectionEvent::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char* InitialConnectionEvent::toAscii(InitialConnectionEvent::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(NONE)
+        CASE(OUTBOUND_NEGOTATION)
+        CASE(AUTH_REQUEST)
+        CASE(NEGOTIATION_MESSAGE)
+        CASE(AUTH_SUCCESS)
+        CASE(ERROR)
+    default: return "(* UNKNOWN *)";
+    }
+
+#undef CASE
+}
+
+bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
+                                       const bslstl::StringRef&      str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(                                       \
+            toAscii(InitialConnectionEvent::e_##M),                           \
+            str.data(),                                                       \
+            static_cast<int>(str.length()))) {                                \
+        *out = InitialConnectionEvent::e_##M;                                 \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(NONE)
+    CHECKVALUE(OUTBOUND_NEGOTATION)
+    CHECKVALUE(AUTH_REQUEST)
+    CHECKVALUE(NEGOTIATION_MESSAGE)
+    CHECKVALUE(AUTH_SUCCESS)
+    CHECKVALUE(ERROR)
+
+    // Invalid string
+    return false;
+
+#undef CHECKVALUE
+}
+
+// ------------------------------
 // class InitialConnectionContext
-// -------------------------------------
+// ------------------------------
 
 InitialConnectionContext::InitialConnectionContext(bool isIncoming)
 : d_resultState_p(0)
 , d_userData_p(0)
 , d_channelSp()
 , d_initialConnectionCompleteCb()
+, d_handleEventCb()
+, d_authenticationEncodingType(bmqp::EncodingType::e_BER)
+, d_authenticationCtxSp()
 , d_negotiationCtxSp()
+, d_state(InitialConnectionState::e_INITIAL)
+, d_mutex()
 , d_isIncoming(isIncoming)
 , d_isClosed(false)
 {
@@ -75,24 +216,17 @@ InitialConnectionContext& InitialConnectionContext::setCompleteCb(
 }
 
 InitialConnectionContext&
+InitialConnectionContext::setHandleEventCb(const HandleEventCb& value)
+{
+    d_handleEventCb = value;
+    return *this;
+}
+
+InitialConnectionContext&
 InitialConnectionContext::setAuthenticationEncodingType(
     bmqp::EncodingType::Enum value)
 {
     d_authenticationEncodingType = value;
-    return *this;
-}
-
-InitialConnectionContext&
-InitialConnectionContext::setNegotiationCb(const NegotiationCb& value)
-{
-    d_negotiationCb = value;
-    return *this;
-}
-
-InitialConnectionContext&
-InitialConnectionContext::setScheduleReadCb(const ScheduleReadCb& value)
-{
-    d_scheduleReadCb = value;
     return *this;
 }
 
@@ -113,6 +247,13 @@ InitialConnectionContext& InitialConnectionContext::setNegotiationContext(
 void InitialConnectionContext::onClose()
 {
     d_isClosed = true;
+}
+
+InitialConnectionContext&
+InitialConnectionContext::setState(InitialConnectionState::Enum value)
+{
+    d_state = value;
+    return *this;
 }
 
 bool InitialConnectionContext::isIncoming() const
@@ -136,32 +277,10 @@ InitialConnectionContext::channel() const
     return d_channelSp;
 }
 
-void InitialConnectionContext::complete(
-    int                                     rc,
-    const bsl::string&                      error,
-    const bsl::shared_ptr<mqbnet::Session>& session) const
+const InitialConnectionContext::HandleEventCb&
+InitialConnectionContext::handleEventCb() const
 {
-    BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
-
-    d_initialConnectionCompleteCb(rc, error, session, channel(), this);
-}
-
-const InitialConnectionContext::NegotiationCb&
-InitialConnectionContext::negotiationCb() const
-{
-    return d_negotiationCb;
-}
-
-const InitialConnectionContext::ScheduleReadCb&
-InitialConnectionContext::scheduleReadCb() const
-{
-    return d_scheduleReadCb;
-}
-
-const bsl::shared_ptr<AuthenticationContext>&
-InitialConnectionContext::authenticationContext() const
-{
-    return d_authenticationCtxSp;
+    return d_handleEventCb;
 }
 
 bmqp::EncodingType::Enum
@@ -170,10 +289,36 @@ InitialConnectionContext::authenticationEncodingType() const
     return d_authenticationEncodingType;
 }
 
+const bsl::shared_ptr<AuthenticationContext>&
+InitialConnectionContext::authenticationContext() const
+{
+    return d_authenticationCtxSp;
+}
+
 const bsl::shared_ptr<NegotiationContext>&
 InitialConnectionContext::negotiationContext() const
 {
     return d_negotiationCtxSp;
+}
+
+InitialConnectionState::Enum InitialConnectionContext::state() const
+{
+    return d_state;
+}
+
+bslmt::Mutex& InitialConnectionContext::mutex()
+{
+    return d_mutex;
+}
+
+void InitialConnectionContext::complete(
+    int                                     rc,
+    const bsl::string&                      error,
+    const bsl::shared_ptr<mqbnet::Session>& session) const
+{
+    BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
+
+    d_initialConnectionCompleteCb(rc, error, session, channel(), this);
 }
 
 bool InitialConnectionContext::isClosed() const

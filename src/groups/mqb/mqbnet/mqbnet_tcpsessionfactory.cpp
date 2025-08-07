@@ -529,13 +529,6 @@ void TCPSessionFactory::initialConnectionComplete(
         return;  // RETURN
     }
 
-    if (!session) {
-        BALL_LOG_INFO
-            << "Authentication succeeded, but no session was created yet"
-            << "[channel: '" << channel.get() << "']";
-        return;  // RETURN
-    }
-
     // Successful negotiation
     BSLS_ASSERT_SAFE(initialConnectionContext_p);
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());

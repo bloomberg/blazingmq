@@ -36,12 +36,16 @@
 #include <mqbplug_authenticator.h>
 
 // BMQ
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 
 // BDE
 #include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsl_variant.h>
+#include <bslmt_mutex.h>
 
 namespace BloombergLP {
 
@@ -75,6 +79,127 @@ struct ConnectionType {
     };
 };
 
+// =============================
+// struct InitialConnectionState
+// =============================
+
+struct InitialConnectionState {
+    // TYPES
+    enum Enum {
+        e_INITIAL                = 0,  // Initial state.
+        e_AUTHENTICATING         = 1,  // First message is Auth Request.
+        e_AUTHENTICATED          = 2,  // Authentication success.
+        e_DEFAULT_AUTHENTICATING = 3,  // First message is Negotiation
+        e_NEGOTIATING_OUTBOUND   = 4,  // Outbound negotiation.
+        e_NEGOTIATED             = 5,  // Negotiation success.  Final state.
+        e_FAILED                 = 6   // Final state.
+    };
+
+    // CLASS METHODS
+
+    /// Write the string representation of the specified enumeration
+    /// `value`
+    /// to the specified output `stream`, and return a reference to
+    /// `stream`.  Optionally specify an initial indentation `level`, whose
+    /// absolute value is incremented recursively for nested objects.  If
+    /// `level` is specified, optionally specify `spacesPerLevel`, whose
+    /// absolute value indicates the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative, format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  See `toAscii`
+    /// for what constitutes the string representation of a
+    /// @bbref{InitialConnectionState::Enum} value.
+    static bsl::ostream& print(bsl::ostream&                stream,
+                               InitialConnectionState::Enum value,
+                               int                          level = 0,
+                               int spacesPerLevel                 = 4);
+
+    /// Return the non-modifiable string representation corresponding to
+    /// the specified enumeration `value`, if it exists, and a unique
+    /// (error) string otherwise.  The string representation of `value`
+    /// matches its corresponding enumerator name with the `e_` prefix
+    /// elided.  Note that specifying a `value` that does not match any of
+    /// the enumerators will result in a string representation that is
+    /// distinct from any of those corresponding to the enumerators, but is
+    /// otherwise unspecified.
+    static const char* toAscii(InitialConnectionState::Enum value);
+
+    /// Return true and fills the specified `out` with the enum value
+    /// corresponding to the specified `str`, if valid, or return false and
+    /// leave `out` untouched if `str` doesn't correspond to any value of
+    /// the enum.
+    static bool fromAscii(InitialConnectionState::Enum* out,
+                          const bslstl::StringRef&      str);
+};
+
+// FREE OPERATORS
+
+/// Format the specified `value` to the specified output `stream` and return
+/// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream&                stream,
+                         InitialConnectionState::Enum value);
+
+// =============================
+// struct InitialConnectionEvent
+// =============================
+
+struct InitialConnectionEvent {
+    // TYPES
+    enum Enum {
+        e_NONE                = 0,
+        e_OUTBOUND_NEGOTATION = 1,
+        e_AUTH_REQUEST        = 2,  // handleAuthentication
+        e_NEGOTIATION_MESSAGE = 3,  // handleNegotiationMessage
+        e_AUTH_SUCCESS        = 4,
+        e_ERROR               = 5
+    };
+
+    // CLASS METHODS
+
+    /// Write the string representation of the specified enumeration
+    /// `value`
+    /// to the specified output `stream`, and return a reference to
+    /// `stream`.  Optionally specify an initial indentation `level`, whose
+    /// absolute value is incremented recursively for nested objects.  If
+    /// `level` is specified, optionally specify `spacesPerLevel`, whose
+    /// absolute value indicates the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative, format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  See `toAscii`
+    /// for what constitutes the string representation of a
+    /// @bbref{InitialConnectionEvent::Enum} value.
+    static bsl::ostream& print(bsl::ostream&                stream,
+                               InitialConnectionEvent::Enum value,
+                               int                          level = 0,
+                               int spacesPerLevel                 = 4);
+
+    /// Return the non-modifiable string representation corresponding to
+    /// the specified enumeration `value`, if it exists, and a unique
+    /// (error) string otherwise.  The string representation of `value`
+    /// matches its corresponding enumerator name with the `e_` prefix
+    /// elided.  Note that specifying a `value` that does not match any of
+    /// the enumerators will result in a string representation that is
+    /// distinct from any of those corresponding to the enumerators, but is
+    /// otherwise unspecified.
+    static const char* toAscii(InitialConnectionEvent::Enum value);
+
+    /// Return true and fills the specified `out` with the enum value
+    /// corresponding to the specified `str`, if valid, or return false and
+    /// leave `out` untouched if `str` doesn't correspond to any value of
+    /// the enum.
+    static bool fromAscii(InitialConnectionEvent::Enum* out,
+                          const bslstl::StringRef&      str);
+};
+
+// FREE OPERATORS
+
+/// Format the specified `value` to the specified output `stream` and return
+/// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream&                stream,
+                         InitialConnectionEvent::Enum value);
+
 // ==============================
 // class InitialConnectionContext
 // ==============================
@@ -87,6 +212,7 @@ struct ConnectionType {
 /// `InitialConnectionCompleteCb` method.
 class InitialConnectionContext {
   public:
+    // TYPES
     typedef bsl::function<void(
         int                                    status,
         const bsl::string&                     errorDescription,
@@ -95,15 +221,13 @@ class InitialConnectionContext {
         const InitialConnectionContext*        initialConnectionContext)>
         InitialConnectionCompleteCb;
 
-    typedef bsl::function<int(bsl::ostream& errorDescription,
-                              bsl::shared_ptr<mqbnet::Session>* session,
-                              InitialConnectionContext*         context)>
-        NegotiationCb;
-
-    typedef bsl::function<int(
-        bsl::ostream&                                    errorDescription,
-        const bsl::shared_ptr<InitialConnectionContext>& context)>
-        ScheduleReadCb;
+    typedef bsl::function<void(
+        InitialConnectionEvent::Enum                     input,
+        const bsl::shared_ptr<InitialConnectionContext>& context,
+        const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                                         bmqp_ctrlmsg::NegotiationMessage> >&
+            message)>
+        HandleEventCb;
 
   private:
     // DATA
@@ -149,22 +273,14 @@ class InitialConnectionContext {
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
 
+    /// The callback to handle an event occurs under the current state.
+    HandleEventCb d_handleEventCb;
+
     /// The encoding type that an authentication message uses.
     /// This is set by the `Authenticator` when it receives an
     /// authentication message, and is used when it sends an
     /// authentication message back to the remote peer.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
-
-    /// The callback to invoke to negotiate the session.
-    /// This is used when we receive a negotiation message without an prior
-    /// authentication message, and we used default credentials to
-    /// authenticate.  This callback is invoked after the authentication
-    /// finishes.
-    NegotiationCb d_negotiationCb;
-
-    /// The callback to invoke to schedule a read.  We call this function to
-    /// continue reading when authentication is finished.
-    ScheduleReadCb d_scheduleReadCb;
 
     /// The AuthenticationContext updated upon receiving an
     /// authentication message.
@@ -173,6 +289,10 @@ class InitialConnectionContext {
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
+    /// The state of the initial connection.
+    InitialConnectionState::Enum d_state;
+
+    bslmt::Mutex d_mutex;
     /// True if the session being negotiated originates
     /// from a remote peer (i.e., a 'listen'); false if
     /// it originates from us (i.e., a 'connect).
@@ -199,14 +319,14 @@ class InitialConnectionContext {
     setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
     InitialConnectionContext&
     setCompleteCb(const InitialConnectionCompleteCb& value);
+    InitialConnectionContext& setHandleEventCb(const HandleEventCb& value);
     InitialConnectionContext&
     setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
-    InitialConnectionContext& setNegotiationCb(const NegotiationCb& value);
-    InitialConnectionContext& setScheduleReadCb(const ScheduleReadCb& value);
     InitialConnectionContext& setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
     InitialConnectionContext&
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
+    InitialConnectionContext& setState(InitialConnectionState::Enum value);
 
     /// Called by the IO upon `onCLose` signal
     void onClose();
@@ -218,12 +338,13 @@ class InitialConnectionContext {
     void*                                  userData() const;
     void*                                  resultState() const;
     const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    const HandleEventCb&                   handleEventCb() const;
     bmqp::EncodingType::Enum               authenticationEncodingType() const;
-    const NegotiationCb&                   negotiationCb() const;
-    const ScheduleReadCb&                  scheduleReadCb() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
+    InitialConnectionState::Enum               state() const;
+    bslmt::Mutex&                              mutex();
     bool                                       isClosed() const;
 
     void complete(int                                     rc,
@@ -232,6 +353,31 @@ class InitialConnectionContext {
 };
 
 }  // close package namespace
+
+// -----------------------------
+// struct ClusterStateTableState
+// -----------------------------
+
+// FREE OPERATORS
+inline bsl::ostream&
+mqbnet::operator<<(bsl::ostream&                        stream,
+                   mqbnet::InitialConnectionState::Enum value)
+{
+    return InitialConnectionState::print(stream, value, 0, -1);
+}
+
+// -----------------------------
+// struct ClusterStateTableEvent
+// -----------------------------
+
+// FREE OPERATORS
+inline bsl::ostream&
+mqbnet::operator<<(bsl::ostream&                        stream,
+                   mqbnet::InitialConnectionEvent::Enum value)
+{
+    return InitialConnectionEvent::print(stream, value, 0, -1);
+}
+
 }  // close enterprise namespace
 
 #endif
