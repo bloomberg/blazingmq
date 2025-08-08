@@ -289,7 +289,7 @@ void Tester::init()
     ntca::ListenerSocketOptions listenerSocketOptions;
     listenerSocketOptions.setTransport(ntsa::Transport::e_TCP_IPV4_STREAM);
     listenerSocketOptions.setReuseAddress(true);
-    listenerSocketOptions.setKeepHalfOpen(true);
+    listenerSocketOptions.setKeepHalfOpen(false);
     listenerSocketOptions.setBacklog(backlog);
     listenerSocketOptions.setSourceEndpoint(
         ntsa::Endpoint(ntsa::Ipv4Address::loopback(), 0));
@@ -320,7 +320,7 @@ bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
     bmqio::Status         status(d_allocator_p);
     bmqio::ConnectOptions options(d_allocator_p);
     options.setEndpoint(d_listener_sp->sourceEndpoint().text())
-        .setNumAttempts(1)
+        .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(1));
     const int rc = channel->connect(&status, options);
     BMQTST_ASSERT_EQ(rc, 0);
