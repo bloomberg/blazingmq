@@ -176,7 +176,8 @@ class TCPSessionFactory {
   private:
     // PRIVATE TYPES
 
-    /// Struct holding internal data associated to an active channel
+    /// A view into a an active channel, its session, event processor, and
+    /// heartbeat monitor.
     struct ChannelInfo {
         /// The channel
         bmqio::Channel* d_channel_p;
@@ -189,10 +190,19 @@ class TCPSessionFactory {
 
         bmqp::HeartbeatMonitor d_monitor;
 
-        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel,
-                             const InitialConnectionContext&        context,
-                             int initialMissedHeartbeatCounter,
-                             const bsl::shared_ptr<Session>& monitoredSession);
+        /// @param channel The channel
+        /// @param session The session associated with this channel.
+        /// @param eventProcessor The event processor of Events received on
+        /// this channel.
+        /// @param maxMissedHeartbeats The maximum number of intervals for
+        /// missed heartbeats on this channel.
+        /// @param initialMissedHeartbeatCounter The initial missed heartbeats
+        /// for this channel.
+        explicit ChannelInfo(bmqio::Channel*                 channel,
+                             const bsl::shared_ptr<Session>& session,
+                             SessionEventProcessor*          eventProcessor,
+                             int maxMissedHeartbeats,
+                             int initialMissedHeartbeatCounter);
     };
 
     /// This class provides mechanism to store a map of port stat contexts.
