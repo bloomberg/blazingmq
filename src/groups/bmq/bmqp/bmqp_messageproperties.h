@@ -134,6 +134,9 @@ class MessageProperties {
         PropertyVariant;
 
     struct Property {
+        mutable PropertyVariant d_value;
+        // Property value; gets read on on demand.
+
         int d_offset;
         // Offset in the blob to the value (not the
         // name) or '0' for newly added properties.
@@ -144,9 +147,6 @@ class MessageProperties {
         bmqt::PropertyType::Enum d_type;
         // Type of the value.  Available even if
         // the value is 'unSet'.
-
-        mutable PropertyVariant d_value;
-        // Property value; gets read on on demand.
 
         bool d_isValid;
         // If the property is removed, it stays in
@@ -196,9 +196,10 @@ class MessageProperties {
     // DATA
     bslma::Allocator* d_allocator_p;
 
+    /// Rb-tree containing property name->value pairs.
+    /// Note: when the number of properties is small map works faster than
+    ///       unordered_map. Also, map takes less space.
     mutable PropertyMap d_properties;
-    // Hash table containing property
-    // name->value pairs.
 
     int d_totalSize;
     // Total size of the BlazingMQ wire
@@ -236,8 +237,6 @@ class MessageProperties {
     // start of names and values
 
     SchemaPtr d_schema;
-
-    mutable int d_lastError;
 
     int d_originalNumProps;
     // The count as read from the wire
@@ -591,10 +590,10 @@ class MessagePropertiesIterator {
 // class MessageProperties::Property
 // ---------------------------------
 inline MessageProperties::Property::Property()
-: d_offset(0)
+: d_value()
+, d_offset(0)
 , d_length(0)
 , d_type(bmqt::PropertyType::e_UNDEFINED)
-, d_value()
 , d_isValid(true)
 {
     // NOTHING
@@ -786,7 +785,6 @@ MessageProperties::findProperty(const bsl::string& name) const
         // Starts with '0'
 
         Property theProperty;
-        Property next;
         int      totalLength = d_dataOffset;
         int      offset      = d_mphOffset + index * d_mphSize;
         int      rc          = 0;
@@ -805,11 +803,11 @@ MessageProperties::findProperty(const bsl::string& name) const
         if (rc) {
             // REVISIT: there are no means to report the error other than
             //          returning 'end()'
-            d_lastError = rc;
             return d_properties.end();  // RETURN
         }
 
         if (index < (d_originalNumProps - 1)) {
+            Property next;
             rc = streamInPropertyHeader(&next,
                                         0,
                                         &theProperty,
