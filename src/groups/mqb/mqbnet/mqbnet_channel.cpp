@@ -80,7 +80,6 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
              bsls::BlockGrowth::BSLS_CONSTANT,
              d_allocators.get("ItemPool"))
 , d_buffer(1024, allocator)
-, d_secondaryBuffer(1024, allocator)
 , d_doStop(false)
 , d_state(e_INITIAL)
 , d_description(name + " - ", d_allocator_p)
@@ -330,8 +329,6 @@ void Channel::reset()
                       << bmqu::PrintUtil::prettyBytes(numBytes()) << " bytes.";
     }
 
-    d_secondaryBuffer.reset();
-
     d_stats.reset();
     d_putBuilder.reset();
     d_confirmBuilder.reset();
@@ -342,6 +339,8 @@ void Channel::reset()
 
 void Channel::wakeUp()
 {
+    BALL_LOG_TRACE << "'" << d_description << "': waking up";
+
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(d_allocator_p),
                                  this,
@@ -836,51 +835,32 @@ void Channel::threadFn()
             }
         }
         else if (!item) {  // UNLOCK
-
             switch (mode) {
             case e_BLOCK: {
                 if (d_buffer.popFront(&item) == 0) {
                     BSLS_ASSERT_SAFE(item);
-                    mode = e_PRIMARY;
+                    mode = e_FLUSH_BUFFER;
                 }
             } break;
-            case e_PRIMARY: {
-                if (d_buffer.tryPopFront(&item)) {
-                    // Primary is empty.  Flush builders and drain secondary.
-
+            case e_FLUSH_BUFFER: {
+                if (d_buffer.tryPopFront(&item) != 0) {
+                    // The buffer is exhausted.
+                    BSLS_ASSERT_SAFE(!item);
                     mode = e_IDLE;
-                }
-                else if (item->isSecondary()) {
-                    // Instead of writing immediately, push it to the secondary
-                    // buffer which will get flushed later.
-                    // This is done to reduce the rate of 'compactable' items
-                    // such as Replication Receipts which can accumulate
-                    // multiple receipts in one item.
-                    d_secondaryBuffer.pushBack(
-                        bslmf::MovableRefUtil::move(item));
-                    item.reset();
                 }
             } break;
             case e_IDLE: {
-                // Idle.  First, flush all builders.
                 if (flushAll(channel) == bmqio::StatusCategory::e_SUCCESS) {
-                    // Then, drain the secondary buffer
-                    mode = e_SECONDARY;
-                }
-            } break;
-            case e_SECONDARY: {
-                if (d_secondaryBuffer.tryPopFront(&item)) {
+                    // Everything was processed and flushed, circle back to
+                    // BLOCK mode and wait for the next batch of items.
                     mode = e_BLOCK;
-                    BSLS_ASSERT_SAFE(!item);
                 }
             } break;
             }
         }
         else if (item->d_type == bmqp::EventType::e_UNDEFINED) {
-            // Enqueued by 'resetChannel' to wake us up.  Ignore.
+            // Enqueued by 'wakeUp', ignore this item
             item.reset();
-            // If this was 'flush', drain secondary items.
-            mode = e_IDLE;
         }
         else {
             // e_READY and have channel and an item
