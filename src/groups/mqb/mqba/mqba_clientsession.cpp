@@ -3275,14 +3275,17 @@ int ClientSession::dropAllQueueHandles(bool doDeconfigure, bool hasLostClient)
     for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
          it != d_queueSessionManager.queues().end();
          ++it) {
+        it->second.d_handle_p->clearClient(hasLostClient);
+
         if (!it->second.d_hasReceivedFinalCloseQueue) {
-            it->second.d_handle_p->clearClient(hasLostClient);
             it->second.d_handle_p->drop(doDeconfigure);
             it->second.d_handle_p                   = 0;
             it->second.d_hasReceivedFinalCloseQueue = true;
             ++numHandlesDropped;
         }
     }
+
+    d_queueSessionManager.queues().clear();
 
     return numHandlesDropped;
 }
