@@ -80,7 +80,6 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
              bsls::BlockGrowth::BSLS_CONSTANT,
              d_allocators.get("ItemPool"))
 , d_buffer(1024, allocator)
-, d_secondaryBuffer(1024, allocator)
 , d_doStop(false)
 , d_state(e_INITIAL)
 , d_description(name + " - ", d_allocator_p)
@@ -329,8 +328,6 @@ void Channel::reset()
                       << bmqu::PrintUtil::prettyNumber(count) << " items and "
                       << bmqu::PrintUtil::prettyBytes(numBytes()) << " bytes.";
     }
-
-    d_secondaryBuffer.reset();
 
     d_stats.reset();
     d_putBuilder.reset();
@@ -838,73 +835,32 @@ void Channel::threadFn()
             }
         }
         else if (!item) {  // UNLOCK
-
             switch (mode) {
             case e_BLOCK: {
                 if (d_buffer.popFront(&item) == 0) {
                     BSLS_ASSERT_SAFE(item);
-                    mode = e_PRIMARY;
-                    BALL_LOG_TRACE << "'" << d_description
-                                   << "': going to PRIMARY mode";
+                    mode = e_FLUSH_BUFFER;
                 }
             } break;
-            case e_PRIMARY: {
-                if (d_buffer.tryPopFront(&item)) {
-                    // Primary is empty.
-                    mode = e_IDLE_PRIMARY;
-                    BALL_LOG_TRACE << "'" << d_description
-                                   << "': going to IDLE_PRIMARY mode";
-                }
-                else if (item->isSecondary()) {
-                    // Instead of writing immediately, push it to the secondary
-                    // buffer which will get flushed later.
-                    // This is done for ACK messages to add back pressure on
-                    // producers.
-                    d_secondaryBuffer.pushBack(
-                        bslmf::MovableRefUtil::move(item));
-                    item.reset();
-                }
-            } break;
-            case e_IDLE_PRIMARY: {
-                // Primary buffer is exhausted, flush high priority items that
-                // are written to message builders.
-                if (flushAll(channel) == bmqio::StatusCategory::e_SUCCESS) {
-                    // Then, drain the secondary buffer.
-                    mode = e_SECONDARY;
-                    BALL_LOG_TRACE << "'" << d_description
-                                   << "': going to SECONDARY mode";
-                }
-            } break;
-            case e_SECONDARY: {
-                if (d_secondaryBuffer.tryPopFront(&item)) {
-                    // Secondary is empty.
+            case e_FLUSH_BUFFER: {
+                if (d_buffer.tryPopFront(&item) != 0) {
+                    // The buffer is exhausted.
                     BSLS_ASSERT_SAFE(!item);
-                    mode = e_IDLE_SECONDARY;
-                    BALL_LOG_TRACE << "'" << d_description
-                                   << "': going to IDLE_SECONDARY mode";
+                    mode = e_IDLE;
                 }
             } break;
-            case e_IDLE_SECONDARY: {
-                // Secondary buffer is exhausted, flush low priority items that
-                // are written to message builders.
+            case e_IDLE: {
                 if (flushAll(channel) == bmqio::StatusCategory::e_SUCCESS) {
                     // Everything was processed and flushed, circle back to
                     // BLOCK mode and wait for the next batch of items.
                     mode = e_BLOCK;
-                    BALL_LOG_TRACE << "'" << d_description
-                                   << "': going to BLOCK mode";
                 }
             } break;
             }
         }
         else if (item->d_type == bmqp::EventType::e_UNDEFINED) {
-            // Enqueued by 'wakeUp'.  Ignore.
+            // Enqueued by 'wakeUp', ignore this item
             item.reset();
-
-            // If this was 'flush', drain secondary items.
-            mode = e_IDLE_PRIMARY;
-            BALL_LOG_TRACE << "'" << d_description
-                           << "': undefined event, going to IDLE_PRIMARY mode";
         }
         else {
             // e_READY and have channel and an item

@@ -312,36 +312,19 @@ class Channel {
         ~Item();
 
         const bsl::shared_ptr<bdlbb::Blob>& data();
-
-        bool isSecondary();
     };
 
     enum Mode {
-        /// Call 'popFront' on the primary buffer.
+        /// Call 'popFront' on the buffer.
         /// This puts internal thread into sleep until there are any events.
         e_BLOCK,
 
-        /// Call 'tryPopFront' on the primary buffer until this buffer is
-        /// exhausted, and transition to the next state.
-        /// During this process:
-        /// - High priority items are written to message builders directly.
-        /// - Low priority items are enqueued to the SECONDARY buffer to be
-        ///   written later.
-        e_PRIMARY,
+        /// Call 'tryPopFront' on the buffer until this buffer is exhausted,
+        /// and transition to the next state.
+        e_FLUSH_BUFFER,
 
-        /// Flush all builders, and transition to the next state.
-        /// - High priority items are flushed to IO.
-        e_IDLE_PRIMARY,
-
-        /// Call 'tryPopFront' on the secondary buffer until this buffer is
-        /// exhausted, and transition to the next state.
-        /// During this process:
-        /// - Low priority items are written to message builders directly.
-        e_SECONDARY,
-
-        /// Flush all builders, and circle back to `e_BLOCK` state.
-        /// - Low priority items are flushed to IO.
-        e_IDLE_SECONDARY
+        /// Flush all builders to IO, and circle back to `e_BLOCK` state.
+        e_IDLE
     };
 
     struct Stats {
@@ -405,7 +388,6 @@ class Channel {
     // Pool of 'Item' objects.
 
     ItemQueue d_buffer;
-    ItemQueue d_secondaryBuffer;
 
     bslmt::ThreadUtil::Handle d_threadHandle;
 
@@ -991,11 +973,6 @@ inline Channel::Item::~Item()
 inline const bsl::shared_ptr<bdlbb::Blob>& Channel::Item::data()
 {
     return d_data_sp;
-}
-
-inline bool Channel::Item::isSecondary()
-{
-    return d_type == bmqp::EventType::e_ACK;
 }
 
 // --------------------
