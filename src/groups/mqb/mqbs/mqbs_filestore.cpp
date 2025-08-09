@@ -6806,8 +6806,9 @@ void FileStore::clearPrimary()
     FileSet* fs = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(fs);
 
-    if (fs->d_journalFilePosition >
-        (sizeof(FileHeader) + sizeof(JournalFileHeader))) {
+    if (!d_isFSMWorkflow &&
+        fs->d_journalFilePosition >
+            (sizeof(FileHeader) + sizeof(JournalFileHeader))) {
         // There is at least one record in the JOURNAL.  Read the last JOURNAL
         // record.
 

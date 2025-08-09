@@ -985,7 +985,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             BALL_LOG_OUTPUT_STREAM
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
-                << "Not opening recovery file set because it's already "
+                << "No need to open recovery file set because it's already "
                 << "opened.  Current recovery file set: "
                 << recoveryCtx.d_recoveryFileSet << ", journal file position: "
                 << recoveryCtx.d_journalFilePosition

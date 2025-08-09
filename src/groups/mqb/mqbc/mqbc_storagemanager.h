@@ -642,7 +642,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_nackPut(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_cleanupSeqnums(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_cleanupMetadata(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void do_startSendDataChunks(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
@@ -666,9 +666,6 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_checkQuorumRplcaDataRspn(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_clearRplcaDataRspnCnt(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
     void do_reapplyEvent(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;

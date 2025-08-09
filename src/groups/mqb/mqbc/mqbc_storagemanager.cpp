@@ -1279,16 +1279,28 @@ void StorageManager::do_closeRecoveryFileSet(const PartitionFSMArgsSp& args)
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    const int rc = d_recoveryManager_mp->closeRecoveryFileSet(partitionId);
-    if (rc != 0) {
-        // TBD: Is it safe to continue if we failed to closed recovery file
-        // set?
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Failure while closing recovery file set"
-                       << ", rc: " << rc;
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs->config().partitionId() == partitionId);
+    if (fs->isOpen()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Since FileStore is already open, we can deduce that "
+                      << "we didn't need to open recovery file set earlier, "
+                      << "so there is no need to close now.";
 
         return;  // RETURN
+    }
+
+    const int rc = d_recoveryManager_mp->closeRecoveryFileSet(partitionId);
+    if (rc != 0) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Failure while closing recovery file set, rc: " << rc
+            << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
     }
 }
 
@@ -2594,7 +2606,7 @@ void StorageManager::do_nackPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
     // TODO: Complete Impl
 }
 
-void StorageManager::do_cleanupSeqnums(const PartitionFSMArgsSp& args)
+void StorageManager::do_cleanupMetadata(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
     // contained in 'args'
@@ -2612,11 +2624,15 @@ void StorageManager::do_cleanupSeqnums(const PartitionFSMArgsSp& args)
     const int                    partitionId = eventData.partitionId();
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
+                     PartitionFSM::State::e_UNKNOWN);
 
     d_nodeToSeqNumCtxMapVec[partitionId].clear();
+    d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
+    d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
 }
 
 void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
@@ -3099,31 +3115,6 @@ void StorageManager::do_checkQuorumRplcaDataRspn(
             PartitionFSM::Event::e_QUORUM_REPLICA_DATA_RSPN,
             eventWithData.second);
     }
-}
-
-void StorageManager::do_clearRplcaDataRspnCnt(const PartitionFSMArgsSp& args)
-{
-    // executed by the *QUEUE DISPATCHER* thread associated with the
-    // paritionId contained in 'args'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
-
-    const PartitionFSM::EventWithData& eventWithData =
-        args->eventsQueue()->front();
-    const EventData& eventDataVec = eventWithData.second;
-
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
-                     PartitionFSM::State::e_UNKNOWN);
-
-    d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
 }
 
 void StorageManager::do_reapplyEvent(const PartitionFSMArgsSp& args)
