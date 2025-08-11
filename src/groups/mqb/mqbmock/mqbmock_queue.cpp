@@ -391,6 +391,11 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     return -1;
 }
 
+void Queue::convertToLocal()
+{
+    // NOTHING
+}
+
 // MANIPULATORS
 //   (specific to mqbmock::Queue)
 Queue& Queue::_setDispatcher(mqbi::Dispatcher* value)

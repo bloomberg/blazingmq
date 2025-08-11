@@ -28,6 +28,7 @@
 #include <mqbnet_session.h>
 #include <mqbs_datastore.h>
 #include <mqbs_replicatedstorage.h>
+#include <mqbstat_queuestats.h>
 
 // BMQ
 #include <bmqp_ackmessageiterator.h>

@@ -352,6 +352,8 @@ class Queue : public mqbi::Queue {
     processCommand(mqbcmd::QueueResult*        result,
                    const mqbcmd::QueueCommand& command) BSLS_KEYWORD_OVERRIDE;
 
+    void convertToLocal() BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (specific to mqbmock::Queue)
     Queue& _setDispatcher(mqbi::Dispatcher* value);
