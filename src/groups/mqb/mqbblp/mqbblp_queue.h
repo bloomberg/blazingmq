@@ -178,7 +178,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
                       int                       ackWindowSize,
                       RemoteQueue::StateSpPool* statePool);
 
-    void convertToLocal();
+    void convertToLocal() BSLS_KEYWORD_OVERRIDE;
     void convertToRemote();
 
     // ACCESSORS

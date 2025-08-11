@@ -36,6 +36,7 @@
 //
 
 // MQB
+#include <mqbblp_queue.h>
 #include <mqbblp_storagemanager.h>
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusternodesession.h>
@@ -2084,9 +2085,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         /// `d_liveQInfo->d_queue_sp` is reset, but the corresponding domain
         /// still contains a shared_ptr to this queue.
         /// We must restore `d_queue_sp` from the domain.
-        queueContext->d_liveQInfo.d_queue_sp = bsl::shared_ptr<mqbblp::Queue>(
-            iQueueSp,
-            static_cast<mqbblp::Queue*>(iQueueSp.get()));
+        queueContext->d_liveQInfo.d_queue_sp = iQueueSp;
         return iQueueSp;  // RETURN
     }
 
@@ -3869,7 +3868,7 @@ ClusterQueueHelper::restoreStateHelper(QueueLiveState&      queueInfo,
                           << "ReopenQueue request: " << REQ << ", rc: " << RC \
                           << ".";
 
-    const mqbblp::Queue* queuePtr = queueInfo.d_queue_sp.get();
+    const mqbi::Queue* queuePtr = queueInfo.d_queue_sp.get();
 
     for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
          iter != queueInfo.d_subQueueIds.end();
@@ -4422,7 +4421,7 @@ void ClusterQueueHelper::onQueueUpdated(
     BSLS_ASSERT_SAFE(qiter != d_queues.end());
 
     QueueContext&  queueContext = *qiter->second;
-    mqbblp::Queue* queue        = queueContext.d_liveQInfo.d_queue_sp.get();
+    mqbi::Queue*   queue        = queueContext.d_liveQInfo.d_queue_sp.get();
     const int      partitionId  = queueContext.partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
 
@@ -5848,7 +5847,7 @@ void ClusterQueueHelper::checkUnconfirmed(
         return;  // RETURN
     }
 
-    bsl::shared_ptr<mqbblp::Queue>& queueSp =
+    bsl::shared_ptr<mqbi::Queue>& queueSp =
         queueContextSp->d_liveQInfo.d_queue_sp;
 
     if (!queueSp) {
@@ -5968,7 +5967,7 @@ void ClusterQueueHelper::checkUnconfirmedQueueDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueContextSp);
-    bsl::shared_ptr<mqbblp::Queue>& queueSp =
+    bsl::shared_ptr<mqbi::Queue>& queueSp =
         queueContextSp->d_liveQInfo.d_queue_sp;
     BSLS_ASSERT_SAFE(queueSp);
     BSLS_ASSERT_SAFE(queueSp->dispatcher()->inDispatcherThread(queueSp.get()));

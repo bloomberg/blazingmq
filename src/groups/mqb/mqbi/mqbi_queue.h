@@ -899,6 +899,9 @@ class Queue : public DispatcherClient {
     virtual int processCommand(mqbcmd::QueueResult*        result,
                                const mqbcmd::QueueCommand& command) = 0;
 
+    /// Convert this queue to local.
+    virtual void convertToLocal() = 0;
+
     // ACCESSORS
 
     /// Return the domain this queue belong to.
