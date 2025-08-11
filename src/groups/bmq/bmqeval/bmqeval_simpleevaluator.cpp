@@ -135,14 +135,12 @@ bool SimpleEvaluator::evaluate(EvaluationContext& context) const
 
     bdld::Datum value = d_expression->evaluate(context);
 
-    if (context.d_stop) {
+    if (context.hasError()) {
         return false;  // RETURN
     }
 
     if (!value.isBoolean()) {
-        context.d_stop      = true;
-        context.d_lastError = ErrorType::e_TYPE;
-
+        context.setError(ErrorType::e_TYPE);
         return false;  // RETURN
     }
 
@@ -182,15 +180,14 @@ SimpleEvaluator::Property::evaluate(EvaluationContext& context) const
                                                         context.d_allocator);
 
     if (value.isError()) {
-        context.d_stop = true;
-        int rc         = value.theError().code();
+        const int rc = value.theError().code();
 
-        if (rc >= ErrorType::e_EVALUATION_FIRST &&
-            ErrorType::e_EVALUATION_LAST <= rc) {
-            context.d_lastError = static_cast<ErrorType::Enum>(rc);
+        if (ErrorType::e_EVALUATION_FIRST <= rc &&
+            rc <= ErrorType::e_EVALUATION_LAST) {
+            context.setError(static_cast<ErrorType::Enum>(rc));
         }
         else {
-            context.d_lastError = ErrorType::e_UNDEFINED;
+            context.setError(ErrorType::e_UNDEFINED);
         }
     }
 
@@ -228,8 +225,7 @@ bdld::Datum
 SimpleEvaluator::UnaryMinus::evaluate(EvaluationContext& context) const
 {
     bdld::Datum expr = d_expression->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
@@ -242,9 +238,8 @@ SimpleEvaluator::UnaryMinus::evaluate(EvaluationContext& context) const
         value = expr.theInteger();
     }
     else {
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     return bdld::Datum::createInteger64(-value, context.d_allocator);
@@ -284,29 +279,27 @@ SimpleEvaluator::StringLiteral::evaluate(EvaluationContext& context) const
 bdld::Datum SimpleEvaluator::Or::evaluate(EvaluationContext& context) const
 {
     bdld::Datum left = d_left->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     if (!left.isBoolean()) {
-        context.d_lastError = ErrorType::e_TYPE;
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     if (left.theBoolean()) {
-        return bdld::Datum::createBoolean(true);  // RETURN
+        return left;  // RETURN
     }
 
     bdld::Datum right = d_right->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     if (!right.isBoolean()) {
-        context.d_lastError = ErrorType::e_TYPE;
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     return right;
@@ -319,29 +312,27 @@ bdld::Datum SimpleEvaluator::Or::evaluate(EvaluationContext& context) const
 bdld::Datum SimpleEvaluator::And::evaluate(EvaluationContext& context) const
 {
     bdld::Datum left = d_left->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     if (!left.isBoolean()) {
-        context.d_lastError = ErrorType::e_TYPE;
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     if (!left.theBoolean()) {
-        return bdld::Datum::createBoolean(false);  // RETURN
+        return left;  // RETURN
     }
 
     bdld::Datum right = d_right->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     if (!right.isBoolean()) {
-        context.d_lastError = ErrorType::e_TYPE;
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     return right;
@@ -354,15 +345,13 @@ bdld::Datum SimpleEvaluator::And::evaluate(EvaluationContext& context) const
 bdld::Datum SimpleEvaluator::Not::evaluate(EvaluationContext& context) const
 {
     bdld::Datum value = d_expression->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     if (!value.isBoolean()) {
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     return bdld::Datum::createBoolean(!value.theBoolean());
