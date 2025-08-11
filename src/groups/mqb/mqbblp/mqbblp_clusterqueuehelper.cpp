@@ -2080,6 +2080,13 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     // Domain is already aware of the queue, reuse it.
     bsl::shared_ptr<mqbi::Queue> iQueueSp;
     if (context.d_domain_p->lookupQueue(&iQueueSp, queueContext->uri()) == 0) {
+        /// In rare situations we call `resetButKeepPending` and
+        /// `d_liveQInfo->d_queue_sp` is reset, but the corresponding domain
+        /// still contains a shared_ptr to this queue.
+        /// We must restore `d_queue_sp` from the domain.
+        queueContext->d_liveQInfo.d_queue_sp = bsl::shared_ptr<mqbblp::Queue>(
+            iQueueSp,
+            static_cast<mqbblp::Queue*>(iQueueSp.get()));
         return iQueueSp;  // RETURN
     }
 
