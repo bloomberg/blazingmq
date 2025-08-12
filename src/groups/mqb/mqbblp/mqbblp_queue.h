@@ -122,9 +122,11 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
   private:
     // PRIVATE MANIPULATORS
-    void configureDispatched(int*          result,
-                             bsl::ostream* errorDescription,
-                             bool          isReconfigure);
+    void configureDispatched(
+        int*                                     result,
+        bsl::ostream*                            errorDescription,
+        const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+        bool                                     isReconfigure);
 
     void getHandleDispatched(
         const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
@@ -203,9 +205,10 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     ///
     /// THREAD: this method can be invoked only from cluster-dispatcher
     /// thread.
-    int configure(bsl::ostream* errorDescription_p,
-                  bool          isReconfigure,
-                  bool          wait) BSLS_KEYWORD_OVERRIDE;
+    int configure(bsl::ostream*                            errorDescription_p,
+                  const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+                  bool                                     isReconfigure,
+                  bool wait) BSLS_KEYWORD_OVERRIDE;
 
     /// Obtain a handle to this queue, for the client represented by the
     /// specified `clientContext` and using the specified `handleParameters`
@@ -446,6 +449,12 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
+
+    /// @return the configuration of this domain, or an empty pointer if the
+    ///         domain is not configured.
+    /// THREAD: safe to access only from CLUSTER dispatcher thread.
+    const bsl::shared_ptr<mqbconfm::Domain>&
+    domainConfig() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -595,6 +604,11 @@ inline const mqbi::Dispatcher* Queue::dispatcher() const
 inline bmqp::SchemaLearner& Queue::schemaLearner() const
 {
     return d_schemaLearner;
+}
+
+inline const bsl::shared_ptr<mqbconfm::Domain>& Queue::domainConfig() const
+{
+    return d_state.domainConfig();
 }
 
 }  // close package namespace

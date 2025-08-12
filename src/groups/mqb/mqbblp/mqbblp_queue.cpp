@@ -62,9 +62,11 @@ namespace mqbblp {
 // class Queue
 // -----------
 
-void Queue::configureDispatched(int*          result,
-                                bsl::ostream* errorDescription,
-                                bool          isReconfigure)
+void Queue::configureDispatched(
+    int*                                     result,
+    bsl::ostream*                            errorDescription,
+    const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+    bool                                     isReconfigure)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -74,6 +76,8 @@ void Queue::configureDispatched(int*          result,
     bmqu::MemOutStream throwaway(d_allocator_p);
     bsl::ostream&      errStream = (errorDescription ? *errorDescription
                                                      : throwaway);
+
+    d_state.setDomainConfig(domainConfig_sp);
 
     int rc = 0;
     if (d_localQueue_mp) {
@@ -577,8 +581,9 @@ void Queue::onReplicatedBatch()
 }
 
 int Queue::configure(bsl::ostream* errorDescription_p,
-                     bool          isReconfigure,
-                     bool          wait)
+                     const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+                     bool                                     isReconfigure,
+                     bool                                     wait)
 {
     // executed by *ANY* thread
 
@@ -589,6 +594,7 @@ int Queue::configure(bsl::ostream* errorDescription_p,
                              this,
                              (wait ? &result : NULL),
                              (wait ? errorDescription_p : NULL),
+                             domainConfig_sp,
                              isReconfigure),
         this);
     if (!wait) {

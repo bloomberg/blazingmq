@@ -740,9 +740,11 @@ class Queue : public DispatcherClient {
     /// unmodified.
     ///
     /// THREAD: this method can be called from any thread.
-    virtual int configure(bsl::ostream* errorDescription_p,
-                          bool          isReconfigure,
-                          bool          wait) = 0;
+    virtual int
+    configure(bsl::ostream*                            errorDescription_p,
+              const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+              bool                                     isReconfigure,
+              bool                                     wait) = 0;
 
     /// Obtain a handle to this queue, for the client represented by the
     /// specified `clientContext` and using the specified `handleParameters`
@@ -906,6 +908,11 @@ class Queue : public DispatcherClient {
 
     /// Return the domain this queue belong to.
     virtual Domain* domain() const = 0;
+
+    /// @return the configuration of this domain, or an empty pointer if the
+    ///         domain is not configured.
+    /// THREAD: safe to access only from CLUSTER dispatcher thread.
+    virtual const bsl::shared_ptr<mqbconfm::Domain>& domainConfig() const = 0;
 
     /// Return the storage used by this queue.
     virtual Storage* storage() const = 0;

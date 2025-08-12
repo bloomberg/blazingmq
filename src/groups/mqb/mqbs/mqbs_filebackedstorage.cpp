@@ -116,7 +116,7 @@ FileBackedStorage::FileBackedStorage(
 , d_virtualStorageCatalog(
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
-, d_ttlSeconds(domain->config().messageTtl())
+, d_ttlSeconds(domain->config()->messageTtl())
 , d_capacityMeter(
       bsl::string("queue [", d_allocator_p) + queueUri.asString() + "]",
       domain->capacityMeter(),
@@ -126,12 +126,12 @@ FileBackedStorage::FileBackedStorage(
                             bdlf::PlaceHolders::_1),  // stream
       d_allocator_p)
 , d_handles(bsls::TimeInterval()
-                .addMilliseconds(domain->config().deduplicationTimeMs())
+                .addMilliseconds(domain->config()->deduplicationTimeMs())
                 .totalNanoseconds(),
             allocatorStore ? allocatorStore->get("Handles") : d_allocator_p)
 , d_queueOpRecordHandles(d_allocator_p)
 , d_isEmpty(1)
-, d_hasReceipts(!domain->config().consistency().isStrongValue())
+, d_hasReceipts(!domain->config()->consistency().isStrongValue())
 , d_currentlyAutoConfirming()
 , d_autoConfirms(d_allocator_p)
 {
@@ -148,7 +148,7 @@ FileBackedStorage::FileBackedStorage(
     // passed to the 'FileBackedStorage' instance.
     d_virtualStorageCatalog.stats()->initialize(queueUri, domain);
     d_virtualStorageCatalog.setDefaultRda(
-        domain->config().maxDeliveryAttempts());
+        domain->config()->maxDeliveryAttempts());
 }
 
 FileBackedStorage::~FileBackedStorage()
@@ -748,9 +748,9 @@ int FileBackedStorage::gcExpiredMessages(
     bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
     int                limit = k_GC_MESSAGES_BATCH_SIZE;
     bsls::Types::Int64 deduplicationTimeNs = 0;
-    if (queue() && queue()->domain()) {
+    if (queue() && queue()->domainConfig()) {
         deduplicationTimeNs =
-            queue()->domain()->config().deduplicationTimeMs() *
+            queue()->domainConfig()->deduplicationTimeMs() *
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND;
     }
 

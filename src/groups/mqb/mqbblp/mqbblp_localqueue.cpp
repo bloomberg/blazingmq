@@ -84,7 +84,7 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 
 int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 {
-    // executed by the *DISPATCHER* thread
+    // THREAD: QUEUE dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
@@ -102,7 +102,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     int                     rc        = 0;
     mqbi::Queue*            queue     = d_state_p->queue();
-    const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+    const mqbconfm::Domain& domainCfg = *d_state_p->domainConfig();
 
     // Create the associated storage.
     if (!d_state_p->storage()) {
@@ -156,10 +156,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     // during update of a domain's configuration, this object already exists,
     // and should not be re-created.
     if (!d_queueEngine_mp) {
-        RootQueueEngine::create(&d_queueEngine_mp,
-                                d_state_p,
-                                domainCfg,
-                                d_allocator_p);
+        RootQueueEngine::create(&d_queueEngine_mp, d_state_p, d_allocator_p);
     }
 
     // Inform the storage about the queue.

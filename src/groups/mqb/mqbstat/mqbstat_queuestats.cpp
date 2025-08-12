@@ -431,10 +431,10 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
     // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
     // inspected separately for each application.
     if (!domain->cluster()->isRemote() &&
-        domain->config().mode().isFanoutValue() &&
-        domain->config().mode().fanout().publishAppIdMetrics()) {
+        domain->config()->mode().isFanoutValue() &&
+        domain->config()->mode().fanout().publishAppIdMetrics()) {
         const bsl::vector<bsl::string>& appIDs =
-            domain->config().mode().fanout().appIDs();
+            domain->config()->mode().fanout().appIDs();
         for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
              cit != appIDs.end();
              ++cit) {

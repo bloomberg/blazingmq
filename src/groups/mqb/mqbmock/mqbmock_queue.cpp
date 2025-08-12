@@ -55,6 +55,7 @@ Queue::Queue(mqbi::Domain* domain, bslma::Allocator* allocator)
 , d_streamParameters(allocator)
 , d_stats_sp(0)
 , d_domain_p(domain)
+, d_domainConfig_sp(0)
 , d_dispatcher_p(0)
 , d_queueEngine_p(0)
 , d_storage_p(0)
@@ -105,9 +106,11 @@ void Queue::flush()
 // MANIPULATORS
 //   (virtual: mqbi::Queue)
 int Queue::configure(BSLA_UNUSED bsl::ostream* errorDescription_p,
-                     BSLA_UNUSED bool          isReconfigure,
-                     BSLA_UNUSED bool          wait)
+                     const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+                     BSLA_UNUSED bool                         isReconfigure,
+                     BSLA_UNUSED bool                         wait)
 {
+    d_domainConfig_sp = domainConfig_sp;
     return 0;
 }
 
@@ -526,6 +529,11 @@ const mqbcfg::MessageThrottleConfig& Queue::messageThrottleConfig() const
 bmqp::SchemaLearner& Queue::schemaLearner() const
 {
     return d_schemaLearner;
+}
+
+const bsl::shared_ptr<mqbconfm::Domain>& Queue::domainConfig() const
+{
+    return d_domainConfig_sp;
 }
 
 // -------------------

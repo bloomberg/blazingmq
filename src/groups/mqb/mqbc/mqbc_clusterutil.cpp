@@ -924,19 +924,19 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
         static void panic(mqbi::Domain* domain)
         {
             BMQTSK_ALARMLOG_PANIC("DOMAIN_QUEUE_LIMIT_FULL")
-                << "domain '" << "bmq://" << domain->name()
+                << "domain 'bmq://" << domain->name()
                 << "' has reached the maximum number of queues (limit: "
-                << domain->config().maxQueues() << ")." << BMQTSK_ALARMLOG_END;
+                << domain->config()->maxQueues() << ")."
+                << BMQTSK_ALARMLOG_END;
         }
 
         static void alarm(mqbi::Domain* domain, int queues)
         {
             BMQTSK_ALARMLOG_ALARM("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK")
-                << "domain '" << "bmq://" << domain->name()
-                << "' has reached the " << (k_MAX_QUEUES_HIGH_WATERMARK * 100)
-                << "% watermark limit for the number of queues "
-                   "(current: "
-                << queues << ", limit: " << domain->config().maxQueues()
+                << "domain 'bmq://" << domain->name() << "' has reached the "
+                << (k_MAX_QUEUES_HIGH_WATERMARK * 100)
+                << "% watermark limit for the number of queues (current: "
+                << queues << ", limit: " << domain->config()->maxQueues()
                 << ")." << BMQTSK_ALARMLOG_END;
         }
     };
@@ -950,7 +950,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
         // num(assigned) + num(assigning) + num(unassigning).
         const int registeredQueues = static_cast<int>(
             domIt->second->queuesInfo().size());
-        const int maxQueues = domIt->second->domain()->config().maxQueues();
+        const int maxQueues = domIt->second->domain()->config()->maxQueues();
         if (maxQueues != 0) {
             const int requestedQueues = registeredQueues + 1;
             if (requestedQueues > maxQueues) {
@@ -1014,7 +1014,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                                     clusterState,
                                     clusterData,
                                     uri,
-                                    domIt->second->domain()->config().mode());
+                                    domIt->second->domain()->config()->mode());
 
     // 'ClusterQueueHelper::onQueueAssigned' (the 'onQueueAssigned' observer
     // callback) will insert the key to 'ClusterState::queueKeys'.

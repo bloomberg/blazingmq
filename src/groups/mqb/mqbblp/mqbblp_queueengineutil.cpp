@@ -178,12 +178,12 @@ bool QueueEngineUtil::consumerAndProducerLimitsAreValid(
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
 {
     BSLS_ASSERT_SAFE(queueState);
+    BSLS_ASSERT_SAFE(queueState->domainConfig());
 
     bool              isValid = true;
     mqbi::QueueCounts counts  = queueState->consumerAndProducerCounts(
         handleParameters);
-    const mqbconfm::Domain& domainConfig =
-        queueState->queue()->domain()->config();
+    const mqbconfm::Domain& domainConfig = *queueState->domainConfig();
 
     if (domainConfig.maxProducers() &&
         ((handleParameters.writeCount() + counts.d_writeCount) >
@@ -331,7 +331,7 @@ void QueueEngineUtil::logRejectMessage(
     bdlbb::Blob payload(queueState->blobBufferFactory(), allocator);
     bmqp::MessageProperties properties(allocator);
     int                     attemptedDeliveries =
-        queueState->domain()->config().maxDeliveryAttempts();
+        queueState->domainConfig()->maxDeliveryAttempts();
     bdlbb::Blob msgProperties(queueState->blobBufferFactory(), allocator);
     int         messagePropertiesSize = 0;
     int         rc                    = bmqp::ProtocolUtil::parse(

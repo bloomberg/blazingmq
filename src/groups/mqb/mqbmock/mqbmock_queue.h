@@ -143,6 +143,9 @@ class Queue : public mqbi::Queue {
     mqbi::Domain* d_domain_p;
     // Domain of this queue
 
+    /// Domain configuration.
+    bsl::shared_ptr<mqbconfm::Domain> d_domainConfig_sp;
+
     mqbi::Dispatcher* d_dispatcher_p;
     // Dispatcher for this queue
 
@@ -191,9 +194,10 @@ class Queue : public mqbi::Queue {
 
     // MANIPULATORS
     //   (virtual: mqbi::Queue)
-    int configure(bsl::ostream* errorDescription_p,
-                  bool          isReconfigure,
-                  bool          wait) BSLS_KEYWORD_OVERRIDE;
+    int configure(bsl::ostream*                            errorDescription_p,
+                  const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp,
+                  bool                                     isReconfigure,
+                  bool wait) BSLS_KEYWORD_OVERRIDE;
 
     /// Obtain a handle to this queue, for the client represented by the
     /// specified `clientContext` and using the specified `handleParameters`
@@ -432,6 +436,12 @@ class Queue : public mqbi::Queue {
 
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
+
+    /// @return the configuration of this domain, or an empty pointer if the
+    ///         domain is not configured.
+    /// THREAD: safe to access only from CLUSTER dispatcher thread.
+    const bsl::shared_ptr<mqbconfm::Domain>&
+    domainConfig() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (specific to mqbi::MockQueue)

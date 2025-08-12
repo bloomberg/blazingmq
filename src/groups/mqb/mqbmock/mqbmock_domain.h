@@ -105,6 +105,9 @@ class Domain : public mqbi::Domain {
   private:
     // DATA
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
     // Name of this domain
     bsl::string d_name;
 
@@ -123,7 +126,7 @@ class Domain : public mqbi::Domain {
     bsl::shared_ptr<bmqst::StatContext> d_statContext;
 
     // Configuration for the domain
-    mqbconfm::Domain d_config;
+    bsl::shared_ptr<mqbconfm::Domain> d_config_sp;
 
     // Domain resource capacity meter
     mqbu::CapacityMeter d_capacityMeter;
@@ -226,8 +229,11 @@ class Domain : public mqbi::Domain {
     /// Return the name of this domain.
     const bsl::string& name() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the configuration of this domain.
-    const mqbconfm::Domain& config() const BSLS_KEYWORD_OVERRIDE;
+    /// @return the configuration of this domain, or an empty pointer if the
+    ///         domain is not configured.
+    /// THREAD: safe to access only from CLUSTER dispatcher thread.
+    const bsl::shared_ptr<mqbconfm::Domain>&
+    config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the `DomainStats` object associated to this Domain.
     mqbstat::DomainStats* domainStats() BSLS_KEYWORD_OVERRIDE;

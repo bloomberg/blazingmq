@@ -138,6 +138,10 @@ class QueueState {
     /// Domain the queue associated to this state belongs to.
     mqbi::Domain* d_domain_p;
 
+    /// A local copy of the actual domain config.
+    /// Safe to access from QUEUE dispatcher thread.
+    bsl::shared_ptr<mqbconfm::Domain> d_domainConfig_sp;
+
     /// Storage manager to use.
     mqbi::StorageManager* d_storageManager_p;
 
@@ -217,6 +221,9 @@ class QueueState {
     mqbi::DispatcherClientData& dispatcherClientData();
     QueueHandleCatalog&         handleCatalog();
 
+    void
+    setDomainConfig(const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp);
+
     /// Store the specified value in the subQueuesParametersMap under the
     /// specified `subQueueId` key.
     void setUpstreamParameters(
@@ -279,6 +286,7 @@ class QueueState {
     const bsl::string&                           description() const;
     const mqbi::DispatcherClientData&            dispatcherClientData() const;
     mqbi::Domain*                                domain() const;
+    const bsl::shared_ptr<mqbconfm::Domain>&      domainConfig() const;
     unsigned int                                 id() const;
     const mqbu::StorageKey&                      key() const;
     const QueueHandleCatalog&                    handleCatalog() const;
@@ -424,6 +432,12 @@ inline QueueHandleCatalog& QueueState::handleCatalog()
     return d_handleCatalog;
 }
 
+inline void QueueState::setDomainConfig(
+    const bsl::shared_ptr<mqbconfm::Domain>& domainConfig_sp)
+{
+    d_domainConfig_sp = domainConfig_sp;
+}
+
 inline void
 QueueState::setUpstreamParameters(const bmqp_ctrlmsg::StreamParameters& value,
                                   unsigned int subQueueId)
@@ -530,6 +544,12 @@ QueueState::dispatcherClientData() const
 inline mqbi::Domain* QueueState::domain() const
 {
     return d_domain_p;
+}
+
+inline const bsl::shared_ptr<mqbconfm::Domain>&
+QueueState::domainConfig() const
+{
+    return d_domainConfig_sp;
 }
 
 inline unsigned int QueueState::id() const

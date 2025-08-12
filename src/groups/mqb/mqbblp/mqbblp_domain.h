@@ -129,7 +129,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     bsl::string d_name;
 
     /// Configuration for the domain.
-    bdlb::NullableValue<mqbconfm::Domain> d_config;
+    /// Read/write thread safe only from CLUSTER dispatcher thread.
+    bsl::shared_ptr<mqbconfm::Domain> d_config_sp;
 
     /// Cluster to use by this domain.
     bsl::shared_ptr<mqbi::Cluster> d_cluster_sp;
@@ -307,8 +308,11 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// Return the name of this domain.
     const bsl::string& name() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the configuration of this domain.
-    const mqbconfm::Domain& config() const BSLS_KEYWORD_OVERRIDE;
+    /// @return the configuration of this domain, or an empty pointer if the
+    ///         domain is not configured.
+    /// THREAD: safe to access only from CLUSTER dispatcher thread.
+    const bsl::shared_ptr<mqbconfm::Domain>&
+    config() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the `DomainStats` object associated to this Domain.
     mqbstat::DomainStats* domainStats() BSLS_KEYWORD_OVERRIDE;
@@ -356,12 +360,9 @@ inline const bsl::string& Domain::name() const
     return d_name;
 }
 
-inline const mqbconfm::Domain& Domain::config() const
+inline const bsl::shared_ptr<mqbconfm::Domain>& Domain::config() const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_config.isNull());
-
-    return d_config.value();
+    return d_config_sp;
 }
 
 inline mqbstat::DomainStats* Domain::domainStats()

@@ -101,10 +101,10 @@ bool validateSubscriptionExpression(bsl::ostream& errorDescription,
 
 /// Validates a domain configuration. If `previousDefn` is provided, also
 /// checks that the implied reconfiguration is also valid.
-int validateConfig(bsl::ostream& errorDescription,
-                   const bdlb::NullableValue<mqbconfm::Domain>& previousDefn,
-                   const mqbconfm::Domain&                      newConfig,
-                   bslma::Allocator*                            allocator)
+int validateConfig(bsl::ostream&                            errorDescription,
+                   const bsl::shared_ptr<mqbconfm::Domain>& prevConfig_sp,
+                   const bsl::shared_ptr<mqbconfm::Domain>& newConfig_sp,
+                   bslma::Allocator*                        allocator)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -115,42 +115,41 @@ int validateConfig(bsl::ostream& errorDescription,
         rc_INVALID_SUBSCRIPTION = -4
     };
 
-    if (previousDefn.isNull()) {
+    if (!prevConfig_sp) {
         // First time configure, nothing more to validate
         return 0;  // RETURN
     }
 
-    // Validate properties of new configurations relative to old ones.
-    const mqbconfm::Domain& previousCfg = previousDefn.value();
-
     // Reconfiguring the routing mode is not allowed.
-    if (previousCfg.mode().selectionId() != newConfig.mode().selectionId()) {
+    if (prevConfig_sp->mode().selectionId() !=
+        newConfig_sp->mode().selectionId()) {
         errorDescription << "Reconfiguration of domain routing mode is not "
                             "allowed (was '"
-                         << previousCfg.mode() << "', changed to '"
-                         << newConfig.mode() << "')";
+                         << prevConfig_sp->mode() << "', changed to '"
+                         << newConfig_sp->mode() << "')";
         return rc_CHANGED_DOMAIN_MODE;  // RETURN
     }
 
     // Reconfiguring the storage mode is not allowed.
-    if (previousCfg.storage().config().selectionId() !=
-        newConfig.storage().config().selectionId()) {
+    if (prevConfig_sp->storage().config().selectionId() !=
+        newConfig_sp->storage().config().selectionId()) {
         errorDescription << "Reconfiguration of storage type is not allowed "
                             "(was '"
-                         << previousCfg.storage().config() << "', changed to '"
-                         << newConfig.storage().config() << ")";
+                         << prevConfig_sp->storage().config()
+                         << "', changed to '"
+                         << newConfig_sp->storage().config() << ")";
         return rc_CHANGED_STORAGE_TYPE;  // RETURN
     }
 
     // Validate newConfig.subscriptions()
 
-    bsl::size_t size                     = newConfig.subscriptions().size();
+    bsl::size_t size = newConfig_sp->subscriptions().size();
     bool        allSubscriptionsAreValid = true;
 
     for (bsl::size_t i = 0; i < size; ++i) {
         if (!validateSubscriptionExpression(
                 errorDescription,
-                newConfig.subscriptions()[i].expression(),
+                newConfig_sp->subscriptions()[i].expression(),
                 allocator)) {
             allSubscriptionsAreValid = false;
         }
@@ -227,7 +226,7 @@ Domain::Domain(const bsl::string&                     name,
 : d_allocator_p(allocator)
 , d_state(e_STOPPED)
 , d_name(name, d_allocator_p)
-, d_config(d_allocator_p)
+, d_config_sp(0)
 , d_cluster_sp(cluster)
 , d_dispatcher_p(dispatcher)
 , d_blobBufferFactory_p(blobBufferFactory)
@@ -270,22 +269,23 @@ int Domain::configure(bsl::ostream&           errorDescription,
         rc_APPID_RECONFIGURE_FAILED = -4
     };
 
-    // Store a copy of the old configuration.
-    bdlb::NullableValue<mqbconfm::Domain> oldConfig(d_config);
-    const bool                            isReconfigure(oldConfig.has_value());
+    // Store a reference of the old configuration.
+    bsl::shared_ptr<mqbconfm::Domain> oldConfig_sp = d_config_sp;
+    const bool                        isReconfigure(0 != oldConfig_sp.get());
 
     // Certain invalid values might need to be updated in the configuration.
-    mqbconfm::Domain finalConfig(config);
+    bsl::shared_ptr<mqbconfm::Domain> finalConfig_sp =
+        bsl::allocate_shared<mqbconfm::Domain>(d_allocator_p, config);
     {
         bmqu::MemOutStream err;
-        if (normalizeConfig(&finalConfig, err, *this)) {
+        if (normalizeConfig(finalConfig_sp.get(), err, *this)) {
             BMQTSK_ALARMLOG_ALARM("DOMAIN")
                 << err.str() << BMQTSK_ALARMLOG_END;
         }
     }
 
     // Return early if there are no changes.
-    if (oldConfig && (finalConfig == oldConfig.value())) {
+    if (oldConfig_sp && (*finalConfig_sp == *oldConfig_sp)) {
         return rc_SUCCESS;  // RETURN
     }
 
@@ -297,17 +297,17 @@ int Domain::configure(bsl::ostream&           errorDescription,
 
     // Validate config. Return early if the configuration is not valid.
     if (const int rc = validateConfig(errorDescription,
-                                      d_config,
-                                      finalConfig,
+                                      oldConfig_sp,
+                                      finalConfig_sp,
                                       d_allocator_p)) {
         return (rc * 10 + rc_VALIDATION_FAILED);  // RETURN
     }
 
     // Adopt the updated domain configuration.
-    d_config.makeValue(finalConfig);
+    d_config_sp = bslmf::MovableRefUtil::move(finalConfig_sp);
 
     // Configure domain limits.
-    const mqbconfm::Limits& limits = d_config.value().storage().domainLimits();
+    const mqbconfm::Limits& limits = d_config_sp->storage().domainLimits();
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
         .setWatermarkThresholds(limits.messagesWatermarkRatio(),
                                 limits.bytesWatermarkRatio());
@@ -317,14 +317,12 @@ int Domain::configure(bsl::ostream&           errorDescription,
         limits.bytes());
 
     if (isReconfigure) {
-        BSLS_ASSERT_OPT(oldConfig.has_value());
-        BSLS_ASSERT_OPT(d_config.has_value());
+        BSLS_ASSERT_OPT(oldConfig_sp);
+        BSLS_ASSERT_OPT(d_config_sp);
 
         // Notify the 'cluster' of the updated configuration, so it can write
         // any needed update-advisories to the CSL.
-        d_cluster_sp->onDomainReconfigured(*this,
-                                           oldConfig.value(),
-                                           d_config.value());
+        d_cluster_sp->onDomainReconfigured(*this, *oldConfig_sp, *d_config_sp);
 
         // Note: Queues must only be reconfigured AFTER ensuring that virtual
         // storage has been created for any new AppIds. This is done by the
@@ -349,6 +347,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
                 &mqbi::Queue::configure,
                 it->second.get(),
                 bsl::nullptr_t(),  // errorDescription_p
+                finalConfig_sp,    // domainConfig_sp
                 true,              // isReconfigure
                 false);            // wait
             d_dispatcher_p->execute(reconfigureQueueFn, cluster());
@@ -629,7 +628,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
 
         domainInfo.name()        = d_name;
         domainInfo.clusterName() = d_cluster_sp->name();
-        if (!d_config.isNull()) {
+        if (d_config_sp) {
             baljsn::Encoder                       encoder;
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
@@ -640,7 +639,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             options.setSpacesPerLevel(2);
 
             BSLA_MAYBE_UNUSED const int rc = encoder.encode(out,
-                                                            d_config.value(),
+                                                            *d_config_sp,
                                                             options);
             BSLS_ASSERT_SAFE(rc == 0);
             domainInfo.configJson() = out.str();
@@ -827,14 +826,14 @@ void Domain::loadRoutingConfiguration(
 
     bmqp::RoutingConfigurationUtils::clear(config);
 
-    if (d_config.isNull()) {
+    if (!d_config_sp) {
         BALL_LOG_ERROR << "#DOMAIN_INVALID_CONFIG "
                        << "Uninitialized config for domain '" << d_name
                        << "'.";
         return;  // RETURN
     }
 
-    switch (d_config.value().mode().selectionId()) {
+    switch (d_config_sp->mode().selectionId()) {
     case mqbconfm::QueueMode::SELECTION_ID_FANOUT: {
         RootQueueEngine::FanoutConfiguration::loadRoutingConfiguration(config);
     } break;
@@ -850,9 +849,8 @@ void Domain::loadRoutingConfiguration(
     default: {
         BSLS_ASSERT_SAFE(false && "Invalid domain routing mode");
         BALL_LOG_ERROR << "#DOMAIN_INVALID_CONFIG "
-                       << "Invalid or undefined mode '"
-                       << d_config.value().mode() << "' for domain '" << d_name
-                       << "'.";
+                       << "Invalid or undefined mode '" << d_config_sp->mode()
+                       << "' for domain '" << d_name << "'.";
     }
     }
 }

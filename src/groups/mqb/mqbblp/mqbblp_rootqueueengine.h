@@ -214,11 +214,10 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     static void onHandleCreation(void* ptr, void* cookie);
 
     /// Loads the specified `queueEngine` with a new `RootQueueEngine`
-    /// initialized using the specified `queueState`, `domainConfig`,
-    /// `scheduler` and `allocator`.
+    /// initialized using the specified `queueState`, `scheduler` and
+    /// `allocator`.
     static void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                        QueueState*                           queueState,
-                       const mqbconfm::Domain&               domainConfig,
                        bslma::Allocator*                     allocator);
 
     /// Loads the specified `config` with the appropriate values for
@@ -243,9 +242,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     };
 
     // CREATORS
-    RootQueueEngine(QueueState*             queueState,
-                    const mqbconfm::Domain& domainConfig,
-                    bslma::Allocator*       allocator);
+    explicit RootQueueEngine(QueueState*       queueState,
+                             bslma::Allocator* allocator = 0);
 
     // MANIPULATORS
     //   (virtual mqbi::QueueEngine)
@@ -457,7 +455,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bsl::ostream& logAppSubscriptionInfo(bsl::ostream&     stream,
                                          const AppStateSp& appState) const;
 
-    const mqbconfm::Domain& config() const;
+    const bsl::shared_ptr<mqbconfm::Domain>& config() const;
 };
 
 // ============================================================================
@@ -468,9 +466,9 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 // struct RootQueueEngine
 // ----------------------
 
-inline const mqbconfm::Domain& RootQueueEngine::config() const
+inline const bsl::shared_ptr<mqbconfm::Domain>& RootQueueEngine::config() const
 {
-    return d_queueState_p->queue()->domain()->config();
+    return d_queueState_p->domainConfig();
 }
 
 }  // close package namespace

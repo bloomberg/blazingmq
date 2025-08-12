@@ -209,14 +209,12 @@ void RootQueueEngine::onHandleCreation(void* ptr, void* cookie)
 
 void RootQueueEngine::create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                              QueueState*                           queueState,
-                             const mqbconfm::Domain& domainConfig,
-                             bslma::Allocator*       allocator)
+                             bslma::Allocator*                     allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueEngine);
 
-    queueEngine->load(new (*allocator)
-                          RootQueueEngine(queueState, domainConfig, allocator),
+    queueEngine->load(new (*allocator) RootQueueEngine(queueState, allocator),
                       allocator);
 }
 
@@ -254,9 +252,8 @@ void RootQueueEngine::BroadcastConfiguration::loadRoutingConfiguration(
 }
 
 // CREATORS
-RootQueueEngine::RootQueueEngine(QueueState*             queueState,
-                                 const mqbconfm::Domain& domainConfig,
-                                 bslma::Allocator*       allocator)
+RootQueueEngine::RootQueueEngine(QueueState*       queueState,
+                                 bslma::Allocator* allocator)
 : d_queueState_p(queueState)
 , d_consumptionMonitor(
       queueState,
@@ -272,7 +269,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
       allocator)
 , d_apps(allocator)
 , d_hasAppSubscriptions(false)
-, d_isFanout(domainConfig.mode().isFanoutValue())
+, d_isFanout(queueState->domainConfig()->mode().isFanoutValue())
 , d_scheduler_p(queueState->scheduler())
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
 , d_appsDeliveryContext(d_queueState_p->queue(), allocator)
@@ -320,12 +317,12 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     size_t numApps = 0;
 
     const bsl::vector<mqbconfm::Subscription>& subscriptions =
-        config().subscriptions();
+        config()->subscriptions();
     d_hasAppSubscriptions = !subscriptions.empty();
 
     if (d_isFanout) {
         const bsl::vector<bsl::string>& cfgAppIds =
-            config().mode().fanout().appIDs();
+            config()->mode().fanout().appIDs();
         for (numApps = 0; numApps < cfgAppIds.size(); ++numApps) {
             if (initializeAppId(cfgAppIds[numApps],
                                 errorDescription,
@@ -409,7 +406,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     }
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
-        d_consumptionMonitor.setMaxIdleTime(config().maxIdleTime());
+        d_consumptionMonitor.setMaxIdleTime(config()->maxIdleTime());
     }
 
     return rc_SUCCESS;
@@ -1479,7 +1476,7 @@ int RootQueueEngine::onRejectMessage(
         // replica/proxy will free the corresponding handles, and all message
         // iterators will be recreated with the correct 'rdaInfo' received from
         // primary, if a new consumer connects to the replica/proxy.
-        const int      maxDeliveryAttempts = config().maxDeliveryAttempts();
+        const int      maxDeliveryAttempts = config()->maxDeliveryAttempts();
         const bool     domainIsUnlimited   = (maxDeliveryAttempts == 0);
         bmqp::RdaInfo& rda = message->appMessageState(app.ordinal()).d_rdaInfo;
 
@@ -1855,7 +1852,7 @@ void RootQueueEngine::logAlarmCb(
     storage->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
         << bmqu::PrintUtil::prettyTimeInterval(
-               config().maxIdleTime() *
+               config()->maxIdleTime() *
                bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
         << " appears to be stuck. It currently has " << numConsumers
         << " consumers." << ss.str() << '\n';
@@ -2126,8 +2123,8 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     mqbcmd::FanoutQueueEngine& fanoutQueueEngine = out->makeFanout();
     // TODO: Implement in a way that makes sense
 
-    fanoutQueueEngine.mode()         = config().mode().selectionName();
-    fanoutQueueEngine.maxConsumers() = config().maxConsumers();
+    fanoutQueueEngine.mode()         = config()->mode().selectionName();
+    fanoutQueueEngine.maxConsumers() = config()->maxConsumers();
     Apps& consumerStatesRef          = const_cast<Apps&>(d_apps);
 
     bsl::vector<mqbcmd::ConsumerState>& consumerStates =

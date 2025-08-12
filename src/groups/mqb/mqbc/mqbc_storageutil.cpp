@@ -1702,7 +1702,7 @@ void StorageUtil::recoveredQueuesCb(
                       << "], queueKey [" << queueKey << "].";
 
         // Update 'storageMap'.
-        const mqbconfm::Domain&            domainCfg  = domain->config();
+        const mqbconfm::Domain&            domainCfg  = *domain->config();
         const mqbconfm::StorageDefinition& storageDef = domainCfg.storage();
 
         if (domainCfg.mode().isUndefinedValue()) {
@@ -1758,7 +1758,7 @@ void StorageUtil::recoveredQueuesCb(
         // Create and add virtual storages, if any.
         bmqu::MemOutStream errorDesc;
         int                rc;
-        if (domain->config().mode().isFanoutValue()) {
+        if (domain->config()->mode().isFanoutValue()) {
             for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator ait =
                      appIdKeyPairs.cbegin();
                  ait != appIdKeyPairs.cend();
@@ -2328,8 +2328,9 @@ void StorageUtil::registerQueue(
     // If StorageMgr is not aware of the queue, then its a simpler process --
     // simply register it and its associated appIds, if any.
 
-    const mqbconfm::StorageDefinition& storageDef = domain->config().storage();
-    const mqbconfm::QueueMode&         queueMode  = domain->config().mode();
+    const mqbconfm::StorageDefinition& storageDef =
+        domain->config()->storage();
+    const mqbconfm::QueueMode& queueMode = domain->config()->mode();
 
     bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
 
@@ -2405,7 +2406,7 @@ void StorageUtil::registerQueue(
                     clusterDescription,
                     partitionId,
                     appIdKeyPairs,
-                    domain->config().mode().isFanoutValue()));
+                    domain->config()->mode().isFanoutValue()));
 
             dispatcher->dispatchEvent(queueEvent,
                                       mqbi::DispatcherClientType::e_QUEUE,
@@ -2848,7 +2849,7 @@ void StorageUtil::registerQueueReplicaDispatched(
         }
     }
 
-    const mqbconfm::Domain&            domainCfg  = domain->config();
+    const mqbconfm::Domain&            domainCfg  = *domain->config();
     const mqbconfm::StorageDefinition& storageDef = domainCfg.storage();
 
     if (domainCfg.mode().isUndefinedValue()) {
@@ -3109,7 +3110,7 @@ void StorageUtil::updateQueueReplicaDispatched(
         appIdKeyPairs,
         clusterDescription,
         partitionId,
-        domain->config().mode().isFanoutValue());
+        domain->config()->mode().isFanoutValue());
     if (rc != 0) {
         if (!allowDuplicate) {
             bmqu::Printer<AppInfos> printer(&appIdKeyPairs);

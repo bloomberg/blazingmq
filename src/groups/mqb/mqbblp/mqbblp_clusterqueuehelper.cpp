@@ -925,7 +925,7 @@ void ClusterQueueHelper::processOpenQueueRequest(
                 &openQueueResp.routingConfiguration());
 
             openQueueResp.deduplicationTimeMs() =
-                context->d_domain_p->config().deduplicationTimeMs();
+                context->d_domain_p->config()->deduplicationTimeMs();
             openQueueResp.originalRequest().handleParameters() =
                 context->d_handleParameters;
             openQueueResp.originalRequest().handleParameters().qId() =
@@ -1925,7 +1925,7 @@ bool ClusterQueueHelper::createQueue(
         match(&added,
               &removed,
               *queueContext->d_stateQInfo_sp,
-              domain->config().mode());
+              domain->config()->mode());
 
         if (!removed.empty() || !added.empty()) {
             // Add to 'd_pending' before calling 'updateAppIds' which is
@@ -2169,6 +2169,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     bmqu::MemOutStream                    error(&localAllocator);
 
     int rc = queueSp->configure(&error,
+                                context.d_domain_p->config(),
                                 false,  // isReconfigure
                                 true);  // wait
 
@@ -3745,7 +3746,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     match(&added,
                           &removed,
                           *queueContext->d_stateQInfo_sp,
-                          domain->config().mode());
+                          domain->config()->mode());
 
                     if (!removed.empty() || !added.empty()) {
                         VoidFunctor park = bdlf::BindUtil::bind(

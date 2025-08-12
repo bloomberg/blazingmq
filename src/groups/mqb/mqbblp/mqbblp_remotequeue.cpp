@@ -153,10 +153,9 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     d_state_p->setStorage(storageSp);
 
     // Create the queueEngine.
-    d_queueEngine_mp.load(
-        new (*d_allocator_p)
-            RelayQueueEngine(d_state_p, mqbconfm::Domain(), d_allocator_p),
-        d_allocator_p);
+    d_queueEngine_mp.load(new (*d_allocator_p)
+                              RelayQueueEngine(d_state_p, d_allocator_p),
+                          d_allocator_p);
 
     rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
     if (rc != 0) {
@@ -198,7 +197,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
 
     int                     rc        = 0;
     mqbi::Queue*            queue     = d_state_p->queue();
-    const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+    const mqbconfm::Domain& domainCfg = *d_state_p->domainConfig();
 
     if (!isReconfigure) {
         // Only create a storage if this is the initial configure; reconfigure
@@ -248,10 +247,9 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         d_state_p->setStorage(storageSp);
 
         // Create the queueEngine.
-        d_queueEngine_mp.load(
-            new (*d_allocator_p)
-                RelayQueueEngine(d_state_p, domainCfg, d_allocator_p),
-            d_allocator_p);
+        d_queueEngine_mp.load(new (*d_allocator_p)
+                                  RelayQueueEngine(d_state_p, d_allocator_p),
+                              d_allocator_p);
     }
     else {
         d_state_p->storage()->setConsistency(domainCfg.consistency());
@@ -547,7 +545,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     // Update stats
     if (isReconfigure) {
-        const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+        const mqbconfm::Domain& domainCfg = *d_state_p->domainConfig();
         if (domainCfg.mode().isFanoutValue()) {
             d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().publishAppIdMetrics()

@@ -644,10 +644,7 @@ inline T* QueueEngineTester::createQueueEngine()
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_queueEngine_mp && "'createQueueEngine()' was called");
-    T* result = new (*d_allocator_p)
-        T(d_queueState_mp.get(),
-          d_queueState_mp->queue()->domain()->config(),
-          d_allocator_p);
+    T* result = new (*d_allocator_p) T(d_queueState_mp.get(), d_allocator_p);
     // Create and configure Queue Engine
     d_queueEngine_mp.load(result, d_allocator_p);
 

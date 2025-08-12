@@ -1443,11 +1443,9 @@ static void test9_priorityCreateAndConfigure()
         void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                     bslma::Allocator*                     allocator) const
         {
-            mqbblp::RootQueueEngine::create(
-                queueEngine,
-                d_queueState_mp.get(),
-                d_queueState_mp->domain()->config(),
-                allocator);
+            mqbblp::RootQueueEngine::create(queueEngine,
+                                            d_queueState_mp.get(),
+                                            allocator);
         }
 
         ~PriorityQueueEngineTester() {}
@@ -2773,11 +2771,9 @@ static void test22_createAndConfigure()
         void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
                     bslma::Allocator*                     allocator) const
         {
-            mqbblp::RootQueueEngine::create(
-                queueEngine,
-                d_queueState_mp.get(),
-                d_queueState_mp->domain()->config(),
-                allocator);
+            mqbblp::RootQueueEngine::create(queueEngine,
+                                            d_queueState_mp.get(),
+                                            allocator);
         }
 
         ~FanoutQueueEngineTester() {}

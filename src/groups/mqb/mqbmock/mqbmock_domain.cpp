@@ -38,7 +38,8 @@ namespace mqbmock {
 
 // CREATORS
 Domain::Domain(mqbi::Cluster* cluster, bslma::Allocator* allocator)
-: d_name("mock-domain", allocator)
+: d_allocator_p(allocator)
+, d_name("mock-domain", allocator)
 , d_cluster_p(cluster)
 , d_domainsStatContext(
       mqbstat::DomainStatsUtil::initializeStatContext(5, allocator))
@@ -46,7 +47,7 @@ Domain::Domain(mqbi::Cluster* cluster, bslma::Allocator* allocator)
       mqbstat::QueueStatsUtil::initializeStatContextDomains(5, allocator))
 // NOTE: Some test drivers require a few snapshot, hence the 'arbitrary' 5
 //       used here
-, d_config(allocator)
+, d_config_sp(bsl::allocate_shared<mqbconfm::Domain>(allocator))
 , d_capacityMeter(bsl::string("domain [", allocator) + d_name + "]",
                   0,
                   allocator)
@@ -73,8 +74,8 @@ Domain::~Domain()
 int Domain::configure(BSLA_UNUSED bsl::ostream& errorDescription,
                       const mqbconfm::Domain&   config)
 {
-    d_config = config;
-
+    d_config_sp = bsl::allocate_shared<mqbconfm::Domain>(d_allocator_p,
+                                                         config);
     return 0;
 }
 
@@ -192,9 +193,9 @@ const bsl::string& Domain::name() const
     return d_name;
 }
 
-const mqbconfm::Domain& Domain::config() const
+const bsl::shared_ptr<mqbconfm::Domain>& Domain::config() const
 {
-    return d_config;
+    return d_config_sp;
 }
 
 mqbstat::DomainStats* Domain::domainStats()
