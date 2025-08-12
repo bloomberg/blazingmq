@@ -2168,7 +2168,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    error(&localAllocator);
 
-    int rc = queueSp->configure(error,
+    int rc = queueSp->configure(&error,
                                 false,  // isReconfigure
                                 true);  // wait
 
