@@ -15,6 +15,7 @@
 
 // mqbc_storagemanager.cpp                                            -*-C++-*-
 #include <ball_log.h>
+#include <bsls_assert.h>
 #include <mqbc_storagemanager.h>
 
 #include <mqbscm_version.h>
@@ -963,11 +964,6 @@ void StorageManager::processReplicaDataResponseDispatched(
         eventDataVec.emplace_back(responder, responseId, partitionId, 1);
 
         switch (dataType) {
-        case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << ": FAIL_ReplicaDataResponse has an unknown data "
-                           << "type, ignoring.";
-        } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
             dispatchEventToPartition(
                 fs,
@@ -985,6 +981,12 @@ void StorageManager::processReplicaDataResponseDispatched(
                 fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
                 eventDataVec);
+        } break;
+        case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
+        default: {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << ": FAIL_ReplicaDataResponse has an unknown data "
+                           << "type, ignoring.";
         } break;
         }
         return;  // RETURN
@@ -1915,25 +1917,18 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
 
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not sending ReplicaDataRequestPush to replicas "
-                      << "because self is still expecting recovery data "
-                      << "chunks.";
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Not sending ReplicaDataRequestPush to replicas yet "
+            << "because self primary is still expecting recovery data "
+            << "chunks from the up-to-date replica.";
 
         return;  // RETURN
     }
-
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
-                       << "because FileStore is not opened.";
-
-        return;  // RETURN
-    }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
 
     // Self primary is sending request to all outdated and up-to-date replicas
 
@@ -2108,23 +2103,15 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Not sending ReplicaDataRequestDrop to replicas "
+                      << "Not sending ReplicaDataRequestDrop to replicas yet "
                       << "because self is still expecting recovery data "
-                      << "chunks.";
+                      << "chunks from the up-to-date replica.";
 
         return;  // RETURN
     }
-
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
-                       << "because FileStore is not opened.";
-
-        return;  // RETURN
-    }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
 
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
@@ -2326,14 +2313,56 @@ void StorageManager::do_replicaDataResponsePull(const PartitionFSMArgsSp& args)
     dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
                                                this,
                                                controlMsg,
-                                               eventData.source()),
+                                               destNode),
                           d_cluster_p);
 }
 
 void StorageManager::do_failureReplicaDataResponsePull(
-    const BSLA_UNUSED PartitionFSMArgsSp& args)
+    const PartitionFSMArgsSp& args)
 {
-    // TODO: Complete Impl
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    mqbnet::ClusterNode* destNode = eventData.source();
+
+    BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(destNode == d_partitionInfoVec[partitionId].primary());
+    // TODO Continue verifying here
+
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+    controlMsg.rId() = eventData.requestId();
+
+    bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    status.code()                = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
+    status.message()             = "Failed to send data chunks";
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: " << ": Sent failure response " << controlMsg
+                  << " to ReplicaDataRequestPull from primary node "
+                  << destNode->nodeDescription() << ".";
+
+    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
+                                               this,
+                                               controlMsg,
+                                               destNode),
+                          d_cluster_p);
 }
 
 void StorageManager::do_failureReplicaDataResponsePush(
@@ -2655,26 +2684,25 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    if (d_partitionFSMVec.at(partitionId)->isSelfPrimary() &&
-        d_recoveryManager_mp->expectedDataChunks(partitionId)) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not sending data chunks to replicas because self is "
-                      << "still expecting recovery data chunks.";
+    if (d_partitionFSMVec.at(partitionId)->isSelfPrimary()) {
+        if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId << "]: "
+                          << "Not sending data chunks to replicas yet because "
+                          << "self primary is still expecting recovery data "
+                          << "chunks from the up-to-date replica.";
 
-        return;  // RETURN
+            return;  // RETURN
+        }
     }
-
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
-                       << "because FileStore is not opened.";
-
-        return;  // RETURN
+    else {
+        BSLS_ASSERT_SAFE(
+            !d_recoveryManager_mp->expectedDataChunks(partitionId));
     }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    const mqbs::FileStore& fs = fileStore(partitionId);
+    BSLS_ASSERT_SAFE(fs.isOpen());
 
     // Note that 'eventData.partitionSeqNumDataRange()' is only used when this
     // action is performed by the replica.  If self is primary, we use
@@ -2695,8 +2723,8 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
 
         mqbnet::ClusterNode* destNode = eventData.source();
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
-        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary() ==
-                         eventData.source());
+        BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                         d_partitionInfoVec[partitionId].primary()->nodeId());
 
         bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
             eventData.partitionSeqNumDataRange().first;
@@ -2705,11 +2733,13 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
         BSLS_ASSERT_SAFE(endSeqNum ==
                          d_nodeToSeqNumCtxMapVec[partitionId][selfNode].first);
 
+        // No need to check rc here.  A failure will trigger a Partition FSM
+        // event of type e_ERROR_SENDING_DATA_CHUNKS.
         d_recoveryManager_mp->processSendDataChunks(partitionId,
                                                     destNode,
                                                     beginSeqNum,
                                                     endSeqNum,
-                                                    *fs,
+                                                    fs,
                                                     f);
     }
     else {
@@ -2750,7 +2780,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 destNode,
                 beginSeqNum,
                 endSeqNum,
-                *(d_fileStores[partitionId].get()),
+                fs,
                 f);
             if (rc != 0) {
                 BALL_LOG_ERROR << d_clusterData_p->identity().description()
@@ -2759,6 +2789,14 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                                << destNode << ", beginSeqNum = " << beginSeqNum
                                << ", endSeqNum = " << endSeqNum
                                << ", rc = " << rc;
+
+                // The failure rc will trigger a Partition FSM event of type
+                // e_ERROR_SENDING_DATA_CHUNKS.  However, today we do nothing
+                // upon that event, and instead rely on watchdog firing on the
+                // replica to trigger alarm and retry.  If we fail to send data
+                // to enough replicas such that quorum of ReplicaDataResponses
+                // is no longer possible, self primary's watchdog will also
+                // fire.
             }
             else {
                 nodeToSeqNumCtxMap.at(destNode).second = true;
