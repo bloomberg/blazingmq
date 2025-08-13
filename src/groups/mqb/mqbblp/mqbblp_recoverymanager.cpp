@@ -77,6 +77,9 @@ namespace {
 
 const char k_LOG_CATEGORY[] = "MQBBLP.RECOVERYMANAGER";
 
+const unsigned int k_STARTUP_WAIT_RETRIES  = 10;
+const unsigned int k_STARTUP_WAIT_RETRY_MS = 1000;
+
 /// This class provides a custom comparator to compare two (sync-point,
 /// offset) pairs.
 class SyncPointOffsetPairComparator {
@@ -476,12 +479,44 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
         // In that case, we just archive all partition files and let file store
         // create new ones.
 
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], no sync point has been received during "
+                      << "recovery wait-time and no peers are available. ";
+
+        if (d_clusterData_p->electorInfo().isSelfLeader()) {
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << ": Partition ["
+                << partitionId
+                << "], not extending the wait for sync points on the leader.";
+        }
+        else if (recoveryCtx.onStartupWaitRetry() > k_STARTUP_WAIT_RETRIES) {
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << ": Partition ["
+                << partitionId
+                << "], not extending the wait for sync points after retrying "
+                << k_STARTUP_WAIT_RETRIES << " times.";
+        }
+        else {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << ": Partition [" << partitionId
+                          << "], extending the wait for sync points.";
+
+            bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+            after.addMilliseconds(k_STARTUP_WAIT_RETRY_MS);
+            d_clusterData_p->scheduler().scheduleEvent(
+                &recoveryCtx.recoveryStartupWaitHandle(),
+                after,
+                bdlf::BindUtil::bind(&RecoveryManager::recoveryStartupWaitCb,
+                                     this,
+                                     partitionId));
+
+            return;  // RETURN
+        }
         if (0 != recoveryCtx.oldSyncPointOffset()) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << ": Partition [" << partitionId
-                          << "], no sync point has been received during "
-                          << "recovery wait-time and no peers are available. "
-                          << "Partition will be truncated to the last syncPt "
+                          << "] will be truncated to the last syncPt "
                           << "offsets & then local recovery will be performed."
                           << "Offset details: JOURNAL: "
                           << recoveryCtx.oldSyncPointOffset()
@@ -491,14 +526,12 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
             // Files will be truncated by 'onPartitionRecoveryStatus'.
         }
         else {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << ": Partition [" << partitionId
-                          << "], no sync point has been received during "
-                          << "recovery wait-time and no peers are available. "
-                          << "No syncPt is present in the local journal, and "
-                          << "thus, local partition files will be archived. "
-                          << "Recovery will proceed as if no local files "
-                          << "exist.";
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << ": Partition ["
+                << partitionId
+                << "]. No syncPt is present in the local journal, and thus, "
+                << "local partition files will be archived. "
+                << "Recovery will proceed as if no local files exist.";
             movePartitionFiles(partitionId,
                                d_dataStoreConfig.location(),
                                d_dataStoreConfig.archiveLocation());

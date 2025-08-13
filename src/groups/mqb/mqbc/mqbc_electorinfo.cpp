@@ -205,7 +205,7 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
                   << " to " << state << ".";
 
     d_electorState = state;
-    d_leaderNode_p = node;
+    setLeaderNode(node);
     d_leaderStatus = status;
     setElectorTerm(term);
 

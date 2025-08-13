@@ -187,6 +187,12 @@ class ElectorInfo : public ClusterFSMObserver {
     /// Observers of this object.
     ObserversSet d_observers;
 
+    bsls::AtomicBool d_isSelfLeader;
+
+  private:
+    // PRIVATE ACCESSORS
+    bool isSelfLeaderImpl() const;
+
   public:
     // CREATORS
 
@@ -306,6 +312,7 @@ inline ElectorInfo::ElectorInfo(mqbi::Cluster* cluster)
 , d_leaderSyncEventHandle()
 , d_cluster_p(cluster)
 , d_observers()
+, d_isSelfLeader(false)
 {
     d_leaderMessageSequence.electorTerm()    = mqbnet::Elector::k_INVALID_TERM;
     d_leaderMessageSequence.sequenceNumber() = 0;
@@ -328,6 +335,8 @@ inline ElectorInfo& ElectorInfo::setElectorTerm(bsls::Types::Uint64 value)
 inline ElectorInfo& ElectorInfo::setLeaderNode(mqbnet::ClusterNode* value)
 {
     d_leaderNode_p = value;
+
+    d_isSelfLeader = isSelfLeaderImpl();
     return *this;
 }
 
@@ -396,7 +405,7 @@ ElectorInfo::leaderMessageSequence() const
     return d_leaderMessageSequence;
 }
 
-inline bool ElectorInfo::isSelfLeader() const
+inline bool ElectorInfo::isSelfLeaderImpl() const
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -410,6 +419,13 @@ inline bool ElectorInfo::isSelfLeader() const
 
     return d_leaderNode_p && (d_leaderNode_p->nodeId() ==
                               d_cluster_p->netCluster().selfNodeId());
+}
+
+inline bool ElectorInfo::isSelfLeader() const
+{
+    // executed by *ANY* thread
+
+    return d_isSelfLeader.load();
 }
 
 inline bool ElectorInfo::isSelfActiveLeader() const
