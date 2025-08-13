@@ -371,6 +371,11 @@ void InitialConnectionHandler::handleEvent(
 
     bslmt::LockGuard<bslmt::Mutex> guard(&context->mutex());
 
+    BALL_LOG_INFO << "Enter InitialConnectionHandler::handleEvent: "
+                  << "state = " << context->state() << ", event = " << input
+                  << "; peerUri =" << context->channel()->peerUri()
+                  << "; context address = " << context.get();
+
     State oldState = context->state();
     State newState = context->state();
 
@@ -503,6 +508,9 @@ void InitialConnectionHandler::handleEvent(
     bsl::shared_ptr<mqbnet::Session> session;
 
     if (rc == 0 && newState == State::e_NEGOTIATED) {
+        BALL_LOG_INFO
+            << "InitialConnectionHandler::handleEvent: "
+            << "negotiation completed successfully, creating session";
         rc = d_negotiator_p->createSessionOnMsgType(errStream,
                                                     &session,
                                                     context.get());
@@ -512,9 +520,16 @@ void InitialConnectionHandler::handleEvent(
             << context->channel()->peerUri();
     }
 
+    BALL_LOG_INFO << "rc = " << rc << ", error = '" << errStream.str() << "'";
+
     if (rc != 0 || newState == State::e_NEGOTIATED) {
+        BALL_LOG_INFO << "Finish InitialConnectionHandler::handleEvent: "
+                      << "completing initial connection handler with rc = "
+                      << rc << ", error = '" << errStream.str() << "'";
         complete(context, rc, errStream.str(), session);
     }
+
+    BALL_LOG_INFO << "End of InitialConnectionHandler::handleEvent";
 }
 
 void InitialConnectionHandler::createNegotiationContext(
