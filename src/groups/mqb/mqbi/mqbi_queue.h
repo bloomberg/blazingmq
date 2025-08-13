@@ -732,15 +732,15 @@ class Queue : public DispatcherClient {
     /// If `wait` is `true`, this method will not return until the operation
     /// has completed. The return value will be 0 if it succeeds, and
     /// nonzero if there was an error; in case of an error, the specified
-    /// `errorDescription` stream will be populated with a human readable
+    /// `errorDescription_p` stream will be populated with a human readable
     /// reason.
     ///
     /// If `wait` is `false`, this method will return 0 after scheduling the
-    /// operation on an unspecified thread, and `errorDescription` will be
+    /// operation on an unspecified thread, and `errorDescription_p` will be
     /// unmodified.
     ///
     /// THREAD: this method can be called from any thread.
-    virtual int configure(bsl::ostream& errorDescription,
+    virtual int configure(bsl::ostream* errorDescription_p,
                           bool          isReconfigure,
                           bool          wait) = 0;
 
