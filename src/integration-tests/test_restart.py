@@ -106,7 +106,7 @@ def post_new_queues_and_verify(
     new fanout queue based on `domain_urls`, and append them to the
     `existing_queues_pair` of existing priority and fanout
     queues respectively.  Then, instruct the `producer` to post one message on
-    the two new queues.  Finally, instrcut `consumer_foo` to confirm one message on appId 'foo'.
+    the two new queues.  Finally, instruct `consumer_foo` to confirm one message on appId 'foo'.
     """
     # Preconditions
     NUM_QUEUE_MODES = (
@@ -251,7 +251,8 @@ def ensureMessageAtStorageLayer(
 
 def close_and_unassign_queue(queueUri: str, client: Client, leader: Broker):
     """
-    Close and unassign the `queueUri` connected to by the `client`.  Instruct the `leader` to force garbage collection of queues.
+    Close and unassign the `queueUri` connected to by the `client`.  Instruct
+    the `leader` to force garbage collection of queues.
     """
     assert client.close(queueUri, succeed=True) == Client.e_SUCCESS
 

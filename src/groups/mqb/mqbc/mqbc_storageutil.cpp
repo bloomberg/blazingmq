@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbc_storageutil.cpp                                               -*-C++-*-
-#include "bmqp_ctrlmsg_messages.h"
 #include <mqbc_storageutil.h>
 
 #include <mqbscm_version.h>
