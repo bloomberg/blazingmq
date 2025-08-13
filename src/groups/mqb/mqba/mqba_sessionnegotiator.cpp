@@ -362,7 +362,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     bmqp_ctrlmsg::ClientIdentity& clientIdentity =
         negotiationMessage.clientIdentity();
 
-    BALL_LOG_INFO << "Received negotiation message from '"
+    BALL_LOG_INFO << "Handle negotiation message received from '"
                   << context->channel()->peerUri() << "': " << clientIdentity;
 
     bsl::shared_ptr<mqbnet::Session> session;
