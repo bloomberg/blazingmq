@@ -6,8 +6,8 @@
             "fileName": "localBMQ/logs/logs.%T.%p",
             "fileMaxAgeDays": 10,
             "rotationBytes": 268435456,
-            "logfileFormat": "%d (%t) %s %F:%l %m\n\n",
-            "consoleFormat": "%d (%t) %s %F:%l %m\n",
+            "logfileFormat": "%d (%t) %s %F:%l %a %m\n\n",
+            "consoleFormat": "%d (%t) %s %F:%l %a %m\n",
             "loggingVerbosity": "INFO",
             "consoleSeverityThreshold": "INFO",
             "categories": [
@@ -20,7 +20,7 @@
             "syslog": {
                 "enabled": false,
                 "appName": "BMQ",
-                "logFormat": "%d (%t) %s %F:%l %m\n\n",
+                "logFormat": "%d (%t) %s %F:%l %a %m\n\n",
                 "verbosity": ""
             }
         }

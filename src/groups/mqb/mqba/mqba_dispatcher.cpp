@@ -391,6 +391,11 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                               BSLA_UNUSED void*                context,
                               const ProcessorPool::Event*      event)
 {
+    // Set the thread name attribute
+    bsl::string threadName;
+    bslmt::ThreadUtil::getThreadName(&threadName);
+    ball::ScopedAttribute threadNameAttr("thread.name", threadName);
+
     switch (event->type()) {
     case ProcessorPool::Event::BMQC_USER: {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
