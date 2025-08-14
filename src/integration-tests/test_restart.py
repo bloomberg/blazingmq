@@ -82,17 +82,15 @@ def check_exited_nodes_and_restart(cluster: Cluster):
 
 def verifyMessages(consumer: Client, queue: str, appId: str, expected_count: int):
     """
-    Instruct the `consumer` to open the `queue` with the optional `appId`, and
-    verify that there are `expected_count` unconfirmed messages.
+    Instruct the `consumer` to verify that the `queue` with the optional
+    `appId` has `expected_count` unconfirmed messages.
     """
     queue_with_appid = queue if not appId else queue + f"?id={appId}"
-    consumer.open(queue_with_appid, flags=["read"], succeed=True)
     consumer.wait_push_event()
     assert wait_until(
         lambda: len(consumer.list(queue_with_appid, block=True)) == expected_count,
         timeout=2,
     )
-    consumer.close(queue_with_appid, succeed=True)
 
 
 def post_new_queues_and_verify(
@@ -149,7 +147,6 @@ def post_new_queues_and_verify(
 
     # Save one confirm to the storage for new fanout queue
     consumer_foo.confirm(new_fanout_queue + "?id=foo", "+1", succeed=True)
-    consumer_foo.close(new_fanout_queue + "?id=foo", succeed=True)
 
     # Postconditions
     assert len(existing_priority_queues) == len(existing_fanout_queues)
