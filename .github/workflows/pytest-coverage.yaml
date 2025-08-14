@@ -15,12 +15,6 @@ on:
       - "edited"
 
   workflow_dispatch:
-    inputs:
-      uploadArtifact:
-        description: 'Generate report and upload artifact'
-        required: true
-        type: 'boolean'
-        default: 'true'
 
 jobs:
   python_unit_tests_coverage:
@@ -41,7 +35,6 @@ jobs:
             --cov-report xml:python-coverage.xml
 
       - name: Archive code coverage results
-        if: ${{ github.event.workflow_dispatch && inputs.uploadArtifact }}
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
