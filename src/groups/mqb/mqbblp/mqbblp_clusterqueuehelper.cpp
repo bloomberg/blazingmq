@@ -2179,7 +2179,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &mqbi::Storage::setQueue,
                               queueSp->storage(),
-                              bsl::nullptr_t()));
+                              static_cast<mqbi::Queue*>(0)));
 
     if (rc != 0) {
         // Queue.configure() failed.
