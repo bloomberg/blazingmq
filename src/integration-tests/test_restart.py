@@ -82,7 +82,8 @@ def check_exited_nodes_and_restart(cluster: Cluster):
 
 def verifyMessages(consumer: Client, queue: str, appId: str, expected_count: int):
     """
-    Instruct the `consumer` to open the `queue` with the optional `appId`, and verify that there are `expected_count` unconfirmed messages.
+    Instruct the `consumer` to open the `queue` with the optional `appId`, and
+    verify that there are `expected_count` unconfirmed messages.
     """
     queue_with_appid = queue if not appId else queue + f"?id={appId}"
     consumer.open(queue_with_appid, flags=["read"], succeed=True)
