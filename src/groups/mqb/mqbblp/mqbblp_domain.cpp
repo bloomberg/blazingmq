@@ -348,9 +348,9 @@ int Domain::configure(bsl::ostream&           errorDescription,
             bsl::function<int()> reconfigureQueueFn = bdlf::BindUtil::bind(
                 &mqbi::Queue::configure,
                 it->second.get(),
-                bsl::ref(errorDescription),
-                true,    // isReconfigure
-                false);  // wait
+                bsl::nullptr_t(),  // errorDescription_p
+                true,              // isReconfigure
+                false);            // wait
             d_dispatcher_p->execute(reconfigureQueueFn, cluster());
         }
     }

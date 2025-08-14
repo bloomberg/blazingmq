@@ -2168,13 +2168,21 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    error(&localAllocator);
 
-    int rc = queueSp->configure(error,
+    int rc = queueSp->configure(&error,
                                 false,  // isReconfigure
                                 true);  // wait
 
+    /// `mqbi::Queue::configure` might have set a queue raw pointer in the
+    /// corresponding storage.  Make sure we unset this if we exit the scope
+    /// on error.
+    bdlb::ScopeExitAny queuePtrGuard(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &mqbi::Storage::setQueue,
+                              queueSp->storage(),
+                              bsl::nullptr_t()));
+
     if (rc != 0) {
         // Queue.configure() failed.
-
         BMQ_LOGTHROTTLE_ERROR << "Failure configuring queue '"
                               << queueContext->uri() << "': " << error.str()
                               << ".";
@@ -2203,6 +2211,9 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             queueContext->partitionId(),
             1);
     }
+
+    /// Success: no need to unset queue raw pointer.
+    queuePtrGuard.release();
 
     return queueSp;
 }

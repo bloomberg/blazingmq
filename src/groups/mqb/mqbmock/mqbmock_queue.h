@@ -191,7 +191,7 @@ class Queue : public mqbi::Queue {
 
     // MANIPULATORS
     //   (virtual: mqbi::Queue)
-    int configure(bsl::ostream& errorDescription,
+    int configure(bsl::ostream* errorDescription_p,
                   bool          isReconfigure,
                   bool          wait) BSLS_KEYWORD_OVERRIDE;
 
