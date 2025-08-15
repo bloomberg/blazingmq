@@ -801,9 +801,8 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             &event.getAs<mqbi::DispatcherCallbackEvent>();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(
-            d_state_p->queue()->dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
         const mqbi::DispatcherPushEvent* realEvent =
@@ -829,39 +828,39 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CONFIRM: {
         BSLS_ASSERT_OPT(false && "'CONFIRM' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_REJECT: {
         BSLS_ASSERT_OPT(false && "'REJECT' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_DISPATCHER: {
         BSLS_ASSERT_OPT(false &&
                         "'DISPATCHER' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
         BSLS_ASSERT_OPT(false &&
                         "'CLUSTER_STATE' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_STORAGE: {
         BSLS_ASSERT_OPT(false && "'STORAGE' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_RECOVERY: {
         BSLS_ASSERT_OPT(false &&
                         "'RECOVERY' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
         BSLS_ASSERT_OPT(
             false && "'REPLICATION_RECEIPT' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_UNDEFINED: {
         BSLS_ASSERT_OPT(false && "'NONE' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     default: {
         BALL_LOG_ERROR << "#QUEUE_UNEXPECTED_EVENT "
                        << d_state_p->description()
@@ -1208,7 +1207,7 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
     mqbi::QueueHandle*      source     = 0;
     const bmqp::AckMessage& ackMessage = event.ackMessage();
     bmqt::AckResult::Enum   ackResult  = bmqp::ProtocolUtil::ackResultFromCode(
-        ackMessage.status());
+           ackMessage.status());
     Puts::iterator it = d_pendingMessages.find(ackMessage.messageGUID());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(it != d_pendingMessages.end())) {

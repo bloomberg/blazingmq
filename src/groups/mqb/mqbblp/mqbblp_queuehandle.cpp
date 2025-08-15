@@ -511,20 +511,18 @@ void QueueHandle::deliverMessageImpl(
     // Create an event to dispatch delivery of the message to the client
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
     mqbi::DispatcherEvent*  event  = client->dispatcher()->getEvent(client);
-    mqbi::DispatcherPushEvent& pushEvent =
-        (*event)
-            .setSource(d_queue_sp.get())
-            .makePushEvent(
-                message, // might be null shared_ptr
-                msgGUID,
-                d_queue_sp->schemaLearner().demultiplex(
-                    d_schemaLearnerPushContext,
-                    attributes.messagePropertiesInfo()),
-                id(),
-                attributes.compressionAlgorithmType(),
-                isOutOfOrder,
-                subQueueInfos,
-                msgGroupId);
+    (*event)
+        .setSource(d_queue_sp.get())
+        .makePushEvent(message,  // might be null shared_ptr
+                       msgGUID,
+                       d_queue_sp->schemaLearner().demultiplex(
+                           d_schemaLearnerPushContext,
+                           attributes.messagePropertiesInfo()),
+                       id(),
+                       attributes.compressionAlgorithmType(),
+                       isOutOfOrder,
+                       subQueueInfos,
+                       msgGroupId);
 
     client->dispatcher()->dispatchEvent(event, client);
 }
@@ -643,10 +641,10 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
     SubscriptionSp subscription;
 
     if (itSubscription == d_subscriptions.end()) {
-        subscription.reset(
-            new (*d_allocator_p)
-                Subscription(downstreamSubId, subStream, upstreamId),
-            d_allocator_p);
+        subscription.reset(new (*d_allocator_p) Subscription(downstreamSubId,
+                                                             subStream,
+                                                             upstreamId),
+                           d_allocator_p);
         d_subscriptions.emplace(downstreamId, subscription);
     }
     else {
@@ -773,12 +771,12 @@ void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
     mqbi::DispatcherEvent* queueEvent = d_queue_sp->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
-    (*queueEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
-
-    queueEvent->callback().createInplace<QueueHandle::ConfirmFunctor>(
-        this,
-        msgGUID,
-        downstreamSubQueueId);
+    (*queueEvent)
+        .makeCallbackEvent()
+        .callback()
+        .createInplace<QueueHandle::ConfirmFunctor>(this,
+                                                    msgGUID,
+                                                    downstreamSubQueueId);
 
     d_queue_sp->dispatcher()->dispatchEvent(queueEvent, d_queue_sp.get());
 }

@@ -461,7 +461,7 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
 
     /// Constructor
     MyMockQueueHandle(
-        const bsl::shared_ptr<mqbi::Queue>& queue,
+        const bsl::shared_ptr<mqbi::Queue>&        queue,
         const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                    clientContext,
         mqbstat::QueueStatsDomain*                 domainStats,
@@ -585,7 +585,7 @@ class MyMockDomain : public mqbmock::Domain {
     /// calls the specified `callback` with a new queue handle created
     /// using the specified `handleParameters`.  The specified `uri` and
     /// `clientContext` are ignored.
-    void openQueue(BSLA_UNUSED const bmqt::Uri& uri,
+    void openQueue(BSLA_UNUSED const bmqt::Uri&               uri,
                    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
@@ -764,8 +764,8 @@ class TestBench {
     void openQueue(const bsl::string& uri, const int queueId)
     {
         bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
-                                     bmqp::EncodingType::e_BER,
-                                     d_allocator_p);
+                                         bmqp::EncodingType::e_BER,
+                                         d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         bmqp_ctrlmsg::OpenQueue&     openQueue =
             controlMessage.choice().makeOpenQueue();
@@ -791,8 +791,8 @@ class TestBench {
     void closeQueue(const bsl::string& uri, const int queueId)
     {
         bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
-                                     bmqp::EncodingType::e_BER,
-                                     d_allocator_p);
+                                         bmqp::EncodingType::e_BER,
+                                         d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         bmqp_ctrlmsg::CloseQueue&    closeQueue =
             controlMessage.choice().makeCloseQueue();
@@ -941,7 +941,7 @@ class TestBench {
         BMQTST_ASSERT(d_channel->waitFor(1, false));  // isFinal = false
         ConstWriteCall& openQueueCall = d_channel->writeCalls()[0];
         bmqp::Event     openQueueEvent(&openQueueCall.d_blob,
-                                   bmqtst::TestHelperUtil::allocator());
+                                       bmqtst::TestHelperUtil::allocator());
         PVV("Event 1: " << openQueueEvent);
         BMQTST_ASSERT(openQueueEvent.isControlEvent());
     }
@@ -978,7 +978,7 @@ class TestBench {
 
         ConstWriteCall& ackCall = d_channel->writeCalls()[eventIndex];
         bmqp::Event     ackEvent(&ackCall.d_blob,
-                             bmqtst::TestHelperUtil::allocator());
+                                 bmqtst::TestHelperUtil::allocator());
         PVV("Event " << eventIndex + 1 << ": " << ackEvent);
         BMQTST_ASSERT(ackEvent.isAckEvent());
 
@@ -1919,7 +1919,7 @@ static void test9_newStylePush()
     bmqp::PutEventBuilder peb(&tb.d_blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob           payload(&tb.d_bufferFactory,
-                        bmqtst::TestHelperUtil::allocator());
+                                  bmqtst::TestHelperUtil::allocator());
 
     bmqp::PutTester::populateBlob(&payload, 99);
 
@@ -1936,7 +1936,7 @@ static void test9_newStylePush()
 
     mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
-                         bmqtst::TestHelperUtil::allocator());
+                                   bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
     BSLS_ASSERT(rawEvent.isPutEvent());
@@ -1946,8 +1946,7 @@ static void test9_newStylePush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    putEvent.setType(mqbi::DispatcherEventType::e_PUT)
-        .setIsRelay(true)     // Relay message
+    putEvent
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .makePutEvent()
         .setIsRelay(true)  // Relay message
@@ -2032,7 +2031,7 @@ static void test10_newStyleCompressedPush()
     bmqp::PutEventBuilder peb(&tb.d_blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob           payload(&tb.d_bufferFactory,
-                        bmqtst::TestHelperUtil::allocator());
+                                  bmqtst::TestHelperUtil::allocator());
 
     bmqp::PutTester::populateBlob(
         &payload,
@@ -2050,7 +2049,7 @@ static void test10_newStyleCompressedPush()
 
     mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
-                         bmqtst::TestHelperUtil::allocator());
+                                   bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
     BSLS_ASSERT(rawEvent.isPutEvent());
@@ -2060,14 +2059,12 @@ static void test10_newStyleCompressedPush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    putEvent.setType(mqbi::DispatcherEventType::e_PUT)
-        .setIsRelay(true)     // Relay message
+    putEvent
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .makePutEvent()
         .setIsRelay(true)  // Relay message
         .setPutHeader(putIt.header())
-        .setBlob(peb.blob())  // const bsl::shared_ptr<bdlbb::Blob>& value
-        .setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_ZLIB);
+        .setBlob(peb.blob());  // const bsl::shared_ptr<bdlbb::Blob>& value
 
     tb.dispatch(putEvent);
 
@@ -2231,8 +2228,8 @@ static void test11_initiateShutdown()
     PV("Shutdown without unconfirmed messages");
     {
         TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
+                           isAtMostOnce,
+                           bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
 
         // Send an 'OpenQueue` request.
@@ -2266,8 +2263,8 @@ static void test11_initiateShutdown()
     PV("Shutdown with unconfirmed messages and timeout");
     {
         TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
+                           isAtMostOnce,
+                           bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
 
         // Send an 'OpenQueue` request.
@@ -2321,8 +2318,8 @@ static void test11_initiateShutdown()
     PV("Confirm a messsage while shutting down");
     {
         TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
+                           isAtMostOnce,
+                           bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
 
         // Send an 'OpenQueue` request.
@@ -2383,8 +2380,8 @@ static void test11_initiateShutdown()
     {
         const int                      NUM_MESSAGES = 5;
         TestBench                      tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
+                                          isAtMostOnce,
+                                          bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt                callbackCounter(0);
         bsl::vector<bmqt::MessageGUID> guids(
             bmqtst::TestHelperUtil::allocator());

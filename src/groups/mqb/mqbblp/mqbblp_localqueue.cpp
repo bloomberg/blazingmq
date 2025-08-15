@@ -338,9 +338,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             &event.getAs<mqbi::DispatcherCallbackEvent>();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(
-            d_state_p->queue()->dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
         BALL_LOG_INFO << "Skipping dispatcher event [" << event << "] "
@@ -444,8 +443,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     const bsls::Types::Int64 timePoint = bmqsys::Time::highResolutionTimer();
     const bool               doAck     = bmqp::PutHeaderFlagUtil::isSet(
-        putHeader.flags(),
-        bmqp::PutHeaderFlags::e_ACK_REQUESTED);
+                          putHeader.flags(),
+                          bmqp::PutHeaderFlags::e_ACK_REQUESTED);
 
     // Absence of 'queueHandle' in the 'attributes' means no 'e_ACK_REQUESTED'.
 
@@ -646,7 +645,7 @@ void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
 
     int                       msgSize = 0;
     mqbi::StorageResult::Enum res     = d_state_p->storage()->remove(msgGUID,
-                                                                 &msgSize);
+                                                                     &msgSize);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             res != mqbi::StorageResult::e_SUCCESS)) {

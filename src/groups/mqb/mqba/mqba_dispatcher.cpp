@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqba_dispatcher.cpp                                                -*-C++-*-
+#include "mqbi_dispatcher.h"
 #include <mqba_dispatcher.h>
 
 #include <mqbscm_version.h>
@@ -90,8 +91,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
         d_processorPool_p->getUnmanagedEvent();
 
-    event->object().makeDispatcherEvent().setCallback(
-        mqbi::Dispatcher::voidToProcessorFunctor(f));
+    event->object().makeDispatcherEvent().callback().set(f);
 
     // submit the event
     int rc = d_processorPool_p->enqueueEvent(event, d_processorHandle);
@@ -181,11 +181,11 @@ void Dispatcher_ClientExecutor::post(const bsl::function<void()>& f) const
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
         processorPool()->getUnmanagedEvent();
 
-    event
-        ->object()
+    event->object()
         .setDestination(const_cast<mqbi::DispatcherClient*>(d_client_p))
         .makeDispatcherEvent()
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(f));
+        .callback()
+        .set(f);
 
     // submit the event
     int rc = processorPool()->enqueueEvent(event, processorHandle());
@@ -611,11 +611,10 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
         (*event)
             .setDestination(client)  // not needed
             .makeDispatcherEvent()
-            .setCallback(
-                bdlf::BindUtil::bind(&Dispatcher::onNewClient,
-                                     this,
-                                     type,
-                                     bdlf::PlaceHolders::_1));  // processor
+            .callback()
+            .createInplace<OnNewClientFunctor>(this,
+                                               type,
+                                               processor);  // processor
         context.d_processorPool_mp->enqueueEvent(event, processor);
         return processor;  // RETURN
     }                      // break;
@@ -706,9 +705,10 @@ void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
         if (processorPool[i] != 0) {
             mqbi::DispatcherEvent* qEvent =
                 &processorPool[i]->getUnmanagedEvent()->object();
-            qEvent->makeDispatcherEvent()
-                .setCallback(functor)
-                .setFinalizeCallback(doneCallback);
+            mqbi::DispatcherDispatcherEvent& dispatcherEvent =
+                qEvent->makeDispatcherEvent();
+            dispatcherEvent.callback().set(functor);
+            dispatcherEvent.finalizeCallback().set(doneCallback);
             processorPool[i]->enqueueEventOnAllQueues(qEvent);
         }
     }
@@ -732,7 +732,7 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
 
     bslmt::Semaphore       semaphore;
     mqbi::DispatcherEvent* event = getEvent(type);
-    (*event).makeDispatcherEvent().setCallback(
+    (*event).makeDispatcherEvent().callback().set(
         bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
                              &semaphore));
     dispatchEvent(event, type, handle);

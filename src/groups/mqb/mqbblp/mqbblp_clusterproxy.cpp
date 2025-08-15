@@ -1374,8 +1374,8 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             &event.getAs<mqbi::DispatcherCallbackEvent>();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
         onPushEvent(event.getAs<mqbi::DispatcherPushEvent>());

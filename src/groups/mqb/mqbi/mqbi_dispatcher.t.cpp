@@ -96,7 +96,7 @@ static void testN1_dispatcherEventPeformance()
     const bsl::string                                     msgGroupId;
     const bmqp::ConfirmMessage                            confirm;
 
-    mqbi::DispatcherEvent event(s_allocator_p);
+    mqbi::DispatcherEvent event(bmqtst::TestHelperUtil::allocator());
 
     {
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
@@ -120,7 +120,8 @@ static void testN1_dispatcherEventPeformance()
         bsl::shared_ptr<mqbi::DispatcherEvent> eventSp;
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
-            eventSp.createInplace(s_allocator_p, s_allocator_p);
+            eventSp = bsl::allocate_shared<mqbi::DispatcherEvent>(
+                bmqtst::TestHelperUtil::allocator());
         }
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -240,7 +241,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

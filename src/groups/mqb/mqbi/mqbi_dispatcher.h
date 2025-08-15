@@ -230,18 +230,18 @@ struct DispatcherEventType {
     enum Enum {
         /// invalid event
         e_UNDEFINED = 0,
-        
-        e_DISPATCHER = 1,
-        e_CALLBACK = 2,
-        e_CONTROL_MSG = 3,
-        e_CONFIRM = 4,
-        e_REJECT = 5,
-        e_PUSH = 6,
-        e_PUT = 7,
-        e_ACK = 8,
-        e_CLUSTER_STATE = 9,
-        e_STORAGE = 10,
-        e_RECOVERY = 11,
+
+        e_DISPATCHER          = 1,
+        e_CALLBACK            = 2,
+        e_CONTROL_MSG         = 3,
+        e_CONFIRM             = 4,
+        e_REJECT              = 5,
+        e_PUSH                = 6,
+        e_PUT                 = 7,
+        e_ACK                 = 8,
+        e_CLUSTER_STATE       = 9,
+        e_STORAGE             = 10,
+        e_RECOVERY            = 11,
         e_REPLICATION_RECEIPT = 12
     };
     // NOTE: Events of type 'e_DISPATCHER' are similar to those of type
@@ -477,7 +477,7 @@ class DispatcherDispatcherEvent {
     // DATA
 
     /// Callback embedded in this event.
-    Dispatcher::ProcessorFunctor d_callback;
+    bmqu::ManagedCallback d_callback;
 
     /// Callback embedded in this event.
     /// This callback is called when the
@@ -486,25 +486,25 @@ class DispatcherDispatcherEvent {
     /// multiple processors, and will be
     /// called when the last processor
     /// finished processing it.
-    Dispatcher::VoidFunctor d_finalizeCallback;
+    bmqu::ManagedCallback d_finalizeCallback;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherDispatcherEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherDispatcherEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Construct using the specified `allocator`.
-    explicit DispatcherDispatcherEvent(bslma::Allocator *allocator = 0)
-    : d_callback(bsl::allocator_arg, allocator)
-    , d_finalizeCallback(bsl::allocator_arg, allocator)
+    explicit DispatcherDispatcherEvent(bslma::Allocator* allocator = 0)
+    : d_callback(allocator)
+    , d_finalizeCallback(allocator)
     {
         // NOTHING
     }
 
     DispatcherDispatcherEvent(
-        bslmf::MovableRef<DispatcherDispatcherEvent> other,
-        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+        bslmf::MovableRef<DispatcherDispatcherEvent> other)
     : d_callback(bslmf::MovableRefUtil::move(other.d_callback))
     , d_finalizeCallback(bslmf::MovableRefUtil::move(other.d_finalizeCallback))
     {
@@ -515,14 +515,11 @@ class DispatcherDispatcherEvent {
 
     /// Return a reference not offering modifiable access to the callback
     /// associated to this event.
-    inline const Dispatcher::ProcessorFunctor& callback() const
-    {
-        return d_callback;
-    }
+    inline const bmqu::ManagedCallback& callback() const { return d_callback; }
 
     /// Return a reference not offering modifiable access to the finalize
     /// callback, if any, associated to this event.
-    inline const Dispatcher::VoidFunctor& finalizeCallback() const
+    inline const bmqu::ManagedCallback& finalizeCallback() const
     {
         return d_finalizeCallback;
     }
@@ -531,18 +528,11 @@ class DispatcherDispatcherEvent {
 
     /// Set the corresponding field to the specified `value` and return a
     /// reference to the object currently being built.
-    inline DispatcherDispatcherEvent&
-    setCallback(const Dispatcher::ProcessorFunctor& value)
-    {
-        d_callback = value;
-        return *this;
-    }
+    inline bmqu::ManagedCallback& callback() { return d_callback; }
 
-    inline DispatcherDispatcherEvent&
-    setFinalizeCallback(const Dispatcher::VoidFunctor& value)
+    inline bmqu::ManagedCallback& finalizeCallback()
     {
-        d_finalizeCallback = value;
-        return *this;
+        return d_finalizeCallback;
     }
 };
 
@@ -556,23 +546,23 @@ class DispatcherCallbackEvent {
     // DATA
 
     /// Callback embedded in this event.
-    Dispatcher::ProcessorFunctor d_callback;
+    bmqu::ManagedCallback d_callback;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherCallbackEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherCallbackEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Construct using the specified `allocator`.
-    explicit DispatcherCallbackEvent(bslma::Allocator *allocator = 0)
-    : d_callback(bsl::allocator_arg, allocator)
+    explicit DispatcherCallbackEvent(bslma::Allocator* allocator = 0)
+    : d_callback(allocator)
     {
         // NOTHING
     }
 
-    DispatcherCallbackEvent(bslmf::MovableRef<DispatcherCallbackEvent> other,
-                            BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherCallbackEvent(bslmf::MovableRef<DispatcherCallbackEvent> other)
     : d_callback(bslmf::MovableRefUtil::move(other.d_callback))
     {
         // NOTHING
@@ -582,21 +572,13 @@ class DispatcherCallbackEvent {
 
     /// Return a reference not offering modifiable access to the callback
     /// associated to this event.
-    inline const Dispatcher::ProcessorFunctor& callback() const
-    {
-        return d_callback;
-    }
+    inline const bmqu::ManagedCallback& callback() const { return d_callback; }
 
     // MANIPULATORS
 
     /// Set the corresponding field to the specified `value` and return a
     /// reference to the object currently being built.
-    inline DispatcherCallbackEvent&
-    setCallback(const Dispatcher::ProcessorFunctor& value)
-    {
-        d_callback = value;
-        return *this;
-    }
+    inline bmqu::ManagedCallback& callback() { return d_callback; }
 };
 
 // ===================================
@@ -613,25 +595,24 @@ class DispatcherControlMessageEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherControlMessageEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherControlMessageEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Construct using the optionally specified `allocator`
-    explicit DispatcherControlMessageEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherControlMessageEvent(bslma::Allocator* allocator = 0)
     : d_controlMessage(allocator)
     {
         // NOTHING
     }
 
     DispatcherControlMessageEvent(
-        bslmf::MovableRef<DispatcherControlMessageEvent> other,
-        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+        bslmf::MovableRef<DispatcherControlMessageEvent> other)
     : d_controlMessage(bslmf::MovableRefUtil::move(other.d_controlMessage))
     {
         // NOTHING
     }
-
 
     // ACCESSORS
 
@@ -671,7 +652,7 @@ class DispatcherConfirmEvent {
 
     /// ConfirmMessage in this event.
     bmqp::ConfirmMessage d_confirmMessage;
-    
+
     /// PartitionId of the message in this event.
     int d_partitionId;
 
@@ -680,12 +661,13 @@ class DispatcherConfirmEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherConfirmEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherConfirmEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherConfirmEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherConfirmEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_clusterNode_p(0)
     , d_confirmMessage()
@@ -696,8 +678,7 @@ class DispatcherConfirmEvent {
         // NOTHING
     }
 
-    DispatcherConfirmEvent(bslmf::MovableRef<DispatcherConfirmEvent> other,
-                           BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherConfirmEvent(bslmf::MovableRef<DispatcherConfirmEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
     , d_confirmMessage(bslmf::MovableRefUtil::move(other.d_confirmMessage))
@@ -799,12 +780,13 @@ class DispatcherRejectEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRejectEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRejectEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherRejectEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherRejectEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_clusterNode_p(0)
     , d_rejectMessage()
@@ -814,8 +796,7 @@ class DispatcherRejectEvent {
         // NOTHING
     }
 
-    DispatcherRejectEvent(bslmf::MovableRef<DispatcherRejectEvent> other,
-                          BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherRejectEvent(bslmf::MovableRef<DispatcherRejectEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
     , d_rejectMessage(bslmf::MovableRefUtil::move(other.d_rejectMessage))
@@ -936,14 +917,15 @@ class DispatcherPushEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherPushEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherPushEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
-    
+
     /// CONSTRUCTOR
-    explicit DispatcherPushEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherPushEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
-    , d_options_sp(0, allocator)    
+    , d_options_sp(0, allocator)
     , d_clusterNode_p(0)
     , d_guid()
     , d_messagePropertiesInfo()
@@ -957,8 +939,7 @@ class DispatcherPushEvent {
         // NOTHING
     }
 
-    DispatcherPushEvent(bslmf::MovableRef<DispatcherPushEvent> other,
-                        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherPushEvent(bslmf::MovableRef<DispatcherPushEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
@@ -1244,7 +1225,8 @@ class DispatcherPutEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherPutEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherPutEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
@@ -1262,8 +1244,7 @@ class DispatcherPutEvent {
     {
     }
 
-    DispatcherPutEvent(bslmf::MovableRef<DispatcherPutEvent> other,
-                       BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherPutEvent(bslmf::MovableRef<DispatcherPutEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
@@ -1409,12 +1390,13 @@ class DispatcherAckEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherAckEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherAckEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherAckEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherAckEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_options_sp(0, allocator)
     , d_clusterNode_p(0)
@@ -1424,8 +1406,7 @@ class DispatcherAckEvent {
         // NOTHING
     }
 
-    DispatcherAckEvent(bslmf::MovableRef<DispatcherAckEvent> other,
-                       BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherAckEvent(bslmf::MovableRef<DispatcherAckEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
@@ -1522,12 +1503,13 @@ class DispatcherClusterStateEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherClusterStateEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherClusterStateEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherClusterStateEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherClusterStateEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_clusterNode_p(0)
     , d_isRelay(false)
@@ -1536,8 +1518,7 @@ class DispatcherClusterStateEvent {
     }
 
     DispatcherClusterStateEvent(
-        bslmf::MovableRef<DispatcherClusterStateEvent> other,
-        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+        bslmf::MovableRef<DispatcherClusterStateEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
     , d_isRelay(other.d_isRelay)
@@ -1607,12 +1588,13 @@ class DispatcherStorageEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherStorageEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherStorageEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherStorageEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherStorageEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_clusterNode_p(0)
     , d_isRelay(false)
@@ -1620,8 +1602,7 @@ class DispatcherStorageEvent {
         // NOTHING
     }
 
-    DispatcherStorageEvent(bslmf::MovableRef<DispatcherStorageEvent> other,
-                           BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherStorageEvent(bslmf::MovableRef<DispatcherStorageEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
     , d_isRelay(other.d_isRelay)
@@ -1690,12 +1671,13 @@ class DispatcherRecoveryEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRecoveryEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRecoveryEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherRecoveryEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherRecoveryEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_clusterNode_p(0)
     , d_isRelay(false)
@@ -1703,8 +1685,7 @@ class DispatcherRecoveryEvent {
         // NOTHING
     }
 
-    DispatcherRecoveryEvent(bslmf::MovableRef<DispatcherRecoveryEvent> other,
-                            BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherRecoveryEvent(bslmf::MovableRef<DispatcherRecoveryEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
     , d_isRelay(other.d_isRelay)
@@ -1770,20 +1751,20 @@ class DispatcherReceiptEvent {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRecoveryEvent, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRecoveryEvent,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Constructor.
-    explicit DispatcherReceiptEvent(bslma::Allocator *allocator = 0)
+    explicit DispatcherReceiptEvent(bslma::Allocator* allocator = 0)
     : d_blob_sp(0, allocator)
     , d_clusterNode_p(0)
     {
         // NOTHING
     }
 
-    DispatcherReceiptEvent(bslmf::MovableRef<DispatcherReceiptEvent> other,
-                           BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    DispatcherReceiptEvent(bslmf::MovableRef<DispatcherReceiptEvent> other)
     : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
     , d_clusterNode_p(other.d_clusterNode_p)
     {
@@ -1831,10 +1812,26 @@ class DispatcherReceiptEvent {
 /// dispatched by the Dispatcher.
 class DispatcherEvent {
   private:
+    // TYPES
+    typedef bsl::variant<bsl::monostate,
+                         DispatcherDispatcherEvent,
+                         DispatcherCallbackEvent,
+                         DispatcherControlMessageEvent,
+                         DispatcherConfirmEvent,
+                         DispatcherRejectEvent,
+                         DispatcherPushEvent,
+                         DispatcherPutEvent,
+                         DispatcherAckEvent,
+                         DispatcherClusterStateEvent,
+                         DispatcherStorageEvent,
+                         DispatcherRecoveryEvent,
+                         DispatcherReceiptEvent>
+        EventImpl;
+
     // DATA
 
     /// Allocator to use
-    bslma::Allocator *d_allocator_p;
+    bslma::Allocator* d_allocator_p;
 
     /// Source ('producer') of this event, if any.
     DispatcherClient* d_source_p;
@@ -1845,20 +1842,7 @@ class DispatcherEvent {
     /// Type of the Event.
     DispatcherEventType::Enum d_type;
 
-    bsl::variant<bsl::monostate,
-                 DispatcherDispatcherEvent,
-                 DispatcherCallbackEvent,
-                 DispatcherControlMessageEvent,
-                 DispatcherConfirmEvent,
-                 DispatcherRejectEvent,
-                 DispatcherPushEvent,
-                 DispatcherPutEvent,
-                 DispatcherAckEvent,
-                 DispatcherClusterStateEvent,
-                 DispatcherStorageEvent,
-                 DispatcherRecoveryEvent,
-                 DispatcherReceiptEvent>
-        d_eventImpl;
+    EventImpl d_eventImpl;
 
     /// In-place storage for the callback in this event.
     bmqu::ManagedCallback d_callback;
@@ -1876,7 +1860,7 @@ class DispatcherEvent {
     // CREATORS
 
     /// Constructor of a `DispatcherEvent`, using the specified `allocator`.
-    explicit DispatcherEvent(bslma::Allocator* allocator);
+    explicit DispatcherEvent(bslma::Allocator* allocator = 0);
 
   public:
     // MANIPULATORS
