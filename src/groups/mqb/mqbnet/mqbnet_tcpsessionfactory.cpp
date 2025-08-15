@@ -618,6 +618,7 @@ void TCPSessionFactory::initialConnectionComplete(
 
     if (info->d_monitor.isHearbeatEnabled()) {
         // Enable heartbeating
+        bslmt::ThreadUtil::sleep(bsls::TimeInterval(1));
         d_scheduler_p->scheduleEvent(
             bsls::TimeInterval(0),
             bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,

@@ -74,8 +74,8 @@ void InitialConnectionHandler::readCallback(
         rc_PROCESS_BLOB_ERROR = -2,
     };
 
-    BALL_LOG_TRACE << "InitialConnectionHandler readCb: [status: " << status
-                   << ", peer: '" << context->channel()->peerUri() << "']";
+    BALL_LOG_INFO << "InitialConnectionHandler readCb: [status: " << status
+                  << ", peer: '" << context->channel()->peerUri() << "']";
 
     bdlbb::Blob        outPacket;
     bool               isFullBlob = true;
@@ -156,6 +156,10 @@ int InitialConnectionHandler::processBlob(
         rc_INVALID_INITIALCONNECTION_MESSAGE = -1,
     };
 
+    BALL_LOG_INFO
+        << "[InitialConnectionHandler::processBlob] Processing blob: "
+        << bmqu::BlobStartHexDumper(&blob);
+
     bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
                                bmqp_ctrlmsg::NegotiationMessage> >
         message;
@@ -178,9 +182,13 @@ int InitialConnectionHandler::processBlob(
 
     if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
             message.value())) {
+        BALL_LOG_INFO << "[InitialConnectionHandler::processBlob] Received "
+                         "authentication request";
         handleEvent(Event::e_AUTH_REQUEST, context, message);
     }
     else {
+        BALL_LOG_INFO << "[InitialConnectionHandler::processBlob] Received "
+                         "negotiation request";
         handleEvent(Event::e_NEGOTIATION_MESSAGE, context, message);
     }
 
@@ -220,8 +228,8 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
     bmqp_ctrlmsg::NegotiationMessage    negotiationMessage;
 
     if (event.isAuthenticationEvent()) {
-        BALL_LOG_DEBUG << "Received AuthenticationEvent: "
-                       << bmqu::BlobStartHexDumper(&blob);
+        BALL_LOG_INFO << "Received AuthenticationEvent: "
+                      << bmqu::BlobStartHexDumper(&blob);
         const int rc = event.loadAuthenticationEvent(&authenticationMessage);
         if (rc != 0) {
             errorDescription
@@ -236,8 +244,8 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         *message = authenticationMessage;
     }
     else if (event.isControlEvent()) {
-        BALL_LOG_DEBUG << "Received ControlEvent: "
-                       << bmqu::BlobStartHexDumper(&blob);
+        BALL_LOG_INFO << "Received ControlEvent: "
+                      << bmqu::BlobStartHexDumper(&blob);
         const int rc = event.loadControlEvent(&negotiationMessage);
         if (rc != 0) {
             errorDescription << "Invalid message received [reason: 'control "
@@ -249,6 +257,8 @@ int InitialConnectionHandler::decodeInitialConnectionMessage(
         *message = negotiationMessage;
     }
     else {
+        BALL_LOG_INFO << "Received unknown event: "
+                      << bmqu::BlobStartHexDumper(&blob);
         errorDescription
             << "Invalid initial connection message received "
             << "(packet is not an AuthenticationEvent or ControlEvent):\n"
