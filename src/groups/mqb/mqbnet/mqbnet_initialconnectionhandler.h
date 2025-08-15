@@ -27,8 +27,13 @@
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
 
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+
 // BDE
 #include <bsl_memory.h>
+#include <bsl_optional.h>
+#include <bsl_variant.h>
 
 namespace BloombergLP {
 
@@ -70,6 +75,18 @@ class InitialConnectionHandler {
     /// directly from inside the call to `handleInitialConnection()`.
     virtual void
     handleInitialConnection(const InitialConnectionContextSp& context) = 0;
+
+    /// Handle an event occurs under the current state.
+    /// The specified `input` is the event to handle, the specified `context`
+    /// is the initial connection context associated to this event, and the
+    /// specified `message` is an optional message that may be used to
+    /// handle the event.
+    virtual void handleEvent(
+        mqbnet::InitialConnectionEvent::Enum input,
+        const InitialConnectionContextSp&    context,
+        const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
+                                         bmqp_ctrlmsg::NegotiationMessage> >&
+            message = bsl::nullopt) = 0;
 };
 
 }  // close package namespace

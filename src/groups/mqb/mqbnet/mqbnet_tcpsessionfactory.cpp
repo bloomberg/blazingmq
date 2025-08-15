@@ -23,7 +23,7 @@
 /// in order, regardless of the success or failure of the negotiation:
 /// - `channelStateCallback`
 /// - `negotiate`
-/// - `negotiationComplete`
+/// - `initialConnectionComplete`
 ///
 /// When a channel goes down, `onClose()` is the only method being invoked.
 
@@ -31,6 +31,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
+#include <mqbnet_authenticator.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
@@ -347,7 +348,8 @@ void TCPSessionFactory::handleInitialConnection(
 
     // Create a unique InitialConnectionContext for the channel, from
     // the OperationContext.  This shared_ptr is bound to the
-    // 'negotiationComplete' callback below, which is what scopes its lifetime.
+    // 'initialConnectionComplete' callback below, which is what scopes its
+    // lifetime.
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
     initialConnectionContext.createInplace(d_allocator_p,
                                            context->d_isIncoming);
@@ -356,7 +358,7 @@ void TCPSessionFactory::handleInitialConnection(
         .setResultState(context->d_resultState_p)
         .setChannel(channel)
         .setCompleteCb(bdlf::BindUtil::bind(
-            &TCPSessionFactory::negotiationComplete,
+            &TCPSessionFactory::initialConnectionComplete,
             this,
             bdlf::PlaceHolders::_1,  // status
             bdlf::PlaceHolders::_2,  // errorDescription
@@ -485,7 +487,7 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
     }
 }
 
-void TCPSessionFactory::negotiationComplete(
+void TCPSessionFactory::initialConnectionComplete(
     int                                      statusCode,
     const bsl::string&                       errorDescription,
     const bsl::shared_ptr<Session>&          session,
@@ -497,15 +499,15 @@ void TCPSessionFactory::negotiationComplete(
 
     if (statusCode != 0) {
         // Failed to negotiate
-        BALL_LOG_WARN << "#SESSION_NEGOTIATION "
-                      << "TCPSessionFactory '" << d_config.name() << "' "
-                      << "failed to negotiate a session "
+        BALL_LOG_WARN << "#INITIAL_CONNECTION TCPSessionFactory '"
+                      << d_config.name() << "' "
+                      << "failed to authenticate and negotiate a session "
                       << "[channel: '" << channel.get()
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                             "negotiationError",
+                             "initialconnectionError",
                              statusCode,
                              d_allocator_p);
         channel->close(status);
@@ -522,13 +524,14 @@ void TCPSessionFactory::negotiationComplete(
     BSLS_ASSERT_SAFE(initialConnectionContext_p);
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "' successfully negotiated a session [session: '"
-                  << session->description() << "', channel: '" << channel.get()
-                  << "', maxMissedHeartbeat: "
-                  << initialConnectionContext_p->negotiationContext()
-                         ->d_maxMissedHeartbeat
-                  << "]";
+    BALL_LOG_INFO
+        << "TCPSessionFactory '" << d_config.name()
+        << "' successfully authenticated and negotiated a session [session: '"
+        << session->description() << "', channel: '" << channel.get()
+        << "', maxMissedHeartbeat: "
+        << initialConnectionContext_p->negotiationContext()
+               ->maxMissedHeartbeat()
+        << "]";
 
     // Session is established; keep a hold to it.
 
@@ -580,7 +583,7 @@ void TCPSessionFactory::negotiationComplete(
         bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
         bmqio::Status(),
         monitoredSession,
-        initialConnectionContext_p->negotiationContext()->d_cluster_p,
+        initialConnectionContext_p->negotiationContext()->cluster(),
         initialConnectionContext_p->resultState(),
         bdlf::BindUtil::bind(&TCPSessionFactory::readCallback,
                              this,
@@ -748,6 +751,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         ChannelMap::const_iterator it = d_channels.find(channel.get());
         if (it != d_channels.end()) {
             channelInfo = it->second;
+            BSLS_ASSERT(channelInfo->d_channel_p);
             d_channels.erase(it);
         }
         d_ports.onDeleteChannelContext(port);
@@ -787,6 +791,12 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                 bdlf::BindUtil::bind(&TCPSessionFactory::disableHeartbeat,
                                      this,
                                      channelInfo));
+        }
+
+        // Disable reauthentication timer if there's any
+        if (channelInfo->d_authenticationCtx_sp) {
+            d_authenticator_p->cancelReauthenticationTimer(
+                channelInfo->d_authenticationCtx_sp);
         }
 
         // TearDown the session
@@ -887,6 +897,7 @@ TCPSessionFactory::TCPSessionFactory(
     const mqbcfg::TcpInterfaceConfig& config,
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
+    Authenticator*                    authenticator,
     InitialConnectionHandler*         initialConnectionHandler,
     mqbstat::StatController*          statController,
     bslma::Allocator*                 allocator)
@@ -895,6 +906,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_config(config, allocator)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_authenticator_p(authenticator)
 , d_initialConnectionHandler_p(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpChannelFactory_mp()
@@ -1509,9 +1521,10 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
     int                                    initialMissedHeartbeatCounter,
     const bsl::shared_ptr<Session>&        monitoredSession)
 : d_channel_p(channel.get())
+, d_authenticationCtx_sp(context.authenticationContext())
 , d_session_sp(monitoredSession)
-, d_eventProcessor_p(context.negotiationContext()->d_eventProcessor_p)
-, d_monitor(context.negotiationContext()->d_maxMissedHeartbeat,
+, d_eventProcessor_p(context.negotiationContext()->eventProcessor())
+, d_monitor(context.negotiationContext()->maxMissedHeartbeat(),
             initialMissedHeartbeatCounter)
 {
     if (!d_eventProcessor_p) {
