@@ -121,11 +121,8 @@ class Tester {
     bsl::shared_ptr<bdlbb::PooledBlobBufferFactory> d_blobBufferFactory_sp;
     bsl::shared_ptr<ntci::Interface>                d_interface_sp;
     bsl::shared_ptr<ntci::ListenerSocket>           d_listener_sp;
-    bmqio::ChannelFactory::ResultCallback           d_listenResultCallback;
-    bmqio::ChannelFactory::ResultCallback           d_connectResultCallback;
     bsl::vector<bsl::shared_ptr<bmqio::Channel> >   d_listenChannels;
     bsl::vector<bsl::shared_ptr<bmqio::Channel> >   d_connectChannels;
-    bslmt::Semaphore                                d_semaphore;
     bslmt::Mutex                                    d_mutex;
 
     // NOT IMPLEMENTED
@@ -136,11 +133,13 @@ class Tester {
     void destroy();
 
     void
-    onAcceptConnection(const bsl::shared_ptr<ntci::Acceptor>&     acceptor,
+    onAcceptConnection(bslmt::Semaphore*                          semaphore_p,
+                       const bsl::shared_ptr<ntci::Acceptor>&     acceptor,
                        const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
                        const ntca::AcceptEvent&                   event);
 
-    void onChannelResult(ChannelFactoryEvent::Enum       event,
+    void onChannelResult(bslmt::Semaphore*               semaphore_p,
+                         ChannelFactoryEvent::Enum       event,
                          const Status&                   status,
                          const bsl::shared_ptr<Channel>& channel);
 
@@ -172,23 +171,8 @@ Tester::Tester(bslma::Allocator* basicAllocator)
 , d_blobBufferFactory_sp()
 , d_interface_sp()
 , d_listener_sp()
-, d_listenResultCallback(
-      bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                            &Tester::onChannelResult,
-                            this,
-                            bdlf::PlaceHolders::_1,
-                            bdlf::PlaceHolders::_2,
-                            bdlf::PlaceHolders::_3))
-, d_connectResultCallback(
-      bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                            &Tester::onChannelResult,
-                            this,
-                            bdlf::PlaceHolders::_1,
-                            bdlf::PlaceHolders::_2,
-                            bdlf::PlaceHolders::_3))
 , d_listenChannels(d_allocator_p)
 , d_connectChannels(d_allocator_p)
-, d_semaphore()
 , d_mutex()
 {
 }
@@ -223,41 +207,37 @@ void Tester::destroy()
 }
 
 void Tester::onAcceptConnection(
-    const bsl::shared_ptr<ntci::Acceptor>&     acceptor,
-    const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
-    const ntca::AcceptEvent&                   event)
+    bslmt::Semaphore* semaphore_p,
+    BSLA_UNUSED const bsl::shared_ptr<ntci::Acceptor>& acceptor,
+    const bsl::shared_ptr<ntci::StreamSocket>&         streamSocket,
+    const ntca::AcceptEvent&                           event)
 {
-    if (event.isError()) {
-        return;
-    }
+    // PRECONDITIONS
+    BMQTST_ASSERT(semaphore_p);
+    BMQTST_ASSERT(event.isComplete());
 
     bsl::shared_ptr<bmqio::NtcChannel> channel;
     channel.createInplace(d_allocator_p,
                           d_interface_sp,
-                          d_listenResultCallback,
+                          bmqio::ChannelFactory::ResultCallback(),
                           d_allocator_p);
 
     channel->import(streamSocket);
 
-    ntsa::Error error = acceptor->accept(
-        ntca::AcceptOptions(),
-        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                              &Tester::onAcceptConnection,
-                              this,
-                              bdlf::PlaceHolders::_1,
-                              bdlf::PlaceHolders::_2,
-                              bdlf::PlaceHolders::_3));
-    BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
-
     d_listenChannels.push_back(channel);
-    d_semaphore.post();
+    semaphore_p->post();
 }
 
-void Tester::onChannelResult(BSLA_UNUSED ChannelFactoryEvent::Enum event,
+void Tester::onChannelResult(bslmt::Semaphore* semaphore_p,
+                             BSLA_UNUSED ChannelFactoryEvent::Enum event,
                              BSLA_UNUSED const Status&             status,
                              const bsl::shared_ptr<Channel>&       channel)
 {
+    // PRECONDITIONS
+    BMQTST_ASSERT(semaphore_p);
+
     d_connectChannels.push_back(channel);
+    semaphore_p->post();
 }
 
 void Tester::init()
@@ -289,7 +269,7 @@ void Tester::init()
     ntca::ListenerSocketOptions listenerSocketOptions;
     listenerSocketOptions.setTransport(ntsa::Transport::e_TCP_IPV4_STREAM);
     listenerSocketOptions.setReuseAddress(true);
-    listenerSocketOptions.setKeepHalfOpen(true);
+    listenerSocketOptions.setKeepHalfOpen(false);
     listenerSocketOptions.setBacklog(backlog);
     listenerSocketOptions.setSourceEndpoint(
         ntsa::Endpoint(ntsa::Ipv4Address::loopback(), 0));
@@ -312,16 +292,26 @@ void Tester::init()
 bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
 {
     bsl::shared_ptr<bmqio::NtcChannel> channel;
+
+    bslmt::Semaphore connectSemaphore, acceptSemaphore;
+
+    bmqio::ChannelFactory::ResultCallback connectResultCb =
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &Tester::onChannelResult,
+                              this,
+                              &connectSemaphore,
+                              bdlf::PlaceHolders::_1,
+                              bdlf::PlaceHolders::_2,
+                              bdlf::PlaceHolders::_3);
+
     channel.createInplace(d_allocator_p,
                           d_interface_sp,
-                          d_connectResultCallback,
+                          connectResultCb,
                           d_allocator_p);
 
     bmqio::Status         status(d_allocator_p);
     bmqio::ConnectOptions options(d_allocator_p);
-    options.setEndpoint(d_listener_sp->sourceEndpoint().text())
-        .setNumAttempts(1)
-        .setAttemptInterval(bsls::TimeInterval(1));
+    options.setEndpoint(d_listener_sp->sourceEndpoint().text());
     const int rc = channel->connect(&status, options);
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT_EQ(status.category(), bmqio::StatusCategory::e_SUCCESS);
@@ -330,6 +320,7 @@ bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
         bdlf::BindUtil::bindS(d_allocator_p,
                               &Tester::onAcceptConnection,
                               this,
+                              &acceptSemaphore,
                               bdlf::PlaceHolders::_1,
                               bdlf::PlaceHolders::_2,
                               bdlf::PlaceHolders::_3),
@@ -339,7 +330,8 @@ bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
                                               acceptCallback);
     BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
 
-    d_semaphore.wait();
+    acceptSemaphore.wait();
+    connectSemaphore.wait();
 
     return channel;
 }
@@ -403,7 +395,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 1: test1_breathingTest(); break;
+    case 1: {
+        for (int i = 0; i < 16; i++) {
+            test1_breathingTest();
+        }
+    } break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
