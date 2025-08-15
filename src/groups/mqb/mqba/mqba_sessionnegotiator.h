@@ -160,12 +160,18 @@ class SessionNegotiator : public mqbnet::Negotiator {
                                const bmqp_ctrlmsg::NegotiationMessage& message,
                                const NegotiationContextSp& context);
 
+    /// Populate some other fields in `context` given the specified
+    /// ConnectionType and NegotiationMessage.  Return 0 on success, or
+    /// return a non-zero code on error and populate the specified
+    /// `errorDescription` with a description of the error.
+    int populateNegotiationContext(bsl::ostream& errorDescription,
+                                   const NegotiationContextSp& context);
+
     /// Load into the specified `out` a new session created using the
     /// specified `context` and `description`; or leave `out` untouched and
     /// populate the specified `errorDescription` with a description of the
     /// error in case of failure.
-    void createSession(bsl::ostream&                     errorDescription,
-                       bsl::shared_ptr<mqbnet::Session>* out,
+    void createSession(bsl::shared_ptr<mqbnet::Session>* out,
                        const NegotiationContextSp&       context,
                        const bsl::string&                description);
 
