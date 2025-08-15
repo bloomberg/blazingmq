@@ -604,10 +604,21 @@ int SessionNegotiator::populateNegotiationContext(
     bsl::ostream&               errorDescription,
     const NegotiationContextSp& context)
 {
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                 = 0,
+        rc_GET_CLUSTER_NODE_FAILED = -1
+    };
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context->d_connectionType !=
                      mqbnet::ConnectionType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(!context->d_negotiationMessage.isUndefinedValue());
+
+    if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
+        // Nothing to do for admin connection
+        return rc_SUCCESS;  // RETURN
+    }
 
     const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
         context->d_negotiationMessage;
@@ -618,11 +629,6 @@ int SessionNegotiator::populateNegotiationContext(
     const mqbcfg::AppConfig&         brkrCfg  = mqbcfg::BrokerConfig::get();
     const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
     int                              maxMissedHeartbeats = 0;
-
-    if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
-        // Nothing to do for admin connection
-        return 0;  // RETURN
-    }
 
     if (context->d_connectionType == mqbnet::ConnectionType::e_CLIENT) {
         // Configure heartbeat
@@ -661,7 +667,7 @@ int SessionNegotiator::populateNegotiationContext(
             peerIdentity.clusterNodeId());
 
         if (!clusterNode) {
-            return -1;  // RETURN
+            return rc_GET_CLUSTER_NODE_FAILED;  // RETURN
         }
 
         // Configure heartbeat
@@ -676,7 +682,7 @@ int SessionNegotiator::populateNegotiationContext(
 
     context->d_maxMissedHeartbeat = maxMissedHeartbeats;
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 void SessionNegotiator::createSession(bsl::shared_ptr<mqbnet::Session>* out,
