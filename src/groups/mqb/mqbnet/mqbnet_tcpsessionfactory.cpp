@@ -751,6 +751,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         ChannelMap::const_iterator it = d_channels.find(channel.get());
         if (it != d_channels.end()) {
             channelInfo = it->second;
+            BSLS_ASSERT(channelInfo->d_channel_p);
             d_channels.erase(it);
         }
         d_ports.onDeleteChannelContext(port);
