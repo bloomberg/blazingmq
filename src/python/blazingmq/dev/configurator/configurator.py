@@ -326,7 +326,9 @@ class Configurator:
         `etc/clusters` and `etc/proxyclusters` directories, respectively.
         """
 
-        config_compat_mode = os.environ.get("BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE", "false")
+        config_compat_mode = os.environ.get(
+            "BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE", "false"
+        )
 
         if config_compat_mode.lower() == "true":
             broker_clusters = broker.clusters
