@@ -15,11 +15,6 @@ on:
       ref2:
         description: 'Branch name, tag, or commit SHA #2'
         required: true
-      test_mode:
-        description: "Mode"
-        required: true
-        default: "-k breathing"
-        # The test_mode input allows you to specify which tests to run
 
 # The ref parameter is flexible and can accept:
 # Branch names (e.g., main)
@@ -54,19 +49,19 @@ jobs:
       run_unit_tests: false
 
   integration_tests_ubuntu_upgrade_version:
-    name: IT #[${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
-    # strategy:
-    #   matrix:
-    #     mode: ["legacy_mode"]
-    #     cluster: ["multi7"]
-    #     consistency: ["eventual_consistency", "strong_consistency"]
-    #   fail-fast: false
+    name: Test 7-node cluster upgrade [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
+    strategy:
+      matrix:
+        mode: ["legacy_mode"]
+        cluster: ["multi7"]
+        consistency: ["eventual_consistency", "strong_consistency"]
+      fail-fast: false
     runs-on: ubuntu-latest
     needs:
       - build1
       - build2
-    # env:
-    #     RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+    env:
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
         uses: actions/checkout@v4
@@ -116,11 +111,14 @@ jobs:
 
           # Broker path to be used after version upgrade
           BLAZINGMQ_BROKER_NEW_VERSION: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Store all info about cluster in cluster.json
+          BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
           pip install -r ./src/python/requirements.txt
 
           ./src/integration-tests/run-tests \
-            "${{ inputs.test_mode }}" \
+            "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
@@ -136,26 +134,25 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.run_id }}_failure_logs
-          # _${{ env.RUN_UID }}
+          name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
           retention-days: 5
 
 
   integration_tests_ubuntu_two_versions_in_cluster:
-    name: IT # [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
-    # strategy:
-    #   matrix:
-    #     mode: ["legacy_mode"]
-    #     cluster: ["multi"]
-    #     consistency: ["eventual_consistency", "strong_consistency"]
-    #   fail-fast: false
+    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
+    strategy:
+      matrix:
+        mode: ["legacy_mode"]
+        cluster: ["multi"]
+        consistency: ["eventual_consistency", "strong_consistency"]
+      fail-fast: false
     runs-on: ubuntu-latest
     needs:
       - build1
       - build2
-    # env:
-    #     RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+    env:
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
         uses: actions/checkout@v4
@@ -210,6 +207,9 @@ jobs:
           # Brokers to use repo2:
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Store all info about cluster in cluster.json
+          BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
           go install github.com/kevwan/tproxy@latest
           export GOPATH=$HOME/go
@@ -217,9 +217,9 @@ jobs:
 
           pip install -r ./src/python/requirements.txt
 
-            
           ./src/integration-tests/run-tests \
-            "${{ inputs.test_mode }}"           \
+            "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
+            -k "breathing" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
@@ -234,7 +234,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.run_id }}_failure_logs
-          # _${{ env.RUN_UID }}
+          name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
           retention-days: 5
