@@ -27,6 +27,7 @@ import dataclasses
 import functools
 import itertools
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Tuple
@@ -324,16 +325,24 @@ class Configurator:
         It will also create the clusters and proxy clusters JSON files in the
         `etc/clusters` and `etc/proxyclusters` directories, respectively.
         """
+
+        config_compat_mode = os.environ.get("BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE", "false")
+
+        if config_compat_mode.lower() == "true":
+            broker_clusters = broker.clusters
+        else:
+            broker_clusters = dataclasses.replace(broker.clusters, proxy_clusters=[])
+
         self._create_json_file(
-            dataclasses.replace(broker.clusters, proxy_clusters=[]),
+            broker_clusters,
             site,
             "etc/clusters.json",
         )
 
-        for proxy in broker.clusters.proxy_clusters:
+        for proxy in broker_clusters.proxy_clusters:
             self._create_json_file(proxy, site, f"etc/proxyclusters/{proxy.name}.json")
 
-        for cluster in broker.clusters.my_clusters:
+        for cluster in broker_clusters.my_clusters:
             for storage_dir in (
                 Path(cluster.partition_config.location),  # type: ignore
                 Path(cluster.partition_config.archive_location),  # type: ignore
