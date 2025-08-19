@@ -341,10 +341,10 @@ class Configurator:
             "etc/clusters.json",
         )
 
-        for proxy in broker_clusters.proxy_clusters:
+        for proxy in broker.clusters.proxy_clusters:
             self._create_json_file(proxy, site, f"etc/proxyclusters/{proxy.name}.json")
 
-        for cluster in broker_clusters.my_clusters:
+        for cluster in broker.clusters.my_clusters:
             for storage_dir in (
                 Path(cluster.partition_config.location),  # type: ignore
                 Path(cluster.partition_config.archive_location),  # type: ignore
