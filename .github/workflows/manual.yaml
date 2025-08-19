@@ -49,7 +49,7 @@ jobs:
       run_unit_tests: false
 
   integration_tests_ubuntu_upgrade_version:
-    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
+    name: Test 7-node cluster upgrade [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
     strategy:
       matrix:
         mode: ["legacy_mode"]
@@ -111,6 +111,9 @@ jobs:
 
           # Broker path to be used after version upgrade
           BLAZINGMQ_BROKER_NEW_VERSION: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Store all info about cluster in cluster.json
+          BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
           pip install -r ./src/python/requirements.txt
 
@@ -204,6 +207,9 @@ jobs:
           # Brokers to use repo2:
           BLAZINGMQ_BROKER_EAST2: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
           BLAZINGMQ_BROKER_WEST1: "${{ github.workspace }}/repo2/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
+
+          # Store all info about cluster in cluster.json
+          BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
           go install github.com/kevwan/tproxy@latest
           export GOPATH=$HOME/go
@@ -213,6 +219,7 @@ jobs:
 
           ./src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
+            -k "breathing" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
