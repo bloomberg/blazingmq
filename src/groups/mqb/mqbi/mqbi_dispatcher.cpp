@@ -388,5 +388,962 @@ DispatcherClient::~DispatcherClient()
     // NOTHING
 }
 
-}  // close package namespace
-}  // close enterprise namespace
+// -------------------------------
+// class DispatcherDispatcherEvent
+// -------------------------------
+
+DispatcherDispatcherEvent::DispatcherDispatcherEvent(
+    bslma::Allocator* allocator)
+: d_callback(allocator)
+, d_finalizeCallback(allocator)
+{
+    // NOTHING
+}
+
+DispatcherDispatcherEvent::DispatcherDispatcherEvent(
+    bslmf::MovableRef<DispatcherDispatcherEvent> other)
+: d_callback(bslmf::MovableRefUtil::move(other.d_callback))
+, d_finalizeCallback(bslmf::MovableRefUtil::move(other.d_finalizeCallback))
+{
+    // NOTHING
+}
+
+const bmqu::ManagedCallback& DispatcherDispatcherEvent::callback() const
+{
+    return d_callback;
+}
+
+const bmqu::ManagedCallback&
+DispatcherDispatcherEvent::finalizeCallback() const
+{
+    return d_finalizeCallback;
+}
+
+bmqu::ManagedCallback& DispatcherDispatcherEvent::callback()
+{
+    return d_callback;
+}
+
+bmqu::ManagedCallback& DispatcherDispatcherEvent::finalizeCallback()
+{
+    return d_finalizeCallback;
+}
+
+// -----------------------------
+// class DispatcherCallbackEvent
+// -----------------------------
+
+DispatcherCallbackEvent::DispatcherCallbackEvent(bslma::Allocator* allocator)
+: d_callback(allocator)
+{
+    // NOTHING
+}
+
+DispatcherCallbackEvent::DispatcherCallbackEvent(
+    bslmf::MovableRef<DispatcherCallbackEvent> other)
+: d_callback(bslmf::MovableRefUtil::move(other.d_callback))
+{
+    // NOTHING
+}
+
+const bmqu::ManagedCallback& DispatcherCallbackEvent::callback() const
+{
+    return d_callback;
+}
+
+bmqu::ManagedCallback& DispatcherCallbackEvent::callback()
+{
+    return d_callback;
+}
+
+// -----------------------------------
+// class DispatcherControlMessageEvent
+// -----------------------------------
+
+DispatcherControlMessageEvent::DispatcherControlMessageEvent(
+    bslma::Allocator* allocator)
+: d_controlMessage(allocator)
+{
+    // NOTHING
+}
+
+DispatcherControlMessageEvent::DispatcherControlMessageEvent(
+    bslmf::MovableRef<DispatcherControlMessageEvent> other)
+: d_controlMessage(bslmf::MovableRefUtil::move(other.d_controlMessage))
+{
+    // NOTHING
+}
+
+const bmqp_ctrlmsg::ControlMessage&
+DispatcherControlMessageEvent::controlMessage() const
+{
+    return d_controlMessage;
+}
+
+DispatcherControlMessageEvent&
+DispatcherControlMessageEvent::setControlMessage(
+    const bmqp_ctrlmsg::ControlMessage& value)
+{
+    d_controlMessage = value;
+    return *this;
+}
+
+// ----------------------------
+// class DispatcherConfirmEvent
+// ----------------------------
+
+DispatcherConfirmEvent::DispatcherConfirmEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_confirmMessage()
+, d_partitionId(-1)  // TODO this const is declared in
+                     // mqbs::DataStore::k_INVALID_PARTITION_ID
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
+DispatcherConfirmEvent::DispatcherConfirmEvent(
+    bslmf::MovableRef<DispatcherConfirmEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_confirmMessage(bslmf::MovableRefUtil::move(other.d_confirmMessage))
+, d_partitionId(other.d_partitionId)
+, d_isRelay(other.d_isRelay)
+{
+    // NOTHING
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherConfirmEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+mqbnet::ClusterNode* DispatcherConfirmEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+const bmqp::ConfirmMessage& DispatcherConfirmEvent::confirmMessage() const
+{
+    return d_confirmMessage;
+}
+
+int DispatcherConfirmEvent::partitionId() const
+{
+    return d_partitionId;
+}
+
+bool DispatcherConfirmEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+DispatcherConfirmEvent&
+DispatcherConfirmEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherConfirmEvent&
+DispatcherConfirmEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+DispatcherConfirmEvent&
+DispatcherConfirmEvent::setConfirmMessage(const bmqp::ConfirmMessage& value)
+{
+    d_confirmMessage = value;
+    return *this;
+}
+
+DispatcherConfirmEvent& DispatcherConfirmEvent::setPartitionId(int value)
+{
+    d_partitionId = value;
+    return *this;
+}
+
+DispatcherConfirmEvent& DispatcherConfirmEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+// ---------------------------
+// class DispatcherRejectEvent
+// ---------------------------
+
+DispatcherRejectEvent::DispatcherRejectEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_rejectMessage()
+, d_partitionId(-1)
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
+DispatcherRejectEvent::DispatcherRejectEvent(
+    bslmf::MovableRef<DispatcherRejectEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_rejectMessage(bslmf::MovableRefUtil::move(other.d_rejectMessage))
+, d_partitionId(other.d_partitionId)
+, d_isRelay(other.d_isRelay)
+{
+    // NOTHING
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherRejectEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+mqbnet::ClusterNode* DispatcherRejectEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+const bmqp::RejectMessage& DispatcherRejectEvent::rejectMessage() const
+{
+    return d_rejectMessage;
+}
+
+int DispatcherRejectEvent::partitionId() const
+{
+    return d_partitionId;
+}
+
+bool DispatcherRejectEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+DispatcherRejectEvent&
+DispatcherRejectEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherRejectEvent&
+DispatcherRejectEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+DispatcherRejectEvent&
+DispatcherRejectEvent::setRejectMessage(const bmqp::RejectMessage& value)
+{
+    d_rejectMessage = value;
+    return *this;
+}
+
+DispatcherRejectEvent& DispatcherRejectEvent::setPartitionId(int value)
+{
+    d_partitionId = value;
+    return *this;
+}
+
+DispatcherRejectEvent& DispatcherRejectEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+// -------------------------
+// class DispatcherPushEvent
+// -------------------------
+
+DispatcherPushEvent::DispatcherPushEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_guid()
+, d_messagePropertiesInfo()
+, d_queueId(-1)
+, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+, d_isOutOfOrder(false)
+, d_isRelay(false)
+, d_subQueueInfos(allocator)
+, d_msgGroupId(allocator)
+{
+    // NOTHING
+}
+
+DispatcherPushEvent::DispatcherPushEvent(
+    bslmf::MovableRef<DispatcherPushEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_guid(bslmf::MovableRefUtil::move(other.d_guid))
+, d_messagePropertiesInfo(
+      bslmf::MovableRefUtil::move(other.d_messagePropertiesInfo))
+, d_queueId(other.d_queueId)
+, d_compressionAlgorithmType(other.d_compressionAlgorithmType)
+, d_isOutOfOrder(other.d_isOutOfOrder)
+, d_isRelay(other.d_isRelay)
+, d_subQueueInfos(bslmf::MovableRefUtil::move(other.d_subQueueInfos))
+, d_msgGroupId(bslmf::MovableRefUtil::move(other.d_msgGroupId))
+{
+    // NOTHING
+}
+
+DispatcherPushEvent::DispatcherPushEvent(
+    const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
+    const bmqt::MessageGUID&             msgGUID,
+    const bmqp::MessagePropertiesInfo&   mp,
+    int                                  queueId,
+    bmqt::CompressionAlgorithmType::Enum cat,
+    bslma::Allocator*                    allocator)
+: d_blob_sp(blob_sp)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_guid(msgGUID)
+, d_messagePropertiesInfo(mp)
+, d_queueId(queueId)
+, d_compressionAlgorithmType(cat)
+, d_isOutOfOrder(false)
+, d_isRelay(false)
+, d_subQueueInfos(allocator)
+, d_msgGroupId(allocator)
+{
+    // NOTHING
+}
+
+DispatcherPushEvent::DispatcherPushEvent(
+    const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+    bslma::Allocator*                   allocator)
+: d_blob_sp(blob_sp)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_guid()
+, d_messagePropertiesInfo()
+, d_queueId(-1)
+, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+, d_isOutOfOrder(false)
+, d_isRelay(false)
+, d_subQueueInfos(allocator)
+, d_msgGroupId(allocator)
+{
+    // NOTHING
+}
+
+DispatcherPushEvent::DispatcherPushEvent(
+    const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
+    const bsl::shared_ptr<bdlbb::Blob>&  options_sp,
+    const bmqt::MessageGUID&             msgGUID,
+    const bmqp::MessagePropertiesInfo&   mp,
+    bmqt::CompressionAlgorithmType::Enum cat,
+    bool                                 isOutOfOrder,
+    bslma::Allocator*                    allocator)
+: d_blob_sp(blob_sp)
+, d_options_sp(options_sp)
+, d_clusterNode_p(0)
+, d_guid(msgGUID)
+, d_messagePropertiesInfo(mp)
+, d_queueId(-1)
+, d_compressionAlgorithmType(cat)
+, d_isOutOfOrder(isOutOfOrder)
+, d_isRelay(false)
+, d_subQueueInfos(allocator)
+, d_msgGroupId(allocator)
+{
+    // NOTHING
+}
+
+DispatcherPushEvent::DispatcherPushEvent(
+    const bsl::shared_ptr<bdlbb::Blob>&       blob_sp,
+    const bmqt::MessageGUID&                  msgGUID,
+    const bmqp::MessagePropertiesInfo&        mp,
+    int                                       queueId,
+    bmqt::CompressionAlgorithmType::Enum      cat,
+    bool                                      isOutOfOrder,
+    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+    const bmqp::Protocol::MsgGroupId&         msgGroupId,
+    bslma::Allocator*                         allocator)
+: d_blob_sp(blob_sp)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_guid(msgGUID)
+, d_messagePropertiesInfo(mp)
+, d_queueId(queueId)
+, d_compressionAlgorithmType(cat)
+, d_isOutOfOrder(isOutOfOrder)
+, d_isRelay(false)
+, d_subQueueInfos(subQueueInfos)
+, d_msgGroupId(msgGroupId)
+{
+    // NOTHING
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherPushEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherPushEvent::options() const
+{
+    return d_options_sp;
+}
+
+mqbnet::ClusterNode* DispatcherPushEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+bool DispatcherPushEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+int DispatcherPushEvent::queueId() const
+{
+    return d_queueId;
+}
+
+const bmqp::Protocol::SubQueueInfosArray&
+DispatcherPushEvent::subQueueInfos() const
+{
+    return d_subQueueInfos;
+}
+
+const bmqp::MessagePropertiesInfo&
+DispatcherPushEvent::messagePropertiesInfo() const
+{
+    return d_messagePropertiesInfo;
+}
+
+bmqt::CompressionAlgorithmType::Enum
+DispatcherPushEvent::compressionAlgorithmType() const
+{
+    return d_compressionAlgorithmType;
+}
+
+bool DispatcherPushEvent::isOutOfOrderPush() const
+{
+    return d_isOutOfOrder;
+}
+
+const bmqt::MessageGUID& DispatcherPushEvent::guid() const
+{
+    return d_guid;
+}
+
+const bmqp::Protocol::MsgGroupId& DispatcherPushEvent::msgGroupId() const
+{
+    return d_msgGroupId;
+}
+
+DispatcherPushEvent& DispatcherPushEvent::setCompressionAlgorithmType(
+    bmqt::CompressionAlgorithmType::Enum value)
+{
+    d_compressionAlgorithmType = value;
+    return *this;
+}
+
+DispatcherPushEvent& DispatcherPushEvent::setOutOfOrderPush(bool value)
+{
+    d_isOutOfOrder = value;
+    return *this;
+}
+
+DispatcherPushEvent&
+DispatcherPushEvent::setMsgGroupId(const bmqp::Protocol::MsgGroupId& value)
+{
+    d_msgGroupId = value;
+    return *this;
+}
+
+DispatcherPushEvent& DispatcherPushEvent::setQueueId(int value)
+{
+    d_queueId = value;
+    return *this;
+}
+
+DispatcherPushEvent& DispatcherPushEvent::setSubQueueInfos(
+    const bmqp::Protocol::SubQueueInfosArray& value)
+{
+    d_subQueueInfos = value;
+    return *this;
+}
+
+DispatcherPushEvent& DispatcherPushEvent::setMessagePropertiesInfo(
+    const bmqp::MessagePropertiesInfo& value)
+{
+    d_messagePropertiesInfo = value;
+
+    return *this;
+}
+
+DispatcherPushEvent& DispatcherPushEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+DispatcherPushEvent&
+DispatcherPushEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_options_sp = value;
+    return *this;
+}
+
+DispatcherPushEvent&
+DispatcherPushEvent::setGuid(const bmqt::MessageGUID& value)
+{
+    d_guid = value;
+    return *this;
+}
+
+DispatcherPushEvent&
+DispatcherPushEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherPushEvent&
+DispatcherPushEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+// ------------------------
+// class DispatcherPutEvent
+// ------------------------
+
+DispatcherPutEvent::DispatcherPutEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_putHeader()
+, d_queueHandle_p(0)
+, d_partitionId(-1)
+, d_isRelay(false)
+, d_genCount(0)
+, d_state()
+{
+}
+
+DispatcherPutEvent::DispatcherPutEvent(
+    bslmf::MovableRef<DispatcherPutEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_putHeader(bslmf::MovableRefUtil::move(other.d_putHeader))
+, d_queueHandle_p(other.d_queueHandle_p)
+, d_partitionId(other.d_partitionId)
+, d_isRelay(other.d_isRelay)
+, d_genCount(other.d_genCount)
+, d_state(bslmf::MovableRefUtil::move(other.d_state))
+{
+    // NOTHING
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherPutEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherPutEvent::options() const
+{
+    return d_options_sp;
+}
+
+mqbnet::ClusterNode* DispatcherPutEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+bool DispatcherPutEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+int DispatcherPutEvent::partitionId() const
+{
+    return d_partitionId;
+}
+
+const bmqp::PutHeader& DispatcherPutEvent::putHeader() const
+{
+    return d_putHeader;
+}
+
+QueueHandle* DispatcherPutEvent::queueHandle() const
+{
+    return d_queueHandle_p;
+}
+
+bsls::Types::Uint64 DispatcherPutEvent::genCount() const
+{
+    return d_genCount;
+}
+
+const bsl::shared_ptr<bmqu::AtomicState>& DispatcherPutEvent::state() const
+{
+    return d_state;
+}
+
+DispatcherPutEvent&
+DispatcherPutEvent::setPutHeader(const bmqp::PutHeader& value)
+{
+    d_putHeader = value;
+    return *this;
+}
+
+DispatcherPutEvent& DispatcherPutEvent::setQueueHandle(QueueHandle* value)
+{
+    d_queueHandle_p = value;
+    return *this;
+}
+
+DispatcherPutEvent& DispatcherPutEvent::setGenCount(unsigned int genCount)
+{
+    d_genCount = genCount;
+    return *this;
+}
+
+DispatcherPutEvent&
+DispatcherPutEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
+{
+    d_state = state;
+    return *this;
+}
+
+DispatcherPutEvent&
+DispatcherPutEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherPutEvent& DispatcherPutEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+DispatcherPutEvent&
+DispatcherPutEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_options_sp = value;
+    return *this;
+}
+
+DispatcherPutEvent& DispatcherPutEvent::setPartitionId(int value)
+{
+    d_partitionId = value;
+    return *this;
+}
+
+DispatcherPutEvent&
+DispatcherPutEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+// ------------------------
+// class DispatcherAckEvent
+// ------------------------
+
+DispatcherAckEvent::DispatcherAckEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_ackMessage()
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
+DispatcherAckEvent::DispatcherAckEvent(
+    bslmf::MovableRef<DispatcherAckEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_ackMessage(bslmf::MovableRefUtil::move(other.d_ackMessage))
+, d_isRelay(other.d_isRelay)
+{
+    // NOTHING
+}
+
+const bmqp::AckMessage& DispatcherAckEvent::ackMessage() const
+{
+    return d_ackMessage;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherAckEvent::options() const
+{
+    return d_options_sp;
+}
+
+bool DispatcherAckEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherAckEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+mqbnet::ClusterNode* DispatcherAckEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+bmqp::AckMessage& DispatcherAckEvent::ackMessage()
+{
+    return d_ackMessage;
+}
+
+DispatcherAckEvent&
+DispatcherAckEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherAckEvent& DispatcherAckEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+DispatcherAckEvent&
+DispatcherAckEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_options_sp = value;
+    return *this;
+}
+
+DispatcherAckEvent&
+DispatcherAckEvent::setAckMessage(const bmqp::AckMessage& value)
+{
+    d_ackMessage = value;
+    return *this;
+}
+
+DispatcherAckEvent&
+DispatcherAckEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+// ---------------------------------
+// class DispatcherClusterStateEvent
+// ---------------------------------
+
+DispatcherClusterStateEvent::DispatcherClusterStateEvent(
+    bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
+DispatcherClusterStateEvent::DispatcherClusterStateEvent(
+    bslmf::MovableRef<DispatcherClusterStateEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_isRelay(other.d_isRelay)
+{
+    // NOTHING
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherClusterStateEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+bool DispatcherClusterStateEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+mqbnet::ClusterNode* DispatcherClusterStateEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+DispatcherClusterStateEvent&
+DispatcherClusterStateEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherClusterStateEvent&
+DispatcherClusterStateEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+DispatcherClusterStateEvent&
+DispatcherClusterStateEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+// ----------------------------
+// class DispatcherStorageEvent
+// ----------------------------
+
+DispatcherStorageEvent::DispatcherStorageEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_isRelay(false)
+{
+    // NOTHING
+}
+
+DispatcherStorageEvent::DispatcherStorageEvent(
+    bslmf::MovableRef<DispatcherStorageEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_isRelay(other.d_isRelay)
+{
+    // NOTHING
+}
+
+bool DispatcherStorageEvent::isRelay() const
+{
+    return d_isRelay;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherStorageEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+mqbnet::ClusterNode* DispatcherStorageEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+DispatcherStorageEvent&
+DispatcherStorageEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherStorageEvent& DispatcherStorageEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+
+DispatcherStorageEvent&
+DispatcherStorageEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+// -----------------------------
+// class DispatcherRecoveryEvent
+// -----------------------------
+
+DispatcherRecoveryEvent::DispatcherRecoveryEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_isRelay(false)
+{
+    // NOTHING
+}
+DispatcherRecoveryEvent::DispatcherRecoveryEvent(
+    bslmf::MovableRef<DispatcherRecoveryEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+, d_isRelay(other.d_isRelay)
+{
+    // NOTHING
+}
+bool DispatcherRecoveryEvent::isRelay() const
+{
+    return d_isRelay;
+}
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherRecoveryEvent::blob() const
+{
+    return d_blob_sp;
+}
+mqbnet::ClusterNode* DispatcherRecoveryEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+DispatcherRecoveryEvent&
+DispatcherRecoveryEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+DispatcherRecoveryEvent& DispatcherRecoveryEvent::setIsRelay(bool value)
+{
+    d_isRelay = value;
+    return *this;
+}
+DispatcherRecoveryEvent&
+DispatcherRecoveryEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+// ----------------------------
+// class DispatcherReceiptEvent
+// ----------------------------
+
+DispatcherReceiptEvent::DispatcherReceiptEvent(bslma::Allocator* allocator)
+: d_blob_sp(0, allocator)
+, d_clusterNode_p(0)
+{
+    // NOTHING
+}
+
+DispatcherReceiptEvent::DispatcherReceiptEvent(
+    bslmf::MovableRef<DispatcherReceiptEvent> other)
+: d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+, d_clusterNode_p(other.d_clusterNode_p)
+{
+    // NOTHING
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& DispatcherReceiptEvent::blob() const
+{
+    return d_blob_sp;
+}
+
+mqbnet::ClusterNode* DispatcherReceiptEvent::clusterNode() const
+{
+    return d_clusterNode_p;
+}
+
+DispatcherReceiptEvent&
+DispatcherReceiptEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+{
+    d_blob_sp = value;
+    return *this;
+}
+
+DispatcherReceiptEvent&
+DispatcherReceiptEvent::setClusterNode(mqbnet::ClusterNode* value)
+{
+    d_clusterNode_p = value;
+    return *this;
+}
+
+} // close package namespace
+} // close enterprise namespace
