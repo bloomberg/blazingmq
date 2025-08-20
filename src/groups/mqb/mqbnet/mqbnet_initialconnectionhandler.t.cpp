@@ -47,7 +47,9 @@ struct InitialConnectionHandlerTestImp
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
-    void handleEvent(BSLA_UNUSED mqbnet::InitialConnectionEvent::Enum input,
+    void handleEvent(BSLA_UNUSED int   statusCode,
+                     BSLA_UNUSED const bsl::string& errorDescription,
+                     BSLA_UNUSED mqbnet::InitialConnectionEvent::Enum input,
                      BSLA_UNUSED const InitialConnectionContextSp&    context,
                      BSLA_UNUSED const bsl::optional<
                          bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,

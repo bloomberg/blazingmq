@@ -41,6 +41,7 @@
 
 // BDE
 #include <bsl_functional.h>
+#include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
@@ -222,6 +223,8 @@ class InitialConnectionContext {
         InitialConnectionCompleteCb;
 
     typedef bsl::function<void(
+        int                                              statusCode,
+        const bsl::string&                               errorDescription,
         InitialConnectionEvent::Enum                     input,
         const bsl::shared_ptr<InitialConnectionContext>& context,
         const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
