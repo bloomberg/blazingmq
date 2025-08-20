@@ -84,10 +84,10 @@ void InitialConnectionHandler::readCallback(
 
     rc = readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
     if (rc != rc_SUCCESS) {
-        complete(context,
-                 (rc * 10) + rc_READ_BLOB_ERROR,
-                 errStream.str(),
-                 bsl::shared_ptr<mqbnet::Session>());
+        handleEvent((rc * 10) + rc_READ_BLOB_ERROR,
+                    errStream.str(),
+                    Event::e_ERROR,
+                    context);
         return;  // RETURN
     }
 
@@ -97,10 +97,10 @@ void InitialConnectionHandler::readCallback(
 
     rc = processBlob(errStream, outPacket, context);
     if (rc != rc_SUCCESS) {
-        complete(context,
-                 (rc * 10) + rc_PROCESS_BLOB_ERROR,
-                 errStream.str(),
-                 bsl::shared_ptr<mqbnet::Session>());
+        handleEvent((rc * 10) + rc_PROCESS_BLOB_ERROR,
+                    errStream.str(),
+                    Event::e_ERROR,
+                    context);
         return;  // RETURN
     }
 }
@@ -178,10 +178,18 @@ int InitialConnectionHandler::processBlob(
 
     if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
             message.value())) {
-        handleEvent(Event::e_AUTH_REQUEST, context, message);
+        handleEvent(rc,
+                    bsl::string(),
+                    Event::e_AUTH_REQUEST,
+                    context,
+                    message);
     }
     else {
-        handleEvent(Event::e_NEGOTIATION_MESSAGE, context, message);
+        handleEvent(rc,
+                    bsl::string(),
+                    Event::e_NEGOTIATION_MESSAGE,
+                    context,
+                    message);
     }
 
     return rc_SUCCESS;
@@ -330,33 +338,42 @@ void InitialConnectionHandler::handleInitialConnection(
     // Reading for inbound request or continue to read
     // after sending a request ourselves
 
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS = 0,
+    };
+
     context->setHandleEventCb(
         bdlf::BindUtil::bind(&InitialConnectionHandler::handleEvent,
                              this,
-                             bdlf::PlaceHolders::_1,  // input
-                             bdlf::PlaceHolders::_2,  // context
-                             bdlf::PlaceHolders::_3   // message
+                             bdlf::PlaceHolders::_1,  // statusCode
+                             bdlf::PlaceHolders::_2,  // errorDescription
+                             bdlf::PlaceHolders::_3,  // input
+                             bdlf::PlaceHolders::_4,  // context
+                             bdlf::PlaceHolders::_5   // message
                              ));
 
     if (!context->isIncoming()) {
         // TODO: When we are ready to move on to the next step, we should
         // call `authenticationOutbound` here instead before calling
         // `negotiateOutbound`.
-        handleEvent(Event::e_OUTBOUND_NEGOTATION, context);
-        return;
+        handleEvent(rc_SUCCESS,
+                    bsl::string(),
+                    Event::e_OUTBOUND_NEGOTATION,
+                    context);
     }
-
-    bmqu::MemOutStream errStream;
-    const int          rc = scheduleRead(errStream, context);
-    if (rc != 0) {
-        complete(context,
-                 rc,
-                 errStream.str(),
-                 bsl::shared_ptr<mqbnet::Session>());
+    else {
+        bmqu::MemOutStream errStream;
+        const int          rc = scheduleRead(errStream, context);
+        if (rc != 0) {
+            handleEvent(rc, errStream.str(), Event::e_ERROR, context);
+        }
     }
 }
 
 void InitialConnectionHandler::handleEvent(
+    int                               statusCode,
+    const bsl::string&                errorDescription,
     Event                             input,
     const InitialConnectionContextSp& context,
     const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
@@ -483,8 +500,8 @@ void InitialConnectionHandler::handleEvent(
         break;
     }
     case Event::e_ERROR: {
-        // NOT IMPLEMENTED
-        BSLS_ASSERT_SAFE(!"Unexpected event received: e_ERROR");
+        rc = statusCode;
+        errStream << errorDescription;
     } break;
     case Event::e_NONE: {
         // NOT IMPLEMENTED

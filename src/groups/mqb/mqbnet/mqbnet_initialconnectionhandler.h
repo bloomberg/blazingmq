@@ -31,6 +31,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
+#include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_variant.h>
@@ -76,12 +77,14 @@ class InitialConnectionHandler {
     virtual void
     handleInitialConnection(const InitialConnectionContextSp& context) = 0;
 
-    /// Handle an event occurs under the current state.
-    /// The specified `input` is the event to handle, the specified `context`
-    /// is the initial connection context associated to this event, and the
-    /// specified `message` is an optional message that may be used to
-    /// handle the event.
+    /// Handle an event occurs under the current state given the specified
+    /// `statusCode` and `errorDescription`. The specified `input` is the event
+    /// to handle, the specified `context` is the initial connection context
+    /// associated to this event, and the specified `message` is an optional
+    /// message that may be used to handle the event.
     virtual void handleEvent(
+        int                                  statusCode,
+        const bsl::string&                   errorDescription,
         mqbnet::InitialConnectionEvent::Enum input,
         const InitialConnectionContextSp&    context,
         const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,

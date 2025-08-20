@@ -34,6 +34,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_initialconnectioncontext.h>
+#include <mqbnet_initialconnectionhandler.h>
 #include <mqbplug_authenticator.h>
 
 // BMQ
@@ -53,8 +54,10 @@
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_ostream.h>
 #include <bsl_string_view.h>
+#include <bsl_vector.h>
 #include <bsls_nullptr.h>
 #include <bsls_timeinterval.h>
 
@@ -211,24 +214,26 @@ void Authenticator::authenticate(
     bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
     bmqp_ctrlmsg::AuthenticateResponse& response =
         authenticationResponse.makeAuthenticateResponse();
+    bmqp_ctrlmsg::Status& status = response.status();
 
-    bsl::shared_ptr<mqbnet::Session> session;
-    int                              rc = rc_SUCCESS;
-    bsl::string                      error;
+    int                                  rc = rc_SUCCESS;
+    bsl::string                          error;
+    mqbnet::InitialConnectionEvent::Enum input;
 
-    bdlb::ScopeExitAny connectionCompletionGuard(
-        bdlf::BindUtil::bind(&mqbnet::InitialConnectionContext::complete,
-                             context.get(),
-                             bsl::ref(rc),
-                             bsl::ref(error),
-                             bsl::ref(session)));
+    bdlb::ScopeExitAny Guard(bdlf::BindUtil::bind(context->handleEventCb(),
+                                                  bsl::ref(rc),
+                                                  bsl::ref(error),
+                                                  bsl::ref(input),
+                                                  context,
+                                                  bsl::nullopt));
 
     BALL_LOG_INFO << "Authenticating connection '" << channel->peerUri()
                   << "' with mechanism '" << authenticateRequest.mechanism()
                   << "'";
 
-    bmqu::MemOutStream processAuthnErrStream;
-    int                processRc = processAuthentication(processAuthnErrStream,
+    // Build the authentication response.
+    bmqu::MemOutStream processErrStream;
+    int                processRc = processAuthentication(processErrStream,
                                           &response,
                                           authenticateRequest,
                                           channel,
@@ -239,7 +244,8 @@ void Authenticator::authenticate(
     // to the client.
     if (processRc != rc_SUCCESS) {
         rc    = (processRc * 10) + rc_PROCESS_AUTHENTICATION_FAILED;
-        error = processAuthnErrStream.str();
+        error = processErrStream.str();
+        input = InitialConnectionEvent::e_ERROR;
         return;  // RETURN
     }
 
@@ -247,47 +253,41 @@ void Authenticator::authenticate(
     // an AuthenticationResponse, we just need to continue the negotiation.
     if (context->state() ==
         mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING) {
-        if (response.status().category() !=
-            bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-            rc    = rc_AUTHENTICATION_FAILED;
-            error = response.status().message();
-            return;  // RETURN
+        if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+            rc    = (status.code() * 10) + rc_AUTHENTICATION_FAILED;
+            error = status.message();
+            input = InitialConnectionEvent::e_ERROR;
         }
-        connectionCompletionGuard.release();
-        context->handleEventCb()(InitialConnectionEvent::e_AUTH_SUCCESS,
-                                 context,
-                                 bsl::nullopt);
+        else {
+            input = InitialConnectionEvent::e_AUTH_SUCCESS;
+        }
         return;  // RETURN
     }
 
     // Send authentication response back to the client
-    bmqu::MemOutStream sendResponseErrorStream;
+    bmqu::MemOutStream sendResponseErrStream;
     const int          sendRc = sendAuthenticationMessage(
-        sendResponseErrorStream,
+        sendResponseErrStream,
         authenticationResponse,
         channel,
         context->authenticationEncodingType());
 
-    if (response.status().category() !=
-        bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-        rc    = rc_AUTHENTICATION_FAILED;
-        error = response.status().message();
+    if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+        rc    = (status.code() * 10) + rc_AUTHENTICATION_FAILED;
+        error = status.message();
+        input = InitialConnectionEvent::e_ERROR;
         return;  // RETURN
     }
 
     if (sendRc != rc_SUCCESS) {
         rc    = (sendRc * 10) + rc_SEND_AUTHENTICATION_RESPONSE_FAILED;
-        error = sendResponseErrorStream.str();
+        error = sendResponseErrStream.str();
+        input = InitialConnectionEvent::e_ERROR;
         return;  // RETURN
     }
 
-    // Authentication succeeded, release the error guard and transition to the
-    // next state.
-    connectionCompletionGuard.release();
-    context->handleEventCb()(InitialConnectionEvent::e_AUTH_SUCCESS,
-                             context,
-                             bsl::nullopt);
-
+    // Authentication succeeded.  Transition to the next state.
+    input = InitialConnectionEvent::e_AUTH_SUCCESS;
     return;
 }
 
@@ -430,8 +430,10 @@ int Authenticator::processAuthentication(
     bmqu::MemOutStream errorStream;
 
     bsl::shared_ptr<mqbplug::AuthenticationResult> result;
-    mqbplug::AuthenticationData authenticationData(request.data().value(),
-                                                   channel->peerUri());
+    const bsl::vector<char>&    data = request.data().isNull()
+                                           ? bsl::vector<char>()
+                                           : request.data().value();
+    mqbplug::AuthenticationData authenticationData(data, channel->peerUri());
 
     const int authnRc = d_authnController_p->authenticate(errorStream,
                                                           &result,
