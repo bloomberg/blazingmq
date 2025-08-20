@@ -519,6 +519,14 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BALL_LOG_INFO << "Broadcasted message '" << clusterMessage
                           << "' to all cluster nodes";
         }
+        else {
+            bmqp_ctrlmsg::ControlMessage advisoryControlMessage;
+            advisoryControlMessage.choice().makeClusterMessage(
+                                info.d_clusterMessage);
+
+            d_commitCb(advisoryControlMessage,
+                       ClusterStateLedgerCommitStatus::e_SUCCESS);
+        }
 
         // A follower does not reply Ack under eventual consistency
         if (!isSelfLeader() &&
@@ -632,22 +640,22 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
 
             BALL_LOG_INFO << "Broadcasted commit message '" << clusterMessage
                           << "' to all cluster nodes";
-        }
 
-        // Enqueue commit callback invocation on cluster dispatcher thread
-        bmqp_ctrlmsg::ControlMessage committedControlMessage;
-        committedControlMessage.choice().makeClusterMessage(
-            iter->second.d_clusterMessage);
-        // NOTE: For now, the commit callback is invoked in place to reduce
-        //       state inconsistencies resulting from thread race conditions
-        //       while transitioning to using IncoreCSL.  Once transitioned,
-        //       the commit callback should be enqueued to be invoked from the
-        //       cluster dispatcher thread.
-        // TODO: In phase 2 of IncoreCSL, this can return to enqueueing on
-        // the
-        //       cluster dispatcher thread
-        d_commitCb(committedControlMessage,
-                   ClusterStateLedgerCommitStatus::e_SUCCESS);
+            // Enqueue commit callback invocation on cluster dispatcher thread
+            bmqp_ctrlmsg::ControlMessage committedControlMessage;
+            committedControlMessage.choice().makeClusterMessage(
+                iter->second.d_clusterMessage);
+            // NOTE: For now, the commit callback is invoked in place to reduce
+            //       state inconsistencies resulting from thread race conditions
+            //       while transitioning to using IncoreCSL.  Once transitioned,
+            //       the commit callback should be enqueued to be invoked from the
+            //       cluster dispatcher thread.
+            // TODO: In phase 2 of IncoreCSL, this can return to enqueueing on
+            // the
+            //       cluster dispatcher thread
+            d_commitCb(committedControlMessage,
+                       ClusterStateLedgerCommitStatus::e_SUCCESS);
+        }
 
         d_uncommittedAdvisories.erase(commit.sequenceNumberCommitted());
     } break;  // BREAK
