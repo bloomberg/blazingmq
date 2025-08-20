@@ -4245,15 +4245,8 @@ void ClusterQueueHelper::onQueueAssigned(
         d_storageManager_p->registerQueueReplica(info->partitionId(),
                                                  info->uri(),
                                                  info->key(),
-                                                 domainState.domain(),
-                                                 true);  // allowDuplicate
-
-        d_storageManager_p->updateQueueReplica(info->partitionId(),
-                                               info->uri(),
-                                               info->key(),
-                                               info->appInfos(),
-                                               domainState.domain(),
-                                               true);  // allowDuplicate
+                                                 info->appInfos(),
+                                                 domainState.domain());
     }
 
     // NOTE: Even if it is not needed to invoke 'onQueueContextAssigned' in the
