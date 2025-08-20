@@ -55,6 +55,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string_view.h>
+#include <bsl_vector.h>
 #include <bsls_nullptr.h>
 #include <bsls_timeinterval.h>
 
@@ -212,16 +213,15 @@ void Authenticator::authenticate(
     bmqp_ctrlmsg::AuthenticateResponse& response =
         authenticationResponse.makeAuthenticateResponse();
 
-    bsl::shared_ptr<mqbnet::Session> session;
-    int                              rc = rc_SUCCESS;
-    bsl::string                      error;
+    int         rc = rc_SUCCESS;
+    bsl::string error;
 
-    bdlb::ScopeExitAny connectionCompletionGuard(
+    bdlb::ScopeExitAny authenticationFailGuard(
         bdlf::BindUtil::bind(&mqbnet::InitialConnectionContext::complete,
                              context.get(),
                              bsl::ref(rc),
                              bsl::ref(error),
-                             bsl::ref(session)));
+                             bsl::shared_ptr<mqbnet::Session>()));
 
     BALL_LOG_INFO << "Authenticating connection '" << channel->peerUri()
                   << "' with mechanism '" << authenticateRequest.mechanism()
@@ -253,7 +253,7 @@ void Authenticator::authenticate(
             error = response.status().message();
             return;  // RETURN
         }
-        connectionCompletionGuard.release();
+        authenticationFailGuard.release();
         context->handleEventCb()(InitialConnectionEvent::e_AUTH_SUCCESS,
                                  context,
                                  bsl::nullopt);
@@ -283,7 +283,7 @@ void Authenticator::authenticate(
 
     // Authentication succeeded, release the error guard and transition to the
     // next state.
-    connectionCompletionGuard.release();
+    authenticationFailGuard.release();
     context->handleEventCb()(InitialConnectionEvent::e_AUTH_SUCCESS,
                              context,
                              bsl::nullopt);
@@ -430,8 +430,10 @@ int Authenticator::processAuthentication(
     bmqu::MemOutStream errorStream;
 
     bsl::shared_ptr<mqbplug::AuthenticationResult> result;
-    mqbplug::AuthenticationData authenticationData(request.data().value(),
-                                                   channel->peerUri());
+    const bsl::vector<char>&    data = request.data().isNull()
+                                           ? bsl::vector<char>()
+                                           : request.data().value();
+    mqbplug::AuthenticationData authenticationData(data, channel->peerUri());
 
     const int authnRc = d_authnController_p->authenticate(errorStream,
                                                           &result,
