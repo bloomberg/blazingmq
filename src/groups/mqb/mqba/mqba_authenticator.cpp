@@ -350,6 +350,7 @@ void Authenticator::reauthenticate(
                              this,
                              bsl::ref(rc),
                              bsl::ref(error),
+                             context,
                              channel));
 
     BALL_LOG_INFO << "Reauthenticating connection '" << channel->peerUri()
@@ -401,10 +402,15 @@ void Authenticator::reauthenticate(
 }
 
 void Authenticator::onReauthenticateErrorOrTimeout(
-    const int                              errorCode,
-    const bsl::string&                     errorName,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+    const int                                             errorCode,
+    const bsl::string&                                    errorName,
+    const bsl::shared_ptr<mqbnet::AuthenticationContext>& context,
+    const bsl::shared_ptr<bmqio::Channel>&                channel)
 {
+    if (context->state().swap(State::e_CLOSED) == State::e_CLOSED) {
+        return;
+    }
+
     BALL_LOG_ERROR << "Reauthentication error or timeout for '"
                    << channel->peerUri() << "' [error: " << errorName
                    << ", code: " << errorCode << "]";
@@ -482,6 +488,7 @@ int Authenticator::processAuthentication(
                     this,                     // authenticator
                     -1,                       // errorCode
                     "authenticationTimeout",  // errorName
+                    authenticationContext,    // context
                     channel                   // channel
                     ));
         }
@@ -614,9 +621,11 @@ int Authenticator::authenticationOutbound(
     return -1;
 }
 
-void Authenticator::cancelReauthenticationTimer(
-    const AuthenticationContextSp& context)
+void Authenticator::onClose(const AuthenticationContextSp& context)
 {
+    context->state().store(mqbnet::AuthenticationContext::State::e_CLOSED);
+
+    // Cancel the reauthentication timer
     bslmt::LockGuard<bslmt::Mutex> lockGuard(
         &context->timeoutHandleMutex());  // MUTEX LOCKED
 

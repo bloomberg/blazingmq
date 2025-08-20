@@ -505,7 +505,7 @@ void TCPSessionFactory::initialConnectionComplete(
     const InitialConnectionContext*          initialConnectionContext_p,
     const bsl::shared_ptr<OperationContext>& operationContext)
 {
-    // executed by one of the *IO* threads
+    // executed by one of the *IO* threads or authentication threads
 
     if (statusCode != 0) {
         // Failed to negotiate
@@ -840,8 +840,7 @@ void TCPSessionFactory::onClose(
 
         // Disable reauthentication timer if there's any
         if (channelInfo->d_authenticationCtx_sp) {
-            d_authenticator_p->cancelReauthenticationTimer(
-                channelInfo->d_authenticationCtx_sp);
+            d_authenticator_p->onClose(channelInfo->d_authenticationCtx_sp);
         }
 
         // TearDown the session

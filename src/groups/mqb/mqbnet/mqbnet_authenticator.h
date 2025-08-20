@@ -76,11 +76,9 @@ class Authenticator {
     virtual int authenticationOutbound(
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
-    /// Cancel any reauthentication timer for the specified `context`.
-    /// This method is called when the channel is being closed, to ensure that
-    /// no reauthentication is attempted afterwards.
-    virtual void cancelReauthenticationTimer(
-        const bsl::shared_ptr<AuthenticationContext>& context) = 0;
+    /// Methods invoked when a channel is closed.
+    virtual void
+    onClose(const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
     // ACCESSORS
 
