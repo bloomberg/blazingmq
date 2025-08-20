@@ -87,8 +87,8 @@ void StorageManager::registerQueueReplica(
     BSLA_UNUSED int   partitionId,
     BSLA_UNUSED const bmqt::Uri& uri,
     BSLA_UNUSED const mqbu::StorageKey& queueKey,
-    BSLA_UNUSED mqbi::Domain* domain,
-    BSLA_UNUSED bool          allowDuplicate)
+    BSLA_UNUSED const AppInfos&         appIdKeyPairs,
+    BSLA_UNUSED mqbi::Domain* domain)
 {
     // NOTHING
 }
@@ -107,8 +107,7 @@ void StorageManager::updateQueueReplica(
     BSLA_UNUSED const bmqt::Uri& uri,
     BSLA_UNUSED const mqbu::StorageKey& queueKey,
     BSLA_UNUSED const AppInfos&         appIdKeyPairs,
-    BSLA_UNUSED mqbi::Domain* domain,
-    BSLA_UNUSED bool          allowDuplicate)
+    BSLA_UNUSED mqbi::Domain* domain)
 {
     // NOTHING
 }
