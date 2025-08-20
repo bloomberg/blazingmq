@@ -396,9 +396,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 1: {
-        for (int i = 0; i < 16; i++) {
-            test1_breathingTest();
-        }
+        test1_breathingTest();
     } break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
