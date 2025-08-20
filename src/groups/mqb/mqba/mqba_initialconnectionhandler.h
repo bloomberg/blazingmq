@@ -181,12 +181,14 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     void handleInitialConnection(const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Handle an event occurs under the current state.
-    /// The specified `input` is the event to handle, the specified `context`
-    /// is the initial connection context associated to this event, and the
-    /// specified `message` is an optional message that may be used to
-    /// handle the event.
+    /// Handle an event occurs under the current state given the specified
+    /// `statusCode` and `errorDescription`. The specified `input` is the event
+    /// to handle, the specified `context` is the initial connection context
+    /// associated to this event, and the specified `message` is an optional
+    /// message that may be used to handle the event.
     void handleEvent(
+        int                               statusCode,
+        const bsl::string&                errorDescription,
         Event                             input,
         const InitialConnectionContextSp& context,
         const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
