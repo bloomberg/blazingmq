@@ -46,10 +46,7 @@ namespace mqbnet {
 class AuthenticationContext {
   public:
     // TYPES
-    enum State {
-        e_AUTHENTICATING = 0,
-        e_AUTHENTICATED,
-    };
+    enum State { e_AUTHENTICATING = 0, e_AUTHENTICATED, e_CLOSED };
 
     typedef bdlmt::EventScheduler::EventHandle EventHandle;
 
