@@ -14,7 +14,12 @@
 
 echo -e "Before running this script, install the following prerequisites, if not present yet," \
         "by executing the following commands:\n"                                               \
-        "brew install flex bison google-benchmark googletest zlib"
+        "brew install cmake flex bison google-benchmark googletest ninja pkg-config zlib\n"
+read -rp "Have you installed all prerequisites? (y/N): " yn
+yn=${yn:-n}  # default to 'n' if empty
+if [ "$yn" != "y" ] && [ "$yn" != "Y" ]; then
+    exit 0
+fi
 
 set -e
 set -u
