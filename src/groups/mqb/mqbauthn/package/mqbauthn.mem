@@ -1,1 +1,3 @@
 mqbauthn_authenticationcontroller
+mqbauthn_anonpassauthenticator
+mqbauthn_anonpasspluginlibrary
