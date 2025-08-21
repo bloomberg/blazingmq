@@ -286,9 +286,7 @@
 #include <ball_multiplexobserver.h>
 #include <ball_severity.h>
 #include <balst_stacktracetestallocator.h>
-#if BSL_VERSION >= BSL_MAKE_VERSION(4, 9)
 #include <bdlm_metricsregistry.h>
-#endif
 #include <bdlsb_memoutstreambuf.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstdio.h>
@@ -603,15 +601,6 @@
     ball::LoggerManagerScopedGuard _logManagerGuard(&_logMultiplexObserver,   \
                                                     _logConfig);
 
-#if BSL_VERSION >= BSL_MAKE_VERSION(4, 9)
-#define INIT_METRICS_REGISTRY()                                               \
-    /* Access the metrics registry default instance before assign the */      \
-    /* global allocator                                               */      \
-    bdlm::MetricsRegistry::defaultInstance();
-#else
-#define INIT_METRICS_REGISTRY() /* Not required for previous BDE versions */
-#endif
-
 #define INIT_GLOBAL_ALLOCATOR_INTERNAL()                                      \
     /* Global Allocator */                                                    \
     /* NOTE: The global allocator has a static storage duration to outlive */ \
@@ -619,7 +608,9 @@
     static bslma::TestAllocator _gblAlloc(                                    \
         "global",                                                             \
         (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
-    INIT_METRICS_REGISTRY()                                                   \
+    /* Access the metrics registry default instance before assigning the */   \
+    /* global allocator                                                  */   \
+    bdlm::MetricsRegistry::defaultInstance();                                 \
     bslma::Default::setGlobalAllocator(&_gblAlloc);
 
 #ifdef BSLS_PLATFORM_CMP_CLANG
