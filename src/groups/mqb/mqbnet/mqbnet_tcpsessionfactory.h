@@ -493,6 +493,9 @@ class TCPSessionFactory {
     /// Cancel any open listener operations and clear them out.
     void cancelListeners();
 
+    /// Stop all hearbeats
+    void stopHeartbeats();
+
   private:
     // NOT IMPLEMENTED
 
