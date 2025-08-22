@@ -89,17 +89,24 @@
 #include <bsl_functional.h>
 #include <bsl_utility.h>  // bsl::forward
 #include <bsl_vector.h>
+#include <bslma_bslallocator.h>
 #include <bslmf_isaccessiblebaseof.h>
+#include <bslmf_movableref.h>
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>
+#include <bsls_performancehint.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Fri Aug 15 21:41:28 2025
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.h
+
 # define COMPILING_BMQU_MANAGEDCALLBACK_H
 # include <bmqu_managedcallback_cpp03.h>
-#undef COMPILING_BMQU_MANAGEDCALLBACK_H
+# undef COMPILING_BMQU_MANAGEDCALLBACK_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -145,6 +152,12 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     /// `allocator`.
     explicit ManagedCallback(bslma::Allocator* allocator = 0);
 
+    /// Move a ManagedCallback object
+    ManagedCallback(bslmf::MovableRef<ManagedCallback> other);
+
+    /// Move a ManagedCallback object
+    ManagedCallback& operator=(bslmf::MovableRef<ManagedCallback> other);
+
     /// Destroy this object.
     ~ManagedCallback();
 
@@ -153,7 +166,7 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     /// call a destructor for it and set this object empty.
     void reset();
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
     /// Construct a callback object of the specified CALLBACK_TYPE in this
     /// objects' reusable buffer, with the specified `args` passed to its
     /// constructor.  The buffer must be empty before construction, it is
@@ -216,6 +229,27 @@ inline ManagedCallback::ManagedCallback(bslma::Allocator* allocator)
     // NOTHING
 }
 
+inline ManagedCallback::ManagedCallback(
+    bslmf::MovableRef<ManagedCallback> other)
+: d_callbackBuffer(bslmf::MovableRefUtil::move(
+      bslmf::MovableRefUtil::access(other).d_callbackBuffer))
+, d_empty(bslmf::MovableRefUtil::access(other).d_empty)
+{
+}
+
+inline ManagedCallback& ManagedCallback::operator=(
+    bslmf::MovableRef<ManagedCallback> other)
+{
+    ManagedCallback& lvalue = other;
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this != &lvalue)) {
+        d_callbackBuffer = bslmf::MovableRefUtil::move(lvalue.d_callbackBuffer);
+        d_empty = lvalue.d_empty;
+    }
+
+    return *this;
+}
+
 inline ManagedCallback::~ManagedCallback()
 {
     reset();
@@ -267,7 +301,7 @@ inline void ManagedCallback::operator()() const
     (*reinterpret_cast<const CallbackFunctor*>(d_callbackBuffer.data()))();
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 template <class CALLBACK_TYPE, class... ARGS>
 inline void ManagedCallback::createInplace(ARGS&&... args)
 {
@@ -280,6 +314,6 @@ inline void ManagedCallback::createInplace(ARGS&&... args)
 }  // close package namespace
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+#endif // End C++11 code
 
 #endif

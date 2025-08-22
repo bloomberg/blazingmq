@@ -586,8 +586,12 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     BSLS_ASSERT_SAFE(functor);
 
     mqbi::DispatcherEvent* event = getEvent(client);
-
-    (*event).setType(type).callback().set(functor);
+    if (type == mqbi::DispatcherEventType::e_DISPATCHER) {
+        (*event).makeDispatcherEvent().callback().set(functor);
+    }
+    else {
+        (*event).makeCallbackEvent().callback().set(functor);
+    }
 
     dispatchEvent(event, client);
 }
@@ -600,10 +604,7 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
 
     mqbi::DispatcherEvent* event = getEvent(client.clientType());
 
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(functor);
+    (*event).makeDispatcherEvent().callback().set(functor);
 
     dispatchEvent(event, client.clientType(), client.processorHandle());
 }
@@ -615,22 +616,22 @@ Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
     switch (type) {
     case mqbi::DispatcherClientType::e_SESSION: {
         return d_config.sessions().numProcessors();  // RETURN
-    }  // break;
+    }                                                // break;
     case mqbi::DispatcherClientType::e_QUEUE: {
         return d_config.queues().numProcessors();  // RETURN
-    }  // break;
+    }                                              // break;
     case mqbi::DispatcherClientType::e_CLUSTER: {
         return d_config.clusters().numProcessors();  // RETURN
-    }  // break;
+    }                                                // break;
     case mqbi::DispatcherClientType::e_ALL: {
         return d_config.sessions().numProcessors() +
                d_config.queues().numProcessors() +
                d_config.clusters().numProcessors();  // RETURN
-    }  // break;
+    }                                                // break;
     case mqbi::DispatcherClientType::e_UNDEFINED: {
         BSLS_ASSERT_OPT(false && "Invalid type");
         return -1;  // RETURN
-    }  // break;
+    }               // break;
     }
 
     return 0;

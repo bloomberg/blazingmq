@@ -991,7 +991,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .callback()
         .set(
             bdlf::BindUtil::bind(&mqbc::StorageUtil::unregisterQueueDispatched,
@@ -1049,7 +1049,7 @@ void StorageManager::registerQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .callback()
         .set(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::registerQueueReplicaDispatched,
@@ -1086,7 +1086,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .callback()
         .set(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::unregisterQueueReplicaDispatched,
@@ -1122,7 +1122,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .callback()
         .set(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::updateQueueReplicaDispatched,
@@ -1161,7 +1161,7 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .callback()
         .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
                                   &d_storages[partitionId],
@@ -1438,7 +1438,7 @@ void StorageManager::setPrimaryForPartition(int                  partitionId,
 
     ClusterNodes peers;
     typedef mqbc::ClusterMembership::ClusterNodeSessionMapIter
-        ClusterNodeSessionMapIter;
+                 ClusterNodeSessionMapIter;
     for (ClusterNodeSessionMapIter nodeIt =
              d_clusterData_p->membership().clusterNodeSessionMap().begin();
          nodeIt != d_clusterData_p->membership().clusterNodeSessionMap().end();

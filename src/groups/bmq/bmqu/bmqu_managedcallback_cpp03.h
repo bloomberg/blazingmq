@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Fri Aug 15 21:41:28 2025
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.h
 
 #ifdef COMPILING_BMQU_MANAGEDCALLBACK_H
@@ -84,6 +84,12 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     /// `allocator`.
     explicit ManagedCallback(bslma::Allocator* allocator = 0);
 
+    /// Move a ManagedCallback object
+    ManagedCallback(bslmf::MovableRef<ManagedCallback> other);
+
+    /// Move a ManagedCallback object
+    ManagedCallback& operator=(bslmf::MovableRef<ManagedCallback> other);
+
     /// Destroy this object.
     ~ManagedCallback();
 
@@ -99,8 +105,7 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #define BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT 9
 #endif
 #ifndef BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A
-#define BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A                                 \
-    BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT
+#define BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT
 #endif
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 0
     template <class CALLBACK_TYPE>
@@ -113,24 +118,26 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 1
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 2
-    template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2);
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 2
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 3
-    template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2, class ARGS_3>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3);
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 3
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 4
-    template <class CALLBACK_TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3,
+                                   class ARGS_4>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -138,12 +145,11 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 4
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 5
-    template <class CALLBACK_TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3,
+                                   class ARGS_4,
+                                   class ARGS_5>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -152,13 +158,12 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 5
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 6
-    template <class CALLBACK_TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3,
+                                   class ARGS_4,
+                                   class ARGS_5,
+                                   class ARGS_6>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -168,14 +173,13 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 6
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 7
-    template <class CALLBACK_TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3,
+                                   class ARGS_4,
+                                   class ARGS_5,
+                                   class ARGS_6,
+                                   class ARGS_7>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -186,15 +190,14 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 7
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 8
-    template <class CALLBACK_TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7,
-              class ARGS_8>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3,
+                                   class ARGS_4,
+                                   class ARGS_5,
+                                   class ARGS_6,
+                                   class ARGS_7,
+                                   class ARGS_8>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -206,16 +209,15 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 8
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 9
-    template <class CALLBACK_TYPE,
-              class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4,
-              class ARGS_5,
-              class ARGS_6,
-              class ARGS_7,
-              class ARGS_8,
-              class ARGS_9>
+    template <class CALLBACK_TYPE, class ARGS_1,
+                                   class ARGS_2,
+                                   class ARGS_3,
+                                   class ARGS_4,
+                                   class ARGS_5,
+                                   class ARGS_6,
+                                   class ARGS_7,
+                                   class ARGS_8,
+                                   class ARGS_9>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                        BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -228,8 +230,8 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_A >= 9
 
 #else
-    // The generated code below is a workaround for the absence of perfect
-    // forwarding in some compilers.
+// The generated code below is a workaround for the absence of perfect
+// forwarding in some compilers.
     template <class CALLBACK_TYPE, class... ARGS>
     void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
 // }}} END GENERATED CODE
@@ -287,6 +289,27 @@ inline ManagedCallback::ManagedCallback(bslma::Allocator* allocator)
 , d_empty(true)
 {
     // NOTHING
+}
+
+inline ManagedCallback::ManagedCallback(
+    bslmf::MovableRef<ManagedCallback> other)
+: d_callbackBuffer(bslmf::MovableRefUtil::move(
+      bslmf::MovableRefUtil::access(other).d_callbackBuffer))
+, d_empty(bslmf::MovableRefUtil::access(other).d_empty)
+{
+}
+
+inline ManagedCallback& ManagedCallback::operator=(
+    bslmf::MovableRef<ManagedCallback> other)
+{
+    ManagedCallback& lvalue = other;
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(this != &lvalue)) {
+        d_callbackBuffer = bslmf::MovableRefUtil::move(lvalue.d_callbackBuffer);
+        d_empty = lvalue.d_empty;
+    }
+
+    return *this;
 }
 
 inline ManagedCallback::~ManagedCallback()
@@ -347,216 +370,258 @@ inline void ManagedCallback::operator()() const
 #define BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT 9
 #endif
 #ifndef BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B
-#define BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B                                 \
-    BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT
+#define BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT
 #endif
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 0
 template <class CALLBACK_TYPE>
-inline void ManagedCallback::createInplace()
+inline void ManagedCallback::createInplace(
+                               )
 {
-    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE();
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                           );
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 0
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 1
 template <class CALLBACK_TYPE, class ARGS_1>
-inline void
-ManagedCallback::createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1)
-                                   args_1)
+inline void ManagedCallback::createInplace(
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 1
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 2
-template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 2
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 3
-template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2, class ARGS_3>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 3
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 4
-template <class CALLBACK_TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3,
+                               class ARGS_4>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 4
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 5
-template <class CALLBACK_TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3,
+                               class ARGS_4,
+                               class ARGS_5>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 5
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 6
-template <class CALLBACK_TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3,
+                               class ARGS_4,
+                               class ARGS_5,
+                               class ARGS_6>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 6
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 7
-template <class CALLBACK_TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3,
+                               class ARGS_4,
+                               class ARGS_5,
+                               class ARGS_6,
+                               class ARGS_7>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_7, args_7));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_7,
+                                          args_7));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 7
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 8
-template <class CALLBACK_TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3,
+                               class ARGS_4,
+                               class ARGS_5,
+                               class ARGS_6,
+                               class ARGS_7,
+                               class ARGS_8>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_7, args_7),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_8, args_8));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_7,
+                                          args_7),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_8,
+                                          args_8));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 8
 
 #if BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 9
-template <class CALLBACK_TYPE,
-          class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5,
-          class ARGS_6,
-          class ARGS_7,
-          class ARGS_8,
-          class ARGS_9>
+template <class CALLBACK_TYPE, class ARGS_1,
+                               class ARGS_2,
+                               class ARGS_3,
+                               class ARGS_4,
+                               class ARGS_5,
+                               class ARGS_6,
+                               class ARGS_7,
+                               class ARGS_8,
+                               class ARGS_9>
 inline void ManagedCallback::createInplace(
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
-    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
+                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_7, args_7),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_8, args_8),
-                      BSLS_COMPILERFEATURES_FORWARD(ARGS_9, args_9));
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_1,
+                                          args_1),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_2,
+                                          args_2),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_3,
+                                          args_3),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_4,
+                                          args_4),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_5,
+                                          args_5),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_6,
+                                          args_6),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_7,
+                                          args_7),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_8,
+                                          args_8),
+                                          BSLS_COMPILERFEATURES_FORWARD(ARGS_9,
+                                          args_9));
 }
 #endif  // BMQU_MANAGEDCALLBACK_VARIADIC_LIMIT_B >= 9
 
@@ -564,11 +629,12 @@ inline void ManagedCallback::createInplace(
 // The generated code below is a workaround for the absence of perfect
 // forwarding in some compilers.
 template <class CALLBACK_TYPE, class... ARGS>
-inline void
-ManagedCallback::createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
+inline void ManagedCallback::createInplace(
+                               BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
 {
-    new (place<CALLBACK_TYPE>())
-        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS, args)...);
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(
+                                           BSLS_COMPILERFEATURES_FORWARD(ARGS,
+                                           args)...);
 }
 // }}} END GENERATED CODE
 #endif
@@ -576,8 +642,9 @@ ManagedCallback::createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
 }  // close package namespace
 }  // close enterprise namespace
 
-#else  // if ! defined(DEFINED_BMQU_MANAGEDCALLBACK_H)
-#error Not valid except when included from bmqu_managedcallback.h
-#endif  // ! defined(COMPILING_BMQU_MANAGEDCALLBACK_H)
+#else // if ! defined(DEFINED_BMQU_MANAGEDCALLBACK_H)
+# error Not valid except when included from bmqu_managedcallback.h
+#endif // ! defined(COMPILING_BMQU_MANAGEDCALLBACK_H)
 
-#endif  // ! defined(INCLUDED_BMQU_MANAGEDCALLBACK_CPP03)
+#endif // ! defined(INCLUDED_BMQU_MANAGEDCALLBACK_CPP03)
+
