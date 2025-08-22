@@ -24,7 +24,6 @@
 #include <bmqsys_time.h>
 
 #include <bmqio_channelutil.h>
-#include <bmqpi_credentialprovider.h>
 #include <bmqt_authncredential.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -75,14 +74,14 @@ ConnectionChannelFactoryConfig::ConnectionChannelFactoryConfig(
     bmqio::ChannelFactory*                  base,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const bsls::TimeInterval&               connectTimeout,
-    bmqpi::CredentialProvider*              credentialProvider,
+    AuthnCredentialCb                       authnCredentialCb,
     BlobSpPool*                             blobSpPool_p,
     bslma::Allocator*                       basicAllocator)
 : d_baseFactory_p(base)
 , d_negotiationMessage(negotiationMessage, basicAllocator)
 , d_authenticationMessage()
 , d_connectTimeout(connectTimeout)
-, d_credentialProvider_p(credentialProvider)
+, d_authnCredentialCb(authnCredentialCb)
 , d_blobSpPool_p(blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -97,7 +96,7 @@ ConnectionChannelFactoryConfig::ConnectionChannelFactoryConfig(
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
 , d_authenticationMessage(original.d_authenticationMessage, basicAllocator)
 , d_connectTimeout(original.d_connectTimeout)
-, d_credentialProvider_p(original.d_credentialProvider_p)
+, d_authnCredentialCb(original.d_authnCredentialCb)
 , d_blobSpPool_p(original.d_blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -249,19 +248,28 @@ void ConnectionChannelFactory::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb)
 {
-    // If there's no CredentialProvider, it means no credential is provided. In
-    // this case, we will skip authentication.
-    if (!d_config.d_credentialProvider_p) {
-        return;
+    // We will skip authentication if there's no authentication credential
+    // callback.
+    if (!d_config.d_authnCredentialCb) {
+        return;  // RETURN
     }
 
-    bmqt::AuthnCredential credential = (*d_config.d_credentialProvider_p)();
+    bmqu::MemOutStream errStream;
+
+    bsl::optional<bmqt::AuthnCredential> credential =
+        d_config.d_authnCredentialCb(errStream);
+
+    if (!credential.has_value()) {
+        BALL_LOG_ERROR << "Failed to get authentication credential: "
+                       << errStream.str();
+        return;  // RETURN
+    }
 
     bmqp_ctrlmsg::AuthenticationMessage authenticaionMessage;
     bmqp_ctrlmsg::AuthenticateRequest&  ar =
         authenticaionMessage.makeAuthenticateRequest();
-    ar.mechanism() = credential.mechanism();
-    ar.data()      = credential.data();
+    ar.mechanism() = credential.value().mechanism();
+    ar.data()      = credential.value().data();
 
     d_config.d_authenticationMessage = authenticaionMessage;
 

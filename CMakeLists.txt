@@ -293,7 +293,6 @@ if(DOXYGEN_FOUND)
   doxygen_add_docs(
     apidocs
     src/groups/bmq/bmqa
-    src/groups/bmq/bmqauthn
     src/groups/bmq/bmqt
     src/groups/bmq/bmqpi
     README.md

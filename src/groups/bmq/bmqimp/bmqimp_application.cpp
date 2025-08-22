@@ -607,7 +607,7 @@ Application::Application(
       ConnectionChannelFactoryConfig(&d_statChannelFactory,
                                      negotiationMessage,
                                      sessionOptions.connectTimeout(),
-                                     sessionOptions.credentialProvider().get(),
+                                     sessionOptions.authnCredentialCb(),
                                      d_blobSpPool_sp.get(),
                                      allocator),
       allocator)
