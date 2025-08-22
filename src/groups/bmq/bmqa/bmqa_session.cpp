@@ -33,7 +33,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_messageguidgenerator.h>
 #include <bmqp_protocol.h>
-#include <bmqpi_credentialprovider.h>
 #include <bmqt_authncredential.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
