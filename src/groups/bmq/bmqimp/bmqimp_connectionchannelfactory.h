@@ -39,7 +39,7 @@
 #include <bmqio_status.h>
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqpi_credentialprovider.h>
+#include <bmqt_sessionoptions.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -65,7 +65,8 @@ namespace bmqimp {
 class ConnectionChannelFactoryConfig {
   public:
     // TYPES
-    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPool          BlobSpPool;
+    typedef bmqt::SessionOptions::AuthnCredentialCb AuthnCredentialCb;
 
   private:
     // PRIVATE DATA
@@ -73,7 +74,7 @@ class ConnectionChannelFactoryConfig {
     bmqp_ctrlmsg::NegotiationMessage    d_negotiationMessage;
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
     bsls::TimeInterval                  d_connectTimeout;
-    bmqpi::CredentialProvider*          d_credentialProvider_p;
+    AuthnCredentialCb                   d_authnCredentialCb;
     BlobSpPool*                         d_blobSpPool_p;
     bslma::Allocator*                   d_allocator_p;
 
@@ -90,7 +91,7 @@ class ConnectionChannelFactoryConfig {
         bmqio::ChannelFactory*                  base,
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
         const bsls::TimeInterval&               connectTimeout,
-        bmqpi::CredentialProvider*              credentialProvider_p,
+        AuthnCredentialCb                       authnCredentialCb,
         BlobSpPool*                             blobSpPool_p,
         bslma::Allocator*                       basicAllocator = 0);
 
