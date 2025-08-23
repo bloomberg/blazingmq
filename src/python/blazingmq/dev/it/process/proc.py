@@ -137,7 +137,7 @@ class Process:
         self,
         name,
         command,
-        stdin=None,
+        stdin=subprocess.DEVNULL,
         read_timeout=5.0,
         wait_timeout=15.0,
         check_exit_code=True,
@@ -459,11 +459,9 @@ class Process:
             except subprocess.TimeoutExpired:
                 return 1
 
-            self._internal_logger.debug(
-                "waiting for stdout consuming thread to exit..."
-            )
-            self._stdout_thread.join()
-            self._stderr_thread.join()
+        self._internal_logger.debug("waiting for stdout consuming thread to exit...")
+        self._stdout_thread.join()
+        self._stderr_thread.join()
 
         if self.check_exit_code:
             if not self.is_alive() and self.returncode != 0:

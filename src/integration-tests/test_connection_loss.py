@@ -178,12 +178,6 @@ def test_force_leader_primary_divergence(
     assert rc == 0
 
     # Restart "east1"
-    old_leader = Broker(
-        old_leader,
-        cluster=cluster,
-        cwd=cluster.work_dir / old_leader.name,
-    )
-    old_leader.add_sync_log_hook(lambda _: cluster.check_processes())
     old_leader.start()
     old_leader.wait_until_started()
 
