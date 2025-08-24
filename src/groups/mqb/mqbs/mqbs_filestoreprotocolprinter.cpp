@@ -107,7 +107,7 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
 bsl::ostream& operator<<(bsl::ostream&                stream,
                          const mqbs::QlistFileHeader& header)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.push_back("HeaderWords");
 
     stream << "Qlist File Header: \n";
@@ -253,7 +253,7 @@ namespace FileStoreProtocolPrinter {
 
 void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.reserve(10);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
@@ -292,7 +292,7 @@ void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
 
 void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.reserve(7);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
@@ -331,7 +331,7 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 
 void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -362,7 +362,7 @@ void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 
 void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.reserve(8);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
@@ -414,7 +414,7 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
 
 void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.reserve(10);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
@@ -620,7 +620,7 @@ void printIterator(mqbs::QlistFileIterator& it)
     it.loadAppIds(&appIdLenPairs);
     it.loadAppIdHashes(&appIdHashes);
 
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.reserve(3);
     fields.push_back("Queue URI");
     fields.push_back("QueueKey");
