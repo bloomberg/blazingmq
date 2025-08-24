@@ -326,8 +326,9 @@ void QlistFileIterator::loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const
         const char* begin = d_blockIter.block()->base() + pos +
                             sizeof(AppIdHeader);
 
-        appIds->push_back(
-            bsl::make_pair(begin, (paddedLen - begin[paddedLen - 1])));
+        appIds->emplace_back(
+            bsl::string(begin, (paddedLen - begin[paddedLen - 1])), 
+            (paddedLen - begin[paddedLen - 1]));
 
         // Move to beginning of next AppIdHeader.
 
@@ -339,7 +340,7 @@ void QlistFileIterator::loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const
 }
 
 void QlistFileIterator::loadAppIdHashes(
-    bsl::vector<const char*>* appIdHashes) const
+    bsl::vector<bsl::string>* appIdHashes) const
 {
     BSLS_ASSERT_SAFE(appIdHashes);
 
@@ -362,7 +363,7 @@ void QlistFileIterator::loadAppIdHashes(
         const char* begin = d_blockIter.block()->base() + pos +
                             sizeof(AppIdHeader) + paddedLen;
 
-        appIdHashes->push_back(begin);
+        appIdHashes->emplace_back(begin, FileStoreProtocol::k_HASH_LENGTH);
 
         // Move to beginning of next AppIdHeader.
         pos += sizeof(AppIdHeader) + paddedLen +

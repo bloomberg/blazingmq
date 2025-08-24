@@ -615,8 +615,8 @@ void printIterator(mqbs::QlistFileIterator& it)
     it.loadQueueUri(&uri, &uriLen);
     it.loadQueueUriHash(&queueKey);
 
-    bsl::vector<bsl::pair<const char*, unsigned int> > appIdLenPairs;
-    bsl::vector<const char*>                           appIdHashes;
+    bsl::vector<bsl::pair<bsl::string, unsigned int> > appIdLenPairs;
+    bsl::vector<bsl::string>                           appIdHashes;
     it.loadAppIds(&appIdLenPairs);
     it.loadAppIdHashes(&appIdHashes);
 
@@ -648,10 +648,9 @@ void printIterator(mqbs::QlistFileIterator& it)
 
             bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &appIdsInfo);
             for (size_t n = 0; n < numAppIds; ++n) {
-                p << bsl::string(appIdLenPairs[n].first,
-                                 appIdLenPairs[n].second)
+                p << appIdLenPairs[n].first
                   << mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                      appIdHashes[n]);
+                                      appIdHashes[n].c_str());
             }
         }
     }

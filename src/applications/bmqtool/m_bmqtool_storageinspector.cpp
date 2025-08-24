@@ -909,8 +909,8 @@ void StorageInspector::readQueuesIfNeeded()
             it.loadQueueUri(&uri, &uriLen);
             it.loadQueueUriHash(&qkey);
 
-            bsl::vector<bsl::pair<const char*, unsigned int> > appIdLenPairs;
-            bsl::vector<const char*>                           appIdHashes;
+            bsl::vector<bsl::pair<bsl::string, unsigned int> > appIdLenPairs;
+            bsl::vector<bsl::string>                           appIdHashes;
 
             if (0 != numAppIds) {
                 it.loadAppIds(&appIdLenPairs);
@@ -929,9 +929,8 @@ void StorageInspector::readQueuesIfNeeded()
 
                 for (size_t n = 0; n < numAppIds; ++n) {
                     AppIdRecord ar;
-                    ar.d_appId.assign(appIdLenPairs[n].first,
-                                      appIdLenPairs[n].second);
-                    ar.d_appKey.fromBinary(appIdHashes[n]);
+                    ar.d_appId = appIdLenPairs[n].first;
+                    ar.d_appKey.fromBinary(appIdHashes[n].c_str());
                     qr.d_appIds.push_back(ar);
                 }
 
@@ -1038,9 +1037,8 @@ void StorageInspector::readQueuesIfNeeded()
 
                 for (size_t n = 0; n < numAppIds; ++n) {
                     AppIdRecord ar;
-                    ar.d_appId.assign(appIdLenPairs[n].first,
-                                      appIdLenPairs[n].second);
-                    ar.d_appKey.fromBinary(appIdHashes[n]);
+                    ar.d_appId = appIdLenPairs[n].first;
+                    ar.d_appKey.fromBinary(appIdHashes[n].c_str());
                     qr.d_appIds.push_back(ar);
                 }
 
