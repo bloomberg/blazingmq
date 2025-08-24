@@ -254,7 +254,7 @@ void HumanReadableCslPrinter::printSummaryResult(
                  it != updateChoiceMap.end();
                  ++it) {
                 clusterMessageChoice.makeSelection(it->first);
-                fields.push_back(clusterMessageChoice.selectionName());
+                fields.emplace_back(clusterMessageChoice.selectionName());
             }
             bmqu::AlignedPrinter printer(d_ostream, &fields);
             for (CslUpdateChoiceMap::const_iterator it =

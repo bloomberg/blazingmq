@@ -30,9 +30,9 @@
 // First, specify field names for printer:
 //..
 //  bsl::vector<bsl::string> fields;
-//  fields.push_back("Queue URI");
-//  fields.push_back("QueueKey");
-//  fields.push_back("Number of AppIds");
+//  fields.emplace_back("Queue URI");
+//  fields.emplace_back("QueueKey");
+//  fields.emplace_back("Number of AppIds");
 //..
 //
 // Next, create an instance of bmqu::AlignedPrinter:

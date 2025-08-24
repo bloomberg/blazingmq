@@ -108,7 +108,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
                          const mqbs::QlistFileHeader& header)
 {
     bsl::vector<bsl::string> fields;
-    fields.push_back("HeaderWords");
+    fields.emplace_back("HeaderWords");
 
     stream << "Qlist File Header: \n";
 
@@ -255,16 +255,16 @@ void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
 {
     bsl::vector<bsl::string> fields;
     fields.reserve(10);
-    fields.push_back("PrimaryLeaseId");
-    fields.push_back("SequenceNumber");
-    fields.push_back("Timestamp");
-    fields.push_back("Epoch");
-    fields.push_back("FileKey");
-    fields.push_back("QueueKey");
-    fields.push_back("RefCount");
-    fields.push_back("MsgOffsetDwords");
-    fields.push_back("GUID");
-    fields.push_back("Crc32c");
+    fields.emplace_back("PrimaryLeaseId");
+    fields.emplace_back("SequenceNumber");
+    fields.emplace_back("Timestamp");
+    fields.emplace_back("Epoch");
+    fields.emplace_back("FileKey");
+    fields.emplace_back("QueueKey");
+    fields.emplace_back("RefCount");
+    fields.emplace_back("MsgOffsetDwords");
+    fields.emplace_back("GUID");
+    fields.emplace_back("Crc32c");
 
     bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
@@ -294,13 +294,13 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 {
     bsl::vector<bsl::string> fields;
     fields.reserve(7);
-    fields.push_back("PrimaryLeaseId");
-    fields.push_back("SequenceNumber");
-    fields.push_back("Timestamp");
-    fields.push_back("Epoch");
-    fields.push_back("QueueKey");
-    fields.push_back("AppKey");
-    fields.push_back("GUID");
+    fields.emplace_back("PrimaryLeaseId");
+    fields.emplace_back("SequenceNumber");
+    fields.emplace_back("Timestamp");
+    fields.emplace_back("Epoch");
+    fields.emplace_back("QueueKey");
+    fields.emplace_back("AppKey");
+    fields.emplace_back("GUID");
 
     bmqu::MemOutStream queueKeyStr, appKeyStr;
     queueKeyStr << rec.queueKey();
@@ -332,13 +332,13 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 {
     bsl::vector<bsl::string> fields;
-    fields.push_back("PrimaryLeaseId");
-    fields.push_back("SequenceNumber");
-    fields.push_back("Timestamp");
-    fields.push_back("Epoch");
-    fields.push_back("QueueKey");
-    fields.push_back("DeletionFlag");
-    fields.push_back("GUID");
+    fields.emplace_back("PrimaryLeaseId");
+    fields.emplace_back("SequenceNumber");
+    fields.emplace_back("Timestamp");
+    fields.emplace_back("Epoch");
+    fields.emplace_back("QueueKey");
+    fields.emplace_back("DeletionFlag");
+    fields.emplace_back("GUID");
 
     bmqu::MemOutStream queueKeyStr;
     queueKeyStr << rec.queueKey();
@@ -364,19 +364,19 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
 {
     bsl::vector<bsl::string> fields;
     fields.reserve(8);
-    fields.push_back("PrimaryLeaseId");
-    fields.push_back("SequenceNumber");
-    fields.push_back("Timestamp");
-    fields.push_back("Epoch");
-    fields.push_back("QueueKey");
-    fields.push_back("AppKey");
-    fields.push_back("QueueOpType");
+    fields.emplace_back("PrimaryLeaseId");
+    fields.emplace_back("SequenceNumber");
+    fields.emplace_back("Timestamp");
+    fields.emplace_back("Epoch");
+    fields.emplace_back("QueueKey");
+    fields.emplace_back("AppKey");
+    fields.emplace_back("QueueOpType");
     if (mqbs::QueueOpType::e_CREATION == rec.type() ||
         mqbs::QueueOpType::e_ADDITION == rec.type()) {
-        fields.push_back("QLIST OffsetWords");
+        fields.emplace_back("QLIST OffsetWords");
     }
-    fields.push_back("StartPrimaryLeaseId");
-    fields.push_back("StartSequenceNumber");
+    fields.emplace_back("StartPrimaryLeaseId");
+    fields.emplace_back("StartSequenceNumber");
 
     bmqu::MemOutStream queueKeyStr, appKeyStr;
     queueKeyStr << rec.queueKey();
@@ -416,16 +416,16 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
 {
     bsl::vector<bsl::string> fields;
     fields.reserve(10);
-    fields.push_back("PrimaryLeaseId");
-    fields.push_back("SequenceNumber");
-    fields.push_back("Timestamp");
-    fields.push_back("Epoch");
-    fields.push_back("JournalOpType");
-    fields.push_back("SyncPointType");
-    fields.push_back("SyncPtPrimaryLeaseId");
-    fields.push_back("SyncPtSequenceNumber");
-    fields.push_back("PrimaryNodeId");
-    fields.push_back("DataFileOffsetDwords");
+    fields.emplace_back("PrimaryLeaseId");
+    fields.emplace_back("SequenceNumber");
+    fields.emplace_back("Timestamp");
+    fields.emplace_back("Epoch");
+    fields.emplace_back("JournalOpType");
+    fields.emplace_back("SyncPointType");
+    fields.emplace_back("SyncPtPrimaryLeaseId");
+    fields.emplace_back("SyncPtSequenceNumber");
+    fields.emplace_back("PrimaryNodeId");
+    fields.emplace_back("DataFileOffsetDwords");
 
     bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
@@ -622,9 +622,9 @@ void printIterator(mqbs::QlistFileIterator& it)
 
     bsl::vector<bsl::string> fields;
     fields.reserve(3);
-    fields.push_back("Queue URI");
-    fields.push_back("QueueKey");
-    fields.push_back("NumAppIds");
+    fields.emplace_back("Queue URI");
+    fields.emplace_back("QueueKey");
+    fields.emplace_back("NumAppIds");
 
     BALL_LOG_INFO_BLOCK
     {
@@ -640,10 +640,10 @@ void printIterator(mqbs::QlistFileIterator& it)
                 << numAppIds;
 
         if (0 != numAppIds) {
-            bsl::vector<const char*> appIdsInfo;
+            bsl::vector<bsl::string> appIdsInfo;
             for (size_t n = 0; n < numAppIds; ++n) {
-                appIdsInfo.push_back("AppId");
-                appIdsInfo.push_back("AppKey");
+                appIdsInfo.emplace_back("AppId");
+                appIdsInfo.emplace_back("AppKey");
             }
 
             bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &appIdsInfo);
