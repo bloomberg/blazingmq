@@ -29,10 +29,10 @@
 ///-----
 // First, specify field names for printer:
 //..
-//  bsl::vector<const char*> fields;
-//  fields.push_back("Queue URI");
-//  fields.push_back("QueueKey");
-//  fields.push_back("Number of AppIds");
+//  bsl::vector<bsl::string> fields;
+//  fields.emplace_back("Queue URI");
+//  fields.emplace_back("QueueKey");
+//  fields.emplace_back("Number of AppIds");
 //..
 //
 // Next, create an instance of bmqu::AlignedPrinter:
@@ -70,11 +70,11 @@ namespace bmqu {
 class AlignedPrinter {
   private:
     // DATA
-    bsl::ostream&                   d_ostream;
-    const bsl::vector<const char*>* d_fields_p;
-    int                             d_indent;
-    int                             d_width;
-    unsigned int                    d_counter;
+    bsl::ostream&                      d_ostream;
+    const bsl::vector<bsl::string>* d_fields_p;
+    int                                d_indent;
+    int                                d_width;
+    unsigned int                       d_counter;
 
   private:
     // NOT IMPLEMENTED
@@ -88,9 +88,9 @@ class AlignedPrinter {
     /// specified `fields` with the optionally specified `indent`.  Behavior
     /// is undefined unless `indent` >= 0 and at least one field is present
     /// in the `fields`.
-    AlignedPrinter(bsl::ostream&                   stream,
-                   const bsl::vector<const char*>* fields,
-                   int                             indent = 4);
+    AlignedPrinter(bsl::ostream&                      stream,
+                   const bsl::vector<bsl::string>* fields,
+                   int                                indent = 4);
 
     // MANIPULATORS
 
@@ -109,9 +109,9 @@ class AlignedPrinter {
 // AlignedPrinter
 // --------------
 
-inline AlignedPrinter::AlignedPrinter(bsl::ostream&                   stream,
-                                      const bsl::vector<const char*>* fields,
-                                      int                             indent)
+inline AlignedPrinter::AlignedPrinter(bsl::ostream&                      stream,
+                                      const bsl::vector<bsl::string>* fields,
+                                      int                                indent)
 : d_ostream(stream)
 , d_fields_p(fields)
 , d_indent(indent)
@@ -121,9 +121,9 @@ inline AlignedPrinter::AlignedPrinter(bsl::ostream&                   stream,
     BSLS_ASSERT_SAFE(0 <= d_indent);
     BSLS_ASSERT_SAFE(0 < d_fields_p->size());
 
-    int maxLen = static_cast<int>(bsl::strlen((*d_fields_p)[0]));
+    int maxLen = static_cast<int>((*d_fields_p)[0].length());
     for (unsigned int i = 1; i < d_fields_p->size(); ++i) {
-        int len = static_cast<int>(bsl::strlen((*d_fields_p)[i]));
+        int len = static_cast<int>((*d_fields_p)[i].length());
         if (maxLen < len) {
             maxLen = len;
         }
@@ -139,7 +139,7 @@ inline AlignedPrinter& AlignedPrinter::operator<<(const TYPE& value)
 
     d_ostream << bsl::setw(d_indent) << ' ' << (*d_fields_p)[d_counter]
               << bsl::setw(static_cast<int>(
-                     d_width - bsl::strlen((*d_fields_p)[d_counter])))
+                     d_width - (*d_fields_p)[d_counter].length()))
               << ": " << value << '\n';
 
     ++d_counter;

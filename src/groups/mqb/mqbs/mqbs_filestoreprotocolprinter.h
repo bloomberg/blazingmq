@@ -100,7 +100,7 @@ void printFileHeader(bsl::ostream&                     stream,
                      const mqbs::MappedFileDescriptor& mfd,
                      bslma::Allocator*                 allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(5);
     fields.push_back("Protocol Version");
     fields.push_back("Bitness");
@@ -124,7 +124,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
                             const mqbs::MappedFileDescriptor& journalFd,
                             bslma::Allocator*                 allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(10);
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
@@ -183,7 +183,7 @@ void printDataFileHeader(bsl::ostream&               stream,
                          const mqbs::DataFileHeader& header,
                          bslma::Allocator*           allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(2);
     fields.push_back("HeaderWords");
     fields.push_back("FileId (FileKey)");

@@ -64,7 +64,7 @@ class QlistFileIterator {
 
   public:
     // TYPES
-    typedef bsl::pair<const char*, unsigned int> AppIdLengthPair;
+    typedef bsl::pair<bsl::string, unsigned int> AppIdLengthPair;
 
     // CREATORS
 
@@ -159,7 +159,7 @@ class QlistFileIterator {
 
     void loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const;
 
-    void loadAppIdHashes(bsl::vector<const char*>* appIdHashes) const;
+    void loadAppIdHashes(bsl::vector<bsl::string>* appIdHashes) const;
 
     /// Return the associated mapped file descriptor.
     const MappedFileDescriptor* mappedFileDescriptor() const;
