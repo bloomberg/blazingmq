@@ -1177,6 +1177,9 @@ void NtcChannel::read(Status*                   status,
 
             return;
         }
+        // Move the read queue low watermark so not to miss already received
+        // data.
+        d_streamSocket_sp->setReadQueueLowWatermark(1);
     }
 
     if (timer) {
