@@ -3003,6 +3003,8 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         return rc_SUCCESS;  // RETURN
     }
 
+    BALL_LOG_WARN << "Rollover is needed for file: " << fileName;
+                
     // TBD: make the ratio configurable
     static const bsls::Types::Uint64 k_MIN_AVAILABLE_SPACE_PERCENT = 20;
 
@@ -3060,6 +3062,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             ((d_config.maxJournalFileSize() - outstandingBytesJournal) * 100) /
             d_config.maxJournalFileSize();
     }
+
+    BALL_LOG_WARN << out.str();
+    BALL_LOG_WARN << "outstandingBytesJournal: " << outstandingBytesJournal;
+    BALL_LOG_WARN << "JOURNAL availableSpacePercentJournal " << availableSpacePercentJournal << " > " << k_MIN_AVAILABLE_SPACE_PERCENT;
 
     if (availableSpacePercentJournal < k_MIN_AVAILABLE_SPACE_PERCENT) {
         // JOURNAL file can't be rolled over.

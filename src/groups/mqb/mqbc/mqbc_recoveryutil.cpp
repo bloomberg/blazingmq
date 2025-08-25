@@ -228,13 +228,18 @@ int RecoveryUtil::bootstrapCurrentSeqNum(
     currentSeqNum->sequenceNumber()        = recordHeader.sequenceNumber();
     // Skip JOURNAL records until 'beginSeqNum' is reached.
 
+    BALL_LOG_WARN << "!!! beginSeqNum: " << beginSeqNum <<  " currentSeqNum: " << *currentSeqNum;
+    BALL_LOG_WARN << recordHeader;
+
     while (*currentSeqNum < beginSeqNum && 1 == journalIt.nextRecord()) {
         const mqbs::RecordHeader& recHeader = journalIt.recordHeader();
         currentSeqNum->primaryLeaseId()     = recHeader.primaryLeaseId();
         currentSeqNum->sequenceNumber()     = recHeader.sequenceNumber();
+        BALL_LOG_WARN << "primaryLeaseId: " << currentSeqNum->primaryLeaseId() << " sequenceNumber: " << currentSeqNum->sequenceNumber();
     }
 
     if (*currentSeqNum != beginSeqNum) {
+        BALL_LOG_WARN << "ERROR -1 !!!!";
         // We reached the end of JOURNAL, but couldn't reach the beginning
         // sequence number 'beginSeqNum'.
         return -1;  // RETURN

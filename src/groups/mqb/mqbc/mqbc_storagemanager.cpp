@@ -969,18 +969,21 @@ void StorageManager::processReplicaDataResponseDispatched(
                            << "type, ignoring.";
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
+            BALL_LOG_WARN << "processReplicaDataResponseDispatched: e_FAIL_REPLICA_DATA_RSPN_PULL";
             dispatchEventToPartition(
                 fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PULL,
                 eventDataVec);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
+            BALL_LOG_WARN << "processReplicaDataResponseDispatched: e_FAIL_REPLICA_DATA_RSPN_PUSH";
             dispatchEventToPartition(
                 fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
                 eventDataVec);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
+            BALL_LOG_WARN << "processReplicaDataResponseDispatched: e_FAIL_REPLICA_DATA_RSPN_DROP";
             dispatchEventToPartition(
                 fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
@@ -1050,16 +1053,19 @@ void StorageManager::processReplicaDataResponseDispatched(
                        << "ignoring.";
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
+        BALL_LOG_WARN << "processReplicaDataResponseDispatched: e_REPLICA_DATA_RSPN_PULL";
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
+        BALL_LOG_WARN << "processReplicaDataResponseDispatched: e_REPLICA_DATA_RSPN_PUSH";
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
+        BALL_LOG_WARN << "processReplicaDataResponseDispatched: e_REPLICA_DATA_RSPN_DROP";
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
                                  eventDataVec);
@@ -1439,6 +1445,7 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
             d_nodeToSeqNumCtxMapVec[partitionId].insert(
                 bsl::make_pair(cit->source(), bsl::make_pair(seqNum, false)));
             hasNew = true;
+            BALL_LOG_WARN << "New sequence number for " << cit->source()->nodeDescription() << ": " << seqNum;
         }
         else if (seqNum > it->second.first ||
                  event == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
@@ -2120,7 +2127,7 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
     if (!fs->isOpen()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
+                       << "Cannot send ReplicaDataRequestDrop to replicas "
                        << "because FileStore is not opened.";
 
         return;  // RETURN
@@ -2137,12 +2144,23 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         nodeToSeqNumCtxMap.at(selfNode).first;
 
     // Determine the replicas with obsolete data to be dropped
+    BALL_LOG_WARN << "!!! do_replicaDataRequestDrop" << " Partition [" << partitionId << "]";
     ClusterNodeVec obsoleteDataReplicas;
     for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
          cit != nodeToSeqNumCtxMap.cend();
          cit++) {
+        // BALL_LOG_WARN  << "cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
         if (cit->second.first > selfSeqNum && !cit->second.second) {
             obsoleteDataReplicas.emplace_back(cit->first);
+            BALL_LOG_WARN  << "ADD obsoleteDataReplicas: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
+        }
+        if (cit->second.first < selfSeqNum && !cit->second.second) {
+            if (cit->second.first.primaryLeaseId()!=0 && cit->second.first.sequenceNumber() !=0) {
+                if (cit->second.first.primaryLeaseId() < selfSeqNum.primaryLeaseId() || selfSeqNum.sequenceNumber() - cit->second.first.sequenceNumber() > 2) {
+                    BALL_LOG_WARN  << "ADD obsoleteDataReplicas1111: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
+                    obsoleteDataReplicas.emplace_back(cit->first);
+                }
+            }
         }
     }
 
@@ -2735,15 +2753,29 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
             const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum =
                 cit->second.first;
 
+
             if (beginSeqNum > endSeqNum) {
                 // Replica is ahead: we already sent ReplicaDataRequestDrop
                 continue;
+            }
+
+            if (beginSeqNum < endSeqNum)  {
+                // Replica is behind: we already sent ReplicaDataRequestDrop
+                // TODO: condition
+                if (beginSeqNum.primaryLeaseId() != 0 &&  beginSeqNum.sequenceNumber() !=0) {
+                    if (beginSeqNum.primaryLeaseId() < endSeqNum.primaryLeaseId() || (endSeqNum.sequenceNumber() - beginSeqNum.sequenceNumber() > 2)) {
+                        BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
+                        continue;
+                    }
+                }
             }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
                 nodeToSeqNumCtxMap.at(destNode).second = true;
                 continue;
             }
+
+            BALL_LOG_WARN << "do_startSendDataChunks beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
 
             const int rc = d_recoveryManager_mp->processSendDataChunks(
                 partitionId,
@@ -3031,15 +3063,31 @@ void StorageManager::do_removeStorage(const PartitionFSMArgsSp& args)
         d_recoveryManager_mp->deprecateFileSet(partitionId);
     }
 
-    BMQTSK_ALARMLOG_ALARM("REPLICATION")
-        << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId << "]: "
-        << "self's storage is out of sync with primary and cannot be "
-           "healed "
-        << "trivially. Removing entire storage and aborting broker."
-        << BMQTSK_ALARMLOG_END;
+    BALL_LOG_ERROR << d_clusterData_p->identity().description() << " Partition ["
+                   << partitionId << "]: "
+                   << "self's storage is out of sync with primary and cannot be "
+                   << "healed "
+                   << "trivially. Removing entire storage and reset state.";
 
-    mqbu::ExitUtil::terminate(mqbu::ExitCode::e_STORAGE_OUT_OF_SYNC);  // EXIT
+
+    // do_reapplyDetectSelfReplica(args);
+
+    // const PartitionFSMEventData& eventData      = eventDataVec[0];
+    // // const int                    partitionId    = eventData.partitionId();
+    // mqbnet::ClusterNode*         primaryNode    = eventData.primary();
+    // unsigned int                 primaryLeaseId = eventData.primaryLeaseId();
+
+    // processReplicaDetect(partitionId, primaryNode, primaryLeaseId);
+
+    // BMQTSK_ALARMLOG_ALARM("REPLICATION")
+    //     << d_clusterData_p->identity().description() << " Partition ["
+    //     << partitionId << "]: "
+    //     << "self's storage is out of sync with primary and cannot be "
+    //        "healed "
+    //     << "trivially. Removing entire storage and aborting broker."
+    //     << BMQTSK_ALARMLOG_END;
+
+    // mqbu::ExitUtil::terminate(mqbu::ExitCode::e_STORAGE_OUT_OF_SYNC);  // EXIT
 }
 
 void StorageManager::do_incrementNumRplcaDataRspn(
@@ -3352,8 +3400,8 @@ void StorageManager::do_reapplyDetectSelfReplica(
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
-                     PartitionFSM::State::e_UNKNOWN);
+    // BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
+    //                  PartitionFSM::State::e_UNKNOWN);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
