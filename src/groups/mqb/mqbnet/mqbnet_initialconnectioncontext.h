@@ -140,6 +140,7 @@ class InitialConnectionContext {
     InitialConnectionContext&
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
+    void reset();
     // ACCESSORS
 
     /// Return the value of the corresponding field.

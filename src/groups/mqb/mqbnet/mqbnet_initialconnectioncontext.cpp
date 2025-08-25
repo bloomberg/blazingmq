@@ -71,6 +71,14 @@ InitialConnectionContext& InitialConnectionContext::setNegotiationContext(
     return *this;
 }
 
+void InitialConnectionContext::reset()
+{
+    d_channelSp.reset();
+    d_initialConnectionCompleteCb = InitialConnectionCompleteCb();
+
+    // keep 'NegotiationContext'
+}
+
 bool InitialConnectionContext::isIncoming() const
 {
     return d_isIncoming;
