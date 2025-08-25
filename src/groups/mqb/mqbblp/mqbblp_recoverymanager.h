@@ -267,6 +267,11 @@ class RecoveryManager_RecoveryContext {
     /// complete within the stipulated time.
     EventHandle d_recoveryStatusCheckHandle;
 
+    /// If no nodes are available after `startupWaitDurationMs` + random
+    /// timeout, extend the wait up to hardcoded number of retries unless this
+    /// is the leader.
+    unsigned int d_startupWaitRetries;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RecoveryManager_RecoveryContext,
@@ -326,6 +331,9 @@ class RecoveryManager_RecoveryContext {
     void purgeStorageEvents();
 
     void clear();
+
+    /// Increment and return the number of startup wait retries.
+    unsigned int onStartupWaitRetry();
 
     // ACCESSORS
     int numAttempts() const;
@@ -1201,6 +1209,7 @@ inline RecoveryManager_RecoveryContext::RecoveryManager_RecoveryContext(
 , d_lastChunkSequenceNumber(0)
 , d_recoveryStartupWaitHandle()
 , d_recoveryStatusCheckHandle()
+, d_startupWaitRetries(0)
 {
 }
 
@@ -1228,6 +1237,7 @@ inline RecoveryManager_RecoveryContext::RecoveryManager_RecoveryContext(
 , d_lastChunkSequenceNumber(other.d_lastChunkSequenceNumber)
 , d_recoveryStartupWaitHandle(other.d_recoveryStartupWaitHandle)
 , d_recoveryStatusCheckHandle(other.d_recoveryStatusCheckHandle)
+, d_startupWaitRetries(other.d_startupWaitRetries)
 {
 }
 
@@ -1355,6 +1365,11 @@ inline void RecoveryManager_RecoveryContext::addStorageEvent(
 inline void RecoveryManager_RecoveryContext::purgeStorageEvents()
 {
     d_bufferedEvents.clear();
+}
+
+inline unsigned int RecoveryManager_RecoveryContext::onStartupWaitRetry()
+{
+    return ++d_startupWaitRetries;
 }
 
 // ACCESSORS

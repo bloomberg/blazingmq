@@ -576,7 +576,7 @@ void Queue::onReplicatedBatch()
     }
 }
 
-int Queue::configure(bsl::ostream& errorDescription,
+int Queue::configure(bsl::ostream* errorDescription_p,
                      bool          isReconfigure,
                      bool          wait)
 {
@@ -588,7 +588,7 @@ int Queue::configure(bsl::ostream& errorDescription,
         bdlf::BindUtil::bind(&Queue::configureDispatched,
                              this,
                              (wait ? &result : NULL),
-                             (wait ? &errorDescription : NULL),
+                             (wait ? errorDescription_p : NULL),
                              isReconfigure),
         this);
     if (!wait) {

@@ -104,7 +104,7 @@ void Queue::flush()
 
 // MANIPULATORS
 //   (virtual: mqbi::Queue)
-int Queue::configure(BSLA_UNUSED bsl::ostream& errorDescription,
+int Queue::configure(BSLA_UNUSED bsl::ostream* errorDescription_p,
                      BSLA_UNUSED bool          isReconfigure,
                      BSLA_UNUSED bool          wait)
 {
@@ -389,6 +389,11 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     os << "MockQueue::processCommand " << command << " not implemented!";
     error.message() = os.str();
     return -1;
+}
+
+void Queue::convertToLocal()
+{
+    // NOTHING
 }
 
 // MANIPULATORS

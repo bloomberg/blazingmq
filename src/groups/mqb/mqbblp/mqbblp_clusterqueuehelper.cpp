@@ -36,6 +36,7 @@
 //
 
 // MQB
+#include <mqbblp_queue.h>
 #include <mqbblp_storagemanager.h>
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusternodesession.h>
@@ -2080,6 +2081,11 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     // Domain is already aware of the queue, reuse it.
     bsl::shared_ptr<mqbi::Queue> iQueueSp;
     if (context.d_domain_p->lookupQueue(&iQueueSp, queueContext->uri()) == 0) {
+        /// In rare situations we call `resetButKeepPending` and
+        /// `d_liveQInfo->d_queue_sp` is reset, but the corresponding domain
+        /// still contains a shared_ptr to this queue.
+        /// We must restore `d_queue_sp` from the domain.
+        queueContext->d_liveQInfo.d_queue_sp = iQueueSp;
         return iQueueSp;  // RETURN
     }
 
@@ -2162,13 +2168,21 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    error(&localAllocator);
 
-    int rc = queueSp->configure(error,
+    int rc = queueSp->configure(&error,
                                 false,  // isReconfigure
                                 true);  // wait
 
+    /// `mqbi::Queue::configure` might have set a queue raw pointer in the
+    /// corresponding storage.  Make sure we unset this if we exit the scope
+    /// on error.
+    bdlb::ScopeExitAny queuePtrGuard(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &mqbi::Storage::setQueue,
+                              queueSp->storage(),
+                              static_cast<mqbi::Queue*>(0)));
+
     if (rc != 0) {
         // Queue.configure() failed.
-
         BMQ_LOGTHROTTLE_ERROR << "Failure configuring queue '"
                               << queueContext->uri() << "': " << error.str()
                               << ".";
@@ -2197,6 +2211,9 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             queueContext->partitionId(),
             1);
     }
+
+    /// Success: no need to unset queue raw pointer.
+    queuePtrGuard.release();
 
     return queueSp;
 }
@@ -3862,7 +3879,7 @@ ClusterQueueHelper::restoreStateHelper(QueueLiveState&      queueInfo,
                           << "ReopenQueue request: " << REQ << ", rc: " << RC \
                           << ".";
 
-    const mqbblp::Queue* queuePtr = queueInfo.d_queue_sp.get();
+    const mqbi::Queue* queuePtr = queueInfo.d_queue_sp.get();
 
     for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
          iter != queueInfo.d_subQueueIds.end();
@@ -4415,7 +4432,7 @@ void ClusterQueueHelper::onQueueUpdated(
     BSLS_ASSERT_SAFE(qiter != d_queues.end());
 
     QueueContext&  queueContext = *qiter->second;
-    mqbblp::Queue* queue        = queueContext.d_liveQInfo.d_queue_sp.get();
+    mqbi::Queue*   queue        = queueContext.d_liveQInfo.d_queue_sp.get();
     const int      partitionId  = queueContext.partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
 
@@ -5841,7 +5858,7 @@ void ClusterQueueHelper::checkUnconfirmed(
         return;  // RETURN
     }
 
-    bsl::shared_ptr<mqbblp::Queue>& queueSp =
+    bsl::shared_ptr<mqbi::Queue>& queueSp =
         queueContextSp->d_liveQInfo.d_queue_sp;
 
     if (!queueSp) {
@@ -5961,7 +5978,7 @@ void ClusterQueueHelper::checkUnconfirmedQueueDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueContextSp);
-    bsl::shared_ptr<mqbblp::Queue>& queueSp =
+    bsl::shared_ptr<mqbi::Queue>& queueSp =
         queueContextSp->d_liveQInfo.d_queue_sp;
     BSLS_ASSERT_SAFE(queueSp);
     BSLS_ASSERT_SAFE(queueSp->dispatcher()->inDispatcherThread(queueSp.get()));

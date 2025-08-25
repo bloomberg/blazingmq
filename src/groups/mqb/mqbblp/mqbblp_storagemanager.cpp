@@ -1172,7 +1172,6 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
                                   queue));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
-    ;
 }
 
 void StorageManager::setQueueRaw(mqbi::Queue*     queue,

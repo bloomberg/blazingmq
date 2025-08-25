@@ -152,7 +152,7 @@ class SimpleEvaluator {
       public:
         virtual ~Expression();
 
-        /// Evaluate a Expression.
+        /// Evaluate an Expression.
         virtual bdld::Datum evaluate(EvaluationContext& context) const = 0;
     };
 
@@ -711,30 +711,27 @@ class CompilationContext {
 /// Contain the inputs of an evaluation.
 class EvaluationContext {
   private:
-    // Where to read properties from.
-    PropertiesReader* d_propertiesReader;
-
-    // The allocator to use during evaluation.
+    /// The allocator to use during evaluation.
     bslma::Allocator* d_allocator;
 
-    // Set by `Expression::evaluate` functions when a property does not
-    // have the type deduced during compilation. Stop evaluation and return
-    // `true`.
-    bool d_stop;
+    /// Where to read properties from.
+    PropertiesReader* d_propertiesReader;
 
+    /// @brief The last encountered error during evaluation or `e_OK` if there
+    ///        is no error.  Note that we stop evaluation and return early if
+    ///        an error occurred
     ErrorType::Enum d_lastError;
 
   public:
     // CREATORS
-    EvaluationContext(PropertiesReader* propertiesReader,
-                      bslma::Allocator* allocator);
+    explicit EvaluationContext(PropertiesReader* propertiesReader,
+                               bslma::Allocator* allocator);
 
     void setPropertiesReader(PropertiesReader* propertiesReader);
 
     void reset();
 
-    /// Stop execution.
-    bdld::Datum stop();
+    void setError(ErrorType::Enum value);
 
     /// Return `true` if an error occurred and `false` otherwise.
     bool hasError() const;
@@ -844,14 +841,12 @@ bdld::Datum
 SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
 {
     bdld::Datum left = d_left->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     bdld::Datum right = d_right->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
@@ -862,9 +857,8 @@ SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
             // RETURN
         }
 
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     bsls::Types::Int64 a;
@@ -877,9 +871,8 @@ SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
         a = left.theInteger();
     }
     else {
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     if (right.isInteger64()) {
@@ -889,9 +882,8 @@ SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
         b = right.theInteger();
     }
     else {
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     return bdld::Datum::createBoolean(Op<bsls::Types::Int64>()(a, b));
@@ -935,14 +927,12 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
     EvaluationContext& context) const
 {
     bdld::Datum left = d_left->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
     bdld::Datum right = d_right->evaluate(context);
-
-    if (context.d_stop) {
+    if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
     }
 
@@ -956,9 +946,8 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
         a = left.theInteger();
     }
     else {
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     if (right.isInteger64()) {
@@ -968,9 +957,8 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
         b = right.theInteger();
     }
     else {
-        context.d_lastError = ErrorType::e_TYPE;
-
-        return context.stop();  // RETURN
+        context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
     }
 
     bsls::Types::Int64 result = Op<bsls::Types::Int64>()(a, b);
@@ -1170,9 +1158,8 @@ CompilationContext::makeUnaryExpression(ArgType expr)
 
 inline EvaluationContext::EvaluationContext(PropertiesReader* propertiesReader,
                                             bslma::Allocator* allocator)
-: d_propertiesReader(propertiesReader)
-, d_allocator(allocator)
-, d_stop(false)
+: d_allocator(allocator)
+, d_propertiesReader(propertiesReader)
 , d_lastError(ErrorType::e_OK)
 {
 }
@@ -1185,20 +1172,18 @@ EvaluationContext::setPropertiesReader(PropertiesReader* propertiesReader)
 
 inline void EvaluationContext::reset()
 {
-    d_stop      = false;
     d_lastError = ErrorType::e_OK;
 }
 
-inline bdld::Datum EvaluationContext::stop()
+inline void EvaluationContext::setError(ErrorType::Enum value)
 {
-    d_stop = true;
-
-    return bdld::Datum::createNull();
+    BSLS_ASSERT_SAFE(!hasError());
+    d_lastError = value;
 }
 
 inline bool EvaluationContext::hasError() const
 {
-    return d_lastError != 0;
+    return d_lastError != ErrorType::e_OK;
 }
 
 inline ErrorType::Enum EvaluationContext::lastError() const

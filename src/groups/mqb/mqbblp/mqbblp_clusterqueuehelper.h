@@ -30,7 +30,6 @@
 ///       stated, should be executed by the dispatcher thread.
 
 // MQB
-#include <mqbblp_queue.h>
 #include <mqbc_clusterdata.h>
 #include <mqbc_clustermembership.h>
 #include <mqbc_clusterstate.h>
@@ -191,7 +190,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         unsigned int d_nextSubQueueId;
 
         // Queue created (null if no queue created yet)
-        bsl::shared_ptr<mqbblp::Queue> d_queue_sp;
+        bsl::shared_ptr<mqbi::Queue> d_queue_sp;
 
         // Number of queue handles associated with this queue.
         int d_numQueueHandles;
