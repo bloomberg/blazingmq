@@ -329,6 +329,7 @@ class InitialConnectionContext {
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
     InitialConnectionContext& setState(InitialConnectionState::Enum value);
 
+    void reset();
     // ACCESSORS
 
     /// Return the value of the corresponding field.
