@@ -1185,17 +1185,18 @@ bool StorageUtil::validatePartitionSyncEvent(
 }
 
 int StorageUtil::assignPartitionDispatcherThreads(
-    bdlmt::FixedThreadPool*        threadPool,
-    mqbc::ClusterData*             clusterData,
-    const mqbi::Cluster&           cluster,
-    mqbi::Dispatcher*              dispatcher,
-    const mqbcfg::PartitionConfig& config,
-    FileStores*                    fileStores,
-    BlobSpPool*                    blobSpPool,
-    bmqma::CountingAllocatorStore* allocators,
-    bsl::ostream&                  errorDescription,
-    int                            replicationFactor,
-    const RecoveredQueuesCb&       recoveredQueuesCb)
+    bdlmt::FixedThreadPool*                     threadPool,
+    mqbc::ClusterData*                          clusterData,
+    const mqbi::Cluster&                        cluster,
+    mqbi::Dispatcher*                           dispatcher,
+    const mqbcfg::PartitionConfig&              config,
+    FileStores*                                 fileStores,
+    BlobSpPool*                                 blobSpPool,
+    bmqma::CountingAllocatorStore*              allocators,
+    bsl::ostream&                               errorDescription,
+    int                                         replicationFactor,
+    const RecoveredQueuesCb&                    recoveredQueuesCb,
+    const bdlb::NullableValue<QueueCreationCb>& queueCreationCb)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1239,6 +1240,10 @@ int StorageUtil::assignPartitionDispatcherThreads(
             .setMaxQlistFileSize(config.maxQlistFileSize())
             .setMaxArchivedFileSets(config.maxArchivedFileSets())
             .setRecoveredQueuesCb(recoveredQueuesCb);
+
+        if (!queueCreationCb.isNull()) {
+            dsCfg.setQueueCreationCb(queueCreationCb.value());
+        }
 
         // Get named allocator from associated bmqma::CountingAllocatorStore
         bslma::Allocator* fileStoreAllocator = allocators->get(
@@ -1984,11 +1989,17 @@ void StorageUtil::recoveredQueuesCb(
                 current);
             BSLS_ASSERT_SAFE(numGhosts < refCount);
 
-            BALL_LOG_INFO << clusterDescription << " Partition ["
-                          << partitionId << "]: Adjusting queueUri ["
-                          << infoMapCit->second.canonicalQueueUri()
-                          << "], queueKey [" << queueKey << ", current "
-                          << current << "] for " << numGhosts << " ghosts.";
+            if (numGhosts) {
+                BMQU_THROTTLEDACTION_THROTTLE(
+                    bmqu::ThrottledActionParams(1000 * 60,
+                                                1),  // 1 log in 1min
+                    BALL_LOG_INFO << clusterDescription << " Partition ["
+                                  << partitionId << "]: Adjusting queueUri ["
+                                  << infoMapCit->second.canonicalQueueUri()
+                                  << "], queueKey [" << queueKey
+                                  << ", current " << current << "] for "
+                                  << numGhosts << " ghosts.");
+            }
 
             BSLS_ASSERT_SAFE(false == guid.isUnset());
             rs->processMessageRecord(guid,
@@ -2745,19 +2756,17 @@ int StorageUtil::updateQueuePrimary(
                                  true);  // isFanout
 }
 
-void StorageUtil::registerQueueReplicaDispatched(
-    int*                 status,
-    StorageSpMap*        storageMap,
-    bslmt::Mutex*        storagesLock,
-    mqbs::FileStore*     fs,
-    mqbi::DomainFactory* domainFactory,
-    BSLA_MAYBE_UNUSED bmqma::CountingAllocatorStore* allocators,
-    const bsl::string&                               clusterDescription,
-    int                                              partitionId,
-    const bmqt::Uri&                                 uri,
-    const mqbu::StorageKey&                          queueKey,
-    mqbi::Domain*                                    domain,
-    bool                                             allowDuplicate)
+void StorageUtil::createQueueStorageDispatched(
+    StorageSpMap*           storageMap,
+    bslmt::Mutex*           storagesLock,
+    mqbs::FileStore*        fs,
+    mqbi::DomainFactory*    domainFactory,
+    const bsl::string&      clusterDescription,
+    int                     partitionId,
+    const bmqt::Uri&        uri,
+    const mqbu::StorageKey& queueKey,
+    const AppInfos&         appIdKeyPairs,
+    mqbi::Domain*           domain)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2766,7 +2775,6 @@ void StorageUtil::registerQueueReplicaDispatched(
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(domainFactory);
-    BSLS_ASSERT_SAFE(allocators);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
@@ -2777,36 +2785,10 @@ void StorageUtil::registerQueueReplicaDispatched(
     // callback of Queue Assignment Advisory or Queue Update Advisory from the
     // leader.
 
-    enum {
-        rc_SUCCESS                     = 0,
-        rc_QUEUE_ALREADY_REGISTERED    = -1,
-        rc_DOMAIN_FAILURE              = -2,
-        rc_INVALID_DOMAIN_CONFIG       = -3,
-        rc_INVALID_STORAGE_CONFIG      = -4,
-        rc_INCOMPATIBLE_STORAGE_CONFIG = -5
-    };
-
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
     StorageSpMapIter it = storageMap->find(uri);
     if (it != storageMap->end()) {
-        if (!allowDuplicate) {
-            // This is a new queue but StorageMgr is already aware of this uri,
-            // which means QLIST file for this partition already contains an
-            // entry for this queue (because StorageMgr's in-memory data
-            // structure and QLIST entries are in sync).  This indicates a bug
-            // BlazingMQ replication.
-
-            BALL_LOG_ERROR << "Failed to create queue '" << uri
-                           << "', queueKey: [" << queueKey
-                           << "], partitionId: [" << partitionId
-                           << "], rc: " << rc_QUEUE_ALREADY_REGISTERED;
-        }
-
-        if (status) {
-            *status = rc_QUEUE_ALREADY_REGISTERED;
-        }
-
         return;  // RETURN
     }
 
@@ -2836,13 +2818,9 @@ void StorageUtil::registerQueueReplicaDispatched(
         if (0 == domain) {
             // Failed to obtain a domain object.
 
-            BALL_LOG_ERROR << "Failed to create queue '" << uri
+            BALL_LOG_ERROR << "Failed to create domain for the queue '" << uri
                            << "', queueKey: [" << queueKey
-                           << "], partitionId: [" << partitionId
-                           << "], rc: " << rc_DOMAIN_FAILURE;
-            if (status) {
-                *status = rc_DOMAIN_FAILURE;
-            }
+                           << "], partitionId: [" << partitionId << "].";
 
             return;  // RETURN
         }
@@ -2852,23 +2830,17 @@ void StorageUtil::registerQueueReplicaDispatched(
     const mqbconfm::StorageDefinition& storageDef = domainCfg.storage();
 
     if (domainCfg.mode().isUndefinedValue()) {
-        BALL_LOG_ERROR << "Failed to create queue '" << uri << "', queueKey: ["
-                       << queueKey << "], partitionId: [" << partitionId
-                       << "], rc: " << rc_INVALID_DOMAIN_CONFIG;
-        if (status) {
-            *status = rc_INVALID_DOMAIN_CONFIG;
-        }
+        BALL_LOG_ERROR << "Undefined domain mode for the queue '" << uri
+                       << "', queueKey: [" << queueKey << "], partitionId: ["
+                       << partitionId << "].";
 
         return;  // RETURN
     }
 
     if (storageDef.config().isUndefinedValue()) {
-        BALL_LOG_ERROR << "Failed to create queue '" << uri << "', queueKey: ["
-                       << queueKey << "], partitionId: [" << partitionId
-                       << "], rc: " << rc_INVALID_STORAGE_CONFIG;
-        if (status) {
-            *status = rc_INVALID_STORAGE_CONFIG;
-        }
+        BALL_LOG_ERROR << "Undefined storage config for the queue '" << uri
+                       << "', queueKey: [" << queueKey << "], partitionId: ["
+                       << partitionId << "].";
 
         return;  // RETURN
     }
@@ -2879,12 +2851,9 @@ void StorageUtil::registerQueueReplicaDispatched(
         // without in-memory storage are incompatible config in a clustered
         // setup.
 
-        BALL_LOG_ERROR << "Failed to create queue '" << uri << "', queueKey: ["
-                       << queueKey << "], partitionId: [" << partitionId
-                       << "], rc: " << rc_INCOMPATIBLE_STORAGE_CONFIG;
-        if (status) {
-            *status = rc_INCOMPATIBLE_STORAGE_CONFIG;
-        }
+        BALL_LOG_ERROR << "Incompatible config for the queue '" << uri
+                       << "', queueKey: [" << queueKey << "], partitionId: ["
+                       << partitionId << "].";
 
         return;  // RETURN
     }
@@ -2901,13 +2870,33 @@ void StorageUtil::registerQueueReplicaDispatched(
                   << "] registered [" << uri << "], queueKey [" << queueKey
                   << "] with the storage as replica.";
 
-    if (status) {
-        *status = rc_SUCCESS;
+    BSLS_ASSERT(rs_sp);
+    BSLS_ASSERT_SAFE(domain);
+
+    int rc = addVirtualStoragesInternal(
+        rs_sp.get(),
+        appIdKeyPairs,
+        clusterDescription,
+        partitionId,
+        domain->config().mode().isFanoutValue());
+
+    bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
+
+    if (rc != 0) {
+        BALL_LOG_INFO << "At partition [" << partitionId
+                      << "], failure while registering appIds [" << printer
+                      << "] for queue [" << uri << "], queueKey [" << queueKey
+                      << "], rc: " << rc << ".";
+    }
+    else {
+        BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
+                      << "] updated [" << uri << "], queueKey [" << queueKey
+                      << "] with the storage as replica: "
+                      << "addedIdKeyPairs:" << printer;
     }
 }
 
-void StorageUtil::unregisterQueueReplicaDispatched(
-    int*                    status,
+void StorageUtil::removeQueueStorageDispatched(
     StorageSpMap*           storageMap,
     bslmt::Mutex*           storagesLock,
     mqbs::FileStore*        fs,
@@ -2933,14 +2922,6 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     // callback of Queue Unassigned Advisory or Queue Update Advisory from the
     // leader.
 
-    enum {
-        rc_SUCCESS            = 0,
-        rc_UNKNOWN_QUEUE_URI  = -1,
-        rc_QUEUE_KEY_MISMATCH = -2,
-        rc_QUEUE_HAS_MESSAGES = -3,
-        rc_MISC               = -4
-    };
-
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
     StorageSpMapIter it = storageMap->find(uri);
@@ -2953,9 +2934,6 @@ void StorageUtil::unregisterQueueReplicaDispatched(
             << "]: unaware of uri while deleting " << "storage for queue [ "
             << uri << "], queueKey [" << queueKey << "]. Ignoring this event."
             << BMQTSK_ALARMLOG_END;
-        if (status) {
-            *status = rc_UNKNOWN_QUEUE_URI;
-        }
 
         return;  // RETURN
     }
@@ -2972,9 +2950,6 @@ void StorageUtil::unregisterQueueReplicaDispatched(
             << uri << "]. Specified queueKey [" << queueKey
             << "], queueKey associated with storage [" << rs->queueKey()
             << "]. Ignoring this event." << BMQTSK_ALARMLOG_END;
-        if (status) {
-            *status = rc_QUEUE_KEY_MISMATCH;
-        }
 
         return;  // RETURN
     }
@@ -2990,9 +2965,6 @@ void StorageUtil::unregisterQueueReplicaDispatched(
                 << "]: Attempt to delete storage for queue [ " << uri
                 << "], queueKey [" << queueKey << "] which has [" << numMsgs
                 << "] outstanding messages." << BMQTSK_ALARMLOG_END;
-            if (status) {
-                *status = rc_QUEUE_HAS_MESSAGES;
-            }
 
             return;  // RETURN
         }
@@ -3009,9 +2981,6 @@ void StorageUtil::unregisterQueueReplicaDispatched(
 
         fs->unregisterStorage(rs);
         storageMap->erase(it);
-        if (status) {
-            *status = rc_SUCCESS;
-        }
 
         return;  // RETURN
     }
@@ -3027,9 +2996,6 @@ void StorageUtil::unregisterQueueReplicaDispatched(
             << appKey << "] for queue [" << uri << "] and queueKey ["
             << queueKey << ", rc: " << rc << ". Ignoring this event."
             << BMQTSK_ALARMLOG_END;
-        if (status) {
-            *status = rc_MISC;
-        }
 
         return;  // RETURN
     }
@@ -3038,14 +3004,9 @@ void StorageUtil::unregisterQueueReplicaDispatched(
                   << "], Removed virtual storage for appKey [" << appKey
                   << "] for queue [" << uri << "], queueKey [" << queueKey
                   << "] as replica.";
-
-    if (status) {
-        *status = rc_SUCCESS;
-    }
 }
 
-void StorageUtil::updateQueueReplicaDispatched(
-    int*                    status,
+void StorageUtil::updateQueueStorageDispatched(
     StorageSpMap*           storageMap,
     bslmt::Mutex*           storagesLock,
     mqbi::DomainFactory*    domainFactory,
@@ -3054,8 +3015,7 @@ void StorageUtil::updateQueueReplicaDispatched(
     const bmqt::Uri&        uri,
     const mqbu::StorageKey& queueKey,
     const AppInfos&         appIdKeyPairs,
-    mqbi::Domain*           domain,
-    bool                    allowDuplicate)
+    mqbi::Domain*           domain)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -3071,12 +3031,6 @@ void StorageUtil::updateQueueReplicaDispatched(
     // stream.  In CSL mode, this is executed at follower nodes upon commit
     // callback of Queue Update Advisory from the leader.
 
-    enum {
-        rc_SUCCESS                          = 0,
-        rc_QUEUE_UNKNOWN                    = -1,
-        rc_VIRTUAL_STORAGE_CREATION_FAILURE = -2
-    };
-
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
     StorageSpMapIter it = storageMap->find(uri);
@@ -3087,11 +3041,8 @@ void StorageUtil::updateQueueReplicaDispatched(
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "At partition [" << partitionId
             << "], failure while registering appIds [" << printer
-            << "] for queue [" << uri << "], queueKey [" << queueKey
-            << "], rc: " << rc_QUEUE_UNKNOWN << BMQTSK_ALARMLOG_END;
-        if (status) {
-            *status = rc_QUEUE_UNKNOWN;
-        }
+            << "] for unknown queue [" << uri << "], queueKey [" << queueKey
+            << "]." << BMQTSK_ALARMLOG_END;
 
         return;  // RETURN
     }
@@ -3110,31 +3061,20 @@ void StorageUtil::updateQueueReplicaDispatched(
         clusterDescription,
         partitionId,
         domain->config().mode().isFanoutValue());
-    if (rc != 0) {
-        if (!allowDuplicate) {
-            bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
-            BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                << "At partition [" << partitionId
-                << "], failure while registering appIds [" << printer
-                << "] for queue [" << uri << "], queueKey [" << queueKey
-                << "], rc: " << (rc * 10 + rc_VIRTUAL_STORAGE_CREATION_FAILURE)
-                << BMQTSK_ALARMLOG_END;
-            if (status) {
-                *status = rc * 10 + rc_VIRTUAL_STORAGE_CREATION_FAILURE;
-            }
-        }
-
-        return;  // RETURN
-    }
 
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
-    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
-                  << "] updated [" << uri << "], queueKey [" << queueKey
-                  << "] with the storage as replica: " << "addedIdKeyPairs:"
-                  << printer;
 
-    if (status) {
-        *status = rc_SUCCESS;
+    if (rc != 0) {
+        BALL_LOG_INFO << "At partition [" << partitionId
+                      << "], failure while registering appIds [" << printer
+                      << "] for queue [" << uri << "], queueKey [" << queueKey
+                      << "], rc: " << rc << ".";
+    }
+    else {
+        BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
+                      << "] updated [" << uri << "], queueKey [" << queueKey
+                      << "] with the storage as replica: "
+                      << "addedIdKeyPairs:" << printer;
     }
 }
 

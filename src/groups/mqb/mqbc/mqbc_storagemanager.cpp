@@ -3884,8 +3884,8 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
 void StorageManager::registerQueueReplica(int                     partitionId,
                                           const bmqt::Uri&        uri,
                                           const mqbu::StorageKey& queueKey,
-                                          mqbi::Domain*           domain,
-                                          bool allowDuplicate)
+                                          const AppInfos& appIdKeyPairs,
+                                          mqbi::Domain*   domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3901,19 +3901,17 @@ void StorageManager::registerQueueReplica(int                     partitionId,
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::registerQueueReplicaDispatched,
-                                 static_cast<int*>(0),
+            bdlf::BindUtil::bind(&StorageUtil::createQueueStorageDispatched,
                                  &d_storages[partitionId],
                                  &d_storagesLock,
                                  d_fileStores[partitionId].get(),
                                  d_domainFactory_p,
-                                 &d_allocators,
                                  d_clusterData_p->identity().description(),
                                  partitionId,
                                  uri,
                                  queueKey,
-                                 domain,
-                                 allowDuplicate));
+                                 appIdKeyPairs,
+                                 domain));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -3934,17 +3932,16 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(
-            &StorageUtil::unregisterQueueReplicaDispatched,
-            static_cast<int*>(0),
-            &d_storages[partitionId],
-            &d_storagesLock,
-            d_fileStores[partitionId].get(),
-            d_clusterData_p->identity().description(),
-            partitionId,
-            uri,
-            queueKey,
-            appKey));
+        .setCallback(
+            bdlf::BindUtil::bind(&StorageUtil::removeQueueStorageDispatched,
+                                 &d_storages[partitionId],
+                                 &d_storagesLock,
+                                 d_fileStores[partitionId].get(),
+                                 d_clusterData_p->identity().description(),
+                                 partitionId,
+                                 uri,
+                                 queueKey,
+                                 appKey));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -3953,8 +3950,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
                                         const bmqt::Uri&        uri,
                                         const mqbu::StorageKey& queueKey,
                                         const AppInfos&         appIdKeyPairs,
-                                        mqbi::Domain*           domain,
-                                        bool                    allowDuplicate)
+                                        mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3970,8 +3966,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::updateQueueReplicaDispatched,
-                                 static_cast<int*>(0),
+            bdlf::BindUtil::bind(&StorageUtil::updateQueueStorageDispatched,
                                  &d_storages[partitionId],
                                  &d_storagesLock,
                                  d_domainFactory_p,
@@ -3980,8 +3975,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
                                  uri,
                                  queueKey,
                                  appIdKeyPairs,
-                                 domain,
-                                 allowDuplicate));
+                                 domain));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
