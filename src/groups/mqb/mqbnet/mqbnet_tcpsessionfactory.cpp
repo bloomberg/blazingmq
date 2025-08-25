@@ -365,6 +365,14 @@ void TCPSessionFactory::handleInitialConnection(
             bdlf::PlaceHolders::_5,  // initialConnectionContext
             context));
 
+    // Register as observer of the channel to get the 'onClose'
+    channel->onClose(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &TCPSessionFactory::onClose,
+                              this,
+                              initialConnectionContext,
+                              bdlf::PlaceHolders::_1 /* bmqio::Status */));
+
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
     // from the
     //       'handleInitialConnection()' call as specified on the
@@ -555,6 +563,17 @@ void TCPSessionFactory::negotiationComplete(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
+        // check if the channel is not closed (we can be in authentication
+        // thread)
+
+        if (!initialConnectionContext_p->channel()) {
+            BALL_LOG_WARN
+                << "#TCP_UNEXPECTED_STATE "
+                << "TCPSessionFactory '" << d_config.name()
+                << "got an already closed channel at the end of negotiation"
+                << "', channel: '" << channel.get() << "']";
+            return;  // RETURN
+        }
         ++d_nbSessions;
 
         info.createInplace(d_allocator_p,
@@ -703,14 +722,6 @@ void TCPSessionFactory::channelStateCallback(
             // Keep track of active channels, for logging purposes
             ++d_nbActiveChannels;
 
-            // Register as observer of the channel to get the 'onClose'
-            channel->onClose(bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &TCPSessionFactory::onClose,
-                this,
-                channel,
-                bdlf::PlaceHolders::_1 /* bmqio::Status */));
-
             handleInitialConnection(channel, context);
         }
     } break;
@@ -735,10 +746,14 @@ void TCPSessionFactory::channelStateCallback(
     }
 }
 
-void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
-                                const bmqio::Status&                   status)
+void TCPSessionFactory::onClose(
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext,
+    const bmqio::Status&                      status)
 {
     --d_nbActiveChannels;
+
+    bsl::shared_ptr<bmqio::Channel> channel =
+        initialConnectionContext->channel();
 
     int port;
     channel->properties().load(
@@ -756,6 +771,9 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
             d_channels.erase(it);
         }
         d_ports.onDeleteChannelContext(port);
+
+        initialConnectionContext->reset();
+
     }  // close mutex lock guard                                      // UNLOCK
 
     if (!channelInfo) {
