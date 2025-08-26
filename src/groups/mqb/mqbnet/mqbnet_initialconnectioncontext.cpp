@@ -167,8 +167,10 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
 // class InitialConnectionContext
 // ------------------------------
 
-InitialConnectionContext::InitialConnectionContext(bool isIncoming)
+InitialConnectionContext::InitialConnectionContext(bool isIncoming,
+                                                   const bsl::string& name)
 : d_isIncoming(isIncoming)
+, d_name(name)
 , d_resultState_p(0)
 , d_userData_p(0)
 , d_channelSp()
@@ -321,6 +323,11 @@ void InitialConnectionContext::complete(
     BSLS_ASSERT_SAFE(d_initialConnectionCompleteCb);
 
     d_initialConnectionCompleteCb(rc, error, session, channel(), this);
+}
+
+const bsl::string& InitialConnectionContext::name() const
+{
+    return d_name;
 }
 
 }  // close package namespace
