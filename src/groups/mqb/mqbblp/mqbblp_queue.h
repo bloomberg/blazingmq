@@ -122,9 +122,10 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
   private:
     // PRIVATE MANIPULATORS
-    void configureDispatched(int*          result,
-                             bsl::ostream* errorDescription,
-                             bool          isReconfigure);
+    void configureDispatched(int*              result,
+                             bsl::ostream*     errorDescription,
+                             bool              isReconfigure,
+                             bslmt::Semaphore* sync);
 
     void getHandleDispatched(
         const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&

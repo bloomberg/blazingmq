@@ -62,9 +62,10 @@ namespace mqbblp {
 // class Queue
 // -----------
 
-void Queue::configureDispatched(int*          result,
-                                bsl::ostream* errorDescription,
-                                bool          isReconfigure)
+void Queue::configureDispatched(int*              result,
+                                bsl::ostream*     errorDescription,
+                                bool              isReconfigure,
+                                bslmt::Semaphore* sync)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -87,7 +88,12 @@ void Queue::configureDispatched(int*          result,
     }
 
     if (result) {
+        BSLS_ASSERT_SAFE(sync);
         *result = rc;
+    }
+
+    if (sync) {
+        sync->post();
     }
 }
 
@@ -584,18 +590,29 @@ int Queue::configure(bsl::ostream* errorDescription_p,
 
     // Enqueue a configure callback in the queue-dispatcher thread.
     int result = 0;
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&Queue::configureDispatched,
-                             this,
-                             (wait ? &result : NULL),
-                             (wait ? errorDescription_p : NULL),
-                             isReconfigure),
-        this);
-    if (!wait) {
-        return 0;  // RETURN
+
+    if (wait) {
+        bslmt::Semaphore sync;
+        dispatcher()->execute(bdlf::BindUtil::bind(&Queue::configureDispatched,
+                                                   this,
+                                                   &result,
+                                                   errorDescription_p,
+                                                   isReconfigure,
+                                                   &sync),
+                              this);
+
+        sync.wait();
+    }
+    else {
+        dispatcher()->execute(bdlf::BindUtil::bind(&Queue::configureDispatched,
+                                                   this,
+                                                   bsl::nullptr_t(),
+                                                   bsl::nullptr_t(),
+                                                   isReconfigure,
+                                                   bsl::nullptr_t()),
+                              this);
     }
 
-    dispatcher()->synchronize(this);
     return result;
 }
 
