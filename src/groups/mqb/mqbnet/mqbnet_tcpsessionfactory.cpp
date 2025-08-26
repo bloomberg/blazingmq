@@ -351,7 +351,8 @@ void TCPSessionFactory::handleInitialConnection(
     // 'negotiationComplete' callback below, which is what scopes its lifetime.
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
     initialConnectionContext.createInplace(d_allocator_p,
-                                           context->d_isIncoming);
+                                           context->d_isIncoming,
+                                           d_config.name());
     (*initialConnectionContext)
         .setUserData(context->d_negotiationUserData_sp.get())
         .setResultState(context->d_resultState_p)
@@ -564,17 +565,6 @@ void TCPSessionFactory::negotiationComplete(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-        // check if the channel is not closed (we can be in authentication
-        // thread)
-
-        if (!initialConnectionContext_p->channel()) {
-            BALL_LOG_WARN
-                << "#TCP_UNEXPECTED_STATE "
-                << "TCPSessionFactory '" << d_config.name()
-                << "got an already closed channel at the end of negotiation"
-                << "', channel: '" << channel.get() << "']";
-            return;  // RETURN
-        }
         ++d_nbSessions;
 
         info.createInplace(d_allocator_p,
@@ -768,6 +758,8 @@ void TCPSessionFactory::onClose(
         &port,
         TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
 
+    initialConnectionContext->reset();
+
     ChannelInfoSp channelInfo;
     {
         // Lookup the session and remove it from internal map
@@ -797,9 +789,6 @@ void TCPSessionFactory::onClose(
         }
 
         d_ports.onDeleteChannelContext(port);
-
-        initialConnectionContext->reset();
-
     }  // close mutex lock guard                                      // UNLOCK
 
     if (!channelInfo) {

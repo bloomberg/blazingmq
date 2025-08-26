@@ -67,19 +67,19 @@ static void test1_initialConnectionContext()
     bmqtst::TestHelper::printTestName("test1_initialConnectionContext");
     {
         PV("Constructor");
-        mqbnet::InitialConnectionContext obj1(true);
+        mqbnet::InitialConnectionContext obj1(true, "obj1");
         BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
         BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
 
-        mqbnet::InitialConnectionContext obj2(false);
+        mqbnet::InitialConnectionContext obj2(false, "obj2");
         BMQTST_ASSERT_EQ(obj2.isIncoming(), false);
     }
 
     {
         PV("Manipulators/Accessors");
 
-        mqbnet::InitialConnectionContext obj(true);
+        mqbnet::InitialConnectionContext obj(true, "obj");
 
         {  // UserData
             int value = 7;

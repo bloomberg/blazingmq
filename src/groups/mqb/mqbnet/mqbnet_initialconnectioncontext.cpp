@@ -25,8 +25,10 @@ namespace mqbnet {
 // class InitialConnectionContext
 // -------------------------------------
 
-InitialConnectionContext::InitialConnectionContext(bool isIncoming)
+InitialConnectionContext::InitialConnectionContext(bool isIncoming,
+                                                   const bsl::string& name)
 : d_isIncoming(isIncoming)
+, d_name(name)
 , d_resultState_p(0)
 , d_userData_p(0)
 {
@@ -114,6 +116,11 @@ const bsl::shared_ptr<NegotiationContext>&
 InitialConnectionContext::negotiationContext() const
 {
     return d_negotiationCtxSp;
+}
+
+const bsl::string& InitialConnectionContext::name() const
+{
+    return d_name;
 }
 
 }  // close package namespace
