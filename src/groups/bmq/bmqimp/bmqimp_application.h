@@ -36,9 +36,10 @@
 
 // BMQ
 
+#include <bmqimp_authenticatedchannelfactory.h>
 #include <bmqimp_brokersession.h>
-#include <bmqimp_connectionchannelfactory.h>
 #include <bmqimp_eventqueue.h>
+#include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_heartbeatmonitor.h>
 #include <bmqt_sessionoptions.h>
@@ -134,7 +135,9 @@ class Application {
 
     bmqio::StatChannelFactory d_statChannelFactory;
 
-    ConnectionChannelFactory d_connectionChannelFactory;
+    AuthenticatedChannelFactory d_authenticatedChannelFactory;
+
+    NegotiatedChannelFactory d_negotiatedChannelFactory;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
