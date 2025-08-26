@@ -13,23 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqimp_connectionchannelfactory.h                     -*-C++-*-
-#ifndef INCLUDED_BMQIMP_NEGOTIATEDCHANNELFACTORY
-#define INCLUDED_BMQIMP_NEGOTIATEDCHANNELFACTORY
+// bmqimp_authenticatedchannelfactory.h                     -*-C++-*-
+#ifndef INCLUDED_BMQIMP_AUTHENTICATEDCHANNELFACTORY
+#define INCLUDED_BMQIMP_AUTHENTICATEDCHANNELFACTORY
 
-/// @file bmqimp_connectionchannelfactory.h
+/// @file bmqimp_authenticatedchannelfactory.h
 ///
-/// @brief Provides a 'ChannelFactory' that performs authentication and
-/// negotiation when connecting to a peer, and automatically reauthenticates as
-/// the session approaches expiration.
-///
-/// This component provides 'bmqimp::ConnectionChannelFactory', an
-/// implementation of the 'bmqio::ChannelFactory' protocol that manages both
-/// initial connection (authentication and negotiation) and automatic
-/// re-authentication with a peer over a channel created by a base
-/// 'bmqio::ChannelFactory'. It ensures secure session establishment and
-/// renewal as the authenticated session lifetime
-/// approaches expiration.
+/// @brief
 
 // BMQ
 #include <bmqio_channel.h>
@@ -57,12 +47,12 @@ namespace BloombergLP {
 
 namespace bmqimp {
 
-// ====================================
-// class ConnectionChannelFactoryConfig
-// ====================================
+// =======================================
+// class AuthenticatedChannelFactoryConfig
+// =======================================
 
-/// Configuration for a `ConnectionChannelFactory`.
-class ConnectionChannelFactoryConfig {
+/// Configuration for a `AuthenticatedChannelFactory`.
+class AuthenticatedChannelFactoryConfig {
   public:
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool          BlobSpPool;
@@ -70,73 +60,55 @@ class ConnectionChannelFactoryConfig {
 
   private:
     // PRIVATE DATA
-    bmqio::ChannelFactory*              d_baseFactory_p;
-    bmqp_ctrlmsg::NegotiationMessage    d_negotiationMessage;
-    bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
-    bsls::TimeInterval                  d_connectTimeout;
-    AuthnCredentialCb                   d_authnCredentialCb;
-    BlobSpPool*                         d_blobSpPool_p;
-    bslma::Allocator*                   d_allocator_p;
+    bmqio::ChannelFactory* d_baseFactory_p;
+    AuthnCredentialCb      d_authnCredentialCb;
+    bsls::TimeInterval     d_authenticationTimeout;
+    BlobSpPool*            d_blobSpPool_p;
+    bslma::Allocator*      d_allocator_p;
 
     // FRIENDS
-    friend class ConnectionChannelFactory;
+    friend class AuthenticatedChannelFactory;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(ConnectionChannelFactoryConfig,
+    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticatedChannelFactoryConfig,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    ConnectionChannelFactoryConfig(
-        bmqio::ChannelFactory*                  base,
-        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-        const bsls::TimeInterval&               connectTimeout,
-        AuthnCredentialCb                       authnCredentialCb,
-        BlobSpPool*                             blobSpPool_p,
-        bslma::Allocator*                       basicAllocator = 0);
+    AuthenticatedChannelFactoryConfig(
+        bmqio::ChannelFactory*    base,
+        AuthnCredentialCb         authnCredentialCb,
+        const bsls::TimeInterval& authenticationTimeout,
+        BlobSpPool*               blobSpPool_p,
+        bslma::Allocator*         basicAllocator = 0);
 
-    ConnectionChannelFactoryConfig(
-        const ConnectionChannelFactoryConfig& original,
-        bslma::Allocator*                     basicAllocator = 0);
+    AuthenticatedChannelFactoryConfig(
+        const AuthenticatedChannelFactoryConfig& original,
+        bslma::Allocator*                        basicAllocator = 0);
 };
 
-// ==============================
-// class ConnectionChannelFactory
-// ==============================
+// =================================
+// class AuthenticatedChannelFactory
+// =================================
 
 /// `ChannelFactory` implementation that performs initial connection
 /// (authentication and negotiation) with peer upon channel connection.
-class ConnectionChannelFactory : public bmqio::ChannelFactory {
+class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
   public:
     // TYPES
-    typedef ConnectionChannelFactoryConfig Config;
+    typedef AuthenticatedChannelFactoryConfig Config;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle EventHandle;
 
     // CONSTANTS
 
-    /// Name of a property set on the channel representing the broker's
-    /// style of MessageProperties.
-    /// Temporary; shall remove after 2nd roll out of "new style" brokers.
-    static const char* k_CHANNEL_PROPERTY_MPS_EX;
-
-    /// Temporary safety switch to control configure request.
-    static const char* k_CHANNEL_PROPERTY_CONFIGURE_STREAM;
-
-    static const char* k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS;
-
-    static const char* k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS;
-
-    // Minimum buffer to subtract from lifetimeMs to avoid cutting too close
+    /// Minimum buffer to subtract from lifetimeMs to avoid cutting too close
     const int k_REAUTHN_EARLY_BUFFER = 1000;  // 1 second
 
-    // Proportion of lifetimeMs after which to initiate reauthentication.
-    const int k_REAUTHN_EARLY_RATIO = 0.9;
+    /// Proportion of lifetimeMs after which to initiate reauthentication.
+    const double k_REAUTHN_EARLY_RATIO = 0.9;
 
   private:
-    // TYPES
-    enum ACTION { AUTHENTICATION = 0, NEGOTIATION = 1 };
-
     // PRIVATE DATA
     Config d_config;
 
@@ -147,44 +119,36 @@ class ConnectionChannelFactory : public bmqio::ChannelFactory {
     EventHandle d_authnEventHandle;
 
     // Used to make sure no callback is invoked on a destroyed object.
-    mutable bmqu::SharedResource<ConnectionChannelFactory> d_self;
+    mutable bmqu::SharedResource<AuthenticatedChannelFactory> d_self;
 
     // NOT IMPLEMENTED
-    ConnectionChannelFactory(const ConnectionChannelFactory&)
+    AuthenticatedChannelFactory(const AuthenticatedChannelFactory&)
         BSLS_KEYWORD_DELETED;
-    ConnectionChannelFactory&
-    operator=(const ConnectionChannelFactory&) BSLS_KEYWORD_DELETED;
+    AuthenticatedChannelFactory&
+    operator=(const AuthenticatedChannelFactory&) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(ConnectionChannelFactory,
+    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticatedChannelFactory,
                                    bslma::UsesBslmaAllocator)
 
   private:
     // PRIVATE ACCESSORS
 
     /// Handle an event from our base ChannelFactory.
-    void baseResultCallback(const ResultCallback&                  userCb,
+    void baseResultCallback(const ResultCallback&                  cb,
                             bmqio::ChannelFactoryEvent::Enum       event,
                             const bmqio::Status&                   status,
                             const bsl::shared_ptr<bmqio::Channel>& channel);
 
     void sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
-                     const ACTION                           action,
                      const ResultCallback&                  cb) const;
 
     void readResponse(const bsl::shared_ptr<bmqio::Channel>& channel,
-                      const ACTION                           action,
                       const ResultCallback&                  cb) const;
-
-    void initialConnect(const bsl::shared_ptr<bmqio::Channel>& channel,
-                        const ResultCallback&                  cb);
 
     void authenticate(const bsl::shared_ptr<bmqio::Channel>& channel,
                       const ResultCallback&                  cb);
-
-    void negotiate(const bsl::shared_ptr<bmqio::Channel>& channel,
-                   const ResultCallback&                  cb) const;
 
     void readPacketsCb(const bsl::shared_ptr<bmqio::Channel>& channel,
                        const ResultCallback&                  cb,
@@ -201,21 +165,16 @@ class ConnectionChannelFactory : public bmqio::ChannelFactory {
         const bsl::shared_ptr<bmqio::Channel>& channel) const;
 
     void onBrokerAuthenticationResponse(
-        const bmqp_ctrlmsg::AuthenticationMessage& response,
-        const ResultCallback&                      cb,
-        const bsl::shared_ptr<bmqio::Channel>&     channel);
-
-    void onBrokerNegotiationResponse(
-        const bmqp_ctrlmsg::NegotiationMessage& response,
-        const ResultCallback&                   cb,
-        const bsl::shared_ptr<bmqio::Channel>&  channel) const;
+        const bdlbb::Blob&                     packet,
+        const ResultCallback&                  cb,
+        const bsl::shared_ptr<bmqio::Channel>& channel);
 
   public:
     // CREATORS
-    explicit ConnectionChannelFactory(const Config&     config,
-                                      bslma::Allocator* basicAllocator = 0);
+    explicit AuthenticatedChannelFactory(const Config&     config,
+                                         bslma::Allocator* basicAllocator = 0);
 
-    ~ConnectionChannelFactory() BSLS_KEYWORD_OVERRIDE;
+    ~AuthenticatedChannelFactory() BSLS_KEYWORD_OVERRIDE;
 
   public:
     // MANIPULATORS
