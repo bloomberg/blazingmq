@@ -75,6 +75,9 @@ class InitialConnectionContext {
     /// it originates from us (i.e., a 'connect).
     bool d_isIncoming;
 
+    /// The name of creator (`TCPSessionFactory`).
+    const bsl::string d_name;
+
     /// Raw pointer, held not owned, to some user data
     /// the session factory will pass back to the
     /// 'resultCb' method (used to inform of the
@@ -123,7 +126,7 @@ class InitialConnectionContext {
     // CREATORS
 
     /// Create a new object having the specified `isIncoming` value.
-    InitialConnectionContext(bool isIncoming);
+    InitialConnectionContext(bool isIncoming, const bsl::string& name);
 
     ~InitialConnectionContext();
 
@@ -149,6 +152,7 @@ class InitialConnectionContext {
     void*                                      resultState() const;
     const bsl::shared_ptr<bmqio::Channel>&     channel() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
+    const bsl::string&                         name() const;
 
     void complete(int                                     rc,
                   const bsl::string&                      error,
