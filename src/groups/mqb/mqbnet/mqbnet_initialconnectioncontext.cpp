@@ -254,6 +254,8 @@ InitialConnectionContext::setState(InitialConnectionState::Enum value)
 
 void InitialConnectionContext::reset()
 {
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
     d_channelSp.reset();
     d_initialConnectionCompleteCb = InitialConnectionCompleteCb();
 

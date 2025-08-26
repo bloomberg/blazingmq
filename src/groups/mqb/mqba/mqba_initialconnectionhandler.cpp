@@ -304,8 +304,8 @@ void InitialConnectionHandler::complete(
     const bsl::string&                      error,
     const bsl::shared_ptr<mqbnet::Session>& session)
 {
-    // check if the channel is not closed (we can be in authentication
-    // thread)
+    // This function is called only from Authentication thread. And the mutex
+    // for InitialConnectionContext is held before calling this function.
 
     if (!context->channel()) {
         BALL_LOG_WARN
@@ -399,9 +399,17 @@ void InitialConnectionHandler::handleEvent(
 
     bslmt::LockGuard<bslmt::Mutex> guard(&context->mutex());
 
+    bsl::shared_ptr<bmqio::Channel> channel = context->channel();
+    if (!channel) {
+        BALL_LOG_WARN << "Channel closed before initial connection finishes. "
+                         "Current state = "
+                      << context->state() << ", event = " << input;
+        return;  // RETURN
+    }
+
     BALL_LOG_INFO << "Enter InitialConnectionHandler::handleEvent: "
                   << "state = " << context->state() << ", event = " << input
-                  << "; peerUri =" << context->channel()->peerUri()
+                  << "; peerUri =" << channel->peerUri()
                   << "; context address = " << context.get();
 
     State oldState = context->state();
@@ -539,8 +547,7 @@ void InitialConnectionHandler::handleEvent(
         rc = d_negotiator_p->createSessionOnMsgType(errStream,
                                                     &session,
                                                     context.get());
-        BALL_LOG_INFO << "Created a session with "
-                      << context->channel()->peerUri();
+        BALL_LOG_INFO << "Created a session with " << channel->peerUri();
     }
 
     if (rc != 0 || newState == State::e_NEGOTIATED) {
