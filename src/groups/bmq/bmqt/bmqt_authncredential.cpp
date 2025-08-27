@@ -33,8 +33,8 @@ namespace bmqt {
 // CREATORS
 
 AuthnCredential::AuthnCredential(bslma::Allocator* allocator)
-: d_mechanism("", allocator)
-, d_data(bsl::vector<char>(), allocator)
+: d_mechanism(allocator)
+, d_data(allocator)
 {
     // NOTHING
 }
@@ -58,10 +58,36 @@ AuthnCredential::AuthnCredential(const AuthnCredential& other,
 
 AuthnCredential::AuthnCredential(bslmf::MovableRef<AuthnCredential> otherRef,
                                  bslma::Allocator*                  allocator)
-: d_mechanism(bslmf::MovableRefUtil::access(otherRef).d_mechanism, allocator)
-, d_data(bslmf::MovableRefUtil::access(otherRef).d_data, allocator)
+: d_mechanism(bslmf::MovableRefUtil::move(
+                  bslmf::MovableRefUtil::access(otherRef).d_mechanism),
+              allocator)
+, d_data(bslmf::MovableRefUtil::move(
+             bslmf::MovableRefUtil::access(otherRef).d_data),
+         allocator)
 {
     // NOTHING
+}
+
+// ASSIGNMENT
+
+AuthnCredential& AuthnCredential::operator=(const AuthnCredential& rhs)
+{
+    if (this != &rhs) {
+        d_mechanism = rhs.d_mechanism;
+        d_data      = rhs.d_data;
+    }
+    return *this;
+}
+
+AuthnCredential&
+AuthnCredential::operator=(bslmf::MovableRef<AuthnCredential> rhsRef)
+{
+    AuthnCredential& rhs = bslmf::MovableRefUtil::access(rhsRef);
+    if (this != &rhs) {
+        d_mechanism = bslmf::MovableRefUtil::move(rhs.d_mechanism);
+        d_data      = bslmf::MovableRefUtil::move(rhs.d_data);
+    }
+    return *this;
 }
 
 AuthnCredential::~AuthnCredential()
