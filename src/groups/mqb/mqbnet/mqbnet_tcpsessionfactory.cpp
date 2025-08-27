@@ -350,7 +350,8 @@ void TCPSessionFactory::handleInitialConnection(
     // 'negotiationComplete' callback below, which is what scopes its lifetime.
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
     initialConnectionContext.createInplace(d_allocator_p,
-                                           context->d_isIncoming);
+                                           context->d_isIncoming,
+                                           d_config.name());
     (*initialConnectionContext)
         .setUserData(context->d_negotiationUserData_sp.get())
         .setResultState(context->d_resultState_p)
@@ -364,6 +365,14 @@ void TCPSessionFactory::handleInitialConnection(
             bdlf::PlaceHolders::_4,  // channel
             bdlf::PlaceHolders::_5,  // initialConnectionContext
             context));
+
+    // Register as observer of the channel to get the 'onClose'
+    channel->onClose(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &TCPSessionFactory::onClose,
+                              this,
+                              initialConnectionContext,
+                              bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
     // from the
@@ -703,14 +712,6 @@ void TCPSessionFactory::channelStateCallback(
             // Keep track of active channels, for logging purposes
             ++d_nbActiveChannels;
 
-            // Register as observer of the channel to get the 'onClose'
-            channel->onClose(bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &TCPSessionFactory::onClose,
-                this,
-                channel,
-                bdlf::PlaceHolders::_1 /* bmqio::Status */));
-
             handleInitialConnection(channel, context);
         }
     } break;
@@ -730,15 +731,21 @@ void TCPSessionFactory::channelStateCallback(
     }
 }
 
-void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
-                                const bmqio::Status&                   status)
+void TCPSessionFactory::onClose(
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext,
+    const bmqio::Status&                      status)
 {
     --d_nbActiveChannels;
+
+    bsl::shared_ptr<bmqio::Channel> channel =
+        initialConnectionContext->channel();
 
     int port;
     channel->properties().load(
         &port,
         TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
+
+    initialConnectionContext->reset();
 
     ChannelInfoSp channelInfo;
     {
