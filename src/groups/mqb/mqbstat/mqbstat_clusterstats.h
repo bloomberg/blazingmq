@@ -81,8 +81,8 @@ class ClusterStats {
             e_CLUSTER_STATUS,
             e_ROLE,
             e_LEADER_STATUS,
-            e_CSL_REPLICATION_TIME_MCS_AVG,
-            e_CSL_REPLICATION_TIME_MCS_MAX,
+            e_CSL_REPLICATION_TIME_NS_AVG,
+            e_CSL_REPLICATION_TIME_NS_MAX,
             e_PARTITION_CFG_DATA_BYTES,
             e_PARTITION_CFG_JOURNAL_BYTES,
 

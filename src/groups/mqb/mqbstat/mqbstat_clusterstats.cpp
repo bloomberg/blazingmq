@@ -68,8 +68,8 @@ struct ClusterStatsIndex {
         // Value: Leader status of cluster, non-zero (1) implies leader
         //        and 0 implies follower
         ,
-        e_CSL_REPLICATION_TIME_MCS
-        // Value: time in microseconds it took for replication of a new entry
+        e_CSL_REPLICATION_TIME_NS
+        // Value: time in nanoseconds it took for replication of a new entry
         // in CSL file.
         ,
         e_PARTITION_CFG_DATA_BYTES
@@ -154,15 +154,15 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
 
         return STAT_RANGE(rangeMax, e_LEADER_STATUS);
     }
-    case Stat::e_CSL_REPLICATION_TIME_MCS_AVG: {
-        const bsls::Types::Int64 value =
-            STAT_RANGE(averagePerEvent, e_CSL_REPLICATION_TIME_MCS);
+    case Stat::e_CSL_REPLICATION_TIME_NS_AVG: {
+        const bsls::Types::Int64 value = STAT_RANGE(averagePerEvent,
+                                                    e_CSL_REPLICATION_TIME_NS);
         return value == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0
                                                                        : value;
     }
-    case Stat::e_CSL_REPLICATION_TIME_MCS_MAX: {
-        const bsls::Types::Int64 value =
-            STAT_RANGE(rangeMax, e_CSL_REPLICATION_TIME_MCS);
+    case Stat::e_CSL_REPLICATION_TIME_NS_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_CSL_REPLICATION_TIME_NS);
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
     }
@@ -353,9 +353,8 @@ ClusterStats& ClusterStats::setIsLeader(LeaderStatus::Enum value)
 
 ClusterStats& ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
 {
-    d_statContext_mp->reportValue(
-        ClusterStatsIndex::e_CSL_REPLICATION_TIME_MCS,
-        value);
+    d_statContext_mp->reportValue(ClusterStatsIndex::e_CSL_REPLICATION_TIME_NS,
+                                  value);
     return *this;
 }
 

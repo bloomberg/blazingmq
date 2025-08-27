@@ -496,7 +496,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             -ClusterStateRecordHeader::k_MIN_HEADER_SIZE,
             true,  // read
             false);
-        info.d_timestampMcs = bdlt::CurrentTime::now().totalMicroseconds();
+        info.d_timestampNs = bdlt::CurrentTime::now().totalNanoseconds();
         d_uncommittedAdvisories.insert(bsl::make_pair(sequenceNumber, info));
 
         if (isSelfLeader()) {
@@ -659,11 +659,11 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             commit.sequenceNumberCommitted());
         if (amIt != d_uncommittedAdvisories.end()) {
             if (isSelfLeader()) {
-                bsls::Types::Int64 replicationTimeMcs =
-                    bdlt::CurrentTime::now().totalMicroseconds() -
-                    amIt->second.d_timestampMcs;
+                bsls::Types::Int64 replicationTimeNs =
+                    bdlt::CurrentTime::now().totalNanoseconds() -
+                    amIt->second.d_timestampNs;
                 d_clusterData_p->stats().setCslReplicationTime(
-                    replicationTimeMcs);
+                    replicationTimeNs);
             }
             d_uncommittedAdvisories.erase(amIt);
         }
