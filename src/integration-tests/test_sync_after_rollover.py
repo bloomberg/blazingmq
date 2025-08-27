@@ -85,6 +85,7 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     # Stop replica
     replica.stop()
     cluster.make_sure_node_stopped(replica)
+    replica.drain()
 
     # Post 1 more message to initiate rollover
     producer.post(uri_priority, ["msg3"], succeed=True, wait_ack=True)
@@ -110,7 +111,8 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     # print("MyReplica re-started")
     
     # # Test assert
-    time.sleep(25)
+    # time.sleep(30)
+    assert replica.outputs_substr("Cluster (itCluster) is available", 10)
 
     leader = cluster.last_known_leader
     print(f"MyReplica: {replica.name}. NEW leader: {leader.name}")

@@ -223,13 +223,34 @@ int RecoveryUtil::bootstrapCurrentSeqNum(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(currentSeqNum);
 
+    // TODO: need to advance, revise after PR 878 merged
+    const int rc = journalIt.nextRecord();
+    if (rc == 0) {
+        return -1;  // RETURN
+    }
+    else if (rc < 0) {
+        return rc * 10 - 1;  // RETURN
+    }
+    BSLS_ASSERT_SAFE(rc == 1);  // Has next record
+
     const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
     currentSeqNum->primaryLeaseId()        = recordHeader.primaryLeaseId();
     currentSeqNum->sequenceNumber()        = recordHeader.sequenceNumber();
     // Skip JOURNAL records until 'beginSeqNum' is reached.
 
-    BALL_LOG_WARN << "!!! beginSeqNum: " << beginSeqNum <<  " currentSeqNum: " << *currentSeqNum;
-    BALL_LOG_WARN << recordHeader;
+    BALL_LOG_WARN << "!!! bootstrapCurrentSeqNum beginSeqNum: " << beginSeqNum <<  " currentSeqNum: " << *currentSeqNum;
+    BALL_LOG_WARN << recordHeader; // << " header " << journalIt.header();
+
+    // If the first seqNum is higher or equal, use it.
+    // TODO: check *currentSeqNum > beginSeqNum ???
+    if (beginSeqNum.primaryLeaseId() == 0 && beginSeqNum.sequenceNumber() == 0) {
+        BALL_LOG_WARN << "bootstrapCurrentSeqNum Use the first seqnum: " << *currentSeqNum;
+        return 0;  // RETURN        
+    }
+
+    // while (1 == journalIt.nextRecord()) {
+    //     BALL_LOG_WARN << "Offset " << journalIt.recordOffset() << " header: " << journalIt.recordHeader();
+    // }
 
     while (*currentSeqNum < beginSeqNum && 1 == journalIt.nextRecord()) {
         const mqbs::RecordHeader& recHeader = journalIt.recordHeader();
@@ -299,6 +320,7 @@ int RecoveryUtil::incrementCurrentSeqNum(
             << ". Peer: " << destination.nodeDescription() << ".";
         return rc_INVALID_SEQ_NUM;  // RETURN
     }
+
     return rc_SUCCESS;
 }
 

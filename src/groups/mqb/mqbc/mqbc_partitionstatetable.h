@@ -984,15 +984,10 @@ void PartitionStateTableActions<ARGS>::
     BALL_LOG_WARN << "do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks";
 
     do_storeSelfSeq(args);
-    BALL_LOG_WARN << "BEFORE do_storeReplicaSeq: " ;
     do_storeReplicaSeq(args);
-    BALL_LOG_WARN << "BEFORE do_primaryStateResponse: ";
     do_primaryStateResponse(args);
-    BALL_LOG_WARN << "BEFORE do_replicaDataRequestPush: ";
     do_replicaDataRequestPush(args);
-    BALL_LOG_WARN << "BEFORE do_replicaDataRequestDrop: ";
     do_replicaDataRequestDrop(args);
-    BALL_LOG_WARN << "BEFORE do_startSendDataChunks: ";
     do_startSendDataChunks(args);
 }
 

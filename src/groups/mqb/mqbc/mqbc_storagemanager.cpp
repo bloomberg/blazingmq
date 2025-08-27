@@ -2142,7 +2142,7 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
             BALL_LOG_WARN  << "ADD obsoleteDataReplicas: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
         }
         if (cit->second.first < selfSeqNum && !cit->second.second) {
-            if (cit->second.first.primaryLeaseId()!=0 && cit->second.first.sequenceNumber() !=0) {
+            if (cit->second.first.primaryLeaseId() !=0 && cit->second.first.sequenceNumber() !=0) {
                 if (cit->second.first.primaryLeaseId() < selfSeqNum.primaryLeaseId() || selfSeqNum.sequenceNumber() - cit->second.first.sequenceNumber() > 2) {
                     BALL_LOG_WARN  << "ADD obsoleteDataReplicas1111: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
                     obsoleteDataReplicas.emplace_back(cit->first);
@@ -2739,6 +2739,8 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
     if (eventWithData.first == PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL) {
         // Self Replica is sending data to Destination Primary.
 
+        BALL_LOG_WARN << "do_startSendDataChunks Self Replica is sending data to Destination Primary partitionId: " << partitionId;
+
         mqbnet::ClusterNode* destNode = eventData.source();
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
         BSLS_ASSERT_SAFE(destNode->nodeId() ==
@@ -2765,6 +2767,8 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
         BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary()->nodeId() ==
                          selfNode->nodeId());
 
+        BALL_LOG_WARN << "do_startSendDataChunks Self Primary is sending recovery data to outdated replicas partitionId: " << partitionId;
+
         NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
             d_nodeToSeqNumCtxMapVec[partitionId];
 
@@ -2777,6 +2781,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
              cit++) {
             if (cit->first->nodeId() == selfNode->nodeId() ||
                 cit->second.second) {
+                BALL_LOG_WARN << "do_startSendDataChunks cit->first->nodeId() == selfNode->nodeId() partitionId: " << partitionId;
                 continue;
             }
             mqbnet::ClusterNode*                         destNode = cit->first;
@@ -2786,22 +2791,30 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
 
             if (beginSeqNum > endSeqNum) {
                 // Replica is ahead: we already sent ReplicaDataRequestDrop
+                BALL_LOG_WARN << "do_startSendDataChunks beginSeqNum > endSeqNum partitionId: " << partitionId;
                 continue;
             }
 
             if (beginSeqNum < endSeqNum)  {
                 // Replica is behind: we already sent ReplicaDataRequestDrop
                 // TODO: condition
+                BALL_LOG_WARN << "do_startSendDataChunks BEFORE SKIP beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
+
                 if (beginSeqNum.primaryLeaseId() != 0 &&  beginSeqNum.sequenceNumber() !=0) {
                     if (beginSeqNum.primaryLeaseId() < endSeqNum.primaryLeaseId() || (endSeqNum.sequenceNumber() - beginSeqNum.sequenceNumber() > 2)) {
                         BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
                         continue;
                     }
-                }
+                } 
+                // else {
+                //     BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum due to 0: " << beginSeqNum << " endSeqNum: " << endSeqNum;
+                //     continue;
+                // }
             }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
                 nodeToSeqNumCtxMap.at(destNode).second = true;
+                BALL_LOG_WARN << "do_startSendDataChunks beginSeqNum == endSeqNum partitionId: " << partitionId;
                 continue;
             }
 

@@ -481,8 +481,18 @@ int RecoveryManager::processSendDataChunks(
                                       d_blobSpPool_p,
                                       d_allocator_p);
 
+
+    BALL_LOG_WARN << "processSendDataChunks partitionId " << partitionId << " : " << currentSeqNum << " : " << endSeqNum;
+    // TODO: need to move back before incrementCurrentSeqNum(), find proper way to handle currentSeqNum > beginSeqNum
+    bool skipFirstIncrement = false;
+    if (currentSeqNum > beginSeqNum) {
+        BALL_LOG_WARN << "processSendDataChunks skipFirstIncrement = true";
+        skipFirstIncrement = true;        
+    }
+
     // Note that partition has to be replayed from the record *after*
     // 'beginSeqNum'.  So move forward by one record in the JOURNAL.
+    // TODO: handle currentSeqNum > beginSeqNum
     while (currentSeqNum < endSeqNum) {
         char* journalRecordBase = 0;
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -491,19 +501,53 @@ int RecoveryManager::processSendDataChunks(
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
 
-        rc = RecoveryUtil::incrementCurrentSeqNum(
-            &currentSeqNum,
-            &journalRecordBase,
-            *mappedJournalFd,
-            endSeqNum,
-            partitionId,
-            *destination,
-            d_clusterData.identity().description(),
-            journalIt);
+        BALL_LOG_WARN << "processSendDataChunks process partitionId " << partitionId << " currentSeqNum " << currentSeqNum;
+        if (skipFirstIncrement) {
+
+            skipFirstIncrement = false;
+            rc = 0;
+
+            BALL_LOG_WARN << "processSendDataChunks skipFirstIncrement " << partitionId;
+
+            BSLS_ASSERT_SAFE(mqbs::RecordType::e_UNDEFINED != journalIt.recordType());
+            journalRecordBase = mappedJournalFd->block().base() + journalIt.recordOffset();
+
+            const mqbs::RecordHeader& recHeader = journalIt.recordHeader();
+
+            currentSeqNum.primaryLeaseId() = recHeader.primaryLeaseId();
+            currentSeqNum.sequenceNumber() = recHeader.sequenceNumber();
+
+            if (currentSeqNum > endSeqNum) {
+                // 'currentSeqNum' can not be greater than 'endSeqNum'; it can be
+                // smaller or equal.
+
+                BALL_LOG_ERROR
+                    << d_clusterData.identity().description() << " Partition [" << partitionId
+                    << "]: incorrect sequence number encountered while attempting "
+                    << "to replay partition to peer: " << currentSeqNum
+                    << ". Sequence number cannot be greater than: " << endSeqNum
+                    << ". Journal offset: " << journalIt.recordOffset()
+                    << ", record type: " << journalIt.recordType()
+                    << ". Peer: " << destination->nodeDescription() << ".";
+                rc= - 2;
+            }
+
+        } else {
+            rc = RecoveryUtil::incrementCurrentSeqNum(
+                &currentSeqNum,
+                &journalRecordBase,
+                *mappedJournalFd,
+                endSeqNum,
+                partitionId,
+                *destination,
+                d_clusterData.identity().description(),
+                journalIt);
+        }
         if (rc == 1) {
             break;
         }
         else if (rc < 0) {
+            BALL_LOG_WARN << "processSendDataChunks AFTER incrementCurrentSeqNum partitionId" << partitionId << " rc " << rc;
             return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
         }
 
@@ -706,6 +750,8 @@ int RecoveryManager::processReceiveDataChunks(
     event.loadStorageMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
+    BALL_LOG_WARN << "Start chunks!!!";
+
     while (1 == iter.next()) {
         const bmqp::StorageHeader&                header = iter.header();
         bmqu::BlobPosition                        recordPosition;
@@ -731,6 +777,8 @@ int RecoveryManager::processReceiveDataChunks(
         bmqp_ctrlmsg::PartitionSequenceNumber recordSeqNum;
         recordSeqNum.primaryLeaseId() = recHeader->primaryLeaseId();
         recordSeqNum.sequenceNumber() = recHeader->sequenceNumber();
+
+        BALL_LOG_WARN << "recHeader: " << *recHeader;
 
         if (recordSeqNum <= receiveDataCtx.d_currSeqNum) {
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
