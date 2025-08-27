@@ -41,24 +41,22 @@ class AuthnCredential {
     bsl::vector<char> d_data;       // authentication data
 
   private:
-    // NOT IMPLEMENTED
-
-    /// Copy constructor and assignment operator are not implemented.
-    AuthnCredential(const AuthnCredential*);             // = delete;
-    AuthnCredential& operator=(const AuthnCredential&);  // = delete;
+    // NOT IMPLEMENTED (delete non-allocator creators)
+    AuthnCredential(const AuthnCredential&) BSLS_KEYWORD_DELETED;
+    AuthnCredential(AuthnCredential&&) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(AuthnCredential, bslma::UsesBslmaAllocator)
 
     // CREATORS
-
     AuthnCredential(bslma::Allocator* allocator = 0);
 
-    AuthnCredential(const AuthnCredential& other, bslma::Allocator* allocator);
+    AuthnCredential(const AuthnCredential& other,
+                    bslma::Allocator*      allocator = 0);
 
     AuthnCredential(bslmf::MovableRef<AuthnCredential> other,
-                    bslma::Allocator*                  allocator);
+                    bslma::Allocator*                  allocator = 0);
 
     /// Create an `AuthnCredential` object with the specified `mechanism`
     /// and `data`, using the specified `allocator` to supply memory.  If
@@ -68,6 +66,10 @@ class AuthnCredential {
                     bslma::Allocator*        allocator = 0);
 
     ~AuthnCredential();
+
+    // ASSIGNMENT (no allocator parameters)
+    AuthnCredential& operator=(const AuthnCredential& rhs);
+    AuthnCredential& operator=(bslmf::MovableRef<AuthnCredential> rhs);
 
     // MANIPULATORS
     AuthnCredential& setMechanism(const bsl::string& mechanism);
