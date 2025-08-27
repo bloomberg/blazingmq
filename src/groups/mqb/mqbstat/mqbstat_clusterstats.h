@@ -81,6 +81,8 @@ class ClusterStats {
             e_CLUSTER_STATUS,
             e_ROLE,
             e_LEADER_STATUS,
+            e_CSL_REPLICATION_TIME_MCS_AVG,
+            e_CSL_REPLICATION_TIME_MCS_MAX,
             e_PARTITION_CFG_DATA_BYTES,
             e_PARTITION_CFG_JOURNAL_BYTES,
 
@@ -249,6 +251,10 @@ class ClusterStats {
     /// specified `value`.
     ClusterStats& setNodeRoleForPartition(int                 partitionId,
                                           PrimaryStatus::Enum value);
+
+    /// Set the csl replication time of the StatContext being referred
+    /// to by this object to be the specified `value`.
+    ClusterStats& setCslReplicationTime(bsls::Types::Int64 value);
 
     /// Set the partition outstanding bytes of the specified data and
     /// journal files for the specified `partitionId` to the corresponding

@@ -680,6 +680,12 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                 {"cluster_partition_cfg_data_bytes",
                  Stat::e_PARTITION_CFG_DATA_BYTES,
                  false},
+                {"cluster_csl_replication_time_mcs_avg",
+                 Stat::e_CSL_REPLICATION_TIME_MCS_AVG,
+                 false},
+                {"cluster_csl_replication_time_mcs_max",
+                 Stat::e_CSL_REPLICATION_TIME_MCS_MAX,
+                 false},
             };
 
             Tagger tagger;

@@ -490,6 +490,13 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
         info.d_ackCount       = 0;
+        bmqu::BlobObjectProxy<ClusterStateRecordHeader> recordHeader(
+            &record,
+            recordPosition,
+            -ClusterStateRecordHeader::k_MIN_HEADER_SIZE,
+            true,  // read
+            false);
+        info.d_timestampMcs = bdlt::CurrentTime::now().totalMicroseconds();
         d_uncommittedAdvisories.insert(bsl::make_pair(sequenceNumber, info));
 
         if (isSelfLeader()) {
@@ -644,12 +651,22 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         //       the commit callback should be enqueued to be invoked from the
         //       cluster dispatcher thread.
         // TODO: In phase 2 of IncoreCSL, this can return to enqueueing on
-        // the
-        //       cluster dispatcher thread
+        //       the cluster dispatcher thread.
         d_commitCb(committedControlMessage,
                    ClusterStateLedgerCommitStatus::e_SUCCESS);
 
-        d_uncommittedAdvisories.erase(commit.sequenceNumberCommitted());
+        AdvisoriesMapIter amIt = d_uncommittedAdvisories.find(
+            commit.sequenceNumberCommitted());
+        if (amIt != d_uncommittedAdvisories.end()) {
+            if (isSelfLeader()) {
+                bsls::Types::Int64 replicationTimeMcs =
+                    bdlt::CurrentTime::now().totalMicroseconds() -
+                    amIt->second.d_timestampMcs;
+                d_clusterData_p->stats().setCslReplicationTime(
+                    replicationTimeMcs);
+            }
+            d_uncommittedAdvisories.erase(amIt);
+        }
     } break;  // BREAK
     case (ClusterStateRecordType::e_ACK): {
         // PRECONDITIONS
