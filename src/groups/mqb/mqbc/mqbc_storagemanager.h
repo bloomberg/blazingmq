@@ -613,6 +613,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 

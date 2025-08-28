@@ -2141,6 +2141,7 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
             obsoleteDataReplicas.emplace_back(cit->first);
             BALL_LOG_WARN  << "ADD obsoleteDataReplicas: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
         }
+        // TODO: need proper way to determine missed rollover
         if (cit->second.first < selfSeqNum && !cit->second.second) {
             if (cit->second.first.primaryLeaseId() !=0 && cit->second.first.sequenceNumber() !=0) {
                 if (cit->second.first.primaryLeaseId() < selfSeqNum.primaryLeaseId() || selfSeqNum.sequenceNumber() - cit->second.first.sequenceNumber() > 2) {
@@ -2206,6 +2207,67 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
             PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
             failedEventDataVec);
     }
+}
+
+void StorageManager::do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+    mqbnet::ClusterNode*         destNode    = eventData.source();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
+
+    BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(destNode == d_partitionInfoVec[partitionId].primary());
+
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+
+    BSLS_ASSERT_SAFE(eventData.requestId() >= 0);
+
+    // Responding immediately to a ReplicaDataRequestDrop
+
+    controlMsg.rId() = eventData.requestId();
+
+    bmqp_ctrlmsg::ReplicaDataResponse& response =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataResponse();
+
+    response.replicaDataType() = bmqp_ctrlmsg::ReplicaDataType::E_DROP;
+    response.partitionId()     = partitionId;
+    response.beginSequenceNumber() =
+        eventData.partitionSeqNumDataRange().first;
+    response.endSequenceNumber() =
+        eventData.partitionSeqNumDataRange().second;
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Sent response " << controlMsg
+                  << " to ReplicaDataRequestDrop from primary node "
+                  << destNode->nodeDescription() << ".";
+
+    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
+                                               this,
+                                               controlMsg,
+                                               destNode),
+                          d_cluster_p);
 }
 
 void StorageManager::do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
@@ -3114,11 +3176,11 @@ void StorageManager::do_removeStorage(const PartitionFSMArgsSp& args)
         d_recoveryManager_mp->deprecateFileSet(partitionId);
     }
 
-    BALL_LOG_ERROR << d_clusterData_p->identity().description() << " Partition ["
+    BALL_LOG_WARN << d_clusterData_p->identity().description() << " Partition ["
                    << partitionId << "]: "
                    << "self's storage is out of sync with primary and cannot be "
                    << "healed "
-                   << "trivially. Removing entire storage and reset state.";
+                   << "trivially. Removing entire storage and request it from primary.";
 
 
     // do_reapplyDetectSelfReplica(args);
