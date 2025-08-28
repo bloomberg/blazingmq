@@ -337,6 +337,7 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Authenticator> authenticatorMp(
         new (*d_allocator_p) Authenticator(d_authenticationController_mp.get(),
                                            &d_blobSpPool,
+                                           d_scheduler_p,
                                            d_allocators.get("Authenticator")),
         d_allocator_p);
 
