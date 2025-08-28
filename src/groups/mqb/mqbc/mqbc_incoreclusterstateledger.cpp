@@ -490,14 +490,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
         info.d_ackCount       = 0;
-        bmqu::BlobObjectProxy<ClusterStateRecordHeader> recordHeader(
-            &record,
-            recordPosition,
-            -ClusterStateRecordHeader::k_MIN_HEADER_SIZE,
-            true,  // read
-            false);
-        info.d_timestampNs = bdlt::CurrentTime::now().totalNanoseconds();
-        d_uncommittedAdvisories.insert(bsl::make_pair(sequenceNumber, info));
+        const AdvisoriesMap::iterator advIt =
+            d_uncommittedAdvisories
+                .insert(bsl::make_pair(sequenceNumber, info))
+                .first;
 
         if (isSelfLeader()) {
             // TBD: How/if to handle timeout for this message?
@@ -514,6 +510,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             // If self is leader who initiated a snapshot or update record, the
             // record offset should be 0.
             BSLS_ASSERT_SAFE(recordOffset == 0);
+
+            // Save the replication start time
+            advIt->second.d_timestampNs =
+                bdlt::CurrentTime::now().totalNanoseconds();
 
             bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
                 d_blobSpPool_p->getObject();
@@ -629,6 +629,11 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         }
 
         if (isSelfLeader()) {
+            bsls::Types::Int64 replicationTimeNs =
+                bdlt::CurrentTime::now().totalNanoseconds() -
+                iter->second.d_timestampNs;
+            d_clusterData_p->stats().setCslReplicationTime(replicationTimeNs);
+
             bsl::shared_ptr<bdlbb::Blob> commitEvent =
                 d_blobSpPool_p->getObject();
 
@@ -655,18 +660,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         d_commitCb(committedControlMessage,
                    ClusterStateLedgerCommitStatus::e_SUCCESS);
 
-        AdvisoriesMapIter amIt = d_uncommittedAdvisories.find(
-            commit.sequenceNumberCommitted());
-        if (amIt != d_uncommittedAdvisories.end()) {
-            if (isSelfLeader()) {
-                bsls::Types::Int64 replicationTimeNs =
-                    bdlt::CurrentTime::now().totalNanoseconds() -
-                    amIt->second.d_timestampNs;
-                d_clusterData_p->stats().setCslReplicationTime(
-                    replicationTimeNs);
-            }
-            d_uncommittedAdvisories.erase(amIt);
-        }
+        d_uncommittedAdvisories.erase(iter);
     } break;  // BREAK
     case (ClusterStateRecordType::e_ACK): {
         // PRECONDITIONS

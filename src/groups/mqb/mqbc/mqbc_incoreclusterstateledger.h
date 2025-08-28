@@ -422,6 +422,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 inline IncoreClusterStateLedger_ClusterMessageInfo ::
     IncoreClusterStateLedger_ClusterMessageInfo(bslma::Allocator* allocator)
 : d_clusterMessage(bslma::Default::allocator(allocator))
+, d_timestampNs(0)
 , d_ackCount(0)
 {
     // NOTHING
