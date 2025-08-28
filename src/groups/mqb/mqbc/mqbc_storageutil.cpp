@@ -2834,8 +2834,8 @@ void StorageUtil::createQueueStorageDispatched(
             // Failed to obtain a domain object.
 
             BALL_LOG_ERROR << "Failed to create domain for the queue '" << uri
-                           << "', queueKey: [" << queueKey
-                           << "], partitionId: [" << partitionId << "].";
+                           << "', queueKey: [" << queueKey << "], Partition: ["
+                           << partitionId << "].";
 
             return;  // RETURN
         }
@@ -2846,7 +2846,7 @@ void StorageUtil::createQueueStorageDispatched(
 
     if (domainCfg.mode().isUndefinedValue()) {
         BALL_LOG_ERROR << "Undefined domain mode for the queue '" << uri
-                       << "', queueKey: [" << queueKey << "], partitionId: ["
+                       << "', queueKey: [" << queueKey << "], Partition: ["
                        << partitionId << "].";
 
         return;  // RETURN
@@ -2854,7 +2854,7 @@ void StorageUtil::createQueueStorageDispatched(
 
     if (storageDef.config().isUndefinedValue()) {
         BALL_LOG_ERROR << "Undefined storage config for the queue '" << uri
-                       << "', queueKey: [" << queueKey << "], partitionId: ["
+                       << "', queueKey: [" << queueKey << "], Partition: ["
                        << partitionId << "].";
 
         return;  // RETURN
@@ -2867,7 +2867,7 @@ void StorageUtil::createQueueStorageDispatched(
         // setup.
 
         BALL_LOG_ERROR << "Incompatible config for the queue '" << uri
-                       << "', queueKey: [" << queueKey << "], partitionId: ["
+                       << "', queueKey: [" << queueKey << "], Partition: ["
                        << partitionId << "].";
 
         return;  // RETURN

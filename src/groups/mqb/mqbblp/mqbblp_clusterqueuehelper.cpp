@@ -4683,7 +4683,7 @@ void ClusterQueueHelper::openQueue(
         const int pid = queueContextIt->second->partitionId();
         if (!isSelfAvailablePrimary(pid)) {
             bmqu::MemOutStream errorDesc;
-            errorDesc << "Not the primary for partitionId [" << pid << "]";
+            errorDesc << "Not the primary for Partition [" << pid << "]";
             reason    = errorDesc.str();
             errorCode = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
             CALLBACK_FAILURE(reason, errorCode);
@@ -4756,7 +4756,7 @@ void ClusterQueueHelper::openQueue(
                         const ClusterStatePartitionInfo& partition =
                             d_clusterState_p->partition(pid);
                         BALL_LOG_OUTPUT_STREAM
-                            << "partitionId: " << pid << ", partitionPrimary: "
+                            << "Partition: " << pid << ", partitionPrimary: "
                             << (partition.primaryNode()
                                     ? partition.primaryNode()
                                           ->nodeDescription()
