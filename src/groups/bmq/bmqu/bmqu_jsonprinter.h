@@ -104,7 +104,9 @@ class JsonPrinter {
     /// object with the specified `fields` with the optionally specified
     /// `indent`.  Behavior is undefined unless `indent` >= 0 and at least one
     /// field is present in the `fields`.
-    JsonPrinter(bsl::ostream& stream, const bsl::vector<bsl::string>* fields, int indent = fieldIndent);
+    JsonPrinter(bsl::ostream&                   stream,
+                const bsl::vector<bsl::string>* fields,
+                int                             indent = fieldIndent);
 
     ~JsonPrinter();
 
