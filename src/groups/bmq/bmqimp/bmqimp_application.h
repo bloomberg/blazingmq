@@ -36,6 +36,7 @@
 
 // BMQ
 
+#include <bmqimp_authenticatedchannelfactory.h>
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
@@ -81,7 +82,7 @@ namespace bmqimp {
 class Application {
   public:
     // PUBLIC TYPES
-    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPool   BlobSpPool;
     typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
   private:
@@ -133,6 +134,8 @@ class Application {
     bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
 
     bmqio::StatChannelFactory d_statChannelFactory;
+
+    AuthenticatedChannelFactory d_authenticatedChannelFactory;
 
     NegotiatedChannelFactory d_negotiatedChannelFactory;
 
@@ -226,7 +229,8 @@ class Application {
         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     bsl::shared_ptr<bmqp::HeartbeatMonitor>
     createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel);
-    void startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
+    void
+         startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
                         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     void stopHeartbeat();
 

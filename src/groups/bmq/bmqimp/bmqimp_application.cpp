@@ -20,6 +20,8 @@
 // BMQ
 #include <bmqex_executionpolicy.h>
 #include <bmqex_systemexecutor.h>
+#include <bmqimp_authenticatedchannelfactory.h>
+#include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_status.h>
@@ -602,8 +604,14 @@ Application::Application(
                                bdlf::PlaceHolders::_2),  // handle
           allocator),
       allocator)
+, d_authenticatedChannelFactory(
+      AuthenticatedChannelFactoryConfig(&d_statChannelFactory,
+                                        sessionOptions.authnCredentialCb(),
+                                        sessionOptions.connectTimeout(),
+                                        d_blobSpPool_sp.get(),
+                                        allocator))
 , d_negotiatedChannelFactory(
-      NegotiatedChannelFactoryConfig(&d_statChannelFactory,
+      NegotiatedChannelFactoryConfig(&d_authenticatedChannelFactory,
                                      negotiationMessage,
                                      sessionOptions.connectTimeout(),
                                      d_blobSpPool_sp.get(),
@@ -717,7 +725,12 @@ int Application::start(const bsls::TimeInterval& timeout)
                   << "::: START (SYNC) << [state: " << d_brokerSession.state()
                   << "] :::";
 
-    return d_brokerSession.start(timeout);
+    int rc = d_brokerSession.start(timeout);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    return rc;
 }
 
 int Application::startAsync(const bsls::TimeInterval& timeout)
