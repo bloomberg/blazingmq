@@ -186,8 +186,8 @@ void StorageManager::onWatchDogDispatched(int partitionId)
 
     BMQTSK_ALARMLOG_ALARM("RECOVERY")
         << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId
-        << "]: " << "Watch dog triggered because partition startup healing "
+        << partitionId << "]: "
+        << "Watch dog triggered because partition startup healing "
         << "sequence was not completed in the configured time of "
         << d_watchDogTimeoutInterval.totalSeconds() << " seconds."
         << BMQTSK_ALARMLOG_END;
@@ -361,8 +361,8 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     const bmqp_ctrlmsg::PrimaryStatus::Value oldValue = pinfo.primaryStatus();
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId
-                  << "]: " << "Setting the status of primary: "
+                  << " Partition [" << partitionId << "]: "
+                  << "Setting the status of primary: "
                   << pinfo.primary()->nodeDescription()
                   << ", primaryLeaseId: " << pinfo.primaryLeaseId()
                   << ", from " << oldValue << " to " << value << ".";
@@ -678,8 +678,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
     }
 
     const int responseId  = context->response().rId().isNull()
-                                ? -1
-                                : context->response().rId().value();
+                               ? -1
+                               : context->response().rId().value();
     const int partitionId = context->request()
                                 .choice()
                                 .clusterMessage()
@@ -1298,8 +1298,8 @@ void StorageManager::do_closeRecoveryFileSet(const PartitionFSMArgsSp& args)
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId
-            << "]: " << "Failure while closing recovery file set, rc: " << rc
+            << partitionId << "]: "
+            << "Failure while closing recovery file set, rc: " << rc
             << BMQTSK_ALARMLOG_END;
 
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
@@ -1384,7 +1384,7 @@ void StorageManager::do_storePrimarySeq(const PartitionFSMArgsSp& args)
     // be stale; ignore if so.
     bool                   hasNew = false;
     NodeToSeqNumCtxMapIter it     = d_nodeToSeqNumCtxMapVec[partitionId].find(
-        eventData.source());
+            eventData.source());
     if (it == d_nodeToSeqNumCtxMapVec[partitionId].end()) {
         d_nodeToSeqNumCtxMapVec[partitionId].insert(
             bsl::make_pair(eventData.source(), bsl::make_pair(seqNum, false)));
@@ -2444,8 +2444,8 @@ void StorageManager::do_processBufferedLiveData(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(fs);
     if (!fs->isOpen()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: " << "Cannot process buffered live data because "
+                       << " Partition [" << partitionId << "]: "
+                       << "Cannot process buffered live data because "
                        << "FileStore is not opened.";
 
         return;  // RETURN
@@ -2532,7 +2532,8 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
 
     BALL_LOG_INFO
         << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId << "]: " << "Processing "
+        << partitionId << "]: "
+        << "Processing "
         << d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].size()
         << " buffered primary status advisory.";
 
@@ -2546,9 +2547,8 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
         if (cit->second->nodeId() != pinfo.primary()->nodeId() ||
             cit->first.primaryLeaseId() != pinfo.primaryLeaseId()) {
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId
-                          << "]: " << "Ignoring primary status advisory "
-                          << cit->first
+                          << " Partition [" << partitionId << "]: "
+                          << "Ignoring primary status advisory " << cit->first
                           << " because primary node or leaseId is invalid. "
                           << "Self-perceived [prmary, leaseId] is: ["
                           << pinfo.primary()->nodeDescription() << ","
@@ -3841,16 +3841,16 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::unregisterQueueDispatched,
-                                 d_fileStores[partitionId].get(),
-                                 &d_storages[partitionId],
-                                 &d_storagesLock,
-                                 d_clusterData_p,
-                                 partitionId,
-                                 bsl::cref(d_partitionInfoVec[partitionId]),
-                                 uri));
+        .makeDispatcherEvent()
+        .callback()
+        .set(bdlf::BindUtil::bind(&StorageUtil::unregisterQueueDispatched,
+                                  d_fileStores[partitionId].get(),
+                                  &d_storages[partitionId],
+                                  &d_storagesLock,
+                                  d_clusterData_p,
+                                  partitionId,
+                                  bsl::cref(d_partitionInfoVec[partitionId]),
+                                  uri));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -3899,21 +3899,21 @@ void StorageManager::registerQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::registerQueueReplicaDispatched,
-                                 static_cast<int*>(0),
-                                 &d_storages[partitionId],
-                                 &d_storagesLock,
-                                 d_fileStores[partitionId].get(),
-                                 d_domainFactory_p,
-                                 &d_allocators,
-                                 d_clusterData_p->identity().description(),
-                                 partitionId,
-                                 uri,
-                                 queueKey,
-                                 domain,
-                                 allowDuplicate));
+        .makeDispatcherEvent()
+        .callback()
+        .set(bdlf::BindUtil::bind(&StorageUtil::registerQueueReplicaDispatched,
+                                  static_cast<int*>(0),
+                                  &d_storages[partitionId],
+                                  &d_storagesLock,
+                                  d_fileStores[partitionId].get(),
+                                  d_domainFactory_p,
+                                  &d_allocators,
+                                  d_clusterData_p->identity().description(),
+                                  partitionId,
+                                  uri,
+                                  queueKey,
+                                  domain,
+                                  allowDuplicate));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -3933,8 +3933,9 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(
+        .makeDispatcherEvent()
+        .callback()
+        .set(bdlf::BindUtil::bind(
             &StorageUtil::unregisterQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -3968,20 +3969,20 @@ void StorageManager::updateQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::updateQueueReplicaDispatched,
-                                 static_cast<int*>(0),
-                                 &d_storages[partitionId],
-                                 &d_storagesLock,
-                                 d_domainFactory_p,
-                                 d_clusterData_p->identity().description(),
-                                 partitionId,
-                                 uri,
-                                 queueKey,
-                                 appIdKeyPairs,
-                                 domain,
-                                 allowDuplicate));
+        .makeDispatcherEvent()
+        .callback()
+        .set(bdlf::BindUtil::bind(&StorageUtil::updateQueueReplicaDispatched,
+                                  static_cast<int*>(0),
+                                  &d_storages[partitionId],
+                                  &d_storagesLock,
+                                  d_domainFactory_p,
+                                  d_clusterData_p->identity().description(),
+                                  partitionId,
+                                  uri,
+                                  queueKey,
+                                  appIdKeyPairs,
+                                  domain,
+                                  allowDuplicate));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -4006,15 +4007,15 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::setQueueDispatched,
-                                 &d_storages[partitionId],
-                                 &d_storagesLock,
-                                 d_clusterData_p->identity().description(),
-                                 partitionId,
-                                 uri,
-                                 queue));
+        .makeDispatcherEvent()
+        .callback()
+        .set(bdlf::BindUtil::bind(&StorageUtil::setQueueDispatched,
+                                  &d_storages[partitionId],
+                                  &d_storagesLock,
+                                  d_clusterData_p->identity().description(),
+                                  partitionId,
+                                  uri,
+                                  queue));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -4342,8 +4343,8 @@ void StorageManager::processStorageEvent(
     // Ensure that 'pid' is valid.
     if (pid >= d_clusterState.partitions().size()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
-            << d_cluster_p->description() << " Partition [" << pid
-            << "]: " << "Received "
+            << d_cluster_p->description() << " Partition [" << pid << "]: "
+            << "Received "
             << (rawEvent.isStorageEvent() ? "storage " : "partition-sync ")
             << "event from node " << source->nodeDescription() << " with "
             << "invalid Partition Id [" << pid << "]. Ignoring "

@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Fri Aug 15 20:24:51 2025
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.cpp
 
 #define INCLUDED_BMQU_MANAGEDCALLBACK_CPP03  // Disable inclusion
@@ -28,4 +28,5 @@
 
 // No C++03 Expansion
 
-#endif  // defined(COMPILING_BMQU_MANAGEDCALLBACK_CPP)
+#endif // defined(COMPILING_BMQU_MANAGEDCALLBACK_CPP)
+
