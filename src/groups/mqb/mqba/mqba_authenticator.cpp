@@ -475,11 +475,11 @@ int Authenticator::processAuthentication(
                 &authenticationContext->timeoutHandleMutex());  // MUTEX LOCKED
 
             if (authenticationContext->timeoutHandle()) {
-                d_scheduler.cancelEvent(
+                d_scheduler->cancelEvent(
                     &authenticationContext->timeoutHandle());
             }
 
-            d_scheduler.scheduleEvent(
+            d_scheduler->scheduleEvent(
                 &authenticationContext->timeoutHandle(),
                 bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
                     .addMilliseconds(result->lifetimeMs().value()),
@@ -501,6 +501,7 @@ int Authenticator::processAuthentication(
 Authenticator::Authenticator(
     mqbauthn::AuthenticationController* authnController,
     BlobSpPool*                         blobSpPool,
+    bdlmt::EventScheduler*              scheduler,
     bslma::Allocator*                   allocator)
 : d_isStarted(false)
 , d_authnController_p(authnController)
@@ -509,8 +510,8 @@ Authenticator::Authenticator(
                k_MAX_THREADS,                                // max threads
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
-, d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
 , d_blobSpPool_p(blobSpPool)
+, d_scheduler(scheduler)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -539,13 +540,6 @@ int Authenticator::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
-    rc = d_scheduler.start();
-    if (rc != 0) {
-        errorDescription << "Failed to start event scheduler for Authenticator"
-                         << "[rc: " << rc << "]";
-        return rc;  // RETURN
-    }
-
     d_isStarted = true;
 
     return 0;
@@ -559,7 +553,6 @@ void Authenticator::stop()
 
     d_isStarted = false;
 
-    d_scheduler.stop();
     d_threadPool.stop();
 }
 
@@ -624,7 +617,7 @@ void Authenticator::onClose(const AuthenticationContextSp& context)
         &context->timeoutHandleMutex());  // MUTEX LOCKED
 
     if (context->timeoutHandle()) {
-        d_scheduler.cancelEvent(&context->timeoutHandle());
+        d_scheduler->cancelEvent(&context->timeoutHandle());
     }
 }
 
