@@ -228,7 +228,7 @@ void ClusterActiveNodeManager::onNewActiveNode(ClusterNode* node)
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << d_description << ": is now using node '"
+    BALL_LOG_INFO << d_description << ": is healthy and using node '"
                   << node->nodeDescription() << "' as active.";
 
     d_activeNodeIt = d_nodes.find(node);
