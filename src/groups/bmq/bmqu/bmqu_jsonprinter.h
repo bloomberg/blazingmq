@@ -29,10 +29,10 @@
 ///-----
 // First, specify field names for printer:
 //..
-//  bsl::vector<const char*> fields;
-//  fields.push_back("Queue URI");
-//  fields.push_back("QueueKey");
-//  fields.push_back("Number of AppIds");
+//  bsl::vector<bsl::string> fields;
+//  fields.emplace_back("Queue URI");
+//  fields.emplace_back("QueueKey");
+//  fields.emplace_back("Number of AppIds");
 //..
 //
 // Next, create an instance of bmqu::AlignedPrinter:
@@ -90,7 +90,7 @@ class JsonPrinter {
   private:
     // DATA
     bsl::ostream&                   d_ostream;
-    const bsl::vector<const char*>* d_fields_p;
+    const bsl::vector<bsl::string>* d_fields_p;
     unsigned int                    d_counter;
 
     // NOT IMPLEMENTED
@@ -104,7 +104,7 @@ class JsonPrinter {
     /// object with the specified `fields` with the optionally specified
     /// `indent`.  Behavior is undefined unless `indent` >= 0 and at least one
     /// field is present in the `fields`.
-    JsonPrinter(bsl::ostream& stream, const bsl::vector<const char*>* fields);
+    JsonPrinter(bsl::ostream& stream, const bsl::vector<bsl::string>* fields, int indent = fieldIndent);
 
     ~JsonPrinter();
 
@@ -128,7 +128,8 @@ class JsonPrinter {
 template <bool pretty, bool braceNeeded, int braceIndent, int fieldIndent>
 inline JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::JsonPrinter(
     bsl::ostream&                   stream,
-    const bsl::vector<const char*>* fields)
+    const bsl::vector<bsl::string>* fields,
+    int                             indent)
 : d_ostream(stream)
 , d_fields_p(fields)
 , d_counter(0)

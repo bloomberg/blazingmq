@@ -65,7 +65,7 @@ template <typename PRINTER_TYPE>
 class RecordDetailsPrinter {
   private:
     bsl::ostream&                   d_ostream;
-    bsl::vector<const char*>        d_fields;
+    bsl::vector<bsl::string>        d_fields;
     bslma::ManagedPtr<PRINTER_TYPE> d_printer_mp;
     bslma::Allocator*               d_allocator_p;
 
