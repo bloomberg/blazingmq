@@ -4280,7 +4280,7 @@ int FileStore::writeQueueCreationRecord(
         return 10 * rc + rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN
     }
 
-    if (!d_isCSLModeEnabled) {
+    if (!d_isFSMWorkflow) {
         // TODO: Temporarily. Remove after all versions wait for CSL commits
         // before calling onQueueAssigned/onQueueUpdated.
 

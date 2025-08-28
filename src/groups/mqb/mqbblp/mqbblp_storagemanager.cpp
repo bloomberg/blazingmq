@@ -376,7 +376,7 @@ void StorageManager::queueCreationCb(int                     partitionId,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
-    if (d_cluster_p->isCSLModeEnabled()) {
+    if (d_cluster_p->isFSMWorkflow()) {
         // This callback is removed for CSL mode
 
         return;  // RETURN

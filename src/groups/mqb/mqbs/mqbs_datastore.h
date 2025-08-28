@@ -386,13 +386,6 @@ class DataStoreConfig {
                                bool                    isNewQueue)>
         QueueCreationCb;
 
-    typedef bsl::function<void(int*                    status,
-                               int                     partitionId,
-                               const bmqt::Uri&        uri,
-                               const mqbu::StorageKey& queueKey,
-                               const mqbu::StorageKey& appKey)>
-        QueueDeletionCb;
-
     /// Signature of callback used by `mqbs::FileStore` to indicate the list
     /// of file-backed queues (and metadata) retrieved during recovery
     /// phase.

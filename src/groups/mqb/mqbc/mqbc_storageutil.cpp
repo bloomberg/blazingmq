@@ -359,6 +359,9 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                                         partitionId,
                                         isFanout);
         if (0 != rc) {
+            // In the transition phase, App creation trigger can be either
+            // storage event or CSL commit.
+            // Moreover, some versions have a race.
             return rc;  // RETURN
         }
 
@@ -473,6 +476,12 @@ int StorageUtil::addVirtualStoragesInternal(
         // for priority queue, since there is only one appId (default) which
         // could be added more than once in the startup sequence.  Its better
         // to ignore the return value instead of raising a useless warning.
+
+        BALL_LOG_WARN
+            << clusterDescription << " Partition [" << partitionId << "]: "
+            << "Failed to add virtual storage for the Default App, for queue ["
+            << storage->queueUri() << "], queueKey [" << storage->queueKey()
+            << "]. Reason: [" << errorDesc.str() << "], rc: " << rc << ".";
     }
 
     return rc_SUCCESS;
@@ -2789,6 +2798,12 @@ void StorageUtil::createQueueStorageDispatched(
 
     StorageSpMapIter it = storageMap->find(uri);
     if (it != storageMap->end()) {
+        // In the transition phase, queue creation trigger can be either
+        // storage event or CSL commit.  Moreover, some versions have a race.
+
+        BALL_LOG_WARN << "Duplicate queue creation trigger for '" << uri
+                      << "', queueKey: [" << queueKey << "], partitionId: ["
+                      << partitionId << "].";
         return;  // RETURN
     }
 
@@ -2870,10 +2885,7 @@ void StorageUtil::createQueueStorageDispatched(
                   << "] registered [" << uri << "], queueKey [" << queueKey
                   << "] with the storage as replica.";
 
-    BSLS_ASSERT(rs_sp);
-    BSLS_ASSERT_SAFE(domain);
-
-    int rc = addVirtualStoragesInternal(
+    const int rc = addVirtualStoragesInternal(
         rs_sp.get(),
         appIdKeyPairs,
         clusterDescription,
@@ -2883,10 +2895,11 @@ void StorageUtil::createQueueStorageDispatched(
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
     if (rc != 0) {
-        BALL_LOG_INFO << "At partition [" << partitionId
-                      << "], failure while registering appIds [" << printer
-                      << "] for queue [" << uri << "], queueKey [" << queueKey
-                      << "], rc: " << rc << ".";
+        BALL_LOG_WARN << clusterDescription << ": Partition [" << partitionId
+                      << "], failed to update [" << uri << "], queueKey ["
+                      << queueKey << "] with the storage as replica: "
+                      << "addedIdKeyPairs:" << printer << ", rc: " << rc
+                      << ".";
     }
     else {
         BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
@@ -3055,7 +3068,7 @@ void StorageUtil::updateQueueStorageDispatched(
     }
     BSLS_ASSERT_SAFE(domain);
 
-    int rc = addVirtualStoragesInternal(
+    const int rc = addVirtualStoragesInternal(
         storage,
         appIdKeyPairs,
         clusterDescription,
@@ -3065,10 +3078,11 @@ void StorageUtil::updateQueueStorageDispatched(
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
     if (rc != 0) {
-        BALL_LOG_INFO << "At partition [" << partitionId
-                      << "], failure while registering appIds [" << printer
-                      << "] for queue [" << uri << "], queueKey [" << queueKey
-                      << "], rc: " << rc << ".";
+        BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
+                      << "] failure updating [" << uri << "], queueKey ["
+                      << queueKey << "] with the storage as replica: "
+                      << "addedIdKeyPairs:" << printer << ", rc: " << rc
+                      << ".";
     }
     else {
         BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId

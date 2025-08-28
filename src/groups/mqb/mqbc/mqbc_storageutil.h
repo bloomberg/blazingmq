@@ -120,7 +120,6 @@ struct StorageUtil {
         QueueKeyInfoMapConstIter;
 
     typedef mqbs::DataStoreConfig::QueueCreationCb   QueueCreationCb;
-    typedef mqbs::DataStoreConfig::QueueDeletionCb   QueueDeletionCb;
     typedef mqbs::DataStoreConfig::RecoveredQueuesCb RecoveredQueuesCb;
 
     typedef mqbi::StorageManager_PartitionInfo PartitionInfo;
