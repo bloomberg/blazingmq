@@ -105,12 +105,12 @@ class Authenticator : public mqbnet::Authenticator {
     /// Thread pool to run authentication and reauthentication tasks.
     bdlmt::ThreadPool d_threadPool;
 
+    BlobSpPool* d_blobSpPool_p;
+
     /// Used to track the duration of a valid authenticated connection.
     /// If reauthentication does not occur within the specified time,
     /// an event is triggered to close the channel.
-    bdlmt::EventScheduler d_scheduler;
-
-    BlobSpPool* d_blobSpPool_p;
+    bdlmt::EventScheduler* d_scheduler;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
@@ -221,6 +221,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// `blobSpPool`. Use the specified `allocator` for all memory allocations.
     Authenticator(mqbauthn::AuthenticationController* authnController,
                   BlobSpPool*                         blobSpPool,
+                  bdlmt::EventScheduler*              scheduler,
                   bslma::Allocator*                   allocator);
 
     /// Destructor
