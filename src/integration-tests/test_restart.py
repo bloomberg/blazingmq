@@ -516,18 +516,18 @@ def test_restart_between_non_FSM_and_FSM(
 
     # Reconfigure the cluster from FSM to back to non-FSM mode
     configure_cluster(cluster, is_fsm=False)
-
-    cluster.start_nodes(wait_leader=True, wait_ready=True)
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
+    cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
-        producer.wait_state_restored()
-
-    # Non-FSM mode has poor healing mechanism, but restarting once more will
-    # fix the flaky dirty shutdowns
-    cluster.restart_nodes()
-    if cluster.is_single_node:
-        producer.wait_state_restored()
+        cluster.start_nodes(wait_leader=True, wait_ready=True)
+        # For a standard cluster, states have already been restored as part of
+        # leader re-election.
+        for consumer in consumers:
+            consumer.wait_state_restored()
+    else:
+        # Switching from FSM to non-FSM mode could introduce start-up failure,
+        # which auto-resolve upon a second restart.
+        cluster.start_nodes(wait_leader=False, wait_ready=False)
+        check_exited_nodes_and_restart(cluster)
 
     # EPILOGUE
     post_existing_queues_and_verify(
