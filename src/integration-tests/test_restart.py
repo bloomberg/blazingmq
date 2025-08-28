@@ -96,7 +96,7 @@ def verifyMessages(consumer: Client, queue: str, appId: str, expected_count: int
 def post_new_queues_and_verify(
     cluster: Cluster,
     producer: Client,
-    consumer_foo: Client,
+    consumers: List[Client],
     existing_queues_pair: List[List[str]],
     domain_urls: tc.DomainUrls,
 ):
@@ -105,13 +105,17 @@ def post_new_queues_and_verify(
     new fanout queue based on `domain_urls`, and append them to the
     `existing_queues_pair` of existing priority and fanout
     queues respectively.  Then, instruct the `producer` to post one message on
-    the two new queues.  Finally, instruct `consumer_foo` to confirm one message on appId 'foo'.
+    the two new queues, and the `consumers` list of priority, foo, and bar consumers to open the queue.  Finally, instruct consumer_foo to confirm one message on appId 'foo'.
     """
     # Preconditions
     NUM_QUEUE_MODES = (
         2  # We only test on priority and fanout queues; broadcast queues are omitted.
     )
     assert len(existing_queues_pair) == NUM_QUEUE_MODES
+    NUM_CONSUMER_TYPES = 3  # priority, foo, bar
+    assert len(consumers) == NUM_CONSUMER_TYPES
+
+    consumer_priority, consumer_foo, consumer_bar = consumers
 
     num_partitions = cluster.config.definition.partition_config.num_partitions
     existing_priority_queues, existing_fanout_queues = existing_queues_pair
@@ -120,10 +124,23 @@ def post_new_queues_and_verify(
 
     # Post a message on new priority queue and new fanout queue
     n = len(existing_priority_queues)
+    test_logger.info(
+        f"There are currently {n} priority queues and {n} fanout queues, opening one more of each"
+    )
     partition_id = (n * NUM_QUEUE_MODES) % num_partitions
-    for domain, queues in [
-        (domain_urls.domain_priority, existing_priority_queues),
-        (domain_urls.domain_fanout, existing_fanout_queues),
+    for domain, queues, domain_consumers, consuming_app_ids in [
+        (
+            domain_urls.domain_priority,
+            existing_priority_queues,
+            [consumer_priority],
+            [None],
+        ),
+        (
+            domain_urls.domain_fanout,
+            existing_fanout_queues,
+            [consumer_foo, consumer_bar],
+            ["foo", "bar"],
+        ),
     ]:
         new_queue = f"bmq://{domain}/qqq{n}"
         queues.append((new_queue, partition_id))
@@ -132,20 +149,25 @@ def post_new_queues_and_verify(
         producer.post(new_queue, payload=["msg0"], wait_ack=True, succeed=True)
         ensureMessageAtStorageLayer(cluster, partition_id, new_queue, 1)
 
+        for consumer, app_id in zip(domain_consumers, consuming_app_ids):
+            consumer.open(
+                new_queue if not app_id else new_queue + f"?id={app_id}",
+                flags=["read"],
+                succeed=True,
+            )
+
         # Per our queue assignment logic, the new queue will be assigned to the next partition in a round-robin fashion.
         partition_id = (partition_id + 1) % num_partitions
 
-    # Consumer for new fanout queue
+    # Save one confirm to the storage for new fanout queue
+    consumer_foo.wait_push_event()
     QUEUE_ELEMENT_IDX = 0
     new_fanout_queue = existing_fanout_queues[-1][QUEUE_ELEMENT_IDX]
-    consumer_foo.open(new_fanout_queue + "?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
     assert wait_until(
         lambda: len(consumer_foo.list(new_fanout_queue + "?id=foo", block=True)) == 1,
         timeout=2,
     )
 
-    # Save one confirm to the storage for new fanout queue
     consumer_foo.confirm(new_fanout_queue + "?id=foo", "+1", succeed=True)
 
     # Postconditions
@@ -175,6 +197,9 @@ def post_existing_queues_and_verify(
 
     QUEUE_ELEMENT_IDX, PARTITION_ELEMENT_IDX = 0, 1
     n = len(existing_priority_queues)
+    test_logger.info(
+        f"Posting one message to each of existing {n} priority queues and {n} fanout queues"
+    )
     for i in range(n):
         # Every time we append a new queue, we post one message to it as well as
         # all existing queues.  When there are `n` queues, the last queue (index
@@ -436,13 +461,16 @@ def test_restart_between_non_FSM_and_FSM(
     existing_priority_queues = []
     existing_fanout_queues = []
 
+    consumer_priority = next(proxies).create_client("consumer")
     consumer_foo = next(proxies).create_client("consumer_foo")
+    consumer_bar = next(proxies).create_client("consumer_bar")
+    consumers = [consumer_priority, consumer_foo, consumer_bar]
 
     # PROLOGUE
     post_new_queues_and_verify(
         cluster,
         producer,
-        consumer_foo,
+        consumers,
         [existing_priority_queues, existing_fanout_queues],
         du,
     )
@@ -458,10 +486,6 @@ def test_restart_between_non_FSM_and_FSM(
     if cluster.is_single_node:
         producer.wait_state_restored()
 
-    consumer_priority = next(proxies).create_client("consumer")
-    consumer_bar = next(proxies).create_client("consumer_bar")
-    consumers = [consumer_priority, consumer_foo, consumer_bar]
-
     # EPILOGUE
     post_existing_queues_and_verify(
         cluster,
@@ -475,7 +499,7 @@ def test_restart_between_non_FSM_and_FSM(
     post_new_queues_and_verify(
         cluster,
         producer,
-        consumer_foo,
+        consumers,
         [existing_priority_queues, existing_fanout_queues],
         du,
     )
