@@ -289,6 +289,8 @@ class PartitionStateTableActions {
 
     virtual void do_reapplyDetectSelfReplica(const ARGS& args) = 0;
 
+    virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
+
     void
     do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
         const ARGS& args);
@@ -631,7 +633,7 @@ class PartitionStateTable
                 UNKNOWN);
         PST_CFG(PRIMARY_HEALED,
                 DETECT_SELF_REPLICA,
-                cleanupMetadata_clearPartitionInfo_reapplyEvent,
+                unsupportedPrimaryDowngrade,
                 UNKNOWN);
         PST_CFG(
             PRIMARY_HEALED,

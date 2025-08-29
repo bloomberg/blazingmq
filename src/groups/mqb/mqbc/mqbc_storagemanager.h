@@ -688,6 +688,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_reapplyDetectSelfReplica(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_unsupportedPrimaryDowngrade(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     // PRIVATE ACCESSORS
 
     /// Return true if all partitions are fully healed and have an active
