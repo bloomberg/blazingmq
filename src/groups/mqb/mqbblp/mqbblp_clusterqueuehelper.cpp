@@ -4245,15 +4245,8 @@ void ClusterQueueHelper::onQueueAssigned(
         d_storageManager_p->registerQueueReplica(info->partitionId(),
                                                  info->uri(),
                                                  info->key(),
-                                                 domainState.domain(),
-                                                 true);  // allowDuplicate
-
-        d_storageManager_p->updateQueueReplica(info->partitionId(),
-                                               info->uri(),
-                                               info->key(),
-                                               info->appInfos(),
-                                               domainState.domain(),
-                                               true);  // allowDuplicate
+                                                 info->appInfos(),
+                                                 domainState.domain());
     }
 
     // NOTE: Even if it is not needed to invoke 'onQueueContextAssigned' in the
@@ -4690,7 +4683,7 @@ void ClusterQueueHelper::openQueue(
         const int pid = queueContextIt->second->partitionId();
         if (!isSelfAvailablePrimary(pid)) {
             bmqu::MemOutStream errorDesc;
-            errorDesc << "Not the primary for partitionId [" << pid << "]";
+            errorDesc << "Not the primary for Partition [" << pid << "]";
             reason    = errorDesc.str();
             errorCode = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
             CALLBACK_FAILURE(reason, errorCode);
@@ -4763,7 +4756,7 @@ void ClusterQueueHelper::openQueue(
                         const ClusterStatePartitionInfo& partition =
                             d_clusterState_p->partition(pid);
                         BALL_LOG_OUTPUT_STREAM
-                            << "partitionId: " << pid << ", partitionPrimary: "
+                            << "Partition: " << pid << ", partitionPrimary: "
                             << (partition.primaryNode()
                                     ? partition.primaryNode()
                                           ->nodeDescription()
