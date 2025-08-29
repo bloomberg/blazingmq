@@ -6,7 +6,7 @@ pytest
 pytest-cov
 pytest-order
 pytest-repeat
-pytest-rerunfailures
+pytest-rerunfailures==15.1
 pytest-xdist
 pyyaml
 termcolor
