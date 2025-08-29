@@ -137,7 +137,7 @@ class Process:
         self,
         name,
         command,
-        stdin=subprocess.DEVNULL,
+        stdin=None,
         read_timeout=5.0,
         wait_timeout=15.0,
         check_exit_code=True,
