@@ -572,6 +572,19 @@ void TCPSessionFactory::negotiationComplete(
         if (isClientOrProxy(info->d_session_sp.get())) {
             ++d_nbOpenClients;
         }
+
+        if (info->d_monitor.isHearbeatEnabled() &&
+            d_heartbeatSchedulerActive) {
+            // Enable/Disable heartbeating under the lock
+            // If the 'result' below is 'false' and the channel gets closed,
+            // then 'onClose' must be called and since the session is inserted
+            // into 'd_channels', 'onClose' will disable heartbeat.
+            d_scheduler_p->scheduleEvent(
+                bsls::TimeInterval(0),
+                bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
+                                     this,
+                                     info.get()));
+        }
     }  // close mutex lock guard                                      // UNLOCK
 
     // Do not initiate reading from the channel.  Transport observer(s) will
@@ -611,15 +624,6 @@ void TCPSessionFactory::negotiationComplete(
 
         logOpenSessionTime(session->description(), channel);
         return;  // RETURN
-    }
-
-    if (info->d_monitor.isHearbeatEnabled()) {
-        // Enable heartbeating
-        d_scheduler_p->scheduleEvent(
-            bsls::TimeInterval(0),
-            bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
-                                 this,
-                                 info.get()));
     }
 
     logOpenSessionTime(session->description(), channel);
@@ -755,6 +759,11 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
             channelInfo = it->second;
             d_channels.erase(it);
         }
+        // Cannot schedule 'disableHeartbeat' under lock because
+        // 1) We need the 'channel' to exist in 'disableHeartbeat'
+        // 2) Cannot bind 'channelInfo' to 'disableHeartbeat' because it can
+        //    destruct under 'EventScheduler' and call 'onSessionDestroyed'
+        //    introducing a deadlock.
         d_ports.onDeleteChannelContext(port);
     }  // close mutex lock guard                                      // UNLOCK
 
@@ -885,6 +894,17 @@ void TCPSessionFactory::logOpenSessionTime(
                 << "' took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
                 << " (" << elapsed << " nanoseconds)";
         }
+    }
+}
+
+void TCPSessionFactory::stopHeartbeats()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    if (d_heartbeatSchedulerActive) {
+        d_heartbeatSchedulerActive = false;
+        d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
+        d_heartbeatChannels.clear();
     }
 }
 
@@ -1185,17 +1205,7 @@ void TCPSessionFactory::stopListening()
 
     cancelListeners();
 
-    // NOTE: This is done here as a temporary workaround until channels are
-    //       properly stopped (see 'mqba::Application::stop'), because in the
-    //       current shutdown sequence, we 'stopListening()' and then
-    //       explicitly close each channel one by one in application layer,
-    //       instead of calling 'stop()'; therefore this would not allow the
-    //       optimization to 'bypass' the one-by-one disablement.
-    if (d_heartbeatSchedulerActive) {
-        d_heartbeatSchedulerActive = false;
-        d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
-        d_heartbeatChannels.clear();
-    }
+    stopHeartbeats();
 }
 
 void TCPSessionFactory::closeClients()
@@ -1268,11 +1278,7 @@ void TCPSessionFactory::stop()
     // 'd_heartbeatSchedulerActive' must be set to false prior to this cancel
     // event, so that 'onClose' of the channels will not try to uselessly
     // 'disableHeartbeat' on each channel, one-by-one.
-    if (d_heartbeatSchedulerActive) {
-        d_heartbeatSchedulerActive = false;
-        d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
-        d_heartbeatChannels.clear();
-    }
+    stopHeartbeats();
 
     // NOTE: We don't need to manually call 'teardown' on any active session in
     //       the 'd_channels' map: calling 'stop' on the channel factory will
