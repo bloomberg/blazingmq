@@ -3823,16 +3823,21 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     else {
         clusterData->messageTransmitter().broadcastMessageSafe(controlMsg);
     }
-    int rc = fs->issueSyncPoint();
+    const int                             rc = fs->issueSyncPoint();
+    bmqp_ctrlmsg::PartitionSequenceNumber psn;
+    psn.primaryLeaseId() = fs->primaryLeaseId();
+    psn.sequenceNumber() = fs->sequenceNumber();
     if (0 == rc) {
         BALL_LOG_INFO << clusterData->identity().description() << "Partition ["
                       << fs->config().partitionId()
-                      << "]: successfully issued a forced SyncPt.";
+                      << "]: successfully issued a forced SyncPt: " << psn
+                      << ".";
     }
     else {
         BALL_LOG_ERROR << clusterData->identity().description()
                        << "Partition [" << fs->config().partitionId()
-                       << "]: failed to force-issue SyncPt, rc: " << rc;
+                       << "]: failed to force-issue SyncPt, rc: " << rc
+                       << ", current partition sequence number: " << psn;
     }
 }
 

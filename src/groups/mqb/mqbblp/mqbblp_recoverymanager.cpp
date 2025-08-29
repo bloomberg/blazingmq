@@ -455,12 +455,18 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
     RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
 
     if (!recoveryCtx.inRecovery()) {
-        // Partition is not under recovery any longer.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], after recovery wait-time, is not under recovery "
+                      << "any longer.  Returning.";
         return;  // RETURN
     }
 
     if (recoveryCtx.recoveryPeer()) {
-        // Partition is already under active recovery.  Nothing else to do.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], after recovery wait-time, is already under "
+                      << "active recovery.  Nothing else to do.";
         return;  // RETURN
     }
 
@@ -518,7 +524,7 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
                           << ": Partition [" << partitionId
                           << "] will be truncated to the last syncPt "
                           << "offsets & then local recovery will be performed."
-                          << "Offset details: JOURNAL: "
+                          << " Offset details: JOURNAL: "
                           << recoveryCtx.oldSyncPointOffset()
                           << ", DATA: " << recoveryCtx.dataFileOffset()
                           << ", QLIST: " << recoveryCtx.qlistFileOffset();
