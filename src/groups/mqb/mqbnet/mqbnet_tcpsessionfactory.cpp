@@ -581,7 +581,7 @@ void TCPSessionFactory::initialConnectionComplete(
             // Enable/Disable heartbeating under the lock
             // If the 'result' below is 'false' and the channel gets closed,
             // then 'onClose' must be called and since the session is inserted
-            // into 'd_channels', 'onClose' will disable heartbeat under lock.
+            // into 'd_channels', 'onClose' will disable heartbeat.
             d_scheduler_p->scheduleEvent(
                 bsls::TimeInterval(0),
                 bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
@@ -761,24 +761,12 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         if (it != d_channels.end()) {
             channelInfo = it->second;
             d_channels.erase(it);
-
-            // Remove from heartbeat monitored channels under the lock
-            if (channelInfo->d_monitor.isHearbeatEnabled() &&
-                d_heartbeatSchedulerActive) {
-                // NOTE: When shutting down, we don't care about heartbeat
-                //       verifying the channel, therefore, as an optimization
-                //       to avoid the one-by-one disable for each channel (as
-                //       they all will get closed at this time), the 'stop()'
-                //       sequence cancels the recurring event and wait before
-                //       closing the channels, so we don't need to
-                //       'disableHeartbeat' in this case.
-                d_scheduler_p->scheduleEvent(
-                    bsls::TimeInterval(0),
-                    bdlf::BindUtil::bind(&TCPSessionFactory::disableHeartbeat,
-                                         this,
-                                         channelInfo));
-            }
         }
+        // Cannot schedule 'disableHeartbeat' under lock because
+        // 1) We need the 'channel' to exist in 'disableHeartbeat'
+        // 2) Cannot bind 'channelInfo' to 'disableHeartbeat' because it can
+        //    destruct under 'EventScheduler' and call 'onSessionDestroyed'
+        //    introducing a deadlock.
         d_ports.onDeleteChannelContext(port);
     }  // close mutex lock guard                                      // UNLOCK
 
@@ -803,6 +791,23 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         if (channelInfo->d_authenticationCtx_sp) {
             d_authenticator_p->onClose(channelInfo->d_authenticationCtx_sp);
+        }
+
+        // Synchronously remove from heartbeat monitored channels
+        if (channelInfo->d_monitor.isHearbeatEnabled() &&
+            d_heartbeatSchedulerActive) {
+            // NOTE: When shutting down, we don't care about heartbeat
+            //       verifying the channel, therefore, as an optimization to
+            //       avoid the one-by-one disable for each channel (as they all
+            //       will get closed at this time), the 'stop()' sequence
+            //       cancels the recurring event and wait before closing the
+            //       channels, so we don't need to 'disableHeartbeat' in this
+            //       case.
+            d_scheduler_p->scheduleEvent(
+                bsls::TimeInterval(0),
+                bdlf::BindUtil::bind(&TCPSessionFactory::disableHeartbeat,
+                                     this,
+                                     channelInfo));
         }
 
         // TearDown the session
