@@ -2627,16 +2627,6 @@ void StorageManager::do_processLiveData(const PartitionFSMArgsSp& args)
                             source);
 }
 
-void StorageManager::do_processPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
-{
-    // TODO: Complete Impl
-}
-
-void StorageManager::do_nackPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
-{
-    // TODO: Complete Impl
-}
-
 void StorageManager::do_cleanupMetadata(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
