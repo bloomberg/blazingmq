@@ -202,8 +202,6 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
         rc_INVALID_SEQ_NUM = -3  // Invalid sequence number
         ,
         rc_MAGIC_MISMATCH = -4  // Magic mismatch
-        ,
-        rc_NOT_ENOUGH_BYTES = -5  // Not enough bytes for the record
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -224,10 +222,9 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
             d_blockIter.isForwardIterator() &&
             d_blockIter.remaining() < d_recordSize)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        // Not enough bytes for a complete record.  This check makes sense only
-        // when iterating forward.
+        // At the end (if math was correct, d_blockIter.remaining() == 0)
         clear();
-        return rc_NOT_ENOUGH_BYTES;  // RETURN
+        return rc_AT_END;  // RETURN
     }
 
     // Validate RecordHeader.
