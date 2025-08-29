@@ -90,6 +90,10 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     ///   - `QueueUnAssignmentAdvisory`.
     bmqp_ctrlmsg::ClusterMessage d_clusterMessage;
 
+    /// Timestamp in nanoseconds at the moment when the replication of this
+    /// `ClusterMessage` started.
+    bsls::Types::Uint64 d_timestampNs;
+
     /// Number of ACKs received for this `ClusterMessage`.
     int d_ackCount;
 
@@ -418,6 +422,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 inline IncoreClusterStateLedger_ClusterMessageInfo ::
     IncoreClusterStateLedger_ClusterMessageInfo(bslma::Allocator* allocator)
 : d_clusterMessage(bslma::Default::allocator(allocator))
+, d_timestampNs(0)
 , d_ackCount(0)
 {
     // NOTHING
@@ -428,6 +433,7 @@ inline IncoreClusterStateLedger_ClusterMessageInfo ::
         const IncoreClusterStateLedger_ClusterMessageInfo& other,
         bslma::Allocator*                                  allocator)
 : d_clusterMessage(other.d_clusterMessage, allocator)
+, d_timestampNs(other.d_timestampNs)
 , d_ackCount(other.d_ackCount)
 {
     // NOTHING
