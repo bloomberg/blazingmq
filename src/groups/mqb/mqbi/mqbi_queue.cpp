@@ -48,6 +48,15 @@ bsl::ostream& operator<<(bsl::ostream&                   stream,
 // starts from zero.
 bsls::AtomicInt64 QueueHandleRequesterContext::s_previousRequesterId(-1);
 
+// ------------------
+// class InlineClient
+// ------------------
+
+InlineClient::~InlineClient()
+{
+    // NOTHING
+}
+
 // --------------------------
 // class QueueHandleRequester
 // --------------------------
