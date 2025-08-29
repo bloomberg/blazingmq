@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbc_storagemanager.cpp                                            -*-C++-*-
+#include "mqbc_partitionstatetable.h"
 #include <ball_log.h>
 #include <bsls_assert.h>
 #include <mqbc_storagemanager.h>
@@ -3408,6 +3409,35 @@ void StorageManager::do_reapplyDetectSelfReplica(
         d_partitionInfoVec[partitionId].primaryLeaseId());
     args->eventsQueue()->emplace(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                                  eventDataVecOut);
+}
+
+void StorageManager::do_unsupportedPrimaryDowngrade(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const int partitionId = eventDataVec[0].partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+    BSLS_ASSERT_SAFE(eventWithData.first ==
+                     PartitionFSM::Event::e_DETECT_SELF_REPLICA);
+
+    BMQTSK_ALARMLOG_ALARM("CLUSTER")
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: "
+        << "Downgrade from primary to replica is **UNSUPPORTED**. Terminating "
+        << "broker." << BMQTSK_ALARMLOG_END;
+    mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);  // EXIT
 }
 
 // PRIVATE ACCESSORS
