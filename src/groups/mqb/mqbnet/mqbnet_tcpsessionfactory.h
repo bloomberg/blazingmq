@@ -180,7 +180,7 @@ class TCPSessionFactory {
     /// Struct holding internal data associated to an active channel
     struct ChannelInfo {
         /// The channel
-        bmqio::Channel* d_channel_p;
+        bsl::shared_ptr<bmqio::Channel> d_channel_sp;
 
         // The context of authentication
         bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
@@ -193,7 +193,7 @@ class TCPSessionFactory {
 
         bmqp::HeartbeatMonitor d_monitor;
 
-        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel,
+        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
                              const InitialConnectionContext&        context,
                              int initialMissedHeartbeatCounter,
                              const bsl::shared_ptr<Session>& monitoredSession);
@@ -241,7 +241,8 @@ class TCPSessionFactory {
 
     /// Map associating a `Channel` to its corresponding `ChannelInfo` (as
     /// shared_ptr because of the atomicInt which has no copy constructor).
-    typedef bsl::unordered_map<bmqio::Channel*, ChannelInfoSp> ChannelMap;
+    typedef bsl::unordered_map<const bmqio::Channel*, ChannelInfoSp>
+        ChannelMap;
 
     /// Shortcut for a managedPtr to the `bmqio::TCPChannelFactory`
     typedef bslma::ManagedPtr<bmqio::ChannelFactory> TCPChannelFactoryMp;
@@ -343,7 +344,7 @@ class TCPSessionFactory {
 
     /// Map of all channels which are heartbeat enabled; only manipulated from
     /// the event scheduler thread.
-    bsl::unordered_map<bmqio::Channel*, ChannelInfo*> d_heartbeatChannels;
+    ChannelMap d_heartbeatChannels;
 
     /// Value for initializing `ChannelInfo.d_missedHeartbeatCounter`.  See
     /// comments in `calculateInitialMissedHbCounter`.
@@ -465,13 +466,11 @@ class TCPSessionFactory {
 
     /// Enable heartbeat for the channel represented by the specified
     /// `channelInfo`.
-    void enableHeartbeat(ChannelInfo* channelInfo);
+    void enableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
 
     /// Disable heartbeat for the channel represented by the specified
-    /// `channelInfo`.  Note that `channelInfo` is passed as a shared_ptr to
-    /// guarantee thread safety and that the object is still alive until the
-    /// event scheduler processes it.
-    void disableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
+    /// `channel_p`.
+    void disableHeartbeat(const bmqio::Channel* channel_p);
 
     /// Log open session time for the specified `sessionDescription` and
     /// `channel`, using the stored begin
