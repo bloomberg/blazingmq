@@ -78,8 +78,9 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-
 #include <mqbcfg_messages.h>
+#include <mqbnet_authenticator.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
 
@@ -181,6 +182,9 @@ class TCPSessionFactory {
         /// The channel
         bmqio::Channel* d_channel_p;
 
+        // The context of authentication
+        bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
+
         /// The session tied to the channel
         bsl::shared_ptr<Session> d_session_sp;
 
@@ -276,6 +280,9 @@ class TCPSessionFactory {
 
     /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
+
+    /// Authenticator to use for authentication
+    Authenticator* d_authenticator_p;
 
     /// Initial Connection Handler to use for orchestraing
     /// authentication and negotiation
@@ -396,21 +403,22 @@ class TCPSessionFactory {
                       bdlbb::Blob*         blob,
                       ChannelInfo*         channelInfo);
 
-    /// Method invoked when the negotiation of the specified `channel` is
-    /// complete, whether it be success or failure.  The specified
-    /// `context` is the `OperationContext` struct created during the
-    /// listen or connect call that is responsible for this negotiation (and
-    /// hence, in the case of `listen`, is common for all sessions
-    /// negotiated); while the specified `negotiatorContext` corresponds to
-    /// the unique context passed in to the `negotiate` method of the
-    /// Negotiator, for that `channel`.  If the specified `statusCode` is 0,
-    /// the negotiation was a success and the specified `session` contains
-    /// the negotiated session.  If `status` is non-zero, the negotiation
-    /// was a failure and `session` will be null, with the specified
-    /// `errorDescription` containing a description of the error.  In either
-    /// case, the specified `callback` must be invoked to notify the channel
-    /// factory of the status.
-    void negotiationComplete(
+    /// Method invoked when the initial connection (including authentication
+    /// and negotiation) of the specified `channel` is complete, whether it be
+    /// success or failure.  The specified `userData` is the `OperationContext`
+    /// struct created during the listen or connect call that is responsible
+    /// for this negotiation (and hence, in the case of `listen`, is common for
+    /// all sessions negotiated); while the specified
+    /// `initialConnectionContext_p` corresponds to the unique context passed
+    /// it to the `handleInitialConnection` method of the
+    /// InitialConnectionHandler, for that `channel`.  If the specified
+    /// `statusCode` is 0, the initial connection was a success and the
+    /// specified `session` contains the negotiated session. If `status` is
+    /// non-zero, the initial connection was a failure and `session` will be
+    /// null, with the specified `errorDescription` containing a description of
+    /// the error.  In either case, the specified `callback` must be invoked to
+    /// notify the channel factory of the status.
+    void initialConnectionComplete(
         int                                      statusCode,
         const bsl::string&                       errorDescription,
         const bsl::shared_ptr<Session>&          session,
@@ -446,8 +454,9 @@ class TCPSessionFactory {
     /// the channel's status, `userData` corresponding to the one provided
     /// when calling `addObserver` to register this object as observer of
     /// the channel.
-    virtual void onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
-                         const bmqio::Status&                   status);
+    virtual void
+    onClose(bsl::shared_ptr<InitialConnectionContext> initialConnectionContext,
+            const bmqio::Status&                      status);
 
     /// Reccuring scheduler event to check for all `heartbeat-enabled`
     /// channels : this will send a heartbeat if no data has been received
@@ -483,6 +492,9 @@ class TCPSessionFactory {
     /// Cancel any open listener operations and clear them out.
     void cancelListeners();
 
+    /// Stop all hearbeats
+    void stopHeartbeats();
+
   private:
     // NOT IMPLEMENTED
 
@@ -505,6 +517,7 @@ class TCPSessionFactory {
     TCPSessionFactory(const mqbcfg::TcpInterfaceConfig& config,
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
+                      Authenticator*                    authenticator,
                       InitialConnectionHandler* initialConnectionHandler,
                       mqbstat::StatController*  statController,
                       bslma::Allocator*         allocator);
@@ -556,9 +569,9 @@ class TCPSessionFactory {
     /// optionally specified `resultState` will be used to set the initial
     /// value of the corresponding member of the `InitialConnectionContext`
     /// that will be created for negotiation of this session; so that it can be
-    /// retrieved in the `negotiationComplete` callback method.  The optionally
-    /// specified `shouldAutoReconnect` will be used to determine if the
-    /// factory should attempt to reconnect upon loss of connection.
+    /// retrieved in the `initialConnectionComplete` callback method.  The
+    /// optionally specified `shouldAutoReconnect` will be used to determine if
+    /// the factory should attempt to reconnect upon loss of connection.
     int connect(const bslstl::StringRef& endpoint,
                 const ResultCallback&    resultCallback,
                 bslma::ManagedPtr<void>* negotiationUserData = 0,

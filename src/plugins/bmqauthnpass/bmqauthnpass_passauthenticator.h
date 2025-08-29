@@ -86,7 +86,8 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
 class PassAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static constexpr const char* k_NAME = "PassAuthenticator";
+    static constexpr const char* k_NAME      = "PassAuthenticator";
+    static constexpr const char* k_MECHANISM = "Basic";
 
   private:
     // CLASS-SCOPE CATEGORY
