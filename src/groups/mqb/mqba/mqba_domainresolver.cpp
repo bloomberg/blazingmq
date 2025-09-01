@@ -16,11 +16,12 @@
 // mqba_domainresolver.cpp                                            -*-C++-*-
 #include <mqba_domainresolver.h>
 
-#include <mqbscm_version.h>
 // MQB
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
+#include <mqbconfm_messages.h>
+#include <mqbscm_version.h>
 
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
@@ -85,8 +86,9 @@ void DomainResolver::updateTimestamps()
     d_timestampsValidUntil = now + k_DIR_CHECK_TTL;
 }
 
-bool DomainResolver::cacheLookup(mqbconfm::DomainResolver* out,
-                                 const bslstl::StringRef&  domainName)
+bool DomainResolver::cacheLookup(bsl::string*             resolvedDomainName,
+                                 bsl::string*             clusterName,
+                                 const bslstl::StringRef& domainName)
 {
     // executed by the thread that holds the 'd_mutex'
 
@@ -110,13 +112,16 @@ bool DomainResolver::cacheLookup(mqbconfm::DomainResolver* out,
         return false;  // RETURN
     }
 
-    *out = it->second.d_data;  // Assign a copy of the object
+    // Copy cached data.
+    *resolvedDomainName = it->second.d_name;
+    *clusterName        = it->second.d_cluster;
     return true;
 }
 
-int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
-                              mqbconfm::DomainResolver* out,
-                              const bslstl::StringRef&  domainName)
+int DomainResolver::getOrRead(bsl::ostream&            errorDescription,
+                              bsl::string*             resolvedDomainName,
+                              bsl::string*             clusterName,
+                              const bslstl::StringRef& domainName)
 {
     // executed by *ANY* thread
 
@@ -126,7 +131,7 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
     updateTimestamps();
 
     // First, check in the cache
-    if (cacheLookup(out, domainName)) {
+    if (cacheLookup(resolvedDomainName, clusterName, domainName)) {
         BALL_LOG_INFO << "Domain '" << domainName << "' resolved from cache";
         return 0;  // RETURN
     }
@@ -143,13 +148,14 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
 
     int         rc = rc_SUCCESS;
     bsl::string content;
-    bsl::string resolvedDomainName = domainName;
-    int         redirection        = 0;
+    int         redirection = 0;
+
+    bsl::string redirectedDomainName = domainName;
 
     for (; redirection < 2; ++redirection) {
         // 1. read config
         bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() +
-                               "/domains/" + resolvedDomainName + ".json";
+                               "/domains/" + redirectedDomainName + ".json";
 
         // This is copy-pasted from mqba_configprovider.cpp. Maybe we are
         // going to merge the two? If not, consider factoring this bit.
@@ -232,25 +238,26 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
         }
 
         if (domainVariant.isRedirectValue()) {
-            BALL_LOG_INFO << "Redirecting " << resolvedDomainName << " to "
+            BALL_LOG_INFO << "Redirecting " << redirectedDomainName << " to "
                           << domainVariant.redirect();
-            resolvedDomainName = domainVariant.redirect();
+            redirectedDomainName = domainVariant.redirect();
             continue;
         }
 
         // Add to cache
         CacheEntry cacheEntry;
-        cacheEntry.d_data.name()    = resolvedDomainName;
-        cacheEntry.d_data.cluster() = domainVariant.definition().location();
-        *out                        = cacheEntry.d_data;
+        cacheEntry.d_name    = redirectedDomainName;
+        cacheEntry.d_cluster = domainVariant.definition().location();
         // REVIEW: suggestion: s/location/cluster/
         cacheEntry.d_cfgDirTimestamp = d_lastCfgDirTimestamp;
         // This is fine, because we updated
         // them by calling
         // 'updateTimestamps()'.
-
         d_cache[domainName] = cacheEntry;
 
+        // Copy resolved data.
+        *resolvedDomainName = cacheEntry.d_name;
+        *clusterName        = cacheEntry.d_cluster;
         return rc_SUCCESS;  // RETURN
     }
 
@@ -294,14 +301,18 @@ void DomainResolver::stop()
 }
 
 bmqp_ctrlmsg::Status
-DomainResolver::getOrReadDomain(mqbconfm::DomainResolver* out,
-                                const bslstl::StringRef&  domainName)
+DomainResolver::getOrReadDomain(bsl::string*             resolvedDomainName,
+                                bsl::string*             clusterName,
+                                const bslstl::StringRef& domainName)
 {
     // executed by *ANY* thread
 
     bmqu::MemOutStream errorDescription;
 
-    int rc = getOrRead(errorDescription, out, domainName);
+    int rc = getOrRead(errorDescription,
+                       resolvedDomainName,
+                       clusterName,
+                       domainName);
 
     bmqp_ctrlmsg::Status status;
     status.category() = (rc == 0 ? bmqp_ctrlmsg::StatusCategory::E_SUCCESS
@@ -319,10 +330,13 @@ void DomainResolver::qualifyDomain(
 {
     // executed by *ANY* thread
 
-    mqbconfm::DomainResolver response;
-    bmqp_ctrlmsg::Status     status = getOrReadDomain(&response, domainName);
+    bsl::string          resolvedDomainName;
+    bsl::string          clusterName;
+    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName,
+                                                  &clusterName,
+                                                  domainName);
 
-    callback(status, response.name());
+    callback(status, resolvedDomainName);
 }
 
 void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
@@ -330,10 +344,13 @@ void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
 {
     // executed by *ANY* thread
 
-    mqbconfm::DomainResolver response;
-    bmqp_ctrlmsg::Status     status = getOrReadDomain(&response, domainName);
+    bsl::string          resolvedDomainName;
+    bsl::string          clusterName;
+    bmqp_ctrlmsg::Status status = getOrReadDomain(&resolvedDomainName,
+                                                  &clusterName,
+                                                  domainName);
 
-    callback(status, response.cluster());
+    callback(status, clusterName);
 }
 
 void DomainResolver::clearCache(const bslstl::StringRef& domainName)
