@@ -87,7 +87,7 @@ class BrokerStats {
     /// Namespace for the constants of stat values that applies to the queues
     /// from the clients
     struct BrokerStatsIndex {
-        enum Enum { e_STAT_QUEUE_COUNT, e_STAT_CLIENT_COUNT };
+        enum Enum { e_STAT_CLIENT_COUNT, e_STAT_QUEUE_COUNT };
     };
 
   private:

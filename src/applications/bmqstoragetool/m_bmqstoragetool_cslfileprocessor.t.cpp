@@ -189,10 +189,10 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
 
         return mqbc::ClusterStateRecordType::e_ACK;
     }
+    default:
+        BSLS_ASSERT(false && "Unreachable by design.");
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    BSLS_ASSERT_OPT(false && "Unreachable by design.");
-    return mqbc::ClusterStateRecordType::e_UNDEFINED;
 }
 
 int extractLogIdCallback(mqbu::StorageKey*                      logId,

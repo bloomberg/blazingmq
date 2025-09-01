@@ -49,6 +49,7 @@ const char* PluginType::toAscii(PluginType::Enum value)
 
     switch (value) {
         CASE(STATS_CONSUMER)
+        CASE(AUTHENTICATOR)
     default: return "(* UNKNOWN *)";
     }
 

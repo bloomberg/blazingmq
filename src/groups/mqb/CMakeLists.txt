@@ -23,6 +23,16 @@ set_property(SOURCE "mqba/mqba_application.cpp"
 set(MQB_PRIVATE_PACKAGES mqba mqbblp mqbc mqbcmd mqbconfm mqbi mqbmock mqbnet mqbs mqbsi mqbsl mqbu)
 target_bmq_style_uor( mqb PRIVATE_PACKAGES ${MQB_PRIVATE_PACKAGES})
 
+# Turn off warnings in generated code.
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang")
+    set_property(SOURCE "mqbcfg/mqbcfg_messages.cpp"
+                        "mqbcmd/mqbcmd_messages.cpp"
+                        "mqbconfm/mqbconfm_messages.cpp"
+                 APPEND
+                 PROPERTY COMPILE_OPTIONS "-Wno-everything"
+    )
+endif()
+
 # Extras package containing the plugin headers
 bbs_read_metadata(GROUP mqb SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 target_sources(bmqbrkr_plugins PUBLIC FILE_SET HEADERS

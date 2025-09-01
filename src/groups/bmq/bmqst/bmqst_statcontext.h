@@ -497,6 +497,7 @@
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>  // BSLA_UNREACHABLE
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_allocatorargt.h>
@@ -1189,6 +1190,7 @@ inline const StatValue& StatContext::value(ValueType valueType,
         break;
     case e_DIRECT_VALUE: valueVec = d_directValues_p.ptr(); break;
     case e_EXPIRED_VALUE: valueVec = d_expiredValues_p.ptr(); break;
+    default: BSLA_UNREACHABLE;
     }
 
     return (*valueVec)[valueIndex];

@@ -377,20 +377,14 @@ class DataStoreConfig {
 
     typedef mqbi::Storage::AppInfos AppInfos;
 
-    typedef bsl::function<void(int*                    status,
-                               int                     partitionId,
+    // TODO: Temporarily. Remove after all versions wait for CSL commits
+    // before calling onQueueAssigned/onQueueUpdated.
+    typedef bsl::function<void(int                     partitionId,
                                const bmqt::Uri&        uri,
                                const mqbu::StorageKey& queueKey,
                                const AppInfos&         appIdKeyPairs,
                                bool                    isNewQueue)>
         QueueCreationCb;
-
-    typedef bsl::function<void(int*                    status,
-                               int                     partitionId,
-                               const bmqt::Uri&        uri,
-                               const mqbu::StorageKey& queueKey,
-                               const mqbu::StorageKey& appKey)>
-        QueueDeletionCb;
 
     /// Signature of callback used by `mqbs::FileStore` to indicate the list
     /// of file-backed queues (and metadata) retrieved during recovery
@@ -430,6 +424,8 @@ class DataStoreConfig {
 
     bsls::Types::Uint64 d_maxQlistFileSize;
 
+    QueueCreationCb d_queueCreationCb;
+
     RecoveredQueuesCb d_recoveredQueuesCb;
 
     int d_maxArchivedFileSets;
@@ -451,6 +447,7 @@ class DataStoreConfig {
     DataStoreConfig& setMaxDataFileSize(bsls::Types::Uint64 value);
     DataStoreConfig& setMaxJournalFileSize(bsls::Types::Uint64 value);
     DataStoreConfig& setMaxQlistFileSize(bsls::Types::Uint64 value);
+    DataStoreConfig& setQueueCreationCb(const QueueCreationCb& value);
     DataStoreConfig& setRecoveredQueuesCb(const RecoveredQueuesCb& value);
 
     /// Set the corresponding member to the specified `value` and return a
@@ -470,6 +467,7 @@ class DataStoreConfig {
     bsls::Types::Uint64       maxDataFileSize() const;
     bsls::Types::Uint64       maxJournalFileSize() const;
     bsls::Types::Uint64       maxQlistFileSize() const;
+    const QueueCreationCb&    queueCreationCb() const;
     const RecoveredQueuesCb&  recoveredQueuesCb() const;
 
     /// Return the value of the corresponding member.
@@ -1033,6 +1031,13 @@ DataStoreConfig::setMaxQlistFileSize(bsls::Types::Uint64 value)
 }
 
 inline DataStoreConfig&
+DataStoreConfig::setQueueCreationCb(const QueueCreationCb& value)
+{
+    d_queueCreationCb = value;
+    return *this;
+}
+
+inline DataStoreConfig&
 DataStoreConfig::setRecoveredQueuesCb(const RecoveredQueuesCb& value)
 {
     d_recoveredQueuesCb = value;
@@ -1104,6 +1109,12 @@ inline bsls::Types::Uint64 DataStoreConfig::maxJournalFileSize() const
 inline bsls::Types::Uint64 DataStoreConfig::maxQlistFileSize() const
 {
     return d_maxQlistFileSize;
+}
+
+inline const DataStoreConfig::QueueCreationCb&
+DataStoreConfig::queueCreationCb() const
+{
+    return d_queueCreationCb;
 }
 
 inline const DataStoreConfig::RecoveredQueuesCb&

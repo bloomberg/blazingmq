@@ -50,6 +50,7 @@ void updateRecordCount(CslRecordCount*                    recordCount_p,
     case mqbc::ClusterStateRecordType::e_ACK:
         recordCount_p->d_ackCount++;
         break;
+    case mqbc::ClusterStateRecordType::e_UNDEFINED:
     default: BSLS_ASSERT(false && "Unknown record type");
     }
 }

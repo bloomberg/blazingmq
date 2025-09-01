@@ -1644,6 +1644,10 @@ inline FutureSharedState<R>::~FutureSharedState()
         reinterpret_cast<Buffer*>(&d_result)->object().~ExceptionObjType();
         break;  // BREAK
     }
+    default: {
+        // Unreachable code, but makes the compiler happy.
+        BSLS_ASSERT(false);
+    }
     }
 }
 
@@ -1817,11 +1821,12 @@ inline R& FutureSharedState<R>::get()
         typedef bsls::ObjectBuffer<ExceptionObjType> Buffer;
         reinterpret_cast<Buffer*>(&d_result)->object().emit();  // THROW
     }
+    default: {
+        // Unreachable code, but makes the compiler happy.
+        BSLS_ASSERT(false);
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    // Unreachable code, but makes the compiler happy.
-    BSLS_ASSERT(false);
-    return *reinterpret_cast<R*>(0x42);
+    }
 }
 
 template <class R>

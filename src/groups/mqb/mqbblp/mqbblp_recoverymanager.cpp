@@ -1566,7 +1566,12 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         break;  // BREAK
 
     case bmqp::RecoveryFileChunkType::e_UNDEFINED:
-        BSLS_ASSERT_SAFE(false);
+        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+        break;  // BREAK
+
+    default:
+        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+        BSLA_UNREACHABLE;
         break;  // BREAK
     }
 
@@ -3438,6 +3443,16 @@ void RecoveryManager::processRecoveryEvent(
 
         case bmqp::RecoveryFileChunkType::e_UNDEFINED:
             BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+            break;  // BREAK
+
+        default:
+            BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                << d_clusterData_p->identity().description()
+                << ": For Partition [" << partitionId
+                << "], received unknown file chunk type: "
+                << header.fileChunkType()
+                << ", from: " << source->nodeDescription() << "."
+                << BMQTSK_ALARMLOG_END;
         }
 
         BSLS_ASSERT_SAFE(isData || isJournal || isQlist);

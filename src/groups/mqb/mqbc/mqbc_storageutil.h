@@ -120,7 +120,6 @@ struct StorageUtil {
         QueueKeyInfoMapConstIter;
 
     typedef mqbs::DataStoreConfig::QueueCreationCb   QueueCreationCb;
-    typedef mqbs::DataStoreConfig::QueueDeletionCb   QueueDeletionCb;
     typedef mqbs::DataStoreConfig::RecoveredQueuesCb RecoveredQueuesCb;
 
     typedef mqbi::StorageManager_PartitionInfo PartitionInfo;
@@ -496,17 +495,19 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster *DISPATCHER* thread.
     static int assignPartitionDispatcherThreads(
-        bdlmt::FixedThreadPool*        threadPool,
-        mqbc::ClusterData*             clusterData,
-        const mqbi::Cluster&           cluster,
-        mqbi::Dispatcher*              dispatcher,
-        const mqbcfg::PartitionConfig& config,
-        FileStores*                    fileStores,
-        BlobSpPool*                    blobSpPool,
-        bmqma::CountingAllocatorStore* allocators,
-        bsl::ostream&                  errorDescription,
-        int                            replicationFactor,
-        const RecoveredQueuesCb&       recoveredQueuesCb);
+        bdlmt::FixedThreadPool*                     threadPool,
+        mqbc::ClusterData*                          clusterData,
+        const mqbi::Cluster&                        cluster,
+        mqbi::Dispatcher*                           dispatcher,
+        const mqbcfg::PartitionConfig&              config,
+        FileStores*                                 fileStores,
+        BlobSpPool*                                 blobSpPool,
+        bmqma::CountingAllocatorStore*              allocators,
+        bsl::ostream&                               errorDescription,
+        int                                         replicationFactor,
+        const RecoveredQueuesCb&                    recoveredQueuesCb,
+        const bdlb::NullableValue<QueueCreationCb>& queueCreationCb =
+            bdlb::NullableValue<QueueCreationCb>());
 
     /// Clear the specified `primary` of the specified `partitionId` from
     /// the specified `fs` and `partitionInfo`, using the specified
@@ -660,33 +661,29 @@ struct StorageUtil {
                                   const AppInfos&         removedIdKeyPairs);
 
     static void
-    registerQueueReplicaDispatched(int*                 status,
-                                   StorageSpMap*        storageMap,
-                                   bslmt::Mutex*        storagesLock,
-                                   mqbs::FileStore*     fs,
-                                   mqbi::DomainFactory* domainFactory,
-                                   bmqma::CountingAllocatorStore* allocators,
-                                   const bsl::string&      clusterDescription,
-                                   int                     partitionId,
-                                   const bmqt::Uri&        uri,
-                                   const mqbu::StorageKey& queueKey,
-                                   mqbi::Domain*           domain = 0,
-                                   bool allowDuplicate            = false);
+    createQueueStorageDispatched(StorageSpMap*           storageMap,
+                                 bslmt::Mutex*           storagesLock,
+                                 mqbs::FileStore*        fs,
+                                 mqbi::DomainFactory*    domainFactory,
+                                 const bsl::string&      clusterDescription,
+                                 int                     partitionId,
+                                 const bmqt::Uri&        uri,
+                                 const mqbu::StorageKey& queueKey,
+                                 const AppInfos&         appIdKeyPairs,
+                                 mqbi::Domain*           domain);
 
     static void
-    unregisterQueueReplicaDispatched(int*               status,
-                                     StorageSpMap*      storageMap,
-                                     bslmt::Mutex*      storagesLock,
-                                     mqbs::FileStore*   fs,
-                                     const bsl::string& clusterDescription,
-                                     int                partitionId,
-                                     const bmqt::Uri&   uri,
-                                     const mqbu::StorageKey& queueKey,
-                                     const mqbu::StorageKey& appKey);
+    removeQueueStorageDispatched(StorageSpMap*           storageMap,
+                                 bslmt::Mutex*           storagesLock,
+                                 mqbs::FileStore*        fs,
+                                 const bsl::string&      clusterDescription,
+                                 int                     partitionId,
+                                 const bmqt::Uri&        uri,
+                                 const mqbu::StorageKey& queueKey,
+                                 const mqbu::StorageKey& appKey);
 
     static void
-    updateQueueReplicaDispatched(int*                    status,
-                                 StorageSpMap*           storageMap,
+    updateQueueStorageDispatched(StorageSpMap*           storageMap,
                                  bslmt::Mutex*           storagesLock,
                                  mqbi::DomainFactory*    domainFactory,
                                  const bsl::string&      clusterDescription,
@@ -694,8 +691,7 @@ struct StorageUtil {
                                  const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  const AppInfos&         addedIdKeyPairs,
-                                 mqbi::Domain*           domain = 0,
-                                 bool allowDuplicate            = false);
+                                 mqbi::Domain*           domain = 0);
 
     /// Executed by queue-dispatcher thread with the specified
     /// `processorId`.
