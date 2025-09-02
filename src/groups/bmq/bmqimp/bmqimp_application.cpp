@@ -606,10 +606,12 @@ Application::Application(
       allocator)
 , d_authenticatedChannelFactory(
       AuthenticatedChannelFactoryConfig(&d_statChannelFactory,
+                                        &d_scheduler,
                                         sessionOptions.authnCredentialCb(),
                                         sessionOptions.connectTimeout(),
                                         d_blobSpPool_sp.get(),
-                                        allocator))
+                                        allocator),
+      allocator)
 , d_negotiatedChannelFactory(
       NegotiatedChannelFactoryConfig(&d_authenticatedChannelFactory,
                                      negotiationMessage,

@@ -73,11 +73,13 @@ enum RcEnum {
 
 AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
     bmqio::ChannelFactory*    base,
+    bdlmt::EventScheduler*    scheduler,
     AuthnCredentialCb         authnCredentialCb,
     const bsls::TimeInterval& authenticationTimeout,
     BlobSpPool*               blobSpPool_p,
     bslma::Allocator*         basicAllocator)
 : d_baseFactory_p(base)
+, d_scheduler_p(scheduler)
 , d_authnCredentialCb(authnCredentialCb)
 , d_authenticationTimeout(authenticationTimeout)
 , d_blobSpPool_p(blobSpPool_p)
@@ -85,12 +87,15 @@ AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
 {
     // PRECONDITIONS
     BSLS_ASSERT(base);
+    BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==
+                     bsls::SystemClockType::e_MONOTONIC);
 }
 
 AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
     const AuthenticatedChannelFactoryConfig& original,
     bslma::Allocator*                        basicAllocator)
 : d_baseFactory_p(original.d_baseFactory_p)
+, d_scheduler_p(original.d_scheduler_p)
 , d_authnCredentialCb(original.d_authnCredentialCb)
 , d_authenticationTimeout(original.d_authenticationTimeout)
 , d_blobSpPool_p(original.d_blobSpPool_p)
@@ -342,8 +347,8 @@ void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
         const int intervalMs           = bsl::min(intervalMsWithRatio,
                                         intervalMsWithBuffer);
 
-        d_scheduler.scheduleRecurringEvent(
-            &d_authnEventHandle,
+        // Pening events will be cancelled when Application stops.
+        d_config.d_scheduler_p->scheduleRecurringEvent(
             bsls::TimeInterval(intervalMs),
             bdlf::BindUtil::bind(
                 bmqu::WeakMemFnUtil::weakMemFn(
@@ -361,8 +366,6 @@ AuthenticatedChannelFactory::AuthenticatedChannelFactory(
     const Config&     config,
     bslma::Allocator* basicAllocator)
 : d_config(config, basicAllocator)
-, d_scheduler(bsls::SystemClockType::e_MONOTONIC, basicAllocator)
-, d_authnEventHandle()
 , d_self(this)  // use default allocator
 {
     // NOTHING
@@ -373,22 +376,6 @@ AuthenticatedChannelFactory::~AuthenticatedChannelFactory()
     // synchronize with any currently running callbacks and prevent future
     // callback invocations
     d_self.invalidate();
-}
-
-int AuthenticatedChannelFactory::start()
-{
-    int rc = d_scheduler.start();
-    if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to start event scheduler [rc: " << rc << "]";
-    }
-    return rc;
-}
-
-void AuthenticatedChannelFactory::stop()
-{
-    // Cancel any scheduled reauthentication events
-    d_scheduler.cancelEvent(&d_authnEventHandle);
-    d_scheduler.stop();
 }
 
 // MANIPULATORS
