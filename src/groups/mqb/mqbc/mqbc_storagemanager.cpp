@@ -2785,8 +2785,8 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 f);
             if (rc != 0) {
                 BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                               << " Partition [" << partitionId << "]: "
-                               << "Failure while sending data chunks to "
+                               << " Partition [" << partitionId
+                               << "]: Failure while sending data chunks to "
                                << destNode << ", beginSeqNum = " << beginSeqNum
                                << ", endSeqNum = " << endSeqNum
                                << ", rc = " << rc;
