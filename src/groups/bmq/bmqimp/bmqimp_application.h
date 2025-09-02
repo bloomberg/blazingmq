@@ -94,38 +94,38 @@ class Application {
     BALL_LOG_SET_CLASS_CATEGORY("BMQIMP.APPLICATION");
 
     // DATA
+
+    /// Stat context for counting allocators
     bmqst::StatContext d_allocatorStatContext;
-    // Stat context for counting allocators
 
+    /// Counting allocator
     bmqma::CountingAllocator d_allocator;
-    // Counting allocator
 
+    /// Allocator store to spawn new
+    /// allocators for sub-components
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new
-    // allocators for sub-components
 
+    /// Top level stat context for all stats
     bmqst::StatContext d_rootStatContext;
-    // Top level stat context for all stats
 
+    /// Top level stat context for channels
     bslma::ManagedPtr<bmqst::StatContext> d_channelsStatContext_mp;
-    // Top level stat context for channels
 
+    /// Options to configure this application
     bmqt::SessionOptions d_sessionOptions;
-    // Options to configure this
-    // application
 
     bmqst::Table d_channelsTable;
 
     bmqst::BasicTableInfoProvider d_channelsTip;
 
+    /// Factory for blob buffers
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
-    // Factory for blob buffers
 
     /// Shared pointer to the pool of shared pointers to blobs.
     BlobSpPoolSp d_blobSpPool_sp;
 
+    /// Scheduler
     bdlmt::EventScheduler d_scheduler;
-    // Scheduler
 
     bmqio::NtcChannelFactory d_channelFactory;
 
@@ -141,27 +141,22 @@ class Application {
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
+    /// The 'persistent' broker session state
     BrokerSession d_brokerSession;
-    // The 'persistent' broker session
-    // state
 
+    /// Timer Event handle for 'async' start timeout
     bdlmt::EventScheduler::EventHandle d_startTimeoutHandle;
-    // Timer Event handle for 'async' start
-    // timeout
 
+    /// Timer Event handle for statistics snaphot
     bdlmt::EventScheduler::RecurringEventHandle d_statSnaphotTimerHandle;
-    // Timer Event handle for statistics
-    // snaphot
 
+    /// Counter decremented at every stat snapshot,
+    /// to know when to dump the stats
     int d_nextStatDump;
-    // Counter decremented at every stat
-    // snapshot, to know when to dump the
-    // stats
 
+    /// HiRes timer value of the last time the snapshot was performed on the
+    /// Counting Allocators context
     bsls::Types::Int64 d_lastAllocatorSnapshot;
-    // HiRes timer value of the last time
-    // the snapshot was performed on the
-    // Counting Allocators context
 
     /// Scheduler handle of the recurring event to monitor channels heartbeats.
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
