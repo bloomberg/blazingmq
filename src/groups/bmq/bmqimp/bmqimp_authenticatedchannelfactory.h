@@ -67,10 +67,15 @@ class AuthenticatedChannelFactoryConfig {
   private:
     // PRIVATE DATA
     bmqio::ChannelFactory* d_baseFactory_p;
-    AuthnCredentialCb      d_authnCredentialCb;
-    bsls::TimeInterval     d_authenticationTimeout;
-    BlobSpPool*            d_blobSpPool_p;
-    bslma::Allocator*      d_allocator_p;
+
+    /// Used to schedule events for sending reauthentication requests.
+    /// Held, not owned.
+    bdlmt::EventScheduler* d_scheduler_p;
+
+    AuthnCredentialCb  d_authnCredentialCb;
+    bsls::TimeInterval d_authenticationTimeout;
+    BlobSpPool*        d_blobSpPool_p;
+    bslma::Allocator*  d_allocator_p;
 
     // FRIENDS
     friend class AuthenticatedChannelFactory;
@@ -83,6 +88,7 @@ class AuthenticatedChannelFactoryConfig {
     // CREATORS
     AuthenticatedChannelFactoryConfig(
         bmqio::ChannelFactory*    base,
+        bdlmt::EventScheduler*    scheduler,
         AuthnCredentialCb         authnCredentialCb,
         const bsls::TimeInterval& authenticationTimeout,
         BlobSpPool*               blobSpPool_p,
@@ -118,13 +124,7 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     // PRIVATE DATA
     Config d_config;
 
-    // Used to schedule events for sending reauthentication requests.
-    bdlmt::EventScheduler d_scheduler;
-
-    // Event handle for reauthentication events.
-    EventHandle d_authnEventHandle;
-
-    // Used to make sure no callback is invoked on a destroyed object.
+    /// Used to make sure no callback is invoked on a destroyed object.
     mutable bmqu::SharedResource<AuthenticatedChannelFactory> d_self;
 
     // NOT IMPLEMENTED
@@ -176,10 +176,6 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
 
   public:
     // MANIPULATORS
-    int start();
-
-    void stop();
-
     void listen(bmqio::Status*               status,
                 bslma::ManagedPtr<OpHandle>* handle,
                 const bmqio::ListenOptions&  options,
