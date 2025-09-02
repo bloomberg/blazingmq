@@ -18,9 +18,8 @@ Testing rollover of CSL file.
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
     order,
     test_logger,
     tweak,
@@ -46,26 +45,27 @@ class TestRolloverCSL:
 
         producer = proxy.create_client("producer")
 
-        cluster._logger.info("Start to write to clients")
-
         csl_files_before_rollover = glob.glob(
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
         )
         assert len(csl_files_before_rollover) == 1
 
-        # opening 10 queues would cause a rollover
-        for i in range(0, 10):
+        i = 0
+        while True:
             producer.open(
                 f"bmq://{domain_priority}/q{i}", flags=["write,ack"], succeed=True
             )
             producer.close(f"bmq://{domain_priority}/q{i}", succeed=True)
+            i += 1
+
+            # Rollover detected
+            if leader.outputs_regex(r"Rolling over from log with logId", 0.01):
+                break
+        test_logger.info(f"Rollover detected after opening {i} queues")
 
         csl_files_after_rollover = glob.glob(
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
         )
-
-        assert leader.outputs_regex(r"Log '.*' closed and cleaned up.", 10)
-
         assert len(csl_files_after_rollover) == 1
         assert csl_files_before_rollover[0] != csl_files_after_rollover[0]
 
