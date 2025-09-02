@@ -3864,7 +3864,7 @@ void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
     // means that there must be space for at least 2 journal records.
 
     issueSyncPointInternal(SyncPointType::e_REGULAR,
-                           false);  // ImmediateFlush flag
+                           true);  // ImmediateFlush flag
 }
 
 int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
