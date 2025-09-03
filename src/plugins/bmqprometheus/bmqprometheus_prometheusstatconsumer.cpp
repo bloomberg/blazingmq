@@ -740,9 +740,9 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
             const bsl::string data_utilization = prefix +
                                                  "data_utilization_max";
             const bsl::string replication_time_avg = prefix +
-                                                     "replication_time_avg";
+                                                     "replication_time_ns_avg";
             const bsl::string replication_time_max = prefix +
-                                                     "replication_time_max";
+                                                     "replication_time_ns_max";
 
             const DatapointDef defs[] = {
                 {rollover_time.c_str(),
