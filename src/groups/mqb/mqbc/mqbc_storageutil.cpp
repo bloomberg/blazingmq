@@ -445,7 +445,6 @@ int StorageUtil::addVirtualStoragesInternal(
         rc_VIRTUAL_STORAGE_CREATION_FAILURE = -2
     };
 
-    int                rc = -1;
     bmqu::MemOutStream errorDesc;
     if (isFanout) {
         // Register appKeys with with the underlying physical 'storage'.
@@ -453,9 +452,11 @@ int StorageUtil::addVirtualStoragesInternal(
         for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
              cit != appIdKeyPairs.end();
              ++cit) {
-            if (0 != (rc = storage->addVirtualStorage(errorDesc,
+            const int rc = storage->addVirtualStorage(errorDesc,
                                                       cit->first,
-                                                      cit->second))) {
+                                                      cit->second);
+
+            if (rc) {
                 BALL_LOG_WARN
                     << clusterDescription << " Partition [" << partitionId
                     << "]: " << "Failed to add virtual storage for AppKey ["
@@ -469,19 +470,24 @@ int StorageUtil::addVirtualStoragesInternal(
         }
     }
     else {
-        rc = storage->addVirtualStorage(errorDesc,
-                                        bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-                                        mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+        const int rc = storage->addVirtualStorage(
+            errorDesc,
+            bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
+            mqbi::QueueEngine::k_DEFAULT_APP_KEY);
         // Unlike fanout queue above, we don't care about the returned value
         // for priority queue, since there is only one appId (default) which
         // could be added more than once in the startup sequence.  Its better
         // to ignore the return value instead of raising a useless warning.
 
-        BALL_LOG_WARN
-            << clusterDescription << " Partition [" << partitionId << "]: "
-            << "Failed to add virtual storage for the Default App, for queue ["
-            << storage->queueUri() << "], queueKey [" << storage->queueKey()
-            << "]. Reason: [" << errorDesc.str() << "], rc: " << rc << ".";
+        if (rc) {
+            BALL_LOG_WARN << clusterDescription << " Partition ["
+                          << partitionId << "]: "
+                          << "Failed to add virtual storage for the Default "
+                             "App, for queue ["
+                          << storage->queueUri() << "], queueKey ["
+                          << storage->queueKey() << "]. Reason: ["
+                          << errorDesc.str() << "], rc: " << rc << ".";
+        }
     }
 
     return rc_SUCCESS;
