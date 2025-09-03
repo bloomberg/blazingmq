@@ -70,7 +70,7 @@ struct ClusterStatsIndex {
         ,
         e_CSL_REPLICATION_TIME_NS
         // Value: time in nanoseconds it took for replication of a new entry
-        // in CSL file.
+        //        in CSL file.
         ,
         e_PARTITION_CFG_DATA_BYTES
         // Value: Configured size of partitions' data file
@@ -565,8 +565,7 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .storeExpiredSubcontextValues(true)
         .value("cluster_status")
         .value("cluster_leader")
-        .value("cluster_csl_replication_time_mcs",
-               bmqst::StatValue::e_DISCRETE)
+        .value("cluster_csl_replication_time_ns", bmqst::StatValue::e_DISCRETE)
         .value("cluster.partition.cfg_journal_bytes")
         .value("cluster.partition.cfg_data_bytes")
         .value("partition_status")
