@@ -77,6 +77,11 @@ jobs:
         with:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
+        # Solaris: make sure all ITs scripts are compatible with python3.8
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
       - name: Chmod all .tsk
