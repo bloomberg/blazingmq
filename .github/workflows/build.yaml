@@ -345,7 +345,9 @@ jobs:
 
       - name: Build docs
         run: |
+          echo "::add-matcher::.github/workflows/problem-matchers/doxygen.json"
           doxygen Doxyfile
+          echo "::remove-matcher owner=doxygen"
 
   shellcheck:
     name: Shellcheck
