@@ -67,7 +67,10 @@ class ClusterStats {
         // TYPES
         enum Enum {
             /// Time in nanoseconds it took for the rollover operation.
-            e_PARTITION_ROLLOVER
+            e_PARTITION_ROLLOVER,
+            /// Time in nanoseconds it took for the replication of a new entry
+            /// in journal file.
+            e_PARTITION_REPLICATION
         };
     };
 
@@ -108,7 +111,13 @@ class ClusterStats {
             e_PARTITION_DATA_UTILIZATION_MAX,
             /// Maximum observed utilization of the journal file of the
             /// partition.
-            e_PARTITION_JOURNAL_UTILIZATION_MAX
+            e_PARTITION_JOURNAL_UTILIZATION_MAX,
+            /// Time in nanoseconds it took for replication of a new entry in
+            /// journal file. Average during the report interval.
+            e_PARTITION_REPLICATION_TIME_NS_AVG,
+            /// Maximum observed time in nanoseconds it took for replication of
+            /// a new entry in journal file.
+            e_PARTITION_REPLICATION_TIME_NS_MAX
         };
     };
 
