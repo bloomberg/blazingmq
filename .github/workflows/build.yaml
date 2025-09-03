@@ -239,7 +239,9 @@ jobs:
             zlib
 
       - name: Build BlazingMQ
-        run: bin/build-darwin.sh
+
+        run: |
+          bin/build-darwin.sh
 
   build_and_test_bmqprometheus_plugin:
     name: "Build Prometheus plugin [ubuntu]"
@@ -296,7 +298,9 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
             -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
+          echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
+          echo "::remove-matcher owner=cpp"
 
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir
