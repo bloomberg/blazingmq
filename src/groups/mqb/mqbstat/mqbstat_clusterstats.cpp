@@ -68,6 +68,10 @@ struct ClusterStatsIndex {
         // Value: Leader status of cluster, non-zero (1) implies leader
         //        and 0 implies follower
         ,
+        e_CSL_REPLICATION_TIME_NS
+        // Value: time in nanoseconds it took for replication of a new entry
+        //        in CSL file.
+        ,
         e_PARTITION_CFG_DATA_BYTES
         // Value: Configured size of partitions' data file
         ,
@@ -149,6 +153,18 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
         BSLMF_ASSERT(LeaderStatus::e_FOLLOWER < LeaderStatus::e_LEADER);
 
         return STAT_RANGE(rangeMax, e_LEADER_STATUS);
+    }
+    case Stat::e_CSL_REPLICATION_TIME_NS_AVG: {
+        const bsls::Types::Int64 value = STAT_RANGE(averagePerEvent,
+                                                    e_CSL_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0
+                                                                       : value;
+    }
+    case Stat::e_CSL_REPLICATION_TIME_NS_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_CSL_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
     }
     case Stat::e_PARTITION_CFG_JOURNAL_BYTES: {
         return STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
@@ -332,6 +348,13 @@ ClusterStats& ClusterStats::setUpstream(const bsl::string& value)
 ClusterStats& ClusterStats::setIsLeader(LeaderStatus::Enum value)
 {
     d_statContext_mp->setValue(ClusterStatsIndex::e_LEADER_STATUS, value);
+    return *this;
+}
+
+ClusterStats& ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
+{
+    d_statContext_mp->reportValue(ClusterStatsIndex::e_CSL_REPLICATION_TIME_NS,
+                                  value);
     return *this;
 }
 
@@ -542,6 +565,7 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .storeExpiredSubcontextValues(true)
         .value("cluster_status")
         .value("cluster_leader")
+        .value("cluster_csl_replication_time_ns", bmqst::StatValue::e_DISCRETE)
         .value("cluster.partition.cfg_journal_bytes")
         .value("cluster.partition.cfg_data_bytes")
         .value("partition_status")
