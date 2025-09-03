@@ -496,7 +496,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
                 timeDelta);
         d_state_p->queue()->domain()->cluster()->stats().onPartitionEvent(
-            mqbstat::ClusterStats::PartitionEventType::e_PARTITION_ROLLOVER,
+            mqbstat::ClusterStats::PartitionEventType::e_PARTITION_REPLICATION,
             d_state_p->partitionId(),
             timeDelta);
         if (res != mqbi::StorageResult::e_SUCCESS || doAck) {
@@ -566,7 +566,7 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(timeDelta);
     d_state_p->queue()->domain()->cluster()->stats().onPartitionEvent(
-        mqbstat::ClusterStats::PartitionEventType::e_PARTITION_ROLLOVER,
+        mqbstat::ClusterStats::PartitionEventType::e_PARTITION_REPLICATION,
         d_state_p->partitionId(),
         timeDelta);
 

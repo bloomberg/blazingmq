@@ -1674,7 +1674,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
                     timeDelta);
             queue_p->domain()->cluster()->stats().onPartitionEvent(
                 mqbstat::ClusterStats::PartitionEventType::
-                    e_PARTITION_ROLLOVER,
+                    e_PARTITION_REPLICATION,
                 queue_p->partitionId(),
                 timeDelta);
 

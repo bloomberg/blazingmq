@@ -739,10 +739,10 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                 prefix + "data_outstanding_bytes";
             const bsl::string data_utilization = prefix +
                                                  "data_utilization_max";
-            const bsl::string replication_time_avg = prefix +
-                                                     "replication_time_ns_avg";
-            const bsl::string replication_time_max = prefix +
-                                                     "replication_time_ns_max";
+            const bsl::string journal_replication_time_avg =
+                prefix + "journal_replication_time_ns_avg";
+            const bsl::string journal_replication_time_max =
+                prefix + "journal_replication_time_ns_max";
 
             const DatapointDef defs[] = {
                 {rollover_time.c_str(),
@@ -761,11 +761,11 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                 {data_utilization.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_UTILIZATION_MAX,
                  false},
-                {replication_time_avg.c_str(),
+                {journal_replication_time_avg.c_str(),
                  mqbstat::ClusterStats::Stat::
                      e_PARTITION_REPLICATION_TIME_NS_AVG,
                  false},
-                {replication_time_max.c_str(),
+                {journal_replication_time_max.c_str(),
                  mqbstat::ClusterStats::Stat::
                      e_PARTITION_REPLICATION_TIME_NS_MAX,
                  false}};
