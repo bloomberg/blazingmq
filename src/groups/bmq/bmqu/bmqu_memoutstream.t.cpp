@@ -38,12 +38,12 @@ static void test1_breathingTest()
     // remains working as efficiently as possible (over time as code
     // evolves).  However these strict numbers here are not the artifacts
     // of how this stream works, but how the BDE provided
-    // `bdesb_MemOutStreamBuf` works.  So it is possible that changes in
-    // `bdesb_MemOutStreamBuf` will break this test driver.  Said changes
+    // `bdlsb::MemOutStreamBuf` works.  So it is possible that changes in
+    // `bdlsb::MemOutStreamBuf` will break this test driver.  Said changes
     // will need to be reviewed at that time to determine if they are
     // acceptable (and this test driver needs fixing) or BDE will need to
     // make a new component with the changes and keep
-    // `bdesb_MemOutStreamBuf` as it is.
+    // `bdlsb::MemOutStreamBuf` as it is.
     bslma::TestAllocator alloc(bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream obj(&alloc);
