@@ -462,6 +462,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// used by this cluster.
     mqbnet::Cluster& netCluster() BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference offering a modifiable access to this object's
+    /// cluster stats.
+    mqbstat::ClusterStats& stats() BSLS_KEYWORD_OVERRIDE;
+
     /// Open the queue with the specified `uri`, belonging to the specified
     /// `domain` with the specified `parameters` from a client identified
     /// with the specified `clientContext`.  Invoke the specified `callback`
@@ -746,6 +750,11 @@ ClusterProxy::multiRequestManager()
 inline mqbnet::Cluster& ClusterProxy::netCluster()
 {
     return *(d_clusterData.membership().netCluster());
+}
+
+inline mqbstat::ClusterStats& ClusterProxy::stats()
+{
+    return d_clusterData.stats();
 }
 
 // MANIPULATORS

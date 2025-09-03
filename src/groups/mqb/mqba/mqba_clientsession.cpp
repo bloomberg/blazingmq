@@ -155,6 +155,7 @@
 #include <mqbi_queue.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbstat_brokerstats.h>
+#include <mqbstat_clusterstats.h>
 #include <mqbu_messageguidutil.h>
 
 // BMQ
@@ -1671,6 +1672,11 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
             queue_p->stats()
                 ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
                     timeDelta);
+            queue_p->domain()->cluster()->stats().onPartitionEvent(
+                mqbstat::ClusterStats::PartitionEventType::
+                    e_PARTITION_REPLICATION,
+                queue_p->partitionId(),
+                timeDelta);
 
             if (!d_isClientGeneratingGUIDs) {
                 // Legacy client.

@@ -384,6 +384,11 @@ mqbc::ClusterData::MultiRequestManagerType& Cluster::multiRequestManager()
     return d_clusterData_mp->multiRequestManager();
 }
 
+mqbstat::ClusterStats& Cluster::stats()
+{
+    return d_clusterData_mp->stats();
+}
+
 bmqt::GenericResult::Enum
 Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
                      mqbnet::ClusterNode*                          target,
