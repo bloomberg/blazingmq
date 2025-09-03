@@ -272,6 +272,9 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_ALPHABETICAL_INDEX     NO)
   set(DOXYGEN_FULL_SIDEBAR           YES)
   set(DOXYGEN_GENERATE_TREEVIEW      YES)
+  set(DOXYGEN_GENERATE_TAGFILE
+    "${CMAKE_CURRENT_BINARY_DIR}/apidocs/tags.xml"
+  )
   doxygen_add_docs(
     apidocs
     src/groups/bmq/bmqa
@@ -291,6 +294,9 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_GENERATE_TODOLIST      YES)
   set(DOXYGEN_STRIP_FROM_PATH        src/groups)
   set(DOXYGEN_OUTPUT_DIRECTORY       internaldocs)
+  set(DOXYGEN_GENERATE_TAGFILE
+    "${CMAKE_CURRENT_BINARY_DIR}/internaldocs/tags.xml"
+  )
   doxygen_add_docs(
     internaldocs
     src/groups/
