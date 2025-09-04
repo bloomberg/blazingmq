@@ -71,14 +71,14 @@ apt-get install -qy cmake
 
 # Install LLVM
 wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh 
+chmod +x llvm.sh
 LLVM_VERSION=18
 LLVM_TAG="llvmorg-18.1.8"
 ./llvm.sh ${LLVM_VERSION} all
 
 # Create version-agnostic pointers to required LLVM binaries.
 ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
 ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants
@@ -198,7 +198,7 @@ export PATH
 
 # Build BDE + NTF
 pushd "${DIR_SRCS_EXT}/bde"
-eval "$(bbs_build_env  -p clang -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
+eval "$(bbs_build_env  -p clang -u dbg_64_safe_cpp20_pic -b "${DIR_BUILD_EXT}/bde")"
 bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
 bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install
@@ -216,7 +216,7 @@ sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
             --without-warnings-as-errors \
             --without-usage-examples \
             --without-applications \
-            --ufid 'dbg_64_safe_cpp20' \
+            --ufid 'dbg_64_safe_cpp20_pic' \
             --toolchain "${TOOLCHAIN_PATH}"
 make -j${PARALLELISM}
 make install
@@ -284,14 +284,14 @@ else
     CMAKE_OPTIONS+=(-UINSTALL_TARGETS);
     # Need both all.t for UT run and `bmqbrkr and bmqtool` to run ITs
     # Thus set TARGETS to "all"
-    TARGETS="all"
+    TARGETS=(bmqbrkr bmqtool all.it all.t bmqauthnpass bmqauthnfail bmqauthnbasic)
 fi
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake --preset fuzz-tests -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
     "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
-      --target ${TARGETS} -v --clean-first
+      --target "${TARGETS[@]}" -v --clean-first
 
 if [ "${FUZZER}" == "on" ]; then
 # In fuzzers case we only need to build the tests
