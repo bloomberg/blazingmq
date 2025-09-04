@@ -148,7 +148,6 @@ QueueId::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.start();
     printer.printAttribute("uri", uri());
     printer.printAttribute("correlationId", correlationId());
-    printer.printAttribute("state", d_impl_sp->state());
     printer.end();
 
     return stream;
