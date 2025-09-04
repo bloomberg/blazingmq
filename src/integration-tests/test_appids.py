@@ -37,13 +37,6 @@ max_msgs = 3
 set_max_messages = tweak.domain.storage.queue_limits.messages(max_msgs)
 
 
-def set_app_ids(cluster: Cluster, app_ids: List[str], du: tc.DomainUrls):  # noqa: F811
-    cluster.config.domains[
-        du.domain_fanout
-    ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
-    cluster.reconfigure_domain(du.domain_fanout, succeed=True)
-
-
 def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
     leader = cluster.last_known_leader
@@ -112,7 +105,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"], du)
+    cluster.set_app_ids(default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
@@ -174,7 +167,7 @@ def test_create_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"], du)
+    cluster.set_app_ids(default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
@@ -202,7 +195,7 @@ def test_load_domain_authorize_open_post(cluster: Cluster, domain_urls: tc.Domai
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"], du)
+    cluster.set_app_ids(default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
@@ -226,7 +219,7 @@ def _test_authorize_before_domain_loaded(cluster, domain_urls: tc.DomainUrls):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"], du)
+    cluster.set_app_ids(default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create the queue.
@@ -254,9 +247,9 @@ def _test_command_errors(cluster, domain_urls: tc.DomainUrls):
     proxies = cluster.proxy_cycle()
     next(proxies).create_client("producer")
 
-    set_app_ids(cluster, default_app_ids + ["quux"], domain_urls)
+    cluster.set_app_ids(default_app_ids + ["quux"], domain_urls)
 
-    set_app_ids(cluster, default_app_ids, domain_urls)
+    cluster.set_app_ids(default_app_ids, domain_urls)
 
 
 def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.DomainUrls):
@@ -282,7 +275,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
     # message posted while 'foo' was still valid.
     foo.wait_push_event()
 
-    set_app_ids(cluster, [a for a in default_app_ids if a not in ["foo"]], du)
+    cluster.set_app_ids([a for a in default_app_ids if a not in ["foo"]], du)
 
     @attempt(3)
     def _():
@@ -326,7 +319,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
     assert Client.e_SUCCESS == foo.close(du.uri_fanout_foo, block=True)
 
     # Re-authorize
-    set_app_ids(cluster, default_app_ids, du)
+    cluster.set_app_ids(default_app_ids, du)
 
     foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
     producer.post(du.uri_fanout, ["after-reauthorize"], block=True)
@@ -459,8 +452,8 @@ def test_deauthorized_appid_doesnt_hold_messages(
 
     # ---------------------------------------------------------------------
     # unauthorize 'bar' and 'baz'
-    set_app_ids(
-        cluster, [a for a in default_app_ids if a not in ["bar", "baz"]], domain_urls
+    cluster.set_app_ids(
+        [a for a in default_app_ids if a not in ["bar", "baz"]], domain_urls
     )
 
     # ---------------------------------------------------------------------
@@ -510,7 +503,7 @@ def test_unauthorization(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # ---------------------------------------------------------------------
     # unauthorize everything
-    set_app_ids(cluster, [], domain_urls)
+    cluster.set_app_ids([], domain_urls)
 
     # ---------------------------------------------------------------------
     # if iterators are not invalidated, 'afterNewMessage' will crash
@@ -584,7 +577,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"], du)
+    cluster.set_app_ids(default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Post a message.
@@ -722,7 +715,7 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(multi_node, all_app_ids, du)
+    multi_node.set_app_ids(all_app_ids, du)
 
     # ---------------------------------------------------------------------
     # Post a message.
@@ -999,7 +992,7 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    set_app_ids(cluster, default_app_ids + [new_app_1], du)
+    cluster.set_app_ids(default_app_ids + [new_app_1], du)
 
     assert consumer.close(consumer_uri, block=True) == Client.e_SUCCESS
 
@@ -1035,7 +1028,7 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    set_app_ids(cluster, default_app_ids + [new_app_1], du)
+    cluster.set_app_ids(default_app_ids + [new_app_1], du)
 
     leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
 
@@ -1057,14 +1050,14 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # ---------------------------------------------------------------------
     # -new_app_1
-    set_app_ids(cluster, default_app_ids, du)
+    cluster.set_app_ids(default_app_ids, du)
 
     leader.capture(f"Unregistered appId '{new_app_1}'", timeout=5)
 
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    set_app_ids(cluster, default_app_ids + [new_app_1], du)
+    cluster.set_app_ids(default_app_ids + [new_app_1], du)
 
     leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
 

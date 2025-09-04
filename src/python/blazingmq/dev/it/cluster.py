@@ -878,6 +878,14 @@ class Cluster(contextlib.AbstractContextManager):
 
         return True
 
+    def set_app_ids(self, app_ids: List[str], du: tc.DomainUrls):  # noqa: F811
+        """
+        Set the app ids for the fanout domain to the specified list of app ids."""
+        self.config.domains[
+            du.domain_fanout
+        ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
+        self.reconfigure_domain(du.domain_fanout, succeed=True)
+
     ###########################################################################
     # Internals
 
