@@ -24,8 +24,6 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     Mode,
     test_logger,
-    order,
-    multi_node,
     tweak,
     virtual_cluster_config,
 )

@@ -36,7 +36,15 @@ from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.serializers import JsonSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-from blazingmq.dev.configurator import *
+from blazingmq.dev.configurator import (
+    Broker,
+    Domain,
+    VirtualCluster,
+    Cluster,
+    ConfiguratorError,
+    AbstractCluster,
+    Proto,
+)
 from blazingmq.dev.configurator.site import Site
 from blazingmq.dev.paths import required_paths as paths
 from blazingmq.schemas import mqbcfg, mqbconf

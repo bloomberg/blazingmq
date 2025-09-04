@@ -19,26 +19,14 @@ import logging
 import pytest
 
 import blazingmq.dev.it.logging
-
-# This must be done early, before we import any module that could call
-# logging.getLogger.
-logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
-
-
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
 
-# pylint: disable=unused-import, wrong-import-position
-from blazingmq.dev.it.fixtures import (
-    single_node,
-    multi_node,
-    cluster,
-    fsm_single_node,
-    fsm_multi_node,
-    fsm_cluster,
-)
+# This must be done early, before we import any module that could call
+# logging.getLogger.
+logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
