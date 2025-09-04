@@ -48,7 +48,6 @@ import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
 from blazingmq.dev.it.cluster import Cluster
-from blazingmq.dev.it.tweaks import tweak  # pylint: disable=unused-import
 from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
 from blazingmq.dev.it.util import internal_use
 from blazingmq.dev.paths import paths
@@ -245,7 +244,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 ):
                     try:
                         log_file_path.unlink()
-                    except:
+                    except Exception:
                         pass
 
             on_exit.callback(remove_log_file_handler)
@@ -435,7 +434,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
 
                     try:
                         cluster.stop()
-                    except:
+                    except Exception:
                         if not get_option_ini(
                             request.config, "bmq_tolerate_dirty_shutdown"
                         ):
@@ -463,7 +462,7 @@ def break_before_test(request, cluster):
             for broker in cluster.nodes():
                 print(f"  {broker.name}:  {broker.pid}", end="")
                 if broker is cluster.last_known_leader:
-                    print(f" (leader)", end="")
+                    print(" (leader)", end="")
                 print()
             print("proxies:")
             for proxy in cluster.proxies():

@@ -21,7 +21,6 @@ heartbeats followed by dead channel detection
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import Cluster
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    multi_node as cluster,
     order,
     tweak,
 )
@@ -43,11 +42,6 @@ def _verify_delivery_to_new_consumer(proxy, uri, messages, timeout=2):
     consumer.open(uri, flags=["read"], succeed=True)
     _verify_delivery(consumer, uri, ["msg1", "masg2"], timeout=2)
     consumer.exit_gracefully()
-
-
-def _verify_delivery_and_confirm(consumer, uri, messages):
-    _verify_delivery(consumer, uri, messages)
-    assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS
 
 
 """
@@ -136,7 +130,6 @@ def test_dead_proxy(
     cluster: Cluster,
     domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
 ):
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
     next(proxies)
     proxy = next(proxies)
