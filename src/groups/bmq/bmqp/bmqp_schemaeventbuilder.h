@@ -251,6 +251,10 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
         EventHeaderUtil::setControlEventEncodingType(eventHeader,
                                                      d_encodingType);
     }
+    else if (type == EventType::e_AUTHENTICATION) {
+        EventHeaderUtil::setAuthenticationEventEncodingType(eventHeader,
+                                                            d_encodingType);
+    }
 
     // Append appropriate encoding of 'message' to the blob
     int rc = ProtocolUtil::encodeMessage(d_errorStream,
