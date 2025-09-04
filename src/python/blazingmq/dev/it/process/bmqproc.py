@@ -20,7 +20,6 @@ import logging
 import re
 import time
 
-from blazingmq.dev.it.process.proc import Process
 
 logger = logging.getLogger(__name__)
 

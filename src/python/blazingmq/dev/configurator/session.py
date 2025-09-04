@@ -31,10 +31,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Dict, Optional
 import argparse
-import itertools
 import signal
 import socket
-from pathlib import Path
 
 from termcolor import colored
 

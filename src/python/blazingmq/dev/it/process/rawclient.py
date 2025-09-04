@@ -20,6 +20,8 @@ blazingmq.dev.it.process.rawclient
 PURPOSE: Provide a BMQ raw client.
 """
 
+from __future__ import annotations
+
 import socket
 import json
 from typing import Optional, Tuple, Union

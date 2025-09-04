@@ -110,7 +110,7 @@ from typing import Callable
 import blazingmq.schemas.mqbcfg
 import blazingmq.schemas.mqbconf
 
-from . import TweakMetaclass, decorator
+from ._meta import TweakMetaclass, decorator  # pylint: disable=unused-import
 
 NoneType = typing.Type[None]
 
