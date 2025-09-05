@@ -647,6 +647,14 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
         return 0;  // RETURN
     }
 
+    if (!d_queueState_p->canMerge(handleParameters)) {
+        CALLBACK(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                 -1,
+                 "Reached maximum read/write/admin counters for a queue",
+                 0);
+        return 0;  // RETURN
+    }
+
     // Check num producer/consumer limits.  Note that this check is prone to
     // race during failover scenarios, these max producer/consumer config
     // fields should be used with caution (perhaps as a hint or soft-limit
