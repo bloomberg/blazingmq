@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">libbmq<span id="projectnumber">&#160;6ccf7d329a32cd8c1e35434af0b64cb63064730f</span>
+   <div id="projectname">libbmq<span id="projectnumber">&#160;7d8db39278a1d8686d8a0b9ef2a5315d23c9cc57</span>
    </div>
   </td>
  </tr>
@@ -128,8 +128,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a0b57cefb990c740553e73f148da2eb38" id="r_a0b57cefb990c740553e73f148da2eb38"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">bmqt::QueueOptions</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html#a0b57cefb990c740553e73f148da2eb38">options</a> () const</td></tr>
 <tr class="memdesc:a0b57cefb990c740553e73f148da2eb38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the options used when opening this queue.  <br /></td></tr>
 <tr class="separator:a0b57cefb990c740553e73f148da2eb38"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3b95573e19a1a01254bbfbb0b795ba58" id="r_a3b95573e19a1a01254bbfbb0b795ba58"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html#a3b95573e19a1a01254bbfbb0b795ba58">isValid</a> () const</td></tr>
-<tr class="separator:a3b95573e19a1a01254bbfbb0b795ba58"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a31eba1e8ebd7099ac30ec86fa621d67b" id="r_a31eba1e8ebd7099ac30ec86fa621d67b"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html#a31eba1e8ebd7099ac30ec86fa621d67b">isValid</a> (bsl::ostream *reason_p=0) const</td></tr>
+<tr class="memdesc:a31eba1e8ebd7099ac30ec86fa621d67b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return whether this <a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html" title="Value-semantic efficient identifier for a queue.">QueueId</a> is valid, i.e., is associated to an opened queue.  <br /></td></tr>
+<tr class="separator:a31eba1e8ebd7099ac30ec86fa621d67b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab663cb74c0cdefcab225579a83b87848" id="r_ab663cb74c0cdefcab225579a83b87848"><td class="memItemLeft" align="right" valign="top">bsl::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html#ab663cb74c0cdefcab225579a83b87848">print</a> (bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</td></tr>
 <tr class="separator:ab663cb74c0cdefcab225579a83b87848"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -437,8 +438,8 @@ Friends</h2></td></tr>
 
 </div>
 </div>
-<a id="a3b95573e19a1a01254bbfbb0b795ba58" name="a3b95573e19a1a01254bbfbb0b795ba58"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3b95573e19a1a01254bbfbb0b795ba58">&#9670;&#160;</a></span>isValid()</h2>
+<a id="a31eba1e8ebd7099ac30ec86fa621d67b" name="a31eba1e8ebd7099ac30ec86fa621d67b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a31eba1e8ebd7099ac30ec86fa621d67b">&#9670;&#160;</a></span>isValid()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -446,12 +447,19 @@ Friends</h2></td></tr>
         <tr>
           <td class="memname">bool BloombergLP::bmqa::QueueId::isValid </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramtype">bsl::ostream *&#160;</td>
+          <td class="paramname"><em>reason_p</em> = <code>0</code></td><td>)</td>
           <td> const</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Return whether this <a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html" title="Value-semantic efficient identifier for a queue.">QueueId</a> is valid, i.e., is associated to an opened queue. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">reason_p</td><td>The optionally specified stream that is used to report the reason why this <a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html" title="Value-semantic efficient identifier for a queue.">QueueId</a> is not valid. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>bool True if this <a class="el" href="classBloombergLP_1_1bmqa_1_1QueueId.html" title="Value-semantic efficient identifier for a queue.">QueueId</a> is valid, false otherwise. </dd></dl>
 
 </div>
 </div>
