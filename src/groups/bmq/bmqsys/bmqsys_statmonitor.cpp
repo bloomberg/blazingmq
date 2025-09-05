@@ -270,25 +270,26 @@ void StatMonitor::snapshot()
     // Convenient macro to retrieve the value 'T' applying a multiplier 'M'
 #define PERFVAL(T, M)                                                         \
     (static_cast<bsls::Types::Int64>(                                         \
-        it->latestValue(balb::PerformanceMonitor::BAEA_##T) * M))
+        it->latestValue(balb::PerformanceMonitor::T) * M))
 
     // CPU: report CPU values * k_STAT_MULTIPLIER because statContext only
     // handles Int64, not float, so multiply by k_STAT_MULTIPLIER to keep some
     // decimal digits, and we'll divide by k_STAT_MULTIPLIER before reporting
     // the stats
     d_cpuStatContext_mp->reportValue(k_STAT_CPU_SYSTEM,
-                                     PERFVAL(CPU_UTIL_SYSTEM,
+                                     PERFVAL(e_CPU_UTIL_SYSTEM,
                                              k_CPU_MULTIPLIER));
     d_cpuStatContext_mp->reportValue(k_STAT_CPU_USER,
-                                     PERFVAL(CPU_UTIL_USER, k_CPU_MULTIPLIER));
+                                     PERFVAL(e_CPU_UTIL_USER,
+                                             k_CPU_MULTIPLIER));
     d_cpuStatContext_mp->reportValue(k_STAT_CPU_ALL,
-                                     PERFVAL(CPU_UTIL, k_CPU_MULTIPLIER));
+                                     PERFVAL(e_CPU_UTIL, k_CPU_MULTIPLIER));
 
     // Memory: report in bytes
     d_memStatContext_mp->reportValue(k_STAT_MEM_RESIDENT,
-                                     PERFVAL(RESIDENT_SIZE, 1024 * 1024));
+                                     PERFVAL(e_RESIDENT_SIZE, 1024 * 1024));
     d_memStatContext_mp->reportValue(k_STAT_MEM_VIRTUAL,
-                                     PERFVAL(VIRTUAL_SIZE, 1024 * 1024));
+                                     PERFVAL(e_VIRTUAL_SIZE, 1024 * 1024));
 
 #undef PERFVAL
 
