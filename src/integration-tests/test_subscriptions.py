@@ -72,10 +72,8 @@ import blazingmq.dev.it.testconstants as tc
 import pytest
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    cluster,
     test_logger,
     order,
-    multi_node,
     tweak,
 )
 from blazingmq.dev.it.process.broker import Broker
@@ -624,7 +622,7 @@ def test_reconfigure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer.post(x=1)
 
     producer.post(x=2)
-    m3 = producer.post(x=3)  # pylint: disable=unused-variable
+    producer.post(x=3)
 
     producer.post(x=4)
     producer.post(x=5)
@@ -1540,7 +1538,7 @@ def test_no_capacity_all_optimization(cluster: Cluster, domain_urls: tc.DomainUr
     # no capacity all condition observed.
     assert optimization_monitor.has_new_message()
 
-    m3 = producer.post(x=3)  # pylint: disable=unused-variable
+    producer.post(x=3)  # m3
     # consumer1: capacity 1/1 [m1]
     # pending messages: [m2, m3]
 
@@ -1651,7 +1649,7 @@ def test_no_capacity_all_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     # no capacity all condition observed.
     assert optimization_monitor.has_new_message("bar")
 
-    m3 = producer.post(x=3)  # pylint: disable=unused-variable
+    producer.post(x=3)  # m3
     # consumer_foo: capacity 3/128 [m1, m2, m3]
     # consumer_bar: capacity 1/1 [m1]
     # pending messages (bar): [m2, m3]
@@ -1935,6 +1933,7 @@ def test_poison(cluster: Cluster, domain_urls: tc.DomainUrls):
     # The queue must be suspended for some time, so 'delayed' should not
     # be delivered fast.
     producer.post(x=2)
-    delayed = [producer.post(x=2)]  # pylint: disable=unused-variable
+
+    producer.post(x=2)  # delayed post
 
     consumer2.expect_messages(expected2, confirm=True)
