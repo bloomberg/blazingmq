@@ -699,6 +699,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
 
+    const bmqp_ctrlmsg::PartitionSequenceNumber getSelfFirstSyncPointSequenceNumber(int partitionId) const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(StorageManager, bslma::UsesBslmaAllocator)

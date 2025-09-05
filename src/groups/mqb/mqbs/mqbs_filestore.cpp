@@ -2823,6 +2823,8 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     jfh->setFirstSyncPointOffsetWords(spoPair.offset() /
                                       bmqp::Protocol::k_WORD_SIZE);
 
+    d_firstSyncPointAfterRollover = spoPair.syncPoint();
+
     // Now clear the 'd_syncPoints' as the rollover is complete, and make the
     // previous newest sync point the first new sync point.
 
@@ -5112,6 +5114,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
                         bmqp::EventType::e_STORAGE,
                         d_blobSpPool_p,
                         allocator)
+, d_firstSyncPointAfterRollover()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);

@@ -397,12 +397,15 @@ class RecoveryManager {
 
     /// Recover latest sequence number from storage for the specified
     /// `partitionId` and populate the output in the specified `seqNum`.
+    /// If `firstSyncPoint` is true, recover the first sync point sequence
+    /// number instead of the latest sequence number.
     /// Return 0 on success and non-zero otherwise.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
     int recoverSeqNum(bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-                      int                                    partitionId);
+                      int                                    partitionId,
+                      bool firstSyncPoint = false);
 
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.

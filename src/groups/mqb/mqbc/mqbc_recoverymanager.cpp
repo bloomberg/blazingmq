@@ -1531,7 +1531,8 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
 
 int RecoveryManager::recoverSeqNum(
     bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-    int                                    partitionId)
+    int                                    partitionId,
+    bool                                   firstSyncPoint)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1567,25 +1568,51 @@ int RecoveryManager::recoverSeqNum(
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
-    if (jit.hasRecordSizeRemaining()) {
-        const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
+    if (firstSyncPoint) {
+        // Retrieve first syncpoint sequence number.
+        if (jit.firstSyncPointPosition() > 0) {
+            const mqbs::RecordHeader& recHeader = jit.firstSyncPointHeader();
 
-        BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId
-                      << "]: " << "Recovered Sequence Number "
-                      << lastRecordHeader.partitionSequenceNumber()
-                      << " from journal file ["
-                      << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                        << " Partition [" << partitionId
+                        << "]: " << "Recovered first sync point Sequence Number "
+                        << recHeader.partitionSequenceNumber()
+                        << " from journal file ["
+                        << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
 
-        *seqNum = lastRecordHeader.partitionSequenceNumber();
-    }
-    else {
-        BALL_LOG_INFO << d_clusterData.identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Journal file has no record. Storing (0, 0) as self "
-                      << "sequence number.";
+            *seqNum = recHeader.partitionSequenceNumber();            
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                        << " Partition [" << partitionId << "]: "
+                        << "Journal file has no sync point record. Storing (0, 0) as self "
+                        << "sequence number.";
 
-        seqNum->reset();
+            seqNum->reset();
+        }
+
+    } else {
+        // Retrieve last record sequence number.
+        if (jit.hasRecordSizeRemaining()) {
+            const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
+
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                        << " Partition [" << partitionId
+                        << "]: " << "Recovered Sequence Number "
+                        << lastRecordHeader.partitionSequenceNumber()
+                        << " from journal file ["
+                        << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+
+            *seqNum = lastRecordHeader.partitionSequenceNumber();
+        }
+        else {
+            BALL_LOG_INFO << d_clusterData.identity().description()
+                        << " Partition [" << partitionId << "]: "
+                        << "Journal file has no record. Storing (0, 0) as self "
+                        << "sequence number.";
+
+            seqNum->reset();
+        }
     }
 
     return rc_SUCCESS;

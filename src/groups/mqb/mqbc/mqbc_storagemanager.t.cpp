@@ -231,7 +231,7 @@ struct TestHelper {
                 .makeReplicaStateRequest();
 
         replicaStateRequest.partitionId()    = partitionId;
-        replicaStateRequest.sequenceNumber() = seqNum;
+        replicaStateRequest.latestSequenceNumber() = seqNum;
 
         // TODO: set sequence number once add mocked recovery manager to this
         //       test helper class.
@@ -648,7 +648,7 @@ struct TestHelper {
                 .makePrimaryStateRequest();
 
         primaryStateRequest.partitionId()    = partitionId;
-        primaryStateRequest.sequenceNumber() = seqNum;
+        primaryStateRequest.latestSequenceNumber() = seqNum;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -686,7 +686,7 @@ struct TestHelper {
                 .makeReplicaStateResponse();
 
         replicaStateResponse.partitionId()    = partitionId;
-        replicaStateResponse.sequenceNumber() = seqNum;
+        replicaStateResponse.latestSequenceNumber() = seqNum;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -1329,7 +1329,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
     seqNum.primaryLeaseId() = 1U;
 
     replicaStateRequest.partitionId()    = k_PARTITION_ID;
-    replicaStateRequest.sequenceNumber() = seqNum;
+    replicaStateRequest.latestSequenceNumber() = seqNum;
 
     mqbnet::ClusterNode* source = helper.d_cluster_mp->_clusterData()
                                       ->membership()
@@ -1440,7 +1440,7 @@ static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
     seqNum.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -1551,7 +1551,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
     seqNum.primaryLeaseId() = 1U;
 
     primaryStateRequest.partitionId()    = k_PARTITION_ID;
-    primaryStateRequest.sequenceNumber() = seqNum;
+    primaryStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processPrimaryStateRequest(message, replica1);
 
@@ -1670,7 +1670,7 @@ static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
     seqNum.primaryLeaseId() = 1U;
 
     primaryStateRequest.partitionId()    = k_PARTITION_ID;
-    primaryStateRequest.sequenceNumber() = seqNum;
+    primaryStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processPrimaryStateRequest(message, replicaNode);
 
@@ -1776,7 +1776,7 @@ static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
     seqNum.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -1893,20 +1893,20 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     seqNum.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                         = k_REQUEST_ID + 1;
     seqNum.sequenceNumber()               = 7U;
     seqNum.primaryLeaseId()               = 1U;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                         = k_REQUEST_ID + 2;
     seqNum.sequenceNumber()               = 3U;
     seqNum.primaryLeaseId()               = 1U;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     BMQTST_ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(),
@@ -2021,20 +2021,20 @@ static void test11_primaryHealingStage2DetectSelfReplica()
     seqNum.primaryLeaseId() = 1U;
 
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                         = k_REQUEST_ID + 1;
     seqNum.sequenceNumber()               = 7U;
     seqNum.primaryLeaseId()               = 1U;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                         = k_REQUEST_ID + 2;
     seqNum.sequenceNumber()               = 3U;
     seqNum.primaryLeaseId()               = 1U;
-    replicaStateResponse.sequenceNumber() = seqNum;
+    replicaStateResponse.latestSequenceNumber() = seqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==
@@ -2271,7 +2271,7 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
     seqNum.primaryLeaseId() = 1U;
 
     replicaStateRequest.partitionId()    = k_PARTITION_ID;
-    replicaStateRequest.sequenceNumber() = seqNum;
+    replicaStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processReplicaStateRequest(message, primaryNode);
 
@@ -2379,7 +2379,7 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
     seqNum.primaryLeaseId() = 1U;
 
     primaryStateResponse.partitionId()    = k_PARTITION_ID;
-    primaryStateResponse.sequenceNumber() = seqNum;
+    primaryStateResponse.latestSequenceNumber() = seqNum;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -2585,7 +2585,7 @@ static void test16_replicaHealingReceivesPrimaryStateRqst()
     seqNum.primaryLeaseId() = 1U;
 
     primaryStateRequest.partitionId()    = k_PARTITION_ID;
-    primaryStateRequest.sequenceNumber() = seqNum;
+    primaryStateRequest.latestSequenceNumber() = seqNum;
 
     storageManager.processPrimaryStateRequest(message, rogueNode);
 
@@ -2710,7 +2710,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
     k_PRIMARY_SEQ_NUM.primaryLeaseId() = 1U;
 
     replicaStateRequest.partitionId()    = k_PARTITION_ID;
-    replicaStateRequest.sequenceNumber() = k_PRIMARY_SEQ_NUM;
+    replicaStateRequest.latestSequenceNumber() = k_PRIMARY_SEQ_NUM;
 
     storageManager.processReplicaStateRequest(message, primaryNode);
 
@@ -2865,7 +2865,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
     k_REPLICA_SEQ_NUM_1.primaryLeaseId()  = k_PRIMARY_LEASE_ID;
     k_REPLICA_SEQ_NUM_1.sequenceNumber()  = 3U;
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
-    replicaStateResponse.sequenceNumber() = k_REPLICA_SEQ_NUM_1;
+    replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_1;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -2873,11 +2873,11 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
     k_REPLICA_SEQ_NUM_2.primaryLeaseId()  = k_PRIMARY_LEASE_ID;
     k_REPLICA_SEQ_NUM_2.sequenceNumber()  = 5U;
     message.rId()                         = k_REQUEST_ID + 1;
-    replicaStateResponse.sequenceNumber() = k_REPLICA_SEQ_NUM_2;
+    replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_2;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     message.rId()                         = k_REQUEST_ID + 2;
-    replicaStateResponse.sequenceNumber() = selfSeqNum;
+    replicaStateResponse.latestSequenceNumber() = selfSeqNum;
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     BSLS_ASSERT_OPT(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size() ==

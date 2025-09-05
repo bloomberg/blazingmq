@@ -582,6 +582,7 @@ void StorageManager::processReplicaDataRequestPush(
         source,
         d_clusterState.partitionsInfo().at(partitionId).primaryLeaseId(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
+        bmqp_ctrlmsg::PartitionSequenceNumber(),
         source,
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
@@ -752,7 +753,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
                               responseId,
                               partitionId,
                               1,
-                              response.sequenceNumber());
+                              response.latestSequenceNumber(), response.firstSyncPointSequenceNumber());
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
@@ -872,7 +873,7 @@ void StorageManager::processReplicaStateResponseDispatched(
                                   1,
                                   d_clusterData_p->membership().selfNode(),
                                   primaryLeaseId,
-                                  response.sequenceNumber());
+                                  response.latestSequenceNumber(), response.firstSyncPointSequenceNumber());
 
         BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
     }
@@ -1576,8 +1577,32 @@ void StorageManager::do_replicaStateRequest(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_nodeToSeqNumCtxMapVec[partitionId].find(selfNode) !=
                      d_nodeToSeqNumCtxMapVec[partitionId].end());
 
-    replicaStateRequest.sequenceNumber() =
+    replicaStateRequest.latestSequenceNumber() =
         d_nodeToSeqNumCtxMapVec[partitionId][selfNode].first;
+
+    // Get own first sync point sequence number
+    replicaStateRequest.firstSyncPointSequenceNumber() = getSelfFirstSyncPointSequenceNumber(partitionId);
+    // mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
+    // BSLS_ASSERT_SAFE(fs);
+
+    // // Get own first sync point sequence number
+    // bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum;
+    // if (fs->isOpen()) {
+    //     bmqp_ctrlmsg::SyncPoint syncPoint = fs->firstSyncPointAfterRollover();
+    //     selfFirstSyncPointSeqNum.primaryLeaseId() = syncPoint.primaryLeaseId();
+    //     selfFirstSyncPointSeqNum.sequenceNumber() = syncPoint.sequenceNum();
+    // } else {
+    //     const int rc = d_recoveryManager_mp->recoverSeqNum(&selfFirstSyncPointSeqNum, partitionId, true);
+    //     if (rc != 0) {
+    //         BALL_LOG_WARN << d_clusterData_p->identity().description()
+    //                     << " Partition [" << partitionId << "]: "
+    //                     << "Failed to recover first sync point sequence number for partition "
+    //                     << partitionId << ". rc="
+    //                     << rc;
+    //         selfFirstSyncPointSeqNum.reset();
+    //     }
+    // }
+    // replicaStateRequest.firstSyncPointSequenceNumber() = selfFirstSyncPointSeqNum;
 
     contextSp->setDestinationNodes(replicas);
     contextSp->setResponseCb(
@@ -1619,10 +1644,13 @@ void StorageManager::do_replicaStateResponse(const PartitionFSMArgsSp& args)
         partitionMessage.choice().makeReplicaStateResponse();
 
     response.partitionId() = partitionId;
-    response.sequenceNumber() =
+    response.latestSequenceNumber() =
         d_nodeToSeqNumCtxMapVec[partitionId]
                                [d_clusterData_p->membership().selfNode()]
                                    .first;
+
+    // Get own first sync point sequence number
+    response.firstSyncPointSequenceNumber() = getSelfFirstSyncPointSequenceNumber(partitionId);
 
     BSLS_ASSERT_SAFE(eventData.source() ==
                      d_partitionInfoVec[partitionId].primary());
@@ -1776,10 +1804,13 @@ void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
             .makePrimaryStateRequest();
 
     primaryStateRequest.partitionId() = partitionId;
-    primaryStateRequest.sequenceNumber() =
+    primaryStateRequest.latestSequenceNumber() =
         d_nodeToSeqNumCtxMapVec[partitionId]
                                [d_clusterData_p->membership().selfNode()]
                                    .first;
+
+    // Get own first sync point sequence number
+    primaryStateRequest.firstSyncPointSequenceNumber() = getSelfFirstSyncPointSequenceNumber(partitionId);
 
     mqbnet::ClusterNode* destNode = eventData.primary();
 
@@ -1840,10 +1871,13 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
         partitionMessage.choice().makePrimaryStateResponse();
 
     response.partitionId() = partitionId;
-    response.sequenceNumber() =
+    response.latestSequenceNumber() =
         d_nodeToSeqNumCtxMapVec[partitionId]
                                [d_clusterData_p->membership().selfNode()]
                                    .first;
+
+    // Get own first sync point sequence number
+    response.firstSyncPointSequenceNumber() = getSelfFirstSyncPointSequenceNumber(partitionId);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
@@ -1955,6 +1989,14 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
          cit != nodeToSeqNumCtxMap.cend();
          cit++) {
         if (cit->first->nodeId() == selfNode->nodeId()) {
+            continue;  // CONTINUE
+        }
+        if (cit->first->nodeId() == eventData.source()->nodeId() && eventData.needDropSourceStorage()) {
+            // Skip ReplicaDataRequestPush to this node because it is needed to drop its storage
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId << "]: "
+                          << "Skipping ReplicaDataRequestPush to " << cit->first->nodeDescription()
+                          << " because it is needed to drop its storage.";
             continue;  // CONTINUE
         }
         if (cit->second.first <= selfSeqNum && !cit->second.second) {
@@ -2132,7 +2174,6 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         nodeToSeqNumCtxMap.at(selfNode).first;
 
     // Determine the replicas with obsolete data to be dropped
-    BALL_LOG_WARN << "!!! do_replicaDataRequestDrop" << " Partition [" << partitionId << "]";
     ClusterNodeVec obsoleteDataReplicas;
     for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
          cit != nodeToSeqNumCtxMap.cend();
@@ -2141,16 +2182,20 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         if (cit->second.first > selfSeqNum && !cit->second.second) {
             obsoleteDataReplicas.emplace_back(cit->first);
             BALL_LOG_WARN  << "ADD obsoleteDataReplicas: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
+        } else if (cit->first->nodeId() == eventData.source()->nodeId() && eventData.needDropSourceStorage()) {
+            // Always drop the source node if requested, regardless of its sequence number
+            obsoleteDataReplicas.emplace_back(cit->first);
+            BALL_LOG_WARN  << "ADD obsoleteDataReplicas1111: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
         }
-        // TODO: need proper way to determine missed rollover
-        if (cit->second.first < selfSeqNum && !cit->second.second) {
-            if (cit->second.first.primaryLeaseId() !=0 && cit->second.first.sequenceNumber() !=0) {
-                if (cit->second.first.primaryLeaseId() < selfSeqNum.primaryLeaseId() || selfSeqNum.sequenceNumber() - cit->second.first.sequenceNumber() > 2) {
-                    BALL_LOG_WARN  << "ADD obsoleteDataReplicas1111: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
-                    obsoleteDataReplicas.emplace_back(cit->first);
-                }
-            }
-        }
+        // // TODO: need proper way to determine missed rollover
+        // if (cit->second.first < selfSeqNum && !cit->second.second) {
+        //     if (cit->second.first.primaryLeaseId() !=0 && cit->second.first.sequenceNumber() !=0) {
+        //         if (cit->second.first.primaryLeaseId() < selfSeqNum.primaryLeaseId() || selfSeqNum.sequenceNumber() - cit->second.first.sequenceNumber() > 2) {
+        //             BALL_LOG_WARN  << "ADD obsoleteDataReplicas1111: cit->second.first: " << cit->second.first << "selfSeqNum: " << selfSeqNum << " cit->second.second: " << cit->second.second;
+        //             obsoleteDataReplicas.emplace_back(cit->first);
+        //         }
+        //     }
+        // }
     }
 
     // Send ReplicaDataRequestDrop to replicas with obsolete data
@@ -2856,24 +2901,28 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 // Replica is ahead: we already sent ReplicaDataRequestDrop
                 BALL_LOG_WARN << "do_startSendDataChunks beginSeqNum > endSeqNum partitionId: " << partitionId;
                 continue;
+            } else if (cit->first->nodeId() == eventData.source()->nodeId() && eventData.needDropSourceStorage()) {
+                // Replica needs to drop, we already sent ReplicaDataRequestDrop
+                BALL_LOG_WARN << "do_startSendDataChunks eventData.needDropSourceStorage partitionId: " << partitionId;
+                continue;
             }
 
-            if (beginSeqNum < endSeqNum)  {
-                // Replica is behind: we already sent ReplicaDataRequestDrop
-                // TODO: condition
-                BALL_LOG_WARN << "do_startSendDataChunks BEFORE SKIP beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
+            // if (beginSeqNum < endSeqNum)  {
+            //     // Replica is behind: we already sent ReplicaDataRequestDrop
+            //     // TODO: condition
+            //     BALL_LOG_WARN << "do_startSendDataChunks BEFORE SKIP beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
 
-                if (beginSeqNum.primaryLeaseId() != 0 &&  beginSeqNum.sequenceNumber() !=0) {
-                    if (beginSeqNum.primaryLeaseId() < endSeqNum.primaryLeaseId() || (endSeqNum.sequenceNumber() - beginSeqNum.sequenceNumber() > 2)) {
-                        BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
-                        continue;
-                    }
-                } 
-                // else {
-                //     BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum due to 0: " << beginSeqNum << " endSeqNum: " << endSeqNum;
-                //     continue;
-                // }
-            }
+            //     if (beginSeqNum.primaryLeaseId() != 0 &&  beginSeqNum.sequenceNumber() !=0) {
+            //         if (beginSeqNum.primaryLeaseId() < endSeqNum.primaryLeaseId() || (endSeqNum.sequenceNumber() - beginSeqNum.sequenceNumber() > 2)) {
+            //             BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum: " << beginSeqNum << " endSeqNum: " << endSeqNum;
+            //             continue;
+            //         }
+            //     } 
+            //     // else {
+            //     //     BALL_LOG_WARN << "SKIP do_startSendDataChunks beginSeqNum due to 0: " << beginSeqNum << " endSeqNum: " << endSeqNum;
+            //     //     continue;
+            //     // }
+            // }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
                 nodeToSeqNumCtxMap.at(destNode).second = true;
@@ -3394,6 +3443,7 @@ void StorageManager::do_findHighestSeq(const PartitionFSMArgsSp& args)
                                  d_clusterData_p->membership().selfNode(),
                                  primaryLeaseId,
                                  highestPartitionSeqNum,
+                                 bmqp_ctrlmsg::PartitionSequenceNumber(), // firstSyncPointSeqNum
                                  highestSeqNumNode);
 
     if (selfHighestSeq) {
@@ -4278,16 +4328,70 @@ void StorageManager::processPrimaryStateRequest(
         return;  // RETURN
     }
 
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    // Decide to drop replica's storage
+    // if it is not empty and its first sync point does not match primary's one.
+    bool needDropReplicaStorage = false;
+    if (primaryStateRequest.latestSequenceNumber() != bmqp_ctrlmsg::PartitionSequenceNumber()) {
+        // Replica's storage is not empty, need to check first sync point        
+        bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum = getSelfFirstSyncPointSequenceNumber(partitionId);
+        needDropReplicaStorage = selfFirstSyncPointSeqNum != primaryStateRequest.firstSyncPointSequenceNumber();
+
+        // bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum;
+        // if (fs->isOpen()) {
+        //     // Get own first sync point sequence number
+        //     bmqp_ctrlmsg::SyncPoint syncPoint = fs->firstSyncPointAfterRollover();
+        //     selfFirstSyncPointSeqNum.primaryLeaseId() = syncPoint.primaryLeaseId();
+        //     selfFirstSyncPointSeqNum.sequenceNumber() = syncPoint.sequenceNum();
+
+        //     BALL_LOG_WARN << d_clusterData_p->identity().description()
+        //                 << " Partition [" << partitionId << "]: "
+        //                 << "Retrieved first sync point sequence number for partition "
+        //                 << partitionId << " SeqNum = "
+        //                 << selfFirstSyncPointSeqNum;
+
+        //     needDropReplicaStorage = selfFirstSyncPointSeqNum != primaryStateRequest.firstSyncPointSequenceNumber();
+        // } else {
+        //     // Get own first sync point sequence number
+        //     const int rc = d_recoveryManager_mp->recoverSeqNum(&selfFirstSyncPointSeqNum, partitionId, true);
+        //     if (rc != 0) {
+        //         BALL_LOG_WARN << d_clusterData_p->identity().description()
+        //                     << " Partition [" << partitionId << "]: "
+        //                     << "Failed to recover first sync point sequence number for partition "
+        //                     << partitionId << ". rc="
+        //                     << rc;
+        //     } else {
+        //         BALL_LOG_WARN << d_clusterData_p->identity().description()
+        //                     << " Partition [" << partitionId << "]: "
+        //                     << "Recover first sync point sequence number for partition "
+        //                     << partitionId << " SeqNum = "
+        //                     << selfFirstSyncPointSeqNum;
+
+        //         needDropReplicaStorage = selfFirstSyncPointSeqNum != primaryStateRequest.firstSyncPointSequenceNumber();
+        //     }
+        // }
+
+        if (needDropReplicaStorage) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                            << " Partition [" << partitionId << "]: "
+                            << "Need to drop replica's storage for partition "
+                            << partitionId << " as its first sync point "
+                            << "sequence number does not match - self: " << selfFirstSyncPointSeqNum << " replica: " << primaryStateRequest.firstSyncPointSequenceNumber()
+                            << " lastSeqNum: " << primaryStateRequest.latestSequenceNumber();
+        }
+    }
+
     EventData eventDataVec;
     eventDataVec.emplace_back(source,
                               message.rId().isNull() ? -1
                                                      : message.rId().value(),
                               partitionId,
                               1,
-                              primaryStateRequest.sequenceNumber());
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
+                              primaryStateRequest.latestSequenceNumber(),
+                              primaryStateRequest.firstSyncPointSequenceNumber(),
+                              needDropReplicaStorage);
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_PRIMARY_STATE_RQST,
@@ -4343,7 +4447,7 @@ void StorageManager::processReplicaStateRequest(
                                                      : message.rId().value(),
                               partitionId,
                               1,
-                              replicaStateRequest.sequenceNumber());
+                              replicaStateRequest.latestSequenceNumber(), replicaStateRequest.firstSyncPointSequenceNumber()); // TODO: need to calculate needDropSourceStorage here?
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -4774,6 +4878,37 @@ const mqbs::FileStore& StorageManager::fileStore(int partitionId) const
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     return *d_fileStores[partitionId].get();
+}
+
+const bmqp_ctrlmsg::PartitionSequenceNumber StorageManager::getSelfFirstSyncPointSequenceNumber(int partitionId) const
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    // Get own first sync point sequence number
+    bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum;
+    if (fs->isOpen()) {
+        bmqp_ctrlmsg::SyncPoint syncPoint = fs->firstSyncPointAfterRollover();
+        selfFirstSyncPointSeqNum.primaryLeaseId() = syncPoint.primaryLeaseId();
+        selfFirstSyncPointSeqNum.sequenceNumber() = syncPoint.sequenceNum();
+    } else {
+        const int rc = d_recoveryManager_mp->recoverSeqNum(&selfFirstSyncPointSeqNum, partitionId, true);
+        if (rc != 0) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                        << " Partition [" << partitionId << "]: "
+                        << "Failed to recover first sync point sequence number for partition "
+                        << partitionId << ". rc="
+                        << rc;
+            selfFirstSyncPointSeqNum.reset();
+        }
+    }
+    return selfFirstSyncPointSeqNum;
 }
 
 }  // close package namespace
