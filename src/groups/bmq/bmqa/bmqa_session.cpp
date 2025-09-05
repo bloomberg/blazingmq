@@ -582,8 +582,7 @@ SessionUtil::validateAndSetConfigureQueueParameters(
     }
 
     // Make sure the provided QueueId is valid
-    if (!queueId->isValid()) {
-        (*errorDescription) << "Invalid QueueId";
+    if (!queueId->isValid(errorDescription)) {
         return bmqt::ConfigureQueueResult::e_INVALID_QUEUE;  // RETURN
     }
 
@@ -618,8 +617,7 @@ bmqt::CloseQueueResult::Enum SessionUtil::validateAndSetCloseQueueParameters(
     }
 
     // Make sure the provided QueueId is valid
-    if (!queueId->isValid()) {
-        (*errorDescription) << "Invalid QueueId";
+    if (!queueId->isValid(errorDescription)) {
         return bmqt::CloseQueueResult::e_INVALID_QUEUE;  // RETURN
     }
 
