@@ -443,6 +443,19 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Store first sync point position if present in file.
+    if (jit.firstSyncPointPosition() > 0) {
+        const RecordHeader& recHeader = jit.firstSyncPointHeader();
+
+        d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() = recHeader.primaryLeaseId();
+        d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() = recHeader.sequenceNumber();
+
+        BALL_LOG_INFO << partitionDesc()
+                      << "First sync point Sequence Number: "
+                      << d_firstSyncPointAfterRolloverSeqNum
+                      << ", Timestamp (epoch): " << recHeader.timestamp();
+    }
+
     // Print last sync point in the journal, if available.
 
     if (0 != jit.lastSyncPointPosition()) {
@@ -2823,7 +2836,8 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     jfh->setFirstSyncPointOffsetWords(spoPair.offset() /
                                       bmqp::Protocol::k_WORD_SIZE);
 
-    d_firstSyncPointAfterRollover = spoPair.syncPoint();
+    d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() = syncPoint.primaryLeaseId();
+    d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() = syncPoint.sequenceNum();
 
     // Now clear the 'd_syncPoints' as the rollover is complete, and make the
     // previous newest sync point the first new sync point.
@@ -5114,7 +5128,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
                         bmqp::EventType::e_STORAGE,
                         d_blobSpPool_p,
                         allocator)
-, d_firstSyncPointAfterRollover()
+, d_firstSyncPointAfterRolloverSeqNum()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);

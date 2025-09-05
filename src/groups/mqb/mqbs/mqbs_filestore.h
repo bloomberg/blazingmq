@@ -406,8 +406,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bmqp::StorageEventBuilder d_storageEventBuilder;
     // Storage event builder to use.
 
-    bmqp_ctrlmsg::SyncPoint d_firstSyncPointAfterRollover;
-    // First SyncPoint after rollover, it is set at the last step of rollover, 
+    bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum;
+    // First sync point after rollover sequence number, it is set at the last step of rollover, 
     // together with journal file header `firstSyncPointOffsetWords`.
     // It is used to determine if cluster node missed rollover.
 
@@ -1043,8 +1043,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
 
-    /// Return the first SyncPoint after rollover.
-    const bmqp_ctrlmsg::SyncPoint& firstSyncPointAfterRollover() const;
+    /// Return the first sync point after rollover sequence number.
+    const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointAfterRolloverSeqNum() const;
 };
 
 // =======================
@@ -1311,9 +1311,9 @@ inline int FileStore::replicationFactor() const
     return d_replicationFactor;
 }
 
-inline const bmqp_ctrlmsg::SyncPoint& FileStore::firstSyncPointAfterRollover() const
+inline const bmqp_ctrlmsg::PartitionSequenceNumber& FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
-    return d_firstSyncPointAfterRollover;
+    return d_firstSyncPointAfterRolloverSeqNum;
 }
 
 // -----------------------

@@ -138,7 +138,8 @@ class PartitionFSMEventData {
                               bmqp_ctrlmsg::PartitionSequenceNumber(),
                           mqbnet::ClusterNode* highestSeqNumNode = 0,
                           const PartitionSeqNumDataRange& seqNumDataRange =
-                              PartitionSeqNumDataRange());
+                              PartitionSeqNumDataRange(),
+                          bool needDropSourceStorage = false);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
@@ -163,7 +164,7 @@ class PartitionFSMEventData {
                           int                  incrementCount,
                           const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
                           const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum, 
-                          const bool needDropSourceStorage);
+                          bool needDropSourceStorage);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, partition
@@ -342,7 +343,8 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum,
     mqbnet::ClusterNode*                         highestSeqNumNode,
-    const PartitionSeqNumDataRange&              seqNumDataRange)
+    const PartitionSeqNumDataRange&              seqNumDataRange,
+    bool                                         needDropReplicaStorage)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
@@ -354,7 +356,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 , d_highestSeqNumNode(highestSeqNumNode)
 , d_partitionSeqNumDataRange(seqNumDataRange)
 , d_storageEvent()
-, d_needDropSourceStorage(false)
+, d_needDropSourceStorage(needDropReplicaStorage)
 {
     // NOTHING
 }
@@ -389,7 +391,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     int                                          incrementCount,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum,
-    const bool needDropSourceStorage)
+    bool needDropSourceStorage)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)

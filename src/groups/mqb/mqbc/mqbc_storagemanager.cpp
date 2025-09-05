@@ -867,13 +867,35 @@ void StorageManager::processReplicaStateResponseDispatched(
         const unsigned int primaryLeaseId = d_clusterState.partitionsInfo()
                                                 .at(response.partitionId())
                                                 .primaryLeaseId();
+
+        // Decide to drop replica's storage
+        // if it is not empty and its first sync point does not match primary's one.
+        bool needDropReplicaStorage = false;
+        if (response.latestSequenceNumber() != bmqp_ctrlmsg::PartitionSequenceNumber()) {
+            // Replica's storage is not empty, need to check first sync point        
+            bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum = getSelfFirstSyncPointSequenceNumber(requestPartitionId);
+            needDropReplicaStorage = selfFirstSyncPointSeqNum != response.firstSyncPointSequenceNumber();
+
+            if (needDropReplicaStorage) {
+                BALL_LOG_WARN << d_clusterData_p->identity().description()
+                                << " Partition [" << requestPartitionId << "]: "
+                                << "Need to drop replica's storage "
+                                << "as its first sync point "
+                                << "sequence number does not match - self: " << selfFirstSyncPointSeqNum << " replica: " << response.firstSyncPointSequenceNumber();
+            }        
+        }
+
         eventDataVec.emplace_back(cit->first,
                                   responseId,
                                   response.partitionId(),
                                   1,
                                   d_clusterData_p->membership().selfNode(),
                                   primaryLeaseId,
-                                  response.latestSequenceNumber(), response.firstSyncPointSequenceNumber());
+                                  response.latestSequenceNumber(),
+                                  response.firstSyncPointSequenceNumber(),
+                                  static_cast<mqbnet::ClusterNode*>(0), // highestSeqNumNode
+                                  PartitionSeqNumDataRange(), // seqNumDataRange
+                                  needDropReplicaStorage);
 
         BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
     }
@@ -1992,11 +2014,11 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
             continue;  // CONTINUE
         }
         if (cit->first->nodeId() == eventData.source()->nodeId() && eventData.needDropSourceStorage()) {
-            // Skip ReplicaDataRequestPush to this node because it is needed to drop its storage
+            // Skip ReplicaDataRequestPush to this node because it needs to drop its storage
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId << "]: "
                           << "Skipping ReplicaDataRequestPush to " << cit->first->nodeDescription()
-                          << " because it is needed to drop its storage.";
+                          << " because it needs to drop its storage.";
             continue;  // CONTINUE
         }
         if (cit->second.first <= selfSeqNum && !cit->second.second) {
@@ -4376,10 +4398,9 @@ void StorageManager::processPrimaryStateRequest(
         if (needDropReplicaStorage) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                             << " Partition [" << partitionId << "]: "
-                            << "Need to drop replica's storage for partition "
-                            << partitionId << " as its first sync point "
-                            << "sequence number does not match - self: " << selfFirstSyncPointSeqNum << " replica: " << primaryStateRequest.firstSyncPointSequenceNumber()
-                            << " lastSeqNum: " << primaryStateRequest.latestSequenceNumber();
+                            << "Need to drop replica's storage "
+                            << "as its first sync point "
+                            << "sequence number does not match - self: " << selfFirstSyncPointSeqNum << " replica: " << primaryStateRequest.firstSyncPointSequenceNumber();
         }
     }
 
@@ -4894,9 +4915,7 @@ const bmqp_ctrlmsg::PartitionSequenceNumber StorageManager::getSelfFirstSyncPoin
     // Get own first sync point sequence number
     bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum;
     if (fs->isOpen()) {
-        bmqp_ctrlmsg::SyncPoint syncPoint = fs->firstSyncPointAfterRollover();
-        selfFirstSyncPointSeqNum.primaryLeaseId() = syncPoint.primaryLeaseId();
-        selfFirstSyncPointSeqNum.sequenceNumber() = syncPoint.sequenceNum();
+        selfFirstSyncPointSeqNum = fs->firstSyncPointAfterRolloverSeqNum();
     } else {
         const int rc = d_recoveryManager_mp->recoverSeqNum(&selfFirstSyncPointSeqNum, partitionId, true);
         if (rc != 0) {
