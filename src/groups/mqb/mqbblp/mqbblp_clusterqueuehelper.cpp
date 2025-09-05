@@ -666,6 +666,27 @@ void ClusterQueueHelper::onQueueContextAssigned(
 
             haveActivePrimary = false;
         }
+        else if (!d_clusterState_p->isSelfPrimary(pid)) {
+            // This is a replica node, guaranteed.
+
+            // Note: It's possible that the queue has already been registered
+            // in the StorageMgr if it was a queue found during storage
+            // recovery. Therefore, we will allow for duplicate registration
+            // which will simply result in a no-op.
+
+            const mqbc::ClusterStateQueueInfo& info =
+                *queueContext->d_stateQInfo_sp;
+
+            mqbc::ClusterState::DomainState& domainState =
+                *d_clusterState_p->domainStates().at(
+                    info.uri().qualifiedDomain());
+
+            d_storageManager_p->registerQueueReplica(pid,
+                                                     info.uri(),
+                                                     info.key(),
+                                                     info.appInfos(),
+                                                     domainState.domain());
+        }
     }
 
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
@@ -4235,20 +4256,6 @@ void ClusterQueueHelper::onQueueAssigned(
     BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
                          << ": Assigned queue: " << *info;
 
-    if (!d_clusterState_p->isSelfPrimary(info->partitionId())) {
-        // This is a replica node
-
-        // Note: It's possible that the queue has already been registered
-        // in the StorageMgr if it was a queue found during storage
-        // recovery. Therefore, we will allow for duplicate registration
-        // which will simply result in a no-op.
-        d_storageManager_p->registerQueueReplica(info->partitionId(),
-                                                 info->uri(),
-                                                 info->key(),
-                                                 info->appInfos(),
-                                                 domainState.domain());
-    }
-
     // NOTE: Even if it is not needed to invoke 'onQueueContextAssigned' in the
     //       case we just created it (because there are no pending
     //       contexts), we still call it regardless for the logging.
@@ -4437,20 +4444,28 @@ void ClusterQueueHelper::onQueueUpdated(
                                                d_clusterState_p->domainStates()
                                                    .at(uri.qualifiedDomain())
                                                    ->domain());
-    }
 
-    for (AppInfos::const_iterator cit = removedAppIds.cbegin();
-         cit != removedAppIds.cend();
-         ++cit) {
-        if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
+        for (AppInfos::const_iterator cit = removedAppIds.cbegin();
+             cit != removedAppIds.cend();
+             ++cit) {
             d_storageManager_p->unregisterQueueReplica(partitionId,
                                                        uri,
                                                        queueContext.key(),
                                                        cit->second);
         }
     }
+    // else, there is a queue AND this node is primary
 
     if (queue) {
+        // This node is either replica or primary.
+        // Currently, 'RelayQueueEngine' does not do anything in
+        // 'afterAppIdRegisteredDispatched' / 'afterAppIdRegisteredDispatched',
+        // the 'updateQueueReplica' above calls 'addVirtualStoragesInternal'.
+        //
+        // 'RootQueueEngine' calls 'storageManager()->updateQueuePrimary'
+        // which calls 'fs->writeQueueCreationRecord' and
+        // 'addVirtualStoragesInternal' / 'removeVirtualStorageInternal'.
+
         // TODO: replace with one call
         d_cluster_p->dispatcher()->execute(
             bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
@@ -4464,6 +4479,21 @@ void ClusterQueueHelper::onQueueUpdated(
                                  removedAppIds),
             queue);
     }
+    // else, if there is no queue, then either 'createQueueFactory' (when the
+    // queue gets created) or 'convertToLocal' (when the node becomes primary)
+    // calls 'storageSp->addVirtualStorage' and 'fs->writeQueueCreationRecord'.
+
+    // REVISIT: The above does not seems to check the state of primary, if any.
+    // If the queue is updated, then:
+    //  1) there is a leader (the source of the update).
+    //  2) the queue must be assigned.
+    // If the queue is assigned, there was a primary, so QueueCreationRecord is
+    // not a concern.
+    // If the queue exists, the queue has either 'RootQueueEngine' or
+    // 'RelayQueueEngine'.  The former takes care of AppCreationRecords.
+    // If there is no queue, this code does not write AppCreationRecords.  This
+    // will be done by 'StorageManager::registerQueue' at the time of the queue
+    // creation on primary.
 
     bmqu::Printer<AppInfos> printer1(&addedAppIds);
     bmqu::Printer<AppInfos> printer2(&removedAppIds);
