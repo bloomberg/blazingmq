@@ -33,17 +33,17 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    // In this test case we do some very strict/precise assertions on
-    // allocations/allocator use.  This is to ensure that the stream
-    // remains working as efficiently as possible (over time as code
-    // evolves).  However these strict numbers here are not the artifacts
-    // of how this stream works, but how the BDE provided
-    // `bdlsb::MemOutStreamBuf` works.  So it is possible that changes in
-    // `bdlsb::MemOutStreamBuf` will break this test driver.  Said changes
-    // will need to be reviewed at that time to determine if they are
-    // acceptable (and this test driver needs fixing) or BDE will need to
-    // make a new component with the changes and keep
-    // `bdlsb::MemOutStreamBuf` as it is.
+    /// In this test case we do some very strict/precise assertions on
+    /// allocations/allocator use.  This is to ensure that the stream
+    /// remains working as efficiently as possible (over time as code
+    /// evolves).  However these strict numbers here are not the artifacts
+    /// of how this stream works, but how the BDE provided
+    /// @bbref{bdlsb::MemOutStreamBuf} works.  So it is possible that changes in
+    /// @bbref{bdlsb::MemOutStreamBuf} will break this test driver.  Said changes
+    /// will need to be reviewed at that time to determine if they are
+    /// acceptable (and this test driver needs fixing) or BDE will need to
+    /// make a new component with the changes and keep
+    /// @bbref{bdlsb::MemOutStreamBuf} as it is.
     bslma::TestAllocator alloc(bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream obj(&alloc);
