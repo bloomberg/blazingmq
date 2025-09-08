@@ -3977,6 +3977,9 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
         d_config.partitionId(),
         fs->d_outstandingBytesData,
         fs->d_outstandingBytesJournal);
+    d_clusterStats_p->setPartitionOffsetBytes(d_config.partitionId(),
+                                              fs->d_dataFilePosition,
+                                              fs->d_journalFilePosition);
 
     return rc_SUCCESS;
 }
@@ -5211,6 +5214,10 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
         d_config.partitionId(),
         d_fileSets[0].get()->d_outstandingBytesData,
         d_fileSets[0].get()->d_outstandingBytesJournal);
+    d_clusterStats_p->setPartitionOffsetBytes(
+        d_config.partitionId(),
+        d_fileSets[0].get()->d_dataFilePosition,
+        d_fileSets[0].get()->d_journalFilePosition);
 
     return rc_SUCCESS;
 }

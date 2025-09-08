@@ -91,6 +91,12 @@ struct ClusterStatsIndex {
         ,
         e_PARTITION_JOURNAL_BYTES
         // Value: Outstanding bytes in the journal file of the partition.
+        ,
+        e_PARTITION_DATA_OFFSET_BYTES
+        // Value: Offset bytes in the data file of the partition.
+        ,
+        e_PARTITION_JOURNAL_OFFSET_BYTES
+        // Value: Offset bytes in the journal file of the partition.
     };
 };
 
@@ -193,6 +199,18 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
     case Stat::e_PARTITION_JOURNAL_CONTENT: {
         const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
                                                     e_PARTITION_JOURNAL_BYTES);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
+    }
+    case Stat::e_PARTITION_DATA_OFFSET: {
+        const bsls::Types::Int64 value =
+            STAT_RANGE(rangeMax, e_PARTITION_DATA_OFFSET_BYTES);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
+    }
+    case Stat::e_PARTITION_JOURNAL_OFFSET: {
+        const bsls::Types::Int64 value =
+            STAT_RANGE(rangeMax, e_PARTITION_JOURNAL_OFFSET_BYTES);
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
     }
@@ -415,6 +433,27 @@ ClusterStats::setPartitionOutstandingBytes(int                partitionId,
     return *this;
 }
 
+ClusterStats&
+ClusterStats::setPartitionOffsetBytes(int                partitionId,
+                                      bsls::Types::Int64 dataBytes,
+                                      bsls::Types::Int64 journalBytes)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         static_cast<int>(d_partitionsStatContexts.size()));
+    BSLS_ASSERT_SAFE(d_partitionsStatContexts[partitionId] &&
+                     "initialize was not called");
+
+    d_partitionsStatContexts[partitionId]->reportValue(
+        ClusterStatsIndex::e_PARTITION_DATA_OFFSET_BYTES,
+        dataBytes);
+    d_partitionsStatContexts[partitionId]->reportValue(
+        ClusterStatsIndex::e_PARTITION_JOURNAL_OFFSET_BYTES,
+        journalBytes);
+    return *this;
+}
+
 // -------------------------
 // struct ClusterStats::Role
 // -------------------------
@@ -571,7 +610,9 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition_status")
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE);
+        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
+        .value("partition.data_offset_bytes", bmqst::StatValue::e_DISCRETE)
+        .value("partition.journal_offset_bytes", bmqst::StatValue::e_DISCRETE);
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
