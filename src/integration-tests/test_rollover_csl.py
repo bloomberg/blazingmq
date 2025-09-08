@@ -50,16 +50,16 @@ class TestRolloverCSL:
         assert len(csl_files_before_rollover) == 1
 
         i = 0
-        while True:
+        # Open queues until rollover detected
+        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
             producer.open(
                 f"bmq://{domain_priority}/q{i}", flags=["write,ack"], succeed=True
             )
             producer.close(f"bmq://{domain_priority}/q{i}", succeed=True)
             i += 1
-
-            # Rollover detected
-            if leader.outputs_regex(r"Rolling over from log with logId", 0.01):
-                break
+            assert i < 10000, (
+                "Failed to detect rollover after opening a reasonable number of queues"
+            )
         test_logger.info(f"Rollover detected after opening {i} queues")
 
         csl_files_after_rollover = glob.glob(
@@ -89,10 +89,10 @@ class TestRolloverCSL:
             Then, restart the cluster.
         3. EPILOGUE:
             - priority consumer gets the second message
-            - "quux" gets the third message
-            - "bar" gets 0 messages
             - "foo" gets 2 messages
+            - "bar" gets 0 messages
             - "baz" gets 3 messages
+            - "quux" gets the third message
         """
         du = domain_urls
         leader = cluster.last_known_leader
@@ -100,10 +100,8 @@ class TestRolloverCSL:
         producer = proxy.create_client("producer")
 
         # PROLOGUE
-        priority_queue, fanout_queue = (
-            f"bmq://{du.domain_priority}/q_in_use",
-            f"bmq://{du.domain_fanout}/q_in_use",
-        )
+        priority_queue = f"bmq://{du.domain_priority}/q_in_use"
+        fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
         for queue in [priority_queue, fanout_queue]:
             producer.open(queue, flags=["write,ack"], succeed=True)
             producer.post(
@@ -129,8 +127,8 @@ class TestRolloverCSL:
         consumer.close(priority_queue, succeed=True)
         consumer.close(fanout_queue + "?id=foo", succeed=True)
 
-        all_app_ids = default_app_ids + ["quux"]
-        cluster.set_app_ids(all_app_ids, du)
+        current_app_ids = default_app_ids + ["quux"]
+        cluster.set_app_ids(current_app_ids, du)
         producer.post(
             fanout_queue,
             ["msg3"],
@@ -138,11 +136,13 @@ class TestRolloverCSL:
             wait_ack=True,
         )
 
-        cluster.set_app_ids([a for a in all_app_ids if a not in ["bar"]], du)
+        current_app_ids.remove("bar")
+        cluster.set_app_ids(current_app_ids, du)
 
         # SWITCH
         i = 0
-        while True:
+        # Open queues until rollover detected
+        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
             producer.open(
                 f"bmq://{du.domain_priority}/q_dummy_{i}",
                 flags=["write,ack"],
@@ -155,9 +155,9 @@ class TestRolloverCSL:
                 # do not wait for success, otherwise the following capture will fail
                 leader.force_gc_queues(block=False)
 
-            # Rollover detected
-            if leader.outputs_regex(r"Rolling over from log with logId", 0.01):
-                break
+            assert i < 10000, (
+                "Failed to detect rollover after opening a reasonable number of queues"
+            )
         test_logger.info(f"Rollover detected after opening {i} queues")
 
         # Rollover and queueUnAssignmentAdvisory interleave
