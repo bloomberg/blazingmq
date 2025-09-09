@@ -110,7 +110,9 @@ class ClusterStats {
             e_PARTITION_DATA_UTILIZATION_MAX,
             /// Maximum observed utilization of the journal file of the
             /// partition.
-            e_PARTITION_JOURNAL_UTILIZATION_MAX
+            e_PARTITION_JOURNAL_UTILIZATION_MAX,
+            /// Currently observed sequence number of the partition.
+            e_PARTITION_SEQUENCE_NUMBER
         };
     };
 
@@ -260,9 +262,10 @@ class ClusterStats {
     /// journal files for the specified `partitionId` to the corresponding
     /// specified `dataBytes` and `journalBytes` values.
     ClusterStats&
-    setPartitionOutstandingBytes(int                partitionId,
-                                 bsls::Types::Int64 dataBytes,
-                                 bsls::Types::Int64 journalBytes);
+    setPartitionOutstandingBytes(int                 partitionId,
+                                 bsls::Types::Int64  dataBytes,
+                                 bsls::Types::Int64  journalBytes,
+                                 bsls::Types::Uint64 sequenceNumber);
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
