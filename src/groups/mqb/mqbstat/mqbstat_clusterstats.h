@@ -106,10 +106,9 @@ class ClusterStats {
             /// Maximum observed outstanding bytes in the journal file of the
             /// partition.
             e_PARTITION_JOURNAL_CONTENT,
-            /// Maximum observed offset bytes in the data file of the
-            /// partition.
+            /// Latest observed offset bytes in the data file of the partition.
             e_PARTITION_DATA_OFFSET,
-            /// Maximum observed offset bytes in the journal file of the
+            /// Latest observed offset bytes in the journal file of the
             /// partition.
             e_PARTITION_JOURNAL_OFFSET,
             /// Maximum observed utilization of the data file of the partition.
@@ -264,18 +263,13 @@ class ClusterStats {
 
     /// Set the partition outstanding bytes of the specified data and
     /// journal files for the specified `partitionId` to the corresponding
-    /// specified `dataBytes` and `journalBytes` values.
-    ClusterStats&
-    setPartitionOutstandingBytes(int                partitionId,
-                                 bsls::Types::Int64 dataBytes,
-                                 bsls::Types::Int64 journalBytes);
-
-    /// Set the partition offset bytes of the specified data and
-    /// journal files for the specified `partitionId` to the corresponding
-    /// specified `dataBytes` and `journalBytes` values.
-    ClusterStats& setPartitionOffsetBytes(int                partitionId,
-                                          bsls::Types::Int64 dataBytes,
-                                          bsls::Types::Int64 journalBytes);
+    /// specified `outstandingDataBytes`, `outstandingJournalBytes`,
+    /// `offsetDataBytes` and `offsetJournalBytes` values.
+    ClusterStats& setPartitionBytes(int                partitionId,
+                                    bsls::Types::Int64 outstandingDataBytes,
+                                    bsls::Types::Int64 outstandingJournalBytes,
+                                    bsls::Types::Int64 offsetDataBytes,
+                                    bsls::Types::Int64 offsetJournalBytes);
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();

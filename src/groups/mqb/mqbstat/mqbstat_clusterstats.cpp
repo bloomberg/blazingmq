@@ -203,16 +203,10 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                                                        : value;
     }
     case Stat::e_PARTITION_DATA_OFFSET: {
-        const bsls::Types::Int64 value =
-            STAT_RANGE(rangeMax, e_PARTITION_DATA_OFFSET_BYTES);
-        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
-                                                                       : value;
+        return STAT_SINGLE(value, e_PARTITION_DATA_OFFSET_BYTES);
     }
     case Stat::e_PARTITION_JOURNAL_OFFSET: {
-        const bsls::Types::Int64 value =
-            STAT_RANGE(rangeMax, e_PARTITION_JOURNAL_OFFSET_BYTES);
-        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
-                                                                       : value;
+        return STAT_SINGLE(value, e_PARTITION_JOURNAL_OFFSET_BYTES);
     }
     case Stat::e_PARTITION_DATA_UTILIZATION_MAX: {
         const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
@@ -413,9 +407,11 @@ ClusterStats& ClusterStats::setNodeRoleForPartition(int partitionId,
 }
 
 ClusterStats&
-ClusterStats::setPartitionOutstandingBytes(int                partitionId,
-                                           bsls::Types::Int64 dataBytes,
-                                           bsls::Types::Int64 journalBytes)
+ClusterStats::setPartitionBytes(int                partitionId,
+                                bsls::Types::Int64 outstandingDataBytes,
+                                bsls::Types::Int64 outstandingJournalBytes,
+                                bsls::Types::Int64 offsetDataBytes,
+                                bsls::Types::Int64 offsetJournalBytes)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -426,31 +422,16 @@ ClusterStats::setPartitionOutstandingBytes(int                partitionId,
 
     d_partitionsStatContexts[partitionId]->reportValue(
         ClusterStatsIndex::e_PARTITION_DATA_BYTES,
-        dataBytes);
+        outstandingDataBytes);
     d_partitionsStatContexts[partitionId]->reportValue(
         ClusterStatsIndex::e_PARTITION_JOURNAL_BYTES,
-        journalBytes);
-    return *this;
-}
-
-ClusterStats&
-ClusterStats::setPartitionOffsetBytes(int                partitionId,
-                                      bsls::Types::Int64 dataBytes,
-                                      bsls::Types::Int64 journalBytes)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId <
-                         static_cast<int>(d_partitionsStatContexts.size()));
-    BSLS_ASSERT_SAFE(d_partitionsStatContexts[partitionId] &&
-                     "initialize was not called");
-
-    d_partitionsStatContexts[partitionId]->reportValue(
+        outstandingJournalBytes);
+    d_partitionsStatContexts[partitionId]->setValue(
         ClusterStatsIndex::e_PARTITION_DATA_OFFSET_BYTES,
-        dataBytes);
-    d_partitionsStatContexts[partitionId]->reportValue(
+        offsetDataBytes);
+    d_partitionsStatContexts[partitionId]->setValue(
         ClusterStatsIndex::e_PARTITION_JOURNAL_OFFSET_BYTES,
-        journalBytes);
+        offsetJournalBytes);
     return *this;
 }
 
@@ -611,8 +592,8 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
         .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.data_offset_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.journal_offset_bytes", bmqst::StatValue::e_DISCRETE);
+        .value("partition.data_offset_bytes")
+        .value("partition.journal_offset_bytes");
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
