@@ -91,6 +91,9 @@ struct ClusterStatsIndex {
         ,
         e_PARTITION_JOURNAL_BYTES
         // Value: Outstanding bytes in the journal file of the partition.
+        ,
+        e_PARTITION_SEQUENCE_NUMBER
+        // Value: The latest sequence number observed for the partition.
     };
 };
 
@@ -217,6 +220,11 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
             STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
         BSLS_ASSERT_SAFE(limit != 0);
         return 100 * value / limit;
+    }
+    case Stat::e_PARTITION_SEQUENCE_NUMBER: {
+        const bsls::Types::Int64 value =
+            STAT_SINGLE(value, e_PARTITION_SEQUENCE_NUMBER);
+        return value;
     }
 
     default: {
@@ -395,9 +403,10 @@ ClusterStats& ClusterStats::setNodeRoleForPartition(int partitionId,
 }
 
 ClusterStats&
-ClusterStats::setPartitionOutstandingBytes(int                partitionId,
-                                           bsls::Types::Int64 dataBytes,
-                                           bsls::Types::Int64 journalBytes)
+ClusterStats::setPartitionOutstandingBytes(int                 partitionId,
+                                           bsls::Types::Int64  dataBytes,
+                                           bsls::Types::Int64  journalBytes,
+                                           bsls::Types::Uint64 sequenceNumber)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -412,6 +421,9 @@ ClusterStats::setPartitionOutstandingBytes(int                partitionId,
     d_partitionsStatContexts[partitionId]->reportValue(
         ClusterStatsIndex::e_PARTITION_JOURNAL_BYTES,
         journalBytes);
+    d_partitionsStatContexts[partitionId]->reportValue(
+        ClusterStatsIndex::e_PARTITION_SEQUENCE_NUMBER,
+        sequenceNumber);
     return *this;
 }
 

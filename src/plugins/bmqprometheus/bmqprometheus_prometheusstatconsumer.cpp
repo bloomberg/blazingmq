@@ -745,6 +745,7 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                 prefix + "data_outstanding_bytes";
             const bsl::string data_utilization = prefix +
                                                  "data_utilization_max";
+            const bsl::string sequence_number = prefix + "sequence_number";
 
             const DatapointDef defs[] = {
                 {rollover_time.c_str(),
@@ -762,6 +763,9 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                  false},
                 {data_utilization.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_UTILIZATION_MAX,
+                 false},
+                {sequence_number.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_SEQUENCE_NUMBER,
                  false}};
 
             Tagger tagger;
