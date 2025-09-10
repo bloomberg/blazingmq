@@ -295,18 +295,7 @@ void InitialConnectionHandler::complete(
     const bsl::string&                      error,
     const bsl::shared_ptr<mqbnet::Session>& session)
 {
-    // check if the channel is not closed (we can be in authentication
-    // thread)
-
-    if (!context->channel()) {
-        BALL_LOG_WARN
-            << "#TCP_UNEXPECTED_STATE InitialConnectionHandler '"
-            << context->name()
-            << "got an already closed channel at the end of negotiation ]";
-    }
-    else {
-        context->complete(rc, error, session);
-    }
+    context->complete(rc, error, session);
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
