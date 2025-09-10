@@ -2495,6 +2495,30 @@ void StorageManager::do_processBufferedLiveData(const PartitionFSMArgsSp& args)
     }
 }
 
+void StorageManager::do_clearBufferedLiveData(const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    // NOTE: As a healing replica, upon e_REPLICA_DATA_RQST_PUSH FSM event, we
+    // *must* clear buffered live data because it is possible that the buffered
+    // data contains duplicate records as the recovery data primary is about to
+    // send us.
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    d_recoveryManager_mp->clearBufferedStorageEvent(partitionId);
+}
+
 void StorageManager::do_processBufferedPrimaryStatusAdvisories(
     const PartitionFSMArgsSp& args)
 {
