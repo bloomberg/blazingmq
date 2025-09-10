@@ -2775,12 +2775,13 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 fs,
                 f);
             if (rc != 0) {
-                BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                               << " Partition [" << partitionId << "]: "
-                               << "Failure while sending data chunks to "
-                               << destNode << ", beginSeqNum = " << beginSeqNum
-                               << ", endSeqNum = " << endSeqNum
-                               << ", rc = " << rc;
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId
+                    << "]: " << "Failure while sending data chunks to "
+                    << destNode->nodeDescription()
+                    << ", beginSeqNum = " << beginSeqNum
+                    << ", endSeqNum = " << endSeqNum << ", rc = " << rc;
 
                 // The failure rc will trigger a Partition FSM event of type
                 // e_ERROR_SENDING_DATA_CHUNKS.  However, today we do nothing

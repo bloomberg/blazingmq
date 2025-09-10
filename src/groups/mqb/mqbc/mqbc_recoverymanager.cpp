@@ -417,6 +417,11 @@ int RecoveryManager::processSendDataChunks(
         return rc_SUCCESS;  // RETURN
     }
 
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: sending data chunks from "
+                  << beginSeqNum << " to " << endSeqNum
+                  << ". Peer: " << destination->nodeDescription() << ".";
+
     mqbs::FileStoreSet fileSet;
 
     fs.loadCurrentFiles(&fileSet);
@@ -468,6 +473,12 @@ int RecoveryManager::processSendDataChunks(
         return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Make initial 'journalIt.nextRecord()' call
+    rc = journalIt.nextRecord();
+    if (rc != 1) {
+        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+    }
+
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
     rc = RecoveryUtil::bootstrapCurrentSeqNum(&currentSeqNum,
                                               journalIt,
@@ -476,36 +487,28 @@ int RecoveryManager::processSendDataChunks(
         return rc * 10 + rc_INVALID_SEQUENCE_NUMBER;  // RETURN
     }
 
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: starting data chunks from "
+                  << currentSeqNum << ".";
+
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
                                       d_blobSpPool_p,
                                       d_allocator_p);
 
-    // Note that partition has to be replayed from the record *after*
-    // 'beginSeqNum'.  So move forward by one record in the JOURNAL.
-    while (currentSeqNum < endSeqNum) {
-        char* journalRecordBase = 0;
+    // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
+    // precisely to the record after 'fromSequenceNum'.
+
+    bool isDone = false;
+
+    while (!isDone && rc == 0) {
+        char* journalRecordBase = mappedJournalFd->block().base() +
+                                  journalIt.recordOffset();
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
-
-        rc = RecoveryUtil::incrementCurrentSeqNum(
-            &currentSeqNum,
-            &journalRecordBase,
-            *mappedJournalFd,
-            endSeqNum,
-            partitionId,
-            *destination,
-            d_clusterData.identity().description(),
-            journalIt);
-        if (rc == 1) {
-            break;
-        }
-        else if (rc < 0) {
-            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
-        }
 
         RecoveryUtil::processJournalRecord(&storageMsgType,
                                            &payloadRecordBase,
@@ -585,9 +588,17 @@ int RecoveryManager::processSendDataChunks(
 
             builder.reset();
         }
+
+        if (currentSeqNum == endSeqNum) {
+            isDone = true;
+        }
+        else {
+            rc = RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
+                                                      journalIt);
+        }
     }
 
-    if (currentSeqNum != endSeqNum) {
+    if (!isDone) {
         BALL_LOG_WARN << d_clusterData.identity().description()
                       << " Partition [" << partitionId
                       << "]: incomplete replay of partition. Sequence number "
@@ -780,8 +791,10 @@ int RecoveryManager::processReceiveDataChunks(
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Received journal record of type ["
-                << header.messageType() << "] with journal offset mismatch. "
-                << "Source's journal offset: " << sourceJournalOffset
+                << header.messageType()
+                << "] with journal offset mismatch from "
+                << source->nodeDescription()
+                << ". Source's journal offset: " << sourceJournalOffset
                 << ", self journal offset: " << journalPos
                 << ", msg sequence number (" << recHeader->primaryLeaseId()
                 << ", " << recHeader->sequenceNumber()
