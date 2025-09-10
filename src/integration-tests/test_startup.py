@@ -14,13 +14,10 @@
 # limitations under the License.
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
     order,
-    multi_node,
     start_cluster,
-    tweak,
 )
 from blazingmq.dev.it.process.client import Client
 
@@ -32,14 +29,14 @@ pytestmark = order(4)
 def test_early_assign(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Early open a queue on a soon-to-be leader.  Legacy leader when it becomes
-    ACTIVE, starts assigning queues _before_ it assignes partiotions.  Then,
+    ACTIVE, starts assigning queues _before_ it assignes partitions.  Then,
     the leader observes `onQueueAssigned` event _before_ it becomes ACTVIE
     primary.  If that event logic erroneously decides that the self is replica,
     the soon-to-be primary does not write QueueCreationRecord.  The primary
     still writes any posted message record though.  That leads to either assert
     in rollover or recovery failure on restart with "Encountered a MESSAGE
     record for queueKey [...], offset: ..., index: ..., for which a
-    QueueOp.CREATION record was not seen...
+    QueueOp.CREATION record was not seen..."
     """
 
     cluster = multi_node
