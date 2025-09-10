@@ -222,9 +222,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
         return 100 * value / limit;
     }
     case Stat::e_PARTITION_SEQUENCE_NUMBER: {
-        const bsls::Types::Int64 value =
-            STAT_SINGLE(value, e_PARTITION_SEQUENCE_NUMBER);
-        return value;
+        return STAT_SINGLE(value, e_PARTITION_SEQUENCE_NUMBER);
     }
 
     default: {
@@ -583,7 +581,8 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition_status")
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE);
+        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
+        .value("partition.sequence_number", bmqst::StatValue::e_DISCRETE);
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
