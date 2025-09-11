@@ -1,11 +1,11 @@
 # Analysis of logs for good and bad UI test runs
 ## Conditions
- - UI test: test_sync_after_rollover.py, run as:
+ - IT test: test_sync_after_rollover.py, run as:
  ```
 python3 -m pytest -m "fsm_mode and multi and eventual_consistency" test_sync_after_rollover 
 py::test_synch_after_missed_rollover -vvv
  ```
-  - UI test logic
+  - IT test logic
  ```
     Test replica journal file syncronization with cluster after missed rollover.
     - start cluster
