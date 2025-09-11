@@ -53,6 +53,7 @@
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_log.h>
@@ -907,13 +908,7 @@ void TCPSessionFactory::logOpenSessionTime(
 
 void TCPSessionFactory::stopHeartbeats()
 {
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-
-    if (d_heartbeatSchedulerActive) {
-        d_heartbeatSchedulerActive = false;
-        d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
-        d_heartbeatChannels.clear();
-    }
+    d_heartbeatChannels.clear();
 }
 
 TCPSessionFactory::TCPSessionFactory(
@@ -1212,8 +1207,6 @@ void TCPSessionFactory::stopListening()
     d_isListening = false;
 
     cancelListeners();
-
-    stopHeartbeats();
 }
 
 void TCPSessionFactory::closeClients()
@@ -1282,12 +1275,6 @@ void TCPSessionFactory::stop()
                   << " [" << d_nbActiveChannels << " active channels, "
                   << d_nbSessions << " alive sessions]";
 
-    // Cancel the heartbeat scheduler event; note that
-    // 'd_heartbeatSchedulerActive' must be set to false prior to this cancel
-    // event, so that 'onClose' of the channels will not try to uselessly
-    // 'disableHeartbeat' on each channel, one-by-one.
-    stopHeartbeats();
-
     // NOTE: We don't need to manually call 'teardown' on any active session in
     //       the 'd_channels' map: calling 'stop' on the channel factory will
     //       invoke the 'onClose' for every sessions.
@@ -1306,6 +1293,20 @@ void TCPSessionFactory::stop()
 
     // Wait for all sessions to have been destroyed
     d_mutex.lock();
+
+    if (d_heartbeatSchedulerActive) {
+        d_heartbeatSchedulerActive = false;
+
+        d_scheduler_p->scheduleEvent(
+            bsls::TimeInterval(0),
+            bmqu::WeakMemFnUtil::weakMemFn(&TCPSessionFactory::stopHeartbeats,
+                                           d_self.acquireWeak()));
+
+        // No need to wait for 'stopHeartbeats' because 'd_heartbeatChannels'
+        // keep counted reference to sessions ('ChannelInfo::d_session_sp') and
+        // the code below waits for sessions destruction.
+    }
+
     if (d_nbSessions != 0) {
         BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
                       << "waiting up to " << k_SESSION_DESTROY_WAIT << "s "
@@ -1320,7 +1321,7 @@ void TCPSessionFactory::stop()
         }
 
         if (d_nbSessions != 0) {
-            // We timedout
+            // We timed out
             BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
                            << "timedout while waiting for sessions to be "
                            << "destroyed, remaining sessions: "
