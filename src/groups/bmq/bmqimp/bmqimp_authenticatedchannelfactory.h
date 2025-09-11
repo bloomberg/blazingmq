@@ -35,6 +35,7 @@
 #include <bmqio_status.h>
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_event.h>
 #include <bmqt_sessionoptions.h>
 #include <bmqu_sharedresource.h>
 
@@ -112,14 +113,6 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
 
     typedef bdlmt::EventScheduler::RecurringEventHandle EventHandle;
 
-    // CONSTANTS
-
-    /// Minimum buffer to subtract from lifetimeMs to avoid cutting too close
-    const int k_REAUTHN_EARLY_BUFFER = 1000;  // 1 second
-
-    /// Proportion of lifetimeMs after which to initiate reauthentication.
-    const double k_REAUTHN_EARLY_RATIO = 0.9;
-
   private:
     // PRIVATE DATA
     Config d_config;
@@ -142,10 +135,11 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     // PRIVATE ACCESSORS
 
     /// Handle an event from our base ChannelFactory.
-    void baseResultCallback(const ResultCallback&                  cb,
-                            bmqio::ChannelFactoryEvent::Enum       event,
-                            const bmqio::Status&                   status,
-                            const bsl::shared_ptr<bmqio::Channel>& channel);
+    void
+    baseResultCallback(const ResultCallback&                  cb,
+                       bmqio::ChannelFactoryEvent::Enum       event,
+                       const bmqio::Status&                   status,
+                       const bsl::shared_ptr<bmqio::Channel>& channel) const;
 
     void sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
                      const ResultCallback&                  cb) const;
@@ -154,18 +148,24 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
                       const ResultCallback&                  cb) const;
 
     void authenticate(const bsl::shared_ptr<bmqio::Channel>& channel,
-                      const ResultCallback&                  cb);
+                      const ResultCallback&                  cb) const;
 
     void readPacketsCb(const bsl::shared_ptr<bmqio::Channel>& channel,
                        const ResultCallback&                  cb,
                        const bmqio::Status&                   status,
                        int*                                   numNeeded,
-                       bdlbb::Blob*                           blob);
+                       bdlbb::Blob*                           blob) const;
 
     void onBrokerAuthenticationResponse(
         const bdlbb::Blob&                     packet,
         const ResultCallback&                  cb,
-        const bsl::shared_ptr<bmqio::Channel>& channel);
+        const bsl::shared_ptr<bmqio::Channel>& channel) const;
+
+    /// Given the specified `lifetimeMs`, return the interval in milliseconds
+    /// after which reauthentication should be performed.  This interval is
+    /// calculated with a buffer to avoid cutting too close to the actual
+    /// expiration time.
+    int timeoutInterval(int lifetimeMs) const;
 
   public:
     // CREATORS
@@ -185,6 +185,11 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
                  bslma::ManagedPtr<OpHandle>* handle,
                  const bmqio::ConnectOptions& options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+    void processAuthenticationEvent(
+        const bmqp::Event&                     event,
+        const ResultCallback&                  cb,
+        const bsl::shared_ptr<bmqio::Channel>& channel) const;
 };
 
 }  // close package namespace

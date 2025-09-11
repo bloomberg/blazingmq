@@ -50,7 +50,7 @@ namespace bmqimp {
 
 namespace {
 
-BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIMP.NEGOTIATEDCHANNELFACTORY");
+BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIMP.AUTHENTICATEDCHANNELFACTORY");
 
 enum RcEnum {
     rc_SUCCESS                         = 0,
@@ -64,6 +64,12 @@ enum RcEnum {
     rc_AUTHENTICATION_FAILURE          = -9,
     rc_NEGOTIATION_FAILURE             = -10
 };
+
+/// Minimum buffer to subtract from lifetimeMs to avoid cutting too close
+static const int k_REAUTHN_EARLY_BUFFER = 5000;
+
+/// Proportion of lifetimeMs after which to initiate reauthentication.
+const double k_REAUTHN_EARLY_RATIO = 0.9;
 
 }  // close unnamed namespace
 
@@ -113,7 +119,7 @@ void AuthenticatedChannelFactory::baseResultCallback(
     const ResultCallback&                  cb,
     bmqio::ChannelFactoryEvent::Enum       event,
     const bmqio::Status&                   status,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+    const bsl::shared_ptr<bmqio::Channel>& channel) const
 {
     if (event != bmqio::ChannelFactoryEvent::e_CHANNEL_UP) {
         cb(event, status, channel);
@@ -215,7 +221,7 @@ void AuthenticatedChannelFactory::readResponse(
 
 void AuthenticatedChannelFactory::authenticate(
     const bsl::shared_ptr<bmqio::Channel>& channel,
-    const ResultCallback&                  cb)
+    const ResultCallback&                  cb) const
 {
     sendRequest(channel, cb);
     readResponse(channel, cb);
@@ -226,7 +232,7 @@ void AuthenticatedChannelFactory::readPacketsCb(
     const ResultCallback&                  cb,
     const bmqio::Status&                   status,
     int*                                   numNeeded,
-    bdlbb::Blob*                           blob)
+    bdlbb::Blob*                           blob) const
 {
     if (!status) {
         // Read failure.
@@ -266,7 +272,7 @@ void AuthenticatedChannelFactory::readPacketsCb(
 void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
     const bdlbb::Blob&                     packet,
     const ResultCallback&                  cb,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+    const bsl::shared_ptr<bmqio::Channel>& channel) const
 {
     BALL_LOG_TRACE << "Received a packet:\n"
                    << bmqu::BlobStartHexDumper(&packet);
@@ -292,12 +298,33 @@ void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
         return;  // RETURN
     }
 
+    processAuthenticationEvent(event, cb, channel);
+
+    cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
+}
+
+int AuthenticatedChannelFactory::timeoutInterval(int lifetimeMs) const
+{
+    BSLS_ASSERT_SAFE(lifetimeMs >= 0);
+    const int intervalMsWithRatio  = lifetimeMs * k_REAUTHN_EARLY_RATIO;
+    const int intervalMsWithBuffer = bsl::max(0,
+                                              lifetimeMs -
+                                                  k_REAUTHN_EARLY_BUFFER);
+    return bsl::min(intervalMsWithRatio, intervalMsWithBuffer);
+}
+
+void AuthenticatedChannelFactory::processAuthenticationEvent(
+    const bmqp::Event&                     event,
+    const ResultCallback&                  cb,
+    const bsl::shared_ptr<bmqio::Channel>& channel) const
+{
     bmqp_ctrlmsg::AuthenticationMessage response;
     const int rc = event.loadAuthenticationEvent(&response);
     if (rc != 0) {
-        BALL_LOG_ERROR << "Invalid response from broker [reason: 'control "
-                       << "event is not an AuthenticationMessage', rc: " << rc
-                       << "]: " << event;
+        BALL_LOG_ERROR
+            << "Invalid response from broker [reason: 'authentication "
+            << "event is not an AuthenticationMessage', rc: " << rc
+            << "]: " << event;
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "authenticationError",
                              rc_INVALID_BROKER_RESPONSE);
@@ -306,9 +333,9 @@ void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
     }
 
     if (!response.isAuthenticateResponseValue()) {
-        BALL_LOG_ERROR << "Invalid response from broker [reason: 'control "
-                       << "event is not an authenticateResponse']: "
-                       << response;
+        BALL_LOG_ERROR
+            << "Invalid response from broker [reason: 'authentication "
+            << "event is not an authenticateResponse']: " << response;
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "authenticationError",
                              rc_INVALID_BROKER_RESPONSE);
@@ -334,31 +361,24 @@ void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
     // Authentication SUCCEEDED
     BALL_LOG_INFO << "Authentication with broker was successful: " << response;
 
-    // Schedule recurring reauthentication events if lifetime is specified in
-    // the response.
+    // Schedule recurring events to send re-authentication request if lifetime
+    // is specified in the response.
     if (authenticateResponse.lifetimeMs().has_value()) {
-        BSLS_ASSERT_SAFE(authenticateResponse.lifetimeMs() >= 0);
-        int lifetimeMs = authenticateResponse.lifetimeMs().value();
+        int intervalMs = timeoutInterval(
+            authenticateResponse.lifetimeMs().value());
 
-        const int intervalMsWithRatio  = lifetimeMs * k_REAUTHN_EARLY_RATIO;
-        const int intervalMsWithBuffer = bsl::max(0,
-                                                  lifetimeMs -
-                                                      k_REAUTHN_EARLY_BUFFER);
-        const int intervalMs           = bsl::min(intervalMsWithRatio,
-                                        intervalMsWithBuffer);
+        BALL_LOG_INFO << "Scheduling reauthentication in " << intervalMs
+                      << " milliseconds.";
 
         // Pening events will be cancelled when Application stops.
-        d_config.d_scheduler_p->scheduleRecurringEvent(
-            bsls::TimeInterval(intervalMs),
-            bdlf::BindUtil::bind(
-                bmqu::WeakMemFnUtil::weakMemFn(
-                    &AuthenticatedChannelFactory::authenticate,
-                    d_self.acquireWeak()),
-                channel,
-                cb));
+        d_config.d_scheduler_p->scheduleEvent(
+            bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
+                .addMilliseconds(intervalMs),
+            bdlf::BindUtil::bind(&AuthenticatedChannelFactory::sendRequest,
+                                 this,
+                                 channel,
+                                 cb));
     }
-
-    cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
 }
 
 // CREATORS
