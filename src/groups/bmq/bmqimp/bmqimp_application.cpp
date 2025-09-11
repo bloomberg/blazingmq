@@ -217,7 +217,24 @@ void Application::readCb(
         BALL_LOG_TRACE << channel->peerUri() << ": ReadCallback got a blob\n"
                        << bmqu::BlobStartHexDumper(&readBlob);
 
-        d_brokerSession.processPacket(event);
+        if (event.isAuthenticationEvent()) {
+            // Application received a broker response to an re-authentication
+            // request.  The callback function `channelStateCallback` should
+            // only be called for failed cases.
+            d_authenticatedChannelFactory.processAuthenticationEvent(
+                event,
+                bdlf::BindUtil::bindS(&d_allocator,
+                                      &Application::channelStateCallback,
+                                      this,
+                                      channel->peerUri(),
+                                      bdlf::PlaceHolders::_1,   // event
+                                      bdlf::PlaceHolders::_2,   // status
+                                      bdlf::PlaceHolders::_3),  // channel
+                channel);
+        }
+        else {
+            d_brokerSession.processPacket(event);
+        }
     }
 }
 
