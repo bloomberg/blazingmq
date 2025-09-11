@@ -941,9 +941,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// set this to true during testing.
     void setIgnoreCrc32c(bool value);
 
-    // This will be used as Implicit Receipt
+    /// This will be used as Implicit Receipt
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
                                   bsls::Types::Uint64 sequenceNum);
+
+    /// Set the first sync point after rollover sequence number from the specified
+    /// `seqNum` to d_firstSyncPointAfterRolloverSeqNum member;
+    void setFirstSyncPointAfterRolloverSeqNum(const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum);
+
+    /// Set the first sync point after rollover offset from the specified
+    /// `offset` to JournalFileHeader.d_firstSyncPointOffset;
+    void setFirstSyncPointAfterRolloverOffset(bsls::Types::Uint64 offset);
 
     /// Load into the specified `storages` the list of queue storages for
     /// which all filters from the specified `filters` are returning true.
@@ -1232,6 +1240,13 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
 {
     d_lastRecoveredStrongConsistency.d_primaryLeaseId = primaryLeaseId;
     d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
+}
+
+inline void
+FileStore::setFirstSyncPointAfterRolloverSeqNum(const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum)
+{
+    // Set sequence number
+    d_firstSyncPointAfterRolloverSeqNum = seqNum;
 }
 
 // ACCESSORS

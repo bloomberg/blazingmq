@@ -109,7 +109,7 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     # Check that content of leader and replica journal files is equal
     for leader_file, replica_file in zip(sorted(leader_journal_files_after_rollover), sorted(replica_journal_files_after_rollover)):
 
-        # Run storage tool on leader journal file
+        # Run storage tool on leader journal file in "detail" mode to check record order and content
         leader_res = subprocess.run(
             [paths.required_paths.storagetool, "--journal-file", leader_file, "--details", "--print-mode=json-pretty"],
             capture_output=True,
@@ -117,7 +117,7 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
         )
         assert leader_res.returncode == 0
 
-        # Run storage tool on replica journal file
+        # Run storage tool on replica journal file in "detail" mode to check record order and content
         replica_res = subprocess.run(
             [paths.required_paths.storagetool, "--journal-file", replica_file, "--details", "--print-mode=json-pretty"],
             capture_output=True,
@@ -128,4 +128,26 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
         # Check that content of leader and replica journal files is equal
         assert leader_res.stdout == replica_res.stdout
 
-    # assert False, "Test assert"
+        # Run storage tool on leader journal file in "summary" mode to check journal file headers
+        leader_res = subprocess.run(
+            [paths.required_paths.storagetool, "--journal-file", leader_file, "--summary", "--print-mode=json-pretty"],
+            capture_output=True,
+            check=True,
+        )
+        assert leader_res.returncode == 0
+
+        # Run storage tool on replica journal file in "summary" mode to check journal file headers
+        replica_res = subprocess.run(
+            [paths.required_paths.storagetool, "--journal-file", replica_file, "--summary", "--print-mode=json-pretty"],
+            capture_output=True,
+            check=True,
+        )
+        assert replica_res.returncode == 0
+
+        # Check that content of leader and replica journal files is equal
+        if leader_res.stdout != replica_res.stdout:
+            print("MyP: ", leader_res.stdout.decode())
+            print("MyR: ", replica_res.stdout.decode())
+        assert leader_res.stdout == replica_res.stdout
+
+    assert False, "Test assert"

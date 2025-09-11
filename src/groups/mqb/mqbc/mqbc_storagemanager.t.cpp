@@ -720,13 +720,13 @@ struct TestHelper {
 
         mqbnet::ClusterNode*                  highestSeqNumReplica = selfNode;
         bmqp_ctrlmsg::PartitionSequenceNumber highestSeqNum(
-            nodeToSeqNumCtxMap.at(selfNode).first);
+            nodeToSeqNumCtxMap.at(selfNode).d_seqNum);
         for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
              cit != nodeToSeqNumCtxMap.cend();
              ++cit) {
-            if (cit->second.first > highestSeqNum) {
+            if (cit->second.d_seqNum > highestSeqNum) {
                 highestSeqNumReplica = cit->first;
-                highestSeqNum        = cit->second.first;
+                highestSeqNum        = cit->second.d_seqNum;
             }
         }
         return NodeSeqNumPair(highestSeqNumReplica, highestSeqNum);
@@ -2278,7 +2278,7 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
     helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID, primaryNodeId);
 
     BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).first, seqNum);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum, seqNum);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2384,7 +2384,7 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
     helper.d_cluster_mp->requestManager().processResponse(message);
 
     BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).first, seqNum);
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum, seqNum);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);
 
@@ -2720,7 +2720,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
     helper.clearChannels();
 
     BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.size(), 2U);
-    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).first,
+    BMQTST_ASSERT_EQ(nodeToSeqNumCtxMap.at(primaryNode).d_seqNum,
                      k_PRIMARY_SEQ_NUM);
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);

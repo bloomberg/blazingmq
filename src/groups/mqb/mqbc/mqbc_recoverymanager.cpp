@@ -664,7 +664,8 @@ int RecoveryManager::processReceiveDataChunks(
     const bsl::shared_ptr<bdlbb::Blob>& blob,
     mqbnet::ClusterNode*                source,
     mqbs::FileStore*                    fs,
-    int                                 partitionId)
+    int                                 partitionId,
+    const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointAfterRolloverSeqNum)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -719,6 +720,11 @@ int RecoveryManager::processReceiveDataChunks(
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currSeqNum.sequenceNumber() ==
                          fs->sequenceNumber());
 
+        // Set first sync point after rollover sequence number before processing data chunks.
+        if (firstSyncPointAfterRolloverSeqNum != bmqp_ctrlmsg::PartitionSequenceNumber()) {
+            fs->setFirstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum);
+        }
+
         fs->processStorageEvent(blob, true /* isPartitionSyncEvent */, source);
 
         receiveDataCtx.d_currSeqNum.primaryLeaseId() = fs->primaryLeaseId();
@@ -750,7 +756,7 @@ int RecoveryManager::processReceiveDataChunks(
     event.loadStorageMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
-    BALL_LOG_WARN << "Start chunks!!!";
+    BALL_LOG_WARN << "Start chunks!!! partitionId: " << partitionId << " firstSyncPointAfterRolloverSeqNum: " << firstSyncPointAfterRolloverSeqNum;
 
     while (1 == iter.next()) {
         const bmqp::StorageHeader&                header = iter.header();
@@ -891,6 +897,22 @@ int RecoveryManager::processReceiveDataChunks(
                 journal.fileSize() >=
                 (journalPos +
                  mqbs::FileStoreProtocol ::k_JOURNAL_RECORD_SIZE));
+
+            // Update journal header with first sync point after rollover offset
+            if (header.messageType() == bmqp::StorageMessageType::e_JOURNAL_OP && firstSyncPointAfterRolloverSeqNum == recordSeqNum) {
+                BALL_LOG_WARN << "Setting first sync point after rollover offset to " << journalPos << " for partition " << partitionId << " with seqNum " << firstSyncPointAfterRolloverSeqNum;
+                // fs->setFirstSyncPointAfterRolloverOffset(journalPos); // TODO: cannot use this because fs is not open
+
+                // bsl::memcpy(destination, buffer.data() + curPos.byte(), toCopy);
+
+                // MappedFileDescriptor& journalFile = activeFileSet->d_journalFile;
+                mqbs::OffsetPtr<const mqbs::FileHeader>  fhJ(journal.block(), 0);
+                mqbs::OffsetPtr<mqbs::JournalFileHeader> jfh(journal.block(), fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
+
+                // Set offset in JournalFileHeader
+                jfh->setFirstSyncPointOffsetWords(journalPos / bmqp::Protocol::k_WORD_SIZE);
+                BALL_LOG_WARN << "SET firstSyncPointOffsetWords: " << jfh->firstSyncPointOffsetWords() << " headerWords: " << fhJ->headerWords() << " recordWords: ";
+            }
 
             // Keep track of journal record's offset.
 

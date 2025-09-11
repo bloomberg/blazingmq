@@ -6205,6 +6205,19 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                     blob,
                                     recordPosition,
                                     header.messageType());
+
+            // Update journal header with first sync point after rollover offset
+            bmqp_ctrlmsg::PartitionSequenceNumber recSeqNum;
+            recSeqNum.primaryLeaseId() = recHeader->primaryLeaseId();
+            recSeqNum.sequenceNumber() = recHeader->sequenceNumber();
+
+            if (rc == 0 && d_firstSyncPointAfterRolloverSeqNum == recSeqNum) {
+                BALL_LOG_WARN << partitionDesc()
+                              << "Updating first sync point after rollover offset to "
+                              << recordPosition << " for seqNum "
+                              << recHeader->sequenceNumber();
+                setFirstSyncPointAfterRolloverOffset(header.journalOffsetWords() * bmqp::Protocol::k_WORD_SIZE);
+            }
         }
 
         // Bump up the current sequence number if record was written
@@ -7481,6 +7494,24 @@ bool FileStore::hasReceipt(const DataStoreRecordHandle& handle) const
     const DataStoreRecord& record = recordIt->second;
 
     return record.d_hasReceipt;
+}
+
+void FileStore::setFirstSyncPointAfterRolloverOffset(bsls::Types::Uint64 offset)
+{
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+    BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
+    BSLS_ASSERT_SAFE(offset % bmqp::Protocol::k_WORD_SIZE == 0);
+
+
+    MappedFileDescriptor& journalFile = activeFileSet->d_journalFile;
+    OffsetPtr<const FileHeader>  fhJ(journalFile.block(), 0);
+    OffsetPtr<JournalFileHeader> jfh(journalFile.block(),
+                                     fhJ->headerWords() *
+                                         bmqp::Protocol::k_WORD_SIZE);
+
+    // Set offset in JournalFileHeader
+    jfh->setFirstSyncPointOffsetWords(offset / bmqp::Protocol::k_WORD_SIZE);
 }
 
 // -----------------------
