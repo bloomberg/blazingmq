@@ -20,7 +20,8 @@ py::test_synch_after_missed_rollover -vvv
   - bad run log file: `bad_run.log`;
 
 # Analysis of good run (`good_run.log`)
-Form the point when replica is dropped its partition 0 and requests PrimaryState
+Form the point when replica is dropped its partition 0 and requests PrimaryState  
+
 6493: Replica: `Sending request to '[east1, 1]' [request: [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateRequest ...`
 6071: Primary: Got request: `Partition FSM for Partition [0] on Event 'PRIMARY_STATE_RQST'`
 
@@ -49,6 +50,8 @@ east2            12:23:01.601 (139881355396672) WARNING  *rkr.mqbc.storagemanage
 
 
 # Analysis of bad run `bad_run.log`
+Form the point when replica is dropped its partition 0 and requests PrimaryState  
+
 6605: Replica: `Sending request to '[east1, 1]' [request: [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateRequest ...`
 6177: Primary: Got request: `Partition FSM for Partition [0] on Event 'PRIMARY_STATE_RQST'`
 
