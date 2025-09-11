@@ -195,7 +195,7 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
 
     mqbnet::ClusterNode* oldLeader = d_leaderNode_p;
 
-    BALL_LOG_INFO << "#ELECTOR_INFO: tranisition old leader: "
+    BALL_LOG_INFO << "#ELECTOR_INFO: transition old leader: "
                   << (oldLeader ? oldLeader->nodeDescription() : "** NULL **")
                   << ", status: " << d_leaderStatus
                   << ", LSN: " << d_leaderMessageSequence << " to new leader: "
