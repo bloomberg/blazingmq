@@ -284,8 +284,8 @@ class NtcChannel : public bmqio::Channel,
     /// Process the closure of the socket.
     void processClose(const bmqio::Status& status);
 
-    /// Notify using the specified `category` and remove each existing reader.
-    void drainReaders(bmqio::StatusCategory::Enum category);
+    /// Notify using the specified `status` and remove each existing reader.
+    void drainReaders(const bmqio::Status& status);
 
   public:
     // TRAITS
