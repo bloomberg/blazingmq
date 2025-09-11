@@ -788,7 +788,9 @@ void NtcChannel::processReadQueueLowWatermark(
     if (close) {
         bsl::shared_ptr<NtcChannel> self = this->shared_from_this();
 
-        drainReaders(bmqio::StatusCategory::e_CANCELED);
+        bmqio::Status status(bmqio::StatusCategory::e_CANCELED);
+
+        drainReaders(status);
 
         if (d_state != e_STATE_OPEN) {
             return;
@@ -866,9 +868,15 @@ void NtcChannel::processShutdownComplete(
 
     bsl::shared_ptr<NtcChannel> self = this->shared_from_this();
 
+    bmqio::Status status;
+    NtcChannelUtil::fail(&status,
+                         bmqio::StatusCategory::e_CONNECTION,
+                         "shutdown",
+                         ntsa::Error(ntsa::Error::e_EOF));
+
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 
-    drainReaders(bmqio::StatusCategory::e_CONNECTION);
+    drainReaders(status);
 
     if (d_state != e_STATE_OPEN) {
         return;
@@ -908,7 +916,7 @@ void NtcChannel::processClose(const bmqio::Status& status)
     d_closeSignaler.disconnectAllSlots();
 }
 
-void NtcChannel::drainReaders(bmqio::StatusCategory::Enum category)
+void NtcChannel::drainReaders(const bmqio::Status& status)
 {
     while (!d_readQueue.empty()) {
         bsl::shared_ptr<bmqio::NtcRead> read;
@@ -923,7 +931,7 @@ void NtcChannel::drainReaders(bmqio::StatusCategory::Enum category)
             int         numNeeded = 0;
             bdlbb::Blob blob;
 
-            readCallback(bmqio::Status(category), &numNeeded, &blob);
+            readCallback(status, &numNeeded, &blob);
         }
     }
 }
