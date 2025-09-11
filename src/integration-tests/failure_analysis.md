@@ -23,15 +23,21 @@ py::test_synch_after_missed_rollover -vvv
 Form the point when replica is dropped its partition 0 and requests PrimaryState  
 
 6493: Replica: `Sending request to '[east1, 1]' [request: [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateRequest ...`
+
 6071: Primary: Got request: `Partition FSM for Partition [0] on Event 'PRIMARY_STATE_RQST'`
 
 6077: Primary: Sent PrimaryState response: `sent response [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateResponse...`
+
 6497: Replica: Got PrimaryState response: `Partition FSM for Partition [0] on Event 'PRIMARY_STATE_RSPN'`
+
 6498: Replica: `In Partition [0]'s FSM, storing the sequence number of [east1, 1] as [ primaryLeaseId = 1 sequenceNumber = 17 ], firstSyncPointSeqNum: [ primaryLeaseId = 1 sequenceNumber = 13 ]`
+
 6511: Replica: `received PrimaryStateResponse [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateResponse = [ partitionId = 0`
 
 6079: Primary: send PUSH request `Sending request to '[east2, 2]' [request: [ rId = 32 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ replicaDataRequest = [ replicaDataType = E_PUSH`
+
 6507: Replica: Got request `Partition FSM for Partition [0] on Event 'REPLICA_DATA_RQST_PUSH'`
+
 Replica correctly gets firstSyncpointSeqNum from context (stored by log line 6498) 
 
 Raw log from Replica
@@ -53,14 +59,19 @@ east2            12:23:01.601 (139881355396672) WARNING  *rkr.mqbc.storagemanage
 Form the point when replica is dropped its partition 0 and requests PrimaryState  
 
 6605: Replica: `Sending request to '[east1, 1]' [request: [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateRequest ...`
+
 6177: Primary: Got request: `Partition FSM for Partition [0] on Event 'PRIMARY_STATE_RQST'`
 
 6183: Primary: Sent PrimaryState response: `sent response [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateResponse...`  
+
 **NO LOG FOR** `Partition FSM for Partition [0] on Event 'PRIMARY_STATE_RSPN'` and `storing the sequence number of [east1, 1]`
+
 6511: Replica: `received PrimaryStateResponse [ rId = 6 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ primaryStateResponse = [ partitionId = 0`
 
 6186: Primary: send PUSH request `Sending request to '[east2, 2]' [request: [ rId = 32 choice = [ clusterMessage = [ choice = [ partitionMessage = [ choice = [ replicaDataRequest = [ replicaDataType = E_PUSH`
+
 6621: Replica: Got request `Partition FSM for Partition [0] on Event 'REPLICA_DATA_RQST_PUSH'`
+
 Replica cannot get firstSyncpointSeqNum from context (missed log `storing the sequence number of [east1, 1]`) 
 
 Raw log from Replica
