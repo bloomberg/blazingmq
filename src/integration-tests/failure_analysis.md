@@ -1,4 +1,4 @@
-# Analysis of logs for good and bad UI test runs
+# Analysis of logs for good and bad IT test runs
 ## Conditions
  - IT test: test_sync_after_rollover.py, run as:
  ```
