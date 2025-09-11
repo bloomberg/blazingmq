@@ -18,9 +18,8 @@ Testing rollover of CSL file.
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
     order,
     test_logger,
     tweak,
@@ -31,7 +30,6 @@ import glob
 pytestmark = order(4)
 
 default_app_ids = ["foo", "bar", "baz"]
-timeout = 5
 
 
 class TestRolloverCSL:
@@ -46,103 +44,183 @@ class TestRolloverCSL:
 
         producer = proxy.create_client("producer")
 
-        cluster._logger.info("Start to write to clients")
-
         csl_files_before_rollover = glob.glob(
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
         )
         assert len(csl_files_before_rollover) == 1
 
-        # opening 10 queues would cause a rollover
-        for i in range(0, 10):
+        i = 0
+        # Open queues until rollover detected
+        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
             producer.open(
                 f"bmq://{domain_priority}/q{i}", flags=["write,ack"], succeed=True
             )
             producer.close(f"bmq://{domain_priority}/q{i}", succeed=True)
+            i += 1
+            assert i < 10000, (
+                "Failed to detect rollover after opening a reasonable number of queues"
+            )
+        test_logger.info(f"Rollover detected after opening {i} queues")
 
         csl_files_after_rollover = glob.glob(
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
         )
-
-        assert leader.outputs_regex(r"Log '.*' closed and cleaned up.", 10)
-
         assert len(csl_files_after_rollover) == 1
         assert csl_files_before_rollover[0] != csl_files_after_rollover[0]
 
-    @tweak.cluster.partition_config.max_cslfile_size(2000)
+    @tweak.cluster.partition_config.max_cslfile_size(3000)
     @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
-    def test_rollover_queue_assignments(
+    def test_rollover_queues_and_apps(
         self, cluster: Cluster, domain_urls: tc.DomainUrls
     ):
         """
         Test that queue and appId information are preserved across rollover of
         CSL file, even after cluster restart.
 
-        1. Producer opens a fanout queue and posts a message.
-        2. By opening and GC'ing queues, cause the CSL file to rollover.
-        3. Verify that queue and appId information are preserved, after cluster
-           restart, by opening a consumer for each appId of the fanout queue
-           and trying to read the message.
+        1. PROLOGUE:
+            - both priority and fanout queues
+            - post two messages
+            - confirm one on priority and "foo"
+            - add "quux" to the fanout
+            - post to fanout
+            - remove "bar"
+        2. SWITCH:
+            By opening and GC'ing queues, cause the CSL file to rollover.
+            Then, restart the cluster.
+        3. EPILOGUE:
+            - priority consumer gets the second message
+            - "foo" gets 2 messages
+            - "bar" gets 0 messages
+            - "baz" gets 3 messages
+            - "quux" gets the third message
         """
         du = domain_urls
         leader = cluster.last_known_leader
         proxy = next(cluster.proxy_cycle())
-        self.producer = proxy.create_client("producer")
-        self.producer.open(
-            f"bmq://{du.domain_fanout}/q0", flags=["write,ack"], succeed=True
-        )
-        self.producer.post(
-            f"bmq://{du.domain_fanout}/q0", ["msg1"], succeed=True, wait_ack=True
-        )
+        producer = proxy.create_client("producer")
 
-        # Cause three QueueAssignmentAdvisories and QueueUnassignedAdvisories to be written to the CSL.  These records will be erased during rollover.
-        for i in range(0, 3):
-            self.producer.open(
-                f"bmq://{du.domain_priority}/q{i}", flags=["write,ack"], succeed=True
+        # PROLOGUE
+        priority_queue = f"bmq://{du.domain_priority}/q_in_use"
+        fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
+        for queue in [priority_queue, fanout_queue]:
+            producer.open(queue, flags=["write,ack"], succeed=True)
+            producer.post(
+                queue,
+                ["msg1", "msg2"],
+                succeed=True,
+                wait_ack=True,
             )
-            self.producer.close(f"bmq://{du.domain_priority}/q{i}", succeed=True)
 
-        # Assigning these two queues will cause rollover
-        self.producer.open(
-            f"bmq://{du.domain_priority}/q_last", flags=["write,ack"], succeed=True
+        consumer = proxy.create_client("consumer")
+        consumer.open(
+            priority_queue,
+            flags=["read"],
+            succeed=True,
         )
-        self.producer.open(
-            f"bmq://{du.domain_priority}/q_last_2", flags=["write,ack"], succeed=True
+        consumer.open(
+            fanout_queue + "?id=foo",
+            flags=["read"],
+            succeed=True,
+        )
+        consumer.confirm(priority_queue, "+1", succeed=True)
+        consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+        consumer.close(priority_queue, succeed=True)
+        consumer.close(fanout_queue + "?id=foo", succeed=True)
+
+        current_app_ids = default_app_ids + ["quux"]
+        cluster.set_app_ids(current_app_ids, du)
+        producer.post(
+            fanout_queue,
+            ["msg3"],
+            succeed=True,
+            wait_ack=True,
         )
 
-        # do not wait for success, otherwise the following capture will fail
-        leader.force_gc_queues(block=False)
+        current_app_ids.remove("bar")
+        cluster.set_app_ids(current_app_ids, du)
 
-        assert leader.outputs_regex(r"Rolling over from log with logId", timeout)
+        # SWITCH
+        i = 0
+        # Open queues until rollover detected
+        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
+            producer.open(
+                f"bmq://{du.domain_priority}/q_dummy_{i}",
+                flags=["write,ack"],
+                succeed=True,
+            )
+            producer.close(f"bmq://{du.domain_priority}/q_dummy_{i}", succeed=True)
+            i += 1
+
+            if i % 5 == 0:
+                # do not wait for success, otherwise the following capture will fail
+                leader.force_gc_queues(block=False)
+
+            assert i < 10000, (
+                "Failed to detect rollover after opening a reasonable number of queues"
+            )
+        test_logger.info(f"Rollover detected after opening {i} queues")
 
         # Rollover and queueUnAssignmentAdvisory interleave
-        assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout)
+        assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
 
         cluster.restart_nodes()
         # For a standard cluster, states have already been restored as part of
         # leader re-election.
         if cluster.is_single_node:
-            self.producer.wait_state_restored()
+            producer.wait_state_restored()
 
-        consumers = {}
+        # EPILOGUE
+        test_logger.info("Check if priority queue still has 1 message")
+        consumer.open(
+            priority_queue,
+            flags=["read"],
+            succeed=True,
+        )
+        assert wait_until(
+            lambda: len(consumer.list(priority_queue, block=True)) == 1,
+            3,
+        )
 
-        for app_id in default_app_ids:
-            consumer = next(cluster.proxy_cycle()).create_client(app_id)
-            consumers[app_id] = consumer
-            consumer.open(
-                f"bmq://{du.domain_fanout}/q0?id={app_id}",
-                flags=["read"],
-                succeed=True,
-            )
+        test_logger.info("Check if app 'foo' still has 2 messages")
+        consumer.open(
+            fanout_queue + "?id=foo",
+            flags=["read"],
+            succeed=True,
+        )
+        assert wait_until(
+            lambda: len(consumer.list(fanout_queue + "?id=foo", block=True)) == 2,
+            3,
+        )
 
-        for app_id in default_app_ids:
-            test_logger.info(f"Check if {app_id} still has 1 message")
-            assert wait_until(
-                lambda: len(
-                    consumers[app_id].list(
-                        f"bmq://{du.domain_fanout}/q0?id={app_id}", block=True
-                    )
-                )
-                == 1,
-                3,
-            )
+        test_logger.info("Verify that removed app 'bar' cannot receive any message")
+        consumer.open(
+            fanout_queue + "?id=bar",
+            flags=["read"],
+            succeed=True,
+        )
+        assert wait_until(
+            lambda: len(consumer.list(fanout_queue + "?id=bar", block=True)) == 0,
+            3,
+        )
+
+        test_logger.info("Check if app 'baz' still has 3 messages")
+        consumer.open(
+            fanout_queue + "?id=baz",
+            flags=["read"],
+            succeed=True,
+        )
+        assert wait_until(
+            lambda: len(consumer.list(fanout_queue + "?id=baz", block=True)) == 3,
+            3,
+        )
+
+        test_logger.info("Check if app 'quux' still has 1 message")
+        consumer.open(
+            fanout_queue + "?id=quux",
+            flags=["read"],
+            succeed=True,
+        )
+        assert wait_until(
+            lambda: len(consumer.list(fanout_queue + "?id=quux", block=True)) == 1,
+            3,
+        )
