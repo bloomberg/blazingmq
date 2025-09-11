@@ -582,7 +582,7 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
         .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.sequence_number", bmqst::StatValue::e_DISCRETE);
+        .value("partition.sequence_number");
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
