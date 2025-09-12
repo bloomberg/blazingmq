@@ -79,7 +79,7 @@ def attempt(count, interval=1):
             try:
                 function()
                 return _invalid_attempt_error
-            except:
+            except Exception:  # pylint: disable=broad-exception-caught
                 if i == count - 1:
                     raise
                 time.sleep(interval)

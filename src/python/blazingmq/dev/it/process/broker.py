@@ -445,7 +445,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
                 if not m:
                     self._error(f"{command} did not complete within {BLOCK_TIMEOUT}s")
                 rc = int(m.group("rc")) if m.group("rc") else 0
-                if not (succeed is None):
+                if succeed is not None:
                     if succeed:
                         if rc != 0:
                             self._error(f"{command} did not succeed")

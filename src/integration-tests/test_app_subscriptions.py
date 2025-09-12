@@ -17,13 +17,7 @@ import blazingmq.dev.it.testconstants as tc
 
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    cluster,
-    Mode,
-    test_logger,
-    order,
-    multi_node,
     tweak,
-    virtual_cluster_config,
 )
 from blazingmq.dev.it.process.client import Client
 
@@ -61,7 +55,7 @@ class TestAppSubscriptions:
 
         for appId in negativeAppIds:
             self.leader.list_messages(domain, tc.TEST_QUEUE, 0, 2, appId)
-            assert self.leader.outputs_substr(f"Printing 0 message(s)", 1)
+            assert self.leader.outputs_substr("Printing 0 message(s)", 1)
 
     def _verify_delivery(self, consumer, num):
         consumer.wait_push_event()
