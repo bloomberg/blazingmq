@@ -2286,7 +2286,7 @@ void StorageManager::do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode == d_partitionInfoVec[partitionId].primary());
+    BSLS_ASSERT_SAFE(destNode->nodeId() == d_partitionInfoVec[partitionId].primary()->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
 
@@ -2317,11 +2317,8 @@ void StorageManager::do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
                   << " to ReplicaDataRequestDrop from primary node "
                   << destNode->nodeDescription() << ".";
 
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               destNode),
-                          d_cluster_p);
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
 }
 
 void StorageManager::do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
