@@ -170,10 +170,31 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    /// Pair of (node sequence number, flag of whether recovery data has been
+    /// VST representing node's sequence number, first sync point sequence number after rollover and flag of whether recovery data has been
     /// sent to that node).
-    typedef bsl::pair<bmqp_ctrlmsg::PartitionSequenceNumber, bool>
-        NodeSeqNumContext;
+    class NodeSeqNumContext {
+      public:
+        // DATA
+
+        /// Node's latest sequence number.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum;
+
+        /// Node's latest sequence number.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum;
+
+        /// Flag of whether recovery data has been sent to that node.
+        bool d_isRecoveryDataSent;
+
+        // CREATORS
+        NodeSeqNumContext();
+
+        NodeSeqNumContext(const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
+                          const bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum,
+                          bool                                        isRecoveryDataSent);
+    };
+      
+    // typedef bsl::pair<bmqp_ctrlmsg::PartitionSequenceNumber, bool>
+    //     NodeSeqNumContext;
     typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
                                                NodeToSeqNumCtxMap;
     typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
@@ -379,14 +400,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
-
-    /// Encode and send the specified schema `message` to the specified peer
-    /// `destination`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's dispatcher
-    ///         thread.
-    void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
-                     mqbnet::ClusterNode*                destination);
 
     /// Callback to start the recovery for the specified `partitionId`.
     ///
@@ -613,6 +626,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -694,6 +710,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
+
+    const bmqp_ctrlmsg::PartitionSequenceNumber getSelfFirstSyncPointSequenceNumber(int partitionId) const;
 
   public:
     // TRAITS
@@ -1171,6 +1189,33 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 {
     return d_nodeToSeqNumCtxMapVec[partitionId];
 }
+
+// =======================================
+// class StorageManager::NodeSeqNumContext
+// =======================================
+
+// CREATORS
+inline
+StorageManager::NodeSeqNumContext::NodeSeqNumContext()
+: d_seqNum()
+, d_firstSyncPointAfterRolloverSeqNum()
+, d_isRecoveryDataSent(false)
+{
+    // NOTHING
+}
+
+inline
+StorageManager::NodeSeqNumContext::NodeSeqNumContext(const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
+                    const bmqp_ctrlmsg::PartitionSequenceNumber firstSyncPointAfterRolloverSeqNum,
+                    bool                                        isRecoveryDataSent)
+: d_seqNum(seqNum)
+, d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
+, d_isRecoveryDataSent(isRecoveryDataSent)
+{
+    // NOTHING
+}                    
+
+
 
 }  // close package namespace
 }  // close enterprise namespace

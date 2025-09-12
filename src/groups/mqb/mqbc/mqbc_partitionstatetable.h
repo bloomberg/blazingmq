@@ -235,6 +235,8 @@ class PartitionStateTableActions {
 
     virtual void do_replicaDataRequestDrop(const ARGS& args) = 0;
 
+    virtual void do_replicaDataResponseDrop(const ARGS& args) = 0;
+
     virtual void do_replicaDataRequestPull(const ARGS& args) = 0;
 
     virtual void do_replicaDataResponsePull(const ARGS& args) = 0;
@@ -285,6 +287,8 @@ class PartitionStateTableActions {
     virtual void do_reapplyDetectSelfReplica(const ARGS& args) = 0;
 
     virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
+
+    void do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(const ARGS& args);
 
     void
     do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
@@ -569,7 +573,7 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_DROP,
-                removeStorage,
+                replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 RECOVERY_DATA,
@@ -669,6 +673,16 @@ void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
         args->eventsQueue()->front().second[0].partitionId();
 
     BALL_LOG_INFO << "Partition [" << partitionId << "]: NO ACTION PERFORMED.";
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(
+        const ARGS& args)
+{
+    do_replicaDataResponseDrop(args);
+    do_removeStorage(args);
+    do_reapplyDetectSelfReplica(args);
 }
 
 template <typename ARGS>
@@ -824,6 +838,7 @@ void PartitionStateTableActions<ARGS>::
     do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
+    BALL_LOG_WARN << "do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn";
     do_resetReceiveDataCtx(args);
     do_closeRecoveryFileSet(args);
     do_storeSelfSeq(args);
@@ -945,6 +960,7 @@ void PartitionStateTableActions<ARGS>::
     do_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    BALL_LOG_WARN << "do_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks";
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
     do_replicaDataRequestPush(args);
@@ -957,6 +973,8 @@ void PartitionStateTableActions<ARGS>::
     do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    BALL_LOG_WARN << "do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks";
+
     do_storeSelfSeq(args);
     do_storeReplicaSeq(args);
     do_primaryStateResponse(args);
@@ -970,6 +988,7 @@ void PartitionStateTableActions<ARGS>::
     do_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    BALL_LOG_WARN << "do_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks";
     do_storeReplicaSeq(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
@@ -981,6 +1000,7 @@ void PartitionStateTableActions<ARGS>::
     do_storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks(
         const ARGS& args)
 {
+    BALL_LOG_WARN << "do_storeSelfSeq_storeReplicaSeq_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks";
     do_storeSelfSeq(args);
     do_storeReplicaSeq(args);
     do_replicaDataRequestPush(args);

@@ -356,7 +356,7 @@ class RecoveryManager {
 
     /// Process the recovery data chunks contained in the specified `blob`
     /// sent by the specified `source` for the specified `partitionId`.
-    /// Forward the processing to the specified `fs` if `fs` is open.
+    /// Forward the processing to the specified `fs` if `fs` is open. TODO: add firstSyncPointAfterRolloverSeqNum
     /// Return 0 on success and non-zero code on error.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
@@ -364,7 +364,7 @@ class RecoveryManager {
     int processReceiveDataChunks(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                  mqbnet::ClusterNode*                source,
                                  mqbs::FileStore*                    fs,
-                                 int partitionId);
+                                 int partitionId, const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointAfterRolloverSeqNum);
 
     /// Create the internal recovery file set for the specified
     /// `partitionId`, using the specified `fs`.  Return 0 on success, non
@@ -397,12 +397,15 @@ class RecoveryManager {
 
     /// Recover latest sequence number from storage for the specified
     /// `partitionId` and populate the output in the specified `seqNum`.
+    /// If `firstSyncPoint` is true, recover the first sync point sequence
+    /// number instead of the latest sequence number.
     /// Return 0 on success and non-zero otherwise.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
     int recoverSeqNum(bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-                      int                                    partitionId);
+                      int                                    partitionId,
+                      bool firstSyncPoint = false);
 
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.

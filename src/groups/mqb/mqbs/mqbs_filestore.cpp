@@ -443,6 +443,19 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Store first sync point position if present in file.
+    if (jit.firstSyncPointPosition() > 0) {
+        const RecordHeader& recHeader = jit.firstSyncPointHeader();
+
+        d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() = recHeader.primaryLeaseId();
+        d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() = recHeader.sequenceNumber();
+
+        BALL_LOG_INFO << partitionDesc()
+                      << "First sync point Sequence Number: "
+                      << d_firstSyncPointAfterRolloverSeqNum
+                      << ", Timestamp (epoch): " << recHeader.timestamp();
+    }
+
     // Print last sync point in the journal, if available.
 
     if (0 != jit.lastSyncPointPosition()) {
@@ -2823,6 +2836,9 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     jfh->setFirstSyncPointOffsetWords(spoPair.offset() /
                                       bmqp::Protocol::k_WORD_SIZE);
 
+    d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() = syncPoint.primaryLeaseId();
+    d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() = syncPoint.sequenceNum();
+
     // Now clear the 'd_syncPoints' as the rollover is complete, and make the
     // previous newest sync point the first new sync point.
 
@@ -3003,6 +3019,8 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         return rc_SUCCESS;  // RETURN
     }
 
+    BALL_LOG_WARN << "Rollover is needed for file: " << fileName;
+                
     // TBD: make the ratio configurable
     static const bsls::Types::Uint64 k_MIN_AVAILABLE_SPACE_PERCENT = 20;
 
@@ -3060,6 +3078,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             ((d_config.maxJournalFileSize() - outstandingBytesJournal) * 100) /
             d_config.maxJournalFileSize();
     }
+
+    BALL_LOG_WARN << out.str();
+    BALL_LOG_WARN << "outstandingBytesJournal: " << outstandingBytesJournal;
+    BALL_LOG_WARN << "JOURNAL availableSpacePercentJournal " << availableSpacePercentJournal << " > " << k_MIN_AVAILABLE_SPACE_PERCENT;
 
     if (availableSpacePercentJournal < k_MIN_AVAILABLE_SPACE_PERCENT) {
         // JOURNAL file can't be rolled over.
@@ -5119,6 +5141,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
                         bmqp::EventType::e_STORAGE,
                         d_blobSpPool_p,
                         allocator)
+, d_firstSyncPointAfterRolloverSeqNum()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -6195,6 +6218,19 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                     blob,
                                     recordPosition,
                                     header.messageType());
+
+            // Update journal header with first sync point after rollover offset
+            bmqp_ctrlmsg::PartitionSequenceNumber recSeqNum;
+            recSeqNum.primaryLeaseId() = recHeader->primaryLeaseId();
+            recSeqNum.sequenceNumber() = recHeader->sequenceNumber();
+
+            if (rc == 0 && d_firstSyncPointAfterRolloverSeqNum == recSeqNum) {
+                BALL_LOG_WARN << partitionDesc()
+                              << "Updating first sync point after rollover offset to "
+                              << recordPosition << " for seqNum "
+                              << recHeader->sequenceNumber();
+                setFirstSyncPointAfterRolloverOffset(header.journalOffsetWords() * bmqp::Protocol::k_WORD_SIZE);
+            }
         }
 
         // Bump up the current sequence number if record was written
@@ -7471,6 +7507,24 @@ bool FileStore::hasReceipt(const DataStoreRecordHandle& handle) const
     const DataStoreRecord& record = recordIt->second;
 
     return record.d_hasReceipt;
+}
+
+void FileStore::setFirstSyncPointAfterRolloverOffset(bsls::Types::Uint64 offset)
+{
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+    BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
+    BSLS_ASSERT_SAFE(offset % bmqp::Protocol::k_WORD_SIZE == 0);
+
+
+    MappedFileDescriptor& journalFile = activeFileSet->d_journalFile;
+    OffsetPtr<const FileHeader>  fhJ(journalFile.block(), 0);
+    OffsetPtr<JournalFileHeader> jfh(journalFile.block(),
+                                     fhJ->headerWords() *
+                                         bmqp::Protocol::k_WORD_SIZE);
+
+    // Set offset in JournalFileHeader
+    jfh->setFirstSyncPointOffsetWords(offset / bmqp::Protocol::k_WORD_SIZE);
 }
 
 // -----------------------

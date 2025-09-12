@@ -190,6 +190,17 @@ class JournalFileIterator {
     /// undefined unless `lastSyncPointPosition` returns a non-zero value.
     const JournalOpRecord& lastSyncPoint() const;
 
+    /// Return the position of the first valid sync point record in the
+    /// journal.  Return value of zero implies no valid journal sync point
+    /// is present.  Note that return value of zero does not imply that
+    /// journal is corrupt.
+    bsls::Types::Uint64 firstSyncPointPosition() const;
+
+    /// Return a reference offering non-modifiable access to the valid
+    /// record header representing the first journal sync point.  The behavior is
+    /// undefined unless `firstSyncPointPosition` returns a non-zero value.
+    const RecordHeader& firstSyncPointHeader() const;
+
     /// Return the position of last valid record in the journal.  Return
     /// value of zero implies that there are no valid records in the
     /// journal.
@@ -371,6 +382,29 @@ inline const JournalOpRecord& JournalFileIterator::lastSyncPoint() const
 
     OffsetPtr<const JournalOpRecord> rec(d_mfd_p->block(),
                                          d_lastSyncPointOffset);
+    return *rec;
+}
+
+inline bsls::Types::Uint64 JournalFileIterator::firstSyncPointPosition() const
+{
+    BSLS_ASSERT_SAFE(isValid());
+
+    return header().firstSyncPointOffsetWords() * bmqp::Protocol::k_WORD_SIZE;
+}
+
+inline const RecordHeader& JournalFileIterator::firstSyncPointHeader() const
+{
+    BSLS_ASSERT_SAFE(isValid());
+
+    bsls::Types::Uint64 firstSyncPointOffset = firstSyncPointPosition();
+    BSLS_ASSERT_SAFE(0 != firstSyncPointOffset);
+
+    // Note that below, we must use 'd_mfd_p' instead of 'd_blockIter' because
+    // 'd_blockIter' might be in clear()'d state if this journal is empty
+    // (i.e., if it has no records, just FileHeader and JournalFileHeader).
+
+    OffsetPtr<const RecordHeader> rec(d_mfd_p->block(),
+                                         firstSyncPointOffset);
     return *rec;
 }
 
