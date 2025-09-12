@@ -303,7 +303,7 @@ class Client(BMQProcess):
         self,
         uri: str,
         /,
-        payload: List[str] = None,
+        payload: str = None,
         msg_size: int = 1024,
         event_size: int = 1,
         events_count: int = 0,
