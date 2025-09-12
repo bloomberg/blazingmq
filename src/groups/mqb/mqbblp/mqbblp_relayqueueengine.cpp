@@ -1048,6 +1048,14 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         return 0;  // RETURN
     }
 
+    if (!d_queueState_p->canMerge(handleParameters)) {
+        CALLBACK(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                 -1,
+                 "Reached maximum read/write/admin counters for a queue",
+                 0);
+        return 0;  // RETURN
+    }
+
     mqbi::QueueHandle* queueHandle =
         d_queueState_p->handleCatalog().getHandleByRequester(
             *clientContext,

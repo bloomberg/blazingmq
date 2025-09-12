@@ -130,13 +130,12 @@ struct PartitionStateTableEvent {
         e_RECOVERY_DATA                = 23,
         e_LIVE_DATA                    = 24,
         e_QUORUM_REPLICA_DATA_RSPN     = 25,
-        e_PUT                          = 26,
-        e_ISSUE_LIVESTREAM             = 27,
-        e_QUORUM_REPLICA_SEQ           = 28,
-        e_SELF_HIGHEST_SEQ             = 29,
-        e_REPLICA_HIGHEST_SEQ          = 30,
-        e_WATCH_DOG                    = 31,
-        e_NUM_EVENTS                   = 32
+        e_ISSUE_LIVESTREAM             = 26,
+        e_QUORUM_REPLICA_SEQ           = 27,
+        e_SELF_HIGHEST_SEQ             = 28,
+        e_REPLICA_HIGHEST_SEQ          = 29,
+        e_WATCH_DOG                    = 30,
+        e_NUM_EVENTS                   = 31
     };
 
     // CLASS METHODS
@@ -255,10 +254,6 @@ class PartitionStateTableActions {
 
     virtual void do_processLiveData(const ARGS& args) = 0;
 
-    virtual void do_processPut(const ARGS& args) = 0;
-
-    virtual void do_nackPut(const ARGS& args) = 0;
-
     virtual void do_cleanupMetadata(const ARGS& args) = 0;
 
     virtual void do_startSendDataChunks(const ARGS& args) = 0;
@@ -290,6 +285,8 @@ class PartitionStateTableActions {
     virtual void do_reapplyDetectSelfPrimary(const ARGS& args) = 0;
 
     virtual void do_reapplyDetectSelfReplica(const ARGS& args) = 0;
+
+    virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
 
     void do_replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica(const ARGS& args);
 
@@ -340,8 +337,7 @@ class PartitionStateTableActions {
     do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
-    void
-    do_processPut_stopWatchDog_transitionToActivePrimary(const ARGS& args);
+    void do_stopWatchDog_transitionToActivePrimary(const ARGS& args);
 
     void do_replicaStateResponse_storePrimarySeq(const ARGS& args);
 
@@ -438,7 +434,6 @@ class PartitionStateTable
             DETECT_SELF_REPLICA,
             startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
             REPLICA_HEALING);
-        PST_CFG(UNKNOWN, PUT, nackPut, UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG1,
                 DETECT_SELF_REPLICA,
                 cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
@@ -459,7 +454,6 @@ class PartitionStateTable
                 PRIMARY_STATE_RQST,
                 storeReplicaSeq_primaryStateResponse_checkQuorumSeq,
                 PRIMARY_HEALING_STG1);
-        PST_CFG(PRIMARY_HEALING_STG1, PUT, nackPut, PRIMARY_HEALING_STG1);
         PST_CFG(PRIMARY_HEALING_STG1,
                 QUORUM_REPLICA_SEQ,
                 findHighestSeq,
@@ -524,9 +518,8 @@ class PartitionStateTable
                 PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 QUORUM_REPLICA_DATA_RSPN,
-                processPut_stopWatchDog_transitionToActivePrimary,
+                stopWatchDog_transitionToActivePrimary,
                 PRIMARY_HEALED);
-        PST_CFG(PRIMARY_HEALING_STG2, PUT, nackPut, PRIMARY_HEALING_STG2);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             RST_UNKNOWN,
@@ -597,7 +590,6 @@ class PartitionStateTable
             failureReplicaDataResponsePush_cleanupMetadata_closeRecoveryFileSet_stopWatchDog_reapplyDetectSelfReplica,
             UNKNOWN);
         PST_CFG(REPLICA_HEALING, LIVE_DATA, bufferLiveData, REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING, PUT, nackPut, REPLICA_HEALING);
         PST_CFG(
             REPLICA_HEALING,
             RST_UNKNOWN,
@@ -624,7 +616,6 @@ class PartitionStateTable
                 replicaDataResponsePush,
                 REPLICA_HEALED);
         PST_CFG(REPLICA_HEALED, LIVE_DATA, processLiveData, REPLICA_HEALED);
-        PST_CFG(REPLICA_HEALED, PUT, processPut, REPLICA_HEALED);
         PST_CFG(REPLICA_HEALED,
                 ISSUE_LIVESTREAM,
                 cleanupMetadata_reapplyDetectSelfReplica,
@@ -635,7 +626,7 @@ class PartitionStateTable
                 UNKNOWN);
         PST_CFG(PRIMARY_HEALED,
                 DETECT_SELF_REPLICA,
-                cleanupMetadata_clearPartitionInfo_reapplyEvent,
+                unsupportedPrimaryDowngrade,
                 UNKNOWN);
         PST_CFG(
             PRIMARY_HEALED,
@@ -647,7 +638,6 @@ class PartitionStateTable
             PRIMARY_STATE_RQST,
             storeSelfSeq_storeReplicaSeq_primaryStateResponse_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks,
             PRIMARY_HEALED);
-        PST_CFG(PRIMARY_HEALED, PUT, processPut, PRIMARY_HEALED);
         PST_CFG(PRIMARY_HEALED,
                 RST_UNKNOWN,
                 cleanupMetadata_clearPartitionInfo,
@@ -861,10 +851,9 @@ void PartitionStateTableActions<ARGS>::
 }
 
 template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_processPut_stopWatchDog_transitionToActivePrimary(const ARGS& args)
+void PartitionStateTableActions<
+    ARGS>::do_stopWatchDog_transitionToActivePrimary(const ARGS& args)
 {
-    do_processPut(args);
     do_stopWatchDog(args);
     do_transitionToActivePrimary(args);
 }

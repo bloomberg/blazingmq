@@ -267,6 +267,22 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
     d_handleCatalog.loadInternals(&out->handles());
 }
 
+bool QueueState::canMerge(
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters) const
+{
+    // It is enough to check d_handleParameters, it includes counters for any
+    // registered substream.
+#define MQBBLP_NO_OVERFLOW(C)                                                 \
+    (static_cast<bsls::Types::Int64>(d_handleParameters.C()) +                \
+         static_cast<bsls::Types::Int64>(handleParameters.C()) <=             \
+     static_cast<bsls::Types::Int64>(bsl::numeric_limits<int>::max()))
+
+    return MQBBLP_NO_OVERFLOW(readCount) && MQBBLP_NO_OVERFLOW(writeCount) &&
+           MQBBLP_NO_OVERFLOW(adminCount);
+
+#undef MQBBLP_NO_OVERFLOW
+}
+
 bsl::ostream& operator<<(bsl::ostream&                          os,
                          const QueueState::SubQueuesParameters& rhs)
 {

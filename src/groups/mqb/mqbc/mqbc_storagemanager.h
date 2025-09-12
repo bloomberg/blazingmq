@@ -661,10 +661,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_processLiveData(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
-    void do_processPut(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_nackPut(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
     void
     do_cleanupMetadata(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
@@ -710,6 +706,9 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_reapplyDetectSelfReplica(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_unsupportedPrimaryDowngrade(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE ACCESSORS

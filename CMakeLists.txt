@@ -266,18 +266,20 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_PROJECT_BRIEF
     "C++ SDK for BlazingMQ clients and plugins"
   )
-  set(DOXYGEN_USE_MDFILE_AS_MAINPAGE ./README.md)
   set(DOXYGEN_REFERENCED_BY_RELATION YES)
   set(DOXYGEN_REFERENCES             YES)
   set(DOXYGEN_ALPHABETICAL_INDEX     NO)
   set(DOXYGEN_FULL_SIDEBAR           YES)
   set(DOXYGEN_GENERATE_TREEVIEW      YES)
+  set(DOXYGEN_GENERATE_TAGFILE
+    "${CMAKE_CURRENT_BINARY_DIR}/apidocs/tags.xml"
+  )
   doxygen_add_docs(
     apidocs
+    docs/mainpage.dox
     src/groups/bmq/bmqa
     src/groups/bmq/bmqt
     src/groups/bmq/bmqpi
-    README.md
     COMMENT "Generate public Doxygen documentation for libbmq"
   )
   add_dependencies(docs apidocs)
@@ -291,6 +293,9 @@ if(DOXYGEN_FOUND)
   set(DOXYGEN_GENERATE_TODOLIST      YES)
   set(DOXYGEN_STRIP_FROM_PATH        src/groups)
   set(DOXYGEN_OUTPUT_DIRECTORY       internaldocs)
+  set(DOXYGEN_GENERATE_TAGFILE
+    "${CMAKE_CURRENT_BINARY_DIR}/internaldocs/tags.xml"
+  )
   doxygen_add_docs(
     internaldocs
     src/groups/

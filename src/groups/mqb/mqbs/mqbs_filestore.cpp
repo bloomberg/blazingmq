@@ -3670,7 +3670,12 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         QueueKeyCounterMapIter qit = queueKeyCounterMap->find(
             toRec->queueKey());
 
-        BSLS_ASSERT_SAFE(queueKeyCounterMap->end() != qit);
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueKeyCounterMap->end() ==
+                                                  qit)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            BALL_LOG_ERROR << "Message with unexpected queueKey: " << *toRec;
+            BSLS_ASSERT_OPT(false && "Message with unexpected queueKey");
+        }
 
         ++(qit->second.first);
         qit->second.second += dataMsgSize;
@@ -3735,8 +3740,16 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         else {
             BSLS_ASSERT_SAFE(QueueOpType::e_PURGE == fromRec->type() ||
                              QueueOpType::e_DELETION == fromRec->type());
-            BSLS_ASSERT_SAFE(queueKeyCounterMap->end() !=
-                             queueKeyCounterMap->find(fromRec->queueKey()));
+
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    queueKeyCounterMap->end() ==
+                    queueKeyCounterMap->find(fromRec->queueKey()))) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                BALL_LOG_ERROR << "Message with unexpected queueKey: "
+                               << *fromRec;
+                BSLS_ASSERT_OPT(false && "Message with unexpected queueKey");
+            }
+
             bsl::memcpy(rJournal.block().base() + rJournalPos,
                         aJournal.block().base() + record->d_recordOffset,
                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
@@ -3886,7 +3899,7 @@ void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
     // means that there must be space for at least 2 journal records.
 
     issueSyncPointInternal(SyncPointType::e_REGULAR,
-                           false);  // ImmediateFlush flag
+                           true);  // ImmediateFlush flag
 }
 
 int FileStore::issueSyncPointInternal(SyncPointType::Enum type,

@@ -24,6 +24,7 @@
 #include <bmqt_queueoptions.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -64,7 +65,9 @@ static void test1_breathingTest()
     PV("Default Constructor");
     {
         bmqa::QueueId obj(bmqtst::TestHelperUtil::allocator());
-        BMQTST_ASSERT_EQ(obj.isValid(), false);
+        bmqu::MemOutStream reason(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(obj.isValid(&reason), false);
+        BMQTST_ASSERT_EQ(reason.str(), "Invalid QueueId: 4294967295");
     }
 
     PV("Valued Constructor - correlationId");

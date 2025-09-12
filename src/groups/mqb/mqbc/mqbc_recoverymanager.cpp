@@ -417,6 +417,11 @@ int RecoveryManager::processSendDataChunks(
         return rc_SUCCESS;  // RETURN
     }
 
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: sending data chunks from "
+                  << beginSeqNum << " to " << endSeqNum
+                  << ". Peer: " << destination->nodeDescription() << ".";
+
     mqbs::FileStoreSet fileSet;
 
     fs.loadCurrentFiles(&fileSet);
@@ -468,6 +473,12 @@ int RecoveryManager::processSendDataChunks(
         return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Make initial 'journalIt.nextRecord()' call
+    rc = journalIt.nextRecord();
+    if (rc != 1) {
+        return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
+    }
+
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
     rc = RecoveryUtil::bootstrapCurrentSeqNum(&currentSeqNum,
                                               journalIt,
@@ -476,80 +487,43 @@ int RecoveryManager::processSendDataChunks(
         return rc * 10 + rc_INVALID_SEQUENCE_NUMBER;  // RETURN
     }
 
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: starting data chunks from "
+                  << currentSeqNum << ".";
+
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
                                       d_blobSpPool_p,
                                       d_allocator_p);
 
 
-    BALL_LOG_WARN << "processSendDataChunks partitionId " << partitionId << " : " << currentSeqNum << " : " << endSeqNum;
-    // TODO: need to move back before incrementCurrentSeqNum(), find proper way to handle currentSeqNum > beginSeqNum
-    bool skipFirstIncrement = false;
-    if (currentSeqNum > beginSeqNum) {
-        BALL_LOG_WARN << "processSendDataChunks skipFirstIncrement = true";
-        skipFirstIncrement = true;        
-    }
+    // BALL_LOG_WARN << "processSendDataChunks partitionId " << partitionId << " : " << currentSeqNum << " : " << endSeqNum;
+    // // TODO: need to move back before incrementCurrentSeqNum(), find proper way to handle currentSeqNum > beginSeqNum
+    // bool skipFirstIncrement = false;
+    // if (currentSeqNum > beginSeqNum) {
+    //     BALL_LOG_WARN << "processSendDataChunks skipFirstIncrement = true";
+    //     skipFirstIncrement = true;        
+    // }
 
-    // Note that partition has to be replayed from the record *after*
-    // 'beginSeqNum'.  So move forward by one record in the JOURNAL.
-    // TODO: handle currentSeqNum > beginSeqNum
-    while (currentSeqNum < endSeqNum) {
-        char* journalRecordBase = 0;
+    // // Note that partition has to be replayed from the record *after*
+    // // 'beginSeqNum'.  So move forward by one record in the JOURNAL.
+    // // TODO: handle currentSeqNum > beginSeqNum
+    // while (currentSeqNum < endSeqNum) {
+    //     char* journalRecordBase = 0;
+
+    // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
+    // precisely to the record after 'fromSequenceNum'.
+
+    bool isDone = false;
+
+    while (!isDone && rc == 0) {
+        char* journalRecordBase = mappedJournalFd->block().base() +
+                                  journalIt.recordOffset();
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
-
-        BALL_LOG_WARN << "processSendDataChunks process partitionId " << partitionId << " currentSeqNum " << currentSeqNum;
-        if (skipFirstIncrement) {
-
-            skipFirstIncrement = false;
-            rc = 0;
-
-            BALL_LOG_WARN << "processSendDataChunks skipFirstIncrement " << partitionId;
-
-            BSLS_ASSERT_SAFE(mqbs::RecordType::e_UNDEFINED != journalIt.recordType());
-            journalRecordBase = mappedJournalFd->block().base() + journalIt.recordOffset();
-
-            const mqbs::RecordHeader& recHeader = journalIt.recordHeader();
-
-            currentSeqNum.primaryLeaseId() = recHeader.primaryLeaseId();
-            currentSeqNum.sequenceNumber() = recHeader.sequenceNumber();
-
-            if (currentSeqNum > endSeqNum) {
-                // 'currentSeqNum' can not be greater than 'endSeqNum'; it can be
-                // smaller or equal.
-
-                BALL_LOG_ERROR
-                    << d_clusterData.identity().description() << " Partition [" << partitionId
-                    << "]: incorrect sequence number encountered while attempting "
-                    << "to replay partition to peer: " << currentSeqNum
-                    << ". Sequence number cannot be greater than: " << endSeqNum
-                    << ". Journal offset: " << journalIt.recordOffset()
-                    << ", record type: " << journalIt.recordType()
-                    << ". Peer: " << destination->nodeDescription() << ".";
-                rc= - 2;
-            }
-
-        } else {
-            rc = RecoveryUtil::incrementCurrentSeqNum(
-                &currentSeqNum,
-                &journalRecordBase,
-                *mappedJournalFd,
-                endSeqNum,
-                partitionId,
-                *destination,
-                d_clusterData.identity().description(),
-                journalIt);
-        }
-        if (rc == 1) {
-            break;
-        }
-        else if (rc < 0) {
-            BALL_LOG_WARN << "processSendDataChunks AFTER incrementCurrentSeqNum partitionId" << partitionId << " rc " << rc;
-            return rc * 10 + rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
-        }
 
         RecoveryUtil::processJournalRecord(&storageMsgType,
                                            &payloadRecordBase,
@@ -629,9 +603,17 @@ int RecoveryManager::processSendDataChunks(
 
             builder.reset();
         }
+
+        if (currentSeqNum == endSeqNum) {
+            isDone = true;
+        }
+        else {
+            rc = RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
+                                                      journalIt);
+        }
     }
 
-    if (currentSeqNum != endSeqNum) {
+    if (!isDone) {
         BALL_LOG_WARN << d_clusterData.identity().description()
                       << " Partition [" << partitionId
                       << "]: incomplete replay of partition. Sequence number "
@@ -834,8 +816,10 @@ int RecoveryManager::processReceiveDataChunks(
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Received journal record of type ["
-                << header.messageType() << "] with journal offset mismatch. "
-                << "Source's journal offset: " << sourceJournalOffset
+                << header.messageType()
+                << "] with journal offset mismatch from "
+                << source->nodeDescription()
+                << ". Source's journal offset: " << sourceJournalOffset
                 << ", self journal offset: " << journalPos
                 << ", msg sequence number (" << recHeader->primaryLeaseId()
                 << ", " << recHeader->sequenceNumber()

@@ -455,12 +455,18 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
     RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
 
     if (!recoveryCtx.inRecovery()) {
-        // Partition is not under recovery any longer.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], after recovery wait-time, is not under recovery "
+                      << "any longer.  Returning.";
         return;  // RETURN
     }
 
     if (recoveryCtx.recoveryPeer()) {
-        // Partition is already under active recovery.  Nothing else to do.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], after recovery wait-time, is already under "
+                      << "active recovery.  Nothing else to do.";
         return;  // RETURN
     }
 
@@ -518,7 +524,7 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
                           << ": Partition [" << partitionId
                           << "] will be truncated to the last syncPt "
                           << "offsets & then local recovery will be performed."
-                          << "Offset details: JOURNAL: "
+                          << " Offset details: JOURNAL: "
                           << recoveryCtx.oldSyncPointOffset()
                           << ", DATA: " << recoveryCtx.dataFileOffset()
                           << ", QLIST: " << recoveryCtx.qlistFileOffset();
@@ -1723,6 +1729,11 @@ int RecoveryManager::replayPartition(
         rc_INCOMPLETE_REPLAY        = -8
     };
 
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << pid << "]: " << "replaying from "
+                  << fromSequenceNum << " to " << toSequenceNum
+                  << " to node: " << destination->nodeDescription() << ".";
+
     mqbs::JournalFileIterator journalIt;
 
     int rc = journalIt.reset(
@@ -1732,6 +1743,9 @@ int RecoveryManager::replayPartition(
     if (0 != rc) {
         return rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
+
+    // Do not make initial 'journalIt.nextRecord()' call because the loop
+    // below calls 'recordOffset()'
 
     // Skip JOURNAL records till 'fromSyncPtOffset' is reached.
 
@@ -1771,28 +1785,23 @@ int RecoveryManager::replayPartition(
                                       &d_clusterData_p->blobSpPool(),
                                       d_allocator_p);
 
-    // Note that partition has to be replayed from the record *after*
-    // 'fromSequenceNum'.  So move forward by one record in the JOURNAL.
-    while (currentSeqNum < toSequenceNum) {
-        char* journalRecordBase = 0;
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << pid << "]: " << "replay starts from "
+                  << currentSeqNum << ".";
+
+    // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
+    // precisely to the record after 'fromSequenceNum'.
+
+    bool isDone = false;
+
+    while (!isDone && rc == 0) {
+        char* journalRecordBase = fti->journalFd().block().base() +
+                                  journalIt.recordOffset();
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
-
-        rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(
-            &currentSeqNum,
-            &journalRecordBase,
-            fti->journalFd(),
-            toSequenceNum,
-            pid,
-            *destination,
-            d_clusterData_p->identity().description(),
-            journalIt);
-        if (rc != 0) {
-            break;  // BREAK
-        }
 
         mqbc::RecoveryUtil::processJournalRecord(&storageMsgType,
                                                  &payloadRecordBase,
@@ -1874,9 +1883,17 @@ int RecoveryManager::replayPartition(
 
             builder.reset();
         }
+
+        if (currentSeqNum == toSequenceNum) {
+            isDone = true;
+        }
+        else {
+            rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
+                                                            journalIt);
+        }
     }
 
-    if (currentSeqNum != toSequenceNum) {
+    if (!isDone) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << pid
                       << "]: incomplete replay of partition. Sequence number "
@@ -2052,7 +2069,6 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     const SyncPointOffsetPairs&              spOffsetPairs = fs->syncPoints();
     const bmqp_ctrlmsg::SyncPointOffsetPair& firstSpOffPair =
         spOffsetPairs.front();
-    mqbs::JournalFileIterator jit;
 
     if (false == (firstSpOffPair.syncPoint() <=
                   ppState.lastSyncPointOffsetPair().syncPoint())) {
@@ -4656,7 +4672,6 @@ void RecoveryManager::processPartitionSyncDataRequest(
     const SyncPointOffsetPairs&              spOffsetPairs = fs->syncPoints();
     const bmqp_ctrlmsg::SyncPointOffsetPair& firstSpOffPair =
         spOffsetPairs.front();
-    mqbs::JournalFileIterator jit;
 
     if (false == (firstSpOffPair.syncPoint() <= lastSpoPair.syncPoint())) {
         // TBD: Need to peek into the archived files to retrieve the correct

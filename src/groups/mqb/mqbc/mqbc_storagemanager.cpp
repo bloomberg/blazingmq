@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbc_storagemanager.cpp                                            -*-C++-*-
+#include "mqbc_partitionstatetable.h"
 #include <ball_log.h>
 #include <bsls_assert.h>
 #include <mqbc_storagemanager.h>
@@ -2756,16 +2757,6 @@ void StorageManager::do_processLiveData(const PartitionFSMArgsSp& args)
                             source);
 }
 
-void StorageManager::do_processPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
-{
-    // TODO: Complete Impl
-}
-
-void StorageManager::do_nackPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
-{
-    // TODO: Complete Impl
-}
-
 void StorageManager::do_cleanupMetadata(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
@@ -2945,12 +2936,13 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 fs,
                 f);
             if (rc != 0) {
-                BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                               << " Partition [" << partitionId << "]: "
-                               << "Failure while sending data chunks to "
-                               << destNode << ", beginSeqNum = " << beginSeqNum
-                               << ", endSeqNum = " << endSeqNum
-                               << ", rc = " << rc;
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId
+                    << "]: " << "Failure while sending data chunks to "
+                    << destNode->nodeDescription()
+                    << ", beginSeqNum = " << beginSeqNum
+                    << ", endSeqNum = " << endSeqNum << ", rc = " << rc;
 
                 // The failure rc will trigger a Partition FSM event of type
                 // e_ERROR_SENDING_DATA_CHUNKS.  However, today we do nothing
@@ -3611,6 +3603,35 @@ void StorageManager::do_reapplyDetectSelfReplica(
         d_partitionInfoVec[partitionId].primaryLeaseId());
     args->eventsQueue()->emplace(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                                  eventDataVecOut);
+}
+
+void StorageManager::do_unsupportedPrimaryDowngrade(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const int partitionId = eventDataVec[0].partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+    BSLS_ASSERT_SAFE(eventWithData.first ==
+                     PartitionFSM::Event::e_DETECT_SELF_REPLICA);
+
+    BMQTSK_ALARMLOG_ALARM("CLUSTER")
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: "
+        << "Downgrade from primary to replica is **UNSUPPORTED**. Terminating "
+        << "broker." << BMQTSK_ALARMLOG_END;
+    mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);  // EXIT
 }
 
 // PRIVATE ACCESSORS
