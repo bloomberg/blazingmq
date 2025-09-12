@@ -150,4 +150,4 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
             print("MyR: ", replica_res.stdout.decode())
         assert leader_res.stdout == replica_res.stdout
 
-    assert False, "Test assert"
+    # assert False, "Test assert"
