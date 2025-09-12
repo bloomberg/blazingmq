@@ -27,6 +27,8 @@
 
 // ZLIB
 #include <zlib.h>
+// ZSTD
+#include <zstd.h>
 
 // MemorySanitizer
 #if defined(__has_feature)
@@ -44,6 +46,8 @@ namespace {
 extern "C" typedef int (*ZlibStreamMethod)(z_stream*, int);
 
 extern "C" typedef int (*ZlibEndStreamMethod)(z_stream*);
+
+}  // close unnamed namespace
 
 // ===========
 // struct ZLib
@@ -299,7 +303,218 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
     return rc_SUCCESS;
 }
 
-}  // close unnamed namespace
+
+// ===========
+// struct Zstd
+// ===========
+
+struct ZZstdStream {
+    void* ctx;
+
+    size_t avail_in;
+    size_t avail_out;
+
+    char* next_in;
+    char* next_out;
+};
+
+typedef int (*ZstdStreamMethod)(ZZstdStream*, ZSTD_EndDirective);
+
+/// This struct provides the utility functions for enabling compression
+/// using Zstd algorithm.
+struct Zstd {
+    // CONSTANTS
+
+    // CLASS METHODS
+
+    // static void*
+    // zAllocate(void* opaque, unsigned int items, unsigned int size);
+
+    // static void zFree(void* opaque, void* address);
+
+    static void setError(
+        bsl::ostream*            stream,
+                         const bslstl::StringRef& baseMessage,
+                         int                      code,
+                         const char*              message = 0);
+
+    static bool advanceInput(bdlbb::BlobBuffer* inBuffer,
+                             ZZstdStream*          stream,
+                             int*               index,
+                             const bdlbb::Blob& input);
+
+    static void advanceOutput(bdlbb::Blob*              output,
+                              bdlbb::BlobBuffer*        outBuffer,
+                              bdlbb::BlobBufferFactory* factory,
+                              ZZstdStream*                 stream
+                            );
+
+    /// Apply the operation given by the specified `zlibMethod` and
+    /// `zlibEndMethod` on the specified `input` using the specified
+    /// `stream`, and write the result to the specified `output`.  Return 0
+    /// on success and non-zero otherwise, in which case a message is
+    /// written to the specified `errorStream` if it is non-zero.
+    static int writeOutput(bdlbb::Blob*              output,
+                           bdlbb::BlobBufferFactory* factory,
+                           ZZstdStream*                 stream,
+                           bsl::ostream*             errorStream,
+                           const bdlbb::Blob&        input,
+                           ZstdStreamMethod          zstdMethod
+                        );
+};
+
+// ===========
+// struct Zstd
+// ===========
+
+// void* Zstd::zAllocate(void* opaque, unsigned int items, unsigned int size)
+// {
+//     bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
+//     return allocator->allocate(items * size);
+// }
+
+// void Zstd::zFree(void* opaque, void* address)
+// {
+//     bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
+//     allocator->deallocate(address);
+// }
+
+void Zstd::setError(
+    bsl::ostream*            stream,
+                    const bslstl::StringRef& baseMessage,
+                    int                      code,
+                    const char*              message)
+{
+    if (stream) {
+        (*stream) << baseMessage << ", Code: " << code;
+        if (message) {
+            (*stream) << ", Message: " << message;
+        }
+    }
+}
+
+bool Zstd::advanceInput(bdlbb::BlobBuffer* inBuffer,
+                        ZZstdStream*       stream,
+                        int*               index,
+                        const bdlbb::Blob& input)
+{
+    if (0 == stream->avail_in) {
+        // Read the next buffer from the blob.
+
+        if ((1 + *index) == input.numDataBuffers()) {
+            // No more input to read.
+            return false;  // RETURN
+        }
+
+        ++(*index);
+        *inBuffer        = input.buffer(*index);
+        stream->avail_in = bmqu::BlobUtil::bufferSize(input, *index);
+        stream->next_in  = inBuffer->data();
+    }
+    else {
+        // Advance the 'next_in' pointer to the next region of unconsumed data
+        // in the buffer.
+
+        const ptrdiff_t offset = bmqu::BlobUtil::bufferSize(input, *index) -
+                                 stream->avail_in;
+        stream->next_in = inBuffer->data() + offset;
+    }
+
+    return true;
+}
+
+void Zstd::advanceOutput(bdlbb::Blob*              output,
+                         bdlbb::BlobBuffer*        outBuffer,
+                         bdlbb::BlobBufferFactory* factory,
+                         ZZstdStream*                 stream
+                        )
+{
+    if (0 == stream->avail_out) {
+        if (outBuffer->size()) {
+
+            // Append the previous data buffer to output.
+            output->appendDataBuffer(*outBuffer);
+        }
+        factory->allocate(outBuffer);
+
+        stream->avail_out = outBuffer->size();
+        stream->next_out = outBuffer->data();
+    }
+    else {
+        // Advance the 'next_out' pointer to the next region of free space in
+        // the buffer.
+
+        const ptrdiff_t offset = outBuffer->size() - stream->avail_out;
+        stream->next_out = outBuffer->data() + offset;
+    }
+}
+
+int Zstd::writeOutput(bdlbb::Blob*              output,
+                      bdlbb::BlobBufferFactory* factory,
+                      ZZstdStream*                 stream,
+                    bsl::ostream*             errorStream,
+                    const bdlbb::Blob&        input,
+                    ZstdStreamMethod          zstdMethod
+                    )
+{
+    enum RcEnum {
+        rc_SUCCESS                = 0,
+        rc_STREAM_INIT_FAILURE    = -1,
+        rc_STREAM_PROCESS_FAILURE = -2,
+        rc_STREAM_END_FAILURE     = -3
+    };
+
+    bdlbb::BlobBuffer inBuffer;
+    bdlbb::BlobBuffer outBuffer;
+    int               index = -1;
+    int               result;
+
+    // Process input data until all input buffers have been read.
+    while (true) {
+        if (!advanceInput(&inBuffer, stream, &index, input)) {
+            // No more input to read.
+            break;  // BREAK
+        }
+        advanceOutput(output, &outBuffer, factory, stream);
+
+        result = zstdMethod(stream, ZSTD_e_continue);
+        if (0 != result) {
+            setError(errorStream,
+                     "Error processing stream",
+                     result,
+                    "" //  stream->msg
+                    );
+            return rc_STREAM_PROCESS_FAILURE;  // RETURN
+        }
+    }
+
+    // Continue to write output data until the stream reaches its end, or the
+    // operation fails.  As an extra sanity check to avoid spinning, we stash
+    // the value of 'avail_out' and only continue iterating while bytes are
+    // being written to the output.
+    unsigned int lastSize;
+    do {
+        advanceOutput(output, &outBuffer, factory, stream);
+        lastSize = stream->avail_out;
+        result   = zstdMethod(stream, ZSTD_e_end);
+    } while ((0 != result) && lastSize != stream->avail_out);
+
+    // result = zstdEndMethod(stream);
+    // if (result) {
+    //     setError(errorStream, "Error finishing stream", result, "");
+    //     return rc_STREAM_END_FAILURE;  // RETURN
+    // }
+
+    // If we have written any data to the current output buffer, reduce its
+    // size and add it to the blob.
+    if (outBuffer.size() && 0 < outBuffer.size() - stream->avail_out) {
+        outBuffer.setSize(outBuffer.size() - stream->avail_out);
+
+        output->appendDataBuffer(outBuffer);
+    }
+
+    return rc_SUCCESS;
+}
 
 // ==================
 // struct Compression
@@ -452,6 +667,58 @@ int Compression_Impl::compressZlib(bdlbb::Blob*              output,
                              &::deflateEnd);
 }
 
+inline
+void updateZstdStream(ZZstdStream* stream,
+                     const ZSTD_inBuffer& in,
+                     const ZSTD_outBuffer& out)
+{
+    size_t readFromIn = in.pos;
+
+        stream->avail_in -= readFromIn;
+        stream->next_in += readFromIn;
+
+        size_t addedToOut = out.pos;
+        stream->next_out += addedToOut;
+        stream->avail_out -= addedToOut;
+}
+
+int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp) {
+    ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
+
+    if (in.pos < in.size) {
+        ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
+        size_t const ret = ZSTD_compressStream2(reinterpret_cast<ZSTD_CCtx*>(stream->ctx) , &out, &in, endOp);
+        if (ZSTD_isError(ret)) {
+            return -1;
+        }
+
+        updateZstdStream(stream, in, out);
+    }
+    return 0;
+};
+
+int inflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp) {
+    int finished = 0;
+    ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
+
+    if (in.pos < in.size) {
+        ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
+        size_t ret = ZSTD_decompressStream(reinterpret_cast<ZSTD_DCtx*>(stream->ctx), &out, &in);
+
+        updateZstdStream(stream, in, out);
+
+        if (ZSTD_isError(ret)) {
+            return -1;
+        }
+        
+        finished = (ret == 0); // ret==0 means all done
+    } else {
+        finished = 1;
+    }
+
+    return finished;
+};
+
 int Compression_Impl::decompressZlib(bdlbb::Blob*              output,
                                      bdlbb::BlobBufferFactory* factory,
                                      const bdlbb::Blob&        input,
@@ -482,6 +749,63 @@ int Compression_Impl::decompressZlib(bdlbb::Blob*              output,
                              input,
                              &::inflate,
                              &::inflateEnd);
+}
+
+int Compression_Impl::compressZstd(bdlbb::Blob*              output,
+                                   bdlbb::BlobBufferFactory* factory,
+                                   const bdlbb::Blob&        input,
+                                   int                       level,
+                                   bsl::ostream*             errorStream,
+                                   bslma::Allocator*         allocator)
+{
+    enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
+
+    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    if (!cctx) {
+        (*errorStream) << "Error initializing ZSTD compression context";
+        return rc_STREAM_INIT_FAILURE;  // RETURN
+    }
+
+    ZZstdStream stream = {cctx, 0, 0, nullptr, nullptr};
+
+    const int result = Zstd::writeOutput(output,
+                             factory,
+                             &stream,
+                             errorStream,
+                             input,
+                             deflateZstd);
+
+    ZSTD_freeCCtx(cctx);
+
+    return result;
+}
+
+int Compression_Impl::decompressZstd(bdlbb::Blob*              output,
+                                     bdlbb::BlobBufferFactory* factory,
+                                     const bdlbb::Blob&        input,
+                                     bsl::ostream*             errorStream,
+                                     bslma::Allocator*         allocator)
+{
+    enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
+
+    ZSTD_DCtx* dctx = ZSTD_createDCtx();
+    if (!dctx) {
+        (*errorStream) << "Error initializing ZSTD decompression context";
+        return rc_STREAM_INIT_FAILURE;  // RETURN
+    }
+
+    ZZstdStream stream = {dctx, 0, 0, nullptr, nullptr};
+
+    const int result = Zstd::writeOutput(output,
+                             factory,
+                             &stream,
+                             errorStream,
+                             input,
+                             inflateZstd);
+
+    ZSTD_freeDCtx(dctx);
+
+    return result;
 }
 
 }  // close package namespace

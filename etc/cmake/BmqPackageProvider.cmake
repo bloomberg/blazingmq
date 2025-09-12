@@ -16,9 +16,11 @@ macro(setup_package_provider)
         # pkg-config style names BdeBuildSystem is trying to use.
         find_package(benchmark CONFIG REQUIRED)
         find_package(ZLIB REQUIRED)
+        find_package(ZSTD REQUIRED)
 
         add_library(benchmark ALIAS benchmark::benchmark)
         add_library(zlib ALIAS ZLIB::ZLIB)
+        add_library(zstd ALIAS ZSTD::ZSTD)
 
         find_package(GTest CONFIG REQUIRED)
         add_library(gmock ALIAS GTest::gmock)

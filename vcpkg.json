@@ -8,6 +8,7 @@
         "ntf-core",
         "benchmark",
         "gtest",
+        "zstd",
         "zlib"
     ]
 }

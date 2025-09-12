@@ -384,6 +384,45 @@ static void eZlibCompressionRatioHelper(bsls::Types::Int64* inputSize,
     BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
 }
 
+template <typename D>
+static void eZstdCompressionRatioHelper(bsls::Types::Int64* inputSize,
+                                        bsls::Types::Int64* compressedSize,
+                                        const D&            data,
+                                        int                 level)
+{
+    bmqu::MemOutStream             error(bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob compressed(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob decompressed(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+
+    bdlbb::BlobUtil::append(&input, data.data(), data.length());
+    *inputSize = input.length();
+
+    int rc = bmqp::Compression_Impl::compressZstd(
+        &compressed,
+        &bufferFactory,
+        input,
+        level,
+        &error,
+        bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(rc, 0);
+    *compressedSize = compressed.length();
+
+    rc = bmqp::Compression_Impl::decompressZstd(
+        &decompressed,
+        &bufferFactory,
+        compressed,
+        &error,
+        bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -1020,6 +1059,89 @@ static void testN3_performanceCompressionRatio()
     }
 }
 
+static void testN4_performanceCompressionRatioZstd()
+// ------------------------------------------------------------------------
+// BENCHMARK: COMPRESSION RATIO
+//
+// Concerns:
+//   Test the compression ratio (InputSize/CompressedSize) using
+//   Zstd implementations in a single thread environment.
+//
+// Plan:
+//   - Start from a random string of size 2 bytes and increase it in an
+//     exponential manner to 1024 megabytes. Make a note of compression
+//     ratio for each of the buffer sizes.
+//
+// Testing:
+//   Compression ratio (InputSize/CompressedSize) of Zstd
+//   implementation in a single thread environment.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    // The default allocator check fails in this test case because the
+    // printTable method utilizes the global allocator.
+
+    bmqtst::TestHelper::printTestName("BENCHMARK: COMPRESSION RATIO");
+
+    bsl::vector<bsl::string> data(bmqtst::TestHelperUtil::allocator());
+    populateData(&data);
+
+    // Measure calculation time and report per level
+    for (int level = 0; level < 10; level++) {
+        bsl::cout << "---------------------\n"
+                  << " LEVEL = " << level << '\n'
+                  << "---------------------\n";
+        bsl::vector<CompressionRatioRecord> tableRecords(
+            bmqtst::TestHelperUtil::allocator());
+        for (unsigned i = 0; i < data.size(); ++i) {
+            const int length = data[i].size();
+
+            bsl::cout << "---------------------\n"
+                      << " SIZE = " << bmqu::PrintUtil::prettyBytes(length)
+                      << '\n'
+                      << "---------------------\n";
+
+            //===============================================================//
+            //                   Compression, Decompression
+
+            // <Size>
+            bsls::Types::Int64 inputSize      = 0;
+            bsls::Types::Int64 compressedSize = 0;
+            eZstdCompressionRatioHelper(&inputSize,
+                                        &compressedSize,
+                                        data[i],
+                                        level);
+            // </Size>
+
+            //===============================================================//
+            //                            Report
+            CompressionRatioRecord record;
+            record.d_inputSize        = inputSize;
+            record.d_compressedSize   = compressedSize;
+            record.d_compressionRatio = static_cast<double>(inputSize) /
+                                        compressedSize;
+            tableRecords.push_back(record);
+
+            bsl::cout << "Input Size        : "
+                      << bmqu::PrintUtil::prettyBytes(record.d_inputSize)
+                      << '\n'
+                      << "Compressed Size   : "
+                      << bmqu::PrintUtil::prettyBytes(record.d_compressedSize)
+                      << '\n'
+                      << "Compression Ratio : " << record.d_compressionRatio
+                      << "\n\n";
+        }
+        // Print compression ratio comparison table
+        bsl::vector<bsl::string> headerCols(
+            bmqtst::TestHelperUtil::allocator());
+        headerCols.emplace_back("Input Size");
+        headerCols.emplace_back("Compressed Size");
+        headerCols.emplace_back("Compression Ratio");
+
+        printTable(bsl::cout, headerCols, tableRecords);
+    }
+}
+
 // Begin Benchmarking Tests
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
@@ -1128,6 +1250,7 @@ int main(int argc, char* argv[])
                                        ->Unit(benchmark::kMillisecond));
         break;
     case -3: testN3_performanceCompressionRatio(); break;
+    case -4: testN4_performanceCompressionRatioZstd(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
