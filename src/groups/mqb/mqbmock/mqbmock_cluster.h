@@ -327,6 +327,10 @@ class Cluster : public mqbi::Cluster {
     /// manager used by this cluster.
     MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference offering a modifiable access to this object's
+    /// cluster stats.
+    mqbstat::ClusterStats& stats() BSLS_KEYWORD_OVERRIDE;
+
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
     /// implementation responsibility to decide which node to use (in
