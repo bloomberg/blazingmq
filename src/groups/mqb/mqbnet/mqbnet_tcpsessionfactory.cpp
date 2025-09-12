@@ -576,6 +576,8 @@ void TCPSessionFactory::initialConnectionComplete(
                 << d_config.name()
                 << "' got an already closed channel after negotiation.";
 
+            // TearDown the session
+            monitoredSession->tearDown(info->d_session_sp, false);
             return;  // RETURN
         }
 
