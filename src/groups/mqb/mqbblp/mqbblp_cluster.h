@@ -818,6 +818,10 @@ class Cluster : public mqbi::Cluster,
     /// used by this cluster.
     mqbnet::Cluster& netCluster() BSLS_KEYWORD_OVERRIDE;
 
+    /// Get a reference offering a modifiable access to this object's cluster
+    /// stats.
+    mqbstat::ClusterStats& stats() BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
 
@@ -897,6 +901,11 @@ inline bool Cluster::isStopping() const
 inline mqbnet::Cluster& Cluster::netCluster()
 {
     return *(d_clusterData.membership().netCluster());
+}
+
+inline mqbstat::ClusterStats& Cluster::stats()
+{
+    return d_clusterData.stats();
 }
 
 inline const mqbnet::Cluster& Cluster::netCluster() const
