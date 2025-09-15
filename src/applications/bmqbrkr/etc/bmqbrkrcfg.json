@@ -33,7 +33,6 @@
         "hostName": "localhost",
         "hostTags": "standalone",
         "hostDataCenter": "UNSPECIFIED",
-        "isRunningOnDev": false,
         "logsObserverMaxSize": 1000,
         "dispatcherConfig": {
             "sessions": {
