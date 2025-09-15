@@ -421,7 +421,7 @@ ClusterStats::setPartitionOutstandingBytes(int                 partitionId,
         journalBytes);
     d_partitionsStatContexts[partitionId]->setValue(
         ClusterStatsIndex::e_PARTITION_SEQUENCE_NUMBER,
-        sequenceNumber);
+        static_cast<bsls::Types::Int64>(sequenceNumber));
     return *this;
 }
 
