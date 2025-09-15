@@ -86,14 +86,8 @@ void Queue::configureDispatchedAndPost(int*              result,
         BSLS_ASSERT_OPT(false && "Uninitialized queue");
     }
 
-    if (result) {
-        BSLS_ASSERT_SAFE(sync);
-        *result = rc;
-    }
-
-    if (sync) {
-        sync->post();
-    }
+    *result = rc;
+    sync->post();
 }
 
 void Queue::configureDispatched(bool isReconfigure)
