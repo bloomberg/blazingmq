@@ -655,7 +655,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                     if (0 != rc) {
                         BALL_LOG_ERROR
                             << partitionDesc()
-                            << "Failed to truncate QLIST file " << "at offset "
+                            << "Failed to truncate QLIST file at offset "
                             << qlistOffset << ", rc: " << rc << ", errno: ["
                             << errno << " [" << bsl::strerror(errno) << "].";
                         FileSystemUtil::close(&journalFd);
