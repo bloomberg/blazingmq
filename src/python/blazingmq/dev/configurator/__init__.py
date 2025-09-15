@@ -355,7 +355,6 @@ class Proto:
                 config_version=999999,
                 host_name="",  # overwritten
                 host_data_center="",  # overwritten
-                is_running_on_dev=False,
                 logs_observer_max_size=1000,
                 dispatcher_config=mqbcfg.DispatcherConfig(
                     sessions=mqbcfg.DispatcherProcessorConfig(
