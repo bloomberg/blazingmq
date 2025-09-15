@@ -409,33 +409,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// queue which have a proper valid unique queueId.
     typedef bsl::unordered_map<int, QueueContext*> QueueContextByIdMap;
 
-    class QueueContextIterator {
-      private:
-        QueueContextMap& d_base;
-
-        QueueContextMap::const_iterator d_current;
-
-        bmqp_ctrlmsg::Status d_status;
-
-      public:
-        QueueContextIterator(QueueContextMap&  base,
-                             bslma::Allocator* allocator_p);
-
-        QueueContextIterator(QueueContextMap&                       base,
-                             const QueueContextMap::const_iterator& cit,
-                             bslma::Allocator* allocator_p);
-
-        ~QueueContextIterator();
-
-        void next();
-
-        bmqp_ctrlmsg::Status* status();
-
-        bool atEnd() const;
-
-        const mqbblp::ClusterQueueHelper::QueueContextSp& queueContext();
-    };
-
   private:
     // DATA
 
@@ -511,15 +484,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                     bmqp_ctrlmsg::PrimaryStatus::Value status);
 
     /// If not already assigned, try to assign the queue represented by the
-    /// specified `queueContext`, that is give it an id and a partition id.
+    /// specified `queueContext_sp`, that is give it an id and a partition id.
     /// This method is called regardless of proxy or member, and leader or
     /// replica and will initiate the proper sequence of operation based on the
-    /// role of the current node within the cluster.  Load the result into the
-    /// specified `status`.
-    void assignQueueIfNeeded(bmqp_ctrlmsg::Status* status,
-                             const QueueContextSp& queueContext_sp);
-    void assignQueue(bmqp_ctrlmsg::Status* status,
-                     const QueueContextSp& queueContext_sp);
+    /// role of the current node within the cluster.  Return `false`, if the
+    /// assignment has failed, return `true` on success or on no ACTIVE leader.
+    bool assignQueueIfNeeded(const QueueContextSp& queueContext_sp);
+    bool assignQueue(const QueueContextSp& queueContext_sp);
 
     /// Send a queueAssignment request to the leader, requesting assignment
     /// of the queue with the specified `uri`.  This method is called only
@@ -1203,75 +1174,6 @@ inline int ClusterQueueHelper::QueueContext::partitionId() const
 {
     return d_stateQInfo_sp ? d_stateQInfo_sp->partitionId()
                            : mqbs::DataStore::k_INVALID_PARTITION_ID;
-}
-
-// -----------------------------------------------
-// struct ClusterQueueHelper::QueueContextIterator
-// -----------------------------------------------
-
-inline ClusterQueueHelper::QueueContextIterator::QueueContextIterator(
-    QueueContextMap&  base,
-    bslma::Allocator* allocator_p)
-: d_base(base)
-, d_current(d_base.cbegin())
-, d_status(allocator_p)
-{
-    // NOTHING
-}
-
-inline ClusterQueueHelper::QueueContextIterator::QueueContextIterator(
-    QueueContextMap&                       base,
-    const QueueContextMap::const_iterator& cit,
-    bslma::Allocator*                      allocator_p)
-: d_base(base)
-, d_current(cit)
-, d_status(allocator_p)
-{
-    // NOTHING
-}
-
-inline ClusterQueueHelper::QueueContextIterator::~QueueContextIterator()
-{
-    if (!atEnd()) {
-        if (d_status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-            queueContext()->respond(d_status);
-
-            d_base.erase(d_current);
-        }
-    }
-}
-
-inline void ClusterQueueHelper::QueueContextIterator::next()
-{
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    if (d_status.category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-        ++d_current;
-    }
-    else {
-        queueContext()->respond(d_status);
-
-        d_current = d_base.erase(d_current);
-    }
-    d_status.reset();
-}
-
-inline bmqp_ctrlmsg::Status* ClusterQueueHelper::QueueContextIterator::status()
-{
-    return &d_status;
-}
-
-inline bool ClusterQueueHelper::QueueContextIterator::atEnd() const
-{
-    return d_current == d_base.end();
-}
-
-inline const mqbblp::ClusterQueueHelper::QueueContextSp&
-ClusterQueueHelper::QueueContextIterator::queueContext()
-{
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    return d_current->second;
 }
 
 // ------------------------

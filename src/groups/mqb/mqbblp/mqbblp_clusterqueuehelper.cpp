@@ -168,6 +168,28 @@ void countUnconfirmed(bsls::Types::Int64* result, mqbi::Queue* queue)
         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
 }
 
+template <typename T>
+struct ConditionalAdvance {
+    bool d_doAdvance;
+
+    ConditionalAdvance()
+    : d_doAdvance(true)
+    {
+        // NOTHING
+    }
+
+    void advance(T& x)
+    {
+        if (d_doAdvance) {
+            ++x;
+        }
+        else {
+            d_doAdvance = true;
+        }
+    }
+    void release() { d_doAdvance = false; }
+};
+
 }  // close unnamed namespace
 
 // ---------------------------------------
@@ -420,8 +442,7 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
     }
 }
 
-void ClusterQueueHelper::assignQueueIfNeeded(
-    bmqp_ctrlmsg::Status* status,
+bool ClusterQueueHelper::assignQueueIfNeeded(
     const QueueContextSp& queueContext_sp)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -432,17 +453,19 @@ void ClusterQueueHelper::assignQueueIfNeeded(
 
     BSLS_ASSERT_SAFE(queueContext_sp);
 
-    if (!isQueueAssigned(*queueContext_sp)) {
-        // Queue is not assigned to a partition; get it assigned.  If
-        // self is leader, it will assign it locally, if not it will
-        // send a request to the leader, etc.
-
-        assignQueue(status, queueContext_sp);
+    if (isQueueAssigned(*queueContext_sp)) {
+        // Already assigned, nothing to do
+        return true;  // RETURN
     }
+
+    // Queue is not assigned to a partition; get it assigned.  If
+    // self is leader, it will assign it locally, if not it will
+    // send a request to the leader, etc.
+
+    return assignQueue(queueContext_sp);
 }
 
-void ClusterQueueHelper::assignQueue(bmqp_ctrlmsg::Status* status,
-                                     const QueueContextSp& queueContext)
+bool ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -453,6 +476,8 @@ void ClusterQueueHelper::assignQueue(bmqp_ctrlmsg::Status* status,
     BSLS_ASSERT_SAFE(queueContext);
     BSLS_ASSERT_SAFE(!isQueueAssigned(*queueContext));
 
+    bool result = true;
+
     if (d_cluster_p->isRemote()) {
         // Assigning a queue in a remote, is simply giving it a new queueId.
         queueContext->d_liveQInfo.d_id = getNextQueueId();
@@ -460,7 +485,14 @@ void ClusterQueueHelper::assignQueue(bmqp_ctrlmsg::Status* status,
     }
     else if (d_clusterData_p->electorInfo().hasActiveLeader()) {
         if (d_clusterData_p->electorInfo().isSelfLeader()) {
-            d_clusterStateManager_p->assignQueue(queueContext->uri(), status);
+            bmqp_ctrlmsg::Status status(d_allocator_p);
+
+            result = d_clusterStateManager_p->assignQueue(queueContext->uri(),
+                                                          &status);
+
+            if (result == false) {
+                queueContext->respond(status);
+            }
         }
         else {
             requestQueueAssignment(queueContext->uri());
@@ -476,6 +508,8 @@ void ClusterQueueHelper::assignQueue(bmqp_ctrlmsg::Status* status,
                              << queueContext->uri()
                              << "' (waiting for an ACTIVE leader).";
     }
+
+    return result;
 }
 
 void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
@@ -3577,9 +3611,12 @@ void ClusterQueueHelper::restoreStateRemote()
 
     // Attempt to re-issue open-queue requests for all applicable queues.
 
-    for (QueueContextIterator cit(d_queues, d_allocator_p); !cit.atEnd();
-         cit.next()) {
-        const QueueContextSp& queueContext = cit.queueContext();
+    ConditionalAdvance<QueueContextMapConstIter> conditional;
+
+    for (QueueContextMapConstIter cit = d_queues.cbegin();
+         cit != d_queues.cend();
+         conditional.advance(cit)) {
+        const QueueContextSp& queueContext = cit->second;
         QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
 
         if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0) {
@@ -3593,10 +3630,13 @@ void ClusterQueueHelper::restoreStateRemote()
             continue;  // CONTINUE
         }
 
-        if (!isQueueAssigned(*queueContext.get())) {
+        if (!isQueueAssigned(*queueContext)) {
             // Queue is not assigned to a partition; get it assigned.
 
-            assignQueueIfNeeded(cit.status(), queueContext);
+            if (!assignQueue(queueContext)) {
+                conditional.release();
+                cit = d_queues.erase(cit);
+            }
 
             continue;  // CONTINUE
         }
@@ -3727,10 +3767,11 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         d_clusterState_p->iterateDoubleAssignments(partitionId,
                                                    doubleAssignmentVisitor);
     }
-
-    for (QueueContextIterator cit(d_queues, d_allocator_p); !cit.atEnd();
-         cit.next()) {
-        const QueueContextSp& queueContext = cit.queueContext();
+    ConditionalAdvance<QueueContextMapConstIter> conditional;
+    for (QueueContextMapConstIter cit = d_queues.cbegin();
+         cit != d_queues.cend();
+         conditional.advance(cit)) {
+        const QueueContextSp& queueContext = cit->second;
         QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
         if (allPartitions) {
             // Attempt to re-issue open-queue requests for all appropriate
@@ -3750,7 +3791,16 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 continue;  // CONTINUE
             }
 
-            assignQueueIfNeeded(cit.status(), queueContext);
+            if (!isQueueAssigned(*queueContext)) {
+                // Queue is not assigned to a partition; get it assigned.
+
+                if (!assignQueue(queueContext)) {
+                    conditional.release();
+                    cit = d_queues.erase(cit);
+                }
+
+                continue;  // CONTINUE
+            }
         }
         else {
             // A specific partitionId is specified.  Attempt to re-issue
@@ -4844,10 +4894,10 @@ void ClusterQueueHelper::openQueue(
     }
 
     if (!isAssigned) {
-        QueueContextIterator cit(d_queues, queueContextIt, d_allocator_p);
-
         // Initiate the assignment.
-        assignQueue(cit.status(), cit.queueContext());
+        if (!assignQueue(queueContextIt->second)) {
+            d_queues.erase(queueContextIt);
+        }
     }
 }
 
