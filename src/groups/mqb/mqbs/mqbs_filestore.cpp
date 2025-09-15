@@ -2258,7 +2258,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (d_isFSMWorkflow) {
                     BALL_LOG_ERROR
                         << partitionDesc()
-                        << "Encountered a DELETION record for " << "queueKey ["
+                        << "Encountered a DELETION record for queueKey ["
                         << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
