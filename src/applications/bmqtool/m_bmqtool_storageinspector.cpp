@@ -465,19 +465,19 @@ void StorageInspector::processCommand(
 
             // Print journal-specific fields
             BALL_LOG_OUTPUT_STREAM << "Journal SyncPoint:\n";
-            bsl::vector<const char*> fields;
-            fields.push_back("Last Valid Record Offset");
-            fields.push_back("Record Type");
-            fields.push_back("Record Timestamp");
-            fields.push_back("Record Epoch");
-            fields.push_back("Last Valid SyncPoint Offset");
-            fields.push_back("SyncPoint Timestamp");
-            fields.push_back("SyncPoint Epoch");
-            fields.push_back("SyncPoint SeqNum");
-            fields.push_back("SyncPoint Primary NodeId");
-            fields.push_back("SyncPoint Primary LeaseId");
-            fields.push_back("SyncPoint DataFileOffset (DWORDS)");
-            fields.push_back("SyncPoint QlistFileOffset (WORDS)");
+            bsl::vector<bsl::string> fields;
+            fields.emplace_back("Last Valid Record Offset");
+            fields.emplace_back("Record Type");
+            fields.emplace_back("Record Timestamp");
+            fields.emplace_back("Record Epoch");
+            fields.emplace_back("Last Valid SyncPoint Offset");
+            fields.emplace_back("SyncPoint Timestamp");
+            fields.emplace_back("SyncPoint Epoch");
+            fields.emplace_back("SyncPoint SeqNum");
+            fields.emplace_back("SyncPoint Primary NodeId");
+            fields.emplace_back("SyncPoint Primary LeaseId");
+            fields.emplace_back("SyncPoint DataFileOffset (DWORDS)");
+            fields.emplace_back("SyncPoint QlistFileOffset (WORDS)");
 
             bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
             bsls::Types::Uint64  lastRecPos =
@@ -578,10 +578,10 @@ void StorageInspector::processCommand(
             BALL_LOG_OUTPUT_STREAM << "Queue #" << qnum << "\n";
             const QueueRecord& qr = cit->second;
 
-            bsl::vector<const char*> fields;
-            fields.push_back("Queue URI");
-            fields.push_back("QueueKey");
-            fields.push_back("Number of AppIds");
+            bsl::vector<bsl::string> fields;
+            fields.emplace_back("Queue URI");
+            fields.emplace_back("QueueKey");
+            fields.emplace_back("Number of AppIds");
 
             bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
             printer << cit->first << qr.d_queueKey << qr.d_appIds.size();
@@ -592,9 +592,9 @@ void StorageInspector::processCommand(
             for (unsigned int i = 0; i < appRecs.size(); ++i) {
                 const AppIdRecord& ar = appRecs[i];
                 BALL_LOG_OUTPUT_STREAM << "        AppId #" << i + 1 << "\n";
-                bsl::vector<const char*> f;
-                f.push_back("AppId");
-                f.push_back("AppKey");
+                bsl::vector<bsl::string> f;
+                f.emplace_back("AppId");
+                f.emplace_back("AppKey");
 
                 const int            indent = 8;
                 bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &f, indent);
