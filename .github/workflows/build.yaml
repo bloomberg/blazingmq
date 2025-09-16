@@ -283,6 +283,7 @@ jobs:
             google-benchmark \
             googletest \
             python@3.10 \
+            zstd \
             zlib
 
       - name: Build BlazingMQ
