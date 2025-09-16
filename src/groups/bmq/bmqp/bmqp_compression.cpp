@@ -303,7 +303,6 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
     return rc_SUCCESS;
 }
 
-
 // ===========
 // struct Zstd
 // ===========
@@ -332,22 +331,20 @@ struct Zstd {
 
     // static void zFree(void* opaque, void* address);
 
-    static void setError(
-        bsl::ostream*            stream,
+    static void setError(bsl::ostream*            stream,
                          const bslstl::StringRef& baseMessage,
                          int                      code,
                          const char*              message = 0);
 
     static bool advanceInput(bdlbb::BlobBuffer* inBuffer,
-                             ZZstdStream*          stream,
+                             ZZstdStream*       stream,
                              int*               index,
                              const bdlbb::Blob& input);
 
     static void advanceOutput(bdlbb::Blob*              output,
                               bdlbb::BlobBuffer*        outBuffer,
                               bdlbb::BlobBufferFactory* factory,
-                              ZZstdStream*                 stream
-                            );
+                              ZZstdStream*              stream);
 
     /// Apply the operation given by the specified `zlibMethod` and
     /// `zlibEndMethod` on the specified `input` using the specified
@@ -356,11 +353,10 @@ struct Zstd {
     /// written to the specified `errorStream` if it is non-zero.
     static int writeOutput(bdlbb::Blob*              output,
                            bdlbb::BlobBufferFactory* factory,
-                           ZZstdStream*                 stream,
+                           ZZstdStream*              stream,
                            bsl::ostream*             errorStream,
                            const bdlbb::Blob&        input,
-                           ZstdStreamMethod          zstdMethod
-                        );
+                           ZstdStreamMethod          zstdMethod);
 };
 
 // ===========
@@ -379,8 +375,7 @@ struct Zstd {
 //     allocator->deallocate(address);
 // }
 
-void Zstd::setError(
-    bsl::ostream*            stream,
+void Zstd::setError(bsl::ostream*            stream,
                     const bslstl::StringRef& baseMessage,
                     int                      code,
                     const char*              message)
@@ -426,36 +421,33 @@ bool Zstd::advanceInput(bdlbb::BlobBuffer* inBuffer,
 void Zstd::advanceOutput(bdlbb::Blob*              output,
                          bdlbb::BlobBuffer*        outBuffer,
                          bdlbb::BlobBufferFactory* factory,
-                         ZZstdStream*                 stream
-                        )
+                         ZZstdStream*              stream)
 {
     if (0 == stream->avail_out) {
         if (outBuffer->size()) {
-
             // Append the previous data buffer to output.
             output->appendDataBuffer(*outBuffer);
         }
         factory->allocate(outBuffer);
 
         stream->avail_out = outBuffer->size();
-        stream->next_out = outBuffer->data();
+        stream->next_out  = outBuffer->data();
     }
     else {
         // Advance the 'next_out' pointer to the next region of free space in
         // the buffer.
 
         const ptrdiff_t offset = outBuffer->size() - stream->avail_out;
-        stream->next_out = outBuffer->data() + offset;
+        stream->next_out       = outBuffer->data() + offset;
     }
 }
 
 int Zstd::writeOutput(bdlbb::Blob*              output,
                       bdlbb::BlobBufferFactory* factory,
-                      ZZstdStream*                 stream,
-                    bsl::ostream*             errorStream,
-                    const bdlbb::Blob&        input,
-                    ZstdStreamMethod          zstdMethod
-                    )
+                      ZZstdStream*              stream,
+                      bsl::ostream*             errorStream,
+                      const bdlbb::Blob&        input,
+                      ZstdStreamMethod          zstdMethod)
 {
     enum RcEnum {
         rc_SUCCESS                = 0,
@@ -482,8 +474,8 @@ int Zstd::writeOutput(bdlbb::Blob*              output,
             setError(errorStream,
                      "Error processing stream",
                      result,
-                    "" //  stream->msg
-                    );
+                     ""  //  stream->msg
+            );
             return rc_STREAM_PROCESS_FAILURE;  // RETURN
         }
     }
@@ -588,6 +580,23 @@ int Compression::compress(bdlbb::Blob*                         output,
                                               errorStream,
                                               allocator);  // RETURN
     }
+    case bmqt::CompressionAlgorithmType::e_ZSTD: {
+        bsl::shared_ptr<char> inputBufferSp(const_cast<char*>(input),
+                                            bslstl::SharedPtrNilDeleter(),
+                                            allocator);
+        bdlbb::BlobBuffer     inputBlobBuffer(inputBufferSp, inputLength);
+
+        if (inputBlobBuffer.size() > 0) {
+            inputBlob.appendDataBuffer(inputBlobBuffer);
+        }
+
+        return Compression_Impl::compressZstd(output,
+                                              factory,
+                                              inputBlob,
+                                              Z_DEFAULT_COMPRESSION,
+                                              errorStream,
+                                              allocator);  // RETURN
+    }
     case bmqt::CompressionAlgorithmType::e_NONE:
         // deep copy of input character array to output Blob
         bdlbb::BlobUtil::append(output, input, inputLength);
@@ -609,6 +618,12 @@ int Compression::decompress(bdlbb::Blob*                         output,
     switch (algorithm) {
     case bmqt::CompressionAlgorithmType::e_ZLIB:
         return Compression_Impl::decompressZlib(output,
+                                                factory,
+                                                input,
+                                                errorStream,
+                                                allocator);  // RETURN
+    case bmqt::CompressionAlgorithmType::e_ZSTD:
+        return Compression_Impl::decompressZstd(output,
                                                 factory,
                                                 input,
                                                 errorStream,
@@ -667,27 +682,31 @@ int Compression_Impl::compressZlib(bdlbb::Blob*              output,
                              &::deflateEnd);
 }
 
-inline
-void updateZstdStream(ZZstdStream* stream,
-                     const ZSTD_inBuffer& in,
-                     const ZSTD_outBuffer& out)
+inline void updateZstdStream(ZZstdStream*          stream,
+                             const ZSTD_inBuffer&  in,
+                             const ZSTD_outBuffer& out)
 {
     size_t readFromIn = in.pos;
 
-        stream->avail_in -= readFromIn;
-        stream->next_in += readFromIn;
+    stream->avail_in -= readFromIn;
+    stream->next_in += readFromIn;
 
-        size_t addedToOut = out.pos;
-        stream->next_out += addedToOut;
-        stream->avail_out -= addedToOut;
+    size_t addedToOut = out.pos;
+    stream->next_out += addedToOut;
+    stream->avail_out -= addedToOut;
 }
 
-int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp) {
+int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
+{
     ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
 
     if (in.pos < in.size) {
         ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
-        size_t const ret = ZSTD_compressStream2(reinterpret_cast<ZSTD_CCtx*>(stream->ctx) , &out, &in, endOp);
+        size_t const   ret = ZSTD_compressStream2(
+            reinterpret_cast<ZSTD_CCtx*>(stream->ctx),
+            &out,
+            &in,
+            endOp);
         if (ZSTD_isError(ret)) {
             return -1;
         }
@@ -697,22 +716,27 @@ int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp) {
     return 0;
 };
 
-int inflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp) {
-    int finished = 0;
-    ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
+int inflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
+{
+    int           finished = 0;
+    ZSTD_inBuffer in       = {stream->next_in, stream->avail_in, 0};
 
     if (in.pos < in.size) {
         ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
-        size_t ret = ZSTD_decompressStream(reinterpret_cast<ZSTD_DCtx*>(stream->ctx), &out, &in);
+        size_t const   ret = ZSTD_decompressStream(
+            reinterpret_cast<ZSTD_DCtx*>(stream->ctx),
+            &out,
+            &in);
 
         updateZstdStream(stream, in, out);
 
         if (ZSTD_isError(ret)) {
             return -1;
         }
-        
-        finished = (ret == 0); // ret==0 means all done
-    } else {
+
+        finished = (ret == 0);  // ret==0 means all done
+    }
+    else {
         finished = 1;
     }
 
@@ -769,11 +793,11 @@ int Compression_Impl::compressZstd(bdlbb::Blob*              output,
     ZZstdStream stream = {cctx, 0, 0, nullptr, nullptr};
 
     const int result = Zstd::writeOutput(output,
-                             factory,
-                             &stream,
-                             errorStream,
-                             input,
-                             deflateZstd);
+                                         factory,
+                                         &stream,
+                                         errorStream,
+                                         input,
+                                         deflateZstd);
 
     ZSTD_freeCCtx(cctx);
 
@@ -797,11 +821,11 @@ int Compression_Impl::decompressZstd(bdlbb::Blob*              output,
     ZZstdStream stream = {dctx, 0, 0, nullptr, nullptr};
 
     const int result = Zstd::writeOutput(output,
-                             factory,
-                             &stream,
-                             errorStream,
-                             input,
-                             inflateZstd);
+                                         factory,
+                                         &stream,
+                                         errorStream,
+                                         input,
+                                         inflateZstd);
 
     ZSTD_freeDCtx(dctx);
 

@@ -43,7 +43,7 @@ namespace bmqt {
 /// This struct defines various types of compression algorithms.
 struct CompressionAlgorithmType {
     // TYPES
-    enum Enum { e_UNKNOWN = -1, e_NONE = 0, e_ZLIB = 1 };
+    enum Enum { e_UNKNOWN = -1, e_NONE = 0, e_ZLIB = 1, e_ZSTD = 2 };
 
     // CONSTANTS
 

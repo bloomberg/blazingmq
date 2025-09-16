@@ -249,7 +249,7 @@ static void populateData(bsl::vector<bsl::string>* data)
 }
 
 template <typename D>
-static void eZlibCompressDecompressHelper(
+static void eAnyCompressDecompressHelper(
     bsls::Types::Int64*                         compressionTime,
     bsls::Types::Int64*                         decompressionTime,
     const D&                                    data,
@@ -523,7 +523,7 @@ static void test1_breathingTest()
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
                                     bmqtst::TestHelperUtil::allocator());
-            eZlibCompressDecompressHelper(
+            eAnyCompressDecompressHelper(
                 &compressionTime,
                 &decompressionTime,
                 inputString,
@@ -539,11 +539,11 @@ static void test1_breathingTest()
         const bsl::string  data("", bmqtst::TestHelperUtil::allocator());
         bsls::Types::Int64 compressionTime   = 0;
         bsls::Types::Int64 decompressionTime = 0;
-        eZlibCompressDecompressHelper(&compressionTime,
-                                      &decompressionTime,
-                                      data,
-                                      "\x78\x9c\x3\x0\x0\x0\x0\x1",
-                                      bmqt::CompressionAlgorithmType::e_ZLIB);
+        eAnyCompressDecompressHelper(&compressionTime,
+                                     &decompressionTime,
+                                     data,
+                                     "\x78\x9c\x3\x0\x0\x0\x0\x1",
+                                     bmqt::CompressionAlgorithmType::e_ZLIB);
     }
 
     {
@@ -782,12 +782,50 @@ static void test3_compression_decompression_none()
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
                                     bmqtst::TestHelperUtil::allocator());
-            eZlibCompressDecompressHelper(
+            eAnyCompressDecompressHelper(
                 &compressionTime,
                 &decompressionTime,
                 inputString,
                 test.d_expected,
                 bmqt::CompressionAlgorithmType::e_NONE);
+        }
+    }
+}
+
+static void test4_compression_decompression_zstd()
+{
+    bmqtst::TestHelper::printTestName("ZSTD ALGORITHM TEST");
+    {
+        PV("BUFFERS WITH NONEMPTY STRINGS");
+
+        struct Test {
+            int         d_line;
+            const char* d_data;
+            const char* d_expected;
+        } k_DATA[] = {{L_, "Hello World", "Hello World"},
+                      {L_, "HelloHello", "HelloHello"},
+                      {L_, "abcdefghij", "abcdefghij"},
+                      {L_,
+                       "Hello Hello Hello Hello Hello",
+                       "Hello Hello Hello "
+                       "Hello Hello"}};
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << "'" << test.d_data << "'");
+            bsls::Types::Int64 compressionTime   = 0;
+            bsls::Types::Int64 decompressionTime = 0;
+            bsl::string        inputString(test.d_data,
+                                    bmqtst::TestHelperUtil::allocator());
+            eAnyCompressDecompressHelper(
+                &compressionTime,
+                &decompressionTime,
+                inputString,
+                test.d_expected,
+                bmqt::CompressionAlgorithmType::e_ZSTD);
         }
     }
 }
@@ -1236,6 +1274,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case 2: test2_compression_cluster_message(); break;
     case 3: test3_compression_decompression_none(); break;
+    case 4: test4_compression_decompression_zstd(); break;
     case -1:
         BMQTST_BENCHMARK_WITH_ARGS(
             testN1_performanceCompressionDecompressionDefault,
