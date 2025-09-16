@@ -845,6 +845,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
         }
     }
 
+    // REVISIT: 'processOpenQueueRequest' seems to do similar (possibly
+    // redundant) check for 'hasActiveAvailablePrimary',
     if (havePending && haveActivePrimary && isAvailable) {
         processPendingContexts(queueContext);
     }
@@ -3812,8 +3814,8 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 continue;  // CONTINUE;
             }
 
-            BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext.get()));
-            BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext.get()));
+            BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
+            BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext));
 
             // Verify the CSL if needed by comparing it with the Domain config
             if (liveQInfo.d_queue_sp) {
@@ -3860,22 +3862,22 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         if (mqbi::ClusterErrorCode::e_OK == result) {
                             // Cannot continue until 'onQueueUpdated'
                             // Send QueueUpdateAdvisory and _wait_ for commit
-                        }
-                        else {
-                            // An update error is CSL error (in
-                            // 'ClusterStateLedger::apply'). This queue cannot
-                            // convertToLocal
-                            // ('RootQueueEngine::initializeAppId' would assert
-                            // if there is no storage for some app).
 
-                            BSLS_ASSERT_SAFE(false && "Failure to update Apps "
-                                                      "before convertToLocal");
+                            continue;  // CONTINUE
                         }
+
+                        // An update error is CSL error (in
+                        // 'ClusterStateLedger::apply'). This queue cannot
+                        // convertToLocal
+                        // ('RootQueueEngine::initializeAppId' would assert
+                        // if there is no storage for some app).
+
+                        BSLS_ASSERT_SAFE(
+                            false &&
+                            "Failure to update Apps before convertToLocal");
                     }
                     else {
                         convertToLocal(queueContext, domain);
-
-                        processPendingContexts(queueContext);
                     }
                 }
                 else {
@@ -3903,6 +3905,9 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         // In case of other type of failure, just continue
                         // processing other queues instead of stopping the
                         // 'state restore' sequence.
+
+                        // REVISIT: this code sends pending Open Queue requests
+                        // without waiting for the ReOpen Queue Response.
                     }
                     else {
                         BMQ_LOGTHROTTLE_INFO
@@ -3920,25 +3925,14 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     // requests were not processed, but appended to the pending
                     // context list, so once we have an active primary, we
                     // should process them.
-                    if (!queueContext->d_liveQInfo.d_pending.empty()) {
-                        // Proceed with pending contexts, if any.
-                        BMQ_LOGTHROTTLE_INFO
-                            << d_cluster_p->description()
-                            << ": Proceeding with "
-                            << queueContext->d_liveQInfo.d_pending.size()
-                            << " associated pending contexts for '"
-                            << queueContext->uri() << "'";
-                        processPendingContexts(queueContext);
-                    }
                 }
             }
-            else {
-                // Queue instance is not created, but the queue is assigned.
-                // Proceed ahead.
-
-                onQueueContextAssigned(queueContext);
-            }
+            // else, Queue instance is not created, but the queue is assigned.
+            // Proceed ahead.
         }
+
+        // In all cases, _attempt_ to process pending open queue requests
+        onQueueContextAssigned(queueContext);
     }
 }
 
@@ -4562,27 +4556,26 @@ void ClusterQueueHelper::onQueueUpdated(
                          << ", addedAppIds: " << printer1
                          << ", removedAppIds: " << printer2;
 
-    // Resume open queue request(s) waiting for new App(s).
+    if (!queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
+        // Swap the contexts to process them one by one and also clear the
+        // pendingContexts of the queue info: they will be enqueued back, if
+        // needed.
+        bsl::vector<VoidFunctor> pending(d_allocator_p);
+        pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
+
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
+                             << pending.size() << " pending Apps Updates.";
+
+        for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
+             it != pending.end();
+             ++it) {
+            (*it)();
+        }
+    }
+
+    // Resume open queue request(s) waiting for new App(s) _after_
+    // 'convertToLocal'
     processPendingContexts(qiter->second);
-
-    if (queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
-        return;  // RETURN
-    }
-
-    // Swap the contexts to process them one by one and also clear the
-    // pendingContexts of the queue info: they will be enqueued back, if
-    // needed.
-    bsl::vector<VoidFunctor> pending(d_allocator_p);
-    pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
-
-    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
-                         << pending.size() << " pending Apps Updates.";
-
-    for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
-         it != pending.end();
-         ++it) {
-        (*it)();
-    }
 }
 
 void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
