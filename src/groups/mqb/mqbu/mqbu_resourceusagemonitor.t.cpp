@@ -2462,14 +2462,6 @@ static void test9_print()
             PVV(test.d_line << ": checking 'RUMState::toAscii("
                             << "RUMState::e_" << test.d_expected << ")';");
 
-            if (bmqtst::TestHelperUtil::k_UBSAN &&
-                bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-                PVV("Skip line ["
-                    << test.d_line
-                    << "] for UBSan due to out of range enum value casting");
-                continue;
-            }
-
             ascii = RUMState::toAscii(test.d_value);
 
             BMQTST_ASSERT_EQ_D("line " << test.d_line, ascii, test.d_expected);
@@ -2500,14 +2492,6 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
-
-            if (bmqtst::TestHelperUtil::k_UBSAN &&
-                bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-                PVV("Skip line ["
-                    << test.d_line
-                    << "] for UBSan due to out of range enum value casting");
-                continue;
-            }
 
             bsl::string ascii(bmqtst::TestHelperUtil::allocator());
 
