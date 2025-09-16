@@ -1696,13 +1696,13 @@ void StorageManager::do_failureReplicaStateResponse(
     response.code()                = mqbi::ClusterErrorCode::e_NOT_REPLICA;
     response.message()             = "Not a replica";
 
-
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self not replica! Sent failure response " << controlMsg
+                  << " Partition [" << partitionId
+                  << "]: " << "Self not replica! Sent failure response "
+                  << controlMsg
                   << " to ReplicaStateRequest from node claiming to be primary"
                   << eventData.source()->nodeDescription() << ".";
 }
@@ -1852,7 +1852,7 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
     const int                    partitionId = eventData.partitionId();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(eventData.source());                     
+    BSLS_ASSERT_SAFE(eventData.source());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -1876,6 +1876,9 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());    
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
                   << " to PrimaryStateRequest from replica node "
@@ -1898,7 +1901,7 @@ void StorageManager::do_failurePrimaryStateResponse(
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-    BSLS_ASSERT_SAFE(eventData.source());    
+    BSLS_ASSERT_SAFE(eventData.source());
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -1920,8 +1923,9 @@ void StorageManager::do_failurePrimaryStateResponse(
                                                           eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self not primary! Sent failure response " << controlMsg
+                  << " Partition [" << partitionId
+                  << "]: " << "Self not primary! Sent failure response "
+                  << controlMsg
                   << " to PrimaryStateRequest from node who thinks otherwise "
                   << eventData.source()->nodeDescription() << ".";
 }
@@ -2076,7 +2080,7 @@ void StorageManager::do_replicaDataResponsePush(const PartitionFSMArgsSp& args)
 
     BSLS_ASSERT_SAFE(destNode);
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());    
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     if (eventData.requestId() >= 0) {
@@ -2106,13 +2110,12 @@ void StorageManager::do_replicaDataResponsePush(const PartitionFSMArgsSp& args)
                                                           partitionId);
     }
 
-
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          destNode);    
+                                                          destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Sent response " << controlMsg
+                  << " Partition [" << partitionId << "]: " << "Sent response "
+                  << controlMsg
                   << " to ReplicaDataRequestPush from primary node "
                   << destNode->nodeDescription() << ".";
 }
@@ -2419,8 +2422,8 @@ void StorageManager::do_replicaDataResponsePull(const PartitionFSMArgsSp& args)
                                                           destNode);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << ": Sent response " << controlMsg
+                  << " Partition [" << partitionId
+                  << "]: " << ": Sent response " << controlMsg
                   << " to ReplicaDataRequestPull from primary node "
                   << destNode->nodeDescription() << ".";
 }
@@ -2450,7 +2453,7 @@ void StorageManager::do_failureReplicaDataResponsePull(
 
     BSLS_ASSERT_SAFE(destNode);
     BSLS_ASSERT_SAFE(destNode->nodeId() ==
-                     d_partitionInfoVec[partitionId].primary()->nodeId());    
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
     // TODO Continue verifying here
 
     bmqp_ctrlmsg::ControlMessage controlMsg;

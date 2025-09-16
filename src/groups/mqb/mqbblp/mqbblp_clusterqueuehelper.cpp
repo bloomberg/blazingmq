@@ -610,11 +610,18 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
             else if (status.code() == mqbi::ClusterErrorCode::e_LIMIT ||
                      status.code() == mqbi::ClusterErrorCode::e_CSL_FAILURE ||
                      status.code() == mqbi::ClusterErrorCode::e_UNKNOWN) {
-                QueueContextMapIter qit = d_queues.find(uri);
-                BSLS_ASSERT_SAFE(qit != d_queues.end());
-                const QueueContext* rejected = qit->second.get();
+                // Second openQueue for unassigned queue can result in second
+                // QueueAssignmentRequest, so this can be the second response
+                // after queue is already erased (upon the first response).
+                // Note that the first QueueAssignmentResponse does responds to
+                // the second openQueue request (see d_liveQInfo.d_pending).
 
-                processRejectedQueueAssignment(rejected, status);
+                QueueContextMapIter qit = d_queues.find(uri);
+                if (qit != d_queues.end()) {
+                    const QueueContext* rejected = qit->second.get();
+
+                    processRejectedQueueAssignment(rejected, status);
+                }
             }
         }
         else {
