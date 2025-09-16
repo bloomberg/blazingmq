@@ -845,6 +845,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
         }
     }
 
+    // REVISIT: 'processOpenQueueRequest' seems to do similar (possibly
+    // redundant) check for 'hasActiveAvailablePrimary',
     if (havePending && haveActivePrimary && isAvailable) {
         processPendingContexts(queueContext);
     }
@@ -3850,13 +3852,6 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         // 'updateAppIds' which is asynchronous (CSL commit)
                         liveQInfo.d_pendingUpdates.push_back(park);
 
-                        park = bdlf::BindUtil::bind(
-                            &ClusterQueueHelper::processPendingContexts,
-                            this,
-                            queueContext);
-
-                        liveQInfo.d_pendingUpdates.push_back(park);
-
                         mqbi::ClusterErrorCode::Enum result =
                             d_clusterStateManager_p->updateAppIds(
                                 added,
@@ -4561,27 +4556,26 @@ void ClusterQueueHelper::onQueueUpdated(
                          << ", addedAppIds: " << printer1
                          << ", removedAppIds: " << printer2;
 
-    // Resume open queue request(s) waiting for new App(s).
+    if (!queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
+        // Swap the contexts to process them one by one and also clear the
+        // pendingContexts of the queue info: they will be enqueued back, if
+        // needed.
+        bsl::vector<VoidFunctor> pending(d_allocator_p);
+        pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
+
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
+                             << pending.size() << " pending Apps Updates.";
+
+        for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
+             it != pending.end();
+             ++it) {
+            (*it)();
+        }
+    }
+
+    // Resume open queue request(s) waiting for new App(s) _after_
+    // 'convertToLocal'
     processPendingContexts(qiter->second);
-
-    if (queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
-        return;  // RETURN
-    }
-
-    // Swap the contexts to process them one by one and also clear the
-    // pendingContexts of the queue info: they will be enqueued back, if
-    // needed.
-    bsl::vector<VoidFunctor> pending(d_allocator_p);
-    pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
-
-    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
-                         << pending.size() << " pending Apps Updates.";
-
-    for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
-         it != pending.end();
-         ++it) {
-        (*it)();
-    }
 }
 
 void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
