@@ -154,7 +154,6 @@ class InitialConnectionContext {
     void*                                      resultState() const;
     const bsl::shared_ptr<bmqio::Channel>&     channel() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
-    const bsl::string&                         name() const;
     bool                                       isClosed() const;
 
     void complete(int                                     rc,
