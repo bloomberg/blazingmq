@@ -69,7 +69,6 @@ def test_broker_client(
 
     # Start a client
     client: Client = broker.create_client(f"client@{broker.name}", port=tproxy_port)
-    client.start_session()
     assert client.capture(r"CONNECTED", 5)
 
     # Kill tproxy to break the connection between broker and client
