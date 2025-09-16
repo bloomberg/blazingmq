@@ -10,3 +10,4 @@ bdl
 # Level 1
 bsl
 zlib
+libzstd
