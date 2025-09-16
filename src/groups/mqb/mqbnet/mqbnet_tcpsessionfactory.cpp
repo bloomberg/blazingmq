@@ -573,6 +573,8 @@ void TCPSessionFactory::negotiationComplete(
                 << d_config.name()
                 << "' got an already closed channel after negotiation.";
 
+            // Since the 'session' has missed 'onClose', call 'tearDown' here.
+            session->tearDown(session, false);
             return;  // RETURN
         }
 
@@ -763,7 +765,7 @@ void TCPSessionFactory::onClose(
 
     --d_nbActiveChannels;
 
-    bsl::shared_ptr<bmqio::Channel> channel =
+    const bsl::shared_ptr<bmqio::Channel>& channel =
         initialConnectionContext->channel();
 
     int port;
