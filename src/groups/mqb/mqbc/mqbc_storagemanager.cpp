@@ -1876,9 +1876,6 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());    
 
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
-
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
                   << " to PrimaryStateRequest from replica node "
@@ -2294,14 +2291,14 @@ void StorageManager::do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
     response.endSequenceNumber() =
         eventData.partitionSeqNumDataRange().second;
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Sent response " << controlMsg
                   << " to ReplicaDataRequestDrop from primary node "
                   << destNode->nodeDescription() << ".";
-
-    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                          eventData.source());
 }
 
 void StorageManager::do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
