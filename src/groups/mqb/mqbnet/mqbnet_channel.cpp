@@ -856,6 +856,10 @@ void Channel::threadFn()
                     mode = e_BLOCK;
                 }
             } break;
+            default: {
+                BSLS_ASSERT(false && "Unreachable by design");
+                BSLA_UNREACHABLE;
+            }
             }
         }
         else if (item->d_type == bmqp::EventType::e_UNDEFINED) {

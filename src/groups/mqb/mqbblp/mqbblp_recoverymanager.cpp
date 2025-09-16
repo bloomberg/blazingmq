@@ -77,6 +77,9 @@ namespace {
 
 const char k_LOG_CATEGORY[] = "MQBBLP.RECOVERYMANAGER";
 
+const unsigned int k_STARTUP_WAIT_RETRIES  = 10;
+const unsigned int k_STARTUP_WAIT_RETRY_MS = 1000;
+
 /// This class provides a custom comparator to compare two (sync-point,
 /// offset) pairs.
 class SyncPointOffsetPairComparator {
@@ -452,12 +455,18 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
     RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
 
     if (!recoveryCtx.inRecovery()) {
-        // Partition is not under recovery any longer.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], after recovery wait-time, is not under recovery "
+                      << "any longer.  Returning.";
         return;  // RETURN
     }
 
     if (recoveryCtx.recoveryPeer()) {
-        // Partition is already under active recovery.  Nothing else to do.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], after recovery wait-time, is already under "
+                      << "active recovery.  Nothing else to do.";
         return;  // RETURN
     }
 
@@ -476,14 +485,46 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
         // In that case, we just archive all partition files and let file store
         // create new ones.
 
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "], no sync point has been received during "
+                      << "recovery wait-time and no peers are available. ";
+
+        if (d_clusterData_p->electorInfo().isSelfLeader()) {
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << ": Partition ["
+                << partitionId
+                << "], not extending the wait for sync points on the leader.";
+        }
+        else if (recoveryCtx.onStartupWaitRetry() > k_STARTUP_WAIT_RETRIES) {
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << ": Partition ["
+                << partitionId
+                << "], not extending the wait for sync points after retrying "
+                << k_STARTUP_WAIT_RETRIES << " times.";
+        }
+        else {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << ": Partition [" << partitionId
+                          << "], extending the wait for sync points.";
+
+            bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
+            after.addMilliseconds(k_STARTUP_WAIT_RETRY_MS);
+            d_clusterData_p->scheduler().scheduleEvent(
+                &recoveryCtx.recoveryStartupWaitHandle(),
+                after,
+                bdlf::BindUtil::bind(&RecoveryManager::recoveryStartupWaitCb,
+                                     this,
+                                     partitionId));
+
+            return;  // RETURN
+        }
         if (0 != recoveryCtx.oldSyncPointOffset()) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << ": Partition [" << partitionId
-                          << "], no sync point has been received during "
-                          << "recovery wait-time and no peers are available. "
-                          << "Partition will be truncated to the last syncPt "
+                          << "] will be truncated to the last syncPt "
                           << "offsets & then local recovery will be performed."
-                          << "Offset details: JOURNAL: "
+                          << " Offset details: JOURNAL: "
                           << recoveryCtx.oldSyncPointOffset()
                           << ", DATA: " << recoveryCtx.dataFileOffset()
                           << ", QLIST: " << recoveryCtx.qlistFileOffset();
@@ -491,14 +532,12 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
             // Files will be truncated by 'onPartitionRecoveryStatus'.
         }
         else {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << ": Partition [" << partitionId
-                          << "], no sync point has been received during "
-                          << "recovery wait-time and no peers are available. "
-                          << "No syncPt is present in the local journal, and "
-                          << "thus, local partition files will be archived. "
-                          << "Recovery will proceed as if no local files "
-                          << "exist.";
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << ": Partition ["
+                << partitionId
+                << "]. No syncPt is present in the local journal, and thus, "
+                << "local partition files will be archived. "
+                << "Recovery will proceed as if no local files exist.";
             movePartitionFiles(partitionId,
                                d_dataStoreConfig.location(),
                                d_dataStoreConfig.archiveLocation());
@@ -1533,7 +1572,12 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         break;  // BREAK
 
     case bmqp::RecoveryFileChunkType::e_UNDEFINED:
-        BSLS_ASSERT_SAFE(false);
+        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+        break;  // BREAK
+
+    default:
+        BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+        BSLA_UNREACHABLE;
         break;  // BREAK
     }
 
@@ -1685,6 +1729,11 @@ int RecoveryManager::replayPartition(
         rc_INCOMPLETE_REPLAY        = -8
     };
 
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << pid << "]: " << "replaying from "
+                  << fromSequenceNum << " to " << toSequenceNum
+                  << " to node: " << destination->nodeDescription() << ".";
+
     mqbs::JournalFileIterator journalIt;
 
     int rc = journalIt.reset(
@@ -1694,6 +1743,9 @@ int RecoveryManager::replayPartition(
     if (0 != rc) {
         return rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
+
+    // Do not make initial 'journalIt.nextRecord()' call because the loop
+    // below calls 'recordOffset()'
 
     // Skip JOURNAL records till 'fromSyncPtOffset' is reached.
 
@@ -1733,28 +1785,23 @@ int RecoveryManager::replayPartition(
                                       &d_clusterData_p->blobSpPool(),
                                       d_allocator_p);
 
-    // Note that partition has to be replayed from the record *after*
-    // 'fromSequenceNum'.  So move forward by one record in the JOURNAL.
-    while (currentSeqNum < toSequenceNum) {
-        char* journalRecordBase = 0;
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << pid << "]: " << "replay starts from "
+                  << currentSeqNum << ".";
+
+    // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
+    // precisely to the record after 'fromSequenceNum'.
+
+    bool isDone = false;
+
+    while (!isDone && rc == 0) {
+        char* journalRecordBase = fti->journalFd().block().base() +
+                                  journalIt.recordOffset();
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
-
-        rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(
-            &currentSeqNum,
-            &journalRecordBase,
-            fti->journalFd(),
-            toSequenceNum,
-            pid,
-            *destination,
-            d_clusterData_p->identity().description(),
-            journalIt);
-        if (rc != 0) {
-            break;  // BREAK
-        }
 
         mqbc::RecoveryUtil::processJournalRecord(&storageMsgType,
                                                  &payloadRecordBase,
@@ -1836,9 +1883,17 @@ int RecoveryManager::replayPartition(
 
             builder.reset();
         }
+
+        if (currentSeqNum == toSequenceNum) {
+            isDone = true;
+        }
+        else {
+            rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
+                                                            journalIt);
+        }
     }
 
-    if (currentSeqNum != toSequenceNum) {
+    if (!isDone) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << pid
                       << "]: incomplete replay of partition. Sequence number "
@@ -2014,7 +2069,6 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     const SyncPointOffsetPairs&              spOffsetPairs = fs->syncPoints();
     const bmqp_ctrlmsg::SyncPointOffsetPair& firstSpOffPair =
         spOffsetPairs.front();
-    mqbs::JournalFileIterator jit;
 
     if (false == (firstSpOffPair.syncPoint() <=
                   ppState.lastSyncPointOffsetPair().syncPoint())) {
@@ -3405,6 +3459,16 @@ void RecoveryManager::processRecoveryEvent(
 
         case bmqp::RecoveryFileChunkType::e_UNDEFINED:
             BSLS_ASSERT_SAFE(false && "Unreachable by design.");
+            break;  // BREAK
+
+        default:
+            BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                << d_clusterData_p->identity().description()
+                << ": For Partition [" << partitionId
+                << "], received unknown file chunk type: "
+                << header.fileChunkType()
+                << ", from: " << source->nodeDescription() << "."
+                << BMQTSK_ALARMLOG_END;
         }
 
         BSLS_ASSERT_SAFE(isData || isJournal || isQlist);
@@ -4608,7 +4672,6 @@ void RecoveryManager::processPartitionSyncDataRequest(
     const SyncPointOffsetPairs&              spOffsetPairs = fs->syncPoints();
     const bmqp_ctrlmsg::SyncPointOffsetPair& firstSpOffPair =
         spOffsetPairs.front();
-    mqbs::JournalFileIterator jit;
 
     if (false == (firstSpOffPair.syncPoint() <= lastSpoPair.syncPoint())) {
         // TBD: Need to peek into the archived files to retrieve the correct

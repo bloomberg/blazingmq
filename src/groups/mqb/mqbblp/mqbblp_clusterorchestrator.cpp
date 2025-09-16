@@ -129,6 +129,19 @@ void ClusterOrchestrator::onElectorStateChange(
     case mqbnet::ElectorState::e_LEADER: {
         electorTransitionToLeader(leaderNodeId, term);
     } break;  // BREAK
+
+    default: {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Unknown new elector state: " << state
+                      << ", new code: " << code
+                      << ", new leaderNodeId: " << leaderNodeId
+                      << ", new term: " << term << ", old state: "
+                      << d_clusterData_p->electorInfo().electorState()
+                      << ", old leaderNodeId: "
+                      << d_clusterData_p->electorInfo().leaderNodeId()
+                      << ", old term: "
+                      << d_clusterData_p->electorInfo().electorTerm();
+    }
     }
 }
 
@@ -1573,25 +1586,38 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
         // 'StorageMgr::processPrimaryStatusAdvisoryDispatched' as well.
 
         if (pinfo.primaryNode()) {
-            if (pinfo.primaryNode() != source) {
+            if (pinfo.primaryLeaseId() > primaryAdv.primaryLeaseId()) {
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << ": Partition [" << primaryAdv.partitionId()
+                    << "]: received primary status advisory: " << primaryAdv
+                    << " from perceived primary: " << source->nodeDescription()
+                    << ", but with a lesser leaseId. Self perceived leaseId: "
+                    << pinfo.primaryLeaseId() << ". Will ignore the advisory.";
+                return;  // RETURN
+            }
+            else if (pinfo.primaryLeaseId() < primaryAdv.primaryLeaseId()) {
+                BALL_LOG_WARN
+                    << d_clusterData_p->identity().description()
+                    << ": Partition [" << primaryAdv.partitionId()
+                    << "]: received primary status advisory: " << primaryAdv
+                    << " from perceived primary: " << source->nodeDescription()
+                    << ", with a greater leaseId. Self perceived leaseId: "
+                    << pinfo.primaryLeaseId()
+                    << ". Will follow the advisory unconditionally.";
+            }
+            else if (pinfo.primaryNodeId() != source->nodeId()) {
+                BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() ==
+                                 primaryAdv.primaryLeaseId());
+
                 BALL_LOG_ERROR
                     << d_clusterData_p->identity().description()
                     << ": Partition [" << primaryAdv.partitionId()
                     << "]: received primary status advisory: " << primaryAdv
                     << " from: " << source->nodeDescription()
                     << ", but current primary is: "
-                    << pinfo.primaryNode()->nodeDescription();
-                return;  // RETURN
-            }
-
-            if (pinfo.primaryLeaseId() != primaryAdv.primaryLeaseId()) {
-                BALL_LOG_ERROR
-                    << d_clusterData_p->identity().description()
-                    << ": Partition [" << primaryAdv.partitionId()
-                    << "]: received primary status advisory: " << primaryAdv
-                    << " from perceived primary: " << source->nodeDescription()
-                    << ", but with different leaseId. Self perceived "
-                    << "leaseId: " << pinfo.primaryLeaseId();
+                    << pinfo.primaryNode()->nodeDescription()
+                    << ". Will ignore the advisory.";
                 return;  // RETURN
             }
         }

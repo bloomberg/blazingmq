@@ -735,6 +735,7 @@ int FileBackedStorage::gcExpiredMessages(
     bsls::Types::Int64*  configuredTtlValue,
     bsls::Types::Uint64  secondsFromEpoch)
 {
+    // Executed by QUEUE dispatcher thread
     BSLS_ASSERT_SAFE(d_store_p);
     BSLS_ASSERT_SAFE(latestMsgTimestampEpoch);
     BSLS_ASSERT_SAFE(configuredTtlValue);

@@ -610,11 +610,18 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
             else if (status.code() == mqbi::ClusterErrorCode::e_LIMIT ||
                      status.code() == mqbi::ClusterErrorCode::e_CSL_FAILURE ||
                      status.code() == mqbi::ClusterErrorCode::e_UNKNOWN) {
-                QueueContextMapIter qit = d_queues.find(uri);
-                BSLS_ASSERT_SAFE(qit != d_queues.end());
-                const QueueContext* rejected = qit->second.get();
+                // Second openQueue for unassigned queue can result in second
+                // QueueAssignmentRequest, so this can be the second response
+                // after queue is already erased (upon the first response).
+                // Note that the first QueueAssignmentResponse does responds to
+                // the second openQueue request (see d_liveQInfo.d_pending).
 
-                processRejectedQueueAssignment(rejected, status);
+                QueueContextMapIter qit = d_queues.find(uri);
+                if (qit != d_queues.end()) {
+                    const QueueContext* rejected = qit->second.get();
+
+                    processRejectedQueueAssignment(rejected, status);
+                }
             }
         }
         else {
@@ -665,6 +672,27 @@ void ClusterQueueHelper::onQueueContextAssigned(
             // postpone processing the queue opening.
 
             haveActivePrimary = false;
+        }
+        else if (!d_clusterState_p->isSelfPrimary(pid)) {
+            // This is a replica node, guaranteed.
+
+            // Note: It's possible that the queue has already been registered
+            // in the StorageMgr if it was a queue found during storage
+            // recovery. Therefore, we will allow for duplicate registration
+            // which will simply result in a no-op.
+
+            const mqbc::ClusterStateQueueInfo& info =
+                *queueContext->d_stateQInfo_sp;
+
+            mqbc::ClusterState::DomainState& domainState =
+                *d_clusterState_p->domainStates().at(
+                    info.uri().qualifiedDomain());
+
+            d_storageManager_p->registerQueueReplica(pid,
+                                                     info.uri(),
+                                                     info.key(),
+                                                     info.appInfos(),
+                                                     domainState.domain());
         }
     }
 
@@ -2168,13 +2196,21 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    error(&localAllocator);
 
-    int rc = queueSp->configure(error,
+    int rc = queueSp->configure(&error,
                                 false,  // isReconfigure
                                 true);  // wait
 
+    /// `mqbi::Queue::configure` might have set a queue raw pointer in the
+    /// corresponding storage.  Make sure we unset this if we exit the scope
+    /// on error.
+    bdlb::ScopeExitAny queuePtrGuard(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &mqbi::Storage::setQueue,
+                              queueSp->storage(),
+                              static_cast<mqbi::Queue*>(0)));
+
     if (rc != 0) {
         // Queue.configure() failed.
-
         BMQ_LOGTHROTTLE_ERROR << "Failure configuring queue '"
                               << queueContext->uri() << "': " << error.str()
                               << ".";
@@ -2203,6 +2239,9 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             queueContext->partitionId(),
             1);
     }
+
+    /// Success: no need to unset queue raw pointer.
+    queuePtrGuard.release();
 
     return queueSp;
 }
@@ -4224,27 +4263,6 @@ void ClusterQueueHelper::onQueueAssigned(
     BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
                          << ": Assigned queue: " << *info;
 
-    if (!d_clusterState_p->isSelfPrimary(info->partitionId())) {
-        // This is a replica node
-
-        // Note: It's possible that the queue has already been registered
-        // in the StorageMgr if it was a queue found during storage
-        // recovery. Therefore, we will allow for duplicate registration
-        // which will simply result in a no-op.
-        d_storageManager_p->registerQueueReplica(info->partitionId(),
-                                                 info->uri(),
-                                                 info->key(),
-                                                 domainState.domain(),
-                                                 true);  // allowDuplicate
-
-        d_storageManager_p->updateQueueReplica(info->partitionId(),
-                                               info->uri(),
-                                               info->key(),
-                                               info->appInfos(),
-                                               domainState.domain(),
-                                               true);  // allowDuplicate
-    }
-
     // NOTE: Even if it is not needed to invoke 'onQueueContextAssigned' in the
     //       case we just created it (because there are no pending
     //       contexts), we still call it regardless for the logging.
@@ -4433,20 +4451,28 @@ void ClusterQueueHelper::onQueueUpdated(
                                                d_clusterState_p->domainStates()
                                                    .at(uri.qualifiedDomain())
                                                    ->domain());
-    }
 
-    for (AppInfos::const_iterator cit = removedAppIds.cbegin();
-         cit != removedAppIds.cend();
-         ++cit) {
-        if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
+        for (AppInfos::const_iterator cit = removedAppIds.cbegin();
+             cit != removedAppIds.cend();
+             ++cit) {
             d_storageManager_p->unregisterQueueReplica(partitionId,
                                                        uri,
                                                        queueContext.key(),
                                                        cit->second);
         }
     }
+    // else, there is a queue AND this node is primary
 
     if (queue) {
+        // This node is either replica or primary.
+        // Currently, 'RelayQueueEngine' does not do anything in
+        // 'afterAppIdRegisteredDispatched' / 'afterAppIdRegisteredDispatched',
+        // the 'updateQueueReplica' above calls 'addVirtualStoragesInternal'.
+        //
+        // 'RootQueueEngine' calls 'storageManager()->updateQueuePrimary'
+        // which calls 'fs->writeQueueCreationRecord' and
+        // 'addVirtualStoragesInternal' / 'removeVirtualStorageInternal'.
+
         // TODO: replace with one call
         d_cluster_p->dispatcher()->execute(
             bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
@@ -4460,6 +4486,21 @@ void ClusterQueueHelper::onQueueUpdated(
                                  removedAppIds),
             queue);
     }
+    // else, if there is no queue, then either 'createQueueFactory' (when the
+    // queue gets created) or 'convertToLocal' (when the node becomes primary)
+    // calls 'storageSp->addVirtualStorage' and 'fs->writeQueueCreationRecord'.
+
+    // REVISIT: The above does not seems to check the state of primary, if any.
+    // If the queue is updated, then:
+    //  1) there is a leader (the source of the update).
+    //  2) the queue must be assigned.
+    // If the queue is assigned, there was a primary, so QueueCreationRecord is
+    // not a concern.
+    // If the queue exists, the queue has either 'RootQueueEngine' or
+    // 'RelayQueueEngine'.  The former takes care of AppCreationRecords.
+    // If there is no queue, this code does not write AppCreationRecords.  This
+    // will be done by 'StorageManager::registerQueue' at the time of the queue
+    // creation on primary.
 
     bmqu::Printer<AppInfos> printer1(&addedAppIds);
     bmqu::Printer<AppInfos> printer2(&removedAppIds);
@@ -4679,7 +4720,7 @@ void ClusterQueueHelper::openQueue(
         const int pid = queueContextIt->second->partitionId();
         if (!isSelfAvailablePrimary(pid)) {
             bmqu::MemOutStream errorDesc;
-            errorDesc << "Not the primary for partitionId [" << pid << "]";
+            errorDesc << "Not the primary for Partition [" << pid << "]";
             reason    = errorDesc.str();
             errorCode = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
             CALLBACK_FAILURE(reason, errorCode);
@@ -4752,7 +4793,7 @@ void ClusterQueueHelper::openQueue(
                         const ClusterStatePartitionInfo& partition =
                             d_clusterState_p->partition(pid);
                         BALL_LOG_OUTPUT_STREAM
-                            << "partitionId: " << pid << ", partitionPrimary: "
+                            << "Partition: " << pid << ", partitionPrimary: "
                             << (partition.primaryNode()
                                     ? partition.primaryNode()
                                           ->nodeDescription()

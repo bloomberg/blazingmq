@@ -413,10 +413,11 @@ const char* StatContextConfigurationFlags::toString(
     case E_STORE_EXPIRED_VALUES: {
         return "E_STORE_EXPIRED_VALUES";
     }
+    default: {
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    BSLS_ASSERT(!"invalid enumerator");
-    return 0;
+    }
 }
 
 // ----------------------------
@@ -480,10 +481,11 @@ StatContextUpdateFlags::toString(StatContextUpdateFlags::Value value)
     case E_CONTEXT_DELETED: {
         return "E_CONTEXT_DELETED";
     }
+    default: {
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    BSLS_ASSERT(!"invalid enumerator");
-    return 0;
+    }
 }
 
 // ---------------------
@@ -586,10 +588,11 @@ const char* StatValueFields::toString(StatValueFields::Value value)
     case E_DECREMENTS: {
         return "E_DECREMENTS";
     }
+    default: {
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    BSLS_ASSERT(!"invalid enumerator");
-    return 0;
+    }
 }
 
 // -------------------
@@ -648,10 +651,11 @@ const char* StatValueType::toString(StatValueType::Value value)
     case E_DISCRETE: {
         return "E_DISCRETE";
     }
+    default: {
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
     }
-
-    BSLS_ASSERT(!"invalid enumerator");
-    return 0;
+    }
 }
 
 // ---------------------

@@ -3648,7 +3648,12 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         QueueKeyCounterMapIter qit = queueKeyCounterMap->find(
             toRec->queueKey());
 
-        BSLS_ASSERT_SAFE(queueKeyCounterMap->end() != qit);
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueKeyCounterMap->end() ==
+                                                  qit)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            BALL_LOG_ERROR << "Message with unexpected queueKey: " << *toRec;
+            BSLS_ASSERT_OPT(false && "Message with unexpected queueKey");
+        }
 
         ++(qit->second.first);
         qit->second.second += dataMsgSize;
@@ -3713,8 +3718,16 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         else {
             BSLS_ASSERT_SAFE(QueueOpType::e_PURGE == fromRec->type() ||
                              QueueOpType::e_DELETION == fromRec->type());
-            BSLS_ASSERT_SAFE(queueKeyCounterMap->end() !=
-                             queueKeyCounterMap->find(fromRec->queueKey()));
+
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    queueKeyCounterMap->end() ==
+                    queueKeyCounterMap->find(fromRec->queueKey()))) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                BALL_LOG_ERROR << "Message with unexpected queueKey: "
+                               << *fromRec;
+                BSLS_ASSERT_OPT(false && "Message with unexpected queueKey");
+            }
+
             bsl::memcpy(rJournal.block().base() + rJournalPos,
                         aJournal.block().base() + record->d_recordOffset,
                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
@@ -3864,7 +3877,7 @@ void FileStore::issueSyncPointDispatched(BSLA_UNUSED int partitionId)
     // means that there must be space for at least 2 journal records.
 
     issueSyncPointInternal(SyncPointType::e_REGULAR,
-                           false);  // ImmediateFlush flag
+                           true);  // ImmediateFlush flag
 }
 
 int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
@@ -3960,10 +3973,11 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                     immediateFlush);
 
     // Report cluster's partition stats
-    d_clusterStats_p->setPartitionOutstandingBytes(
-        d_config.partitionId(),
-        fs->d_outstandingBytesData,
-        fs->d_outstandingBytesJournal);
+    d_clusterStats_p->setPartitionBytes(d_config.partitionId(),
+                                        fs->d_outstandingBytesData,
+                                        fs->d_outstandingBytesJournal,
+                                        fs->d_dataFilePosition,
+                                        fs->d_journalFilePosition);
 
     return rc_SUCCESS;
 }
@@ -4280,6 +4294,21 @@ int FileStore::writeQueueCreationRecord(
         return 10 * rc + rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN
     }
 
+    if (!d_isFSMWorkflow) {
+        // TODO: Temporarily. Remove after all versions wait for CSL commits
+        // before calling onQueueAssigned/onQueueUpdated.
+
+        BSLS_ASSERT_SAFE(d_config.queueCreationCb());
+        d_config.queueCreationCb()(d_config.partitionId(),
+                                   quri,
+                                   queueKey,
+                                   appIdKeyPairs,
+                                   QueueOpType::e_CREATION == queueOpType);
+        // Ignore the result.  In the case of storage creation failure, the
+        // lookup below will fail.
+        // Virtual storage creation currently fails on double creation only.
+    }
+
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
         if (d_isCSLModeEnabled) {
@@ -4294,12 +4323,13 @@ int FileStore::writeQueueCreationRecord(
     BSLS_ASSERT_SAFE(rstorage);
 
     // Create in-memory record.
+    DataStoreRecordHandle handle;
     DataStoreRecord       record(RecordType::e_QUEUE_OP,
                            recordOffset,
                            queueRecLength);
     DataStoreRecordKey    key(recHeader.sequenceNumber(),
                            recHeader.primaryLeaseId());
-    DataStoreRecordHandle handle;
+
     insertDataStoreRecord(&handle, key, record);
 
     rstorage->addQueueOpRecordHandle(handle);
@@ -5178,10 +5208,12 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
     BSLS_ASSERT_SAFE(d_isOpen);
 
     // Report cluster's partition stats
-    d_clusterStats_p->setPartitionOutstandingBytes(
-        d_config.partitionId(),
-        d_fileSets[0].get()->d_outstandingBytesData,
-        d_fileSets[0].get()->d_outstandingBytesJournal);
+    const FileSet* fs = d_fileSets[0].get();
+    d_clusterStats_p->setPartitionBytes(d_config.partitionId(),
+                                        fs->d_outstandingBytesData,
+                                        fs->d_outstandingBytesJournal,
+                                        fs->d_dataFilePosition,
+                                        fs->d_journalFilePosition);
 
     return rc_SUCCESS;
 }
@@ -7550,7 +7582,8 @@ bsl::ostream& FileStoreIterator::print(bsl::ostream& stream,
         printer.printAttribute("queueOpRecord", record);
     } break;
     case mqbs::RecordType::e_JOURNAL_OP:
-    case mqbs::RecordType::e_UNDEFINED: {
+    case mqbs::RecordType::e_UNDEFINED:
+    default: {
         // we should never be here
         BSLS_ASSERT_SAFE(false && "Invalid file store record");
     }

@@ -451,20 +451,7 @@ void printOption(bsl::ostream&     stream,
                  BSLA_UNUSED const bmqp::OptionsView*     ov,
                  const bmqp::OptionsView::const_iterator& cit)
 {
-    switch (*cit) {
-    case bmqp::OptionType::e_SUB_QUEUE_IDS_OLD: {
-        stream << "      " << *cit;
-    } break;  // BREAK
-    case bmqp::OptionType::e_MSG_GROUP_ID: {
-        stream << "      " << *cit;
-    } break;  // BREAK
-    case bmqp::OptionType::e_SUB_QUEUE_INFOS: {
-        stream << "      " << *cit;
-    } break;  // BREAK
-    case bmqp::OptionType::e_UNDEFINED: {
-        stream << "      " << *cit;
-    } break;  // BREAK
-    }
+    stream << "      " << *cit;
 }
 
 void printOptions(bsl::ostream& stream, const char* options, unsigned int len)

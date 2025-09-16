@@ -22,7 +22,7 @@ PURPOSE: Provide a BMQ raw client.
 
 import socket
 import json
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 from blazingmq.schemas import broker
 
@@ -92,7 +92,7 @@ class RawClient:
         except Exception as e:
             raise ConnectionError(f"Failed to send message: {e}") from e
 
-    def _receive_event(self) -> tuple[bytes, bytes]:
+    def _receive_event(self) -> Tuple[bytes, bytes]:
         """
         Read the channel until the next event is received.
 

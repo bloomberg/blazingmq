@@ -70,25 +70,6 @@ struct RecoveryUtil {
                                    const mqbs::FileStoreSet&   fileSet,
                                    mqbs::MappedFileDescriptor* qlistFd = 0);
 
-    /// Load the begin and end offsets from specified `journalFd` into the
-    /// specified `journalFileBeginOffset`, specified `journalFileEndOffset`.
-    /// Load the begin and end offsets from specified `dataFd` into the
-    /// specified `dataFileBeginOffset`, specified `dataFileEndOffset`. Set
-    /// the specified `isRollover` flag if pointing to a rolled over file.
-    /// Use the specified `beginSeqNum` and specified `endSeqNum` as given
-    /// by the caller to determine range of required records. The function
-    /// returns a return code which is 0 for success and non-zero otherwise.
-    static int
-    loadOffsets(bsls::Types::Uint64*              journalFileBeginOffset,
-                bsls::Types::Uint64*              journalFileEndOffset,
-                bsls::Types::Uint64*              dataFileBeginOffset,
-                bsls::Types::Uint64*              dataFileEndOffset,
-                bool*                             isRollover,
-                const mqbs::MappedFileDescriptor& journalFd,
-                const mqbs::MappedFileDescriptor& dataFd,
-                const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
-                const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum);
-
     /// Validate if the specified `beginSeqNum`, `endSeqNum` and
     /// `destination` are acceptable values which will exhibit defined
     /// behavior.
@@ -97,9 +78,10 @@ struct RecoveryUtil {
                  const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
                  mqbnet::ClusterNode*                         destination);
 
-    /// Get the current sequence number by iterating through `journalIt`
-    /// until we reach the specified `beginSeqNum`. Load this value onto the
-    /// specified `currentSeqNum`.
+    /// Skip JOURNAL records by iterating through the specified `journalIt`
+    /// until the record after 'beginSeqNum' is reached.  Load this value onto
+    /// the specified `currentSeqNum`.
+    /// This assumes initial 'journalIt.nextRecord()' call has been done.
     /// The function return zero if successful and non-zero for failure
     /// scenarios.
     static int bootstrapCurrentSeqNum(
@@ -107,26 +89,14 @@ struct RecoveryUtil {
         mqbs::JournalFileIterator&                   journalIt,
         const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum);
 
-    /// This function increments the specified `currentSeqNum` using the
-    /// specified `journalRecordBase` as per the specified `journalFd`.
-    /// The function makes sure that the incremented sequence number is less
-    /// than or equal to the specified `endSeqNum` or else it returns
-    /// appropriate non-zero return code.
-    ///
-    /// This operation is performed for the specified `partitionId`, the
-    /// specified `destination` node and the specified `clusterDescription` is
-    /// used for logging purposes. The specified `journalIt` is used.
-    /// The function return 0 if successful, 1 if end of journal file is
-    /// reached, and non-zero for failure scenarios.
+    /// Increment the specified `currentSeqNum` using the specified
+    /// `journalIt`.  Make sure that the incremented sequence number is less
+    /// than or equal to the specified `endSeqNum` or else return appropriate
+    /// non-zero return code.  Return 0 on successful, 1 if the end of the
+    /// journal file is reached, and non-zero for failure scenarios.
     static int incrementCurrentSeqNum(
-        bmqp_ctrlmsg::PartitionSequenceNumber*       currentSeqNum,
-        char**                                       journalRecordBase,
-        const mqbs::MappedFileDescriptor&            journalFd,
-        const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
-        int                                          partitionId,
-        const mqbnet::ClusterNode&                   destination,
-        const bsl::string&                           clusterDescription,
-        mqbs::JournalFileIterator&                   journalIt);
+        bmqp_ctrlmsg::PartitionSequenceNumber* currentSeqNum,
+        mqbs::JournalFileIterator&             journalIt);
 
     /// This function operates on the record currently being pointed by the
     /// specified `journalIt`. It uses the specified `dataFd` if the
