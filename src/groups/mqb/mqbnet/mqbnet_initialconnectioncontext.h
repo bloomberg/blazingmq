@@ -348,7 +348,6 @@ class InitialConnectionContext {
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     InitialConnectionState::Enum               state() const;
     bslmt::Mutex&                              mutex();
-    const bsl::string&                         name() const;
     bool                                       isClosed() const;
 
     void complete(int                                     rc,
