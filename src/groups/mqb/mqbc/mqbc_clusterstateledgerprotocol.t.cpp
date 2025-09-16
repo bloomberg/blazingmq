@@ -135,14 +135,6 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVVV("Skip line ["
-                 << test.d_line
-                 << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
-
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
@@ -204,8 +196,7 @@ static void test2_enumPrint()
             {L_, mqbc::ClusterStateRecordType::e_SNAPSHOT, "SNAPSHOT"},
             {L_, mqbc::ClusterStateRecordType::e_UPDATE, "UPDATE"},
             {L_, mqbc::ClusterStateRecordType::e_COMMIT, "COMMIT"},
-            {L_, mqbc::ClusterStateRecordType::e_ACK, "ACK"},
-            {L_, -1, "(* UNKNOWN *)"}};
+            {L_, mqbc::ClusterStateRecordType::e_ACK, "ACK"}};
 
         printEnumHelper<mqbc::ClusterStateRecordType>(k_DATA);
     }

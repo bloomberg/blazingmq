@@ -53,14 +53,6 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVVV("Skip line ["
-                 << test.d_line
-                 << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
-
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
@@ -121,10 +113,7 @@ static void test1_enumPrint()
         PrintTestData k_DATA[] = {
             {L_, bmqt::CompressionAlgorithmType::e_UNKNOWN, "UNKNOWN"},
             {L_, bmqt::CompressionAlgorithmType::e_NONE, "NONE"},
-            {L_, bmqt::CompressionAlgorithmType::e_ZLIB, "ZLIB"},
-            {L_,
-             bmqt::CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE + 1,
-             "(* UNKNOWN *)"}};
+            {L_, bmqt::CompressionAlgorithmType::e_ZLIB, "ZLIB"}};
 
         printEnumHelper<bmqt::CompressionAlgorithmType>(k_DATA);
     }

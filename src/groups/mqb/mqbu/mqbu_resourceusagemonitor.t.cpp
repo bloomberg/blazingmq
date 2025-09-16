@@ -2450,8 +2450,7 @@ static void test9_print()
         } k_DATA[] = {
             {L_, RUMState::e_STATE_NORMAL, "STATE_NORMAL"},
             {L_, RUMState::e_STATE_HIGH_WATERMARK, "STATE_HIGH_WATERMARK"},
-            {L_, RUMState::e_STATE_FULL, "STATE_FULL"},
-            {L_, static_cast<RUMState::Enum>(-1), "(* UNKNOWN *)"}};
+            {L_, RUMState::e_STATE_FULL, "STATE_FULL"}};
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -2461,14 +2460,6 @@ static void test9_print()
 
             PVV(test.d_line << ": checking 'RUMState::toAscii("
                             << "RUMState::e_" << test.d_expected << ")';");
-
-            if (bmqtst::TestHelperUtil::k_UBSAN &&
-                bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-                PVV("Skip line ["
-                    << test.d_line
-                    << "] for UBSan due to out of range enum value casting");
-                continue;
-            }
 
             ascii = RUMState::toAscii(test.d_value);
 
@@ -2493,21 +2484,12 @@ static void test9_print()
             {L_, RUMStateTransition::e_NO_CHANGE, "NO_CHANGE"},
             {L_, RUMStateTransition::e_LOW_WATERMARK, "LOW_WATERMARK"},
             {L_, RUMStateTransition::e_HIGH_WATERMARK, "HIGH_WATERMARK"},
-            {L_, RUMStateTransition::e_FULL, "FULL"},
-            {L_, static_cast<RUMStateTransition::Enum>(-1), "(* UNKNOWN *)"}};
+            {L_, RUMStateTransition::e_FULL, "FULL"}};
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
-
-            if (bmqtst::TestHelperUtil::k_UBSAN &&
-                bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-                PVV("Skip line ["
-                    << test.d_line
-                    << "] for UBSan due to out of range enum value casting");
-                continue;
-            }
 
             bsl::string ascii(bmqtst::TestHelperUtil::allocator());
 

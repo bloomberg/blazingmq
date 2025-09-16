@@ -46,15 +46,6 @@ static void test1_breathingTest()
     str = bmqt::MessageEventType::toAscii(bmqt::MessageEventType::e_PUSH);
     BMQTST_ASSERT_EQ(str, "PUSH");
 
-    if (bmqtst::TestHelperUtil::k_UBSAN) {
-        PV("Skip case for UBSan due to out of range enum value casting");
-    }
-    else {
-        obj = static_cast<bmqt::MessageEventType::Enum>(-1);
-        str = bmqt::MessageEventType::toAscii(obj);
-        BMQTST_ASSERT_EQ(str, "(* UNKNOWN *)");
-    }
-
     PV("Testing fromAscii");
     res = bmqt::MessageEventType::fromAscii(&obj, "PUT");
     BMQTST_ASSERT_EQ(res, true);
@@ -88,22 +79,12 @@ static void test2_printTest()
     } k_DATA[] = {{bmqt::MessageEventType::e_UNDEFINED, "UNDEFINED"},
                   {bmqt::MessageEventType::e_PUT, "PUT"},
                   {bmqt::MessageEventType::e_PUSH, "PUSH"},
-                  {bmqt::MessageEventType::e_ACK, "ACK"},
-                  {static_cast<bmqt::MessageEventType::Enum>(-1),
-                   "(* UNKNOWN *)"}};
+                  {bmqt::MessageEventType::e_ACK, "ACK"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
-
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PV("Skip value ["
-               << test.d_type
-               << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());

@@ -270,18 +270,12 @@ void TestBench::ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status)
 
 void TestBench::dropPuts()
 {
-    // Ubsan detects 'applying non-zero offset 1200 to null pointer' error in
+    // Ubsan detects 'applying non-zero offset 1080 to null pointer' error in
     // swap().
-    // TODO: it seems the problem in PutEvent type, use a temporary workaround,
-    // need to investigate further.
-    if (bmqtst::TestHelperUtil::k_UBSAN) {
-        while (!d_puts.empty()) {
-            d_puts.pop();
-        }
-    }
-    else {
-        bsl::queue<PutEvent>().swap(d_puts);
-    }
+    // TODO(tfoxhall): There seems to be an issue with calculating reserved
+    // sizes. It's not reproducing with the internal UBSAN tools either.
+    bsl::queue<PutEvent> drop;
+    drop.swap(d_puts);
 }
 
 void TestBench::advanceTime(const bsls::TimeInterval& step)

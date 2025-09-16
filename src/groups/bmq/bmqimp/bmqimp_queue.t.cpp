@@ -225,14 +225,6 @@ static void test3_printQueueStateTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PV("Skip value ["
-               << test.d_type
-               << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
-
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 

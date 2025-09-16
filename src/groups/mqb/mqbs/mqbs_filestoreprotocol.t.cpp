@@ -471,12 +471,6 @@ static void test2_manipulators()
 {
     bmqtst::TestHelper::printTestName("MANIPULATORS");
 
-    if (bmqtst::TestHelperUtil::k_UBSAN) {
-        PV("Skip edge/corner test for UBSan due to out of range enum value "
-           "casting");
-        return;
-    }
-
     using namespace mqbs;
 
     const struct TestData {
@@ -511,8 +505,8 @@ static void test2_manipulators()
          k_UNSIGNED_CHAR_MIN,
          k_UNSIGNED_CHAR_MIN,
          k_UNSIGNED_CHAR_MIN,
-         k_INT_MAX,
-         127,
+         FileType::e_QLIST,
+         FileType::e_QLIST,
          k_INT_MAX,
          k_INT_MAX},
     };

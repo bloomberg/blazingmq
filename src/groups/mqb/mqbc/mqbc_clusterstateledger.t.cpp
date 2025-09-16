@@ -341,8 +341,7 @@ static void test4_commitStatus_print()
         const char* d_expected;
     } k_DATA[] = {{L_, 0, "SUCCESS"},
                   {L_, -1, "CANCELED"},
-                  {L_, -2, "TIMEOUT"},
-                  {L_, -9, "(* UNKNOWN *)"}};
+                  {L_, -2, "TIMEOUT"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -351,14 +350,6 @@ static void test4_commitStatus_print()
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
                         << ") == " << test.d_expected);
-
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVV("Skip line ["
-                << test.d_line
-                << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
 
         // 1.
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
@@ -471,9 +462,7 @@ static void test6_clusterStateLedgerConsistency_toAscii()
         const char* d_expected;
     } k_DATA[] = {
         {L_, mqbc::ClusterStateLedgerConsistency::e_EVENTUAL, "EVENTUAL"},
-        {L_, mqbc::ClusterStateLedgerConsistency::e_STRONG, "STRONG"},
-        {L_, -1, "(* UNKNOWN *)"},
-    };
+        {L_, mqbc::ClusterStateLedgerConsistency::e_STRONG, "STRONG"}};
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
@@ -484,14 +473,6 @@ static void test6_clusterStateLedgerConsistency_toAscii()
 
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
-
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVV("Skip line ["
-                << test.d_line
-                << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
 
         bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbc::ClusterStateLedgerConsistency::toAscii(
@@ -529,8 +510,7 @@ static void test7_clusterStateLedgerConsistency_print()
         const char* d_expected;
     } k_DATA[] = {
         {L_, mqbc::ClusterStateLedgerConsistency::e_EVENTUAL, "EVENTUAL"},
-        {L_, mqbc::ClusterStateLedgerConsistency::e_STRONG, "STRONG"},
-        {L_, -1, "(* UNKNOWN *)"}};
+        {L_, mqbc::ClusterStateLedgerConsistency::e_STRONG, "STRONG"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -539,14 +519,6 @@ static void test7_clusterStateLedgerConsistency_print()
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
                         << ") == " << test.d_expected);
-
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVV("Skip line ["
-                << test.d_line
-                << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
 
         // 1.
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());

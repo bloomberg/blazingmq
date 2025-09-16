@@ -120,8 +120,7 @@ static void test1_exitCode_toAscii()
                   {L_, 10, "STORAGE_OUT_OF_SYNC"},
                   {L_, 11, "UNSUPPORTED_SCENARIO"},
                   {L_, 12, "MEMORY_LIMIT"},
-                  {L_, 13, "REQUESTED"},
-                  {L_, -1, "(* UNKNOWN *)"}};
+                  {L_, 13, "REQUESTED"}};
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
@@ -132,14 +131,6 @@ static void test1_exitCode_toAscii()
 
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
-
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVV("Skip line ["
-                << test.d_line
-                << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
 
         bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbu::ExitCode::toAscii(mqbu::ExitCode::Enum(test.d_value));
@@ -245,8 +236,7 @@ static void test3_exitCode_print()
                   {L_, 10, "STORAGE_OUT_OF_SYNC"},
                   {L_, 11, "UNSUPPORTED_SCENARIO"},
                   {L_, 12, "MEMORY_LIMIT"},
-                  {L_, 13, "REQUESTED"},
-                  {L_, -1, "(* UNKNOWN *)"}};
+                  {L_, 13, "REQUESTED"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -255,14 +245,6 @@ static void test3_exitCode_print()
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
                         << ") == " << test.d_expected);
-
-        if (bmqtst::TestHelperUtil::k_UBSAN &&
-            bsl::strcmp(test.d_expected, "(* UNKNOWN *)") == 0) {
-            PVV("Skip line ["
-                << test.d_line
-                << "] for UBSan due to out of range enum value casting");
-            continue;
-        }
 
         // 1.
         bmqu::MemOutStream   out(bmqtst::TestHelperUtil::allocator());
