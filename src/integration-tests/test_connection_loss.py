@@ -68,8 +68,8 @@ def test_broker_client(
     tproxy_port, tproxy = cluster.start_tproxy(broker.config)
 
     # Start a client
+    # It verifies that the connection is established
     client: Client = broker.create_client(f"client@{broker.name}", port=tproxy_port)
-    assert client.capture(r"CONNECTED", 5)
 
     # Kill tproxy to break the connection between broker and client
     tproxy.kill()
