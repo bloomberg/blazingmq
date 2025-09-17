@@ -755,13 +755,27 @@ void StorageManager::processPrimaryStateResponse(
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
-    d_dispatcher_p->execute(
-        bdlf::BindUtil::bind(
-            &StorageManager::processPrimaryStateResponseDispatched,
-            this,
-            context,
-            responder),
-        d_cluster_p);
+
+    if (dispatcher()->inDispatcherThread(d_cluster_p)) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                    << ": BEFORE processPrimaryStateResponseDispatched IN CLUSTER DISPATCHER " << context->response()
+                    << " from " << responder->nodeDescription();
+
+        processPrimaryStateResponseDispatched(context, responder);
+
+    } else {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                    << ": BEFORE processPrimaryStateResponseDispatched NOT IN CLUSTER DISPATCHER " << context->response()
+                    << " from " << responder->nodeDescription();
+
+        d_dispatcher_p->execute(
+            bdlf::BindUtil::bind(
+                &StorageManager::processPrimaryStateResponseDispatched,
+                this,
+                context,
+                responder),
+            d_cluster_p);
+    }
 }
 
 void StorageManager::processReplicaStateResponseDispatched(

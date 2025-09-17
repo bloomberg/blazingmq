@@ -892,6 +892,7 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
     case MsgChoice::SELECTION_ID_FOLLOWER_CLUSTER_STATE_RESPONSE: {
         BSLS_ASSERT_SAFE(!message.rId().isNull());
 
+        BALL_LOG_WARN << "processClusterStateFSMMessage BEFORE d_cluster_p->processResponse " << message;
         d_cluster_p->processResponse(message);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED: BSLA_FALLTHROUGH;
@@ -949,7 +950,9 @@ void ClusterOrchestrator::processPartitionMessage(
     case MsgChoice::SELECTION_ID_REPLICA_DATA_RESPONSE: {
         BSLS_ASSERT_SAFE(!message.rId().isNull());
 
+        BALL_LOG_WARN << "processPartitionMessage BEFORE d_cluster_p->processResponse " << message;
         d_cluster_p->processResponse(message);
+
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED: BSLA_FALLTHROUGH;
     default: {

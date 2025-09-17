@@ -1188,6 +1188,7 @@ void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
     // callback provided, so we invoke 'signal()' ourself now for that matter.
     if (request->d_responseCb) {
         bslma::ManagedPtr<void> spanToken(request->activateDTSpan());
+        BALL_LOG_WARN << "BFORE response CALLBACK: " << response;
         request->d_responseCb(request);
     }
     else {
