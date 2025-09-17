@@ -94,8 +94,8 @@ class PartitionFSMEventData {
     /// associated partitionId.
     bmqp_ctrlmsg::PartitionSequenceNumber d_partitionSequenceNumber;
 
-    /// Partition first syncpoint sequence number as sent by the `d_source_p` node for the
-    /// associated partitionId.
+    /// Partition first syncpoint sequence number as sent by the `d_source_p`
+    /// node for the associated partitionId.
     bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointSequenceNumber;
 
     /// The node which has the highest sequence number for the associated
@@ -109,9 +109,10 @@ class PartitionFSMEventData {
     /// The StorageEvent received, consisting of data chunks.
     bsl::shared_ptr<bdlbb::Blob> d_storageEvent;
 
-    /// Set to `true` if partition first syncpoint sequence number as sent by the `d_source_p` node 
-    /// is not equal to self first syncpoint sequence number (e.g. in case is replica is missed rollobver(s)).
-    /// Set to `false` otherwise.
+    /// Set to `true` if partition's first sync point after rollover sequence
+    /// number as sent by the `d_source_p` node is not equal to self first sync
+    /// point after rollover sequence number (e.g. in case is replica is missed
+    /// rollover(s)). Set to `false` otherwise.
     const bool d_needDropSourceStorage;
 
   public:
@@ -126,45 +127,48 @@ class PartitionFSMEventData {
     /// the associated data sequence number is an optionally specified
     /// `seqNum`. There are also optionally specified `highestSeqNumNode`,
     /// optionally specified `seqNumDataRange`.
-    PartitionFSMEventData(mqbnet::ClusterNode* source,
-                          int                  requestId,
-                          int                  partitionId,
-                          int                  incrementCount,
-                          mqbnet::ClusterNode* primary        = 0,
-                          unsigned int         primaryLeaseId = 0,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
-                              bmqp_ctrlmsg::PartitionSequenceNumber(),
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum =
-                              bmqp_ctrlmsg::PartitionSequenceNumber(),
-                          mqbnet::ClusterNode* highestSeqNumNode = 0,
-                          const PartitionSeqNumDataRange& seqNumDataRange =
-                              PartitionSeqNumDataRange(),
-                          bool needDropSourceStorage = false);
+    PartitionFSMEventData(
+        mqbnet::ClusterNode*                         source,
+        int                                          requestId,
+        int                                          partitionId,
+        int                                          incrementCount,
+        mqbnet::ClusterNode*                         primary        = 0,
+        unsigned int                                 primaryLeaseId = 0,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
+            bmqp_ctrlmsg::PartitionSequenceNumber(),
+        const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum =
+            bmqp_ctrlmsg::PartitionSequenceNumber(),
+        mqbnet::ClusterNode*            highestSeqNumNode = 0,
+        const PartitionSeqNumDataRange& seqNumDataRange =
+            PartitionSeqNumDataRange(),
+        bool needDropSourceStorage = false);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
     /// partition identifier is the specified `partitionId`, the associated
     /// data sequence number is the specified `seqNum`, and the specified
     /// 'incrementCount'. TODO: firstSyncPointSeqNum
-    PartitionFSMEventData(mqbnet::ClusterNode* source,
-                          int                  requestId,
-                          int                  partitionId,
-                          int                  incrementCount,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum);
+    PartitionFSMEventData(
+        mqbnet::ClusterNode*                         source,
+        int                                          requestId,
+        int                                          partitionId,
+        int                                          incrementCount,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
     /// partition identifier is the specified `partitionId`, the associated
     /// data sequence number is the specified `seqNum`, and the specified
     /// 'incrementCount'. TODO: firstSyncPointSeqNum, needDropSourceStorage
-    PartitionFSMEventData(mqbnet::ClusterNode* source,
-                          int                  requestId,
-                          int                  partitionId,
-                          int                  incrementCount,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum, 
-                          bool needDropSourceStorage);
+    PartitionFSMEventData(
+        mqbnet::ClusterNode*                         source,
+        int                                          requestId,
+        int                                          partitionId,
+        int                                          incrementCount,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum,
+        bool                                         needDropSourceStorage);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, partition
@@ -191,7 +195,7 @@ class PartitionFSMEventData {
     int                  partitionId() const;
     int                  incrementCount() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
-                                    partitionSequenceNumber() const;
+    partitionSequenceNumber() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
                                     firstSyncPointSequenceNumber() const;
     mqbnet::ClusterNode*            highestSeqNumNode() const;
@@ -199,7 +203,7 @@ class PartitionFSMEventData {
 
     /// Return the value of the corresponding member of this object
     const bsl::shared_ptr<bdlbb::Blob>& storageEvent() const;
-    const bool needDropSourceStorage() const;
+    const bool                          needDropSourceStorage() const;
 };
 
 // ==================
@@ -391,7 +395,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     int                                          incrementCount,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointSeqNum,
-    bool needDropSourceStorage)
+    bool                                         needDropSourceStorage)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
@@ -494,8 +498,7 @@ PartitionFSMEventData::firstSyncPointSequenceNumber() const
     return d_firstSyncPointSequenceNumber;
 }
 
-inline const bool
-PartitionFSMEventData::needDropSourceStorage() const
+inline const bool PartitionFSMEventData::needDropSourceStorage() const
 {
     return d_needDropSourceStorage;
 }

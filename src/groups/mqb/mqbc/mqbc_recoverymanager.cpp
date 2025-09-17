@@ -496,21 +496,6 @@ int RecoveryManager::processSendDataChunks(
                                       d_blobSpPool_p,
                                       d_allocator_p);
 
-
-    // BALL_LOG_WARN << "processSendDataChunks partitionId " << partitionId << " : " << currentSeqNum << " : " << endSeqNum;
-    // // TODO: need to move back before incrementCurrentSeqNum(), find proper way to handle currentSeqNum > beginSeqNum
-    // bool skipFirstIncrement = false;
-    // if (currentSeqNum > beginSeqNum) {
-    //     BALL_LOG_WARN << "processSendDataChunks skipFirstIncrement = true";
-    //     skipFirstIncrement = true;        
-    // }
-
-    // // Note that partition has to be replayed from the record *after*
-    // // 'beginSeqNum'.  So move forward by one record in the JOURNAL.
-    // // TODO: handle currentSeqNum > beginSeqNum
-    // while (currentSeqNum < endSeqNum) {
-    //     char* journalRecordBase = 0;
-
     // 'bootstrapCurrentSeqNum' has positioned 'currentSeqNum' and 'journalIt'
     // precisely to the record after 'fromSequenceNum'.
 
@@ -647,7 +632,8 @@ int RecoveryManager::processReceiveDataChunks(
     mqbnet::ClusterNode*                source,
     mqbs::FileStore*                    fs,
     int                                 partitionId,
-    const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointAfterRolloverSeqNum)
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+        firstSyncPointAfterRolloverSeqNum)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -702,9 +688,12 @@ int RecoveryManager::processReceiveDataChunks(
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currSeqNum.sequenceNumber() ==
                          fs->sequenceNumber());
 
-        // Set first sync point after rollover sequence number before processing data chunks.
-        if (firstSyncPointAfterRolloverSeqNum != bmqp_ctrlmsg::PartitionSequenceNumber()) {
-            fs->setFirstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum);
+        // Set first sync point after rollover sequence number before
+        // processing data chunks.
+        if (firstSyncPointAfterRolloverSeqNum !=
+            bmqp_ctrlmsg::PartitionSequenceNumber()) {
+            fs->setFirstSyncPointAfterRolloverSeqNum(
+                firstSyncPointAfterRolloverSeqNum);
         }
 
         fs->processStorageEvent(blob, true /* isPartitionSyncEvent */, source);
@@ -738,8 +727,6 @@ int RecoveryManager::processReceiveDataChunks(
     event.loadStorageMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
-    BALL_LOG_WARN << "Start chunks!!! partitionId: " << partitionId << " firstSyncPointAfterRolloverSeqNum: " << firstSyncPointAfterRolloverSeqNum;
-
     while (1 == iter.next()) {
         const bmqp::StorageHeader&                header = iter.header();
         bmqu::BlobPosition                        recordPosition;
@@ -765,8 +752,6 @@ int RecoveryManager::processReceiveDataChunks(
         bmqp_ctrlmsg::PartitionSequenceNumber recordSeqNum;
         recordSeqNum.primaryLeaseId() = recHeader->primaryLeaseId();
         recordSeqNum.sequenceNumber() = recHeader->sequenceNumber();
-
-        BALL_LOG_WARN << "recHeader: " << *recHeader;
 
         if (recordSeqNum <= receiveDataCtx.d_currSeqNum) {
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
@@ -882,20 +867,20 @@ int RecoveryManager::processReceiveDataChunks(
                 (journalPos +
                  mqbs::FileStoreProtocol ::k_JOURNAL_RECORD_SIZE));
 
-            // Update journal header with first sync point after rollover offset
-            if (header.messageType() == bmqp::StorageMessageType::e_JOURNAL_OP && firstSyncPointAfterRolloverSeqNum == recordSeqNum) {
-                BALL_LOG_WARN << "Setting first sync point after rollover offset to " << journalPos << " for partition " << partitionId << " with seqNum " << firstSyncPointAfterRolloverSeqNum;
-                // fs->setFirstSyncPointAfterRolloverOffset(journalPos); // TODO: cannot use this because fs is not open
-
-                // bsl::memcpy(destination, buffer.data() + curPos.byte(), toCopy);
-
-                // MappedFileDescriptor& journalFile = activeFileSet->d_journalFile;
-                mqbs::OffsetPtr<const mqbs::FileHeader>  fhJ(journal.block(), 0);
-                mqbs::OffsetPtr<mqbs::JournalFileHeader> jfh(journal.block(), fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
+            // Update journal header with first sync point after rollover
+            // offset
+            if (header.messageType() ==
+                    bmqp::StorageMessageType::e_JOURNAL_OP &&
+                firstSyncPointAfterRolloverSeqNum == recordSeqNum) {
+                mqbs::OffsetPtr<const mqbs::FileHeader>  fhJ(journal.block(),
+                                                            0);
+                mqbs::OffsetPtr<mqbs::JournalFileHeader> jfh(
+                    journal.block(),
+                    fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
                 // Set offset in JournalFileHeader
-                jfh->setFirstSyncPointOffsetWords(journalPos / bmqp::Protocol::k_WORD_SIZE);
-                BALL_LOG_WARN << "SET firstSyncPointOffsetWords: " << jfh->firstSyncPointOffsetWords() << " headerWords: " << fhJ->headerWords() << " recordWords: ";
+                jfh->setFirstSyncPointOffsetWords(journalPos /
+                                                  bmqp::Protocol::k_WORD_SIZE);
             }
 
             // Keep track of journal record's offset.
@@ -1580,42 +1565,47 @@ int RecoveryManager::recoverSeqNum(
             const mqbs::RecordHeader& recHeader = jit.firstSyncPointHeader();
 
             BALL_LOG_INFO << d_clusterData.identity().description()
-                        << " Partition [" << partitionId
-                        << "]: " << "Recovered first sync point Sequence Number "
-                        << recHeader.partitionSequenceNumber()
-                        << " from journal file ["
-                        << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+                          << " Partition [" << partitionId << "]: "
+                          << "Recovered first sync point Sequence Number "
+                          << recHeader.partitionSequenceNumber()
+                          << " from journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "].";
 
-            *seqNum = recHeader.partitionSequenceNumber();            
+            *seqNum = recHeader.partitionSequenceNumber();
         }
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
-                        << " Partition [" << partitionId << "]: "
-                        << "Journal file has no sync point record. Storing (0, 0) as self "
-                        << "sequence number.";
+                          << " Partition [" << partitionId << "]: "
+                          << "Journal file has no sync point record. Storing "
+                             "(0, 0) as self "
+                          << "sequence number.";
 
             seqNum->reset();
         }
-
-    } else {
+    }
+    else {
         // Retrieve last record sequence number.
         if (jit.hasRecordSizeRemaining()) {
-            const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
+            const mqbs::RecordHeader& lastRecordHeader =
+                jit.lastRecordHeader();
 
             BALL_LOG_INFO << d_clusterData.identity().description()
-                        << " Partition [" << partitionId
-                        << "]: " << "Recovered Sequence Number "
-                        << lastRecordHeader.partitionSequenceNumber()
-                        << " from journal file ["
-                        << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+                          << " Partition [" << partitionId
+                          << "]: " << "Recovered Sequence Number "
+                          << lastRecordHeader.partitionSequenceNumber()
+                          << " from journal file ["
+                          << recoveryCtx.d_recoveryFileSet.journalFile()
+                          << "].";
 
             *seqNum = lastRecordHeader.partitionSequenceNumber();
         }
         else {
-            BALL_LOG_INFO << d_clusterData.identity().description()
-                        << " Partition [" << partitionId << "]: "
-                        << "Journal file has no record. Storing (0, 0) as self "
-                        << "sequence number.";
+            BALL_LOG_INFO
+                << d_clusterData.identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Journal file has no record. Storing (0, 0) as self "
+                << "sequence number.";
 
             seqNum->reset();
         }

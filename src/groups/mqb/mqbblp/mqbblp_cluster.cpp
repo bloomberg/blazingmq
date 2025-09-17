@@ -2356,9 +2356,6 @@ void Cluster::processResponseDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    BALL_LOG_WARN << description()
-                      << ": INSIDE processResponseDispatched: "
-                      << response;
     int rc = d_clusterData.requestManager().processResponse(response);
     if (rc != 0 && response.choice().isOpenQueueResponseValue()) {
         // We received an openQueue *SUCCESS* response but we already timed
@@ -2876,9 +2873,6 @@ void Cluster::processControlMessage(
     case MsgChoice::SELECTION_ID_CLOSE_QUEUE_RESPONSE: {
         BSLS_ASSERT_SAFE(!message.rId().isNull());
 
-        BALL_LOG_WARN << description()
-                      << ": BEFORE processResponseDispatched: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(&Cluster::processResponseDispatched,
                                  this,
@@ -2924,8 +2918,6 @@ void Cluster::processControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_CLUSTER_MESSAGE: {
-        BALL_LOG_WARN << description()
-                      << ": BEFORE processClusterControlMessage: " << message;
         processClusterControlMessage(message, source);
     } break;
     case MsgChoice::SELECTION_ID_DISCONNECT:
@@ -2995,8 +2987,6 @@ void Cluster::processClusterControlMessage(
         // A response must have an associated request Id
         BSLS_ASSERT_SAFE(!message.rId().isNull());
 
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(&Cluster::processResponseDispatched,
                                  this,
@@ -3010,20 +3000,15 @@ void Cluster::processClusterControlMessage(
         d_stopRequestsManager_p->processResponse(message);
     } break;
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 1: " << message;
-
         // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 2: " << message;
         // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 3: " << message;
         // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_NODE_STATUS_ADVISORY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 4: " << message;
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processNodeStatusAdvisory,
@@ -3033,8 +3018,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_SYNC_STATE_QUERY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 5: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processLeaderSyncStateQuery,
@@ -3044,8 +3027,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_SYNC_DATA_QUERY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 6: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processLeaderSyncDataQuery,
@@ -3055,8 +3036,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_REQUEST: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 7: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processQueueAssignmentRequest,
@@ -3066,8 +3045,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_STORAGE_SYNC_REQUEST: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 8: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processStorageSyncRequest,
@@ -3077,8 +3054,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_STATE_QUERY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 9: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processPartitionSyncStateRequest,
@@ -3088,8 +3063,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_DATA_QUERY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 10: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processPartitionSyncDataRequest,
@@ -3099,8 +3072,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_DATA_QUERY_STATUS: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 11: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processPartitionSyncDataRequestStatus,
@@ -3110,8 +3081,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_PRIMARY_STATUS_ADVISORY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 12: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processPrimaryStatusAdvisory,
@@ -3121,15 +3090,11 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 13: " << message;
-
         // NO-OP
         // This version unconditionally applies all CSL commits including
         // unassignment advisories.
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_STATE_NOTIFICATION: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 14: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processStateNotification,
@@ -3139,8 +3104,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_STOP_REQUEST: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 15: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(&ClusterOrchestrator::processStopRequest,
                                  &d_clusterOrchestrator,
@@ -3149,8 +3112,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_CLUSTER_STATE_F_S_M_MESSAGE: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 16: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processClusterStateFSMMessage,
@@ -3160,8 +3121,6 @@ void Cluster::processClusterControlMessage(
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_PARTITION_MESSAGE: {
-        BALL_LOG_WARN << description() << ": INSIDE processClusterControlMessage 17: " << message;
-
         dispatcher()->execute(
             bdlf::BindUtil::bind(&ClusterOrchestrator::processPartitionMessage,
                                  &d_clusterOrchestrator,
@@ -3770,17 +3729,16 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
     BSLS_ASSERT_SAFE(!response.rId().isNull());
 
     if (dispatcher()->inDispatcherThread(this)) {
-        BALL_LOG_WARN << description()
-                  << ": INSIDE processResponse IN DISPATCHERT: " << response;
-        processResponseDispatched(response, static_cast<mqbnet::ClusterNode*>(0));
-    } else {
-        BALL_LOG_WARN << description()
-                  << ": INSIDE processResponse NOT IN DISPATCHERT: " << response;
+        processResponseDispatched(response,
+                                  static_cast<mqbnet::ClusterNode*>(0));
+    }
+    else {
         dispatcher()->execute(
-            bdlf::BindUtil::bind(&Cluster::processResponseDispatched,
-                                this,
-                                response,
-                                static_cast<mqbnet::ClusterNode*>(0)),  // source
+            bdlf::BindUtil::bind(
+                &Cluster::processResponseDispatched,
+                this,
+                response,
+                static_cast<mqbnet::ClusterNode*>(0)),  // source
             this);
     }
 }

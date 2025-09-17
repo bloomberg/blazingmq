@@ -170,8 +170,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    /// VST representing node's sequence number, first sync point sequence number after rollover and flag of whether recovery data has been
-    /// sent to that node).
+    /// VST representing node's sequence number, first sync point sequence
+    /// number after rollover and flag of whether recovery data has been sent
+    /// to that node).
     class NodeSeqNumContext {
       public:
         // DATA
@@ -180,7 +181,8 @@ class StorageManager BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum;
 
         /// Node's latest sequence number.
-        bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum;
+        bmqp_ctrlmsg::PartitionSequenceNumber
+            d_firstSyncPointAfterRolloverSeqNum;
 
         /// Flag of whether recovery data has been sent to that node.
         bool d_isRecoveryDataSent;
@@ -189,12 +191,11 @@ class StorageManager BSLS_KEYWORD_FINAL
         NodeSeqNumContext();
 
         NodeSeqNumContext(const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum,
-                          bool                                        isRecoveryDataSent);
+                          const bmqp_ctrlmsg::PartitionSequenceNumber
+                               d_firstSyncPointAfterRolloverSeqNum,
+                          bool isRecoveryDataSent);
     };
-      
-    // typedef bsl::pair<bmqp_ctrlmsg::PartitionSequenceNumber, bool>
-    //     NodeSeqNumContext;
+
     typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
                                                NodeToSeqNumCtxMap;
     typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
@@ -711,7 +712,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
 
-    const bmqp_ctrlmsg::PartitionSequenceNumber getSelfFirstSyncPointSequenceNumber(int partitionId) const;
+    const bmqp_ctrlmsg::PartitionSequenceNumber
+    getSelfFirstSyncPointSequenceNumber(int partitionId) const;
 
   public:
     // TRAITS
@@ -1195,8 +1197,7 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 // =======================================
 
 // CREATORS
-inline
-StorageManager::NodeSeqNumContext::NodeSeqNumContext()
+inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
 , d_isRecoveryDataSent(false)
@@ -1204,18 +1205,17 @@ StorageManager::NodeSeqNumContext::NodeSeqNumContext()
     // NOTHING
 }
 
-inline
-StorageManager::NodeSeqNumContext::NodeSeqNumContext(const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
-                    const bmqp_ctrlmsg::PartitionSequenceNumber firstSyncPointAfterRolloverSeqNum,
-                    bool                                        isRecoveryDataSent)
+inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
+    const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
+    const bmqp_ctrlmsg::PartitionSequenceNumber
+         firstSyncPointAfterRolloverSeqNum,
+    bool isRecoveryDataSent)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
 , d_isRecoveryDataSent(isRecoveryDataSent)
 {
     // NOTHING
-}                    
-
-
+}
 
 }  // close package namespace
 }  // close enterprise namespace

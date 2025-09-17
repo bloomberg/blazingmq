@@ -25,25 +25,19 @@ import subprocess
 
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
     Cluster,
-    order,
-    cluster,
-    multi_node,
-    single_node,
     tweak,
-    start_cluster,
 )
-from blazingmq.dev.it.process.admin import AdminClient
-from blazingmq.dev.it.process.client import Client
-from blazingmq.dev.it.process.proc import Process
 
 from blazingmq.dev import paths
 
 
 @tweak.cluster.partition_config.max_journal_file_size(884)
-def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrls,
-                                                        ) -> None:
+def test_synch_after_missed_rollover(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
     """
     Test replica journal file syncronization with cluster after missed rollover.
     - start cluster
@@ -80,8 +74,9 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     cluster.make_sure_node_stopped(replica)
     replica.drain()
 
-    # Put 1 more message w/o confirm to initiate rollover
-    producer.post(uri_priority, ["msg3"], succeed=True, wait_ack=True)
+    # Put more messages w/o confirm to initiate rollover
+    for i in range(3, 8):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
     # Wait until rollover completed
     assert leader.outputs_substr("ROLLOVER COMPLETE", 10)
@@ -89,7 +84,7 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     # Restart the stopped replica which missed rollover
     replica.start()
     replica.wait_until_started()
- 
+
     # Wait until replica synchronizes with cluster
     assert replica.outputs_substr("Cluster (itCluster) is available", 10)
 
@@ -97,9 +92,11 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     leader = cluster.last_known_leader
 
     leader_journal_files_after_rollover = glob.glob(
-            str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*journal*")
+        str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*journal*"
+    )
     replica_journal_files_after_rollover = glob.glob(
-            str(cluster.work_dir.joinpath(replica.name, "storage")) + "/*journal*")
+        str(cluster.work_dir.joinpath(replica.name, "storage")) + "/*journal*"
+    )
 
     # Check that number of journal files equal to partitions number
     num_partitions = cluster.config.definition.partition_config.num_partitions
@@ -107,47 +104,45 @@ def test_synch_after_missed_rollover(cluster: Cluster, domain_urls: tc.DomainUrl
     assert len(replica_journal_files_after_rollover) == num_partitions
 
     # Check that content of leader and replica journal files is equal
-    for leader_file, replica_file in zip(sorted(leader_journal_files_after_rollover), sorted(replica_journal_files_after_rollover)):
+    for leader_file, replica_file in zip(
+        sorted(leader_journal_files_after_rollover),
+        sorted(replica_journal_files_after_rollover),
+    ):
+
+        def run_storage_tool(
+            journal_file: Path, mode: str
+        ) -> subprocess.CompletedProcess:
+            """Run storage tool on journal file in specified mode."""
+            return subprocess.run(
+                [
+                    paths.required_paths.storagetool,
+                    "--journal-file",
+                    journal_file,
+                    f"--{mode}",
+                    "--print-mode=json-pretty",
+                ],
+                capture_output=True,
+                check=True,
+            )
 
         # Run storage tool on leader journal file in "detail" mode to check record order and content
-        leader_res = subprocess.run(
-            [paths.required_paths.storagetool, "--journal-file", leader_file, "--details", "--print-mode=json-pretty"],
-            capture_output=True,
-            check=True,
-        )
+        leader_res = run_storage_tool(leader_file, "details")
         assert leader_res.returncode == 0
 
         # Run storage tool on replica journal file in "detail" mode to check record order and content
-        replica_res = subprocess.run(
-            [paths.required_paths.storagetool, "--journal-file", replica_file, "--details", "--print-mode=json-pretty"],
-            capture_output=True,
-            check=True,
-        )
+        replica_res = run_storage_tool(replica_file, "details")
         assert replica_res.returncode == 0
 
         # Check that content of leader and replica journal files is equal
         assert leader_res.stdout == replica_res.stdout
 
         # Run storage tool on leader journal file in "summary" mode to check journal file headers
-        leader_res = subprocess.run(
-            [paths.required_paths.storagetool, "--journal-file", leader_file, "--summary", "--print-mode=json-pretty"],
-            capture_output=True,
-            check=True,
-        )
+        leader_res = run_storage_tool(leader_file, "summary")
         assert leader_res.returncode == 0
 
         # Run storage tool on replica journal file in "summary" mode to check journal file headers
-        replica_res = subprocess.run(
-            [paths.required_paths.storagetool, "--journal-file", replica_file, "--summary", "--print-mode=json-pretty"],
-            capture_output=True,
-            check=True,
-        )
+        replica_res = run_storage_tool(replica_file, "summary")
         assert replica_res.returncode == 0
 
         # Check that content of leader and replica journal files is equal
-        if leader_res.stdout != replica_res.stdout:
-            print("MyP: ", leader_res.stdout.decode())
-            print("MyR: ", replica_res.stdout.decode())
         assert leader_res.stdout == replica_res.stdout
-
-    # assert False, "Test assert"
