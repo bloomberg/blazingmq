@@ -277,7 +277,7 @@
     </annotation>
     <sequence>
       <element name='appIDs'              type='string' maxOccurs='unbounded'/>
-      <element name='publishAppIdMetrics' type='boolean' default='false'/>
+      <element name='publishAppIdMetrics' type='boolean' default='true'/>
     </sequence>
   </complexType>
 

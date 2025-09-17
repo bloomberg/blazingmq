@@ -1,4 +1,4 @@
-// Copyright 2014-2024 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -1041,7 +1041,7 @@ bsl::ostream& QueueModeBroadcast::print(bsl::ostream& stream, int, int) const
 
 const char QueueModeFanout::CLASS_NAME[] = "QueueModeFanout";
 
-const bool QueueModeFanout::DEFAULT_INITIALIZER_PUBLISH_APP_ID_METRICS = false;
+const bool QueueModeFanout::DEFAULT_INITIALIZER_PUBLISH_APP_ID_METRICS = true;
 
 const bdlat_AttributeInfo QueueModeFanout::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_APP_I_DS,
@@ -3988,7 +3988,7 @@ const char* DomainVariant::selectionName() const
 // VERSION bmqconf:183474-1.0
 // ----------------------------------------------------------------------------
 // NOTICE:
-//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
+//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
 //      Property of Bloomberg Finance L.P. (BFLP)
 //      This software is made available solely pursuant to the
 //      terms of a BFLP license agreement which governs its use.
