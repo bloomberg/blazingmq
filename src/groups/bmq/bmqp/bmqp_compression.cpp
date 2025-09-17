@@ -307,6 +307,13 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
 // struct Zstd
 // ===========
 
+const int ZSTD_COMPRESSION_FAST_SPECIAL =
+    1;  // special “fast” modes in some zstd versions
+const int ZSTD_COMPRESSION_DEFAULT = 0;   // which is usually 3
+const int ZSTD_COMPRESSION_FAST    = 1;   // fastest, lowest compression
+const int ZSTD_COMPRESSION_SLOW    = 19;  // slowest, highest compression
+const int ZSTD_COMPRESSION_MAX     = 22;
+
 struct ZZstdStream {
     void* ctx;
 
@@ -488,14 +495,14 @@ int Zstd::writeOutput(bdlbb::Blob*              output,
     do {
         advanceOutput(output, &outBuffer, factory, stream);
         lastSize = stream->avail_out;
-        result   = zstdMethod(stream, ZSTD_e_end);
+        result   = zstdMethod(stream, ZSTD_e_continue);
     } while ((0 != result) && lastSize != stream->avail_out);
 
-    // result = zstdEndMethod(stream);
-    // if (result) {
-    //     setError(errorStream, "Error finishing stream", result, "");
-    //     return rc_STREAM_END_FAILURE;  // RETURN
-    // }
+    result = zstdMethod(stream, ZSTD_e_end);
+    if (result) {
+        setError(errorStream, "Error finishing stream", result, "");
+        return rc_STREAM_END_FAILURE;  // RETURN
+    }
 
     // If we have written any data to the current output buffer, reduce its
     // size and add it to the blob.
@@ -593,7 +600,7 @@ int Compression::compress(bdlbb::Blob*                         output,
         return Compression_Impl::compressZstd(output,
                                               factory,
                                               inputBlob,
-                                              Z_DEFAULT_COMPRESSION,
+                                              ZSTD_COMPRESSION_DEFAULT,
                                               errorStream,
                                               allocator);  // RETURN
     }
@@ -700,47 +707,39 @@ int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
 {
     ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
 
-    if (in.pos < in.size) {
-        ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
-        size_t const   ret = ZSTD_compressStream2(
-            reinterpret_cast<ZSTD_CCtx*>(stream->ctx),
-            &out,
-            &in,
-            endOp);
-        if (ZSTD_isError(ret)) {
-            return -1;
-        }
+    ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
+    size_t const   ret = ZSTD_compressStream2(
+        reinterpret_cast<ZSTD_CCtx*>(stream->ctx),
+        &out,
+        &in,
+        endOp);
 
-        updateZstdStream(stream, in, out);
+    if (ZSTD_isError(ret)) {
+        return -1;
     }
+
+    updateZstdStream(stream, in, out);
+
     return 0;
 };
 
 int inflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
 {
-    int           finished = 0;
-    ZSTD_inBuffer in       = {stream->next_in, stream->avail_in, 0};
+    ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
 
-    if (in.pos < in.size) {
-        ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
-        size_t const   ret = ZSTD_decompressStream(
-            reinterpret_cast<ZSTD_DCtx*>(stream->ctx),
-            &out,
-            &in);
+    ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
+    size_t const   ret = ZSTD_decompressStream(
+        reinterpret_cast<ZSTD_DCtx*>(stream->ctx),
+        &out,
+        &in);
 
-        updateZstdStream(stream, in, out);
+    updateZstdStream(stream, in, out);
 
-        if (ZSTD_isError(ret)) {
-            return -1;
-        }
-
-        finished = (ret == 0);  // ret==0 means all done
-    }
-    else {
-        finished = 1;
+    if (ZSTD_isError(ret)) {
+        return -1;
     }
 
-    return finished;
+    return 0;
 };
 
 int Compression_Impl::decompressZlib(bdlbb::Blob*              output,
@@ -784,11 +783,21 @@ int Compression_Impl::compressZstd(bdlbb::Blob*              output,
 {
     enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
 
-    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    // TODO:
+    // ZSTD_customMem customMem = {
+    //     .customMalloc = myMalloc,
+    //     .customFree   = myFree,
+    //     .customRealloc= myRealloc
+    // };
+
+    ZSTD_CCtx* cctx = ZSTD_createCCtx(
+        // customMem
+    );
     if (!cctx) {
         (*errorStream) << "Error initializing ZSTD compression context";
         return rc_STREAM_INIT_FAILURE;  // RETURN
     }
+    ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, level);
 
     ZZstdStream stream = {cctx, 0, 0, nullptr, nullptr};
 
@@ -812,7 +821,16 @@ int Compression_Impl::decompressZstd(bdlbb::Blob*              output,
 {
     enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
 
-    ZSTD_DCtx* dctx = ZSTD_createDCtx();
+    // TODO:
+    // ZSTD_customMem customMem = {
+    //     .customMalloc = myMalloc,
+    //     .customFree   = myFree,
+    //     .customRealloc= myRealloc
+    // };
+
+    ZSTD_DCtx* dctx = ZSTD_createDCtx(
+        // customMem
+    );
     if (!dctx) {
         (*errorStream) << "Error initializing ZSTD decompression context";
         return rc_STREAM_INIT_FAILURE;  // RETURN

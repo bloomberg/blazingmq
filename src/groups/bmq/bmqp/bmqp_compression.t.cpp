@@ -285,9 +285,11 @@ static void eAnyCompressDecompressHelper(
     int   bufferSize     = bmqu::BlobUtil::bufferSize(compressed, 0);
     char* receivedBuffer = compressed.buffer(0).data();
 
-    BMQTST_ASSERT_EQ(
-        bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
-        0);
+    if (expectedCompressed != nullptr) {
+        BMQTST_ASSERT_EQ(
+            bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
+            0);
+    }
 
     startTime          = bsls::TimeUtil::getTimer();
     rc                 = bmqp::Compression::decompress(&decompressed,
@@ -802,13 +804,10 @@ static void test4_compression_decompression_zstd()
             int         d_line;
             const char* d_data;
             const char* d_expected;
-        } k_DATA[] = {{L_, "Hello World", "Hello World"},
-                      {L_, "HelloHello", "HelloHello"},
-                      {L_, "abcdefghij", "abcdefghij"},
-                      {L_,
-                       "Hello Hello Hello Hello Hello",
-                       "Hello Hello Hello "
-                       "Hello Hello"}};
+        } k_DATA[] = {{L_, "Hello World", nullptr},
+                      {L_, "HelloHello", nullptr},
+                      {L_, "abcdefghij", nullptr},
+                      {L_, "Hello Hello Hello Hello Hello", nullptr}};
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -1125,7 +1124,7 @@ static void testN4_performanceCompressionRatioZstd()
     populateData(&data);
 
     // Measure calculation time and report per level
-    for (int level = 0; level < 10; level++) {
+    for (int level = 1; level <= 19; level++) {
         bsl::cout << "---------------------\n"
                   << " LEVEL = " << level << '\n'
                   << "---------------------\n";
