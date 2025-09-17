@@ -68,7 +68,9 @@ def test_broker_client(
     tproxy_port, tproxy = cluster.start_tproxy(broker.config)
 
     # Start a client
-    client: Client = broker.create_client(f"client@{broker.name}", port=tproxy_port, start=False)
+    client: Client = broker.create_client(
+        f"client@{broker.name}", port=tproxy_port, start=False
+    )
     client.start_session(block=False)
     # There is a race between "session.start" log line and "CONNECTED" log line.
     # Due to this, we do not check for "session.start" and only check for "CONNECTED" event.
