@@ -18,8 +18,6 @@ Testing primary-replica synchronization after missed rollover.
 """
 
 import glob
-from os import EX_OK
-import time
 from pathlib import Path
 import subprocess
 
@@ -35,7 +33,7 @@ from blazingmq.dev import paths
 
 @tweak.cluster.partition_config.max_journal_file_size(884)
 def test_synch_after_missed_rollover(
-    cluster: Cluster,
+    multi_node: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
@@ -47,6 +45,7 @@ def test_synch_after_missed_rollover(
     - restart replica
     - check that replica is synchronized with primary (primary and replica journal files content is equal)
     """
+    cluster: Cluster = multi_node
     uri_priority = domain_urls.uri_priority
 
     leader = cluster.last_known_leader

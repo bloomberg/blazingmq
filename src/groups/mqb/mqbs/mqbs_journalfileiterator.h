@@ -197,8 +197,8 @@ class JournalFileIterator {
     bsls::Types::Uint64 firstSyncPointPosition() const;
 
     /// Return a reference offering non-modifiable access to the valid
-    /// record header representing the first journal sync point.  The behavior is
-    /// undefined unless `firstSyncPointPosition` returns a non-zero value.
+    /// record header representing the first journal sync point.  The behavior
+    /// is undefined unless `firstSyncPointPosition` returns a non-zero value.
     const RecordHeader& firstSyncPointHeader() const;
 
     /// Return the position of last valid record in the journal.  Return
@@ -403,8 +403,7 @@ inline const RecordHeader& JournalFileIterator::firstSyncPointHeader() const
     // 'd_blockIter' might be in clear()'d state if this journal is empty
     // (i.e., if it has no records, just FileHeader and JournalFileHeader).
 
-    OffsetPtr<const RecordHeader> rec(d_mfd_p->block(),
-                                         firstSyncPointOffset);
+    OffsetPtr<const RecordHeader> rec(d_mfd_p->block(), firstSyncPointOffset);
     return *rec;
 }
 
