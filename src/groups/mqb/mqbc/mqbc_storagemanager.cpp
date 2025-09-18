@@ -884,8 +884,8 @@ void StorageManager::processReplicaStateResponseDispatched(
             if (needDropReplicaStorage) {
                 BALL_LOG_WARN
                     << d_clusterData_p->identity().description()
-                    << " Partition [" << requestPartitionId << "]: "
-                    << "Need to drop replica's storage "
+                    << " Partition [" << requestPartitionId
+                    << "]: " << "Need to drop replica's storage "
                     << "as its first sync point "
                     << "sequence number does not match - self: "
                     << selfFirstSyncPointSeqNum << " replica: "
@@ -2016,8 +2016,8 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
             // Skip ReplicaDataRequestPush to this node because it needs to
             // drop its storage
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId << "]: "
-                          << "Skipping ReplicaDataRequestPush to "
+                          << " Partition [" << partitionId
+                          << "]: " << "Skipping ReplicaDataRequestPush to "
                           << cit->first->nodeDescription()
                           << " because it needs to drop its storage.";
             continue;  // CONTINUE
@@ -2319,8 +2319,8 @@ void StorageManager::do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
                                                           eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Sent response " << controlMsg
+                  << " Partition [" << partitionId << "]: " << "Sent response "
+                  << controlMsg
                   << " to ReplicaDataRequestDrop from primary node "
                   << destNode->nodeDescription() << ".";
 }
@@ -3208,8 +3208,8 @@ void StorageManager::do_removeStorage(const PartitionFSMArgsSp& args)
 
     BALL_LOG_WARN
         << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId << "]: "
-        << "self's storage is out of sync with primary and cannot be "
+        << partitionId
+        << "]: " << "self's storage is out of sync with primary and cannot be "
         << "healed trivially. Removing entire storage and request it from "
            "primary.";
 }
@@ -4340,8 +4340,8 @@ void StorageManager::processPrimaryStateRequest(
 
         if (needDropReplicaStorage) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId << "]: "
-                          << "Need to drop replica's storage "
+                          << " Partition [" << partitionId
+                          << "]: " << "Need to drop replica's storage "
                           << "as its first sync point after rolllover"
                           << "sequence number does not match - self: "
                           << selfFirstSyncPointSeqNum << " replica: "

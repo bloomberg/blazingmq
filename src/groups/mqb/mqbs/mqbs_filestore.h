@@ -407,9 +407,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Storage event builder to use.
 
     bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum;
-    // First sync point after rollover sequence number, it is set at the last step of rollover, 
-    // together with journal file header `firstSyncPointOffsetWords`.
-    // It is used to determine if cluster node missed rollover.
+    // First sync point after rollover sequence number, it is set at the last
+    // step of rollover, together with journal file header
+    // `firstSyncPointOffsetWords`. It is used to determine if cluster node
+    // missed rollover.
 
   private:
     // NOT IMPLEMENTED
@@ -945,9 +946,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
                                   bsls::Types::Uint64 sequenceNum);
 
-    /// Set the first sync point after rollover sequence number from the specified
-    /// `seqNum` to d_firstSyncPointAfterRolloverSeqNum member;
-    void setFirstSyncPointAfterRolloverSeqNum(const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum);
+    /// Set the first sync point after rollover sequence number from the
+    /// specified `seqNum` to d_firstSyncPointAfterRolloverSeqNum member;
+    void setFirstSyncPointAfterRolloverSeqNum(
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum);
 
     /// Set the first sync point after rollover offset from the specified
     /// `offset` to JournalFileHeader.d_firstSyncPointOffset;
@@ -1052,7 +1054,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int replicationFactor() const;
 
     /// Return the first sync point after rollover sequence number.
-    const bmqp_ctrlmsg::PartitionSequenceNumber& firstSyncPointAfterRolloverSeqNum() const;
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSeqNum() const;
 };
 
 // =======================
@@ -1242,8 +1245,8 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
     d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
 }
 
-inline void
-FileStore::setFirstSyncPointAfterRolloverSeqNum(const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum)
+inline void FileStore::setFirstSyncPointAfterRolloverSeqNum(
+    const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum)
 {
     // Set sequence number
     d_firstSyncPointAfterRolloverSeqNum = seqNum;
@@ -1326,7 +1329,8 @@ inline int FileStore::replicationFactor() const
     return d_replicationFactor;
 }
 
-inline const bmqp_ctrlmsg::PartitionSequenceNumber& FileStore::firstSyncPointAfterRolloverSeqNum() const
+inline const bmqp_ctrlmsg::PartitionSequenceNumber&
+FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
 }
