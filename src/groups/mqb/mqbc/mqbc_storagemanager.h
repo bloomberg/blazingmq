@@ -185,7 +185,7 @@ class StorageManager BSLS_KEYWORD_FINAL
             d_firstSyncPointAfterRolloverSeqNum;
 
         /// Flag of whether recovery data has been sent to that node.
-        bool d_isRecoveryDataSent;
+        bool d_isInSync;
 
         // CREATORS
         NodeSeqNumContext();
@@ -1200,7 +1200,7 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
-, d_isRecoveryDataSent(false)
+, d_isInSync(false)
 {
     // NOTHING
 }
@@ -1212,7 +1212,7 @@ inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
     bool isRecoveryDataSent)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
-, d_isRecoveryDataSent(isRecoveryDataSent)
+, d_isInSync(isRecoveryDataSent)
 {
     // NOTHING
 }

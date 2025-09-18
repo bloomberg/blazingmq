@@ -1382,7 +1382,7 @@ void StorageManager::do_storeSelfSeq(const PartitionFSMArgsSp& args)
     }
     nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum =
         getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
-    nodeSeqNumCtx.d_isRecoveryDataSent = false;
+    nodeSeqNumCtx.d_isInSync = false;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": In Partition [" << partitionId << "]'s FSM, "
@@ -1434,8 +1434,8 @@ void StorageManager::do_storePrimarySeq(const PartitionFSMArgsSp& args)
         it->second.d_seqNum = seqNum;
         it->second.d_firstSyncPointAfterRolloverSeqNum =
             eventData.firstSyncPointAfterRolloverSequenceNumber();
-        it->second.d_isRecoveryDataSent = false;
-        hasNew                          = true;
+        it->second.d_isInSync = false;
+        hasNew                = true;
     }
 
     if (hasNew) {
@@ -1498,8 +1498,8 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
             it->second.d_seqNum = seqNum;
             it->second.d_firstSyncPointAfterRolloverSeqNum =
                 cit->firstSyncPointAfterRolloverSequenceNumber();
-            it->second.d_isRecoveryDataSent = false;
-            hasNew                          = true;
+            it->second.d_isInSync = false;
+            hasNew                = true;
         }
 
         if (hasNew) {
@@ -2024,8 +2024,7 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
                           << " because it needs to drop its storage.";
             continue;  // CONTINUE
         }
-        if (cit->second.d_seqNum <= selfSeqNum &&
-            !cit->second.d_isRecoveryDataSent) {
+        if (cit->second.d_seqNum <= selfSeqNum && !cit->second.d_isInSync) {
             outdatedReplicas.emplace_back(cit->first);
         }
     }
@@ -2202,8 +2201,7 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
     for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
          cit != nodeToSeqNumCtxMap.cend();
          cit++) {
-        if (cit->second.d_seqNum > selfSeqNum &&
-            !cit->second.d_isRecoveryDataSent) {
+        if (cit->second.d_seqNum > selfSeqNum && !cit->second.d_isInSync) {
             obsoleteDataReplicas.emplace_back(cit->first);
         }
         else if (cit->first->nodeId() == eventData.source()->nodeId() &&
@@ -2258,7 +2256,7 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
                                             1);
         }
         else {
-            nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
+            nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
         }
     }
 
@@ -2881,7 +2879,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
              cit != nodeToSeqNumCtxMap.cend();
              cit++) {
             if (cit->first->nodeId() == selfNode->nodeId() ||
-                cit->second.d_isRecoveryDataSent) {
+                cit->second.d_isInSync) {
                 continue;
             }
             mqbnet::ClusterNode*                         destNode = cit->first;
@@ -2894,7 +2892,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
             }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
-                nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
+                nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
                 continue;
             }
             else if (cit->first->nodeId() == eventData.source()->nodeId() &&
@@ -2929,7 +2927,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 // fire.
             }
             else {
-                nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
+                nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
             }
         }
     }
