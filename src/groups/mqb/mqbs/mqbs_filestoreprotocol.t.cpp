@@ -144,16 +144,18 @@ static void test1_breathingTest()
 
         BMQTST_ASSERT_EQ(fh.headerWords(), numWords);
         BMQTST_ASSERT_EQ(fh.recordWords(), recWords);
-        BMQTST_ASSERT_EQ(fh.firstSyncPointOffsetWords(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.firstSyncPointAfterRollloverOffsetWords(), 0ULL);
 
         // Create JournalFileHeader, set fields, assert fields
         JournalFileHeader fh2;
-        fh2.setHeaderWords(8).setRecordWords(12).setFirstSyncPointOffsetWords(
-            k_UINT64_MAX);
+        fh2.setHeaderWords(8)
+            .setRecordWords(12)
+            .setFirstSyncPointAfterRolloverOffsetWords(k_UINT64_MAX);
 
         BMQTST_ASSERT_EQ(fh2.headerWords(), 8U);
         BMQTST_ASSERT_EQ(fh2.recordWords(), 12U);
-        BMQTST_ASSERT_EQ(fh2.firstSyncPointOffsetWords(), k_UINT64_MAX);
+        BMQTST_ASSERT_EQ(fh2.firstSyncPointAfterRollloverOffsetWords(),
+                         k_UINT64_MAX);
     }
 
     {

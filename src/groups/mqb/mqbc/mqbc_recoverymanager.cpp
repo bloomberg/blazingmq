@@ -879,8 +879,8 @@ int RecoveryManager::processReceiveDataChunks(
                     fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
                 // Set offset in JournalFileHeader
-                jfh->setFirstSyncPointOffsetWords(journalPos /
-                                                  bmqp::Protocol::k_WORD_SIZE);
+                jfh->setFirstSyncPointAfterRolloverOffsetWords(
+                    journalPos / bmqp::Protocol::k_WORD_SIZE);
             }
 
             // Keep track of journal record's offset.
@@ -1523,7 +1523,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
 int RecoveryManager::recoverSeqNum(
     bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
     int                                    partitionId,
-    bool                                   firstSyncPoint)
+    bool                                   firstSyncPointAfterRolllover)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1559,10 +1559,11 @@ int RecoveryManager::recoverSeqNum(
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
-    if (firstSyncPoint) {
+    if (firstSyncPointAfterRolllover) {
         // Retrieve first syncpoint sequence number.
-        if (jit.firstSyncPointPosition() > 0) {
-            const mqbs::RecordHeader& recHeader = jit.firstSyncPointHeader();
+        if (jit.firstSyncPointAfterRolloverPosition() > 0) {
+            const mqbs::RecordHeader& recHeader =
+                jit.firstSyncPointAfterRolloverHeader();
 
             BALL_LOG_INFO << d_clusterData.identity().description()
                           << " Partition [" << partitionId << "]: "

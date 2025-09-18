@@ -3729,8 +3729,9 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
     BSLS_ASSERT_SAFE(!response.rId().isNull());
 
     if (dispatcher()->inDispatcherThread(this)) {
-        processResponseDispatched(response,
-                                  static_cast<mqbnet::ClusterNode*>(0));
+        processResponseDispatched(
+            response,
+            static_cast<mqbnet::ClusterNode*>(0));  // source
     }
     else {
         dispatcher()->execute(

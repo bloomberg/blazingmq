@@ -874,11 +874,12 @@ void StorageManager::processReplicaStateResponseDispatched(
             bmqp_ctrlmsg::PartitionSequenceNumber()) {
             // Replica's storage is not empty, need to check first sync point
             // after rollover sequence number.
-            bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum =
-                getSelffirstSyncPointAfterRolloverSequenceNumber(
-                    requestPartitionId);
+            bmqp_ctrlmsg::PartitionSequenceNumber
+                selfFirstSyncPointAfterRollloverSeqNum =
+                    getSelffirstSyncPointAfterRolloverSequenceNumber(
+                        requestPartitionId);
             needDropReplicaStorage =
-                selfFirstSyncPointSeqNum !=
+                selfFirstSyncPointAfterRollloverSeqNum !=
                 response.firstSyncPointAfterRolloverSequenceNumber();
 
             if (needDropReplicaStorage) {
@@ -888,7 +889,7 @@ void StorageManager::processReplicaStateResponseDispatched(
                     << "]: " << "Need to drop replica's storage "
                     << "as its first sync point "
                     << "sequence number does not match - self: "
-                    << selfFirstSyncPointSeqNum << " replica: "
+                    << selfFirstSyncPointAfterRollloverSeqNum << " replica: "
                     << response.firstSyncPointAfterRolloverSequenceNumber();
             }
         }
@@ -1502,12 +1503,13 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
         }
 
         if (hasNew) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": In Partition [" << partitionId << "]'s FSM, "
-                          << "storing the sequence number of "
-                          << cit->source()->nodeDescription() << " as "
-                          << seqNum << ", firstSyncPointSeqNum: "
-                          << cit->firstSyncPointAfterRolloverSequenceNumber();
+            BALL_LOG_INFO
+                << d_clusterData_p->identity().description()
+                << ": In Partition [" << partitionId << "]'s FSM, "
+                << "storing the sequence number of "
+                << cit->source()->nodeDescription() << " as " << seqNum
+                << ", first sync point after rollover sequence number: "
+                << cit->firstSyncPointAfterRolloverSequenceNumber();
         }
     }
 }
@@ -3405,7 +3407,8 @@ void StorageManager::do_findHighestSeq(const PartitionFSMArgsSp& args)
         d_clusterData_p->membership().selfNode(),
         primaryLeaseId,
         highestPartitionSeqNum,
-        bmqp_ctrlmsg::PartitionSequenceNumber(),  // firstSyncPointSeqNum
+        bmqp_ctrlmsg::
+            PartitionSequenceNumber(),  // firstSyncPointAfterRollloverSeqNum
         highestSeqNumNode);
 
     if (selfHighestSeq) {
@@ -4332,10 +4335,11 @@ void StorageManager::processPrimaryStateRequest(
         bmqp_ctrlmsg::PartitionSequenceNumber()) {
         // Replica's storage is not empty, need to check first sync point after
         // rollover sequence number.
-        bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum =
-            getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
+        bmqp_ctrlmsg::PartitionSequenceNumber
+            selffirstSyncPointAfterRollloverSeqNum =
+                getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
         needDropReplicaStorage =
-            selfFirstSyncPointSeqNum !=
+            selffirstSyncPointAfterRollloverSeqNum !=
             primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber();
 
         if (needDropReplicaStorage) {
@@ -4344,7 +4348,8 @@ void StorageManager::processPrimaryStateRequest(
                           << "]: " << "Need to drop replica's storage "
                           << "as its first sync point after rolllover"
                           << "sequence number does not match - self: "
-                          << selfFirstSyncPointSeqNum << " replica: "
+                          << selffirstSyncPointAfterRollloverSeqNum
+                          << " replica: "
                           << primaryStateRequest
                                  .firstSyncPointAfterRolloverSequenceNumber();
         }
@@ -4866,13 +4871,15 @@ StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
     BSLS_ASSERT_SAFE(fs);
 
     // Get own first sync point sequence number
-    bmqp_ctrlmsg::PartitionSequenceNumber selfFirstSyncPointSeqNum;
+    bmqp_ctrlmsg::PartitionSequenceNumber
+        selffirstSyncPointAfterRollloverSeqNum;
     if (fs->isOpen()) {
-        selfFirstSyncPointSeqNum = fs->firstSyncPointAfterRolloverSeqNum();
+        selffirstSyncPointAfterRollloverSeqNum =
+            fs->firstSyncPointAfterRolloverSeqNum();
     }
     else {
         const int rc = d_recoveryManager_mp->recoverSeqNum(
-            &selfFirstSyncPointSeqNum,
+            &selffirstSyncPointAfterRollloverSeqNum,
             partitionId,
             true);
         if (rc != 0) {
@@ -4881,10 +4888,10 @@ StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
                           << "Failed to recover first sync point sequence "
                              "number for partition "
                           << partitionId << ". rc=" << rc;
-            selfFirstSyncPointSeqNum.reset();
+            selffirstSyncPointAfterRollloverSeqNum.reset();
         }
     }
-    return selfFirstSyncPointSeqNum;
+    return selffirstSyncPointAfterRollloverSeqNum;
 }
 
 }  // close package namespace

@@ -444,8 +444,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     }
 
     // Store first sync point position if present in file.
-    if (jit.firstSyncPointPosition() > 0) {
-        const RecordHeader& recHeader = jit.firstSyncPointHeader();
+    if (jit.firstSyncPointAfterRolloverPosition() > 0) {
+        const RecordHeader& recHeader =
+            jit.firstSyncPointAfterRolloverHeader();
 
         d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() =
             recHeader.primaryLeaseId();
@@ -453,7 +454,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
             recHeader.sequenceNumber();
 
         BALL_LOG_INFO << partitionDesc()
-                      << "First sync point Sequence Number: "
+                      << "First sync point after rollover sequence number: "
                       << d_firstSyncPointAfterRolloverSeqNum
                       << ", Timestamp (epoch): " << recHeader.timestamp();
     }
@@ -2835,8 +2836,8 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
                                      fhJ->headerWords() *
                                          bmqp::Protocol::k_WORD_SIZE);
 
-    jfh->setFirstSyncPointOffsetWords(spoPair.offset() /
-                                      bmqp::Protocol::k_WORD_SIZE);
+    jfh->setFirstSyncPointAfterRolloverOffsetWords(
+        spoPair.offset() / bmqp::Protocol::k_WORD_SIZE);
 
     d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() =
         syncPoint.primaryLeaseId();
@@ -7530,7 +7531,8 @@ void FileStore::setFirstSyncPointAfterRolloverOffset(
                                          bmqp::Protocol::k_WORD_SIZE);
 
     // Set offset in JournalFileHeader
-    jfh->setFirstSyncPointOffsetWords(offset / bmqp::Protocol::k_WORD_SIZE);
+    jfh->setFirstSyncPointAfterRolloverOffsetWords(
+        offset / bmqp::Protocol::k_WORD_SIZE);
 }
 
 // -----------------------
