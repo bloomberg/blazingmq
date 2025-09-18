@@ -2231,8 +2231,9 @@ static void test22_searchQueueOpRecordsByOffset()
                                resultStream,
                                bmqtst::TestHelperUtil::allocator());
 
-    EXPECT_CALL(*printer,
-                printFooter(0, resCnt, 0, params.d_processRecordTypes))
+    EXPECT_CALL(
+        *printer,
+        printExactMatchFooter(0, 0, 0, resCnt, 0, params.d_processRecordTypes))
         .InSequence(s);
 
     // Run search
@@ -2312,15 +2313,216 @@ static void test23_searchJournalOpRecordsBySeqNumber()
                                resultStream,
                                bmqtst::TestHelperUtil::allocator());
 
-    EXPECT_CALL(*printer,
-                printFooter(0, 0, resCnt, params.d_processRecordTypes))
+    EXPECT_CALL(
+        *printer,
+        printExactMatchFooter(0, 0, 0, 0, resCnt, params.d_processRecordTypes))
         .InSequence(s);
 
     // Run search
     searchProcessor->process();
 }
 
-static void test24_summaryWithQueueDetailsTest()
+static void test24_searchConfirmAndDeletionRecordsByOffset()
+// ------------------------------------------------------------------------
+// SEARCH CONFIRM AND DELETION RECORDS BY OFFSET
+//
+// Concerns:
+//   Search confirm and deletion records by exact offsets in journal file and
+//   output result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH CONFIRM AND DELETION RECORDS BY OFFSET TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    journalFile.addAllTypesRecords(&records);
+
+    // Configure parameters to search all records
+    Parameters params = createTestParameters(e_MESSAGE | e_JOURNAL_OP |
+                                             e_QUEUE_OP);
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(
+        new (*bmqtst::TestHelperUtil::allocator()) PrinterMock(),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Get records content and prepare expected
+    // calls
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t confirmCnt       = 0;
+    bsl::size_t deletionCnt      = 0;
+    bsl::size_t foundConfirmCnt  = 0;
+    bsl::size_t foundDeletionCnt = 0;
+    Sequence    s;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_CONFIRM) {
+            if (++confirmCnt % 5 == 0) {
+                const ConfirmRecord& confirm =
+                    *reinterpret_cast<const ConfirmRecord*>(
+                        recordIter->second.buffer());
+                const bsls::Types::Uint64 offset = recordOffset(confirm);
+                params.d_offset.emplace_back(offset);
+
+                EXPECT_CALL(*printer, printGuid(confirm.messageGUID()))
+                    .InSequence(s);
+                ++foundConfirmCnt;
+            }
+        }
+        else if (rtype == RecordType::e_DELETION) {
+            if (++deletionCnt % 5 == 0) {
+                const DeletionRecord& deletion =
+                    *reinterpret_cast<const DeletionRecord*>(
+                        recordIter->second.buffer());
+                const bsls::Types::Uint64 offset = recordOffset(deletion);
+                params.d_offset.emplace_back(offset);
+
+                EXPECT_CALL(*printer, printGuid(deletion.messageGUID()))
+                    .InSequence(s);
+                ++foundDeletionCnt;
+            }
+        }
+    }
+
+    // Create command processor
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               bmqtst::TestHelperUtil::allocator());
+
+    EXPECT_CALL(*printer,
+                printExactMatchFooter(0,
+                                      foundConfirmCnt,
+                                      foundDeletionCnt,
+                                      0,
+                                      0,
+                                      params.d_processRecordTypes))
+        .InSequence(s);
+
+    // Run search
+    searchProcessor->process();
+}
+
+static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
+// ------------------------------------------------------------------------
+// SEARCH CONFIRM AND DELETION RECORDS BY SEQUENCE NUMBER
+//
+// Concerns:
+//   Search confirm and deletion records by exact sequence numbers in journal
+//   file and output result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH CONFIRM AND DELETION RECORDS BY SEQUENCE NUMBER TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records, 10);
+
+    // Configure parameters to search all records
+    Parameters params = createTestParameters(e_MESSAGE | e_JOURNAL_OP |
+                                             e_QUEUE_OP);
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(
+        new (*bmqtst::TestHelperUtil::allocator()) PrinterMock(),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Get records content and prepare expected
+    // calls
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t confirmCnt       = 0;
+    bsl::size_t deletionCnt      = 0;
+    bsl::size_t foundConfirmCnt  = 0;
+    bsl::size_t foundDeletionCnt = 0;
+    Sequence    s;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_CONFIRM) {
+            if (++confirmCnt % 5 == 0) {
+                const ConfirmRecord& confirm =
+                    *reinterpret_cast<const ConfirmRecord*>(
+                        recordIter->second.buffer());
+                CompositeSequenceNumber expectedComposite(
+                    confirm.header().primaryLeaseId(),
+                    confirm.header().sequenceNumber());
+                params.d_seqNum.emplace_back(expectedComposite);
+                EXPECT_CALL(*printer, printGuid(confirm.messageGUID()))
+                    .InSequence(s);
+                ++foundConfirmCnt;
+            }
+        }
+        else if (rtype == RecordType::e_DELETION) {
+            if (++deletionCnt % 5 == 0) {
+                const DeletionRecord& deletion =
+                    *reinterpret_cast<const DeletionRecord*>(
+                        recordIter->second.buffer());
+                CompositeSequenceNumber expectedComposite(
+                    deletion.header().primaryLeaseId(),
+                    deletion.header().sequenceNumber());
+                params.d_seqNum.emplace_back(expectedComposite);
+                EXPECT_CALL(*printer, printGuid(deletion.messageGUID()))
+                    .InSequence(s);
+                ++foundDeletionCnt;
+            }
+        }
+    }
+
+    // Create command processor
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               bmqtst::TestHelperUtil::allocator());
+
+    EXPECT_CALL(*printer,
+                printExactMatchFooter(0,
+                                      foundConfirmCnt,
+                                      foundDeletionCnt,
+                                      0,
+                                      0,
+                                      params.d_processRecordTypes))
+        .InSequence(s);
+
+    // Run search
+    searchProcessor->process();
+}
+
+static void test26_summaryWithQueueDetailsTest()
 // ------------------------------------------------------------------------
 // OUTPUT SUMMARY TEST
 //
@@ -2444,7 +2646,9 @@ int main(int argc, char* argv[])
     case 21: test21_searchAllTypesRecords(); break;
     case 22: test22_searchQueueOpRecordsByOffset(); break;
     case 23: test23_searchJournalOpRecordsBySeqNumber(); break;
-    case 24: test24_summaryWithQueueDetailsTest(); break;
+    case 24: test24_searchConfirmAndDeletionRecordsByOffset(); break;
+    case 25: test25_searchConfirmAndDeletionRecordsBySeqNumber(); break;
+    case 26: test26_summaryWithQueueDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

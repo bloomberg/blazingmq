@@ -180,11 +180,11 @@ static void parseMessages(bsl::vector<bsl::string>* messages,
 /// attributes are populated with default values.  The format of attributes
 /// must be as follows:
 ///
-///   "[readCount=<N>] [writeCount=<M>] [isFinal=(true|false)]"
+///  "[readCount=<N>] [writeCount=<M>] [adminCount=<K>] [isFinal=(true|false)]"
 ///
 /// E.g.:
 ///
-///   "readCount=2 writeCount=1 isFinal=true"
+///  "readCount=2 writeCount=1 adminCount=1 isFinal=true"
 static int
 parseHandleParameters(bmqp_ctrlmsg::QueueHandleParameters* handleParams,
                       bool*                                isFinal,
@@ -232,6 +232,18 @@ parseHandleParameters(bmqp_ctrlmsg::QueueHandleParameters* handleParams,
 
             handleParams->writeCount() = bsl::stoi(tokenizer.token());
             bmqt::QueueFlagsUtil::setWriter(&handleParams->flags());
+
+            ++tokenizer;
+        }
+        else if (bdlb::String::areEqualCaseless("adminCount", attribute)) {
+            BSLS_ASSERT_OPT(handleParams->adminCount() == 0 &&
+                            "Duplicate adminCount in 'attributesStr'");
+
+            ++tokenizer;
+            BSLS_ASSERT_OPT(!tokenizer.isTrailingHard());
+
+            handleParams->adminCount() = bsl::stoi(tokenizer.token());
+            bmqt::QueueFlagsUtil::setAdmin(&handleParams->flags());
 
             ++tokenizer;
         }
@@ -471,7 +483,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     // Register queue in domain
     bslma::ManagedPtr<mqbi::Queue> queueMp(d_mockQueue_sp.managedPtr());
 
-    rc = queueMp->configure(errorDescription,
+    rc = queueMp->configure(&errorDescription,
                             false,  // isReconfigure
                             true);  // wait
     BSLS_ASSERT_OPT(rc == 0);
@@ -888,6 +900,7 @@ int QueueEngineTester::configureHandle(const bsl::string& clientText)
 
     // 2. Configure the handle
     mqbi::QueueHandle* handle = client(clientKey);
+    BSLS_ASSERT_OPT(handle != NULL);
 
     int rc = bmqp_ctrlmsg::StatusCategory::E_UNKNOWN;
     const mqbi::QueueHandle::HandleConfiguredCallback configuredCb =

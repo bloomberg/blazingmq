@@ -46,9 +46,11 @@
 
 // BDE
 #include <bsl_memory.h>
+#include <bsl_queue.h>
 #include <bsl_unordered_map.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bslmt_mutex.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
@@ -76,6 +78,13 @@ class Dispatcher : public mqbi::Dispatcher {
     EventMap d_eventsForClients;
     // Maps clients to currently processed
     // events;
+
+    /// Since this class `execute`s `functor` in the calling thread, there may
+    /// be the need for thread synchronization.
+    bslmt::Mutex d_mutex;
+
+    /// Synchronize `functor`s to `execute`
+    bsl::queue<mqbi::Dispatcher::VoidFunctor> d_queue;
 
     bslma::Allocator* d_allocator_p;  // Allocator to use
 
@@ -243,6 +252,10 @@ class Dispatcher : public mqbi::Dispatcher {
     /// returned `EventGuard` doesn't go out of scope.
     EventGuard _withEvent(const mqbi::DispatcherClient* client,
                           mqbi::DispatcherEvent*        event);
+
+    bslmt::Mutex& mutex();
+
+    void _execute(const mqbi::Dispatcher::VoidFunctor& functor);
 };
 
 // ======================

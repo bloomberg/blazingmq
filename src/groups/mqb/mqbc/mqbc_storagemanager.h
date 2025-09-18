@@ -380,14 +380,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
 
-    /// Encode and send the specified schema `message` to the specified peer
-    /// `destination`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's dispatcher
-    ///         thread.
-    void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
-                     mqbnet::ClusterNode*                destination);
-
     /// Callback to start the recovery for the specified `partitionId`.
     ///
     /// THREAD: This method is invoked in the associated Queue dispatcher
@@ -637,12 +629,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_processLiveData(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
-    void do_processPut(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_nackPut(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
     void
-    do_cleanupSeqnums(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_cleanupMetadata(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void do_startSendDataChunks(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
@@ -668,9 +656,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_checkQuorumRplcaDataRspn(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_clearRplcaDataRspnCnt(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
     void do_reapplyEvent(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
@@ -689,6 +674,9 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_reapplyDetectSelfReplica(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_unsupportedPrimaryDowngrade(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE ACCESSORS
@@ -797,12 +785,11 @@ class StorageManager BSLS_KEYWORD_FINAL
                            const AppInfos&         removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    registerQueueReplica(int                     partitionId,
-                         const bmqt::Uri&        uri,
-                         const mqbu::StorageKey& queueKey,
-                         mqbi::Domain*           domain = 0,
-                         bool allowDuplicate = false) BSLS_KEYWORD_OVERRIDE;
+    void registerQueueReplica(int                     partitionId,
+                              const bmqt::Uri&        uri,
+                              const mqbu::StorageKey& queueKey,
+                              const AppInfos&         appIdKeyPairs,
+                              mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
     void unregisterQueueReplica(int                     partitionId,
                                 const bmqt::Uri&        uri,
@@ -814,8 +801,7 @@ class StorageManager BSLS_KEYWORD_FINAL
                             const bmqt::Uri&        uri,
                             const mqbu::StorageKey& queueKey,
                             const AppInfos&         appIdKeyPairs,
-                            mqbi::Domain*           domain = 0,
-                            bool allowDuplicate = false) BSLS_KEYWORD_OVERRIDE;
+                            mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the

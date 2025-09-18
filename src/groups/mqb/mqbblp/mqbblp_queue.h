@@ -122,9 +122,11 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
   private:
     // PRIVATE MANIPULATORS
-    void configureDispatched(int*          result,
-                             bsl::ostream* errorDescription,
-                             bool          isReconfigure);
+    void configureDispatchedAndPost(int*              result,
+                                    bsl::ostream*     errorDescription,
+                                    bool              isReconfigure,
+                                    bslmt::Semaphore* sync);
+    void configureDispatched(bool isReconfigure);
 
     void getHandleDispatched(
         const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
@@ -178,7 +180,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
                       int                       ackWindowSize,
                       RemoteQueue::StateSpPool* statePool);
 
-    void convertToLocal();
+    void convertToLocal() BSLS_KEYWORD_OVERRIDE;
     void convertToRemote();
 
     // ACCESSORS
@@ -194,16 +196,16 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// If `wait` is `true`, this method will not return until the operation
     /// has completed. The return value will be 0 if it succeeds, and
     /// nonzero if there was an error; in case of an error, the specified
-    /// `errorDescription` stream will be populated with a human readable
+    /// `errorDescription_p` stream will be populated with a human readable
     /// reason.
     ///
     /// If `wait` is `false`, this method will return 0 after scheduling the
-    /// operation on an unspecified thread, and `errorDescription` will be
+    /// operation on an unspecified thread, and `errorDescription_p` will be
     /// unmodified.
     ///
     /// THREAD: this method can be invoked only from cluster-dispatcher
     /// thread.
-    int configure(bsl::ostream& errorDescription,
+    int configure(bsl::ostream* errorDescription_p,
                   bool          isReconfigure,
                   bool          wait) BSLS_KEYWORD_OVERRIDE;
 

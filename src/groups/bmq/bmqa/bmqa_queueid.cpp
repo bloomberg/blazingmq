@@ -126,12 +126,12 @@ const bmqt::QueueOptions& QueueId::options() const
     return d_impl_sp->options();
 }
 
-bool QueueId::isValid() const
+bool QueueId::isValid(bsl::ostream* reason_p) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_impl_sp);
 
-    return d_impl_sp->isValid();
+    return d_impl_sp->isValid(reason_p);
 }
 
 bsl::ostream&

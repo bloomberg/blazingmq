@@ -62,9 +62,35 @@ namespace mqbblp {
 // class Queue
 // -----------
 
-void Queue::configureDispatched(int*          result,
-                                bsl::ostream* errorDescription,
-                                bool          isReconfigure)
+void Queue::configureDispatchedAndPost(int*              result,
+                                       bsl::ostream*     errorDescription,
+                                       bool              isReconfigure,
+                                       bslmt::Semaphore* sync)
+{
+    // executed by the *QUEUE* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(result);
+    BSLS_ASSERT_SAFE(errorDescription);
+    BSLS_ASSERT_SAFE(sync);
+
+    int rc = 0;
+    if (d_localQueue_mp) {
+        rc = d_localQueue_mp->configure(*errorDescription, isReconfigure);
+    }
+    else if (d_remoteQueue_mp) {
+        rc = d_remoteQueue_mp->configure(*errorDescription, isReconfigure);
+    }
+    else {
+        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+    }
+
+    *result = rc;
+    sync->post();
+}
+
+void Queue::configureDispatched(bool isReconfigure)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -72,22 +98,15 @@ void Queue::configureDispatched(int*          result,
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
     bmqu::MemOutStream throwaway(d_allocator_p);
-    bsl::ostream&      errStream = (errorDescription ? *errorDescription
-                                                     : throwaway);
 
-    int rc = 0;
     if (d_localQueue_mp) {
-        rc = d_localQueue_mp->configure(errStream, isReconfigure);
+        d_localQueue_mp->configure(throwaway, isReconfigure);
     }
     else if (d_remoteQueue_mp) {
-        rc = d_remoteQueue_mp->configure(errStream, isReconfigure);
+        d_remoteQueue_mp->configure(throwaway, isReconfigure);
     }
     else {
         BSLS_ASSERT_OPT(false && "Uninitialized queue");
-    }
-
-    if (result) {
-        *result = rc;
     }
 }
 
@@ -576,7 +595,7 @@ void Queue::onReplicatedBatch()
     }
 }
 
-int Queue::configure(bsl::ostream& errorDescription,
+int Queue::configure(bsl::ostream* errorDescription_p,
                      bool          isReconfigure,
                      bool          wait)
 {
@@ -584,18 +603,27 @@ int Queue::configure(bsl::ostream& errorDescription,
 
     // Enqueue a configure callback in the queue-dispatcher thread.
     int result = 0;
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&Queue::configureDispatched,
-                             this,
-                             (wait ? &result : NULL),
-                             (wait ? &errorDescription : NULL),
-                             isReconfigure),
-        this);
-    if (!wait) {
-        return 0;  // RETURN
+
+    if (wait) {
+        bslmt::Semaphore sync;
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(&Queue::configureDispatchedAndPost,
+                                 this,
+                                 &result,
+                                 errorDescription_p,
+                                 isReconfigure,
+                                 &sync),
+            this);
+
+        sync.wait();
+    }
+    else {
+        dispatcher()->execute(bdlf::BindUtil::bind(&Queue::configureDispatched,
+                                                   this,
+                                                   isReconfigure),
+                              this);
     }
 
-    dispatcher()->synchronize(this);
     return result;
 }
 

@@ -87,6 +87,7 @@ void CslFileProcessor::process()
             checkRecord = d_parameters->d_processCslRecordTypes.d_ack;
             break;  // BREAK
         }
+        case mqbc::ClusterStateRecordType::e_UNDEFINED:
         default: BSLS_ASSERT(false && "Unknown record type");
         }
 

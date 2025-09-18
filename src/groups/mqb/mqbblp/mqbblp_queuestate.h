@@ -328,6 +328,14 @@ class QueueState {
     /// Return non-modifiable access reference to the collection of cached
     /// references to subStreams.
     const SubQueues& subQueues() const;
+
+    /// @brief Check whether this queue can be extended with the provided
+    ///        handle parameters.  The behaviour is undefined unless handle
+    ///        parameters are valid (counters are non-negative).
+    /// @param handleParameters Handle parameters to add.
+    /// @return bool True if the queue can be extended, false otherwise.
+    bool canMerge(
+        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters) const;
 };
 
 // ============================================================================

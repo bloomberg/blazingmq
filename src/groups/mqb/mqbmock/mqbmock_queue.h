@@ -191,7 +191,7 @@ class Queue : public mqbi::Queue {
 
     // MANIPULATORS
     //   (virtual: mqbi::Queue)
-    int configure(bsl::ostream& errorDescription,
+    int configure(bsl::ostream* errorDescription_p,
                   bool          isReconfigure,
                   bool          wait) BSLS_KEYWORD_OVERRIDE;
 
@@ -351,6 +351,8 @@ class Queue : public mqbi::Queue {
     virtual int
     processCommand(mqbcmd::QueueResult*        result,
                    const mqbcmd::QueueCommand& command) BSLS_KEYWORD_OVERRIDE;
+
+    void convertToLocal() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (specific to mqbmock::Queue)

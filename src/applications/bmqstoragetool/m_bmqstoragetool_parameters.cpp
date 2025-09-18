@@ -311,6 +311,9 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
     if (d_dataFile.empty() && d_dumpPayload) {
         stream << "Can't dump payload, because data file is not specified\n";
     }
+    if (d_dumpPayload && d_printMode != CommandLineArguments::k_HUMAN_MODE) {
+        stream << "Payload dumping is not supported for Json printing mode\n";
+    }
     if (d_cslFile.empty() && !d_queueName.empty()) {
         stream << "Can't search by queue name, because csl file is not "
                   "specified\n";
@@ -332,7 +335,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
          !d_offset.empty() || d_outstanding || d_confirmed ||
          d_partiallyConfirmed || rangeArgPresent || d_summary)) {
         stream
-            << "Secnum filter can't be combined with any other filters, as it "
+            << "SeqNum filter can't be combined with any other filters, as it "
                "is "
                "specific enough to find a particular message\n";
     }

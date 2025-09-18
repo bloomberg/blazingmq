@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - 'integration/**'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -76,9 +77,14 @@ jobs:
         with:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
+        # Solaris: make sure all ITs scripts are compatible with python3.8
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
-      - name: Chmod all .tsk        
+      - name: Chmod all .tsk
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Setup core_pattern
@@ -174,7 +180,7 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
-      
+
       - name: Print core information
         if: failure()
         run: |
@@ -183,6 +189,11 @@ jobs:
           python3 ${{ github.workspace }}/.github/workflows/ext/print_cores.py \
           --cores-dir=/cores \
           --bin-path=${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+
+  sanitize_ubuntu:
+    name: Sanitize
+    uses: ./.github/workflows/sanitize.yaml
+    needs: integration_tests_ubuntu
 
   integration_tests_storagetool_ubuntu:
     name: IT [Storage tool]
@@ -197,7 +208,7 @@ jobs:
 
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
-      - name: Chmod all .tsk        
+      - name: Chmod all .tsk
         run: find ./build -type f -name "*.tsk" -exec chmod +x {} +
 
       - name: Run Storage Tool integration tests
@@ -228,7 +239,9 @@ jobs:
             zlib
 
       - name: Build BlazingMQ
-        run: bin/build-darwin.sh
+
+        run: |
+          bin/build-darwin.sh
 
   build_and_test_bmqprometheus_plugin:
     name: "Build Prometheus plugin [ubuntu]"
@@ -285,7 +298,9 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
             -DINSTALL_TARGETS="prometheus;bmqbrkr;bmqtool"
+          echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           cmake --build build/blazingmq --parallel 8 --target bmqbrkr bmqtool bmqprometheus
+          echo "::remove-matcher owner=cpp"
 
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir
@@ -330,7 +345,9 @@ jobs:
 
       - name: Build docs
         run: |
+          echo "::add-matcher::.github/workflows/problem-matchers/doxygen.json"
           doxygen Doxyfile
+          echo "::remove-matcher owner=doxygen"
 
   shellcheck:
     name: Shellcheck

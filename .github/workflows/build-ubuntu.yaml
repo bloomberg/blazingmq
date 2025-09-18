@@ -121,7 +121,9 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
+          echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
+          echo "::remove-matcher owner=cpp"
 
       - name: Clean-up build directories before caching
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes

@@ -200,6 +200,9 @@ void StatValue::setFromUpdate(const bmqstm::StatValueUpdate& update)
             case Fields::E_VALUE: {
                 d_currentStats.d_value = *f;
             } break;
+            default: {
+                BSLS_ASSERT(false && "Unknown stat value field");
+            }
             }
             ++f;
         }
@@ -419,6 +422,9 @@ void StatValueUtil::loadUpdateImp(bmqstm::StatValueUpdate* update,
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
+            default: {
+                BSLS_ASSERT(false && "Unknown stat value field");
+            }
             }
         }
     }

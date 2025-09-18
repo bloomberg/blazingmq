@@ -294,6 +294,8 @@ cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target ${TARGETS} -v --clean-first
 
 if [ "${FUZZER}" == "on" ]; then
+# In fuzzers case we only need to build the tests
+# So we can exit here
     exit 0
 fi
 

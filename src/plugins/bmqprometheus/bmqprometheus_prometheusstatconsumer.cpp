@@ -680,6 +680,12 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                 {"cluster_partition_cfg_data_bytes",
                  Stat::e_PARTITION_CFG_DATA_BYTES,
                  false},
+                {"cluster_csl_replication_time_ns_avg",
+                 Stat::e_CSL_REPLICATION_TIME_NS_AVG,
+                 false},
+                {"cluster_csl_replication_time_ns_max",
+                 Stat::e_CSL_REPLICATION_TIME_NS_MAX,
+                 false},
             };
 
             Tagger tagger;
@@ -730,11 +736,14 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
             // Generate the metric name from the partition name (e.g.,
             // 'cluster_partition1_rollover_time')
             const bsl::string prefix = "cluster_" + partitionIt->name() + "_";
-            const bsl::string rollover_time = prefix + "rollover_time";
+            const bsl::string rollover_time        = prefix + "rollover_time";
+            const bsl::string journal_offset_bytes = prefix +
+                                                     "journal_offset_bytes";
             const bsl::string journal_outstanding_bytes =
                 prefix + "journal_outstanding_bytes";
             const bsl::string journal_utilization = prefix +
                                                     "journal_utilization_max";
+            const bsl::string data_offset_bytes = prefix + "data_offset_bytes";
             const bsl::string data_outstanding_bytes =
                 prefix + "data_outstanding_bytes";
             const bsl::string data_utilization = prefix +
@@ -744,12 +753,18 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                 {rollover_time.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME,
                  false},
+                {journal_offset_bytes.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_OFFSET,
+                 false},
                 {journal_outstanding_bytes.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT,
                  false},
                 {journal_utilization.c_str(),
                  mqbstat::ClusterStats::Stat::
                      e_PARTITION_JOURNAL_UTILIZATION_MAX,
+                 false},
+                {data_offset_bytes.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_OFFSET,
                  false},
                 {data_outstanding_bytes.c_str(),
                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT,

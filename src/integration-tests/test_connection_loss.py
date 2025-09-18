@@ -19,6 +19,7 @@ This suite of test cases exercises connection losses.
 
 import json
 import re
+from time import sleep
 from typing import Dict
 
 import blazingmq.dev.it.testconstants as tc
@@ -26,11 +27,13 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
     cluster,
+    test_logger,
     multi_node,
     tweak,
     start_cluster,
 )
 from blazingmq.dev.it.process.admin import AdminClient
+from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.process.proc import Process
 
@@ -65,8 +68,12 @@ def test_broker_client(
     tproxy_port, tproxy = cluster.start_tproxy(broker.config)
 
     # Start a client
-    client: Client = broker.create_client(f"client@{broker.name}", port=tproxy_port)
-    client.start_session()
+    client: Client = broker.create_client(
+        f"client@{broker.name}", port=tproxy_port, start=False
+    )
+    client.start_session(block=False)
+    # There is a race between "session.start" log line and "CONNECTED" log line.
+    # Due to this, we do not check for "session.start" and only check for "CONNECTED" event.
     assert client.capture(r"CONNECTED", 5)
 
     # Kill tproxy to break the connection between broker and client
@@ -82,8 +89,6 @@ def test_broker_client(
 
 
 @start_cluster(False)
-@tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
-@tweak.cluster.cluster_attributes.is_fsmworkflow(False)
 @tweak.cluster.elector.quorum(4)
 @tweak.broker.app_config.network_interfaces.heartbeats.cluster_peer(3)
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
@@ -112,11 +117,15 @@ def test_force_leader_primary_divergence(
     - Start "east2"
     - Kill "tproxy_1" and "tproxy_2". It disconnects "east2" and "west1" from "east1"
     - Leader must become "west2"; it is the only node connected to all other nodes
-    - Check that primary for all partitions is "east1"
+    - "east1" is not a leader anymore but still primary for the partitions. It detects
+      leader/primary divergence and exits gracefully. So we wait for "east1" to terminate, check
+      the exit code, and restart.
+    - After that cluster is expected to heal. Give it some time and check that primary for all
+      partitions is the same as the leader - "west2".
 
     Concerns:
     - The connection loss leads to leader/primary divergence: Leader is "west2", but primary for all
-     partitions is "east1"
+     partitions is "east1". The node that loses leadership ("east1") terminates itself gracefully.
     """
 
     cluster = multi_node
@@ -155,8 +164,8 @@ def test_force_leader_primary_divergence(
 
     # Wait until "east1" becomes leader. It is the only possible leader because only it has
     # quorum = 3
-    leader = cluster.wait_leader()
-    assert leader.name == "east1"
+    old_leader = cluster.wait_leader()
+    assert old_leader.name == "east1"
 
     # Start "east2" and kill two tproxies disconnecting "east2" and "west1" from "east1".
     cluster.start_node("east2")
@@ -164,18 +173,52 @@ def test_force_leader_primary_divergence(
     tproxies["tproxy_west1"].kill()
 
     # Leader must become "west2" as it is the only node connected to all other nodes
-    leader = cluster.wait_leader()
-    assert leader.name == "west2"
+    new_leader = cluster.wait_leader()
+    assert new_leader.name == "west2"
+
+    # Now "east1" detects the leader / primary divergence. It is not a leader anymore but
+    # still primary. Hence, it is expected to shutdown itself gracefully.
+    rc = old_leader.wait()
+    assert rc == 0
+
+    # Restart "east1"
+    old_leader.start()
+    old_leader.wait_until_started()
 
     # Request partitions summary with admin command. Check that primary for all partitions is
-    # "east1"
+    # "west2" - the same as the leader
     admin = AdminClient()
-    admin.connect(leader.config.host, leader.config.port)
-    res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.config.name} STORAGE SUMMARY")
-    primaries: [str] = []
-    for line in res.splitlines():
-        m = re.search(r"Primary Node.*\[(.+), \d+\]", line)
-        if m:
-            assert m.group(1) == "east1"
-            primaries.append(m.group(1))
-    assert len(primaries) == 4
+    admin.connect(new_leader.config.host, new_leader.config.port)
+    # Assigning primaries can take time, so we give the cluster 15 seconds for this
+    test_logger.info("Try to detect new primaries...")
+    attempts = 15
+    while attempts > 0:
+        res = admin.send_admin(
+            f"CLUSTERS CLUSTER {cluster.config.name} STORAGE SUMMARY"
+        )
+        primaries: [str] = []
+        try:
+            for line in res.splitlines():
+                mm = re.search(r"Primary Node.*\[(.+), \d+\]", line)
+                if mm:
+                    if mm.group(1) != new_leader.name:
+                        raise RuntimeError(
+                            f'Primary node "{mm.group(1)}" for partition does not match leader name "{new_leader.name}"'
+                        )
+                    primaries.append(mm.group(1))
+            if (
+                len(primaries)
+                != cluster.config.definition.partition_config.num_partitions
+            ):
+                raise RuntimeError(
+                    f'Primaries count "{len(primaries)}" does not match partitions number from config "{cluster.config.definition.partition_config.num_partitions}"'
+                )
+            test_logger.info("Success!")
+            break
+        except RuntimeError as e:
+            attempts -= 1
+            if attempts == 0:
+                test_logger.info(res)
+                raise e
+            test_logger.info("Wait primaries for 1 more second...")
+            sleep(1)

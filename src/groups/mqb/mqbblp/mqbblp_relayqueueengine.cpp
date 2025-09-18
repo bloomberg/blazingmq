@@ -76,11 +76,15 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
-#define BMQ_LOGTHROTTLE_INFO()                                                \
+#define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
-#define BMQ_LOGTHROTTLE_ERROR()                                               \
+#define BMQ_LOGTHROTTLE_WARN                                                  \
+    BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
+#define BMQ_LOGTHROTTLE_ERROR                                                 \
     BALL_LOGTHROTTLE_ERROR(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)          \
         << "[THROTTLED] "
 
@@ -129,6 +133,48 @@ class LimitedPrinter {
     /// Copy constructor and assignment operator removed.
     LimitedPrinter& operator=(const LimitedPrinter&) BSLS_KEYWORD_DELETED;
 };
+
+struct Event {
+    const mqbi::QueueHandle* d_handle_p;
+    const QueueState*        d_queueState_p;
+    const bool               d_isHandleKnown;
+
+    explicit Event(const mqbi::QueueHandle* handle,
+                   const QueueState*        queueState,
+                   bool                     isHandleKnown)
+    : d_handle_p(handle)
+    , d_queueState_p(queueState)
+    , d_isHandleKnown(isHandleKnown)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_queueState_p);
+
+        if (d_isHandleKnown) {
+            BSLS_ASSERT_SAFE(d_handle_p);
+        }
+    }
+};
+
+inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
+{
+    BSLS_ASSERT_SAFE(event.d_queueState_p);
+    BSLS_ASSERT_SAFE(event.d_handle_p);
+
+    if (event.d_isHandleKnown) {
+        stream << "[ handle = " << event.d_handle_p << " client = \""
+               << (event.d_handle_p->client()
+                       ? event.d_handle_p->client()->description()
+                       : "<NULL>")
+               << "\" id = " << event.d_handle_p->id() << " queue = \""
+               << event.d_queueState_p->uri() << "\" ]";
+    }
+    else {
+        stream << " unknown handle [ handle = " << event.d_handle_p
+               << " queue = \"" << event.d_queueState_p->uri() << "\" ]";
+    }
+
+    return stream;
+}
 
 }  // close unnamed namespace
 
@@ -251,28 +297,28 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     // Force re-delivery
     deliverMessages();
 
-    // RelayQueueEngine now assumes that configureQueue request cannot fail.
-    // Even if request fails due to some reason (timeout, upstream crashing or
-    // rejecting request, etc), ClusterQueueHelper at self node intercepts
-    // *most* of these error responses, and simply forwards success status to
-    // relay queue engine.  See 'ClusterQueueHelper::onConfigureQueueResponse'
-    // for some reasoning behind this.  We assume success, and simply ignore
-    // 'status'.
-
-    const bool handleExists = d_queueState_p->handleCatalog().hasHandle(
+    const bool isHandleKnown = d_queueState_p->handleCatalog().hasHandle(
         handle);
 
-    if (!handleExists) {
-        // TBD: handle does not exist anymore.. is this possible?  Send a new
-        // (updated) configure request upstream, to effectively rollback this
-        // request? With correct open/close queue sequence this scenario should
-        // not be possible, but otherwise not sure how exactly to handle this
-        // case.
-        BALL_LOG_ERROR
-            << "#CLIENT_IMPROPER_BEHAVIOR "
-            << "Received 'configure-stream' response for a handle which does "
-            << "not exist in handle catalog for queue '"
-            << d_queueState_p->uri() << "'. Sending success downstream.";
+    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+        BMQ_LOGTHROTTLE_WARN
+            << "#QUEUE_CONFIGURE_FAILURE"
+            << " Received failed 'configure-stream' response for "
+            << Event(handle, d_queueState_p, isHandleKnown)
+            << ", for parameters [" << downStreamParameters << "].";
+
+        context->setStatus(status);
+
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::StatusCategory::E_SUCCESS ==
+                     status.category());
+
+    if (!isHandleKnown) {
+        BMQ_LOGTHROTTLE_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
+                              << "Received 'configure-stream' response for "
+                              << Event(handle, d_queueState_p, false);
 
         // This happens when handle double closed.  For example, StopRequest
         // processing is in progress (de-configure response is pending) and
@@ -284,35 +330,19 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
             App_State& app(*it->second);
             app.invalidate(handle);
         }
+
+        context->setStatus(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
+                           -1,
+                           "Unknown handle.");
+
         return;  // RETURN
     }
 
-    BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-    {
-        if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS == status.category()) {
-            BALL_LOG_INFO
-                << "[THROTTLED] Received success 'configure-stream' response"
-                << " for handle [" << handle << "] for queue ["
-                << d_queueState_p->uri() << "], for parameters "
-                << downStreamParameters;
-        }
-        else {
-            BALL_LOG_WARN
-                << "[THROTTLED] #QUEUE_CONFIGURE_FAILURE "
-                << "Received failed 'configure-stream' response for handle '"
-                << handle->client() << ":" << handle->id() << "' for queue '"
-                << d_queueState_p->uri() << "', for parameters "
-                << downStreamParameters << ", but assuming success.";
-        }
+    BSLS_ASSERT_SAFE(isHandleKnown);
 
-        mqbcmd::RoundRobinRouter outrr(d_allocator_p);
-        context->d_routing_sp->loadInternals(&outrr);
-
-        BALL_LOG_OUTPUT_STREAM << "[THROTTLED] For queue ["
-                               << d_queueState_p->uri()
-                               << "] new routing will be "
-                               << LimitedPrinter(outrr, 2048, d_allocator_p);
-    }
+    BMQ_LOGTHROTTLE_INFO << "Received success 'configure-stream' response for "
+                         << Event(handle, d_queueState_p, isHandleKnown)
+                         << ", for parameters " << downStreamParameters;
 
     const bsl::string& appId = downStreamParameters.appId();
 
@@ -332,7 +362,19 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         app = findApp(upstreamSubQueueId);
         BSLS_ASSERT_SAFE(app);
 
+        // This also validates the context by checking for missing handles.
         applyConfiguration(*app, *context);
+
+        BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+        {
+            mqbcmd::RoundRobinRouter outrr(d_allocator_p);
+            app->routing()->loadInternals(&outrr);
+
+            BALL_LOG_OUTPUT_STREAM
+                << "For queue [" << d_queueState_p->uri()
+                << "] new routing will be "
+                << LimitedPrinter(outrr, 2048, d_allocator_p);
+        }
     }
 
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
@@ -394,34 +436,31 @@ void RelayQueueEngine::onHandleReleasedDispatched(
     // relay queue engine.  See 'ClusterQueueHelper::onReleaseQueueResponse'
     // for some reasoning behind this.  We assume success, and simply ignore
     // 'status'.
-    const bool handleExists = d_queueState_p->handleCatalog().hasHandle(
+    const bool isHandleKnown = d_queueState_p->handleCatalog().hasHandle(
         handle);
-    if (!handleExists) {
+    if (!isHandleKnown) {
         // TBD: handle does not exist anymore.. is this possible?  Send a new
         // (updated) configure request upstream, to effectively rollback this
         // request?
 
-        BALL_LOG_ERROR
-            << "#CLIENT_IMPROPER_BEHAVIOR "
-            << "Received 'releaseHandle' response for a handle  which does not"
-            << " exist in handle catalog for  queue '" << d_queueState_p->uri()
-            << "'.";
+        BMQ_LOGTHROTTLE_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
+                              << "Received 'releaseHandle' response for "
+                              << Event(handle, d_queueState_p, false);
         return;  // RETURN
     }
 
     if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS == status.category()) {
-        BALL_LOG_INFO << "Received success 'releaseHandle' response for "
-                      << "handle [" << handle->client() << ":" << handle->id()
-                      << "] for queue [" << d_queueState_p->uri()
-                      << "], for parameters " << hp;
+        BMQ_LOGTHROTTLE_INFO
+            << "Received success 'releaseHandle' response for "
+            << Event(handle, d_queueState_p, true) << ", for parameters "
+            << hp;
     }
     else {
-        BALL_LOG_WARN
-            << "#QUEUE_CLOSE_FAILURE "
-            << "Received failed 'releaseHandle' response for handle '"
-            << handle->client() << ":" << handle->id() << "' for queue '"
-            << d_queueState_p->uri() << "', for parameters " << hp
-            << ", but assuming success.";
+        BMQ_LOGTHROTTLE_WARN << "#QUEUE_CLOSE_FAILURE "
+                             << "Received failed 'releaseHandle' response for "
+                             << Event(handle, d_queueState_p, true)
+                             << ", for parameters " << hp
+                             << ", but assuming success.";
     }
     // Use default initializers for AppId and SubId unless this is fanout
     bmqp_ctrlmsg::SubQueueIdInfo info;
@@ -433,7 +472,7 @@ void RelayQueueEngine::onHandleReleasedDispatched(
         handle->subStreamInfos().find(info.appId());
 
     if (itStream == handle->subStreamInfos().end()) {
-        BALL_LOG_ERROR
+        BMQ_LOGTHROTTLE_ERROR
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Received 'releaseHandle' response for a subQueue which does"
             << " not exist in the handle catalog for '"
@@ -465,10 +504,9 @@ void RelayQueueEngine::onHandleReleasedDispatched(
         // There are no more consumers for this subStream.
         // The subStream and its context will be erased from the handle state.
 
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], unregistering subStream: [subStreamInfo: " << info
-                      << "] from handle: [" << handle->client() << ":"
-                      << handle->id() << "]";
+        BMQ_LOGTHROTTLE_INFO
+            << "Unregistering subStream: [subStreamInfo: " << info << "] from "
+            << Event(handle, d_queueState_p, true);
 
         if (!bmqp::QueueUtil::isEmpty(itStream->second.d_streamParameters)) {
             // The handle has a valid consumer priority, meaning that a
@@ -477,15 +515,12 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             // streamParameters (i.e. invalid consumerPriority).
             // This is expected in shutdown V2 where we minimize the
             // number of requests.
-            BALL_LOG_INFO
-                << "For queue [" << d_queueState_p->uri() << "],  received a "
-                << "'releaseHandle' releasing the consumer portion of handle "
-                << "[id: " << handle->id()
-                << ", clientPtr: " << handle->client() << ", ptr: " << handle
-                << "] without having first configured the handle to have null "
-                << "streamParameters. Handle's parameters are "
-                << "[handleParameters: " << handle->handleParameters()
-                << ", streamParameters: "
+            BMQ_LOGTHROTTLE_INFO
+                << "Releasing the consumer portion of "
+                << Event(handle, d_queueState_p, true)
+                << " without having first configured the handle to have null "
+                << "streamParameters. [handleParameters: "
+                << handle->handleParameters() << ", streamParameters: "
                 << itStream->second.d_streamParameters
                 << "], and the parameters specified in this 'releaseHandle' "
                 << "request are [handleParameters: " << hp << ", isFinal "
@@ -535,11 +570,11 @@ void RelayQueueEngine::onHandleReleasedDispatched(
     if (streamResult.isQueueStreamEmpty()) {
         unsigned int numMessages = d_pushStream.removeApp(upstreamSubQueueId);
 
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], removing App for appId: [" << info.appId()
-                      << "] and virtual storage associated with"
-                      << " upstreamSubQueueId: [" << upstreamSubQueueId << "]"
-                      << " with " << numMessages << " messages";
+        BMQ_LOGTHROTTLE_INFO << "For queue [" << d_queueState_p->uri()
+                             << "], removing App for appId: [" << info.appId()
+                             << "] and virtual storage associated with"
+                             << " upstreamSubQueueId: [" << upstreamSubQueueId
+                             << "] with " << numMessages << " messages";
 
         BSLS_ASSERT_SAFE(app->d_cache.empty());
 
@@ -591,7 +626,7 @@ void RelayQueueEngine::deliverMessages()
 
             if (!app->isAuthorized()) {
                 // This App got the PUSH (recorded in the PushStream)
-                BMQ_LOGTHROTTLE_ERROR()
+                BMQ_LOGTHROTTLE_ERROR
                     << "#NOT AUTHORIZED "
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
@@ -606,7 +641,7 @@ void RelayQueueEngine::deliverMessages()
                          d_appsDeliveryContext.revCounter())) {
                 // This `app` has already seen this message.
 
-                BMQ_LOGTHROTTLE_INFO()
+                BMQ_LOGTHROTTLE_INFO
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"
                     << app->appId()
@@ -667,10 +702,10 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     }
 
     bsls::TimeInterval delay;
-    app->deliverMessages(&delay,
-                         d_realStorageIter_mp.get(),
-                         start,
-                         d_storageIter_mp.get());
+    app->catchUp(&delay,
+                 d_realStorageIter_mp.get(),
+                 start,
+                 d_storageIter_mp.get());
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
@@ -708,12 +743,13 @@ void RelayQueueEngine::configureApp(
         // Last advertised stream parameters for this handle are same as
         // the newly advertised ones.  No need to send any notification
         // upstream.
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], last advertised stream parameter by handle ["
-                      << handle->id() << "] were same as newly advertised "
-                      << "ones: " << streamParameters
-                      << ". Not sending configure-queue request upstream, but "
-                      << "returning success to downstream client.";
+        BMQ_LOGTHROTTLE_INFO
+            << "For queue [" << d_queueState_p->uri()
+            << "], last advertised stream parameter by handle ["
+            << handle->id() << "] were same as newly advertised "
+            << "ones: " << streamParameters
+            << ". Not sending configure-queue request upstream, but "
+            << "returning success to downstream client.";
 
         return;  // RETURN
     }
@@ -731,7 +767,7 @@ void RelayQueueEngine::configureApp(
         &previousParameters,
         upstreamSubQueueId);
 
-    BMQ_LOGTHROTTLE_INFO()
+    BMQ_LOGTHROTTLE_INFO
         << "For queue '" << d_queueState_p->uri()
         << "', about to rebuild upstream state [current stream parameters: "
         << previousParameters << "]";
@@ -753,7 +789,7 @@ void RelayQueueEngine::configureApp(
         // Last advertised stream parameters for this queue are same as the
         // newly advertised ones.  No need to send any notification upstream.
 
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << "For queue [" << d_queueState_p->uri()
             << "], last advertised stream parameter by the queue"
             << " were same as newly advertised ones: " << previousParameters
@@ -816,11 +852,11 @@ void RelayQueueEngine::rebuildUpstreamState(Routers::AppContext* context,
                       appState->routing().get());
 
         if (errorStream.length() > 0) {
-            BALL_LOG_WARN << "#BMQ_SUBSCRIPTION_FAILURE for queue '"
-                          << d_queueState_p->uri()
-                          << "', error rebuilding routing [stream parameters: "
-                          << streamParameters << "]: [" << errorStream.str()
-                          << " ]";
+            BMQ_LOGTHROTTLE_WARN
+                << "#BMQ_SUBSCRIPTION_FAILURE for queue '"
+                << d_queueState_p->uri()
+                << "', error rebuilding routing [stream parameters: "
+                << streamParameters << "]: [" << errorStream.str() << " ]";
         }
     }
     context->finalize();
@@ -833,7 +869,7 @@ void RelayQueueEngine::rebuildUpstreamState(Routers::AppContext* context,
 
     d_queueState_p->setUpstreamParameters(upstreamParams, upstreamSubQueueId);
 
-    BMQ_LOGTHROTTLE_INFO()
+    BMQ_LOGTHROTTLE_INFO
         << "For queue '" << d_queueState_p->uri()
         << "', rebuilt upstream parameters [new upstream parameters: "
         << upstreamParams << "]";
@@ -854,9 +890,9 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
 
     if (!d_queueState_p->isDeliverConsumerPriority()) {
         if (d_queueState_p->hasMultipleSubStreams()) {
-            BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
-                           << "Fanout queue '" << d_queueState_p->uri()
-                           << "' does not have priority configuration.";
+            BMQ_LOGTHROTTLE_ERROR << "#CLIENT_IMPROPER_BEHAVIOR Fanout queue '"
+                                  << d_queueState_p->uri()
+                                  << "' does not have priority configuration.";
 
             // One handle can be represented as priority routing group in
             // backward compatible manner.
@@ -896,9 +932,9 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
         consumer.registerSubscriptions(handle);
     }
 
-    BALL_LOG_INFO << "For queue '" << d_queueState_p->uri() << "', "
-                  << "rebuilt highest priority consumers: [count: "
-                  << app.consumers().size() << "]";
+    BMQ_LOGTHROTTLE_INFO << "For queue '" << d_queueState_p->uri() << "', "
+                         << "rebuilt highest priority consumers: [count: "
+                         << app.consumers().size() << "]";
 }
 
 // CREATORS
@@ -1012,6 +1048,14 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         return 0;  // RETURN
     }
 
+    if (!d_queueState_p->canMerge(handleParameters)) {
+        CALLBACK(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                 -1,
+                 "Reached maximum read/write/admin counters for a queue",
+                 0);
+        return 0;  // RETURN
+    }
+
     mqbi::QueueHandle* queueHandle =
         d_queueState_p->handleCatalog().getHandleByRequester(
             *clientContext,
@@ -1036,13 +1080,13 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
                                                handleParameters);
         queueHandle->setHandleParameters(currentHandleParameters);
 
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], reconfigured existing handle [client: "
-                      << clientContext->description()
-                      << ", requesterId: " << clientContext->requesterId()
-                      << ", queueId:" << handleParameters.qId()
-                      << ", new handle parameters: " << currentHandleParameters
-                      << "]";
+        BMQ_LOGTHROTTLE_INFO
+            << "For queue [" << d_queueState_p->uri()
+            << "], reconfigured existing handle [client: "
+            << clientContext->description()
+            << ", requesterId: " << clientContext->requesterId()
+            << ", queueId:" << handleParameters.qId()
+            << ", new handle parameters: " << currentHandleParameters << "]";
     }
     else {
         // This is a new client, we need to create a new handle for it
@@ -1052,12 +1096,13 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
             d_queueState_p->stats().get());
         handleCreated = true;
 
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], created new handle " << queueHandle
-                      << " [client: " << clientContext->description()
-                      << ", requesterId: " << clientContext->requesterId()
-                      << ", queueId:" << handleParameters.qId()
-                      << ", handle parameters: " << handleParameters << "].";
+        BMQ_LOGTHROTTLE_INFO
+            << "For queue [" << d_queueState_p->uri()
+            << "], created new handle " << queueHandle
+            << " [client: " << clientContext->description()
+            << ", requesterId: " << clientContext->requesterId()
+            << ", queueId:" << handleParameters.qId()
+            << ", handle parameters: " << handleParameters << "].";
     }
 
     // Update queue's aggregated parameters.
@@ -1098,20 +1143,21 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
 
         d_queueState_p->adopt(appStateSp);
 
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], created App for appId: ["
-                      << downstreamInfo.appId()
-                      << "] and virtual storage associated with"
-                      << " upstreamSubQueueId: [" << upstreamSubQueueId << "]";
+        BMQ_LOGTHROTTLE_INFO
+            << "For queue [" << d_queueState_p->uri()
+            << "], created App for appId: [" << downstreamInfo.appId()
+            << "] and virtual storage associated with upstreamSubQueueId: ["
+            << upstreamSubQueueId << "]";
     }
 
     BSLS_ASSERT_SAFE(app);
 
     if (!app->isAuthorized()) {
         if (app->authorize()) {
-            BALL_LOG_INFO << "Queue '" << d_queueState_p->uri()
-                          << "' authorized App '" << downstreamInfo.appId()
-                          << "' with ordinal " << app->ordinal() << ".";
+            BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queueState_p->uri()
+                                 << "' authorized App '"
+                                 << downstreamInfo.appId() << "' with ordinal "
+                                 << app->ordinal() << ".";
         }
     }
 
@@ -1162,11 +1208,12 @@ void RelayQueueEngine::configureHandle(
 
     // Verify handle exists
     if (!d_queueState_p->handleCatalog().hasHandle(handle)) {
-        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
-                       << "Attempting to configure unknown handle. Queue '"
-                       << d_queueState_p->uri()
-                       << "', stream params: " << streamParameters
-                       << ", handlePtr '" << handle << "'.";
+        BMQ_LOGTHROTTLE_ERROR
+            << "#CLIENT_IMPROPER_BEHAVIOR "
+            << "Attempting to configure unknown handle. Queue '"
+            << d_queueState_p->uri()
+            << "', stream params: " << streamParameters << ", handlePtr '"
+            << handle << "'.";
 
         context->setStatus(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
                            -1,
@@ -1179,7 +1226,7 @@ void RelayQueueEngine::configureHandle(
         handle->subStreamInfos().find(streamParameters.appId());
 
     if (it == handle->subStreamInfos().end()) {
-        BALL_LOG_ERROR
+        BMQ_LOGTHROTTLE_ERROR
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Attempting to configure unknown substream for the handle. "
             << "Queue '" << d_queueState_p->uri()
@@ -1222,10 +1269,10 @@ void RelayQueueEngine::releaseHandle(
         d_allocator_p);
 
     if (!d_queueState_p->handleCatalog().hasHandle(handle)) {
-        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
-                       << "Attempting to release unknown handle. HandlePtr '"
-                       << handle << "', queue '" << d_queueState_p->uri()
-                       << "'.";
+        BMQ_LOGTHROTTLE_ERROR
+            << "#CLIENT_IMPROPER_BEHAVIOR "
+            << "Attempting to release unknown handle. HandlePtr '" << handle
+            << "', queue '" << d_queueState_p->uri() << "'.";
 
         return;  // RETURN
     }
@@ -1270,9 +1317,8 @@ void RelayQueueEngine::releaseHandleImpl(
                                         cachedHandleParameters) ||
         !bmqp::QueueUtil::isValidSubset(effectiveHandleParam,
                                         d_queueState_p->handleParameters())) {
-        BALL_LOG_ERROR
-            << "#CLIENT_IMPROPER_BEHAVIOR "
-            << "For queue '" << d_queueState_p->uri()
+        BMQ_LOGTHROTTLE_ERROR
+            << "#CLIENT_IMPROPER_BEHAVIOR For queue '" << d_queueState_p->uri()
             << "', invalid handle parameters specified when attempting to "
             << "release a handle: " << effectiveHandleParam
             << ". Handle's current params: " << cachedHandleParameters
@@ -1298,11 +1344,12 @@ void RelayQueueEngine::releaseHandleImpl(
             // (excessive) Close request.
             // The excessive request can delete the queue before the response
             // to the first request.
-            BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
-                           << "Ignoring excessive Close request For queue '"
-                           << d_queueState_p->uri()
-                           << "' because the handle parameters are invalid: "
-                           << effectiveHandleParam;
+            BMQ_LOGTHROTTLE_ERROR
+                << "#CLIENT_IMPROPER_BEHAVIOR "
+                << "Ignoring excessive Close request For queue '"
+                << d_queueState_p->uri()
+                << "' because the handle parameters are invalid: "
+                << effectiveHandleParam;
             return;  // RETURN
         }
     }
@@ -1322,7 +1369,7 @@ void RelayQueueEngine::releaseHandleImpl(
         // 'd_supportShutdownV2'), followed by 'TransportManager::closeClients'
         // which may result in 'QueueHandle::drop' leading to this call.
 
-        BMQ_LOGTHROTTLE_INFO()
+        BMQ_LOGTHROTTLE_INFO
             << "Shutting down and skipping close queue [: "
             << d_queueState_p->uri() << "], queueId: " << d_queueState_p->id()
             << ", handle parameters: " << effectiveHandleParam;
@@ -1367,8 +1414,8 @@ void RelayQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             !d_queueState_p->handleCatalog().hasHandle(handle))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
-                       << "Making unknown handle available.";
+        BMQ_LOGTHROTTLE_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
+                              << "Making unknown handle available.";
         BSLS_ASSERT_SAFE(false && "Making unknown handle available.");
         return;  // RETURN
     }
@@ -1481,10 +1528,11 @@ int RelayQueueEngine::onRejectMessage(BSLA_UNUSED mqbi::QueueHandle* handle,
         result = rda.counter();
 
         if (d_throttledRejectedMessages.requestPermission()) {
-            BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                          << "' rejecting PUSH [GUID: '" << msgGUID
-                          << "', subQueueId: " << app->upstreamSubQueueId()
-                          << "] with the counter: [" << rda << "]";
+            BMQ_LOGTHROTTLE_INFO
+                << "Queue '" << d_queueState_p->uri()
+                << "' rejecting PUSH [GUID: '" << msgGUID
+                << "', subQueueId: " << app->upstreamSubQueueId()
+                << "] with the counter: [" << rda << "]";
         }
 
         if (!rda.isUnlimited()) {
@@ -1510,10 +1558,10 @@ int RelayQueueEngine::onRejectMessage(BSLA_UNUSED mqbi::QueueHandle* handle,
         }
     }
     else if (d_throttledRejectedMessages.requestPermission()) {
-        BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                      << "' got reject for an unknown message [GUID: '"
-                      << msgGUID
-                      << "', subQueueId: " << app->upstreamSubQueueId() << "]";
+        BMQ_LOGTHROTTLE_INFO
+            << "Queue '" << d_queueState_p->uri()
+            << "' got reject for an unknown message [GUID: '" << msgGUID
+            << "', subQueueId: " << app->upstreamSubQueueId() << "]";
     }
 
     return result;
@@ -1584,13 +1632,13 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
 
         AppIds::const_iterator itApp = d_appIds.find(appId);
         if (itApp == d_appIds.end()) {
-            BALL_LOG_ERROR << "#QUEUE_STORAGE_NOTFOUND "
-                           << "For queue '" << d_queueState_p->uri()
-                           << "', queueKey '" << d_queueState_p->key()
-                           << "', failed to find virtual storage iterator "
-                           << "corresponding to appKey '" << appKey
-                           << "' while attempting to purge its virtual "
-                           << "storage.";
+            BMQ_LOGTHROTTLE_ERROR
+                << "#QUEUE_STORAGE_NOTFOUND For queue '"
+                << d_queueState_p->uri() << "', queueKey '"
+                << d_queueState_p->key()
+                << "', failed to find virtual storage iterator corresponding"
+                << " to appKey '" << appKey
+                << "' while attempting to purge its virtual storage.";
         }
         else {
             // Clear out virtual storage corresponding to the App.
@@ -1700,10 +1748,11 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
 
     // A consumer has already opened the queue with 'appId'.
 
-    BALL_LOG_INFO << "Remote queue: " << d_queueState_p->uri()
-                  << " (id: " << d_queueState_p->id()
-                  << ") now has storage: [App Id: " << appId
-                  << ", key: " << appKey << ", ordinal: " << appOrdinal << "]";
+    BMQ_LOGTHROTTLE_INFO << "Remote queue: " << d_queueState_p->uri()
+                         << " (id: " << d_queueState_p->id()
+                         << ") now has storage: [App Id: " << appId
+                         << ", key: " << appKey << ", ordinal: " << appOrdinal
+                         << "]";
 
     iter->second->authorize(appKey, appOrdinal);
 }
@@ -1747,7 +1796,7 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
         const Routers::SubscriptionIds::SharedItem itId =
             d_queueState_p->routingContext().d_groupIds.find(subscriptionId);
         if (!itId) {
-            BMQ_LOGTHROTTLE_ERROR()
+            BMQ_LOGTHROTTLE_ERROR
                 << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
                 << "Remote queue: " << d_queueState_p->uri()
                 << " (id: " << d_queueState_p->id()
@@ -1760,7 +1809,7 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
             // The 'd_queueContext.d_groupIds' may contain new ids for which
             // configure response is not received yet.
 
-            BMQ_LOGTHROTTLE_ERROR()
+            BMQ_LOGTHROTTLE_ERROR
                 << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
                 << "Remote queue: " << d_queueState_p->uri()
                 << " (id: " << d_queueState_p->id()
@@ -1799,7 +1848,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             App_State* app = findApp(subQueueId);
 
             if (app == 0) {
-                BMQ_LOGTHROTTLE_ERROR()
+                BMQ_LOGTHROTTLE_ERROR
                     << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
@@ -1861,7 +1910,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             AppsMap::const_iterator app_cit = d_apps.find(subQueueId);
 
             if (app_cit == d_apps.end()) {
-                BMQ_LOGTHROTTLE_ERROR()
+                BMQ_LOGTHROTTLE_ERROR
                     << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
@@ -1876,8 +1925,8 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
         else {
             const PushStream::App& app = itApp->second;
 
-            if (app.last() && app.last()->equal(itGuid)) {
-                BMQ_LOGTHROTTLE_INFO()
+            if (app.last() && app.last()->iteratorGuid() == itGuid) {
+                BMQ_LOGTHROTTLE_INFO
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"
                     << itApp->second.d_app->appId()
@@ -1930,7 +1979,7 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
                 d_realStorageIter_mp->appMessageView(app->ordinal());
 
             if (appView.isPushing()) {
-                BMQ_LOGTHROTTLE_INFO()
+                BMQ_LOGTHROTTLE_INFO
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"
                     << app->appId()
@@ -1968,9 +2017,9 @@ void RelayQueueEngine::storePush(
                 result != mqbi::StorageResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            BMQ_LOGTHROTTLE_INFO()
-                << d_queueState_p->uri() << " failed to store GUID ["
-                << msgGUID << "], result = " << result;
+            BMQ_LOGTHROTTLE_INFO << d_queueState_p->uri()
+                                 << " failed to store GUID [" << msgGUID
+                                 << "], result = " << result;
         }
         else {
             BSLS_ASSERT_SAFE(dataStreamMessage);

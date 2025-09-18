@@ -68,6 +68,10 @@ struct ClusterStatsIndex {
         // Value: Leader status of cluster, non-zero (1) implies leader
         //        and 0 implies follower
         ,
+        e_CSL_REPLICATION_TIME_NS
+        // Value: time in nanoseconds it took for replication of a new entry
+        //        in CSL file.
+        ,
         e_PARTITION_CFG_DATA_BYTES
         // Value: Configured size of partitions' data file
         ,
@@ -87,6 +91,12 @@ struct ClusterStatsIndex {
         ,
         e_PARTITION_JOURNAL_BYTES
         // Value: Outstanding bytes in the journal file of the partition.
+        ,
+        e_PARTITION_DATA_OFFSET_BYTES
+        // Value: Offset bytes in the data file of the partition.
+        ,
+        e_PARTITION_JOURNAL_OFFSET_BYTES
+        // Value: Offset bytes in the journal file of the partition.
     };
 };
 
@@ -150,6 +160,18 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
 
         return STAT_RANGE(rangeMax, e_LEADER_STATUS);
     }
+    case Stat::e_CSL_REPLICATION_TIME_NS_AVG: {
+        const bsls::Types::Int64 value = STAT_RANGE(averagePerEvent,
+                                                    e_CSL_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0
+                                                                       : value;
+    }
+    case Stat::e_CSL_REPLICATION_TIME_NS_MAX: {
+        const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
+                                                    e_CSL_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
+    }
     case Stat::e_PARTITION_CFG_JOURNAL_BYTES: {
         return STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
     }
@@ -179,6 +201,12 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                                     e_PARTITION_JOURNAL_BYTES);
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
+    }
+    case Stat::e_PARTITION_DATA_OFFSET: {
+        return STAT_SINGLE(value, e_PARTITION_DATA_OFFSET_BYTES);
+    }
+    case Stat::e_PARTITION_JOURNAL_OFFSET: {
+        return STAT_SINGLE(value, e_PARTITION_JOURNAL_OFFSET_BYTES);
     }
     case Stat::e_PARTITION_DATA_UTILIZATION_MAX: {
         const bsls::Types::Int64 value = STAT_RANGE(rangeMax,
@@ -335,6 +363,13 @@ ClusterStats& ClusterStats::setIsLeader(LeaderStatus::Enum value)
     return *this;
 }
 
+ClusterStats& ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
+{
+    d_statContext_mp->reportValue(ClusterStatsIndex::e_CSL_REPLICATION_TIME_NS,
+                                  value);
+    return *this;
+}
+
 ClusterStats&
 ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
                                    bsls::Types::Int64 journalBytes)
@@ -372,9 +407,11 @@ ClusterStats& ClusterStats::setNodeRoleForPartition(int partitionId,
 }
 
 ClusterStats&
-ClusterStats::setPartitionOutstandingBytes(int                partitionId,
-                                           bsls::Types::Int64 dataBytes,
-                                           bsls::Types::Int64 journalBytes)
+ClusterStats::setPartitionBytes(int                partitionId,
+                                bsls::Types::Int64 outstandingDataBytes,
+                                bsls::Types::Int64 outstandingJournalBytes,
+                                bsls::Types::Int64 offsetDataBytes,
+                                bsls::Types::Int64 offsetJournalBytes)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -385,10 +422,16 @@ ClusterStats::setPartitionOutstandingBytes(int                partitionId,
 
     d_partitionsStatContexts[partitionId]->reportValue(
         ClusterStatsIndex::e_PARTITION_DATA_BYTES,
-        dataBytes);
+        outstandingDataBytes);
     d_partitionsStatContexts[partitionId]->reportValue(
         ClusterStatsIndex::e_PARTITION_JOURNAL_BYTES,
-        journalBytes);
+        outstandingJournalBytes);
+    d_partitionsStatContexts[partitionId]->setValue(
+        ClusterStatsIndex::e_PARTITION_DATA_OFFSET_BYTES,
+        offsetDataBytes);
+    d_partitionsStatContexts[partitionId]->setValue(
+        ClusterStatsIndex::e_PARTITION_JOURNAL_OFFSET_BYTES,
+        offsetJournalBytes);
     return *this;
 }
 
@@ -542,12 +585,15 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .storeExpiredSubcontextValues(true)
         .value("cluster_status")
         .value("cluster_leader")
+        .value("cluster_csl_replication_time_ns", bmqst::StatValue::e_DISCRETE)
         .value("cluster.partition.cfg_journal_bytes")
         .value("cluster.partition.cfg_data_bytes")
         .value("partition_status")
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE);
+        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
+        .value("partition.data_offset_bytes")
+        .value("partition.journal_offset_bytes");
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per

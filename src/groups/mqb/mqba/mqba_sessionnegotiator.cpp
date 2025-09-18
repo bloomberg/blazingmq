@@ -458,31 +458,35 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
                            shouldExtendMessageProperties);
     }
 
-    // Create the session.  That also calculates 'maxMissedHeartbeats'
+    // Populate the negotiation context based on the received client identity.
+    int rc = populateNegotiationContext(errorDescription, context);
+    if (rc != 0) {
+        return session;  // RETURN
+    }
+
+    // Communicate heartbeat settings.  Currently, only for SDK use
+    const mqbcfg::NetworkInterfaces& niConfig = appConfig.networkInterfaces();
+    response.maxMissedHeartbeats()            = context->d_maxMissedHeartbeats;
+    if (niConfig.tcpInterface().has_value()) {
+        response.heartbeatIntervalMs() =
+            niConfig.tcpInterface().value().heartbeatIntervalMs();
+    }
+
+    rc = sendNegotiationMessage(errorDescription,
+                                negotiationResponse,
+                                context);
+    if (rc != 0) {
+        return session;  // RETURN
+    }
+
+    // Create the session.
     bsl::string description;
     loadSessionDescription(
         &description,
         clientIdentity,
         *(context->d_initialConnectionContext_p->channel().get()));
 
-    createSession(errorDescription, &session, context, description);
-
-    // Communicate heartbeat settings.  Currently, only for SDK use
-    const mqbcfg::NetworkInterfaces& niConfig = appConfig.networkInterfaces();
-
-    response.maxMissedHeartbeats() = context->d_maxMissedHeartbeat;
-
-    if (niConfig.tcpInterface().has_value()) {
-        response.heartbeatIntervalMs() =
-            niConfig.tcpInterface().value().heartbeatIntervalMs();
-    }
-
-    int rc = sendNegotiationMessage(errorDescription,
-                                    negotiationResponse,
-                                    context);
-    if (rc != 0) {
-        session.reset();
-    }
+    createSession(&session, context, description);
 
     return session;
 }
@@ -522,7 +526,11 @@ SessionNegotiator::onBrokerResponseMessage(bsl::ostream& errorDescription,
         brokerResponse.brokerIdentity(),
         *(context->d_initialConnectionContext_p->channel().get()));
 
-    createSession(errorDescription, &session, context, description);
+    const int rc = populateNegotiationContext(errorDescription, context);
+    if (rc != 0) {
+        return session;  // RETURN
+    }
+    createSession(&session, context, description);
 
     return session;
 }
@@ -592,15 +600,25 @@ int SessionNegotiator::sendNegotiationMessage(
     return rc_SUCCESS;
 }
 
-void SessionNegotiator::createSession(bsl::ostream& errorDescription,
-                                      bsl::shared_ptr<mqbnet::Session>* out,
-                                      const NegotiationContextSp& context,
-                                      const bsl::string&          description)
+int SessionNegotiator::populateNegotiationContext(
+    bsl::ostream&               errorDescription,
+    const NegotiationContextSp& context)
 {
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                 = 0,
+        rc_GET_CLUSTER_NODE_FAILED = -1
+    };
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context->d_connectionType !=
                      mqbnet::ConnectionType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(!context->d_negotiationMessage.isUndefinedValue());
+
+    if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
+        // Nothing to do for admin connection
+        return rc_SUCCESS;  // RETURN
+    }
 
     const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
         context->d_negotiationMessage;
@@ -612,41 +630,7 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
     const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
     int                              maxMissedHeartbeats = 0;
 
-    if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
-        mqba::AdminSession* session = new (*d_allocator_p)
-            AdminSession(context->d_initialConnectionContext_p->channel(),
-                         negoMsg,
-                         description,
-                         d_dispatcher_p,
-                         d_blobSpPool_p,
-                         d_scheduler_p,
-                         d_adminCb,
-                         d_allocator_p);
-
-        out->reset(session, d_allocator_p);
-    }
-    else if (context->d_connectionType == mqbnet::ConnectionType::e_CLIENT) {
-        // Create a dedicated stats subcontext for this client
-        bmqst::StatContextConfiguration statContextCfg(description);
-        statContextCfg.storeExpiredSubcontextValues(true);
-        bslma::ManagedPtr<bmqst::StatContext> statContext =
-            d_statContext_p->addSubcontext(statContextCfg);
-
-        mqba::ClientSession* session = new (*d_allocator_p)
-            ClientSession(context->d_initialConnectionContext_p->channel(),
-                          negoMsg,
-                          description,
-                          d_dispatcher_p,
-                          d_clusterCatalog_p,
-                          d_domainFactory_p,
-                          statContext,
-                          d_blobSpPool_p,
-                          d_bufferFactory_p,
-                          d_scheduler_p,
-                          d_allocator_p);
-
-        out->reset(session, d_allocator_p);
-
+    if (context->d_connectionType == mqbnet::ConnectionType::e_CLIENT) {
         // Configure heartbeat
         if (negoMsg.clientIdentity().clientType() ==
             bmqp_ctrlmsg::ClientType::E_TCPCLIENT) {
@@ -683,16 +667,8 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
             peerIdentity.clusterNodeId());
 
         if (!clusterNode) {
-            return;  // RETURN
+            return rc_GET_CLUSTER_NODE_FAILED;  // RETURN
         }
-
-        out->reset(new (*d_allocator_p) mqbnet::DummySession(
-                       context->d_initialConnectionContext_p->channel(),
-                       negoMsg,
-                       clusterNode,
-                       description,
-                       d_allocator_p),
-                   d_allocator_p);
 
         // Configure heartbeat
         if (clusterNode->cluster()->selfNodeId() ==
@@ -704,7 +680,76 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
         }
     }
 
-    context->d_maxMissedHeartbeat = maxMissedHeartbeats;
+    context->d_maxMissedHeartbeats = maxMissedHeartbeats;
+
+    return rc_SUCCESS;
+}
+
+void SessionNegotiator::createSession(bsl::shared_ptr<mqbnet::Session>* out,
+                                      const NegotiationContextSp& context,
+                                      const bsl::string&          description)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context->d_connectionType !=
+                     mqbnet::ConnectionType::e_UNKNOWN);
+    BSLS_ASSERT_SAFE(!context->d_negotiationMessage.isUndefinedValue());
+
+    const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
+        context->d_negotiationMessage;
+    const bsl::shared_ptr<bmqio::Channel>& channel =
+        context->d_initialConnectionContext_p->channel();
+
+    if (context->d_connectionType == mqbnet::ConnectionType::e_ADMIN) {
+        mqba::AdminSession* session = new (*d_allocator_p)
+            AdminSession(channel,
+                         negoMsg,
+                         description,
+                         d_dispatcher_p,
+                         d_blobSpPool_p,
+                         d_scheduler_p,
+                         d_adminCb,
+                         d_allocator_p);
+
+        out->reset(session, d_allocator_p);
+    }
+    else if (context->d_connectionType == mqbnet::ConnectionType::e_CLIENT) {
+        // Create a dedicated stats subcontext for this client
+        bmqst::StatContextConfiguration statContextCfg(description);
+        statContextCfg.storeExpiredSubcontextValues(true);
+        bslma::ManagedPtr<bmqst::StatContext> statContext =
+            d_statContext_p->addSubcontext(statContextCfg);
+
+        mqba::ClientSession* session = new (*d_allocator_p)
+            ClientSession(channel,
+                          negoMsg,
+                          description,
+                          d_dispatcher_p,
+                          d_clusterCatalog_p,
+                          d_domainFactory_p,
+                          statContext,
+                          d_blobSpPool_p,
+                          d_bufferFactory_p,
+                          d_scheduler_p,
+                          d_allocator_p);
+
+        out->reset(session, d_allocator_p);
+    }
+    else {
+        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+            negoMsg.isClientIdentityValue()
+                ? negoMsg.clientIdentity()
+                : negoMsg.brokerResponse().brokerIdentity();
+
+        mqbnet::ClusterNode* clusterNode = context->d_cluster_p->lookupNode(
+            peerIdentity.clusterNodeId());
+
+        out->reset(new (*d_allocator_p) mqbnet::DummySession(channel,
+                                                             negoMsg,
+                                                             clusterNode,
+                                                             description,
+                                                             d_allocator_p),
+                   d_allocator_p);
+    }
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(

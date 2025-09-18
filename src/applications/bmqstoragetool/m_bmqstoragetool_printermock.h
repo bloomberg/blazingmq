@@ -78,6 +78,10 @@ class PrinterMock : public Printer {
     // PUBLIC METHODS
 
     MOCK_CONST_METHOD1(printMessage, void(const MessageDetails&));
+    MOCK_CONST_METHOD1(printConfirmRecord,
+                       void(const RecordDetails<mqbs::ConfirmRecord>&));
+    MOCK_CONST_METHOD1(printDeletionRecord,
+                       void(const RecordDetails<mqbs::DeletionRecord>&));
     MOCK_CONST_METHOD1(printQueueOpRecord,
                        void(const RecordDetails<mqbs::QueueOpRecord>&));
     MOCK_CONST_METHOD1(printJournalOpRecord,
@@ -85,7 +89,14 @@ class PrinterMock : public Printer {
     MOCK_CONST_METHOD1(printGuidNotFound, void(const bmqt::MessageGUID&));
     MOCK_CONST_METHOD1(printGuid, void(const bmqt::MessageGUID&));
     MOCK_CONST_METHOD4(printFooter,
-                       void(bsl::size_t,
+                       void(bsls::Types::Uint64,
+                            bsls::Types::Uint64,
+                            bsls::Types::Uint64,
+                            const Parameters::ProcessRecordTypes&));
+    MOCK_CONST_METHOD6(printExactMatchFooter,
+                       void(bsls::Types::Uint64,
+                            bsls::Types::Uint64,
+                            bsls::Types::Uint64,
                             bsls::Types::Uint64,
                             bsls::Types::Uint64,
                             const Parameters::ProcessRecordTypes&));

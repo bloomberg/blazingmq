@@ -363,6 +363,57 @@ void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
                                 d_clusterConfig);
 }
 
+void StorageManager::queueCreationCb(int                     partitionId,
+                                     const bmqt::Uri&        uri,
+                                     const mqbu::StorageKey& queueKey,
+                                     const AppInfos&         appIdKeyPairs,
+                                     bool                    isNewQueue)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+
+    if (d_cluster_p->isFSMWorkflow()) {
+        // This callback is removed for CSL mode
+
+        return;  // RETURN
+    }
+
+    // This routine is executed at replica nodes when they received a queue
+    // creation record from the primary in the partition stream.
+
+    if (isNewQueue) {
+        mqbc::StorageUtil::createQueueStorageDispatched(
+            &d_storages[partitionId],
+            &d_storagesLock,
+            d_fileStores[partitionId].get(),
+            d_domainFactory_p,
+            d_clusterData_p->identity().description(),
+            partitionId,
+            uri,
+            queueKey,
+            appIdKeyPairs,
+            0);
+    }
+    else {
+        mqbc::StorageUtil::updateQueueStorageDispatched(
+            &d_storages[partitionId],
+            &d_storagesLock,
+            d_domainFactory_p,
+            d_clusterData_p->identity().description(),
+            partitionId,
+            uri,
+            queueKey,
+            appIdKeyPairs,
+            0);
+        // Ignore the return code of addVirtualStoragesInternal which can only
+        // indicate if the VirtualStorage is already created.
+    }
+}
+
 void StorageManager::recoveredQueuesCb(int                    partitionId,
                                        const QueueKeyInfoMap& queueKeyInfoMap)
 {
@@ -1034,8 +1085,8 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
 void StorageManager::registerQueueReplica(int                     partitionId,
                                           const bmqt::Uri&        uri,
                                           const mqbu::StorageKey& queueKey,
-                                          mqbi::Domain*           domain,
-                                          bool allowDuplicate)
+                                          const AppInfos& appIdKeyPairs,
+                                          mqbi::Domain*   domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1052,19 +1103,17 @@ void StorageManager::registerQueueReplica(int                     partitionId,
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
         .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::registerQueueReplicaDispatched,
-            static_cast<int*>(0),
+            &mqbc::StorageUtil::createQueueStorageDispatched,
             &d_storages[partitionId],
             &d_storagesLock,
             d_fileStores[partitionId].get(),
             d_domainFactory_p,
-            &d_allocators,
             d_clusterData_p->identity().description(),
             partitionId,
             uri,
             queueKey,
-            domain,
-            allowDuplicate));
+            appIdKeyPairs,
+            domain));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -1089,8 +1138,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
         .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::unregisterQueueReplicaDispatched,
-            static_cast<int*>(0),
+            &mqbc::StorageUtil::removeQueueStorageDispatched,
             &d_storages[partitionId],
             &d_storagesLock,
             d_fileStores[partitionId].get(),
@@ -1107,8 +1155,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
                                         const bmqt::Uri&        uri,
                                         const mqbu::StorageKey& queueKey,
                                         const AppInfos&         appIdKeyPairs,
-                                        mqbi::Domain*           domain,
-                                        bool                    allowDuplicate)
+                                        mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1125,8 +1172,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
         .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::updateQueueReplicaDispatched,
-            static_cast<int*>(0),
+            &mqbc::StorageUtil::updateQueueStorageDispatched,
             &d_storages[partitionId],
             &d_storagesLock,
             d_domainFactory_p,
@@ -1135,8 +1181,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
             uri,
             queueKey,
             appIdKeyPairs,
-            domain,
-            allowDuplicate));
+            domain));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -1172,7 +1217,6 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
                                   queue));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
-    ;
 }
 
 void StorageManager::setQueueRaw(mqbi::Queue*     queue,
@@ -1290,8 +1334,15 @@ int StorageManager::start(bsl::ostream& errorDescription)
         d_replicationFactor,
         bdlf::BindUtil::bind(&StorageManager::recoveredQueuesCb,
                              this,
+                             bdlf::PlaceHolders::_1,   // partitionId
+                             bdlf::PlaceHolders::_2),  // queueKeyUriMap)
+        bdlf::BindUtil::bind(&StorageManager::queueCreationCb,
+                             this,
                              bdlf::PlaceHolders::_1,    // partitionId
-                             bdlf::PlaceHolders::_2));  // queueKeyUriMap)
+                             bdlf::PlaceHolders::_2,    // QueueUri
+                             bdlf::PlaceHolders::_3,    // QueueKey
+                             bdlf::PlaceHolders::_4,    // AppInfos
+                             bdlf::PlaceHolders::_5));  // IsNewQueue)
 
     BALL_LOG_INFO_BLOCK
     {

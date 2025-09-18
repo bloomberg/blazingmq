@@ -28,6 +28,7 @@
 #include <mqbnet_session.h>
 #include <mqbs_datastore.h>
 #include <mqbs_replicatedstorage.h>
+#include <mqbstat_queuestats.h>
 
 // BMQ
 #include <bmqp_ackmessageiterator.h>
@@ -3457,10 +3458,24 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
     d_clusterOrchestrator.updateDatumStats();
 
     if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
-        d_clusterData.stats().setIsLeader(
-            d_clusterData.membership().selfNode() == node
-                ? mqbstat::ClusterStats::LeaderStatus::e_LEADER
-                : mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
+        if (d_clusterData.membership().selfNode() == node) {
+            d_clusterData.stats().setIsLeader(
+                mqbstat::ClusterStats::LeaderStatus::e_LEADER);
+        }
+        else {
+            d_clusterData.stats().setIsLeader(
+                mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
+            if (d_state.isSelfPrimary()) {
+                // We encountered the leader / primary divergence.
+                // Initiate a graceful shutdown of the broker
+                BALL_LOG_ERROR
+                    << "Encountered leader-primary divergence: this node is "
+                       "still the primary but the leadership has gone to "
+                    << (node ? node->hostName() : "UNDEFINED");
+                mqbu::ExitUtil::shutdown(
+                    mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
+            }
+        }
     }
 }
 

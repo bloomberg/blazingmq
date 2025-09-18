@@ -149,6 +149,9 @@ struct ClusterErrorCode {
         ,
         e_CSL_FAILURE = -208
         // Failure to apply to the CSL
+        ,
+        e_STORAGE_FAILURE = -209
+        // Storage failure other than CSL failure
     };
 
     // CLASS METHODS

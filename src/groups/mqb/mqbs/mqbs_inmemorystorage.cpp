@@ -118,12 +118,9 @@ int InMemoryStorage::configure(BSLA_UNUSED bsl::ostream& errorDescription,
 
 void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
 {
-    BALL_LOG_WARN_BLOCK
-    {
-        if (value.isStrongValue()) {
-            BALL_LOG_OUTPUT_STREAM << "Trying to configure strong consistency "
-                                   << "for in-memory storage";
-        }
+    if (value.isStrongValue()) {
+        BALL_LOG_WARN << "Trying to configure strong consistency "
+                      << "for in-memory storage";
     }
 }
 

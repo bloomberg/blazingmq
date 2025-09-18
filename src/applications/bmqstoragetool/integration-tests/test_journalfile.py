@@ -76,7 +76,7 @@ def test_short_json(storagetool, journal_file):
         )
         assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
-        assert json_res["TotalMessages"] == "2"
+        assert json_res["MessageRecords"] == "2"
         assert TEST_GUID_1.decode() in json_res["Records"]
         assert TEST_GUID_2.decode() in json_res["Records"]
 
@@ -139,7 +139,7 @@ def test_detail_json(storagetool, journal_file, csl_file):
         )
         assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
-        assert json_res["TotalMessages"] == "2"
+        assert json_res["MessageRecords"] == "2"
         assert len(json_res["Records"]) == 4
 
 

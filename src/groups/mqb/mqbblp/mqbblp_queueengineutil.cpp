@@ -81,7 +81,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
-#define BMQ_LOGTHROTTLE_INFO()                                                \
+#define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
@@ -901,11 +901,10 @@ QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
     // existing `RelayQueueEngine` routing contexts.
 }
 
-size_t
-QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
-                                          mqbi::StorageIterator*       reader,
-                                          mqbi::StorageIterator*       start,
-                                          const mqbi::StorageIterator* end)
+size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
+                                         mqbi::StorageIterator*       reader,
+                                         mqbi::StorageIterator*       start,
+                                         const mqbi::StorageIterator* end)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1151,15 +1150,14 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // The message got gc'ed or purged
-            BMQ_LOGTHROTTLE_INFO()
-                << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
-                << d_queue_p->description() << "', app: '" << appId()
-                << "' could not redeliver GUID: '" << *it
-                << "' (not in the storage)";
+            BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                                 << d_queue_p->description() << "', app: '"
+                                 << appId() << "' could not redeliver GUID: '"
+                                 << *it << "' (not in the storage)";
         }
         else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                      !reader->appMessageView(ordinal()).isPending())) {
-            BMQ_LOGTHROTTLE_INFO()
+            BMQ_LOGTHROTTLE_INFO
                 << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
                 << d_queue_p->description() << "', app: '" << appId()
                 << "' could not redeliver GUID: '" << *it << "' (wrong state "

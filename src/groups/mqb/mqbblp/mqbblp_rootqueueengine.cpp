@@ -125,10 +125,10 @@ void RootQueueEngine::deliverMessages(AppState* app)
     }
 
     bsls::TimeInterval delay;
-    const size_t       numMessages = app->deliverMessages(&delay,
-                                                    d_realStorageIter_mp.get(),
-                                                    start,
-                                                    d_storageIter_mp.get());
+    const size_t       numMessages = app->catchUp(&delay,
+                                                  d_realStorageIter_mp.get(),
+                                                  start,
+                                                  d_storageIter_mp.get());
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
@@ -644,6 +644,14 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
                  "Invalid handle parameters specified",
                  0);
 
+        return 0;  // RETURN
+    }
+
+    if (!d_queueState_p->canMerge(handleParameters)) {
+        CALLBACK(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                 -1,
+                 "Reached maximum read/write/admin counters for a queue",
+                 0);
         return 0;  // RETURN
     }
 

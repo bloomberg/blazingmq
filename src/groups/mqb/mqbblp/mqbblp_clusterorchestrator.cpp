@@ -28,7 +28,9 @@
 #include <mqbi_queueengine.h>
 #include <mqbi_storagemanager.h>
 #include <mqbnet_cluster.h>
+#include <mqbu_exit.h>
 
+// BMQ
 #include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
@@ -127,6 +129,19 @@ void ClusterOrchestrator::onElectorStateChange(
     case mqbnet::ElectorState::e_LEADER: {
         electorTransitionToLeader(leaderNodeId, term);
     } break;  // BREAK
+
+    default: {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Unknown new elector state: " << state
+                      << ", new code: " << code
+                      << ", new leaderNodeId: " << leaderNodeId
+                      << ", new term: " << term << ", old state: "
+                      << d_clusterData_p->electorInfo().electorState()
+                      << ", old leaderNodeId: "
+                      << d_clusterData_p->electorInfo().leaderNodeId()
+                      << ", old term: "
+                      << d_clusterData_p->electorInfo().electorTerm();
+    }
     }
 }
 
@@ -380,21 +395,27 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
                      pinfo.primaryStatus());
 
     if (0 != status) {
-        // Primary (self) failed to sync partition. This scenario is currently
-        // not handled.  The leader should assign a new primary if old primary
-        // fails to transition to ACTIVE status in the stipulated time.
+        // `status` is **always** zero in FSM mode.  See
+        // `do_transitionToActivePrimary()`
+        BSLS_ASSERT_SAFE(!d_clusterConfig.clusterAttributes().isFSMWorkflow());
+
+        // Primary (self) failed to sync partition. This scenario is
+        // currently not handled, so we are exiting.  The leader should assign
+        // a new primary if old primary fails to transition to ACTIVE status in
+        // the stipulated time.
 
         BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: primary node (self) failed to sync partition, rc: "
-            << status << ", leaseId: " << primaryLeaseId
+            << status << ", leaseId: " << primaryLeaseId << "."
             << BMQTSK_ALARMLOG_END;
 
         d_stateManager_mp->setPrimaryStatus(
             partitionId,
             bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
-        return;  // RETURN
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -1565,25 +1586,38 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
         // 'StorageMgr::processPrimaryStatusAdvisoryDispatched' as well.
 
         if (pinfo.primaryNode()) {
-            if (pinfo.primaryNode() != source) {
+            if (pinfo.primaryLeaseId() > primaryAdv.primaryLeaseId()) {
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << ": Partition [" << primaryAdv.partitionId()
+                    << "]: received primary status advisory: " << primaryAdv
+                    << " from perceived primary: " << source->nodeDescription()
+                    << ", but with a lesser leaseId. Self perceived leaseId: "
+                    << pinfo.primaryLeaseId() << ". Will ignore the advisory.";
+                return;  // RETURN
+            }
+            else if (pinfo.primaryLeaseId() < primaryAdv.primaryLeaseId()) {
+                BALL_LOG_WARN
+                    << d_clusterData_p->identity().description()
+                    << ": Partition [" << primaryAdv.partitionId()
+                    << "]: received primary status advisory: " << primaryAdv
+                    << " from perceived primary: " << source->nodeDescription()
+                    << ", with a greater leaseId. Self perceived leaseId: "
+                    << pinfo.primaryLeaseId()
+                    << ". Will follow the advisory unconditionally.";
+            }
+            else if (pinfo.primaryNodeId() != source->nodeId()) {
+                BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() ==
+                                 primaryAdv.primaryLeaseId());
+
                 BALL_LOG_ERROR
                     << d_clusterData_p->identity().description()
                     << ": Partition [" << primaryAdv.partitionId()
                     << "]: received primary status advisory: " << primaryAdv
                     << " from: " << source->nodeDescription()
                     << ", but current primary is: "
-                    << pinfo.primaryNode()->nodeDescription();
-                return;  // RETURN
-            }
-
-            if (pinfo.primaryLeaseId() != primaryAdv.primaryLeaseId()) {
-                BALL_LOG_ERROR
-                    << d_clusterData_p->identity().description()
-                    << ": Partition [" << primaryAdv.partitionId()
-                    << "]: received primary status advisory: " << primaryAdv
-                    << " from perceived primary: " << source->nodeDescription()
-                    << ", but with different leaseId. Self perceived "
-                    << "leaseId: " << pinfo.primaryLeaseId();
+                    << pinfo.primaryNode()->nodeDescription()
+                    << ". Will ignore the advisory.";
                 return;  // RETURN
             }
         }

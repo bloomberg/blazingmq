@@ -14,7 +14,9 @@
 // limitations under the License.
 
 // mqbc_storagemanager.cpp                                            -*-C++-*-
+#include "mqbc_partitionstatetable.h"
 #include <ball_log.h>
+#include <bsls_assert.h>
 #include <mqbc_storagemanager.h>
 
 #include <mqbscm_version.h>
@@ -99,18 +101,6 @@ void StorageManager::startRecoveryCb(int partitionId)
     }
 
     d_recoveryStartTimes[partitionId] = bmqsys::Time::highResolutionTimer();
-}
-
-void StorageManager::sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
-                                 mqbnet::ClusterNode* destination)
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(destination);
-
-    d_clusterData_p->messageTransmitter().sendMessage(message, destination);
 }
 
 void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
@@ -963,11 +953,6 @@ void StorageManager::processReplicaDataResponseDispatched(
         eventDataVec.emplace_back(responder, responseId, partitionId, 1);
 
         switch (dataType) {
-        case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << ": FAIL_ReplicaDataResponse has an unknown data "
-                           << "type, ignoring.";
-        } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
             dispatchEventToPartition(
                 fs,
@@ -985,6 +970,12 @@ void StorageManager::processReplicaDataResponseDispatched(
                 fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
                 eventDataVec);
+        } break;
+        case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
+        default: {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << ": FAIL_ReplicaDataResponse has an unknown data "
+                           << "type, ignoring.";
         } break;
         }
         return;  // RETURN
@@ -1043,12 +1034,6 @@ void StorageManager::processReplicaDataResponseDispatched(
                   << responder->nodeDescription();
 
     switch (dataType) {
-    case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId
-                       << "]: ReplicaDataResponse has an unknown data type, "
-                       << "ignoring.";
-    } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
@@ -1063,6 +1048,13 @@ void StorageManager::processReplicaDataResponseDispatched(
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
                                  eventDataVec);
+    } break;
+    case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
+    default: {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId
+                       << "]: ReplicaDataResponse has an unknown data type, "
+                       << "ignoring.";
     } break;
     }
 }
@@ -1279,16 +1271,28 @@ void StorageManager::do_closeRecoveryFileSet(const PartitionFSMArgsSp& args)
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    const int rc = d_recoveryManager_mp->closeRecoveryFileSet(partitionId);
-    if (rc != 0) {
-        // TBD: Is it safe to continue if we failed to closed recovery file
-        // set?
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Failure while closing recovery file set"
-                       << ", rc: " << rc;
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs->config().partitionId() == partitionId);
+    if (fs->isOpen()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Since FileStore is already open, we can deduce that "
+                      << "we didn't need to open recovery file set earlier, "
+                      << "so there is no need to close now.";
 
         return;  // RETURN
+    }
+
+    const int rc = d_recoveryManager_mp->closeRecoveryFileSet(partitionId);
+    if (rc != 0) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Failure while closing recovery file set, rc: " << rc
+            << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
     }
 }
 
@@ -1602,19 +1606,17 @@ void StorageManager::do_replicaStateResponse(const PartitionFSMArgsSp& args)
                                [d_clusterData_p->membership().selfNode()]
                                    .first;
 
-    BSLS_ASSERT_SAFE(eventData.source() ==
-                     d_partitionInfoVec[partitionId].primary());
+    BSLS_ASSERT_SAFE(eventData.source());
+    BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
+
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
                   << " to ReplicaStateRequest from primary node "
                   << eventData.source()->nodeDescription();
-
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               eventData.source()),
-                          d_cluster_p);
 }
 
 void StorageManager::do_failureReplicaStateResponse(
@@ -1637,8 +1639,9 @@ void StorageManager::do_failureReplicaStateResponse(
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    BSLS_ASSERT_SAFE(eventData.source() !=
-                     d_partitionInfoVec[partitionId].primary());
+    BSLS_ASSERT_SAFE(eventData.source());
+    BSLS_ASSERT_SAFE(eventData.source()->nodeId() !=
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
     BSLS_ASSERT_SAFE(!d_partitionFSMVec[partitionId]->isSelfReplica());
     // Replicas should never send an explicit failure ReplicaStateResponse.
 
@@ -1650,17 +1653,15 @@ void StorageManager::do_failureReplicaStateResponse(
     response.code()                = mqbi::ClusterErrorCode::e_NOT_REPLICA;
     response.message()             = "Not a replica";
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self not replica! Sent failure response " << controlMsg
+                  << " Partition [" << partitionId
+                  << "]: " << "Self not replica! Sent failure response "
+                  << controlMsg
                   << " to ReplicaStateRequest from node claiming to be primary"
                   << eventData.source()->nodeDescription() << ".";
-
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               eventData.source()),
-                          d_cluster_p);
 }
 
 void StorageManager::do_logFailureReplicaStateResponse(
@@ -1803,9 +1804,9 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(eventData.source());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -1823,16 +1824,13 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
                                [d_clusterData_p->membership().selfNode()]
                                    .first;
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": sent response " << controlMsg
                   << " to PrimaryStateRequest from replica node "
                   << eventData.source()->nodeDescription();
-
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               eventData.source()),
-                          d_cluster_p);
 }
 
 void StorageManager::do_failurePrimaryStateResponse(
@@ -1851,6 +1849,7 @@ void StorageManager::do_failurePrimaryStateResponse(
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
+    BSLS_ASSERT_SAFE(eventData.source());
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
@@ -1868,17 +1867,15 @@ void StorageManager::do_failurePrimaryStateResponse(
     response.code()                = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
     response.message()             = "Not a primary";
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          eventData.source());
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self not primary! Sent failure response " << controlMsg
+                  << " Partition [" << partitionId
+                  << "]: " << "Self not primary! Sent failure response "
+                  << controlMsg
                   << " to PrimaryStateRequest from node who thinks otherwise "
                   << eventData.source()->nodeDescription() << ".";
-
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               eventData.source()),
-                          d_cluster_p);
 }
 
 void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
@@ -1903,25 +1900,18 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfPrimary());
 
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not sending ReplicaDataRequestPush to replicas "
-                      << "because self is still expecting recovery data "
-                      << "chunks.";
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId
+            << "]: " << "Not sending ReplicaDataRequestPush to replicas yet "
+            << "because self primary is still expecting recovery data "
+            << "chunks from the up-to-date replica.";
 
         return;  // RETURN
     }
-
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
-                       << "because FileStore is not opened.";
-
-        return;  // RETURN
-    }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
 
     // Self primary is sending request to all outdated and up-to-date replicas
 
@@ -2029,7 +2019,8 @@ void StorageManager::do_replicaDataResponsePush(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode == d_partitionInfoVec[partitionId].primary());
+    BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     if (eventData.requestId() >= 0) {
@@ -2059,17 +2050,14 @@ void StorageManager::do_replicaDataResponsePush(const PartitionFSMArgsSp& args)
                                                           partitionId);
     }
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          destNode);
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Sent response " << controlMsg
+                  << " Partition [" << partitionId << "]: " << "Sent response "
+                  << controlMsg
                   << " to ReplicaDataRequestPush from primary node "
                   << destNode->nodeDescription() << ".";
-
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               destNode),
-                          d_cluster_p);
 }
 
 void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
@@ -2096,23 +2084,15 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
     if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
-                      << "Not sending ReplicaDataRequestDrop to replicas "
+                      << "Not sending ReplicaDataRequestDrop to replicas yet "
                       << "because self is still expecting recovery data "
-                      << "chunks.";
+                      << "chunks from the up-to-date replica.";
 
         return;  // RETURN
     }
-
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
-                       << "because FileStore is not opened.";
-
-        return;  // RETURN
-    }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    BSLS_ASSERT_SAFE(fileStore(partitionId).isOpen());
 
     mqbnet::ClusterNode* const selfNode =
         d_clusterData_p->membership().selfNode();
@@ -2284,9 +2264,9 @@ void StorageManager::do_replicaDataResponsePull(const PartitionFSMArgsSp& args)
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     mqbnet::ClusterNode* destNode = eventData.source();
-
     BSLS_ASSERT_SAFE(destNode);
-    BSLS_ASSERT_SAFE(destNode == d_partitionInfoVec[partitionId].primary());
+    BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = eventData.requestId();
@@ -2305,23 +2285,60 @@ void StorageManager::do_replicaDataResponsePull(const PartitionFSMArgsSp& args)
         eventData.partitionSeqNumDataRange().first;
     response.endSequenceNumber() = eventData.partitionSeqNumDataRange().second;
 
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          destNode);
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << ": Sent response " << controlMsg
+                  << " Partition [" << partitionId
+                  << "]: " << ": Sent response " << controlMsg
                   << " to ReplicaDataRequestPull from primary node "
                   << destNode->nodeDescription() << ".";
-
-    dispatcher()->execute(bdlf::BindUtil::bind(&StorageManager::sendMessage,
-                                               this,
-                                               controlMsg,
-                                               eventData.source()),
-                          d_cluster_p);
 }
 
 void StorageManager::do_failureReplicaDataResponsePull(
-    const BSLA_UNUSED PartitionFSMArgsSp& args)
+    const PartitionFSMArgsSp& args)
 {
-    // TODO: Complete Impl
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    mqbnet::ClusterNode* destNode = eventData.source();
+
+    BSLS_ASSERT_SAFE(destNode);
+    BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
+    // TODO Continue verifying here
+
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+    controlMsg.rId() = eventData.requestId();
+
+    bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    status.code()                = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
+    status.message()             = "Failed to send data chunks";
+
+    d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                          destNode);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: " << ": Sent failure response " << controlMsg
+                  << " to ReplicaDataRequestPull from primary node "
+                  << destNode->nodeDescription() << ".";
 }
 
 void StorageManager::do_failureReplicaDataResponsePush(
@@ -2584,17 +2601,7 @@ void StorageManager::do_processLiveData(const PartitionFSMArgsSp& args)
                             source);
 }
 
-void StorageManager::do_processPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
-{
-    // TODO: Complete Impl
-}
-
-void StorageManager::do_nackPut(const BSLA_UNUSED PartitionFSMArgsSp& args)
-{
-    // TODO: Complete Impl
-}
-
-void StorageManager::do_cleanupSeqnums(const PartitionFSMArgsSp& args)
+void StorageManager::do_cleanupMetadata(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
     // contained in 'args'
@@ -2612,11 +2619,15 @@ void StorageManager::do_cleanupSeqnums(const PartitionFSMArgsSp& args)
     const int                    partitionId = eventData.partitionId();
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
+                     PartitionFSM::State::e_UNKNOWN);
 
     d_nodeToSeqNumCtxMapVec[partitionId].clear();
+    d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
+    d_recoveryManager_mp->resetReceiveDataCtx(partitionId);
 }
 
 void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
@@ -2639,26 +2650,25 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    if (d_partitionFSMVec.at(partitionId)->isSelfPrimary() &&
-        d_recoveryManager_mp->expectedDataChunks(partitionId)) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not sending data chunks to replicas because self is "
-                      << "still expecting recovery data chunks.";
+    if (d_partitionFSMVec.at(partitionId)->isSelfPrimary()) {
+        if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId << "]: "
+                          << "Not sending data chunks to replicas yet because "
+                          << "self primary is still expecting recovery data "
+                          << "chunks from the up-to-date replica.";
 
-        return;  // RETURN
+            return;  // RETURN
+        }
     }
-
-    mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
-    BSLS_ASSERT_SAFE(fs);
-    if (!fs->isOpen()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Cannot send ReplicaDataRequestPush to replicas "
-                       << "because FileStore is not opened.";
-
-        return;  // RETURN
+    else {
+        BSLS_ASSERT_SAFE(
+            !d_recoveryManager_mp->expectedDataChunks(partitionId));
     }
+    // If self is not expecting data chunks, then self must be ready to serve
+    // data, hence the file store must be open.
+    const mqbs::FileStore& fs = fileStore(partitionId);
+    BSLS_ASSERT_SAFE(fs.isOpen());
 
     // Note that 'eventData.partitionSeqNumDataRange()' is only used when this
     // action is performed by the replica.  If self is primary, we use
@@ -2679,8 +2689,8 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
 
         mqbnet::ClusterNode* destNode = eventData.source();
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
-        BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary() ==
-                         eventData.source());
+        BSLS_ASSERT_SAFE(destNode->nodeId() ==
+                         d_partitionInfoVec[partitionId].primary()->nodeId());
 
         bmqp_ctrlmsg::PartitionSequenceNumber beginSeqNum =
             eventData.partitionSeqNumDataRange().first;
@@ -2689,11 +2699,13 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
         BSLS_ASSERT_SAFE(endSeqNum ==
                          d_nodeToSeqNumCtxMapVec[partitionId][selfNode].first);
 
+        // No need to check rc here.  A failure will trigger a Partition FSM
+        // event of type e_ERROR_SENDING_DATA_CHUNKS.
         d_recoveryManager_mp->processSendDataChunks(partitionId,
                                                     destNode,
                                                     beginSeqNum,
                                                     endSeqNum,
-                                                    *fs,
+                                                    fs,
                                                     f);
     }
     else {
@@ -2734,15 +2746,24 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 destNode,
                 beginSeqNum,
                 endSeqNum,
-                *(d_fileStores[partitionId].get()),
+                fs,
                 f);
             if (rc != 0) {
-                BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                               << " Partition [" << partitionId << "]: "
-                               << "Failure while sending data chunks to "
-                               << destNode << ", beginSeqNum = " << beginSeqNum
-                               << ", endSeqNum = " << endSeqNum
-                               << ", rc = " << rc;
+                BALL_LOG_ERROR
+                    << d_clusterData_p->identity().description()
+                    << " Partition [" << partitionId
+                    << "]: " << "Failure while sending data chunks to "
+                    << destNode->nodeDescription()
+                    << ", beginSeqNum = " << beginSeqNum
+                    << ", endSeqNum = " << endSeqNum << ", rc = " << rc;
+
+                // The failure rc will trigger a Partition FSM event of type
+                // e_ERROR_SENDING_DATA_CHUNKS.  However, today we do nothing
+                // upon that event, and instead rely on watchdog firing on the
+                // replica to trigger alarm and retry.  If we fail to send data
+                // to enough replicas such that quorum of ReplicaDataResponses
+                // is no longer possible, self primary's watchdog will also
+                // fire.
             }
             else {
                 nodeToSeqNumCtxMap.at(destNode).second = true;
@@ -3101,31 +3122,6 @@ void StorageManager::do_checkQuorumRplcaDataRspn(
     }
 }
 
-void StorageManager::do_clearRplcaDataRspnCnt(const PartitionFSMArgsSp& args)
-{
-    // executed by the *QUEUE DISPATCHER* thread associated with the
-    // paritionId contained in 'args'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
-
-    const PartitionFSM::EventWithData& eventWithData =
-        args->eventsQueue()->front();
-    const EventData& eventDataVec = eventWithData.second;
-
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
-
-    const PartitionFSMEventData& eventData   = eventDataVec[0];
-    const int                    partitionId = eventData.partitionId();
-
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
-                     PartitionFSM::State::e_UNKNOWN);
-
-    d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
-}
-
 void StorageManager::do_reapplyEvent(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the
@@ -3378,6 +3374,35 @@ void StorageManager::do_reapplyDetectSelfReplica(
         d_partitionInfoVec[partitionId].primaryLeaseId());
     args->eventsQueue()->emplace(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                                  eventDataVecOut);
+}
+
+void StorageManager::do_unsupportedPrimaryDowngrade(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // paritionId contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    const int partitionId = eventDataVec[0].partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
+    BSLS_ASSERT_SAFE(eventWithData.first ==
+                     PartitionFSM::Event::e_DETECT_SELF_REPLICA);
+
+    BMQTSK_ALARMLOG_ALARM("CLUSTER")
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: "
+        << "Downgrade from primary to replica is **UNSUPPORTED**. Terminating "
+        << "broker." << BMQTSK_ALARMLOG_END;
+    mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);  // EXIT
 }
 
 // PRIVATE ACCESSORS
@@ -3855,8 +3880,8 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
 void StorageManager::registerQueueReplica(int                     partitionId,
                                           const bmqt::Uri&        uri,
                                           const mqbu::StorageKey& queueKey,
-                                          mqbi::Domain*           domain,
-                                          bool allowDuplicate)
+                                          const AppInfos& appIdKeyPairs,
+                                          mqbi::Domain*   domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3872,19 +3897,17 @@ void StorageManager::registerQueueReplica(int                     partitionId,
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::registerQueueReplicaDispatched,
-                                 static_cast<int*>(0),
+            bdlf::BindUtil::bind(&StorageUtil::createQueueStorageDispatched,
                                  &d_storages[partitionId],
                                  &d_storagesLock,
                                  d_fileStores[partitionId].get(),
                                  d_domainFactory_p,
-                                 &d_allocators,
                                  d_clusterData_p->identity().description(),
                                  partitionId,
                                  uri,
                                  queueKey,
-                                 domain,
-                                 allowDuplicate));
+                                 appIdKeyPairs,
+                                 domain));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -3905,17 +3928,16 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(
-            &StorageUtil::unregisterQueueReplicaDispatched,
-            static_cast<int*>(0),
-            &d_storages[partitionId],
-            &d_storagesLock,
-            d_fileStores[partitionId].get(),
-            d_clusterData_p->identity().description(),
-            partitionId,
-            uri,
-            queueKey,
-            appKey));
+        .setCallback(
+            bdlf::BindUtil::bind(&StorageUtil::removeQueueStorageDispatched,
+                                 &d_storages[partitionId],
+                                 &d_storagesLock,
+                                 d_fileStores[partitionId].get(),
+                                 d_clusterData_p->identity().description(),
+                                 partitionId,
+                                 uri,
+                                 queueKey,
+                                 appKey));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
@@ -3924,8 +3946,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
                                         const bmqt::Uri&        uri,
                                         const mqbu::StorageKey& queueKey,
                                         const AppInfos&         appIdKeyPairs,
-                                        mqbi::Domain*           domain,
-                                        bool                    allowDuplicate)
+                                        mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3941,8 +3962,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
-            bdlf::BindUtil::bind(&StorageUtil::updateQueueReplicaDispatched,
-                                 static_cast<int*>(0),
+            bdlf::BindUtil::bind(&StorageUtil::updateQueueStorageDispatched,
                                  &d_storages[partitionId],
                                  &d_storagesLock,
                                  d_domainFactory_p,
@@ -3951,8 +3971,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
                                  uri,
                                  queueKey,
                                  appIdKeyPairs,
-                                 domain,
-                                 allowDuplicate));
+                                 domain));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }

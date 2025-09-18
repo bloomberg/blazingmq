@@ -332,7 +332,7 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions* out,
     bool failed = false;
     for (int i = 0; i < autoPubSubModulo; ++i) {
         bmqt::Subscription       to;
-        bmqt::CorrelationId      correlationId(i);
+        bmqt::CorrelationId correlationId(bmqt::CorrelationId::autoValue());
         bmqt::SubscriptionHandle handle(correlationId);
 
         bsl::string equality(autoPubSubPropertyName, allocator);

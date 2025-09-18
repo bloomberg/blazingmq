@@ -478,6 +478,8 @@ class QueueEngineTester {
                                const bslstl::StringRef&        appId) const;
 
     void synchronizeScheduler();
+
+    mqbmock::Dispatcher* dispatcher() const;
 };
 
 // ============================
@@ -658,6 +660,12 @@ inline void QueueEngineTester::synchronizeScheduler()
 {
     d_mockCluster_mp->waitForScheduler();
 }
+
+inline mqbmock::Dispatcher* QueueEngineTester::dispatcher() const
+{
+    return d_mockDispatcher_mp.get();
+}
+
 // ----------------------
 // QueueEngineTesterGuard
 // ----------------------
