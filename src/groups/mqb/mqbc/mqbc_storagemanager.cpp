@@ -4885,7 +4885,8 @@ StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
         if (rc != 0) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId << "]: "
-                          << "Failed to recover first sync point sequence "
+                          << "Failed to recover first sync point after "
+                             "rolllover sequence "
                              "number for partition "
                           << partitionId << ". rc=" << rc;
             selffirstSyncPointAfterRollloverSeqNum.reset();

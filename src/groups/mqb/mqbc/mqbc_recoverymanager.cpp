@@ -1544,7 +1544,10 @@ int RecoveryManager::recoverSeqNum(
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     int                rc          = rc_UNKNOWN;
 
-    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
+    if (!recoveryCtx.d_mappedJournalFd.isValid()) {
+        seqNum->reset();
+        return rc_INVALID_FILE_SET;  // RETURN
+    }
 
     mqbs::JournalFileIterator jit;
     rc = mqbs::FileStoreUtil::loadIterators(errorDesc,
@@ -1560,7 +1563,7 @@ int RecoveryManager::recoverSeqNum(
     }
 
     if (firstSyncPointAfterRolllover) {
-        // Retrieve first syncpoint sequence number.
+        // Retrieve first syncpoint after rollover sequence number.
         if (jit.firstSyncPointAfterRolloverPosition() > 0) {
             const mqbs::RecordHeader& recHeader =
                 jit.firstSyncPointAfterRolloverHeader();
@@ -1578,7 +1581,8 @@ int RecoveryManager::recoverSeqNum(
         else {
             BALL_LOG_INFO << d_clusterData.identity().description()
                           << " Partition [" << partitionId << "]: "
-                          << "Journal file has no sync point record. Storing "
+                          << "Journal file has no sync point after rolllover "
+                             "record. Storing "
                              "(0, 0) as self "
                           << "sequence number.";
 
