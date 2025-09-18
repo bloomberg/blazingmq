@@ -5310,9 +5310,9 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("latestSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER,
-     "firstSyncPointSequenceNumber",
-     sizeof("firstSyncPointSequenceNumber") - 1,
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -5341,9 +5341,9 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER:
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER];
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -5352,7 +5352,7 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
 
 PrimaryStateRequest::PrimaryStateRequest()
 : d_latestSequenceNumber()
-, d_firstSyncPointSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -5363,7 +5363,8 @@ void PrimaryStateRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
-    bdlat_ValueTypeFunctions::reset(&d_firstSyncPointSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -5377,8 +5378,8 @@ bsl::ostream& PrimaryStateRequest::print(bsl::ostream& stream,
     printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
-    printer.printAttribute("firstSyncPointSequenceNumber",
-                           this->firstSyncPointSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -5402,9 +5403,9 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("latestSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER,
-     "firstSyncPointSequenceNumber",
-     sizeof("firstSyncPointSequenceNumber") - 1,
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -5433,9 +5434,9 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER:
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER];
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -5444,7 +5445,7 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
 
 PrimaryStateResponse::PrimaryStateResponse()
 : d_latestSequenceNumber()
-, d_firstSyncPointSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -5455,7 +5456,8 @@ void PrimaryStateResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
-    bdlat_ValueTypeFunctions::reset(&d_firstSyncPointSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -5469,8 +5471,8 @@ bsl::ostream& PrimaryStateResponse::print(bsl::ostream& stream,
     printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
-    printer.printAttribute("firstSyncPointSequenceNumber",
-                           this->firstSyncPointSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -6609,9 +6611,9 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("latestSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER,
-     "firstSyncPointSequenceNumber",
-     sizeof("firstSyncPointSequenceNumber") - 1,
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -6640,9 +6642,9 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER:
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER];
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -6651,7 +6653,7 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
 
 ReplicaStateRequest::ReplicaStateRequest()
 : d_latestSequenceNumber()
-, d_firstSyncPointSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -6662,7 +6664,8 @@ void ReplicaStateRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
-    bdlat_ValueTypeFunctions::reset(&d_firstSyncPointSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -6676,8 +6679,8 @@ bsl::ostream& ReplicaStateRequest::print(bsl::ostream& stream,
     printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
-    printer.printAttribute("firstSyncPointSequenceNumber",
-                           this->firstSyncPointSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -6701,9 +6704,9 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("latestSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER,
-     "firstSyncPointSequenceNumber",
-     sizeof("firstSyncPointSequenceNumber") - 1,
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -6732,9 +6735,9 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER:
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY
-            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER];
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -6743,7 +6746,7 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
 
 ReplicaStateResponse::ReplicaStateResponse()
 : d_latestSequenceNumber()
-, d_firstSyncPointSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -6754,7 +6757,8 @@ void ReplicaStateResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
-    bdlat_ValueTypeFunctions::reset(&d_firstSyncPointSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -6768,8 +6772,8 @@ bsl::ostream& ReplicaStateResponse::print(bsl::ostream& stream,
     printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("latestSequenceNumber",
                            this->latestSequenceNumber());
-    printer.printAttribute("firstSyncPointSequenceNumber",
-                           this->firstSyncPointSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }

@@ -713,7 +713,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     bool allPartitionsAvailable() const;
 
     const bmqp_ctrlmsg::PartitionSequenceNumber
-    getSelfFirstSyncPointSequenceNumber(int partitionId) const;
+    getSelffirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
 
   public:
     // TRAITS

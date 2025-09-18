@@ -9850,16 +9850,16 @@ namespace bmqp_ctrlmsg {
 
 class PrimaryStateRequest {
     // This type represents a request sent to the primary by a replica to ask
-    // for primary's sequence numbers (latest and first sync point).  The
-    // replica also sends it own sequence numbers as part of this request.
+    // for primary's sequence number.  The replica also sends it own sequence
+    // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Replica's latest sequence number for corresponding
-    // partition.  firstSyncPointSequenceNumber: Replica's first sync point
-    // sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
-    PartitionSequenceNumber d_firstSyncPointSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
@@ -9869,17 +9869,17 @@ class PrimaryStateRequest {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_PARTITION_ID                     = 0,
-        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID                     = 0,
-        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -9946,9 +9946,10 @@ class PrimaryStateRequest {
     // Return a reference to the modifiable "LatestSequenceNumber"
     // attribute of this object.
 
-    PartitionSequenceNumber& firstSyncPointSequenceNumber();
-    // Return a reference to the modifiable "FirstSyncPointSequenceNumber"
-    // attribute of this object.
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -10000,9 +10001,11 @@ class PrimaryStateRequest {
     // Return a reference offering non-modifiable access to the
     // "LatestSequenceNumber" attribute of this object.
 
-    const PartitionSequenceNumber& firstSyncPointSequenceNumber() const;
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "FirstSyncPointSequenceNumber" attribute of this object.
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const PrimaryStateRequest& lhs,
@@ -10013,8 +10016,8 @@ class PrimaryStateRequest {
     {
         return lhs.partitionId() == rhs.partitionId() &&
                lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointSequenceNumber() ==
-                   rhs.firstSyncPointSequenceNumber();
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const PrimaryStateRequest& lhs,
@@ -10062,15 +10065,15 @@ namespace bmqp_ctrlmsg {
 
 class PrimaryStateResponse {
     // This type represents a response sent by a primary to the replica along
-    // with its sequence numbers (latest and first sync point).
+    // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Primary's latest sequence number for corresponding
-    // partition.  firstSyncPointSequenceNumber: Primary's first sync point
-    // sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
-    PartitionSequenceNumber d_firstSyncPointSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
@@ -10080,17 +10083,17 @@ class PrimaryStateResponse {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_PARTITION_ID                     = 0,
-        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID                     = 0,
-        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -10157,9 +10160,10 @@ class PrimaryStateResponse {
     // Return a reference to the modifiable "LatestSequenceNumber"
     // attribute of this object.
 
-    PartitionSequenceNumber& firstSyncPointSequenceNumber();
-    // Return a reference to the modifiable "FirstSyncPointSequenceNumber"
-    // attribute of this object.
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -10211,9 +10215,11 @@ class PrimaryStateResponse {
     // Return a reference offering non-modifiable access to the
     // "LatestSequenceNumber" attribute of this object.
 
-    const PartitionSequenceNumber& firstSyncPointSequenceNumber() const;
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "FirstSyncPointSequenceNumber" attribute of this object.
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const PrimaryStateResponse& lhs,
@@ -10224,8 +10230,8 @@ class PrimaryStateResponse {
     {
         return lhs.partitionId() == rhs.partitionId() &&
                lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointSequenceNumber() ==
-                   rhs.firstSyncPointSequenceNumber();
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const PrimaryStateResponse& lhs,
@@ -12215,16 +12221,16 @@ namespace bmqp_ctrlmsg {
 
 class ReplicaStateRequest {
     // This type represents a request sent to the replica by the primary to ask
-    // for replica's sequence numbers (latest and first sync point).  The
-    // primary also sends its own sequence numbers as part of this request.
+    // for replica's sequence numbers.  The primary also sends its own sequence
+    // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Primary's latest sequence number for corresponding
-    // partition.  firstSyncPointSequenceNumber: Primary's first sync point
-    // sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
-    PartitionSequenceNumber d_firstSyncPointSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
@@ -12234,17 +12240,17 @@ class ReplicaStateRequest {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_PARTITION_ID                     = 0,
-        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID                     = 0,
-        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -12311,9 +12317,10 @@ class ReplicaStateRequest {
     // Return a reference to the modifiable "LatestSequenceNumber"
     // attribute of this object.
 
-    PartitionSequenceNumber& firstSyncPointSequenceNumber();
-    // Return a reference to the modifiable "FirstSyncPointSequenceNumber"
-    // attribute of this object.
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -12365,9 +12372,11 @@ class ReplicaStateRequest {
     // Return a reference offering non-modifiable access to the
     // "LatestSequenceNumber" attribute of this object.
 
-    const PartitionSequenceNumber& firstSyncPointSequenceNumber() const;
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "FirstSyncPointSequenceNumber" attribute of this object.
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaStateRequest& lhs,
@@ -12378,8 +12387,8 @@ class ReplicaStateRequest {
     {
         return lhs.partitionId() == rhs.partitionId() &&
                lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointSequenceNumber() ==
-                   rhs.firstSyncPointSequenceNumber();
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const ReplicaStateRequest& lhs,
@@ -12427,15 +12436,15 @@ namespace bmqp_ctrlmsg {
 
 class ReplicaStateResponse {
     // This type represents a response sent by a replica to the primary along
-    // with its sequence numbers (latest and first sync point).
+    // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Replica's latest sequence number for corresponding
-    // partition.  firstSyncPointSequenceNumber: Replica's first sync point
-    // sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
-    PartitionSequenceNumber d_firstSyncPointSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
 
     // PRIVATE ACCESSORS
@@ -12445,17 +12454,17 @@ class ReplicaStateResponse {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_PARTITION_ID                     = 0,
-        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID                     = 0,
-        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER           = 1,
-        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER = 2
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -12522,9 +12531,10 @@ class ReplicaStateResponse {
     // Return a reference to the modifiable "LatestSequenceNumber"
     // attribute of this object.
 
-    PartitionSequenceNumber& firstSyncPointSequenceNumber();
-    // Return a reference to the modifiable "FirstSyncPointSequenceNumber"
-    // attribute of this object.
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -12576,9 +12586,11 @@ class ReplicaStateResponse {
     // Return a reference offering non-modifiable access to the
     // "LatestSequenceNumber" attribute of this object.
 
-    const PartitionSequenceNumber& firstSyncPointSequenceNumber() const;
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "FirstSyncPointSequenceNumber" attribute of this object.
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaStateResponse& lhs,
@@ -12589,8 +12601,8 @@ class ReplicaStateResponse {
     {
         return lhs.partitionId() == rhs.partitionId() &&
                lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
-               lhs.firstSyncPointSequenceNumber() ==
-                   rhs.firstSyncPointSequenceNumber();
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const ReplicaStateResponse& lhs,
@@ -28101,7 +28113,8 @@ void PrimaryStateRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
-    hashAppend(hashAlgorithm, this->firstSyncPointSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
 }
 
 // CLASS METHODS
@@ -28124,9 +28137,10 @@ int PrimaryStateRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_firstSyncPointSequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY
-                          [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -28150,11 +28164,11 @@ int PrimaryStateRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_firstSyncPointSequenceNumber,
+            &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -28187,9 +28201,9 @@ inline PartitionSequenceNumber& PrimaryStateRequest::latestSequenceNumber()
 }
 
 inline PartitionSequenceNumber&
-PrimaryStateRequest::firstSyncPointSequenceNumber()
+PrimaryStateRequest::firstSyncPointAfterRolloverSequenceNumber()
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -28211,9 +28225,10 @@ int PrimaryStateRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_firstSyncPointSequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY
-                       [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -28236,11 +28251,11 @@ int PrimaryStateRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return accessor(
-            d_firstSyncPointSequenceNumber,
+            d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -28274,9 +28289,9 @@ PrimaryStateRequest::latestSequenceNumber() const
 }
 
 inline const PartitionSequenceNumber&
-PrimaryStateRequest::firstSyncPointSequenceNumber() const
+PrimaryStateRequest::firstSyncPointAfterRolloverSequenceNumber() const
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // --------------------------
@@ -28291,7 +28306,8 @@ void PrimaryStateResponse::hashAppendImpl(
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
-    hashAppend(hashAlgorithm, this->firstSyncPointSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
 }
 
 // CLASS METHODS
@@ -28314,9 +28330,10 @@ int PrimaryStateResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_firstSyncPointSequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY
-                          [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -28340,11 +28357,11 @@ int PrimaryStateResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_firstSyncPointSequenceNumber,
+            &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -28377,9 +28394,9 @@ inline PartitionSequenceNumber& PrimaryStateResponse::latestSequenceNumber()
 }
 
 inline PartitionSequenceNumber&
-PrimaryStateResponse::firstSyncPointSequenceNumber()
+PrimaryStateResponse::firstSyncPointAfterRolloverSequenceNumber()
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -28401,9 +28418,10 @@ int PrimaryStateResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_firstSyncPointSequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY
-                       [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -28426,11 +28444,11 @@ int PrimaryStateResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return accessor(
-            d_firstSyncPointSequenceNumber,
+            d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -28464,9 +28482,9 @@ PrimaryStateResponse::latestSequenceNumber() const
 }
 
 inline const PartitionSequenceNumber&
-PrimaryStateResponse::firstSyncPointSequenceNumber() const
+PrimaryStateResponse::firstSyncPointAfterRolloverSequenceNumber() const
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ---------------------------
@@ -30255,7 +30273,8 @@ void ReplicaStateRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
-    hashAppend(hashAlgorithm, this->firstSyncPointSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
 }
 
 // CLASS METHODS
@@ -30278,9 +30297,10 @@ int ReplicaStateRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_firstSyncPointSequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY
-                          [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -30304,11 +30324,11 @@ int ReplicaStateRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_firstSyncPointSequenceNumber,
+            &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -30341,9 +30361,9 @@ inline PartitionSequenceNumber& ReplicaStateRequest::latestSequenceNumber()
 }
 
 inline PartitionSequenceNumber&
-ReplicaStateRequest::firstSyncPointSequenceNumber()
+ReplicaStateRequest::firstSyncPointAfterRolloverSequenceNumber()
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -30365,9 +30385,10 @@ int ReplicaStateRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_firstSyncPointSequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY
-                       [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -30390,11 +30411,11 @@ int ReplicaStateRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return accessor(
-            d_firstSyncPointSequenceNumber,
+            d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -30428,9 +30449,9 @@ ReplicaStateRequest::latestSequenceNumber() const
 }
 
 inline const PartitionSequenceNumber&
-ReplicaStateRequest::firstSyncPointSequenceNumber() const
+ReplicaStateRequest::firstSyncPointAfterRolloverSequenceNumber() const
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // --------------------------
@@ -30445,7 +30466,8 @@ void ReplicaStateResponse::hashAppendImpl(
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->latestSequenceNumber());
-    hashAppend(hashAlgorithm, this->firstSyncPointSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
 }
 
 // CLASS METHODS
@@ -30468,9 +30490,10 @@ int ReplicaStateResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_firstSyncPointSequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY
-                          [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -30494,11 +30517,11 @@ int ReplicaStateResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
             &d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_firstSyncPointSequenceNumber,
+            &d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -30531,9 +30554,9 @@ inline PartitionSequenceNumber& ReplicaStateResponse::latestSequenceNumber()
 }
 
 inline PartitionSequenceNumber&
-ReplicaStateResponse::firstSyncPointSequenceNumber()
+ReplicaStateResponse::firstSyncPointAfterRolloverSequenceNumber()
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -30555,9 +30578,10 @@ int ReplicaStateResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_firstSyncPointSequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY
-                       [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -30580,11 +30604,11 @@ int ReplicaStateResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_latestSequenceNumber,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
     }
-    case ATTRIBUTE_ID_FIRST_SYNC_POINT_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
         return accessor(
-            d_firstSyncPointSequenceNumber,
+            d_firstSyncPointAfterRolloverSequenceNumber,
             ATTRIBUTE_INFO_ARRAY
-                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_SEQUENCE_NUMBER]);
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -30618,9 +30642,9 @@ ReplicaStateResponse::latestSequenceNumber() const
 }
 
 inline const PartitionSequenceNumber&
-ReplicaStateResponse::firstSyncPointSequenceNumber() const
+ReplicaStateResponse::firstSyncPointAfterRolloverSequenceNumber() const
 {
-    return d_firstSyncPointSequenceNumber;
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // -----------------------------
