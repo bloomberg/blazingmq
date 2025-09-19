@@ -235,7 +235,7 @@ class StorageManager {
     /// THREAD: Executed by the Client's dispatcher thread.
     virtual void unregisterQueue(const bmqt::Uri& uri, int partitionId) = 0;
 
-    /// Configure the fanout queue having specified `uri` and `queueKey`,
+    /// Configure the fanout queue having specified `uri` and
     /// assigned to the specified `partitionId` to have the specified
     /// `addedIdKeyPairs` appId/appKey pairs added and `removedIdKeyPairs`
     /// appId/appKey pairs removed.  Return zero on success, and non-zero
@@ -244,11 +244,10 @@ class StorageManager {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    virtual int updateQueuePrimary(const bmqt::Uri&        uri,
-                                   const mqbu::StorageKey& queueKey,
-                                   int                     partitionId,
-                                   const AppInfos&         addedIdKeyPairs,
-                                   const AppInfos& removedIdKeyPairs) = 0;
+    virtual int updateQueuePrimary(const bmqt::Uri& uri,
+                                   int              partitionId,
+                                   const AppInfos&  addedIdKeyPairs,
+                                   const AppInfos&  removedIdKeyPairs) = 0;
 
     virtual void registerQueueReplica(int                     partitionId,
                                       const bmqt::Uri&        uri,
@@ -271,8 +270,7 @@ class StorageManager {
     /// the specified `uri` mapped to the specified `partitionId` to the
     /// specified `queue` value.  Note that this method *does* *not*
     /// synchronize on the queue-dispatcher thread.
-    virtual void
-    setQueue(mqbi::Queue* queue, const bmqt::Uri& uri, int partitionId) = 0;
+    virtual void resetQueue(const bmqt::Uri& uri, int partitionId) = 0;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.

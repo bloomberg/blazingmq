@@ -3847,11 +3847,10 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
 
-int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
-                                       const mqbu::StorageKey& queueKey,
-                                       int                     partitionId,
-                                       const AppInfos&         addedIdKeyPairs,
-                                       const AppInfos& removedIdKeyPairs)
+int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
+                                       int              partitionId,
+                                       const AppInfos&  addedIdKeyPairs,
+                                       const AppInfos&  removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified
     // 'partitionId'
@@ -3964,9 +3963,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     fs->dispatchEvent(queueEvent);
 }
 
-void StorageManager::setQueue(mqbi::Queue*     queue,
-                              const bmqt::Uri& uri,
-                              int              partitionId)
+void StorageManager::resetQueue(const bmqt::Uri& uri, int partitionId)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3974,26 +3971,24 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(uri.isValid());
 
-    // Note that 'queue' can be null, which is a valid scenario.
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    if (queue) {
-        BSLS_ASSERT_SAFE(queue->uri() == uri);
-    }
-
-    mqbi::DispatcherEvent* queueEvent = d_dispatcher_p->getEvent(
+    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(bdlf::BindUtil::bind(&StorageUtil::setQueueDispatched,
+        .setCallback(bdlf::BindUtil::bind(&StorageUtil::resetQueueDispatched,
                                           &d_storages[partitionId],
                                           &d_storagesLock,
                                           fs->description(),
-                                          uri,
-                                          queue));
+                                          uri));
 
     fs->dispatchEvent(queueEvent);
+
+    // Explicitly synchronize since 'StorageMgr::setQueue' does not.
+
+    fs->dispatcher()->synchronize(fs);
 }
 
 void StorageManager::setPrimaryForPartition(int                  partitionId,

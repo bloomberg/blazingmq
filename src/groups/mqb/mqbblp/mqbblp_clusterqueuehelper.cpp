@@ -2281,9 +2281,8 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
 
     bdlb::ScopeExitAny queuePtrGuard(
         bdlf::BindUtil::bindS(d_allocator_p,
-                              &mqbi::StorageManager::setQueue,
+                              &mqbi::StorageManager::resetQueue,
                               d_storageManager_p,
-                              static_cast<mqbi::Queue*>(0),
                               queueContext->uri(),
                               queueContext->partitionId()));
 
@@ -4034,13 +4033,8 @@ void ClusterQueueHelper::deleteQueue(QueueContext* queueContext)
     // partitionId assigned to queue, etc.
 
     if (!d_cluster_p->isRemote()) {
-        d_storageManager_p->setQueue(static_cast<mqbi::Queue*>(0),
-                                     queueContext->uri(),
-                                     queueContext->partitionId());
-
-        // Explicitly synchronize since 'StorageMgr::setQueue' does not.
-
-        d_cluster_p->dispatcher()->synchronize(queue);
+        d_storageManager_p->resetQueue(queueContext->uri(),
+                                       queueContext->partitionId());
     }
 
     cancelAllTimers(queueContext);

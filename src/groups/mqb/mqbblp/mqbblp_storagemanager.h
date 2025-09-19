@@ -464,11 +464,10 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    int updateQueuePrimary(const bmqt::Uri&        uri,
-                           const mqbu::StorageKey& queueKey,
-                           int                     partitionId,
-                           const AppInfos&         addedIdKeyPairs,
-                           const AppInfos&         removedIdKeyPairs)
+    int updateQueuePrimary(const bmqt::Uri& uri,
+                           int              partitionId,
+                           const AppInfos&  addedIdKeyPairs,
+                           const AppInfos&  removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
     void registerQueueReplica(int                     partitionId,
@@ -493,9 +492,8 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// the specified `uri` mapped to the specified `partitionId` to the
     /// specified `queue` value.  Note that this method *does* *not*
     /// synchronize on the queue-dispatcher thread.
-    void setQueue(mqbi::Queue*     queue,
-                  const bmqt::Uri& uri,
-                  int              partitionId) BSLS_KEYWORD_OVERRIDE;
+    void resetQueue(const bmqt::Uri& uri,
+                    int              partitionId) BSLS_KEYWORD_OVERRIDE;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.

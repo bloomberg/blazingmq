@@ -1053,11 +1053,10 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
     fs->dispatchEvent(queueEvent);
 }
 
-int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
-                                       const mqbu::StorageKey& queueKey,
-                                       int                     partitionId,
-                                       const AppInfos&         addedIdKeyPairs,
-                                       const AppInfos& removedIdKeyPairs)
+int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
+                                       int              partitionId,
+                                       const AppInfos&  addedIdKeyPairs,
+                                       const AppInfos&  removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -1180,9 +1179,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     fs->dispatchEvent(queueEvent);
 }
 
-void StorageManager::setQueue(mqbi::Queue*     queue,
-                              const bmqt::Uri& uri,
-                              int              partitionId)
+void StorageManager::resetQueue(const bmqt::Uri& uri, int partitionId)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1192,9 +1189,6 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
 
     // Note that 'queue' can be null, which is a valid scenario.
 
-    if (queue) {
-        BSLS_ASSERT_SAFE(queue->uri() == uri);
-    }
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
     mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
@@ -1203,14 +1197,14 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
-        .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
+        .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::resetQueueDispatched,
                                   &d_storages[partitionId],
                                   &d_storagesLock,
                                   fs->description(),
-                                  uri,
-                                  queue));
+                                  uri));
 
     fs->dispatchEvent(queueEvent);
+    fs->dispatcher()->synchronize(fs);
 }
 
 int StorageManager::start(bsl::ostream& errorDescription)
