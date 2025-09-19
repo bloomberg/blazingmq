@@ -69,8 +69,17 @@ struct ClusterStatsIndex {
         //        and 0 implies follower
         ,
         e_CSL_REPLICATION_TIME_NS
-        // Value: time in nanoseconds it took for replication of a new entry
+        // Value: Time in nanoseconds it took for replication of a new entry
         //        in CSL file.
+        ,
+        e_CSL_OFFSET_BYTES
+        // Value: Offset bytes in the CSL file.
+        ,
+        e_CSL_WRITE_BYTES
+        // Value: Bytes written to the CSL file.
+        ,
+        e_CSL_CFG_BYTES
+        // Value: Configured size of the CSL file.
         ,
         e_PARTITION_CFG_DATA_BYTES
         // Value: Configured size of partitions' data file
@@ -166,6 +175,17 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
         return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
                                                                        : value;
     }
+
+    case Stat::e_CSL_OFFSET_BYTES: {
+        return STAT_SINGLE(value, e_CSL_OFFSET_BYTES);
+    }
+    case Stat::e_CSL_WRITE_BYTES: {
+        return STAT_RANGE(valueDifference, e_CSL_WRITE_BYTES);
+    }
+    case Stat::e_CSL_CFG_BYTES: {
+        return STAT_SINGLE(value, e_CSL_CFG_BYTES);
+    }
+
     case Stat::e_PARTITION_CFG_JOURNAL_BYTES: {
         return STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
     }
@@ -358,15 +378,31 @@ ClusterStats& ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
     return *this;
 }
 
+ClusterStats& ClusterStats::setCslOffsetBytes(bsls::Types::Int64 value)
+{
+    d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_OFFSET_BYTES, value);
+    return *this;
+}
+
+ClusterStats& ClusterStats::addCslOffsetBytes(bsls::Types::Int64 delta)
+{
+    d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_WRITE_BYTES, delta);
+    d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_OFFSET_BYTES,
+                                  delta);
+    return *this;
+}
+
 ClusterStats&
 ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
-                                   bsls::Types::Int64 journalBytes)
+                                   bsls::Types::Int64 journalBytes,
+                                   bsls::Types::Int64 cslBytes)
 {
     d_statContext_mp->setValue(ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
                                dataBytes);
     d_statContext_mp->setValue(
         ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
         journalBytes);
+    d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_CFG_BYTES, cslBytes);
     bsl::vector<bsl::shared_ptr<bmqst::StatContext> >::const_iterator it =
         d_partitionsStatContexts.cbegin();
     for (; it != d_partitionsStatContexts.cend(); ++it) {
@@ -566,6 +602,9 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("cluster_status")
         .value("cluster_leader")
         .value("cluster_csl_replication_time_ns", bmqst::StatValue::e_DISCRETE)
+        .value("cluster_csl_offset_bytes")
+        .value("cluster_csl_write_bytes")
+        .value("cluster_csl_cfg_bytes")
         .value("cluster.partition.cfg_journal_bytes")
         .value("cluster.partition.cfg_data_bytes")
         .value("partition_status")
