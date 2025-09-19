@@ -385,14 +385,13 @@ void StorageManager::queueCreationCb(int                     partitionId,
     // This routine is executed at replica nodes when they received a queue
     // creation record from the primary in the partition stream.
 
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
     if (isNewQueue) {
-        mqbc::StorageUtil::createQueueStorageDispatched(
+        mqbc::StorageUtil::createQueueStorageAsReplica(
             &d_storages[partitionId],
             &d_storagesLock,
-            d_fileStores[partitionId].get(),
+            fs,
             d_domainFactory_p,
-            d_clusterData_p->identity().description(),
-            partitionId,
             uri,
             queueKey,
             appIdKeyPairs,
@@ -403,8 +402,7 @@ void StorageManager::queueCreationCb(int                     partitionId,
             &d_storages[partitionId],
             &d_storagesLock,
             d_domainFactory_p,
-            d_clusterData_p->identity().description(),
-            partitionId,
+            fs->description(),
             uri,
             queueKey,
             appIdKeyPairs,
@@ -1015,18 +1013,14 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(domain);
 
-    mqbc::StorageUtil::registerQueue(d_cluster_p,
-                                     d_dispatcher_p,
-                                     &d_storages[partitionId],
-                                     &d_storagesLock,
-                                     d_fileStores[partitionId].get(),
-                                     &d_allocators,
-                                     uri,
-                                     queueKey,
-                                     d_clusterData_p->identity().description(),
-                                     partitionId,
-                                     appIdKeyPairs,
-                                     domain);
+    mqbc::StorageUtil::registerQueueAsPrimary(d_cluster_p,
+                                              &d_storages[partitionId],
+                                              &d_storagesLock,
+                                              d_fileStores[partitionId].get(),
+                                              uri,
+                                              queueKey,
+                                              appIdKeyPairs,
+                                              domain);
 }
 
 void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
@@ -1038,7 +1032,9 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 
     // Dispatch the un-registration to appropriate thread.
 
-    mqbi::DispatcherEvent* queueEvent = d_dispatcher_p->getEvent(
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+
+    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
@@ -1046,7 +1042,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
         .callback()
         .set(
             bdlf::BindUtil::bind(&mqbc::StorageUtil::unregisterQueueDispatched,
-                                 d_fileStores[partitionId].get(),
+                                 fs,
                                  &d_storages[partitionId],
                                  &d_storagesLock,
                                  d_clusterData_p,
@@ -1054,7 +1050,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
                                  bsl::cref(d_partitionInfoVec[partitionId]),
                                  uri));
 
-    d_fileStores[partitionId]->dispatchEvent(queueEvent);
+    fs->dispatchEvent(queueEvent);
 }
 
 int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
@@ -1096,20 +1092,20 @@ void StorageManager::registerQueueReplica(int                     partitionId,
     // This routine is executed at follower nodes upon commit callback of Queue
     // Assignment Advisory from the leader.
 
-    mqbi::DispatcherEvent* queueEvent = d_dispatcher_p->getEvent(
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+
+    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
         .set(bdlf::BindUtil::bind(
-            &mqbc::StorageUtil::createQueueStorageDispatched,
+            &mqbc::StorageUtil::createQueueStorageAsReplica,
             &d_storages[partitionId],
             &d_storagesLock,
             d_fileStores[partitionId].get(),
             d_domainFactory_p,
-            d_clusterData_p->identity().description(),
-            partitionId,
             uri,
             queueKey,
             appIdKeyPairs,
@@ -1131,7 +1127,9 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
     // This routine is executed at follower nodes upon commit callback of Queue
     // Unassigned Advisory or Queue Update Advisory from the leader.
 
-    mqbi::DispatcherEvent* queueEvent = d_dispatcher_p->getEvent(
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+
+    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
@@ -1141,14 +1139,12 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             &mqbc::StorageUtil::removeQueueStorageDispatched,
             &d_storages[partitionId],
             &d_storagesLock,
-            d_fileStores[partitionId].get(),
-            d_clusterData_p->identity().description(),
-            partitionId,
+            fs,
             uri,
             queueKey,
             appKey));
 
-    d_fileStores[partitionId]->dispatchEvent(queueEvent);
+    fs->dispatchEvent(queueEvent);
 }
 
 void StorageManager::updateQueueReplica(int                     partitionId,
@@ -1165,7 +1161,9 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     // This routine is executed at follower nodes upon commit callback of Queue
     // Queue Update Advisory from the leader.
 
-    mqbi::DispatcherEvent* queueEvent = d_dispatcher_p->getEvent(
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+
+    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
@@ -1176,14 +1174,13 @@ void StorageManager::updateQueueReplica(int                     partitionId,
             &d_storages[partitionId],
             &d_storagesLock,
             d_domainFactory_p,
-            d_clusterData_p->identity().description(),
-            partitionId,
+            fs->description(),
             uri,
             queueKey,
             appIdKeyPairs,
             domain));
 
-    d_fileStores[partitionId]->dispatchEvent(queueEvent);
+    fs->dispatchEvent(queueEvent);
 }
 
 void StorageManager::setQueue(mqbi::Queue*     queue,
@@ -1201,8 +1198,9 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
     if (queue) {
         BSLS_ASSERT_SAFE(queue->uri() == uri);
     }
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::DispatcherEvent* queueEvent = d_dispatcher_p->getEvent(
+    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
@@ -1211,31 +1209,11 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
         .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
                                   &d_storages[partitionId],
                                   &d_storagesLock,
-                                  d_clusterData_p->identity().description(),
-                                  partitionId,
+                                  fs->description(),
                                   uri,
                                   queue));
 
-    d_fileStores[partitionId]->dispatchEvent(queueEvent);
-}
-
-void StorageManager::setQueueRaw(mqbi::Queue*     queue,
-                                 const bmqt::Uri& uri,
-                                 int              partitionId)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queue);
-    BSLS_ASSERT_SAFE(d_cluster_p->dispatcher()->inDispatcherThread(queue));
-
-    mqbc::StorageUtil::setQueueDispatched(
-        &d_storages[partitionId],
-        &d_storagesLock,
-        d_clusterData_p->identity().description(),
-        partitionId,
-        uri,
-        queue);
+    fs->dispatchEvent(queueEvent);
 }
 
 int StorageManager::start(bsl::ostream& errorDescription)
@@ -1566,29 +1544,30 @@ void StorageManager::processReplicaDataRequest(
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
-int StorageManager::makeStorage(bsl::ostream& errorDescription,
-                                bsl::shared_ptr<mqbi::Storage>* out,
-                                const bmqt::Uri&                uri,
-                                const mqbu::StorageKey&         queueKey,
-                                int                             partitionId,
-                                const bsls::Types::Int64        messageTtl,
-                                const int maxDeliveryAttempts,
-                                const mqbconfm::StorageDefinition& storageDef)
+int StorageManager::configureStorage(
+    bsl::ostream&                      errorDescription,
+    bsl::shared_ptr<mqbi::Storage>*    out,
+    const bmqt::Uri&                   uri,
+    const mqbu::StorageKey&            queueKey,
+    int                                partitionId,
+    const bsls::Types::Int64           messageTtl,
+    const int                          maxDeliveryAttempts,
+    const mqbconfm::StorageDefinition& storageDef)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    return mqbc::StorageUtil::makeStorage(errorDescription,
-                                          out,
-                                          &d_storages[partitionId],
-                                          &d_storagesLock,
-                                          uri,
-                                          queueKey,
-                                          partitionId,
-                                          messageTtl,
-                                          maxDeliveryAttempts,
-                                          storageDef);
+    return mqbc::StorageUtil::configureStorage(errorDescription,
+                                               out,
+                                               &d_storages[partitionId],
+                                               &d_storagesLock,
+                                               uri,
+                                               queueKey,
+                                               partitionId,
+                                               messageTtl,
+                                               maxDeliveryAttempts,
+                                               storageDef);
 }
 
 void StorageManager::processStorageEvent(

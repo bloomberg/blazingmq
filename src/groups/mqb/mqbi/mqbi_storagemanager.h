@@ -274,14 +274,6 @@ class StorageManager {
     virtual void
     setQueue(mqbi::Queue* queue, const bmqt::Uri& uri, int partitionId) = 0;
 
-    /// Set the queue instance associated with the file-backed storage for
-    /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Behavior is undefined unless `queue` is
-    /// non-null or unless this routine is invoked from the dispatcher
-    /// thread associated with the `partitionId`.
-    virtual void
-    setQueueRaw(mqbi::Queue* queue, const bmqt::Uri& uri, int partitionId) = 0;
-
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
     ///
@@ -323,14 +315,15 @@ class StorageManager {
     processReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
                               mqbnet::ClusterNode*                source) = 0;
 
-    virtual int makeStorage(bsl::ostream&                   errorDescription,
-                            bsl::shared_ptr<mqbi::Storage>* out,
-                            const bmqt::Uri&                uri,
-                            const mqbu::StorageKey&         queueKey,
-                            int                             partitionId,
-                            const bsls::Types::Int64        messageTtl,
-                            const int maxDeliveryAttempts,
-                            const mqbconfm::StorageDefinition& storageDef) = 0;
+    virtual int
+    configureStorage(bsl::ostream&                      errorDescription,
+                     bsl::shared_ptr<mqbi::Storage>*    out,
+                     const bmqt::Uri&                   uri,
+                     const mqbu::StorageKey&            queueKey,
+                     int                                partitionId,
+                     const bsls::Types::Int64           messageTtl,
+                     const int                          maxDeliveryAttempts,
+                     const mqbconfm::StorageDefinition& storageDef) = 0;
 
     /// Executed in cluster dispatcher thread.
     virtual void
