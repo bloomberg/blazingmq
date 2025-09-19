@@ -262,6 +262,8 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     if (rc != 0) {
         return 10 * rc + rc_WRITE_HEADER_FAILURE;  // RETURN
     }
+    d_clusterData_p->stats().setCslOffsetBytes(
+        d_ledger_mp->currentLog()->currentOffset());
 
     if (oldLogId.isNull()) {
         // If this is a brand new ledger
@@ -308,6 +310,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     if (rc != 0) {
         return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
     }
+    d_clusterData_p->stats().addCslOffsetBytes(snapshotRecord->length());
 
     // Write uncommitted advisories into ledger
     for (AdvisoriesMapIter advisoryIt = d_uncommittedAdvisories.begin();
@@ -341,6 +344,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         if (rc != 0) {
             return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
         }
+        d_clusterData_p->stats().addCslOffsetBytes(record->length());
     }
 
     return rc_SUCCESS;
@@ -486,6 +490,8 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
+        d_clusterData_p->stats().addCslOffsetBytes(record.length() -
+                                                   recordOffset);
 
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
@@ -627,6 +633,8 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
+        d_clusterData_p->stats().addCslOffsetBytes(record.length() -
+                                                   recordOffset);
 
         if (isSelfLeader()) {
             bsls::Types::Int64 replicationTimeNs =
@@ -1289,6 +1297,8 @@ int IncoreClusterStateLedger::open()
     if (rc != 0) {
         return 10 * rc + rc_INTERNAL_LEDGER_ERROR;  // RETURN
     }
+    d_clusterData_p->stats().setCslOffsetBytes(
+        d_ledger_mp->currentLog()->currentOffset());
 
     d_isOpen = true;
 
