@@ -182,8 +182,10 @@ SimpleEvaluator::Property::evaluate(EvaluationContext& context) const
     if (value.isError()) {
         const int rc = value.theError().code();
 
-        if (ErrorType::e_EVALUATION_FIRST <= rc &&
-            rc <= ErrorType::e_EVALUATION_LAST) {
+        // ErrorType::e_EVALUATION_LAST and ErrorType::e_EVALUATION_FIRST are
+        // negative, hence the flipped conditional.
+        if (ErrorType::e_EVALUATION_LAST <= rc &&
+            rc <= ErrorType::e_EVALUATION_FIRST) {
             context.setError(static_cast<ErrorType::Enum>(rc));
         }
         else {
