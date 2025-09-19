@@ -148,14 +148,13 @@ static void test4_printTest()
                   {bmqt::EncodingType::e_XML, "XML"},
                   {bmqt::EncodingType::e_JSON, "JSON"},
                   {bmqt::EncodingType::e_TEXT, "TEXT"},
-                  {bmqt::EncodingType::e_MULTIPARTS, "MULTIPARTS"},
-                  {static_cast<bmqt::EncodingType::Enum>(-1),
-                   "(* UNKNOWN *)"}};
+                  {bmqt::EncodingType::e_MULTIPARTS, "MULTIPARTS"}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test = k_DATA[idx];
+
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 

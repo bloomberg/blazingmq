@@ -652,7 +652,7 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// due to some error described with the specified `status`.
         void handleRequestNotSent(const bsl::shared_ptr<Queue>&        queue,
                                   const RequestManagerType::RequestSp& context,
-                                  bmqp_ctrlmsg::StatusCategory::Value  status);
+                                  int                                  status);
 
         /// Handle response error.
         void handleResponseError(const bsl::shared_ptr<Queue>&        queue,
@@ -697,9 +697,9 @@ class BrokerSession BSLS_CPP11_FINAL {
         void handleQueueResume(const bsl::shared_ptr<Queue>& queue);
 
         /// Create a status response for the specified `context` using the
-        /// specified `status` code and error `reason` description.
+        /// specified `status` and error `reason` description.
         void injectErrorResponse(const RequestManagerType::RequestSp& context,
-                                 bmqp_ctrlmsg::StatusCategory::Value  status,
+                                 int                                  status,
                                  const bslstl::StringRef& reason = "");
     };
 

@@ -146,7 +146,7 @@ class DataFileIterator {
     /// Load the options and their length in the specified `options` and
     /// `length` buffers respectively.  The behavior is undefined unless
     /// `nextRecord` returned true.  Note that if no options are associated
-    /// with the message, `options` and `length` will be zero.
+    /// with the message, `*options` and `*length` will be zero.
     void loadOptions(const char** options, unsigned int* length) const;
 
     /// Return the associated mapped file descriptor.
