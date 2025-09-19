@@ -232,7 +232,7 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << fs->description()
-            << " failed to write QueueCreationRecord for queue ["
+            << ": failed to write QueueCreationRecord for queue ["
             << storage->queueUri() << "] queueKey [" << storage->queueKey()
             << "], rc: " << rc << BMQTSK_ALARMLOG_END;
         return rc;  // RETURN
@@ -250,7 +250,7 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
 
     fs->flushStorage();
 
-    BALL_LOG_INFO << fs->description() << " registered ["
+    BALL_LOG_INFO << fs->description() << ": registered ["
                   << storage->queueUri() << "], queueKey ["
                   << storage->queueKey() << "] with the storage as primary.";
 
@@ -278,7 +278,7 @@ void StorageUtil::updateQueuePrimaryDispatched(
 
     bmqu::Printer<AppInfos> printer2(&existingAppInfos);
 
-    BALL_LOG_INFO << fs->description() << ": Existing queue '"
+    BALL_LOG_INFO << fs->description() << ": updating queue '"
                   << storage->queueUri() << "', queueKey: '"
                   << storage->queueKey() << "' " << printer2
                   << " in the storage.";
@@ -309,7 +309,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
-    // PRECONDITIONS);
+    // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(storage);
@@ -334,10 +334,9 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << fs->description()
-                << " failed to write QueueCreationRecord for new appIds "
-                << "for queue [" << storage->queueUri() << "] queueKey ["
-                << storage->queueKey() << "], rc: " << rc
-                << BMQTSK_ALARMLOG_END;
+                << ": failed to write App QueueCreationRecord for queue ["
+                << storage->queueUri() << "] queueKey [" << storage->queueKey()
+                << "], rc: " << rc << BMQTSK_ALARMLOG_END;
             return rc;  // RETURN
         }
 
@@ -359,7 +358,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
             bmqu::Printer<AppInfos> printer(&addedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
-                << fs->description() << " For an already registered queue ["
+                << fs->description() << ": for an already registered queue ["
                 << storage->queueUri() << "], queueKey ["
                 << storage->queueKey() << "], added ["
                 << addedIdKeyPairs.size() << "] new appId/appKey "
@@ -376,12 +375,11 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                                               true);  // asPrimary
             if (0 != rc) {
                 BALL_LOG_ERROR << fs->description()
-                               << ": Failed to remove virtual storage for "
-                               << "appKey [" << cit->second << "], appId ["
-                               << cit->first << "], for queue ["
-                               << storage->queueUri() << "], queueKey ["
-                               << storage->queueKey() << "], rc: " << rc
-                               << ".";
+                               << ": failed to remove storage for  appKey ["
+                               << cit->second << "], appId [" << cit->first
+                               << "], for queue [" << storage->queueUri()
+                               << "], queueKey [" << storage->queueKey()
+                               << "], rc: " << rc << ".";
                 return rc;  // RETURN
             }
         }
@@ -391,11 +389,11 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
             bmqu::Printer<AppInfos> printer(&removedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
-                << fs->description() << " For an already registered queue ["
+                << fs->description() << ": for an already registered queue ["
                 << storage->queueUri() << "], queueKey ["
                 << storage->queueKey() << "], removed ["
-                << removedIdKeyPairs.size() << "] existing appId/appKey "
-                << "pairs:" << printer;
+                << removedIdKeyPairs.size()
+                << "] existing appId/appKey pairs:" << printer;
         }
     }
 
@@ -405,11 +403,10 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
     bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
     bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
-    BALL_LOG_INFO << fs->description() << " updated [" << storage->queueUri()
+    BALL_LOG_INFO << fs->description() << ": updated [" << storage->queueUri()
                   << "], queueKey [" << storage->queueKey()
-                  << "] with the storage as primary: "
-                  << "addedIdKeyPairs:" << printer1
-                  << ", removedIdKeyPairs:" << printer2;
+                  << "] with the storage as primary: addedIdKeyPairs:"
+                  << printer1 << ", removedIdKeyPairs:" << printer2;
 
     return 0;
 }
@@ -442,8 +439,8 @@ int StorageUtil::addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
                                                       cit->second);
 
             if (rc) {
-                BALL_LOG_WARN << partitionDesc << ": "
-                              << "Failed to add virtual storage for AppKey ["
+                BALL_LOG_WARN << partitionDesc
+                              << ": failed to add virtual storage for AppKey ["
                               << cit->second << "], appId [" << cit->first
                               << "], for queue [" << storage->queueUri()
                               << "], queueKey [" << storage->queueKey()
@@ -466,8 +463,7 @@ int StorageUtil::addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
 
         if (rc) {
             BALL_LOG_WARN << partitionDesc
-                          << ": Failed to add virtual storage for the Default "
-                             "App, for queue ["
+                          << ": failed to add Default App storage for queue ["
                           << storage->queueUri() << "], queueKey ["
                           << storage->queueKey() << "]. Reason: ["
                           << errorDesc.str() << "], rc: " << rc << ".";
@@ -2328,14 +2324,14 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
 
     bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
 
-    BALL_LOG_INFO << fs->description() << ": Registering queue '" << uri
+    BALL_LOG_INFO << fs->description() << ": registering queue '" << uri
                   << "', queueKey: '" << queueKey << "' " << printer1
                   << " to the storage.";
 
     if (queueMode.isUndefinedValue()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
             << fs->description()
-            << " Invalid queue-mode in the domain configuration while "
+            << ": invalid queue-mode in the domain configuration while "
             << "attempting to register queue '" << uri << "', queueKey '"
             << queueKey << "'." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
@@ -2349,7 +2345,7 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
         if (storageDef.config().isInMemoryValue() !=
             queueMode.isBroadcastValue()) {
             BMQTSK_ALARMLOG_ALARM("STORAGE")
-                << fs->description() << " Incompatible queue mode ("
+                << fs->description() << ": incompatible queue mode ("
                 << queueMode.selectionName() << ") and storage type ("
                 << storageDef.config().selectionName()
                 << ") while attempting to register clustered queue '" << uri
@@ -2437,7 +2433,7 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
 
     fs->dispatchEvent(queueEvent);
 
-    // Not checking the result.  If not successful, storage is not int the
+    // Not checking the result.  If not successful, storage is not in the
     // 'storageMap'.  Subsequent queue configure will then fail.
 }
 
@@ -2452,20 +2448,22 @@ void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(storageMap);
+    BSLS_ASSERT_SAFE(storagesLock);
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(uri.isValid());
-    BSLS_ASSERT_SAFE(domain);
     BSLS_ASSERT_SAFE(!appIdKeyPairs.empty());
+    BSLS_ASSERT_SAFE(domain);
 
     const mqbconfm::StorageDefinition& storageDef = domain->config().storage();
     const mqbconfm::QueueMode&         queueMode  = domain->config().mode();
 
-    bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
+    bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
-    BALL_LOG_INFO << fs->description() << ": Creating storage for queue '"
-                  << uri << "', queueKey: '" << queueKey << "'.";
+    BALL_LOG_INFO << fs->description() << ": creating storage for queue '"
+                  << uri << "', queueKey: '" << queueKey << "' apps ["
+                  << printer << "].";
 
     BSLS_ASSERT_SAFE(!queueMode.isUndefinedValue());
 
@@ -2637,16 +2635,12 @@ void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
     fs->flushStorage();
 }
 
-int StorageUtil::updateQueuePrimary(
-    StorageSpMap*           storageMap,
-    bslmt::Mutex*           storagesLock,
-    mqbs::FileStore*        fs,
-    const bsl::string&      clusterDescription,
-    const bmqt::Uri&        uri,
-    BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey,
-    int                                       partitionId,
-    const AppInfos&                           addedIdKeyPairs,
-    const AppInfos&                           removedIdKeyPairs)
+int StorageUtil::updateQueuePrimary(StorageSpMap*    storageMap,
+                                    bslmt::Mutex*    storagesLock,
+                                    mqbs::FileStore* fs,
+                                    const bmqt::Uri& uri,
+                                    const AppInfos&  addedIdKeyPairs,
+                                    const AppInfos&  removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2654,7 +2648,6 @@ int StorageUtil::updateQueuePrimary(
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(storageMap);
-    BSLS_ASSERT_SAFE(0 <= partitionId);
 
     if (addedIdKeyPairs.empty() && removedIdKeyPairs.empty()) {
         return 0;  // RETURN
@@ -2666,9 +2659,8 @@ int StorageUtil::updateQueuePrimary(
     if (storageMap->end() == it) {
         bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
         bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
-        BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
-                       << "]: Error when updating queue '" << uri
-                       << "' with addedAppIds: [" << printer1
+        BALL_LOG_ERROR << fs->description() << ": error when updating queue '"
+                       << uri << "' with addedAppIds: [" << printer1
                        << "], removedAppIds: [" << printer2
                        << "]: Failed to find associated queue storage.";
 
@@ -2677,8 +2669,6 @@ int StorageUtil::updateQueuePrimary(
 
     const StorageSp& storageSp = it->second;
     BSLS_ASSERT_SAFE(storageSp);
-    BSLS_ASSERT_SAFE(storageSp->partitionId() == partitionId);
-    BSLS_ASSERT_SAFE(storageSp->queueKey() == queueKey);
 
     return updateQueuePrimaryRaw(storageSp.get(),
                                  fs,
@@ -2722,7 +2712,7 @@ void StorageUtil::createQueueStorageAsReplica(
         // storage event or CSL commit.  Moreover, some versions have a race.
 
         BALL_LOG_WARN << fs->description()
-                      << " Duplicate queue creation trigger for '" << uri
+                      << ": duplicate queue creation trigger for '" << uri
                       << "', queueKey: [" << queueKey << "].";
         return;  // RETURN
     }
@@ -2753,8 +2743,8 @@ void StorageUtil::createQueueStorageAsReplica(
             // Failed to obtain a domain object.
 
             BALL_LOG_ERROR << fs->description()
-                           << " Failed to create domain for the queue '" << uri
-                           << "', queueKey: [" << queueKey << "].";
+                           << ": failed to create domain for the queue '"
+                           << uri << "', queueKey: [" << queueKey << "].";
 
             return;  // RETURN
         }
@@ -2767,7 +2757,7 @@ void StorageUtil::createQueueStorageAsReplica(
         // setup.
 
         BALL_LOG_ERROR << fs->description()
-                       << "Incompatible config for the queue '" << uri
+                       << ": incompatible config for the queue '" << uri
                        << "', queueKey: [" << queueKey << "].";
 
         return;  // RETURN
@@ -2779,20 +2769,20 @@ void StorageUtil::createQueueStorageAsReplica(
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
     if (!rs_sp) {
-        BALL_LOG_WARN << fs->description() << ", failed to update [" << uri
+        BALL_LOG_WARN << fs->description() << ": failed to update [" << uri
                       << "], queueKey [" << queueKey
                       << "] with the storage as replica: "
-                      << "addedIdKeyPairs:" << printer << ".";
+                      << "addedIdKeyPairs [" << printer << "].";
     }
     else {
         BSLS_ASSERT_SAFE(storageMap->end() == storageMap->find(uri));
         storageMap->insert(bsl::make_pair(uri, rs_sp));
         fs->registerStorage(rs_sp.get());
 
-        BALL_LOG_INFO << fs->description() << " updated [" << uri
+        BALL_LOG_INFO << fs->description() << ": updated [" << uri
                       << "], queueKey [" << queueKey
                       << "] with the storage as replica: "
-                      << "addedIdKeyPairs:" << printer;
+                      << "addedIdKeyPairs [" << printer << "].";
     }
 }
 
@@ -2809,7 +2799,6 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(domain);
-    ;
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
 
@@ -2819,7 +2808,7 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
 
     if (domainCfg.mode().isUndefinedValue()) {
         BALL_LOG_ERROR << fs->description()
-                       << "Undefined domain mode for the queue '" << uri
+                       << ": undefined domain mode for the queue '" << uri
                        << "', queueKey: [" << queueKey << "].";
 
         return rs_sp;  // RETURN
@@ -2827,7 +2816,7 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
 
     if (storageDef.config().isUndefinedValue()) {
         BALL_LOG_ERROR << fs->description()
-                       << "Undefined storage config for the queue '" << uri
+                       << ": undefined storage config for the queue '" << uri
                        << "', queueKey: [" << queueKey << "].";
 
         return rs_sp;  // RETURN
@@ -2910,7 +2899,7 @@ void StorageUtil::removeQueueStorageDispatched(
         if (0 != numMsgs) {
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << fs->description()
-                << ": Attempt to delete storage for queue [ " << uri
+                << ": attempt to delete storage for queue [ " << uri
                 << "], queueKey [" << queueKey << "] which has [" << numMsgs
                 << "] outstanding messages." << BMQTSK_ALARMLOG_END;
 
@@ -2923,7 +2912,7 @@ void StorageUtil::removeQueueStorageDispatched(
             fs->removeRecordRaw(recHandles[idx]);
         }
 
-        BALL_LOG_INFO << fs->description() << ", Deleting storage for queue ["
+        BALL_LOG_INFO << fs->description() << ": deleting storage for queue ["
                       << uri << "], queueKey [" << queueKey << "] as replica.";
 
         fs->unregisterStorage(rs);
@@ -2938,7 +2927,7 @@ void StorageUtil::removeQueueStorageDispatched(
     int rc = removeVirtualStorageInternal(rs, appKey, false);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << fs->description() << ": Failed to remove virtual storage "
+            << fs->description() << ": failed to remove virtual storage "
             << "for appKey [" << appKey << "] for queue [" << uri
             << "] and queueKey [" << queueKey << ", rc: " << rc
             << ". Ignoring this event." << BMQTSK_ALARMLOG_END;
@@ -2947,7 +2936,7 @@ void StorageUtil::removeQueueStorageDispatched(
     }
 
     BALL_LOG_INFO << fs->description()
-                  << ", Removed virtual storage for appKey [" << appKey
+                  << ": removed virtual storage for appKey [" << appKey
                   << "] for queue [" << uri << "], queueKey [" << queueKey
                   << "] as replica.";
 }
@@ -3430,7 +3419,7 @@ void StorageUtil::purgeQueueDispatched(
         bmqu::MemOutStream errorMsg;
         errorMsg << "Not purging queue '" << storage->queueUri() << "' "
                  << " with file store: " << fileStore->description()
-                 << "[reason: unset primary node]";
+                 << " [reason: unset primary node]";
         mqbcmd::Error& error = purgedQueueResult->makeError();
         error.message()      = errorMsg.str();
         return;  // RETURN
@@ -3697,7 +3686,7 @@ void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
         BSLS_ASSERT_SAFE(0 == domain);
         *out = 0;
 
-        BALL_LOG_ERROR << description << "]: Failed to create domain for ["
+        BALL_LOG_ERROR << description << ": Failed to create domain for ["
                        << domainName << "], reason: " << status;
     }
     else {

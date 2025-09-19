@@ -1070,10 +1070,7 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        d_clusterData_p->identity().description(),
         uri,
-        queueKey,
-        partitionId,
         addedIdKeyPairs,
         removedIdKeyPairs);
 }

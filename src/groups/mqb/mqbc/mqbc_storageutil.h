@@ -636,7 +636,7 @@ struct StorageUtil {
                                           const bmqt::Uri&     uri);
 
     /// Configure the fanout queue having specified `uri` and `queueKey`,
-    /// assigned to the specified `partitionId` to have the specified
+    /// assigned to the specified `fs` to have the specified
     /// `addedIdKeyPairs` appId/appKey pairs added and `removedIdKeyPairs`
     /// appId/appKey pairs removed.  Return zero on success, and non-zero
     /// value otherwise.  Behavior is undefined unless this function is
@@ -644,15 +644,12 @@ struct StorageUtil {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int updateQueuePrimary(StorageSpMap*           storageMap,
-                                  bslmt::Mutex*           storagesLock,
-                                  mqbs::FileStore*        fs,
-                                  const bsl::string&      clusterDescription,
-                                  const bmqt::Uri&        uri,
-                                  const mqbu::StorageKey& queueKey,
-                                  int                     partitionId,
-                                  const AppInfos&         addedIdKeyPairs,
-                                  const AppInfos&         removedIdKeyPairs);
+    static int updateQueuePrimary(StorageSpMap*    storageMap,
+                                  bslmt::Mutex*    storagesLock,
+                                  mqbs::FileStore* fs,
+                                  const bmqt::Uri& uri,
+                                  const AppInfos&  addedIdKeyPairs,
+                                  const AppInfos&  removedIdKeyPairs);
 
     static void createQueueStorageAsReplica(StorageSpMap*        storageMap,
                                             bslmt::Mutex*        storagesLock,

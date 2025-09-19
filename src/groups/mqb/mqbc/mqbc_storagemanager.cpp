@@ -3861,16 +3861,12 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
-    return StorageUtil::updateQueuePrimary(
-        &d_storages[partitionId],
-        &d_storagesLock,
-        d_fileStores[partitionId].get(),
-        d_clusterData_p->identity().description(),
-        uri,
-        queueKey,
-        partitionId,
-        addedIdKeyPairs,
-        removedIdKeyPairs);
+    return StorageUtil::updateQueuePrimary(&d_storages[partitionId],
+                                           &d_storagesLock,
+                                           d_fileStores[partitionId].get(),
+                                           uri,
+                                           addedIdKeyPairs,
+                                           removedIdKeyPairs);
 }
 
 void StorageManager::registerQueueReplica(int                     partitionId,
