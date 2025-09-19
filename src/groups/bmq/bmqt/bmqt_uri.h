@@ -228,7 +228,7 @@ class Uri {
 
     /// Implicit constructor of this object from the specified `uri` string
     /// using the optionally specified `allocator`.  If the `uri` input
-    /// string doesn't not represent a valid URI, this object is left in an
+    /// string does not represent a valid URI, this object is left in an
     /// invalid state (isValid() will return false).
     Uri(const bsl::string& uri,
         bslma::Allocator*  allocator = 0);  // IMPLICIT

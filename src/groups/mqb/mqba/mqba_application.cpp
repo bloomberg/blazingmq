@@ -59,6 +59,7 @@
 #include <bdls_memoryutil.h>
 #include <bdls_osutil.h>
 #include <bdls_processutil.h>
+#include <bdlt_currenttime.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>
 #include <bsl_ctime.h>
@@ -453,6 +454,8 @@ void Application::stop()
                   << bsl::endl
                   << "========== ============================== ==========";
 
+    bsls::TimeInterval startTime = bdlt::CurrentTime::now();
+
 #define STOP_OBJ(OBJ, NAME)                                                   \
     if (OBJ) {                                                                \
         BALL_LOG_INFO << "Stopping " NAME "...";                              \
@@ -535,7 +538,10 @@ void Application::stop()
     DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
 
-    BALL_LOG_INFO << "BMQbrkr stopped";
+    bsls::TimeInterval elapsedTime = bdlt::CurrentTime::now() - startTime;
+
+    BALL_LOG_INFO << "BMQbrkr stopped (shutdown took "
+                  << elapsedTime.totalSecondsAsDouble() << " seconds)";
 
 #undef DESTROY_OBJ
 #undef STOP_OBJ
