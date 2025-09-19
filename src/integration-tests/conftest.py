@@ -13,31 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# ruff: noqa: E402
+
 import contextlib
 import logging
 
 import pytest
 
-import blazingmq.dev.it.logging
-
 # This must be done early, before we import any module that could call
 # logging.getLogger.
-logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
+import blazingmq.dev.it.logging
 
+logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
 
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 from blazingmq.dev.it.testhooks import PHASE_REPORT_KEY
-
-# pylint: disable=unused-import, wrong-import-position
 from blazingmq.dev.it.fixtures import (
-    single_node,
-    multi_node,
-    cluster,
-    fsm_single_node,
-    fsm_multi_node,
-    fsm_cluster,
+    multi_node as multi_node,
+    cluster as cluster,
+    order as order,
+    multi7_node as multi7_node,
+    single_node as single_node,
+    cartesian_product_cluster as cartesian_product_cluster,
 )
 
 

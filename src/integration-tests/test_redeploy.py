@@ -22,10 +22,9 @@ functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    multi7_node,
     start_cluster,
-    tweak,
 )
+from blazingmq.dev.it.tweaks import tweak
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 

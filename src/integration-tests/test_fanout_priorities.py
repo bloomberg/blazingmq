@@ -20,7 +20,6 @@ consumers .
 
 from blazingmq.dev.it.fixtures import (
     Cluster,
-    cluster,
     order,
 )  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client

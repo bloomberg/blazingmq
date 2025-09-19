@@ -48,8 +48,8 @@ import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
 from blazingmq.dev.it.cluster import Cluster
-from blazingmq.dev.it.tweaks import tweak  # pylint: disable=unused-import
 from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
+from blazingmq.dev.it.tweaks import tweak as tweak  # pylint: disable=unused-import, useless-import-alias
 from blazingmq.dev.it.util import internal_use
 from blazingmq.dev.paths import paths
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
@@ -59,9 +59,11 @@ from blazingmq.dev.it.testhooks import is_test_reported_failed
 
 order = pytest.mark.order
 
-logger = logging.LoggerAdapter(logging.getLogger(__name__), {"bmqprocess": "pytest"})
+logger = logging.LoggerAdapter(
+    logging.getLogger(__name__), extra={"bmqprocess": "pytest"}
+)
 osinfo_logger = logging.LoggerAdapter(
-    logging.getLogger(__name__ + ".osinfo"), {"bmqprocess": "pytest"}
+    logging.getLogger(__name__ + ".osinfo"), extra={"bmqprocess": "pytest"}
 )
 test_logger = logging.LoggerAdapter(
     logging.getLogger("blazingmq.test"), {"bmqprocess": "pytest"}
@@ -245,7 +247,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 ):
                     try:
                         log_file_path.unlink()
-                    except:
+                    except Exception:  # pylint: disable=broad-exception-caught
                         pass
 
             on_exit.callback(remove_log_file_handler)
@@ -435,7 +437,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
 
                     try:
                         cluster.stop()
-                    except:
+                    except Exception:  # pylint: disable=broad-exception-caught
                         if not get_option_ini(
                             request.config, "bmq_tolerate_dirty_shutdown"
                         ):
@@ -463,7 +465,7 @@ def break_before_test(request, cluster):
             for broker in cluster.nodes():
                 print(f"  {broker.name}:  {broker.pid}", end="")
                 if broker is cluster.last_known_leader:
-                    print(f" (leader)", end="")
+                    print(" (leader)", end="")
                 print()
             print("proxies:")
             for proxy in cluster.proxies():
@@ -480,7 +482,7 @@ class Mode(IntEnum):
     LEGACY = 0
     FSM = 1
 
-    def tweak(self, cluster: mqbcfg.ClusterDefinition):
+    def tweak_mode(self, cluster: mqbcfg.ClusterDefinition):
         # CSL and FSM settings must be either both enabled or both disabled
         cluster.cluster_attributes.is_cslmode_enabled = self == Mode.FSM
         cluster.cluster_attributes.is_fsmworkflow = self == Mode.FSM
@@ -536,7 +538,7 @@ def add_test_domains(cluster: cfg.Cluster):
 def single_node_cluster_config(
     configurator: cfg.Configurator, port_allocator: Iterator[int], mode: Mode
 ):
-    mode.tweak(configurator.proto.cluster)
+    mode.tweak_mode(configurator.proto.cluster)
 
     broker = configurator.broker(
         name="single",
@@ -579,7 +581,7 @@ def multi_node_cluster_config(
     port_allocator: Iterator[int],
     mode: Mode,
 ) -> None:
-    mode.tweak(configurator.proto.cluster)
+    mode.tweak_mode(configurator.proto.cluster)
 
     cluster = configurator.cluster(
         name="itCluster",
@@ -649,7 +651,7 @@ def multi7_node_cluster_config(
         port_allocator: An iterator providing port numbers for brokers
         mode: The cluster operation mode
     """
-    mode.tweak(configurator.proto.cluster)
+    mode.tweak_mode(configurator.proto.cluster)
 
     data_centers = {
         "east": 2,
@@ -729,7 +731,7 @@ def multi_interface_cluster_config(
         listener_count: The number of listeners that should be opened on a broker. The
             minimum number of listeners is 1.
     """
-    mode.tweak(configurator.proto.cluster)
+    mode.tweak_mode(configurator.proto.cluster)
 
     assert listener_count > 0
 
@@ -804,7 +806,7 @@ def virtual_cluster_config(
     port_allocator: Iterator[int],
     mode: Mode,
 ) -> None:
-    mode.tweak(configurator.proto.cluster)
+    mode.tweak_mode(configurator.proto.cluster)
 
     final_cluster = configurator.cluster(
         name="itCluster",
