@@ -599,22 +599,22 @@ const bdlat_AttributeInfo ConsumerInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY_COUNT,
      "consumerPriorityCount",
      sizeof("consumerPriorityCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1275,12 +1275,12 @@ const bdlat_AttributeInfo GuidInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "clientId",
      sizeof("clientId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NANO_SECONDS_FROM_EPOCH,
      "nanoSecondsFromEpoch",
      sizeof("nanoSecondsFromEpoch") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2064,7 +2064,7 @@ const bdlat_AttributeInfo PartitionSyncStateQuery::ATTRIBUTE_INFO_ARRAY[] = {
      "partitionId",
      sizeof("partitionId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2963,7 +2963,7 @@ const bdlat_AttributeInfo StopRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -3285,12 +3285,12 @@ const bdlat_AttributeInfo SubQueueIdInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "subId",
      sizeof("subId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_APP_ID,
      "appId",
      sizeof("appId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -3538,7 +3538,7 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "sdkVersion",
      sizeof("sdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLIENT_TYPE,
      "clientType",
      sizeof("clientType") - 1,
@@ -3548,42 +3548,42 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "processName",
      sizeof("processName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PID,
      "pid",
      sizeof("pid") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SESSION_ID,
      "sessionId",
      sizeof("sessionId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HOST_NAME,
      "hostName",
      sizeof("hostName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FEATURES,
      "features",
      sizeof("features") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLUSTER_NAME,
      "clusterName",
      sizeof("clusterName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLUSTER_NODE_ID,
      "clusterNodeId",
      sizeof("clusterNodeId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SDK_LANGUAGE,
      "sdkLanguage",
      sizeof("sdkLanguage") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT},
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_GUID_INFO,
      "guidInfo",
      sizeof("guidInfo") - 1,
@@ -3823,7 +3823,7 @@ const bdlat_AttributeInfo DumpMessages::ATTRIBUTE_INFO_ARRAY[] = {
      "dumpActionValue",
      sizeof("dumpActionValue") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -4703,7 +4703,7 @@ const bdlat_AttributeInfo Expression::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT},
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_TEXT,
      "text",
      sizeof("text") - 1,
@@ -5328,9 +5328,14 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_SEQUENCE_NUMBER,
-     "sequenceNumber",
-     sizeof("sequenceNumber") - 1,
+    {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
+     "latestSequenceNumber",
+     sizeof("latestSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -5339,7 +5344,7 @@ const bdlat_AttributeInfo PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PrimaryStateRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PrimaryStateRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5357,8 +5362,11 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -5366,7 +5374,8 @@ const bdlat_AttributeInfo* PrimaryStateRequest::lookupAttributeInfo(int id)
 // CREATORS
 
 PrimaryStateRequest::PrimaryStateRequest()
-: d_sequenceNumber()
+: d_latestSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -5376,7 +5385,9 @@ PrimaryStateRequest::PrimaryStateRequest()
 void PrimaryStateRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
-    bdlat_ValueTypeFunctions::reset(&d_sequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -5388,7 +5399,10 @@ bsl::ostream& PrimaryStateRequest::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
-    printer.printAttribute("sequenceNumber", this->sequenceNumber());
+    printer.printAttribute("latestSequenceNumber",
+                           this->latestSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -5407,9 +5421,14 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_SEQUENCE_NUMBER,
-     "sequenceNumber",
-     sizeof("sequenceNumber") - 1,
+    {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
+     "latestSequenceNumber",
+     sizeof("latestSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -5418,7 +5437,7 @@ const bdlat_AttributeInfo PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PrimaryStateResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PrimaryStateResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5436,8 +5455,11 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -5445,7 +5467,8 @@ const bdlat_AttributeInfo* PrimaryStateResponse::lookupAttributeInfo(int id)
 // CREATORS
 
 PrimaryStateResponse::PrimaryStateResponse()
-: d_sequenceNumber()
+: d_latestSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -5455,7 +5478,9 @@ PrimaryStateResponse::PrimaryStateResponse()
 void PrimaryStateResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
-    bdlat_ValueTypeFunctions::reset(&d_sequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -5467,7 +5492,10 @@ bsl::ostream& PrimaryStateResponse::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
-    printer.printAttribute("sequenceNumber", this->sequenceNumber());
+    printer.printAttribute("latestSequenceNumber",
+                           this->latestSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -5498,7 +5526,7 @@ const bdlat_AttributeInfo PrimaryStatusAdvisory::ATTRIBUTE_INFO_ARRAY[] = {
      "status",
      sizeof("status") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -5603,17 +5631,17 @@ const bdlat_AttributeInfo QueueHandleParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "readCount",
      sizeof("readCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_WRITE_COUNT,
      "writeCount",
      sizeof("writeCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ADMIN_COUNT,
      "adminCount",
      sizeof("adminCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -6165,22 +6193,22 @@ const bdlat_AttributeInfo QueueStreamParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY_COUNT,
      "consumerPriorityCount",
      sizeof("consumerPriorityCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -6608,9 +6636,14 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_SEQUENCE_NUMBER,
-     "sequenceNumber",
-     sizeof("sequenceNumber") - 1,
+    {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
+     "latestSequenceNumber",
+     sizeof("latestSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -6619,7 +6652,7 @@ const bdlat_AttributeInfo ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaStateRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaStateRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6637,8 +6670,11 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -6646,7 +6682,8 @@ const bdlat_AttributeInfo* ReplicaStateRequest::lookupAttributeInfo(int id)
 // CREATORS
 
 ReplicaStateRequest::ReplicaStateRequest()
-: d_sequenceNumber()
+: d_latestSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -6656,7 +6693,9 @@ ReplicaStateRequest::ReplicaStateRequest()
 void ReplicaStateRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
-    bdlat_ValueTypeFunctions::reset(&d_sequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -6668,7 +6707,10 @@ bsl::ostream& ReplicaStateRequest::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
-    printer.printAttribute("sequenceNumber", this->sequenceNumber());
+    printer.printAttribute("latestSequenceNumber",
+                           this->latestSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -6687,9 +6729,14 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_SEQUENCE_NUMBER,
-     "sequenceNumber",
-     sizeof("sequenceNumber") - 1,
+    {ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER,
+     "latestSequenceNumber",
+     sizeof("latestSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER,
+     "firstSyncPointAfterRolloverSequenceNumber",
+     sizeof("firstSyncPointAfterRolloverSequenceNumber") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -6698,7 +6745,7 @@ const bdlat_AttributeInfo ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaStateResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaStateResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6716,8 +6763,11 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER];
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER];
     default: return 0;
     }
 }
@@ -6725,7 +6775,8 @@ const bdlat_AttributeInfo* ReplicaStateResponse::lookupAttributeInfo(int id)
 // CREATORS
 
 ReplicaStateResponse::ReplicaStateResponse()
-: d_sequenceNumber()
+: d_latestSequenceNumber()
+, d_firstSyncPointAfterRolloverSequenceNumber()
 , d_partitionId()
 {
 }
@@ -6735,7 +6786,9 @@ ReplicaStateResponse::ReplicaStateResponse()
 void ReplicaStateResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
-    bdlat_ValueTypeFunctions::reset(&d_sequenceNumber);
+    bdlat_ValueTypeFunctions::reset(&d_latestSequenceNumber);
+    bdlat_ValueTypeFunctions::reset(
+        &d_firstSyncPointAfterRolloverSequenceNumber);
 }
 
 // ACCESSORS
@@ -6747,7 +6800,10 @@ bsl::ostream& ReplicaStateResponse::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
-    printer.printAttribute("sequenceNumber", this->sequenceNumber());
+    printer.printAttribute("latestSequenceNumber",
+                           this->latestSequenceNumber());
+    printer.printAttribute("firstSyncPointAfterRolloverSequenceNumber",
+                           this->firstSyncPointAfterRolloverSequenceNumber());
     printer.end();
     return stream;
 }
@@ -7002,7 +7058,7 @@ const bdlat_AttributeInfo Status::ATTRIBUTE_INFO_ARRAY[] = {
      "message",
      sizeof("message") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -7333,7 +7389,7 @@ const bdlat_AttributeInfo BrokerResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "isDeprecatedSdk",
      sizeof("isDeprecatedSdk") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_BROKER_IDENTITY,
      "brokerIdentity",
      sizeof("brokerIdentity") - 1,
@@ -7343,12 +7399,12 @@ const bdlat_AttributeInfo BrokerResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_MISSED_HEARTBEATS,
      "maxMissedHeartbeats",
      sizeof("maxMissedHeartbeats") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -7529,7 +7585,7 @@ const bdlat_AttributeInfo CloseQueue::ATTRIBUTE_INFO_ARRAY[] = {
      "isFinal",
      sizeof("isFinal") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -10712,7 +10768,7 @@ const bdlat_AttributeInfo OpenQueueResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "deduplicationTimeMs",
      sizeof("deduplicationTimeMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -10954,7 +11010,7 @@ const bdlat_AttributeInfo StreamParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "appId",
      sizeof("appId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SUBSCRIPTIONS,
      "subscriptions",
      sizeof("subscriptions") - 1,
