@@ -84,7 +84,7 @@ if(Pytest_FOUND)
     ENVIRONMENT
       "BLAZINGMQ_BUILD_DIR=${CMAKE_BINARY_DIR}"
     PYTHON_PATH_PREPEND
-      "${CMAKE_SOURCE_DIR}/src/python/"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../python/"
     STRIP_PARAM_BRACKETS
     TRIM_FROM_NAME
       "^test_"

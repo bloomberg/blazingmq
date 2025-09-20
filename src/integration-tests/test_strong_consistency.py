@@ -18,9 +18,7 @@ import contextlib
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    single_node,
     order,
-    multi_node,
     tweak,
 )
 from blazingmq.dev.it.util import wait_until

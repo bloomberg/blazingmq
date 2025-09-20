@@ -19,10 +19,8 @@ from typing import List
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    cluster,
     test_logger,
     order,
-    multi_node,
     tweak,
 )
 from blazingmq.dev.it.process.client import Client
@@ -853,7 +851,7 @@ def test_old_data_new_app(
         # Once queue is created
         leader = cluster.last_known_leader
         leader.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
-        assert leader.outputs_substr(f"Printing 5 message(s)", 5)
+        assert leader.outputs_substr("Printing 5 message(s)", 5)
 
         new_consumer_1 = next(proxies).create_client(new_app_1)
         new_consumer_1.open(
@@ -920,7 +918,7 @@ def test_old_data_new_app(
     _verify_clients(andConfirm=True)
 
     leader.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
 
 def test_proxy_partial_push(
@@ -929,7 +927,6 @@ def test_proxy_partial_push(
 ):
     """Make Proxy receive PUSH after closing one App"""
 
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     proxy = next(proxies)
@@ -1002,13 +999,13 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     )
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=app_id)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=new_app_1)
-    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+    assert leader.outputs_substr("Printing 0 message(s)", 5)
 
 
 def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):

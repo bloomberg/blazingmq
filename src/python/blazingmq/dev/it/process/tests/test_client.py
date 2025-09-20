@@ -37,5 +37,5 @@ def test_build_command():
     try:
         _build_command("configure", {}, {"foo": 42})
         assert False
-    except:
+    except Exception:  # pylint: disable=broad-exception-caught
         pass

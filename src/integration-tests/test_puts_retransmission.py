@@ -22,9 +22,6 @@ from collections import namedtuple
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    cartesian_product_cluster,
-    multi_node,
-    order,
     test_logger,
     tweak,
 )

@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip3 install -r ${{ github.workspace }}/src/python/requirements.txt
-          pip3 install pylint lint-diffs
+          pip3 install pylint lint-diffs ruff
           ln -s ${{ github.workspace }}/src/python/pylintrc ${{ github.workspace }}/.pylintrc
           echo [pylint] > ${{ github.workspace }}/.lint-diffs
           echo extensions=.py >> ${{ github.workspace }}/.lint-diffs
@@ -39,3 +39,5 @@ jobs:
         run: |
           export PYTHONPATH=${{ github.workspace }}/src/python:$PYTHONPATH
           git diff -U0 origin/main | lint-diffs
+      - name: Check the repo with ruff
+        run: ruff check --output-format=github .
