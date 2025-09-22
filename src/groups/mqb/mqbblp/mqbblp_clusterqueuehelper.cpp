@@ -168,7 +168,48 @@ void countUnconfirmed(bsls::Types::Int64* result, mqbi::Queue* queue)
         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
 }
 
+template <typename T>
+struct ConditionalAdvance {
+    bool d_doAdvance;
+
+    ConditionalAdvance()
+    : d_doAdvance(true)
+    {
+        // NOTHING
+    }
+
+    void advance(T& x)
+    {
+        if (d_doAdvance) {
+            ++x;
+        }
+        else {
+            d_doAdvance = true;
+        }
+    }
+    void release() { d_doAdvance = false; }
+};
+
 }  // close unnamed namespace
+
+// ---------------------------------------
+// struct ClusterQueueHelper::QueueContext
+// ---------------------------------------
+
+void ClusterQueueHelper::QueueContext::respond(
+    const bmqp_ctrlmsg::Status& status) const
+{
+    for (bsl::vector<OpenQueueContextSp>::const_iterator
+             cIt   = d_liveQInfo.d_pending.begin(),
+             cLast = d_liveQInfo.d_pending.end();
+         cIt != cLast;
+         ++cIt) {
+        (*cIt)->d_callback(status,
+                           0,
+                           bmqp_ctrlmsg::OpenQueueResponse(),
+                           mqbi::Cluster::OpenQueueConfirmationCookie());
+    }
+}
 
 // -------------------------------------------
 // struct ClusterQueueHelper::OpenQueueContext
@@ -401,14 +442,41 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
     }
 }
 
-void ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
+bool ClusterQueueHelper::assignQueueIfNeeded(
+    const QueueContextSp& queueContext_sp)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    BSLS_ASSERT_SAFE(queueContext_sp);
+
+    if (isQueueAssigned(*queueContext_sp)) {
+        // Already assigned, nothing to do
+        return true;  // RETURN
+    }
+
+    // Queue is not assigned to a partition; get it assigned.  If
+    // self is leader, it will assign it locally, if not it will
+    // send a request to the leader, etc.
+
+    return assignQueue(queueContext_sp);
+}
+
+bool ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    BSLS_ASSERT_SAFE(queueContext);
     BSLS_ASSERT_SAFE(!isQueueAssigned(*queueContext));
+
+    bool result = true;
 
     if (d_cluster_p->isRemote()) {
         // Assigning a queue in a remote, is simply giving it a new queueId.
@@ -419,11 +487,12 @@ void ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
         if (d_clusterData_p->electorInfo().isSelfLeader()) {
             bmqp_ctrlmsg::Status status(d_allocator_p);
 
-            if (!d_clusterStateManager_p->assignQueue(queueContext->uri(),
-                                                      &status)) {
-                processRejectedQueueAssignment(queueContext.get(), status);
+            result = d_clusterStateManager_p->assignQueue(queueContext->uri(),
+                                                          &status);
+
+            if (result == false) {
+                queueContext->respond(status);
             }
-            // else, all other failure are transient. will retry.
         }
         else {
             requestQueueAssignment(queueContext->uri());
@@ -439,6 +508,8 @@ void ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
                              << queueContext->uri()
                              << "' (waiting for an ACTIVE leader).";
     }
+
+    return result;
 }
 
 void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
@@ -610,11 +681,17 @@ void ClusterQueueHelper::onQueueAssignmentResponse(
             else if (status.code() == mqbi::ClusterErrorCode::e_LIMIT ||
                      status.code() == mqbi::ClusterErrorCode::e_CSL_FAILURE ||
                      status.code() == mqbi::ClusterErrorCode::e_UNKNOWN) {
-                QueueContextMapIter qit = d_queues.find(uri);
-                BSLS_ASSERT_SAFE(qit != d_queues.end());
-                const QueueContext* rejected = qit->second.get();
+                // Second openQueue for unassigned queue can result in second
+                // QueueAssignmentRequest, so this can be the second response
+                // after queue is already erased (upon the first response).
+                // Note that the first QueueAssignmentResponse does responds to
+                // the second openQueue request (see d_liveQInfo.d_pending).
 
-                processRejectedQueueAssignment(rejected, status);
+                QueueContextMapIter qit = d_queues.find(uri);
+                if (qit != d_queues.end()) {
+                    qit->second->respond(status);
+                    d_queues.erase(qit);
+                }
             }
         }
         else {
@@ -768,6 +845,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
         }
     }
 
+    // REVISIT: 'processOpenQueueRequest' seems to do similar (possibly
+    // redundant) check for 'hasActiveAvailablePrimary',
     if (havePending && haveActivePrimary && isAvailable) {
         processPendingContexts(queueContext);
     }
@@ -3513,29 +3592,6 @@ void ClusterQueueHelper::restoreState(int partitionId)
     }
 }
 
-void ClusterQueueHelper::processRejectedQueueAssignment(
-    const QueueContext*         rejected,
-    const bmqp_ctrlmsg::Status& status)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    for (bsl::vector<OpenQueueContextSp>::const_iterator
-             cIt   = rejected->d_liveQInfo.d_pending.begin(),
-             cLast = rejected->d_liveQInfo.d_pending.end();
-         cIt != cLast;
-         ++cIt) {
-        (*cIt)->d_callback(status,
-                           0,
-                           bmqp_ctrlmsg::OpenQueueResponse(),
-                           mqbi::Cluster::OpenQueueConfirmationCookie());
-    }
-    d_queues.erase(rejected->uri());
-}
-
 void ClusterQueueHelper::restoreStateRemote()
 {
     // executed by the cluster *DISPATCHER* thread
@@ -3557,9 +3613,11 @@ void ClusterQueueHelper::restoreStateRemote()
 
     // Attempt to re-issue open-queue requests for all applicable queues.
 
+    ConditionalAdvance<QueueContextMapConstIter> conditional;
+
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
-         ++cit) {
+         conditional.advance(cit)) {
         const QueueContextSp& queueContext = cit->second;
         QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
 
@@ -3574,10 +3632,13 @@ void ClusterQueueHelper::restoreStateRemote()
             continue;  // CONTINUE
         }
 
-        if (!isQueueAssigned(*queueContext.get())) {
+        if (!isQueueAssigned(*queueContext)) {
             // Queue is not assigned to a partition; get it assigned.
 
-            assignQueue(queueContext);
+            if (!assignQueue(queueContext)) {
+                conditional.release();
+                cit = d_queues.erase(cit);
+            }
 
             continue;  // CONTINUE
         }
@@ -3708,10 +3769,10 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         d_clusterState_p->iterateDoubleAssignments(partitionId,
                                                    doubleAssignmentVisitor);
     }
-
+    ConditionalAdvance<QueueContextMapConstIter> conditional;
     for (QueueContextMapConstIter cit = d_queues.cbegin();
          cit != d_queues.cend();
-         ++cit) {
+         conditional.advance(cit)) {
         const QueueContextSp& queueContext = cit->second;
         QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
         if (allPartitions) {
@@ -3732,12 +3793,13 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 continue;  // CONTINUE
             }
 
-            if (!isQueueAssigned(*queueContext.get())) {
-                // Queue is not assigned to a partition; get it assigned.  If
-                // self is leader, it will assign it locally, if not it will
-                // send a request to the leader, etc.
+            if (!isQueueAssigned(*queueContext)) {
+                // Queue is not assigned to a partition; get it assigned.
 
-                assignQueue(queueContext);
+                if (!assignQueue(queueContext)) {
+                    conditional.release();
+                    cit = d_queues.erase(cit);
+                }
 
                 continue;  // CONTINUE
             }
@@ -3752,8 +3814,8 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 continue;  // CONTINUE;
             }
 
-            BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext.get()));
-            BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext.get()));
+            BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
+            BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext));
 
             // Verify the CSL if needed by comparing it with the Domain config
             if (liveQInfo.d_queue_sp) {
@@ -3800,22 +3862,22 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         if (mqbi::ClusterErrorCode::e_OK == result) {
                             // Cannot continue until 'onQueueUpdated'
                             // Send QueueUpdateAdvisory and _wait_ for commit
-                        }
-                        else {
-                            // An update error is CSL error (in
-                            // 'ClusterStateLedger::apply'). This queue cannot
-                            // convertToLocal
-                            // ('RootQueueEngine::initializeAppId' would assert
-                            // if there is no storage for some app).
 
-                            BSLS_ASSERT_SAFE(false && "Failure to update Apps "
-                                                      "before convertToLocal");
+                            continue;  // CONTINUE
                         }
+
+                        // An update error is CSL error (in
+                        // 'ClusterStateLedger::apply'). This queue cannot
+                        // convertToLocal
+                        // ('RootQueueEngine::initializeAppId' would assert
+                        // if there is no storage for some app).
+
+                        BSLS_ASSERT_SAFE(
+                            false &&
+                            "Failure to update Apps before convertToLocal");
                     }
                     else {
                         convertToLocal(queueContext, domain);
-
-                        processPendingContexts(queueContext);
                     }
                 }
                 else {
@@ -3843,6 +3905,9 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         // In case of other type of failure, just continue
                         // processing other queues instead of stopping the
                         // 'state restore' sequence.
+
+                        // REVISIT: this code sends pending Open Queue requests
+                        // without waiting for the ReOpen Queue Response.
                     }
                     else {
                         BMQ_LOGTHROTTLE_INFO
@@ -3860,25 +3925,14 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     // requests were not processed, but appended to the pending
                     // context list, so once we have an active primary, we
                     // should process them.
-                    if (!queueContext->d_liveQInfo.d_pending.empty()) {
-                        // Proceed with pending contexts, if any.
-                        BMQ_LOGTHROTTLE_INFO
-                            << d_cluster_p->description()
-                            << ": Proceeding with "
-                            << queueContext->d_liveQInfo.d_pending.size()
-                            << " associated pending contexts for '"
-                            << queueContext->uri() << "'";
-                        processPendingContexts(queueContext);
-                    }
                 }
             }
-            else {
-                // Queue instance is not created, but the queue is assigned.
-                // Proceed ahead.
-
-                onQueueContextAssigned(queueContext);
-            }
+            // else, Queue instance is not created, but the queue is assigned.
+            // Proceed ahead.
         }
+
+        // In all cases, _attempt_ to process pending open queue requests
+        onQueueContextAssigned(queueContext);
     }
 }
 
@@ -4502,27 +4556,26 @@ void ClusterQueueHelper::onQueueUpdated(
                          << ", addedAppIds: " << printer1
                          << ", removedAppIds: " << printer2;
 
-    // Resume open queue request(s) waiting for new App(s).
+    if (!queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
+        // Swap the contexts to process them one by one and also clear the
+        // pendingContexts of the queue info: they will be enqueued back, if
+        // needed.
+        bsl::vector<VoidFunctor> pending(d_allocator_p);
+        pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
+
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
+                             << pending.size() << " pending Apps Updates.";
+
+        for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
+             it != pending.end();
+             ++it) {
+            (*it)();
+        }
+    }
+
+    // Resume open queue request(s) waiting for new App(s) _after_
+    // 'convertToLocal'
     processPendingContexts(qiter->second);
-
-    if (queueContext.d_liveQInfo.d_pendingUpdates.empty()) {
-        return;  // RETURN
-    }
-
-    // Swap the contexts to process them one by one and also clear the
-    // pendingContexts of the queue info: they will be enqueued back, if
-    // needed.
-    bsl::vector<VoidFunctor> pending(d_allocator_p);
-    pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
-
-    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": processing "
-                         << pending.size() << " pending Apps Updates.";
-
-    for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
-         it != pending.end();
-         ++it) {
-        (*it)();
-    }
 }
 
 void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
@@ -4731,30 +4784,35 @@ void ClusterQueueHelper::openQueue(
 
     // 'OpenQueueContext::~OpenQueueContext' decrements 'd_inFlight' counter.
 
+    bool isAssigned = false;
+
     // Check if we are already aware of the queue.
     if (queueContextIt != d_queues.end()) {
         // Already aware of the queue; but the queue may not yet have been
         // assigned.
-        context->setQueueContext(queueContextIt->second.get());
+        QueueContext& queueContext = *queueContextIt->second;
+
+        context->setQueueContext(&queueContext);
 
         // In case queue was marked for expiration, explicitly unmark it.  Note
         // that self may be a replica or a passive primary, but it's ok to
         // simply unmark the queue.  Also note that this is the necessary and
         // sufficient place to unmark a queue, as 'openQueue' is the entry
         // point.
-        queueContextIt->second->d_liveQInfo.d_queueExpirationTimestampMs = 0;
+        queueContext.d_liveQInfo.d_queueExpirationTimestampMs = 0;
 
-        if (isQueuePrimaryAvailable(*(context->queueContext()))) {
+        if (isQueuePrimaryAvailable(queueContext)) {
             // Queue is already assigned and the primary is AVAILABLE, all
             // good; move on to next step, i.e., processing the open request.
             processOpenQueueRequest(context);
+            isAssigned = true;
         }
         else {
             // The queue is already known but either not assigned, or its
             // primary is not yet available.  In both scenarios, we append that
             // context to the pending list that will be picked up and resumed
             // once the next event (primary available, queue assigned) happens.
-            QueueContext& queueContext = *(queueContextIt->second.get());
+
             queueContext.d_liveQInfo.d_pending.push_back(context);
 
             BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES,
@@ -4804,14 +4862,13 @@ void ClusterQueueHelper::openQueue(
             // advisory are received).  So to be safe, we explicitly attempt to
             // assign the queue, which is a no-op in case there is no leader.
 
-            if (!isQueueAssigned(*(queueContextIt->second))) {
-                // In CSL, unassignment is async.
-                // Since QueueUnassignmentAdvisory can contain multiple queues,
-                // canceling pending Advisory is not an option.
-                // Instead, initiate new QueueAssignemntAdvisory which must
-                // take effect after old QueueUnassignemntAdvisory.
-                assignQueue(queueContextIt->second);
-            }
+            isAssigned = isQueueAssigned(queueContext);
+
+            // In CSL, unassignment is async.
+            // Since QueueUnassignmentAdvisory can contain multiple queues,
+            // canceling pending Advisory is not an option.
+            // Instead, initiate new QueueAssignemntAdvisory which must
+            // take effect after old QueueUnassignemntAdvisory.
         }
     }
     else {
@@ -4820,14 +4877,20 @@ void ClusterQueueHelper::openQueue(
         QueueContextSp queueContext;
         queueContext.createInplace(d_allocator_p, uriKey, d_allocator_p);
 
-        d_queues[uriKey] = queueContext;
         context->setQueueContext(queueContext.get());
 
         // Register the context to the pending list.
         queueContext->d_liveQInfo.d_pending.push_back(context);
 
+        // Need to insert before calling 'assignQueue'
+        queueContextIt = d_queues.emplace(uriKey, queueContext).first;
+    }
+
+    if (!isAssigned) {
         // Initiate the assignment.
-        assignQueue(queueContext);
+        if (!assignQueue(queueContextIt->second)) {
+            d_queues.erase(queueContextIt);
+        }
     }
 }
 

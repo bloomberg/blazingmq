@@ -382,6 +382,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         QueueContext(const QueueContext&) BSLS_KEYWORD_DELETED;
         QueueContext& operator=(const QueueContext&) BSLS_KEYWORD_DELETED;
 
+        /// Respond to all pending OpenQueue requests with the specified
+        /// `status`.
+        void respond(const bmqp_ctrlmsg::Status& status) const;
+
         // ACCESSORS
 
         /// Return the queue uri associated with this object.
@@ -479,13 +483,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                     mqbnet::ClusterNode* primary,
                                     bmqp_ctrlmsg::PrimaryStatus::Value status);
 
-    /// Try to assign the queue represented by the specified `queueContext`,
-    /// that is give it an id and eventually a partition id, by initiating
-    /// assignment request communication with the leader.   This method is
-    /// called regardless of proxy or member, and leader or replica and will
-    /// initiate the proper sequence of operation based on the role of the
-    /// current node within the cluster.
-    void assignQueue(const QueueContextSp& queueContext);
+    /// If not already assigned, try to assign the queue represented by the
+    /// specified `queueContext_sp`, that is give it an id and a partition id.
+    /// This method is called regardless of proxy or member, and leader or
+    /// replica and will initiate the proper sequence of operation based on the
+    /// role of the current node within the cluster.  Return `false`, if the
+    /// assignment has failed, return `true` on success or on no ACTIVE leader.
+    bool assignQueueIfNeeded(const QueueContextSp& queueContext_sp);
+    bool assignQueue(const QueueContextSp& queueContext_sp);
 
     /// Send a queueAssignment request to the leader, requesting assignment
     /// of the queue with the specified `uri`.  This method is called only
@@ -500,12 +505,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const RequestManagerType::RequestSp& requestContext,
         const bmqt::Uri&                     uri,
         mqbnet::ClusterNode*                 responder);
-
-    /// Send a failure response with the specified `status` for the pending
-    /// context associated to the states in the specified `rejected`.  Also
-    /// remove the associated queue from `d_queues`.
-    void processRejectedQueueAssignment(const QueueContext*         rejected,
-                                        const bmqp_ctrlmsg::Status& status);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.
