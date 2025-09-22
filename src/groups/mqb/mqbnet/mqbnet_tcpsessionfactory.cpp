@@ -564,6 +564,12 @@ void TCPSessionFactory::negotiationComplete(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
+        ++d_nbSessions;
+
+        if (isClientOrProxy(session.get())) {
+            ++d_nbOpenClients;
+        }
+
         // check if the channel is not closed (we can be in authentication
         // thread)
 
@@ -577,8 +583,6 @@ void TCPSessionFactory::negotiationComplete(
             session->tearDown(session, false);
             return;  // RETURN
         }
-
-        ++d_nbSessions;
 
         info.createInplace(d_allocator_p,
                            channel,
@@ -594,10 +598,6 @@ void TCPSessionFactory::negotiationComplete(
                                                            info);
         inserted = d_channels.insert(toInsert);
         info     = inserted.first->second;
-
-        if (isClientOrProxy(info->d_session_sp.get())) {
-            ++d_nbOpenClients;
-        }
 
         if (info->d_monitor.isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
