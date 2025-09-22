@@ -3963,7 +3963,9 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     fs->dispatchEvent(queueEvent);
 }
 
-void StorageManager::resetQueue(const bmqt::Uri& uri, int partitionId)
+void StorageManager::resetQueue(const bmqt::Uri& uri,
+                                int              partitionId,
+                                const bsl::shared_ptr<mqbi::Queue>& queue_sp)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3982,13 +3984,10 @@ void StorageManager::resetQueue(const bmqt::Uri& uri, int partitionId)
                                           &d_storages[partitionId],
                                           &d_storagesLock,
                                           fs->description(),
-                                          uri));
+                                          uri,
+                                          queue_sp));
 
     fs->dispatchEvent(queueEvent);
-
-    // Explicitly synchronize since 'StorageMgr::setQueue' does not.
-
-    fs->dispatcher()->synchronize(fs);
 }
 
 void StorageManager::setPrimaryForPartition(int                  partitionId,

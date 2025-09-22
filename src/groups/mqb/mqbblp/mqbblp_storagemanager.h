@@ -488,12 +488,14 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
                             const AppInfos&         appIdKeyPairs,
                             mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
-    /// Set the queue instance associated with the file-backed storage for
+    /// Reset the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Note that this method *does* *not*
-    /// synchronize on the queue-dispatcher thread.
-    void resetQueue(const bmqt::Uri& uri,
-                    int              partitionId) BSLS_KEYWORD_OVERRIDE;
+    /// specified `queue` value.  The specified `queue_sp` keeps the queue
+    /// until the reset is complete.
+    void resetQueue(const bmqt::Uri&                    uri,
+                    int                                 partitionId,
+                    const bsl::shared_ptr<mqbi::Queue>& queue_sp)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.

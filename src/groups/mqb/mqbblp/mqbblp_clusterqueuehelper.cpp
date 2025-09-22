@@ -2284,7 +2284,8 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                               &mqbi::StorageManager::resetQueue,
                               d_storageManager_p,
                               queueContext->uri(),
-                              queueContext->partitionId()));
+                              queueContext->partitionId(),
+                              queueSp));
 
     if (rc != 0) {
         // Queue.configure() failed.
@@ -4034,7 +4035,8 @@ void ClusterQueueHelper::deleteQueue(QueueContext* queueContext)
 
     if (!d_cluster_p->isRemote()) {
         d_storageManager_p->resetQueue(queueContext->uri(),
-                                       queueContext->partitionId());
+                                       queueContext->partitionId(),
+                                       queueContext->d_liveQInfo.d_queue_sp);
     }
 
     cancelAllTimers(queueContext);

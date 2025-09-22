@@ -111,8 +111,10 @@ void StorageManager::updateQueueReplica(
     // NOTHING
 }
 
-void StorageManager::resetQueue(BSLA_UNUSED const bmqt::Uri& uri,
-                                BSLA_UNUSED int              partitionId)
+void StorageManager::resetQueue(
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED int              partitionId,
+    BSLA_UNUSED const bsl::shared_ptr<mqbi::Queue>& queue_sp)
 {
     // NOTHING
 }

@@ -686,10 +686,12 @@ struct StorageUtil {
 
     /// Executed by queue-dispatcher thread with the specified
     /// `processorId`.
-    static void resetQueueDispatched(StorageSpMap*      storageMap,
-                                     bslmt::Mutex*      storagesLock,
-                                     const bsl::string& description,
-                                     const bmqt::Uri&   uri);
+    static void
+    resetQueueDispatched(StorageSpMap*                       storageMap,
+                         bslmt::Mutex*                       storagesLock,
+                         const bsl::string&                  description,
+                         const bmqt::Uri&                    uri,
+                         const bsl::shared_ptr<mqbi::Queue>& queue_sp);
 
     static int configureStorage(bsl::ostream& errorDescription,
                                 bsl::shared_ptr<mqbi::Storage>* out,

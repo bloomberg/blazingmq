@@ -3009,10 +3009,12 @@ void StorageUtil::updateQueueStorageDispatched(
     }
 }
 
-void StorageUtil::resetQueueDispatched(StorageSpMap*      storageMap,
-                                       bslmt::Mutex*      storagesLock,
-                                       const bsl::string& description,
-                                       const bmqt::Uri&   uri)
+void StorageUtil::resetQueueDispatched(
+    StorageSpMap*      storageMap,
+    bslmt::Mutex*      storagesLock,
+    const bsl::string& description,
+    const bmqt::Uri&   uri,
+    BSLA_UNUSED const bsl::shared_ptr<mqbi::Queue>& queue_sp)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 

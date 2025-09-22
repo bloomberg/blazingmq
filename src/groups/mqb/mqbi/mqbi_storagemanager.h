@@ -266,11 +266,13 @@ class StorageManager {
                                     const AppInfos&         appIdKeyPairs,
                                     mqbi::Domain*           domain = 0) = 0;
 
-    /// Set the queue instance associated with the file-backed storage for
+    /// Reset the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Note that this method *does* *not*
-    /// synchronize on the queue-dispatcher thread.
-    virtual void resetQueue(const bmqt::Uri& uri, int partitionId) = 0;
+    /// specified `queue` value.  The specified `queue_sp` keeps the queue
+    /// until the reset is complete.
+    virtual void resetQueue(const bmqt::Uri&                    uri,
+                            int                                 partitionId,
+                            const bsl::shared_ptr<mqbi::Queue>& queue_sp) = 0;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
