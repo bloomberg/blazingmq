@@ -495,8 +495,8 @@ int Zstd::writeOutput(bdlbb::Blob*              output,
     do {
         advanceOutput(output, &outBuffer, factory, stream);
         lastSize = stream->avail_out;
-        result   = zstdMethod(stream, ZSTD_e_continue);
-    } while ((0 != result) && lastSize != stream->avail_out);
+        result   = zstdMethod(stream, ZSTD_e_flush);
+    } while ((0 == result) && lastSize != stream->avail_out);
 
     result = zstdMethod(stream, ZSTD_e_end);
     if (result) {
@@ -694,7 +694,6 @@ inline void updateZstdStream(ZZstdStream*          stream,
                              const ZSTD_outBuffer& out)
 {
     size_t readFromIn = in.pos;
-
     stream->avail_in -= readFromIn;
     stream->next_in += readFromIn;
 
@@ -705,8 +704,7 @@ inline void updateZstdStream(ZZstdStream*          stream,
 
 int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
 {
-    ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
-
+    ZSTD_inBuffer  in  = {stream->next_in, stream->avail_in, 0};
     ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
     size_t const   ret = ZSTD_compressStream2(
         reinterpret_cast<ZSTD_CCtx*>(stream->ctx),
@@ -725,19 +723,18 @@ int deflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
 
 int inflateZstd(ZZstdStream* stream, ZSTD_EndDirective endOp)
 {
-    ZSTD_inBuffer in = {stream->next_in, stream->avail_in, 0};
-
+    ZSTD_inBuffer  in  = {stream->next_in, stream->avail_in, 0};
     ZSTD_outBuffer out = {stream->next_out, stream->avail_out, 0};
     size_t const   ret = ZSTD_decompressStream(
         reinterpret_cast<ZSTD_DCtx*>(stream->ctx),
         &out,
         &in);
 
-    updateZstdStream(stream, in, out);
-
     if (ZSTD_isError(ret)) {
         return -1;
     }
+
+    updateZstdStream(stream, in, out);
 
     return 0;
 };
