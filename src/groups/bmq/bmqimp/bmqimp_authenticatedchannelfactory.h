@@ -117,6 +117,10 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     // PRIVATE DATA
     Config d_config;
 
+    /// Handle for the scheduled reauthentication timer.  An authentication
+    /// request is sent when this event fires.
+    bdlmt::EventScheduler::EventHandle d_reauthenticationTimeoutHandle;
+
     /// Used to make sure no callback is invoked on a destroyed object.
     mutable bmqu::SharedResource<AuthenticatedChannelFactory> d_self;
 
@@ -133,14 +137,6 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
 
   private:
     // PRIVATE ACCESSORS
-
-    /// Handle an event from our base ChannelFactory.
-    void
-    baseResultCallback(const ResultCallback&                  cb,
-                       bmqio::ChannelFactoryEvent::Enum       event,
-                       const bmqio::Status&                   status,
-                       const bsl::shared_ptr<bmqio::Channel>& channel) const;
-
     void sendRequest(const bsl::shared_ptr<bmqio::Channel>& channel,
                      const ResultCallback&                  cb) const;
 
@@ -150,22 +146,32 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
     void authenticate(const bsl::shared_ptr<bmqio::Channel>& channel,
                       const ResultCallback&                  cb) const;
 
-    void readPacketsCb(const bsl::shared_ptr<bmqio::Channel>& channel,
-                       const ResultCallback&                  cb,
-                       const bmqio::Status&                   status,
-                       int*                                   numNeeded,
-                       bdlbb::Blob*                           blob) const;
-
-    void onBrokerAuthenticationResponse(
-        const bdlbb::Blob&                     packet,
-        const ResultCallback&                  cb,
-        const bsl::shared_ptr<bmqio::Channel>& channel) const;
-
     /// Given the specified `lifetimeMs`, return the interval in milliseconds
     /// after which reauthentication should be performed.  This interval is
     /// calculated with a buffer to avoid cutting too close to the actual
     /// expiration time.
     int timeoutInterval(int lifetimeMs) const;
+
+    // PRIVATE MANIPULATORS
+
+    /// Handle an event from our base ChannelFactory.
+    void baseResultCallback(const ResultCallback&                  cb,
+                            bmqio::ChannelFactoryEvent::Enum       event,
+                            const bmqio::Status&                   status,
+                            const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void readPacketsCb(const bsl::shared_ptr<bmqio::Channel>& channel,
+                       const ResultCallback&                  cb,
+                       const bmqio::Status&                   status,
+                       int*                                   numNeeded,
+                       bdlbb::Blob*                           blob);
+
+    void onBrokerAuthenticationResponse(
+        const bdlbb::Blob&                     packet,
+        const ResultCallback&                  cb,
+        const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    void onChannelDown(const bmqio::Status& status);
 
   public:
     // CREATORS
@@ -186,10 +192,10 @@ class AuthenticatedChannelFactory : public bmqio::ChannelFactory {
                  const bmqio::ConnectOptions& options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
 
-    void processAuthenticationEvent(
-        const bmqp::Event&                     event,
-        const ResultCallback&                  cb,
-        const bsl::shared_ptr<bmqio::Channel>& channel) const;
+    void
+    processAuthenticationEvent(const bmqp::Event&                     event,
+                               const ResultCallback&                  cb,
+                               const bsl::shared_ptr<bmqio::Channel>& channel);
 };
 
 }  // close package namespace

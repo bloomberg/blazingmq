@@ -115,27 +115,6 @@ AuthenticatedChannelFactoryConfig::AuthenticatedChannelFactoryConfig(
 // ---------------------------------
 
 // PRIVATE ACCESSORS
-void AuthenticatedChannelFactory::baseResultCallback(
-    const ResultCallback&                  cb,
-    bmqio::ChannelFactoryEvent::Enum       event,
-    const bmqio::Status&                   status,
-    const bsl::shared_ptr<bmqio::Channel>& channel) const
-{
-    if (event != bmqio::ChannelFactoryEvent::e_CHANNEL_UP) {
-        cb(event, status, channel);
-        return;  // RETURN
-    }
-
-    // We will skip authentication if no authentication credential
-    // callback provided.
-    if (d_config.d_authnCredentialCb) {
-        authenticate(channel, cb);
-    }
-    else {
-        cb(event, status, channel);
-    }
-}
-
 void AuthenticatedChannelFactory::sendRequest(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb) const
@@ -227,12 +206,49 @@ void AuthenticatedChannelFactory::authenticate(
     readResponse(channel, cb);
 }
 
+int AuthenticatedChannelFactory::timeoutInterval(int lifetimeMs) const
+{
+    BSLS_ASSERT_SAFE(lifetimeMs >= 0);
+    const int intervalMsWithRatio  = lifetimeMs * k_REAUTHN_EARLY_RATIO;
+    const int intervalMsWithBuffer = bsl::max(0,
+                                              lifetimeMs -
+                                                  k_REAUTHN_EARLY_BUFFER);
+    return bsl::min(intervalMsWithRatio, intervalMsWithBuffer);
+}
+
+// PRIVATE MANIPULATORS
+void AuthenticatedChannelFactory::baseResultCallback(
+    const ResultCallback&                  cb,
+    bmqio::ChannelFactoryEvent::Enum       event,
+    const bmqio::Status&                   status,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    if (event != bmqio::ChannelFactoryEvent::e_CHANNEL_UP) {
+        cb(event, status, channel);
+        return;  // RETURN
+    }
+
+    channel->onClose(
+        bdlf::BindUtil::bind(&AuthenticatedChannelFactory::onChannelDown,
+                             this,
+                             bdlf::PlaceHolders::_1));  // status
+
+    // We will skip authentication if no authentication credential
+    // callback provided.
+    if (d_config.d_authnCredentialCb) {
+        authenticate(channel, cb);
+    }
+    else {
+        cb(event, status, channel);
+    }
+}
+
 void AuthenticatedChannelFactory::readPacketsCb(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const ResultCallback&                  cb,
     const bmqio::Status&                   status,
     int*                                   numNeeded,
-    bdlbb::Blob*                           blob) const
+    bdlbb::Blob*                           blob)
 {
     if (!status) {
         // Read failure.
@@ -272,7 +288,7 @@ void AuthenticatedChannelFactory::readPacketsCb(
 void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
     const bdlbb::Blob&                     packet,
     const ResultCallback&                  cb,
-    const bsl::shared_ptr<bmqio::Channel>& channel) const
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     BALL_LOG_TRACE << "Received a packet:\n"
                    << bmqu::BlobStartHexDumper(&packet);
@@ -303,20 +319,19 @@ void AuthenticatedChannelFactory::onBrokerAuthenticationResponse(
     cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
 }
 
-int AuthenticatedChannelFactory::timeoutInterval(int lifetimeMs) const
+void AuthenticatedChannelFactory::onChannelDown(
+    BSLA_UNUSED const bmqio::Status& status)
 {
-    BSLS_ASSERT_SAFE(lifetimeMs >= 0);
-    const int intervalMsWithRatio  = lifetimeMs * k_REAUTHN_EARLY_RATIO;
-    const int intervalMsWithBuffer = bsl::max(0,
-                                              lifetimeMs -
-                                                  k_REAUTHN_EARLY_BUFFER);
-    return bsl::min(intervalMsWithRatio, intervalMsWithBuffer);
+    // executed by the *IO* thread
+
+    // Cancel pending reauthentication event when a channel goes down.
+    d_config.d_scheduler_p->cancelEvent(&d_reauthenticationTimeoutHandle);
 }
 
 void AuthenticatedChannelFactory::processAuthenticationEvent(
     const bmqp::Event&                     event,
     const ResultCallback&                  cb,
-    const bsl::shared_ptr<bmqio::Channel>& channel) const
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     bmqp_ctrlmsg::AuthenticationMessage response;
     const int rc = event.loadAuthenticationEvent(&response);
@@ -372,6 +387,7 @@ void AuthenticatedChannelFactory::processAuthenticationEvent(
 
         // Pening events will be cancelled when Application stops.
         d_config.d_scheduler_p->scheduleEvent(
+            &d_reauthenticationTimeoutHandle,
             bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
                 .addMilliseconds(intervalMs),
             bdlf::BindUtil::bind(&AuthenticatedChannelFactory::sendRequest,
