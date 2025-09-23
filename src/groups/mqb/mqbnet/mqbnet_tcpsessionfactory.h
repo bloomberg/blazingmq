@@ -190,7 +190,7 @@ class TCPSessionFactory {
 
         bmqp::HeartbeatMonitor d_monitor;
 
-        /// @param channel The channel
+        /// @param channel_sp The channel
         /// @param session The session associated with this channel.
         /// @param eventProcessor The event processor of Events received on
         /// this channel.
@@ -198,10 +198,10 @@ class TCPSessionFactory {
         /// missed heartbeats on this channel.
         /// @param initialMissedHeartbeatCounter The initial missed heartbeats
         /// for this channel.
-        explicit ChannelInfo(bmqio::Channel*                 channel,
-                             const bsl::shared_ptr<Session>& session,
-                             SessionEventProcessor*          eventProcessor,
-                             int maxMissedHeartbeats,
+        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+                             const bsl::shared_ptr<Session>&        session,
+                             SessionEventProcessor* eventProcessor,
+                             int                    maxMissedHeartbeats,
                              int initialMissedHeartbeatCounter);
     };
 
