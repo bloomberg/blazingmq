@@ -202,6 +202,10 @@ class RecoveryManager {
         /// Receive data context.
         ReceiveDataContext d_receiveDataContext;
 
+        /// First sync point after rollover sequence number.
+        bmqp_ctrlmsg::PartitionSequenceNumber
+            d_firstSyncPointAfterRolloverSeqNum;
+
       public:
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(RecoveryContext,
@@ -524,6 +528,7 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_liveDataSource_p(0)
 , d_bufferedEvents(basicAllocator)
 , d_receiveDataContext()
+, d_firstSyncPointAfterRolloverSeqNum()
 {
     // NOTHING
 }
@@ -541,6 +546,8 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_liveDataSource_p(other.d_liveDataSource_p)
 , d_bufferedEvents(other.d_bufferedEvents)
 , d_receiveDataContext(other.d_receiveDataContext)
+, d_firstSyncPointAfterRolloverSeqNum(
+      other.d_firstSyncPointAfterRolloverSeqNum)
 {
     // NOTHING
 }
