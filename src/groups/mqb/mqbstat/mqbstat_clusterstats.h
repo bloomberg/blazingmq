@@ -91,7 +91,7 @@ class ClusterStats {
             e_CSL_LOG_OFFSET_BYTES,
             /// Amount of bytes written to the csl file.
             e_CSL_WRITE_BYTES,
-            /// Configured size of the CSL file.
+            /// Configured maximum size of the CSL file.
             e_CSL_CFG_BYTES,
             /// Configured size of the data file.
             e_PARTITION_CFG_DATA_BYTES,
