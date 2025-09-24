@@ -4417,8 +4417,7 @@ void StorageManager::processReplicaStateRequest(
         partitionId,
         1,
         replicaStateRequest.latestSequenceNumber(),
-        replicaStateRequest
-            .firstSyncPointAfterRolloverSequenceNumber());
+        replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
