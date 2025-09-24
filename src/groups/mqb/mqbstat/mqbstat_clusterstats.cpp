@@ -72,8 +72,8 @@ struct ClusterStatsIndex {
         // Value: Time in nanoseconds it took for replication of a new entry
         //        in CSL file.
         ,
-        e_CSL_OFFSET_BYTES
-        // Value: Offset bytes in the CSL file.
+        e_CSL_LOG_OFFSET_BYTES
+        // Value: Last observed offset bytes in the newest log of the CSL.
         ,
         e_CSL_WRITE_BYTES
         // Value: Bytes written to the CSL file.
