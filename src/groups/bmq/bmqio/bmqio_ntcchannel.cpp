@@ -788,24 +788,9 @@ void NtcChannel::processReadQueueLowWatermark(
     if (close) {
         bsl::shared_ptr<NtcChannel> self = this->shared_from_this();
 
-        while (!d_readQueue.empty()) {
-            bsl::shared_ptr<bmqio::NtcRead> read;
-            d_readQueue.pop(&read);
+        bmqio::Status status(bmqio::StatusCategory::e_CANCELED);
 
-            if (!read->isComplete()) {
-                bmqio::Channel::ReadCallback readCallback = read->callback();
-                read->clear();
-
-                bslmt::UnLockGuard<bslmt::Mutex> unlock(&d_mutex);
-
-                int         numNeeded = 0;
-                bdlbb::Blob blob;
-
-                readCallback(bmqio::Status(bmqio::StatusCategory::e_CANCELED),
-                             &numNeeded,
-                             &blob);
-            }
-        }
+        drainReaders(status);
 
         if (d_state != e_STATE_OPEN) {
             return;
@@ -861,30 +846,7 @@ void NtcChannel::processShutdownReceive(
 
     BMQIO_NTCCHANNEL_LOG_EVENT(this, d_streamSocket_sp, "shutdown", event);
 
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
-
-    while (!d_readQueue.empty()) {
-        bsl::shared_ptr<bmqio::NtcRead> read;
-        d_readQueue.pop(&read);
-
-        if (!read->isComplete()) {
-            bmqio::Channel::ReadCallback readCallback = read->callback();
-            read->clear();
-
-            bslmt::UnLockGuard<bslmt::Mutex> unlock(&d_mutex);
-
-            bmqio::Status status;
-            NtcChannelUtil::fail(&status,
-                                 bmqio::StatusCategory::e_CONNECTION,
-                                 "shutdown",
-                                 ntsa::Error(ntsa::Error::e_EOF));
-
-            int         numNeeded = 0;
-            bdlbb::Blob blob;
-
-            readCallback(status, &numNeeded, &blob);
-        }
-    }
+    // Keep the readers until 'processShutdownComplete'.
 }
 
 void NtcChannel::processShutdownSend(
@@ -906,7 +868,15 @@ void NtcChannel::processShutdownComplete(
 
     bsl::shared_ptr<NtcChannel> self = this->shared_from_this();
 
+    bmqio::Status status;
+    NtcChannelUtil::fail(&status,
+                         bmqio::StatusCategory::e_CONNECTION,
+                         "shutdown",
+                         ntsa::Error(ntsa::Error::e_EOF));
+
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+
+    drainReaders(status);
 
     if (d_state != e_STATE_OPEN) {
         return;
@@ -944,6 +914,26 @@ void NtcChannel::processClose(const bmqio::Status& status)
 
     d_watermarkSignaler.disconnectAllSlots();
     d_closeSignaler.disconnectAllSlots();
+}
+
+void NtcChannel::drainReaders(const bmqio::Status& status)
+{
+    while (!d_readQueue.empty()) {
+        bsl::shared_ptr<bmqio::NtcRead> read;
+        d_readQueue.pop(&read);
+
+        if (!read->isComplete()) {
+            bmqio::Channel::ReadCallback readCallback = read->callback();
+            read->clear();
+
+            bslmt::UnLockGuard<bslmt::Mutex> unlock(&d_mutex);
+
+            int         numNeeded = 0;
+            bdlbb::Blob blob;
+
+            readCallback(status, &numNeeded, &blob);
+        }
+    }
 }
 
 // CREATORS
