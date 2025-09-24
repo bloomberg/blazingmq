@@ -95,7 +95,7 @@ class ClusterStats {
             e_CSL_CFG_BYTES,
             /// Configured size of the data file.
             e_PARTITION_CFG_DATA_BYTES,
-            /// Configured size of the journal file.
+            /// Configured maximum size of the journal file.
             e_PARTITION_CFG_JOURNAL_BYTES,
 
             // PartitionStats: those metrics make sense only from the
