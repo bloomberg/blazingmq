@@ -385,6 +385,8 @@ class BmqconfConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -597,6 +599,9 @@ class ClusterAttributes {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -883,6 +888,9 @@ class ClusterMonitorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1083,6 +1091,9 @@ class DispatcherProcessorParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1390,6 +1401,8 @@ class ElectorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1674,6 +1687,8 @@ class Heartbeat {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1917,6 +1932,8 @@ class LogDumpConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogDumpConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2194,6 +2211,9 @@ class MessagePropertiesV2 {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2419,6 +2439,9 @@ class MessageThrottleConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2632,6 +2655,8 @@ class Plugins {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2991,6 +3016,9 @@ class QueueOperationsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3220,6 +3248,8 @@ class ResolvedDomain {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ResolvedDomain)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3485,6 +3515,9 @@ class StatsPrinterConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatsPrinterConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3818,6 +3851,9 @@ class StorageSyncConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -4067,6 +4103,8 @@ class SyslogConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4281,6 +4319,9 @@ class TcpClusterNodeConnection {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpClusterNodeConnection)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4506,6 +4547,9 @@ class TcpInterfaceListener {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceListener)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4732,6 +4776,9 @@ class VirtualClusterInformation {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::VirtualClusterInformation)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5141,6 +5188,9 @@ class DispatcherProcessorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5467,6 +5517,8 @@ class LogController {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogController)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5825,6 +5877,8 @@ class PartitionConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PartitionConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6071,6 +6125,9 @@ class StatPluginConfigPrometheus {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfigPrometheus)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6403,6 +6460,9 @@ class TcpInterfaceConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6654,6 +6714,8 @@ class ClusterNode {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6854,6 +6916,9 @@ class DispatcherConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -7075,6 +7140,9 @@ class NetworkInterfaces {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::NetworkInterfaces)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -7395,6 +7463,9 @@ class StatPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -7628,6 +7699,8 @@ class TaskConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7945,6 +8018,9 @@ class ClusterDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8216,6 +8292,9 @@ class ClusterProxyDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterProxyDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8453,6 +8532,8 @@ class StatsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8468,10 +8549,10 @@ class AppConfig {
     // containing the json config files hostName.............: name of the
     // current host hostTags.............: tags of the current host
     // hostDataCenter.......: datacenter the current host resides in
-    // isRunningOnDev.......: true if running on dev logsObserverMaxSize..:
-    // maximum number of log records to keep latencyMonitorDomain.: common part
-    // of all latemon domains dispatcherConfig.....: configuration for the
-    // dispatcher stats................: configuration for the stats
+    // logsObserverMaxSize..: maximum number of log records to keep
+    // latencyMonitorDomain.: common prefix of all latemon domains
+    // dispatcherConfig.....: configuration for the dispatcher
+    // stats................: configuration for the stats
     // networkInterfaces....: configuration for the network interfaces
     // bmqconfConfig........: configuration for bmqconf plugins..............:
     // configuration for the plugins msgPropertiesSupport.: information about
@@ -8498,7 +8579,6 @@ class AppConfig {
     int                 d_configVersion;
     int                 d_logsObserverMaxSize;
     int                 d_routeCommandTimeoutMs;
-    bool                d_isRunningOnDev;
     bool                d_configureStream;
     bool                d_advertiseSubscriptions;
 
@@ -8518,21 +8598,20 @@ class AppConfig {
         ATTRIBUTE_ID_HOST_NAME                = 4,
         ATTRIBUTE_ID_HOST_TAGS                = 5,
         ATTRIBUTE_ID_HOST_DATA_CENTER         = 6,
-        ATTRIBUTE_ID_IS_RUNNING_ON_DEV        = 7,
-        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE   = 8,
-        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN   = 9,
-        ATTRIBUTE_ID_DISPATCHER_CONFIG        = 10,
-        ATTRIBUTE_ID_STATS                    = 11,
-        ATTRIBUTE_ID_NETWORK_INTERFACES       = 12,
-        ATTRIBUTE_ID_BMQCONF_CONFIG           = 13,
-        ATTRIBUTE_ID_PLUGINS                  = 14,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2    = 15,
-        ATTRIBUTE_ID_CONFIGURE_STREAM         = 16,
-        ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS  = 17,
-        ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 18
+        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE   = 7,
+        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN   = 8,
+        ATTRIBUTE_ID_DISPATCHER_CONFIG        = 9,
+        ATTRIBUTE_ID_STATS                    = 10,
+        ATTRIBUTE_ID_NETWORK_INTERFACES       = 11,
+        ATTRIBUTE_ID_BMQCONF_CONFIG           = 12,
+        ATTRIBUTE_ID_PLUGINS                  = 13,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2    = 14,
+        ATTRIBUTE_ID_CONFIGURE_STREAM         = 15,
+        ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS  = 16,
+        ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 17
     };
 
-    enum { NUM_ATTRIBUTES = 19 };
+    enum { NUM_ATTRIBUTES = 18 };
 
     enum {
         ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME     = 0,
@@ -8542,18 +8621,17 @@ class AppConfig {
         ATTRIBUTE_INDEX_HOST_NAME                = 4,
         ATTRIBUTE_INDEX_HOST_TAGS                = 5,
         ATTRIBUTE_INDEX_HOST_DATA_CENTER         = 6,
-        ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV        = 7,
-        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE   = 8,
-        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN   = 9,
-        ATTRIBUTE_INDEX_DISPATCHER_CONFIG        = 10,
-        ATTRIBUTE_INDEX_STATS                    = 11,
-        ATTRIBUTE_INDEX_NETWORK_INTERFACES       = 12,
-        ATTRIBUTE_INDEX_BMQCONF_CONFIG           = 13,
-        ATTRIBUTE_INDEX_PLUGINS                  = 14,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2    = 15,
-        ATTRIBUTE_INDEX_CONFIGURE_STREAM         = 16,
-        ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS  = 17,
-        ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 18
+        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE   = 7,
+        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN   = 8,
+        ATTRIBUTE_INDEX_DISPATCHER_CONFIG        = 9,
+        ATTRIBUTE_INDEX_STATS                    = 10,
+        ATTRIBUTE_INDEX_NETWORK_INTERFACES       = 11,
+        ATTRIBUTE_INDEX_BMQCONF_CONFIG           = 12,
+        ATTRIBUTE_INDEX_PLUGINS                  = 13,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2    = 14,
+        ATTRIBUTE_INDEX_CONFIGURE_STREAM         = 15,
+        ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS  = 16,
+        ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 17
     };
 
     // CONSTANTS
@@ -8686,10 +8764,6 @@ class AppConfig {
     // Return a reference to the modifiable "HostDataCenter" attribute of
     // this object.
 
-    bool& isRunningOnDev();
-    // Return a reference to the modifiable "IsRunningOnDev" attribute of
-    // this object.
-
     int& logsObserverMaxSize();
     // Return a reference to the modifiable "LogsObserverMaxSize" attribute
     // of this object.
@@ -8803,9 +8877,6 @@ class AppConfig {
     // Return a reference offering non-modifiable access to the
     // "HostDataCenter" attribute of this object.
 
-    bool isRunningOnDev() const;
-    // Return the value of the "IsRunningOnDev" attribute of this object.
-
     int logsObserverMaxSize() const;
     // Return the value of the "LogsObserverMaxSize" attribute of this
     // object.
@@ -8886,6 +8957,8 @@ class AppConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9134,6 +9207,9 @@ class ClustersDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClustersDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9352,6 +9428,8 @@ class Configuration {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::Configuration)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -17162,7 +17240,6 @@ void AppConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->hostName());
     hashAppend(hashAlgorithm, this->hostTags());
     hashAppend(hashAlgorithm, this->hostDataCenter());
-    hashAppend(hashAlgorithm, this->isRunningOnDev());
     hashAppend(hashAlgorithm, this->logsObserverMaxSize());
     hashAppend(hashAlgorithm, this->latencyMonitorDomain());
     hashAppend(hashAlgorithm, this->dispatcherConfig());
@@ -17185,7 +17262,6 @@ inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
            this->hostName() == rhs.hostName() &&
            this->hostTags() == rhs.hostTags() &&
            this->hostDataCenter() == rhs.hostDataCenter() &&
-           this->isRunningOnDev() == rhs.isRunningOnDev() &&
            this->logsObserverMaxSize() == rhs.logsObserverMaxSize() &&
            this->latencyMonitorDomain() == rhs.latencyMonitorDomain() &&
            this->dispatcherConfig() == rhs.dispatcherConfig() &&
@@ -17245,12 +17321,6 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_hostDataCenter,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_isRunningOnDev,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
     if (ret) {
         return ret;
     }
@@ -17367,11 +17437,6 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
             &d_hostDataCenter,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
     }
-    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV: {
-        return manipulator(
-            &d_isRunningOnDev,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
-    }
     case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE: {
         return manipulator(
             &d_logsObserverMaxSize,
@@ -17480,11 +17545,6 @@ inline bsl::string& AppConfig::hostDataCenter()
     return d_hostDataCenter;
 }
 
-inline bool& AppConfig::isRunningOnDev()
-{
-    return d_isRunningOnDev;
-}
-
 inline int& AppConfig::logsObserverMaxSize()
 {
     return d_logsObserverMaxSize;
@@ -17583,12 +17643,6 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_hostDataCenter,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_isRunningOnDev,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
     if (ret) {
         return ret;
     }
@@ -17701,11 +17755,6 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_hostDataCenter,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
     }
-    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV: {
-        return accessor(
-            d_isRunningOnDev,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
-    }
     case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE: {
         return accessor(
             d_logsObserverMaxSize,
@@ -17810,11 +17859,6 @@ inline const bsl::string& AppConfig::hostTags() const
 inline const bsl::string& AppConfig::hostDataCenter() const
 {
     return d_hostDataCenter;
-}
-
-inline bool AppConfig::isRunningOnDev() const
-{
-    return d_isRunningOnDev;
 }
 
 inline int AppConfig::logsObserverMaxSize() const
@@ -18197,6 +18241,13 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.08.28
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

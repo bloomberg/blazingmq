@@ -194,17 +194,17 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
      "isCSLModeEnabled",
      sizeof("isCSLModeEnabled") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_IS_F_S_M_WORKFLOW,
      "isFSMWorkflow",
      sizeof("isFSMWorkflow") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T,
      "doesFSMwriteQLIST",
      sizeof("doesFSMwriteQLIST") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -251,7 +251,7 @@ ClusterAttributes::ClusterAttributes()
 
 void ClusterAttributes::reset()
 {
-    d_isCSLModeEnabled = DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED;
+    d_isCSLModeEnabled  = DEFAULT_INITIALIZER_IS_C_S_L_MODE_ENABLED;
     d_isFSMWorkflow     = DEFAULT_INITIALIZER_IS_F_S_M_WORKFLOW;
     d_doesFSMwriteQLIST = DEFAULT_INITIALIZER_DOES_F_S_MWRITE_Q_L_I_S_T;
 }
@@ -300,42 +300,42 @@ const bdlat_AttributeInfo ClusterMonitorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxTimeLeader",
      sizeof("maxTimeLeader") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_MASTER,
      "maxTimeMaster",
      sizeof("maxTimeMaster") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_NODE,
      "maxTimeNode",
      sizeof("maxTimeNode") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_FAILOVER,
      "maxTimeFailover",
      sizeof("maxTimeFailover") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_LEADER,
      "thresholdLeader",
      sizeof("thresholdLeader") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_MASTER,
      "thresholdMaster",
      sizeof("thresholdMaster") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_NODE,
      "thresholdNode",
      sizeof("thresholdNode") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_FAILOVER,
      "thresholdFailover",
      sizeof("thresholdFailover") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -554,47 +554,47 @@ const bdlat_AttributeInfo ElectorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "initialWaitTimeoutMs",
      sizeof("initialWaitTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_RANDOM_WAIT_TIMEOUT_MS,
      "maxRandomWaitTimeoutMs",
      sizeof("maxRandomWaitTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SCOUTING_RESULT_TIMEOUT_MS,
      "scoutingResultTimeoutMs",
      sizeof("scoutingResultTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ELECTION_RESULT_TIMEOUT_MS,
      "electionResultTimeoutMs",
      sizeof("electionResultTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_BROADCAST_PERIOD_MS,
      "heartbeatBroadcastPeriodMs",
      sizeof("heartbeatBroadcastPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_CHECK_PERIOD_MS,
      "heartbeatCheckPeriodMs",
      sizeof("heartbeatCheckPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_MISS_COUNT,
      "heartbeatMissCount",
      sizeof("heartbeatMissCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUORUM,
      "quorum",
      sizeof("quorum") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LEADER_SYNC_DELAY_MS,
      "leaderSyncDelayMs",
      sizeof("leaderSyncDelayMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -781,22 +781,22 @@ const bdlat_AttributeInfo Heartbeat::ATTRIBUTE_INFO_ARRAY[] = {
      "client",
      sizeof("client") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DOWNSTREAM_BROKER,
      "downstreamBroker",
      sizeof("downstreamBroker") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_UPSTREAM_BROKER,
      "upstreamBroker",
      sizeof("upstreamBroker") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLUSTER_PEER,
      "clusterPeer",
      sizeof("clusterPeer") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -885,17 +885,17 @@ const bdlat_AttributeInfo LogDumpConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "recordBufferSize",
      sizeof("recordBufferSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_RECORDING_LEVEL,
      "recordingLevel",
      sizeof("recordingLevel") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_TRIGGER_LEVEL,
      "triggerLevel",
      sizeof("triggerLevel") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1105,17 +1105,17 @@ const bdlat_AttributeInfo MessagePropertiesV2::ATTRIBUTE_INFO_ARRAY[] = {
      "advertiseV2Support",
      sizeof("advertiseV2Support") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MIN_CPP_SDK_VERSION,
      "minCppSdkVersion",
      sizeof("minCppSdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MIN_JAVA_SDK_VERSION,
      "minJavaSdkVersion",
      sizeof("minJavaSdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1206,22 +1206,22 @@ const bdlat_AttributeInfo MessageThrottleConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "lowThreshold",
      sizeof("lowThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HIGH_THRESHOLD,
      "highThreshold",
      sizeof("highThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOW_INTERVAL,
      "lowInterval",
      sizeof("lowInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HIGH_INTERVAL,
      "highInterval",
      sizeof("highInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1463,62 +1463,62 @@ const bdlat_AttributeInfo QueueOperationsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "openTimeoutMs",
      sizeof("openTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONFIGURE_TIMEOUT_MS,
      "configureTimeoutMs",
      sizeof("configureTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLOSE_TIMEOUT_MS,
      "closeTimeoutMs",
      sizeof("closeTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_TIMEOUT_MS,
      "reopenTimeoutMs",
      sizeof("reopenTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_RETRY_INTERVAL_MS,
      "reopenRetryIntervalMs",
      sizeof("reopenRetryIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_MAX_ATTEMPTS,
      "reopenMaxAttempts",
      sizeof("reopenMaxAttempts") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ASSIGNMENT_TIMEOUT_MS,
      "assignmentTimeoutMs",
      sizeof("assignmentTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_KEEPALIVE_DURATION_MS,
      "keepaliveDurationMs",
      sizeof("keepaliveDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMPTION_MONITOR_PERIOD_MS,
      "consumptionMonitorPeriodMs",
      sizeof("consumptionMonitorPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STOP_TIMEOUT_MS,
      "stopTimeoutMs",
      sizeof("stopTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SHUTDOWN_TIMEOUT_MS,
      "shutdownTimeoutMs",
      sizeof("shutdownTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ACK_WINDOW_SIZE,
      "ackWindowSize",
      sizeof("ackWindowSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1782,7 +1782,7 @@ const bdlat_AttributeInfo StatsPrinterConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "printInterval",
      sizeof("printInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FILE,
      "file",
      sizeof("file") - 1,
@@ -1797,12 +1797,12 @@ const bdlat_AttributeInfo StatsPrinterConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "rotateBytes",
      sizeof("rotateBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ROTATE_DAYS,
      "rotateDays",
      sizeof("rotateDays") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1983,47 +1983,47 @@ const bdlat_AttributeInfo StorageSyncConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "startupRecoveryMaxDurationMs",
      sizeof("startupRecoveryMaxDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_ATTEMPTS_STORAGE_SYNC,
      "maxAttemptsStorageSync",
      sizeof("maxAttemptsStorageSync") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STORAGE_SYNC_REQ_TIMEOUT_MS,
      "storageSyncReqTimeoutMs",
      sizeof("storageSyncReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MASTER_SYNC_MAX_DURATION_MS,
      "masterSyncMaxDurationMs",
      sizeof("masterSyncMaxDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_STATE_REQ_TIMEOUT_MS,
      "partitionSyncStateReqTimeoutMs",
      sizeof("partitionSyncStateReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_DATA_REQ_TIMEOUT_MS,
      "partitionSyncDataReqTimeoutMs",
      sizeof("partitionSyncDataReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STARTUP_WAIT_DURATION_MS,
      "startupWaitDurationMs",
      sizeof("startupWaitDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FILE_CHUNK_SIZE,
      "fileChunkSize",
      sizeof("fileChunkSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_EVENT_SIZE,
      "partitionSyncEventSize",
      sizeof("partitionSyncEventSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2157,7 +2157,7 @@ const bdlat_AttributeInfo SyslogConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "enabled",
      sizeof("enabled") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_APP_NAME,
      "appName",
      sizeof("appName") - 1,
@@ -3061,7 +3061,7 @@ const bdlat_AttributeInfo LogController::ATTRIBUTE_INFO_ARRAY[] = {
      "bslsLogSeverityThreshold",
      sizeof("bslsLogSeverityThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSOLE_SEVERITY_THRESHOLD,
      "consoleSeverityThreshold",
      sizeof("consoleSeverityThreshold") - 1,
@@ -3343,12 +3343,12 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxCSLFileSize",
      sizeof("maxCSLFileSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PREALLOCATE,
      "preallocate",
      sizeof("preallocate") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS,
      "maxArchivedFileSets",
      sizeof("maxArchivedFileSets") - 1,
@@ -3358,12 +3358,12 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "prefaultPages",
      sizeof("prefaultPages") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN,
      "flushAtShutdown",
      sizeof("flushAtShutdown") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SYNC_CONFIG,
      "syncConfig",
      sizeof("syncConfig") - 1,
@@ -3601,17 +3601,17 @@ const bdlat_AttributeInfo StatPluginConfigPrometheus::ATTRIBUTE_INFO_ARRAY[] =
       "mode",
       sizeof("mode") - 1,
       "",
-      bdlat_FormattingMode::e_DEFAULT},
+      bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
      {ATTRIBUTE_ID_HOST,
       "host",
       sizeof("host") - 1,
       "",
-      bdlat_FormattingMode::e_TEXT},
+      bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
      {ATTRIBUTE_ID_PORT,
       "port",
       sizeof("port") - 1,
       "",
-      bdlat_FormattingMode::e_DEC}};
+      bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -3775,7 +3775,7 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxConnections",
      sizeof("maxConnections") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOW_WATERMARK,
      "lowWatermark",
      sizeof("lowWatermark") - 1,
@@ -3790,17 +3790,17 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "nodeLowWatermark",
      sizeof("nodeLowWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NODE_HIGH_WATERMARK,
      "nodeHighWatermark",
      sizeof("nodeHighWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS,
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LISTENERS,
      "listeners",
      sizeof("listeners") - 1,
@@ -4392,32 +4392,32 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "name",
      sizeof("name") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_SIZE,
      "queueSize",
      sizeof("queueSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK,
      "queueHighWatermark",
      sizeof("queueHighWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_LOW_WATERMARK,
      "queueLowWatermark",
      sizeof("queueLowWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PUBLISH_INTERVAL,
      "publishInterval",
      sizeof("publishInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NAMESPACE_PREFIX,
      "namespacePrefix",
      sizeof("namespacePrefix") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HOSTS,
      "hosts",
      sizeof("hosts") - 1,
@@ -4427,7 +4427,7 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "instanceId",
      sizeof("instanceId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PROMETHEUS_SPECIFIC,
      "prometheusSpecific",
      sizeof("prometheusSpecific") - 1,
@@ -5186,7 +5186,7 @@ const bdlat_AttributeInfo StatsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "snapshotInterval",
      sizeof("snapshotInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PLUGINS,
      "plugins",
      sizeof("plugins") - 1,
@@ -5369,11 +5369,6 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("hostDataCenter") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_IS_RUNNING_ON_DEV,
-     "isRunningOnDev",
-     sizeof("isRunningOnDev") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE,
      "logsObserverMaxSize",
      sizeof("logsObserverMaxSize") - 1,
@@ -5383,7 +5378,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "latencyMonitorDomain",
      sizeof("latencyMonitorDomain") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DISPATCHER_CONFIG,
      "dispatcherConfig",
      sizeof("dispatcherConfig") - 1,
@@ -5418,24 +5413,24 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "configureStream",
      sizeof("configureStream") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS,
      "advertiseSubscriptions",
      sizeof("advertiseSubscriptions") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS,
      "routeCommandTimeoutMs",
      sizeof("routeCommandTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 19; ++i) {
+    for (int i = 0; i < 18; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5465,8 +5460,6 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS];
     case ATTRIBUTE_ID_HOST_DATA_CENTER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER];
-    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV];
     case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE];
     case ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN:
@@ -5513,7 +5506,6 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_configVersion()
 , d_logsObserverMaxSize()
 , d_routeCommandTimeoutMs(DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS)
-, d_isRunningOnDev()
 , d_configureStream(DEFAULT_INITIALIZER_CONFIGURE_STREAM)
 , d_advertiseSubscriptions(DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS)
 {
@@ -5537,7 +5529,6 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_configVersion(original.d_configVersion)
 , d_logsObserverMaxSize(original.d_logsObserverMaxSize)
 , d_routeCommandTimeoutMs(original.d_routeCommandTimeoutMs)
-, d_isRunningOnDev(original.d_isRunningOnDev)
 , d_configureStream(original.d_configureStream)
 , d_advertiseSubscriptions(original.d_advertiseSubscriptions)
 {
@@ -5562,7 +5553,6 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_configVersion(bsl::move(original.d_configVersion)),
   d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize)),
   d_routeCommandTimeoutMs(bsl::move(original.d_routeCommandTimeoutMs)),
-  d_isRunningOnDev(bsl::move(original.d_isRunningOnDev)),
   d_configureStream(bsl::move(original.d_configureStream)),
   d_advertiseSubscriptions(bsl::move(original.d_advertiseSubscriptions))
 {
@@ -5587,7 +5577,6 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_configVersion(bsl::move(original.d_configVersion))
 , d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize))
 , d_routeCommandTimeoutMs(bsl::move(original.d_routeCommandTimeoutMs))
-, d_isRunningOnDev(bsl::move(original.d_isRunningOnDev))
 , d_configureStream(bsl::move(original.d_configureStream))
 , d_advertiseSubscriptions(bsl::move(original.d_advertiseSubscriptions))
 {
@@ -5610,7 +5599,6 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_hostName               = rhs.d_hostName;
         d_hostTags               = rhs.d_hostTags;
         d_hostDataCenter         = rhs.d_hostDataCenter;
-        d_isRunningOnDev         = rhs.d_isRunningOnDev;
         d_logsObserverMaxSize    = rhs.d_logsObserverMaxSize;
         d_latencyMonitorDomain   = rhs.d_latencyMonitorDomain;
         d_dispatcherConfig       = rhs.d_dispatcherConfig;
@@ -5639,7 +5627,6 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_hostName               = bsl::move(rhs.d_hostName);
         d_hostTags               = bsl::move(rhs.d_hostTags);
         d_hostDataCenter         = bsl::move(rhs.d_hostDataCenter);
-        d_isRunningOnDev         = bsl::move(rhs.d_isRunningOnDev);
         d_logsObserverMaxSize    = bsl::move(rhs.d_logsObserverMaxSize);
         d_latencyMonitorDomain   = bsl::move(rhs.d_latencyMonitorDomain);
         d_dispatcherConfig       = bsl::move(rhs.d_dispatcherConfig);
@@ -5666,7 +5653,6 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_hostName);
     bdlat_ValueTypeFunctions::reset(&d_hostTags);
     bdlat_ValueTypeFunctions::reset(&d_hostDataCenter);
-    bdlat_ValueTypeFunctions::reset(&d_isRunningOnDev);
     bdlat_ValueTypeFunctions::reset(&d_logsObserverMaxSize);
     d_latencyMonitorDomain = DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN;
     bdlat_ValueTypeFunctions::reset(&d_dispatcherConfig);
@@ -5694,7 +5680,6 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("hostName", this->hostName());
     printer.printAttribute("hostTags", this->hostTags());
     printer.printAttribute("hostDataCenter", this->hostDataCenter());
-    printer.printAttribute("isRunningOnDev", this->isRunningOnDev());
     printer.printAttribute("logsObserverMaxSize", this->logsObserverMaxSize());
     printer.printAttribute("latencyMonitorDomain",
                            this->latencyMonitorDomain());
@@ -5989,6 +5974,13 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.08.28
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------
