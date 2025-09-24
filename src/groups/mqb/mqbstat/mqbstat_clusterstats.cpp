@@ -182,8 +182,8 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                                                        : value;
     }
 
-    case Stat::e_CSL_OFFSET_BYTES: {
-        return STAT_SINGLE(value, e_CSL_OFFSET_BYTES);
+    case Stat::e_CSL_LOG_OFFSET_BYTES: {
+        return STAT_SINGLE(value, e_CSL_LOG_OFFSET_BYTES);
     }
     case Stat::e_CSL_WRITE_BYTES: {
         return STAT_RANGE(valueDifference, e_CSL_WRITE_BYTES);
@@ -392,14 +392,15 @@ ClusterStats& ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
 
 ClusterStats& ClusterStats::setCslOffsetBytes(bsls::Types::Int64 value)
 {
-    d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_OFFSET_BYTES, value);
+    d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_LOG_OFFSET_BYTES,
+                               value);
     return *this;
 }
 
 ClusterStats& ClusterStats::addCslOffsetBytes(bsls::Types::Int64 delta)
 {
     d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_WRITE_BYTES, delta);
-    d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_OFFSET_BYTES,
+    d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_LOG_OFFSET_BYTES,
                                   delta);
     return *this;
 }
