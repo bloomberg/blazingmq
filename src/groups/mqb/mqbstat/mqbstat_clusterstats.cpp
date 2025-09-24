@@ -79,7 +79,7 @@ struct ClusterStatsIndex {
         // Value: Bytes written to the CSL file.
         ,
         e_CSL_CFG_BYTES
-        // Value: Configured size of the CSL file.
+        // Value: Configured maximum size of the CSL file.
         ,
         e_PARTITION_CFG_DATA_BYTES
         // Value: Configured size of partitions' data file
