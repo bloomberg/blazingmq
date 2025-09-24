@@ -686,6 +686,11 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                 {"cluster_csl_replication_time_ns_max",
                  Stat::e_CSL_REPLICATION_TIME_NS_MAX,
                  false},
+                {"cluster_csl_offset_bytes",
+                 Stat::e_CSL_LOG_OFFSET_BYTES,
+                 false},
+                {"cluster_csl_write_bytes", Stat::e_CSL_WRITE_BYTES, false},
+                {"cluster_csl_cfg_bytes", Stat::e_CSL_CFG_BYTES, false},
             };
 
             Tagger tagger;

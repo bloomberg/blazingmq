@@ -81,9 +81,21 @@ class ClusterStats {
             e_CLUSTER_STATUS,
             e_ROLE,
             e_LEADER_STATUS,
+            /// Time in nanoseconds it took for replication of a new entry in
+            /// CSL file. Average observed during the report interval.
             e_CSL_REPLICATION_TIME_NS_AVG,
+            /// Time in nanoseconds it took for replication of a new entry in
+            /// CSL file. Maximum observed during the report interval.
             e_CSL_REPLICATION_TIME_NS_MAX,
+            /// Last observed offset bytes in the newest log of the CSL.
+            e_CSL_LOG_OFFSET_BYTES,
+            /// Amount of bytes written to the csl file.
+            e_CSL_WRITE_BYTES,
+            /// Configured maximum size of the CSL file.
+            e_CSL_CFG_BYTES,
+            /// Configured maximum size of the data file.
             e_PARTITION_CFG_DATA_BYTES,
+            /// Configured maximum size of the journal file.
             e_PARTITION_CFG_JOURNAL_BYTES,
 
             // PartitionStats: those metrics make sense only from the
@@ -246,11 +258,12 @@ class ClusterStats {
     ClusterStats& setIsLeader(LeaderStatus::Enum value);
 
     /// Update the `partition.cfg_data_bytes` field to the specified
-    /// `dataBytes` and the `partition.cfg_journal_bytes` field to the
-    /// specified `journalBytes` in the StatContext being referred to by
-    /// this object.
+    /// `dataBytes`, the `partition.cfg_journal_bytes` field to the specified
+    /// `journalBytes` and the `cluster_csl_cfg_bytes` field to the specified
+    /// `cslBytes` in the StatContext being referred to by this object.
     ClusterStats& setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
-                                       bsls::Types::Int64 journalBytes);
+                                       bsls::Types::Int64 journalBytes,
+                                       bsls::Types::Int64 cslBytes);
 
     /// Set the primary status of the specified `partitionId` to the
     /// specified `value`.
@@ -260,6 +273,14 @@ class ClusterStats {
     /// Set the csl replication time of the StatContext being referred
     /// to by this object to be the specified `value`.
     ClusterStats& setCslReplicationTime(bsls::Types::Int64 value);
+
+    /// Set the csl offset bytes of the StatContext being referred to by this
+    /// object to be the specified `value`.
+    ClusterStats& setCslOffsetBytes(bsls::Types::Int64 value);
+
+    /// Adjust the csl offset bytes of the StatContext being referred to by
+    /// this object by the specified `delta`.
+    ClusterStats& addCslOffsetBytes(bsls::Types::Int64 delta);
 
     /// Set the partition outstanding bytes of the specified data and
     /// journal files for the specified `partitionId` to the corresponding
