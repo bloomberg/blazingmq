@@ -868,7 +868,6 @@ void StorageManager::processReplicaStateResponseDispatched(
         // Decide to drop replica's storage
         // if it is not empty and its first sync point does not match primary's
         // one.
-        // TODO: revise, this logic is on primary side, not replica.
         bool needDropReplicaStorage = false;
         if (response.latestSequenceNumber() !=
             bmqp_ctrlmsg::PartitionSequenceNumber()) {
@@ -4419,10 +4418,7 @@ void StorageManager::processReplicaStateRequest(
         1,
         replicaStateRequest.latestSequenceNumber(),
         replicaStateRequest
-            .firstSyncPointAfterRolloverSequenceNumber());  // TODO: need to
-                                                            // calculate
-                                                            // needDropSourceStorage
-                                                            // here?
+            .firstSyncPointAfterRolloverSequenceNumber());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
