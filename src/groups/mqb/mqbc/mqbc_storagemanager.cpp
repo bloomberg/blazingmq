@@ -1488,9 +1488,6 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
             d_nodeToSeqNumCtxMapVec[partitionId].insert(
                 bsl::make_pair(cit->source(), nodeSeqNumContext));
             hasNew = true;
-            BALL_LOG_WARN << "New sequence number for "
-                          << cit->source()->nodeDescription() << ": "
-                          << seqNum;
         }
         else if (seqNum > it->second.d_seqNum ||
                  event == PartitionFSM::Event::e_PRIMARY_STATE_RQST) {
