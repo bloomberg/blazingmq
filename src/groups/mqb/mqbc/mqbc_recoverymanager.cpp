@@ -1666,12 +1666,13 @@ void RecoveryManager::clearBufferedStorageEvent(int partitionId)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
-    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+    RecoveryContext& recoveryCtx       = d_recoveryContextVec[partitionId];
+    const size_t     numBufferedEvents = recoveryCtx.d_bufferedEvents.size();
     recoveryCtx.d_bufferedEvents.clear();
 
     BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
-                  << partitionId
-                  << "]: " << "Cleared all buffered storage events.";
+                  << partitionId << "]: " << "Cleared all "
+                  << numBufferedEvents << " buffered storage events.";
 }
 
 // ACCESSORS
