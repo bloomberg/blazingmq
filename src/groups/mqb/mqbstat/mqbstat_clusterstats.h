@@ -93,7 +93,7 @@ class ClusterStats {
             e_CSL_WRITE_BYTES,
             /// Configured maximum size of the CSL file.
             e_CSL_CFG_BYTES,
-            /// Configured size of the data file.
+            /// Configured maximum size of the data file.
             e_PARTITION_CFG_DATA_BYTES,
             /// Configured maximum size of the journal file.
             e_PARTITION_CFG_JOURNAL_BYTES,
