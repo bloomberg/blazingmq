@@ -2973,7 +2973,7 @@ void ClientSession::tearDown(const bsl::shared_ptr<void>& session,
     BALL_LOG_INFO << description() << ": tearDown";
 
     // Cancel the reads on the channel
-    d_channel_sp->cancelRead();
+    // d_channel_sp->cancelRead();
 
     // Enqueue an event to the client dispatcher thread and wait for it to
     // finish; only after this will we have the guarantee that no method will
