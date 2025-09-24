@@ -87,8 +87,8 @@ class ClusterStats {
             /// Time in nanoseconds it took for replication of a new entry in
             /// CSL file. Maximum observed during the report interval.
             e_CSL_REPLICATION_TIME_NS_MAX,
-            /// Last observed offset bytes in the csl file.
-            e_CSL_OFFSET_BYTES,
+            /// Last observed offset bytes in the newest log of the CSL.
+            e_CSL_LOG_OFFSET_BYTES,
             /// Amount of bytes written to the csl file.
             e_CSL_WRITE_BYTES,
             /// Configured size of the CSL file.
