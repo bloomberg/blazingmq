@@ -301,6 +301,8 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
     }
     recoveryCtx.d_qlistFilePosition = 0;
+
+    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
 }
 
 void RecoveryManager::setExpectedDataChunkRange(
@@ -1532,6 +1534,8 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
                       << recoveryCtx.d_qlistFilePosition;
     }
     recoveryCtx.d_qlistFilePosition = 0;
+
+    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
 
     return rc_SUCCESS;
 }
