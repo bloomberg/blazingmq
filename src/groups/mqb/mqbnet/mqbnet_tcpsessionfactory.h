@@ -180,7 +180,7 @@ class TCPSessionFactory {
     /// heartbeat monitor.
     struct ChannelInfo {
         /// The channel
-        bmqio::Channel* d_channel_p;
+        bsl::shared_ptr<bmqio::Channel> d_channel_sp;
 
         /// The session tied to the channel
         bsl::shared_ptr<Session> d_session_sp;
@@ -190,7 +190,7 @@ class TCPSessionFactory {
 
         bmqp::HeartbeatMonitor d_monitor;
 
-        /// @param channel The channel
+        /// @param channel_sp The channel
         /// @param session The session associated with this channel.
         /// @param eventProcessor The event processor of Events received on
         /// this channel.
@@ -198,10 +198,10 @@ class TCPSessionFactory {
         /// missed heartbeats on this channel.
         /// @param initialMissedHeartbeatCounter The initial missed heartbeats
         /// for this channel.
-        explicit ChannelInfo(bmqio::Channel*                 channel,
-                             const bsl::shared_ptr<Session>& session,
-                             SessionEventProcessor*          eventProcessor,
-                             int maxMissedHeartbeats,
+        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+                             const bsl::shared_ptr<Session>&        session,
+                             SessionEventProcessor* eventProcessor,
+                             int                    maxMissedHeartbeats,
                              int initialMissedHeartbeatCounter);
     };
 
@@ -247,7 +247,8 @@ class TCPSessionFactory {
 
     /// Map associating a `Channel` to its corresponding `ChannelInfo` (as
     /// shared_ptr because of the atomicInt which has no copy constructor).
-    typedef bsl::unordered_map<bmqio::Channel*, ChannelInfoSp> ChannelMap;
+    typedef bsl::unordered_map<const bmqio::Channel*, ChannelInfoSp>
+        ChannelMap;
 
     /// Shortcut for a managedPtr to the `bmqio::TCPChannelFactory`
     typedef bslma::ManagedPtr<bmqio::ChannelFactory> TCPChannelFactoryMp;
@@ -346,7 +347,7 @@ class TCPSessionFactory {
 
     /// Map of all channels which are heartbeat enabled; only manipulated from
     /// the event scheduler thread.
-    bsl::unordered_map<bmqio::Channel*, ChannelInfo*> d_heartbeatChannels;
+    ChannelMap d_heartbeatChannels;
 
     /// Value for initializing `ChannelInfo.d_missedHeartbeatCounter`.  See
     /// comments in `calculateInitialMissedHbCounter`.
@@ -467,13 +468,11 @@ class TCPSessionFactory {
 
     /// Enable heartbeat for the channel represented by the specified
     /// `channelInfo`.
-    void enableHeartbeat(ChannelInfo* channelInfo);
+    void enableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
 
     /// Disable heartbeat for the channel represented by the specified
-    /// `channelInfo`.  Note that `channelInfo` is passed as a shared_ptr to
-    /// guarantee thread safety and that the object is still alive until the
-    /// event scheduler processes it.
-    void disableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
+    /// `channel_p`.
+    void disableHeartbeat(const bmqio::Channel* channel_p);
 
     /// Log open session time for the specified `sessionDescription` and
     /// `channel`, using the stored begin
@@ -492,6 +491,9 @@ class TCPSessionFactory {
 
     /// Cancel any open listener operations and clear them out.
     void cancelListeners();
+
+    /// Stop all hearbeats
+    void stopHeartbeats();
 
   private:
     // NOT IMPLEMENTED
