@@ -360,9 +360,9 @@ class RecoveryManager {
 
     /// Process the recovery data chunks contained in the specified `blob`
     /// sent by the specified `source` for the specified `partitionId`.
-    /// Forward the processing to the specified `fs` if `fs` is open. TODO: add
-    /// firstSyncPointAfterRolloverSeqNum Return 0 on success and non-zero code
-    /// on error.
+    /// Forward the processing to the specified `fs` if `fs` is open. Use the
+    /// specified `firstSyncPointAfterRolloverSeqNum` to update journal header.
+    /// Return 0 on success and non-zero code on error.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.

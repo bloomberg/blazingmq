@@ -163,16 +163,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<PrimaryStatusAdvisoryInfos>
         PrimaryStatusAdvisoryInfosVec;
 
-  public:
-    // TYPES
-    typedef PartitionFSM::PartitionFSMArgsSp PartitionFSMArgsSp;
-
-    /// Pool of shared pointers to Blobs
-    typedef StorageUtil::BlobSpPool BlobSpPool;
-
-    /// VST representing node's sequence number, first sync point sequence
-    /// number after rollover and flag of whether recovery data has been sent
-    /// to that node).
+    /// VST representing node's sequence number, first sync point after
+    /// rollover sequence number and flag of whether recovery data is in sync.
     class NodeSeqNumContext {
       public:
         // DATA
@@ -184,17 +176,25 @@ class StorageManager BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
-        /// Flag of whether recovery data has been sent to that node.
+        /// Flag of whether recovery data is in sync.
         bool d_isInSync;
 
         // CREATORS
         NodeSeqNumContext();
 
-        NodeSeqNumContext(const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber
-                               d_firstSyncPointAfterRolloverSeqNum,
-                          bool isRecoveryDataSent);
+        explicit NodeSeqNumContext(
+            const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
+            const bmqp_ctrlmsg::PartitionSequenceNumber
+                 d_firstSyncPointAfterRolloverSeqNum,
+            bool isRecoveryDataSent);
     };
+
+  public:
+    // TYPES
+    typedef PartitionFSM::PartitionFSMArgsSp PartitionFSMArgsSp;
+
+    /// Pool of shared pointers to Blobs
+    typedef StorageUtil::BlobSpPool BlobSpPool;
 
     typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
                                                NodeToSeqNumCtxMap;
@@ -1209,10 +1209,10 @@ inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
     const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber
          firstSyncPointAfterRolloverSeqNum,
-    bool isRecoveryDataSent)
+    bool isInSync)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
-, d_isInSync(isRecoveryDataSent)
+, d_isInSync(isInSync)
 {
     // NOTHING
 }

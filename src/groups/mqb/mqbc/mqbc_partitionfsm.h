@@ -126,7 +126,8 @@ class PartitionFSMEventData {
     /// `requestId`, specified `partitionId` and specified 'incrementCount'.
     /// Optionally specify the `primary` and `primaryLeaseId`. If applicable
     /// the associated data sequence number is an optionally specified
-    /// `seqNum`. There are also optionally specified `highestSeqNumNode`,
+    /// `seqNum` and optionally specified `firstSyncPointAfterRollloverSeqNum`.
+    /// There are also optionally specified `highestSeqNumNode`,
     /// optionally specified `seqNumDataRange`.
     PartitionFSMEventData(mqbnet::ClusterNode* source,
                           int                  requestId,
@@ -146,9 +147,10 @@ class PartitionFSMEventData {
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
-    /// partition identifier is the specified `partitionId`, the associated
-    /// data sequence number is the specified `seqNum`, and the specified
-    /// 'incrementCount'. TODO: firstSyncPointAfterRollloverSeqNum
+    /// partition identifier is the specified `partitionId`, the specified
+    /// 'incrementCount', the associated data sequence number is the specified
+    /// `seqNum`, the first sync point after rollover sequence number is the
+    /// specified `firstSyncPointAfterRollloverSeqNum`.
     PartitionFSMEventData(mqbnet::ClusterNode* source,
                           int                  requestId,
                           int                  partitionId,
@@ -159,10 +161,11 @@ class PartitionFSMEventData {
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
-    /// partition identifier is the specified `partitionId`, the associated
-    /// data sequence number is the specified `seqNum`, and the specified
-    /// 'incrementCount'. TODO: firstSyncPointAfterRollloverSeqNum,
-    /// needDropSourceStorage
+    /// partition identifier is the specified `partitionId`, the specified
+    /// 'incrementCount', the associated data sequence number is the specified
+    /// `seqNum`, the first sync point after rollover sequence number is the
+    /// specified `firstSyncPointAfterRollloverSeqNum`, and the specified
+    /// `needDropSourceStorage` flag.
     PartitionFSMEventData(mqbnet::ClusterNode* source,
                           int                  requestId,
                           int                  partitionId,

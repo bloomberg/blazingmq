@@ -443,7 +443,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
-    // Store first sync point position if present in file.
+    // Store first sync point after rollover position.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
         const RecordHeader& recHeader =
             jit.firstSyncPointAfterRolloverHeader();

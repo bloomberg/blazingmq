@@ -1248,7 +1248,6 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
 inline void FileStore::setFirstSyncPointAfterRolloverSeqNum(
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum)
 {
-    // Set sequence number
     d_firstSyncPointAfterRolloverSeqNum = seqNum;
 }
 

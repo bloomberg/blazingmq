@@ -1560,6 +1560,7 @@ int RecoveryManager::recoverSeqNum(
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     int                rc          = rc_UNKNOWN;
 
+    // Retrieve first sync point after rolllover sequence number.
     if (firstSyncPointAfterRolllover) {
         *seqNum = recoveryCtx.d_firstSyncPointAfterRolloverSeqNum;
         return rc_SUCCESS;  // RETURN

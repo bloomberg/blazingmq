@@ -2896,7 +2896,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
             }
             else if (cit->first->nodeId() == eventData.source()->nodeId() &&
                      eventData.needDropSourceStorage()) {
-                // Replica needs to drop, we already sent
+                // Replica needs to drop its partition, we already sent
                 // ReplicaDataRequestDrop
                 continue;
             }
@@ -4863,7 +4863,7 @@ StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
     mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
     BSLS_ASSERT_SAFE(fs);
 
-    // Get own first sync point sequence number
+    // Get own first sync point after rolllover sequence number
     bmqp_ctrlmsg::PartitionSequenceNumber
         selffirstSyncPointAfterRollloverSeqNum;
     if (fs->isOpen()) {
