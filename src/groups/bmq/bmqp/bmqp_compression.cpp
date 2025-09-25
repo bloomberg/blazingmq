@@ -28,6 +28,8 @@
 // ZLIB
 #include <zlib.h>
 // ZSTD
+#define ZSTD_STATIC_LINKING_ONLY  // needed to enabled custom memory
+                                  // managerment via allocators
 #include <zstd.h>
 
 // MemorySanitizer
@@ -334,9 +336,9 @@ struct Zstd {
     // CLASS METHODS
 
     // static void*
-    // zAllocate(void* opaque, unsigned int items, unsigned int size);
+    static void* zAllocate(void* opaque, size_t size);
 
-    // static void zFree(void* opaque, void* address);
+    static void zFree(void* opaque, void* address);
 
     static void setError(bsl::ostream*            stream,
                          const bslstl::StringRef& baseMessage,
@@ -370,17 +372,17 @@ struct Zstd {
 // struct Zstd
 // ===========
 
-// void* Zstd::zAllocate(void* opaque, unsigned int items, unsigned int size)
-// {
-//     bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
-//     return allocator->allocate(items * size);
-// }
+void* Zstd::zAllocate(void* opaque, size_t size)
+{
+    bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
+    return allocator->allocate(size);
+}
 
-// void Zstd::zFree(void* opaque, void* address)
-// {
-//     bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
-//     allocator->deallocate(address);
-// }
+void Zstd::zFree(void* opaque, void* address)
+{
+    bslma::Allocator* allocator = static_cast<bslma::Allocator*>(opaque);
+    allocator->deallocate(address);
+}
 
 void Zstd::setError(bsl::ostream*            stream,
                     const bslstl::StringRef& baseMessage,
@@ -780,16 +782,10 @@ int Compression_Impl::compressZstd(bdlbb::Blob*              output,
 {
     enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
 
-    // TODO:
-    // ZSTD_customMem customMem = {
-    //     .customMalloc = myMalloc,
-    //     .customFree   = myFree,
-    //     .customRealloc= myRealloc
-    // };
+    ZSTD_customMem customMem = {&Zstd::zAllocate, &Zstd::zFree, allocator};
 
-    ZSTD_CCtx* cctx = ZSTD_createCCtx(
-        // customMem
-    );
+    ZSTD_CCtx* cctx = ZSTD_createCCtx_advanced(customMem);
+
     if (!cctx) {
         (*errorStream) << "Error initializing ZSTD compression context";
         return rc_STREAM_INIT_FAILURE;  // RETURN
@@ -818,16 +814,10 @@ int Compression_Impl::decompressZstd(bdlbb::Blob*              output,
 {
     enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
 
-    // TODO:
-    // ZSTD_customMem customMem = {
-    //     .customMalloc = myMalloc,
-    //     .customFree   = myFree,
-    //     .customRealloc= myRealloc
-    // };
+    ZSTD_customMem customMem = {&Zstd::zAllocate, &Zstd::zFree, allocator};
 
-    ZSTD_DCtx* dctx = ZSTD_createDCtx(
-        // customMem
-    );
+    ZSTD_DCtx* dctx = ZSTD_createDCtx_advanced(customMem);
+
     if (!dctx) {
         (*errorStream) << "Error initializing ZSTD decompression context";
         return rc_STREAM_INIT_FAILURE;  // RETURN
