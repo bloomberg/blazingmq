@@ -72,7 +72,7 @@ def main() -> None:
             "-q",
             "-batch",
             "-ex",
-            "bt full",
+            "thread apply all bt full",
             args.bin_path,
             core_path,
         ]

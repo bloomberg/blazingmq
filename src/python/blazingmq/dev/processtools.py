@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 import psutil
+import signal
 
 
 def stop_broker(
@@ -42,8 +43,14 @@ def stop_broker(
         broker_process = psutil.Process(pid)
 
         if timeout is not None:
-            broker_process.terminate()
+            # broker_process.terminate()
+            # try:
+            #     return broker_process.wait(timeout=timeout)
+            # except psutil.TimeoutExpired:
+            #     pass
 
+            print("Sending SIGQUIT signal")
+            broker_process.send_signal(signal.SIGQUIT)
             try:
                 return broker_process.wait(timeout=timeout)
             except psutil.TimeoutExpired:
