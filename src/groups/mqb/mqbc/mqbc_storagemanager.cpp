@@ -1154,14 +1154,8 @@ void StorageManager::do_startWatchDog(const PartitionFSMArgsSp& args)
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    if (static_cast<const bdlmt::EventSchedulerEventHandle::Event*>(
-            d_watchDogEventHandles[partitionId]) != 0) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not starting watchdog since it has already been "
-                      << "started.";
-        return;  // RETURN
-    }
+    // Clear any existing watchdog before starting the timer anew.
+    d_watchDogEventHandles[partitionId].release();
 
     d_clusterData_p->scheduler().scheduleEvent(
         &d_watchDogEventHandles[partitionId],
@@ -1191,8 +1185,6 @@ void StorageManager::do_stopWatchDog(const PartitionFSMArgsSp& args)
                        << " Partition [" << partitionId << "]: "
                        << "Failed to cancel WatchDog, rc: " << rc;
     }
-
-    d_watchDogEventHandles[partitionId].release();
 }
 
 void StorageManager::do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
