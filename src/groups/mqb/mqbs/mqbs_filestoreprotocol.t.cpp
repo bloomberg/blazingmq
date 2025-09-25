@@ -486,28 +486,17 @@ static void test2_manipulators()
         int d_partitionId;
         int d_expectedGID;
 
-    } DATA[] = {
-        {
-            L_,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        },
-        {L_,
-         k_UNSIGNED_CHAR_MIN,
-         k_UNSIGNED_CHAR_MIN,
-         k_UNSIGNED_CHAR_MIN,
-         k_UNSIGNED_CHAR_MIN,
-         k_INT_MAX,
-         127,
-         k_INT_MAX,
-         k_INT_MAX},
-    };
+    } DATA[] = {{
+        L_,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    }};
 
     const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 

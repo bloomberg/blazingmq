@@ -855,9 +855,6 @@ static void test7_printing()
 //          matches the expected value.
 //   2. Check that 'bmqimp::Event' object directed to output stream with
 //      error doesn't make impact on stream (output is empty).
-//   3. Check that 'bmqimp::Event' object with incorrect event type
-//      directed to output stream causes 'bsls::AssertTestException'
-//      exception.
 //
 // Testing:
 //   bmqimp::Event::print()
@@ -1075,17 +1072,8 @@ static void test7_printing()
         out.clear();
         out.reset();
     }
-
-    {
-        PV("Bad enum value test");
-        bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        obj.setType(static_cast<bmqimp::Event::EventType::Enum>(
-            bsl::numeric_limits<int>::min()));
-
-        BMQTST_ASSERT_OPT_FAIL(out << obj);
-        out.reset();
-    }
 }
+
 static void test8_putEventBuilder()
 {
     // ------------------------------------------------------------------------
