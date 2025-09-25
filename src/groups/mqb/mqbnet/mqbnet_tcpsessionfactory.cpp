@@ -1292,14 +1292,14 @@ void TCPSessionFactory::stop()
         stopChannelFactory(d_tcpChannelFactory_mp.get());
     }
 
-    // Cancel the scheduled heartbeat event
-    d_scheduler_p->cancelEvent(&d_heartbeatSchedulerHandle);
-
     // Wait for all sessions to have been destroyed
     d_mutex.lock();
 
     if (d_heartbeatSchedulerActive) {
         d_heartbeatSchedulerActive = false;
+
+        // Cancel the scheduled heartbeat event
+        d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
 
         d_scheduler_p->scheduleEvent(
             bsls::TimeInterval(0),
