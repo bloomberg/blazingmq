@@ -36,7 +36,6 @@ AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
     bmqp::EncodingType::Enum                   authenticationEncodingType,
-    const ReauthenticateCb&                    reauthenticateCb,
     State                                      state,
     ConnectionType::Enum                       connectionType,
     BSLA_UNUSED bslma::Allocator* allocator)
@@ -45,7 +44,6 @@ AuthenticationContext::AuthenticationContext(
 , d_authenticationMessage(authenticationMessage)
 , d_timeoutHandle()
 , d_authenticationEncodingType(authenticationEncodingType)
-, d_reauthenticateCb(reauthenticateCb)
 , d_state(state)
 , d_connectionType(connectionType)
 {
@@ -79,13 +77,6 @@ AuthenticationContext& AuthenticationContext::setAuthenticationEncodingType(
     bmqp::EncodingType::Enum value)
 {
     d_authenticationEncodingType = value;
-    return *this;
-}
-
-AuthenticationContext&
-AuthenticationContext::setAuthenticateCb(const ReauthenticateCb& value)
-{
-    d_reauthenticateCb = value;
     return *this;
 }
 
@@ -125,12 +116,6 @@ bmqp::EncodingType::Enum
 AuthenticationContext::authenticationEncodingType() const
 {
     return d_authenticationEncodingType;
-}
-
-const AuthenticationContext::ReauthenticateCb&
-AuthenticationContext::reauthenticateCb() const
-{
-    return d_reauthenticateCb;
 }
 
 ConnectionType::Enum AuthenticationContext::connectionType() const

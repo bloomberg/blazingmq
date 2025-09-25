@@ -50,12 +50,6 @@ class AuthenticationContext {
 
     typedef bdlmt::EventScheduler::EventHandle EventHandle;
 
-    typedef bsl::function<int(
-        bsl::ostream&                                 errorDescription,
-        const bsl::shared_ptr<AuthenticationContext>& context,
-        const bsl::shared_ptr<bmqio::Channel>&        channel)>
-        ReauthenticateCb;
-
   private:
     // DATA
 
@@ -77,8 +71,6 @@ class AuthenticationContext {
     /// The encoding type used for sending a message. It should match with the
     /// encoding type of the received message.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
-
-    ReauthenticateCb d_reauthenticateCb;
 
     /// This is used to store the state of the authentication process. It
     /// serves as a primitive to ensure there's no race between reading
@@ -104,7 +96,6 @@ class AuthenticationContext {
         InitialConnectionContext*                  initialConnectionContext,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
         bmqp::EncodingType::Enum                   authenticationEncodingType,
-        const ReauthenticateCb&                    reauthenticateCb,
         State                                      state,
         ConnectionType::Enum                       connectionType,
         bslma::Allocator*                          allocator = 0);
@@ -118,7 +109,6 @@ class AuthenticationContext {
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
     AuthenticationContext&
     setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
-    AuthenticationContext& setAuthenticateCb(const ReauthenticateCb& value);
     AuthenticationContext& setConnectionType(ConnectionType::Enum value);
 
     bsls::AtomicInt& state();
@@ -133,7 +123,6 @@ class AuthenticationContext {
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
     bmqp::EncodingType::Enum authenticationEncodingType() const;
-    const ReauthenticateCb&  reauthenticateCb() const;
     ConnectionType::Enum     connectionType() const;
 
     EventHandle&  timeoutHandle();

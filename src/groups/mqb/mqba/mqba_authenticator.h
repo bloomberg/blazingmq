@@ -167,14 +167,6 @@ class Authenticator : public mqbnet::Authenticator {
                           const InitialConnectionContextSp& context,
                           const bsl::shared_ptr<bmqio::Channel>& channel);
 
-    /// Schedule a re-authentication job in the thread pool using the
-    /// specified `context` and `channel`.  Return 0 on success, or a
-    /// non-zero error code and populate the specified `errorDescription`
-    /// with a description of the error otherwise.
-    int reauthenticateAsync(bsl::ostream&                  errorDescription,
-                            const AuthenticationContextSp& context,
-                            const bsl::shared_ptr<bmqio::Channel>& channel);
-
     /// Authenticate the connection using the `AuthenticationMessage` stored in
     /// `context`.  If authentication fails, invoke
     /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
@@ -254,6 +246,15 @@ class Authenticator : public mqbnet::Authenticator {
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int authenticationOutbound(const AuthenticationContextSp& context)
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Schedule a re-authentication job in the thread pool using the
+    /// specified `context` and `channel`.  Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
+    int reauthenticateAsync(bsl::ostream&                  errorDescription,
+                            const AuthenticationContextSp& context,
+                            const bsl::shared_ptr<bmqio::Channel>& channel)
         BSLS_KEYWORD_OVERRIDE;
 
     void onClose(const AuthenticationContextSp& authenticationContext)
