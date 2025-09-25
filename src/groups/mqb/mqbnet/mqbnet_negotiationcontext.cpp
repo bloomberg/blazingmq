@@ -25,21 +25,15 @@ namespace mqbnet {
 // ------------------------
 
 NegotiationContext::NegotiationContext(
-    InitialConnectionContext*               initialConnectionContext,
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-    const bsl::string&                      clusterName,
-    ConnectionType::Enum                    connectionType,
-    int                                     maxMissedHeartbeat,
-    SessionEventProcessor*                  eventProcessor,
-    Cluster*                                cluster,
-    bslma::Allocator*                       allocator)
+    InitialConnectionContext* initialConnectionContext,
+    bslma::Allocator*         allocator)
 : d_initialConnectionContext_p(initialConnectionContext)
-, d_negotiationMessage(negotiationMessage)
-, d_clusterName(clusterName, allocator)
-, d_connectionType(connectionType)
-, d_maxMissedHeartbeats(maxMissedHeartbeat)
-, d_eventProcessor_p(eventProcessor)
-, d_cluster_p(cluster)
+, d_negotiationMessage(bmqp_ctrlmsg::NegotiationMessage())
+, d_clusterName(bsl::string(), allocator)
+, d_connectionType(mqbnet::ConnectionType::e_UNKNOWN)
+, d_maxMissedHeartbeats(0)
+, d_eventProcessor_p(bsl::nullptr_t())
+, d_cluster_p(bsl::nullptr_t())
 {
     // NOTHING
 }
