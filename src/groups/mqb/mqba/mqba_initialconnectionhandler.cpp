@@ -541,13 +541,7 @@ void InitialConnectionHandler::createNegotiationContext(
     bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
         bsl::allocate_shared<mqbnet::NegotiationContext>(
             d_allocator_p,
-            context.get(),                       // initialConnectionContext
-            bmqp_ctrlmsg::NegotiationMessage(),  // negotiationMessage
-            bsl::string(),                       // clusterName
-            mqbnet::ConnectionType::e_UNKNOWN,   // connectionType
-            0,                                   // maxMissedHeartbeat
-            bsl::nullptr_t(),                    // eventProcessor
-            bsl::nullptr_t()                     // cluster
+            context.get()  // initialConnectionContext
         );
 
     context->setNegotiationContext(negotiationContext);

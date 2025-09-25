@@ -88,15 +88,8 @@ class NegotiationContext {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    NegotiationContext(
-        InitialConnectionContext*               initialConnectionContext,
-        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-        const bsl::string&                      clusterName,
-        ConnectionType::Enum                    connectionType,
-        int                                     maxMissedHeartbeat,
-        SessionEventProcessor*                  eventProcessor,
-        Cluster*                                cluster,
-        bslma::Allocator*                       allocator = 0);
+    NegotiationContext(InitialConnectionContext* initialConnectionContext,
+                       bslma::Allocator*         allocator = 0);
 
     // MANIPULATORS
     NegotiationContext&
