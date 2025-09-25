@@ -1000,9 +1000,10 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         event.authenticationEventEncodingType());
 
     bmqu::MemOutStream errorStream;
-    rc = context->reauthenticateCb()(errorStream,
-                                     context,
-                                     channelInfo->d_channel_sp);
+
+    rc = d_authenticator_p->reauthenticateAsync(errorStream,
+                                                context,
+                                                channelInfo->d_channel_sp);
     if (rc != 0) {
         BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description
                        << ": Authentication failed [reason: '"

@@ -76,6 +76,15 @@ class Authenticator {
     virtual int authenticationOutbound(
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
+    /// Schedule a re-authentication job in the thread pool using the
+    /// specified `context` and `channel`.  Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
+    virtual int
+    reauthenticateAsync(bsl::ostream& errorDescription,
+                        const bsl::shared_ptr<AuthenticationContext>& context,
+                        const bsl::shared_ptr<bmqio::Channel>& channel) = 0;
+
     /// Methods invoked when a channel is closed.
     virtual void
     onClose(const bsl::shared_ptr<AuthenticationContext>& context) = 0;
