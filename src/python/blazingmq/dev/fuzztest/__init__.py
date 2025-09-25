@@ -359,7 +359,7 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
 
     session = boofuzz.Session(
         target=boofuzz.Target(
-            connection=boofuzz.TCPSocketConnection(host, port, recv_timeout=0.1)
+            connection=boofuzz.TCPSocketConnection(host, port, recv_timeout=0.05)
         ),
         receive_data_after_each_request=True,
         receive_data_after_fuzz=True,

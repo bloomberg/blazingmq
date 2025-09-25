@@ -32,8 +32,9 @@ optional arguments:
 """
 
 import argparse
-import os
+import queue
 import subprocess
+import sys
 from pathlib import Path
 from threading import Thread
 
@@ -44,12 +45,19 @@ from blazingmq.dev.processtools import stop_broker
 BROKER_TERMINATE_TIMEOUT = 10
 
 
-def launch_broker(broker_cmd: str, broker_dir: str, time_limit: float):
+class FuzzError(RuntimeError):
+    pass
+
+
+def start_broker(
+    result_queue: queue.Queue, broker_dir: Path, broker_cmd: str, time_limit: float
+):
     """
     Launch a BlazingMQ broker instance with the specified 'broker_cmd' from
     the specified 'broker_dir'.  Wait until broker is terminated gracefully
     on fuzzing end or stop fuzzing by the specified 'time_limit' or when the
-    broker crashed.
+    broker crashed.  Use the provided `result_queue` to return the error code
+    to the caller thread.
     """
 
     try:
@@ -57,14 +65,17 @@ def launch_broker(broker_cmd: str, broker_dir: str, time_limit: float):
             broker_cmd.split(), cwd=broker_dir, timeout=time_limit, check=True
         )
         print("Broker exited gracefully")  # e.g. due to a stop_broker() call
+        result_queue.put(0)
     except subprocess.CalledProcessError as ex:
         # Broker exited with non-zero exit code.
         # This could be due the broker calling abort, crashing, etc. The broker
         # should not exit with a non-zero exit code during graceful shutdown.
         print(f"Broker command exited with non-zero exit code: {ex.returncode}")
-        os._exit(ex.returncode)  # pylint: disable=W0212
+        result_queue.put(ex.returncode)
     except subprocess.TimeoutExpired:
-        stop_broker(Path(broker_dir), BROKER_TERMINATE_TIMEOUT)
+        print("Fuzz test run timeout expired, trying to stop the broker...", flush=True)
+        stop_broker(broker_dir, BROKER_TERMINATE_TIMEOUT)
+        result_queue.put(-1)
 
 
 def main():
@@ -135,11 +146,27 @@ def main():
 
     args = parser.parse_args()
 
+    broker_dir = Path(args.broker_dir)
+    if not broker_dir.exists():
+        raise FuzzError(
+            f"The provided broker dir '{broker_dir}' doesn't exist, please specify "
+            "a directory containing bmqbrkr.tsk with --broker-dir"
+        )
+
+    if not (broker_dir / "bmqbrkr.tsk").exists():
+        raise FuzzError(
+            f"The provided broker dir '{broker_dir}' doesn't contain a built broker "
+            "bmqbrkr.tsk, please specify a directory containing bmqbrkr.tsk with --broker-dir"
+        )
+
+    result_queue = queue.Queue()
+
     broker_thread = Thread(
-        target=launch_broker,
+        target=start_broker,
         args=(
+            result_queue,
+            broker_dir,
             args.broker_cmd,
-            args.broker_dir,
             args.time_limit,
         ),
     )
@@ -147,7 +174,12 @@ def main():
 
     fuzztest.fuzz(args.host, args.port, args.request)
 
-    stop_broker(Path(args.broker_dir), BROKER_TERMINATE_TIMEOUT)
+    stop_broker(broker_dir, BROKER_TERMINATE_TIMEOUT)
+
+    broker_thread.join(timeout=BROKER_TERMINATE_TIMEOUT)
+
+    rc = result_queue.get()
+    sys.exit(rc)
 
 
 if __name__ == "__main__":

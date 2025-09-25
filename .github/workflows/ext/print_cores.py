@@ -67,10 +67,14 @@ def main() -> None:
         print(f"No cores found in directory: {args.cores_dir}")
 
     for core_path in fpaths:
+        # Firstly, print the stack trace of the current thread (useful to debug crashes)
+        # Secondly, print the stack traces of all threads (useful to debug deadlocks)
         cmd = [
             "gdb",
             "-q",
             "-batch",
+            "-ex",
+            "bt full",
             "-ex",
             "thread apply all bt full",
             args.bin_path,
