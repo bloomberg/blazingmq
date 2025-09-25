@@ -98,14 +98,8 @@ int Authenticator::onAuthenticationRequest(
             authenticationMsg,  // authenticationMessage
             context
                 ->authenticationEncodingType(),  // authenticationEncodingType
-            bdlf::BindUtil::bind(&Authenticator::reauthenticateAsync,
-                                 this,                    // authenticator
-                                 bdlf::PlaceHolders::_1,  // errorDescription,
-                                 bdlf::PlaceHolders::_2,  // context,
-                                 bdlf::PlaceHolders::_3   // channel
-                                 ),                       // reauthenticateCb
-            State::e_AUTHENTICATING,                      // state
-            mqbnet::ConnectionType::e_UNKNOWN             // connectionType
+            State::e_AUTHENTICATING,             // state
+            mqbnet::ConnectionType::e_UNKNOWN    // connectionType
         );
 
     context->setAuthenticationContext(authenticationContext);
@@ -289,27 +283,6 @@ void Authenticator::authenticate(
     // Authentication succeeded.  Transition to the next state.
     input = InitialConnectionEvent::e_AUTH_SUCCESS;
     return;
-}
-
-int Authenticator::reauthenticateAsync(
-    bsl::ostream&                          errorDescription,
-    const AuthenticationContextSp&         context,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
-{
-    int rc = d_threadPool.enqueueJob(
-        bdlf::BindUtil::bind(&Authenticator::reauthenticate,
-                             this,
-                             context,
-                             channel));
-
-    if (rc != 0) {
-        errorDescription << "Failed to enqueue authentication job for '"
-                         << channel->peerUri() << "' [rc: " << rc
-                         << ", message: " << context->authenticationMessage()
-                         << "]";
-    }
-
-    return rc;
 }
 
 void Authenticator::reauthenticate(
@@ -606,6 +579,27 @@ int Authenticator::authenticationOutbound(
     BALL_LOG_ERROR << "Not Implemented";
 
     return -1;
+}
+
+int Authenticator::reauthenticateAsync(
+    bsl::ostream&                          errorDescription,
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    int rc = d_threadPool.enqueueJob(
+        bdlf::BindUtil::bind(&Authenticator::reauthenticate,
+                             this,
+                             context,
+                             channel));
+
+    if (rc != 0) {
+        errorDescription << "Failed to enqueue authentication job for '"
+                         << channel->peerUri() << "' [rc: " << rc
+                         << ", message: " << context->authenticationMessage()
+                         << "]";
+    }
+
+    return rc;
 }
 
 void Authenticator::onClose(const AuthenticationContextSp& context)
