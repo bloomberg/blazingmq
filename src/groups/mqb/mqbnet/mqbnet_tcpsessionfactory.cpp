@@ -31,6 +31,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
+#include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_negotiationcontext.h>
@@ -490,9 +491,14 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
 
         if (channelInfo->d_monitor.checkData(channelInfo->d_channel_sp.get(),
                                              event)) {
-            channelInfo->d_eventProcessor_p->processEvent(
-                event,
-                channelInfo->d_session_sp->clusterNode());
+            if (event.isAuthenticationEvent()) {
+                reauthnOnAuthenticationEvent(event, channelInfo);
+            }
+            else {
+                channelInfo->d_eventProcessor_p->processEvent(
+                    event,
+                    channelInfo->d_session_sp->clusterNode());
+            }
         }
     }
 }
@@ -944,6 +950,67 @@ void TCPSessionFactory::stopHeartbeats()
     d_heartbeatChannels.clear();
 }
 
+int TCPSessionFactory::validateTcpInterfaces() const
+{
+    mqbcfg::TcpInterfaceConfigValidator validator;
+    return validator(d_config);
+}
+
+void TCPSessionFactory::reauthnOnAuthenticationEvent(
+    const bmqp::Event& event,
+    const ChannelInfo* channelInfo) const
+{
+    // executed by the *IO* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channelInfo);
+    BSLS_ASSERT_SAFE(channelInfo->d_authenticationCtx_sp);
+    BSLS_ASSERT_SAFE(channelInfo->d_session_sp);
+
+    const bsl::shared_ptr<AuthenticationContext>& context =
+        channelInfo->d_authenticationCtx_sp;
+    const bsl::string& description = channelInfo->d_session_sp->description();
+
+    if (context->state().testAndSwap(AuthnState::e_AUTHENTICATED,
+                                     AuthnState::e_AUTHENTICATING) !=
+        AuthnState::e_AUTHENTICATED) {
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
+                       << ": Dropping Authentication event since "
+                          "authentication is in progress: "
+                       << event;
+        return;  // RETURN
+    }
+
+    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
+    int rc = event.loadAuthenticationEvent(&authenticationMessage);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "#CORRUPTED_EVENT " << description
+                       << ": Received invalid authentication message "
+                          "from client [reason: 'failed to decode', rc: "
+                       << rc << "]:\n"
+                       << bmqu::BlobStartHexDumper(event.blob());
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << description << ": Received authentication message: "
+                  << authenticationMessage;
+
+    context->setAuthenticationMessage(authenticationMessage);
+    context->setAuthenticationEncodingType(
+        event.authenticationEventEncodingType());
+
+    bmqu::MemOutStream errorStream;
+    rc = context->reauthenticateCb()(errorStream,
+                                     context,
+                                     channelInfo->d_channel_sp);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description
+                       << ": Authentication failed [reason: '"
+                       << errorStream.str() << "', rc: " << rc << "]";
+        return;  // RETURN
+    }
+}
+
 TCPSessionFactory::TCPSessionFactory(
     const mqbcfg::TcpInterfaceConfig& config,
     bdlmt::EventScheduler*            scheduler,
@@ -1024,12 +1091,6 @@ TCPSessionFactory::~TCPSessionFactory()
                   << "'";
 
     d_self.invalidate();
-}
-
-int TCPSessionFactory::validateTcpInterfaces() const
-{
-    mqbcfg::TcpInterfaceConfigValidator validator;
-    return validator(d_config);
 }
 
 void TCPSessionFactory::cancelListeners()

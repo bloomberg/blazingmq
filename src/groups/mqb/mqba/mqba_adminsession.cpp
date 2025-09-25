@@ -268,7 +268,6 @@ AdminSession::AdminSession(
     const bsl::shared_ptr<bmqio::Channel>&        channel,
     const bmqp_ctrlmsg::NegotiationMessage&       negotiationMessage,
     const bsl::string&                            sessionDescription,
-    const AuthenticationContextSp&                authenticationContext,
     mqbi::Dispatcher*                             dispatcher,
     AdminSessionState::BlobSpPool*                blobSpPool,
     bdlmt::EventScheduler*                        scheduler,
@@ -279,7 +278,6 @@ AdminSession::AdminSession(
 , d_negotiationMessage(negotiationMessage, allocator)
 , d_clientIdentity_p(extractClientIdentity(d_negotiationMessage))
 , d_description(sessionDescription, allocator)
-, d_authenticationContext(authenticationContext)
 , d_channel_sp(channel)
 , d_state(blobSpPool,
           bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
@@ -320,50 +318,7 @@ void AdminSession::processEvent(const bmqp::Event& event,
     // executed by the *IO* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_authenticationContext);
-
-    if (event.isAuthenticationEvent()) {
-        if (d_authenticationContext->state().testAndSwap(
-                AuthnState::e_AUTHENTICATED,
-                AuthnState::e_AUTHENTICATING) != AuthnState::e_AUTHENTICATED) {
-            BALL_LOG_ERROR << "#ADMCLIENT_IMPROPER_BEHAVIOR " << description()
-                           << ": received Authentication event while "
-                              "authentication is in progress";
-            return;  // RETURN
-        }
-
-        bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
-        int rc = event.loadAuthenticationEvent(&authenticationMessage);
-        if (rc != 0) {
-            BALL_LOG_ERROR << "#CORRUPTED_EVENT " << description()
-                           << ": Received invalid authentication message "
-                              "from client [reason: 'failed to decode', rc: "
-                           << rc << "]:\n"
-                           << bmqu::BlobStartHexDumper(event.blob());
-            return;  // RETURN
-        }
-
-        BALL_LOG_INFO << description() << ": Received authentication message: "
-                      << authenticationMessage;
-
-        d_authenticationContext->setAuthenticationMessage(
-            authenticationMessage);
-        d_authenticationContext->setAuthenticationEncodingType(
-            event.authenticationEventEncodingType());
-
-        bmqu::MemOutStream errorStream;
-        rc = d_authenticationContext->reauthenticateCb()(
-            errorStream,
-            d_authenticationContext,
-            d_channel_sp);
-        if (rc != 0) {
-            BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description()
-                           << ": Authentication failed [reason: '"
-                           << errorStream.str() << "', rc: " << rc << "]";
-            return;  // RETURN
-        }
-    }
-    else if (!event.isControlEvent()) {
+    if (!event.isControlEvent()) {
         BALL_LOG_ERROR << "#ADMCLIENT_UNEXPECTED_EVENT " << description()
                        << ": Unexpected event type: " << event;
         return;  // RETURN
