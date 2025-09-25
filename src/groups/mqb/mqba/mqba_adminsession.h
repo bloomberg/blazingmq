@@ -30,7 +30,6 @@
 // MQB
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
-#include <mqbnet_authenticationcontext.h>
 #include <mqbnet_session.h>
 
 // BMQ
@@ -131,10 +130,6 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     // PRIVATE TYPES
     typedef bsl::function<void(void)> VoidFunctor;
 
-    typedef mqbnet::AuthenticationContext::State AuthnState;
-    typedef bsl::shared_ptr<mqbnet::AuthenticationContext>
-        AuthenticationContextSp;
-
   private:
     // DATA
 
@@ -155,11 +150,6 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
 
     /// Short identifier for this session.
     bsl::string d_description;
-
-    /// The authenticationContext first created during authentication in
-    /// initial connection, and later on may get updated during
-    /// re-authentication.
-    AuthenticationContextSp d_authenticationContext;
 
     /// Channel associated to this session.
     bsl::shared_ptr<bmqio::Channel> d_channel_sp;
@@ -235,7 +225,6 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     AdminSession(const bsl::shared_ptr<bmqio::Channel>&  channel,
                  const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
                  const bsl::string&                      sessionDescription,
-                 const AuthenticationContextSp&          authenticationContext,
                  mqbi::Dispatcher*                       dispatcher,
                  AdminSessionState::BlobSpPool*          blobSpPool,
                  bdlmt::EventScheduler*                  scheduler,

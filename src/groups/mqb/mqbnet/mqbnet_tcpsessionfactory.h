@@ -278,6 +278,8 @@ class TCPSessionFactory {
 
     typedef bsl::unordered_map<int, OpHandleSp> ListeningHandleMap;
 
+    typedef mqbnet::AuthenticationContext::State AuthnState;
+
   private:
     // DATA
 
@@ -402,8 +404,6 @@ class TCPSessionFactory {
     handleInitialConnection(const bsl::shared_ptr<bmqio::Channel>&   channel,
                             const bsl::shared_ptr<OperationContext>& context);
 
-    // PRIVATE MANIPULATORS
-
     /// Process a protocol packet received from the specified `channel` with
     /// the associated specified `channelInfo`.  If the specified `status`
     /// is 0, this indicates data is available in the specified `blob`;
@@ -493,6 +493,15 @@ class TCPSessionFactory {
     /// timestamps map.
     void logOpenSessionTime(const bsl::string& sessionDescription,
                             const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Cancel any open listener operations and clear them out.
+    void cancelListeners();
+
+    /// Stop all hearbeats
+    void stopHeartbeats();
+
+    // PRIVATE ACCESSORS
+
     /// @brief Check that the TCP interfaces are valid.
     ///
     /// We require the following:
@@ -502,11 +511,11 @@ class TCPSessionFactory {
     /// @returns 0 on success, nonzero on failure.
     int validateTcpInterfaces() const;
 
-    /// Cancel any open listener operations and clear them out.
-    void cancelListeners();
-
-    /// Stop all hearbeats
-    void stopHeartbeats();
+    /// Handle an authentication event for the specified `event` by
+    /// performing reauthentication using the authentication context stored
+    /// in the specified `channelInfo`.
+    void reauthnOnAuthenticationEvent(const bmqp::Event& event,
+                                      const ChannelInfo* channelInfo) const;
 
   private:
     // NOT IMPLEMENTED
