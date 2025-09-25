@@ -176,7 +176,7 @@ void StorageManager::onWatchDogDispatched(int partitionId)
     BMQTSK_ALARMLOG_ALARM("RECOVERY")
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId
-        << "]: " << "Watch dog triggered because partition startup healing "
+        << "]: " << "Watchdog triggered because partition startup healing "
         << "sequence was not completed in the configured time of "
         << d_watchDogTimeoutInterval.totalSeconds() << " seconds."
         << BMQTSK_ALARMLOG_END;
