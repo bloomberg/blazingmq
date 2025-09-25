@@ -136,14 +136,6 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     int scheduleRead(bsl::ostream&                     errorDescription,
                      const InitialConnectionContextSp& context);
 
-    /// Call the `InitialConnectionCompleteCb` with the specified
-    /// `context`, return code `rc`, and `error` string to indicate the
-    /// completion of negotiation.
-    static void complete(const InitialConnectionContextSp&       context,
-                         const int                               rc,
-                         const bsl::string&                      error,
-                         const bsl::shared_ptr<mqbnet::Session>& session);
-
     /// Create and initialize a `NegotiationContext` for the specified
     /// `context`.
     void createNegotiationContext(const InitialConnectionContextSp& context);

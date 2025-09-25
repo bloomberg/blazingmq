@@ -298,15 +298,6 @@ int InitialConnectionHandler::scheduleRead(
     return rc_SUCCESS;
 }
 
-void InitialConnectionHandler::complete(
-    const InitialConnectionContextSp&       context,
-    const int                               rc,
-    const bsl::string&                      error,
-    const bsl::shared_ptr<mqbnet::Session>& session)
-{
-    context->complete(rc, error, session);
-}
-
 InitialConnectionHandler::InitialConnectionHandler(
     mqbnet::Negotiator*    negotiator,
     mqbnet::Authenticator* authenticator,
@@ -535,7 +526,8 @@ void InitialConnectionHandler::handleEvent(
     if (rc != 0 || newState == State::e_NEGOTIATED) {
         BALL_LOG_INFO << "Finished initial connection with rc = " << rc
                       << ", error = '" << errStream.str() << "'";
-        complete(context, rc, errStream.str(), session);
+        guard.release()->unlock();
+        context->complete(rc, errStream.str(), session);
     }
 }
 
