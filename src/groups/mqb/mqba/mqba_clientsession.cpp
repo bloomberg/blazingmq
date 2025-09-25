@@ -153,7 +153,6 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbi_cluster.h>
 #include <mqbi_queue.h>
-#include <mqbnet_authenticationcontext.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbstat_brokerstats.h>
 #include <mqbu_messageguidutil.h>
@@ -2404,16 +2403,14 @@ ClientSession::ClientSession(
     const bsl::shared_ptr<bmqio::Channel>&  channel,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const bsl::string&                      sessionDescription,
-    const bsl::shared_ptr<mqbnet::AuthenticationContext>&
-                                           authenticationContext,
-    mqbi::Dispatcher*                      dispatcher,
-    mqbblp::ClusterCatalog*                clusterCatalog,
-    mqbi::DomainFactory*                   domainFactory,
-    bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
-    ClientSessionState::BlobSpPool*        blobSpPool,
-    bdlbb::BlobBufferFactory*              bufferFactory,
-    bdlmt::EventScheduler*                 scheduler,
-    bslma::Allocator*                      allocator)
+    mqbi::Dispatcher*                       dispatcher,
+    mqbblp::ClusterCatalog*                 clusterCatalog,
+    mqbi::DomainFactory*                    domainFactory,
+    bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
+    ClientSessionState::BlobSpPool*         blobSpPool,
+    bdlbb::BlobBufferFactory*               bufferFactory,
+    bdlmt::EventScheduler*                  scheduler,
+    bslma::Allocator*                       allocator)
 : d_self(this)  // use default allocator
 , d_operationState(e_RUNNING)
 , d_isDisconnecting(false)
@@ -2425,7 +2422,6 @@ ClientSession::ClientSession(
       bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
       d_clientIdentity_p->features()))
 , d_description(sessionDescription, allocator)
-, d_authenticationContext(authenticationContext)
 , d_channel_sp(channel)
 , d_state(clientStatContext,
           blobSpPool,
@@ -2492,50 +2488,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
     // executed by the *IO* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_authenticationContext);
+    BSLS_ASSERT_SAFE(!event.isAuthenticationEvent());
 
-    if (event.isAuthenticationEvent()) {
-        if (d_authenticationContext->state().testAndSwap(
-                AuthnState::e_AUTHENTICATED,
-                AuthnState::e_AUTHENTICATING) != AuthnState::e_AUTHENTICATED) {
-            BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
-                           << ": received Authentication event while "
-                              "authentication is in progress";
-            return;  // RETURN
-        }
-
-        bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
-        int rc = event.loadAuthenticationEvent(&authenticationMessage);
-        if (rc != 0) {
-            BALL_LOG_ERROR << "#CORRUPTED_EVENT " << description()
-                           << ": Received invalid authentication message "
-                              "from client [reason: 'failed to decode', rc: "
-                           << rc << "]:\n"
-                           << bmqu::BlobStartHexDumper(event.blob());
-            return;  // RETURN
-        }
-
-        BALL_LOG_INFO << description() << ": Received authentication message: "
-                      << authenticationMessage;
-
-        d_authenticationContext->setAuthenticationMessage(
-            authenticationMessage);
-        d_authenticationContext->setAuthenticationEncodingType(
-            event.authenticationEventEncodingType());
-
-        bmqu::MemOutStream errorStream;
-        rc = d_authenticationContext->reauthenticateCb()(
-            errorStream,
-            d_authenticationContext,
-            d_channel_sp);
-        if (rc != 0) {
-            BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description()
-                           << ": Authentication failed [reason: '"
-                           << errorStream.str() << "', rc: " << rc << "]";
-            return;  // RETURN
-        }
-    }
-    else if (event.isControlEvent()) {
+    if (event.isControlEvent()) {
         bdlma::LocalSequentialAllocator<2048> localAllocator(
             d_state.d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(&localAllocator);

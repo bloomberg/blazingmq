@@ -81,7 +81,7 @@ class AuthenticationContext {
     ReauthenticateCb d_reauthenticateCb;
 
     /// This is used to store the state of the authentication process. It
-    /// serves as a premitive to ensure there's no race between reading
+    /// serves as a primitive to ensure there's no race between reading
     /// (authorizing) and writing (reauthenticating) the AuthenticationContext.
     bsls::AtomicInt d_state;
 
