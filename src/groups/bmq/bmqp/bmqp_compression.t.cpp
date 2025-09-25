@@ -349,6 +349,50 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
     BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
 }
 
+
+template <typename D>
+static void
+eZstdCompressDecompressHelper(bsls::Types::Int64* compressionTime,
+                              bsls::Types::Int64* decompressionTime,
+                              const D&            data)
+{
+    bmqu::MemOutStream             error(bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob compressed(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob decompressed(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+
+    bdlbb::BlobUtil::append(&input, data.data(), data.length());
+
+    bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
+    int                rc        = bmqp::Compression_Impl::compressZstd(
+        &compressed,
+        &bufferFactory,
+        input,
+        -1,
+        &error,
+        bmqtst::TestHelperUtil::allocator());
+    *compressionTime = bsls::TimeUtil::getTimer() - startTime;
+
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    startTime = bsls::TimeUtil::getTimer();
+    rc        = bmqp::Compression_Impl::decompressZstd(
+        &decompressed,
+        &bufferFactory,
+        compressed,
+        &error,
+        bmqtst::TestHelperUtil::allocator());
+    *decompressionTime = bsls::TimeUtil::getTimer() - startTime;
+
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+}
+
 template <typename D>
 static void eZlibCompressionRatioHelper(bsls::Types::Int64* inputSize,
                                         bsls::Types::Int64* compressedSize,
@@ -796,7 +840,7 @@ static void test3_compression_decompression_none()
     }
 }
 
-static void test4_compression_decompression_zstd()
+static void test3_compression_decompression_zstd()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
@@ -946,7 +990,7 @@ static void test4_compression_decompression_zstd()
 // ----------------------------------------------------------------------------
 
 BSLA_MAYBE_UNUSED
-static void testN1_performanceCompressionDecompressionDefault()
+static void testN1_performanceCompressionDecompressionZlib()
 // ------------------------------------------------------------------------
 // PERFORMANCE: Perform compression and decompression.
 //
@@ -1042,8 +1086,106 @@ static void testN1_performanceCompressionDecompressionDefault()
     printTable(bsl::cout, headerCols, tableRecords);
 }
 
+
 BSLA_MAYBE_UNUSED
-static void testN2_calculateThroughput()
+static void testN1_performanceCompressionDecompressionZstd()
+// ------------------------------------------------------------------------
+// PERFORMANCE: Perform compression and decompression.
+//
+// Concerns:
+//   - Test the performance of bmqp::Compression_Impl::compressZstd(
+//                                   bdlbb::Blob              *output,
+//                                   bdlbb::BlobBufferFactory *factory,
+//                                   const bdlbb::Blob&        input,
+//                                   int                       level,
+//                                   bsl::ostream             *errorStream,
+//                                   bslma::Allocator         *allocator);
+//     in a single thread environment.
+//   - Test the performance of bmqp::Compression_Impl::decompressZstd(
+//                                   bdlbb::Blob              *output,
+//                                   bdlbb::BlobBufferFactory *factory,
+//                                   const bdlbb::Blob&        input,
+//                                   bsl::ostream             *errorStream,
+//                                   bslma::Allocator         *allocator));
+//     in a single thread environment.
+//
+// Plan:
+//   - Time a large number of compressions, decompressions for buffers of
+//     strings with various sizes in a single thread and take the average.
+//
+// Testing:
+//   Performance of compressing and decompressing using the default
+//   implementation.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    // The default allocator check fails in this test case because the
+    // printTable method utilizes the global allocator.
+
+    bmqtst::TestHelper::printTestName(
+        "PERFORMANCE: COMPRESS/DECOMPRESS ON BUFFER");
+
+    const int k_NUM_ITERS = 1;
+
+    bsl::vector<bsl::string> data(bmqtst::TestHelperUtil::allocator());
+    populateData(&data);
+
+    // Measure calculation time and report
+    bsl::vector<TableRecord> tableRecords(bmqtst::TestHelperUtil::allocator());
+    for (unsigned i = 0; i < data.size(); ++i) {
+        const int length = data[i].size();
+
+        bsl::cout << "-----------------------\n"
+                  << " SIZE       = " << bmqu::PrintUtil::prettyBytes(length)
+                  << '\n'
+                  << " ITERATIONS = " << k_NUM_ITERS << '\n';
+
+        //=====================================================================
+        //                   Compression, Decompression
+
+        // <time>
+        bsls::Types::Int64 compressionTotalTime   = 0,
+                           decompressionTotalTime = 0;
+        for (unsigned int l = 0; l < k_NUM_ITERS; ++l) {
+            bsls::Types::Int64 compressionTime   = 0;
+            bsls::Types::Int64 decompressionTime = 0;
+            eZstdCompressDecompressHelper(&compressionTime,
+                                          &decompressionTime,
+                                          data[i]);
+            compressionTotalTime += compressionTime;
+            decompressionTotalTime += decompressionTime;
+        }
+        // </time>
+
+        //=====================================================================
+        //                            Report
+        TableRecord record;
+        record.d_size              = length;
+        record.d_compressionTime   = compressionTotalTime / k_NUM_ITERS;
+        record.d_decompressionTime = decompressionTotalTime / k_NUM_ITERS;
+        tableRecords.push_back(record);
+
+        bsl::cout
+            << "Average Time:\n"
+            << "  Compression   : "
+            << bmqu::PrintUtil::prettyTimeInterval(record.d_compressionTime)
+            << '\n'
+            << "  Decompression : "
+            << bmqu::PrintUtil::prettyTimeInterval(record.d_decompressionTime)
+            << "\n\n";
+    }
+
+    // Print performance comparison table
+    bsl::vector<bsl::string> headerCols(bmqtst::TestHelperUtil::allocator());
+    headerCols.emplace_back("Payload Size");
+    headerCols.emplace_back("Compression");
+    headerCols.emplace_back("Decompression");
+
+    printTable(bsl::cout, headerCols, tableRecords);
+}
+
+BSLA_MAYBE_UNUSED
+static void testN2_calculateThroughputZlib()
 // ------------------------------------------------------------------------
 // BENCHMARK: PERFORM COMPRESSION DECOMPRESSION
 //
@@ -1072,6 +1214,89 @@ static void testN2_calculateThroughput()
         bsls::Types::Int64 compressionTime   = 0;
         bsls::Types::Int64 decompressionTime = 0;
         eZlibCompressDecompressHelper(&compressionTime,
+                                      &decompressionTime,
+                                      buffer_data);
+        compressionTotalTime += compressionTime;
+        decompressionTotalTime += decompressionTime;
+    }
+    // </time>
+
+    cout << "=========================\n";
+    cout << "For a payload of length " << bmqu::PrintUtil::prettyBytes(length)
+         << ", completed "
+         << bmqu::PrintUtil::prettyNumber(
+                static_cast<bsls::Types::Int64>(k_NUM_ITERS))
+         << " compression iterations in "
+         << bmqu::PrintUtil::prettyTimeInterval(compressionTotalTime) << ".\n"
+         << "Above implies that 1 compression iteration was calculated in "
+         << bmqu::PrintUtil::prettyTimeInterval(compressionTotalTime /
+                                                k_NUM_ITERS)
+         << ".\nIn other words: "
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) /
+                compressionTotalTime))
+         << " iterations per second.\n"
+         << "Compression throughput: "
+         << bmqu::PrintUtil::prettyBytes(
+                (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * length) /
+                compressionTotalTime)
+         << " per second.\n"
+         << endl;
+
+    cout << "=========================\n";
+    cout << "For a payload of length " << bmqu::PrintUtil::prettyBytes(length)
+         << ", completed "
+         << bmqu::PrintUtil::prettyNumber(
+                static_cast<bsls::Types::Int64>(k_NUM_ITERS))
+         << " decompression iterations in "
+         << bmqu::PrintUtil::prettyTimeInterval(decompressionTotalTime)
+         << ".\nAbove implies that 1 decompression iteration was calculated "
+         << "in "
+         << bmqu::PrintUtil::prettyTimeInterval(decompressionTotalTime /
+                                                k_NUM_ITERS)
+         << ".\nIn other words: "
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) /
+                decompressionTotalTime))
+         << " iterations per second.\n"
+         << "Decompression throughput: "
+         << bmqu::PrintUtil::prettyBytes(
+                (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * length) /
+                decompressionTotalTime)
+         << " per second.\n"
+         << endl;
+}
+
+BSLA_MAYBE_UNUSED
+static void testN2_calculateThroughputZstd()
+// ------------------------------------------------------------------------
+// BENCHMARK: PERFORM COMPRESSION DECOMPRESSION
+//
+// Concerns:
+//   Test the throughput (GB/s) of Compression and decompression using
+//   Zstd implementations in a single thread environment.
+//
+// Plan:
+//   - Time a large number of compressions and decompressions using
+//     Zstd implementation for a buffer of fixed size in a single thread
+//     and take the average.  Calculate the throughput using its average.
+//
+// Testing:
+//   Throughput (GB/s) of Compression and decompression of Zstd
+//   implementation in a single thread environment.
+// ------------------------------------------------------------------------
+{
+    size_t                    length      = 1024;     // 1 Ki
+    const bsls::Types::Uint64 k_NUM_ITERS = 1000000;  // 1 M
+
+    bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
+    generateRandomString(&buffer_data, length);
+    // <time>
+    bsls::Types::Int64 compressionTotalTime = 0, decompressionTotalTime = 0;
+    for (unsigned int l = 0; l < k_NUM_ITERS; ++l) {
+        bsls::Types::Int64 compressionTime   = 0;
+        bsls::Types::Int64 decompressionTime = 0;
+        eZstdCompressDecompressHelper(&compressionTime,
                                       &decompressionTime,
                                       buffer_data);
         compressionTotalTime += compressionTime;
@@ -1208,7 +1433,7 @@ static void testN3_performanceCompressionRatio()
     }
 }
 
-static void testN4_performanceCompressionRatioZstd()
+static void testN3_performanceCompressionRatioZstd()
 // ------------------------------------------------------------------------
 // BENCHMARK: COMPRESSION RATIO
 //
@@ -1293,7 +1518,7 @@ static void testN4_performanceCompressionRatioZstd()
 
 // Begin Benchmarking Tests
 #ifdef BMQTST_BENCHMARK_ENABLED
-static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
+static void testN1_performanceCompressionDecompressionZlib_GoogleBenchmark(
     benchmark::State& state)
 // ------------------------------------------------------------------------
 // PERFORMANCE: Perform compression and decompression.
@@ -1336,7 +1561,33 @@ static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
     // </time>
 }
 
-static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
+static void testN1_performanceCompressionDecompressionZstd_GoogleBenchmark(
+    benchmark::State& state)
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    // The default allocator check fails in this test case because the
+    // printTable method utilizes the global allocator.
+
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+                                      "COMPRESS/DECOMPRESS ON BUFFER");
+    const int   length = state.range(0);
+    bsl::string str("", bmqtst::TestHelperUtil::allocator());
+    generateRandomString(&str, length);
+
+    //=====================================================================
+    //                   Compression, Decompression
+
+    bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
+    // <time>
+    for (auto _ : state) {
+        eZstdCompressDecompressHelper(&compressionTotal,
+                                      &decompressionTotal,
+                                      str);
+    }
+    // </time>
+}
+
+static void testN2_calculateThroughputZlib_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // BENCHMARK: PERFORM COMPRESSION DECOMPRESSION
 //
@@ -1361,10 +1612,49 @@ static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
     bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
     generateRandomString(&buffer_data, length);
     // <time>
-    for (unsigned int l = 0; l < state.range(0); ++l) {
+    // for (unsigned int l = 0; l < state.range(0); ++l) 
+    {
         bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
         for (auto _ : state) {
             eZlibCompressDecompressHelper(&compressionTotal,
+                                          &decompressionTotal,
+                                          buffer_data);
+        }
+    }
+    // </time>
+}
+
+
+static void testN2_calculateThroughputZstd_GoogleBenchmark(benchmark::State& state)
+// ------------------------------------------------------------------------
+// BENCHMARK: PERFORM COMPRESSION DECOMPRESSION
+//
+// Concerns:
+//   Test the throughput (GB/s) of Compression and decompression using
+//   Zstd implementations in a single thread environment.
+//
+// Plan:
+//   - Time a large number of compressions and decompressions using
+//     Zstd implementation for a buffer of fixed size in a single thread
+//     and take the average.  Calculate the throughput using its average.
+//
+// Testing:
+//   Throughput (GB/s) of Compression and decompression of Zstd
+//   implementation in a single thread environment.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK THROUGHPUT: "
+                                      "COMPRESS/DECOMPRESS ON BUFFER");
+    size_t length = 1024;  // 1 Ki
+
+    bsl::string buffer_data("", bmqtst::TestHelperUtil::allocator());
+    generateRandomString(&buffer_data, length);
+    // <time>
+    // for (unsigned int l = 0; l < state.range(0); ++l) 
+    {
+        bsls::Types::Int64 compressionTotal = 0, decompressionTotal = 0;
+        for (auto _ : state) {
+            eZstdCompressDecompressHelper(&compressionTotal,
                                           &decompressionTotal,
                                           buffer_data);
         }
@@ -1384,23 +1674,40 @@ int main(int argc, char* argv[])
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_compression_cluster_message(); break;
-    case 3: test3_compression_decompression_none(); break;
-    case 4: test4_compression_decompression_zstd(); break;
+    case 3: 
+        test3_compression_decompression_none(); 
+        test3_compression_decompression_zstd(); 
+        break;
     case -1:
         BMQTST_BENCHMARK_WITH_ARGS(
-            testN1_performanceCompressionDecompressionDefault,
+            testN1_performanceCompressionDecompressionZlib,
+            Unit(benchmark::kMillisecond)
+                ->RangeMultiplier(2)
+                ->Range(2, 1073741824));  // 2^30
+
+        BMQTST_BENCHMARK_WITH_ARGS(
+            testN1_performanceCompressionDecompressionZstd,
             Unit(benchmark::kMillisecond)
                 ->RangeMultiplier(2)
                 ->Range(2, 1073741824));  // 2^30
         break;
     case -2:
-        BMQTST_BENCHMARK_WITH_ARGS(testN2_calculateThroughput,
+        BMQTST_BENCHMARK_WITH_ARGS(testN2_calculateThroughputZlib,
                                    RangeMultiplier(10)
                                        ->Range(100, 1000000)
                                        ->Unit(benchmark::kMillisecond));
+
+        BMQTST_BENCHMARK_WITH_ARGS(testN2_calculateThroughputZstd,
+                                   RangeMultiplier(10)
+                                       ->Range(100, 1000000)
+                                       ->Unit(benchmark::kMillisecond));
+
         break;
-    case -3: testN3_performanceCompressionRatio(); break;
-    case -4: testN4_performanceCompressionRatioZstd(); break;
+    case -3: 
+        testN3_performanceCompressionRatio(); 
+        testN3_performanceCompressionRatioZstd(); 
+        break;
+    
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
