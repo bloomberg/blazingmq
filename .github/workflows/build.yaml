@@ -179,7 +179,15 @@ jobs:
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd src/python
-          python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
+          python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }} > ${{ matrix.request}}_fuzz.log
+
+        # Do not print everything, GitHub Actions is not able to handle 100MB+ of logs.
+        # Typically the error found with fuzzer is related to the latest requests and broker state.
+        # If this is not enough, consider running the test on your local machine and get full logs.
+      - name: Print Fuzz Log tail
+        if: failure()
+        run: |
+          cd src/python && tail -n 2000 ${{ matrix.request}}_fuzz.log
 
       - name: Print core information
         if: failure()

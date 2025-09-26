@@ -18,41 +18,43 @@ Provide utilities to facilitate launching and manipulating processes.
 """
 
 from pathlib import Path
+import signal
 from typing import Optional
 
 import psutil
 
 
-def stop_broker(
-    path: Path, timeout: int = None, error_ok: bool = True
-) -> Optional[int]:
+def stop_broker(broker_dir: Path, timeout: int = None) -> Optional[int]:
     """
-    Stop the broker (using the pid file), first with 'terminate', then, after the
-    specified 'timeout', with 'kill'.  In case when timeout is not specified it
-    is considered that the broker process should be killed instantly with 'kill'.
-    If the specified 'error_ok' flag is True, all exceptions during
-    stopping the broker will be suppressed, in case of False it will be re-raised.
+    Stop the broker (using bmqbrkr.pid file from the `broker_dir` directory):
+    - First with `SIGTERM`
+    - Then, after the specified `timeout`, with `SIGQUIT`
+    - Then, after the specified `timeout`, once more with `SIGKILL`
+    In case when timeout is not specified, it is considered that the broker
+    process should be killed instantly with 'SIGKILL'.
     Return the broker's return code or None if not applicable.
     """
 
-    try:
-        with (path / "bmqbrkr.pid").open("r") as file:
-            pid = int(file.read())
+    with (broker_dir / "bmqbrkr.pid").open("r") as file:
+        pid = int(file.read())
 
-        broker_process = psutil.Process(pid)
+    broker_process = psutil.Process(pid)
 
-        if timeout is not None:
-            broker_process.terminate()
+    if timeout is not None:
+        print("Sending SIGTERM to the broker...", flush=True)
+        broker_process.terminate()
+        try:
+            return broker_process.wait(timeout=timeout)
+        except psutil.TimeoutExpired:
+            print("Broker hasn't exited after the timeout", flush=True)
 
-            try:
-                return broker_process.wait(timeout=timeout)
-            except psutil.TimeoutExpired:
-                pass
+        print("Sending SIGQUIT to the broker...", flush=True)
+        broker_process.send_signal(signal.SIGQUIT)
+        try:
+            return broker_process.wait(timeout=timeout)
+        except psutil.TimeoutExpired:
+            print("Broker hasn't exited after the timeout", flush=True)
 
-        broker_process.kill()
-        return broker_process.wait()
-
-    except Exception:
-        if error_ok:
-            return None
-        raise
+    print("Sending SIGKILL to the broker...", flush=True)
+    broker_process.kill()
+    return broker_process.wait()
