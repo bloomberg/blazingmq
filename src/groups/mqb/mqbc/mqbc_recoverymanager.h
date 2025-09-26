@@ -442,6 +442,12 @@ class RecoveryManager {
                               const mqbnet::ClusterNode* source,
                               int                        partitionId);
 
+    /// Cleared all buffered storage event for the specified `partitionId`.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    void clearBufferedStorageEvent(int partitionId);
+
     // ACCESSORS
 
     /// Return true if the specified `partitionId` is expecting data chunks,

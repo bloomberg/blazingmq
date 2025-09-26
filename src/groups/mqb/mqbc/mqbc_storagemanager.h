@@ -648,6 +648,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_processBufferedLiveData(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_clearBufferedLiveData(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_processBufferedPrimaryStatusAdvisories(
         const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 

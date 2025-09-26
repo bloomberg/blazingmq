@@ -14,14 +14,7 @@
 # limitations under the License.
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    Cluster,
-    cluster,
-    order,
-    multi_node,
-    start_cluster,
-    tweak,
-)
+from blazingmq.dev.it.fixtures import Cluster, order, start_cluster
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(4)
@@ -32,14 +25,14 @@ pytestmark = order(4)
 def test_early_assign(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Early open a queue on a soon-to-be leader.  Legacy leader when it becomes
-    ACTIVE, starts assigning queues _before_ it assignes partiotions.  Then,
+    ACTIVE, starts assigning queues _before_ it assignes partitions.  Then,
     the leader observes `onQueueAssigned` event _before_ it becomes ACTVIE
     primary.  If that event logic erroneously decides that the self is replica,
     the soon-to-be primary does not write QueueCreationRecord.  The primary
     still writes any posted message record though.  That leads to either assert
     in rollover or recovery failure on restart with "Encountered a MESSAGE
     record for queueKey [...], offset: ..., index: ..., for which a
-    QueueOp.CREATION record was not seen...
+    QueueOp.CREATION record was not seen..."
     """
 
     cluster = multi_node
@@ -71,3 +64,44 @@ def test_early_assign(multi_node: Cluster, domain_urls: tc.DomainUrls):
         == Client.e_SUCCESS
     )
     cluster.restart_nodes(wait_leader=True, wait_ready=True)
+
+
+@start_cluster(start=False)
+def test_replica_late_join(multi_node: Cluster, domain_urls: tc.DomainUrls):
+    """
+    In a steady-state cluster where only one replica node is down, with live
+    messages flowing, the replica node rejoins and attemps to heal itself via
+    the primary.  The concern is that the primary could send live data to the
+    replica, and then re-send that data as recovery data chunks; we would like
+    to make sure our deduplication logic is working correctly to handle this
+    case.
+    """
+
+    cluster = multi_node
+
+    # Starting all nodes except `east2`, which will join later
+    east1 = cluster.start_node("east1")
+    cluster.start_node("west1")
+    cluster.start_node("west2")
+
+    # The cluster will enter a healthy state with quorum of nodes
+    east1.wait_status(wait_leader=True, wait_ready=True)
+
+    producer = east1.create_client("producer")
+    producer.open(domain_urls.uri_priority, flags=["write", "ack"], succeed=True)
+    consumer = east1.create_client("consumer")
+    consumer.open(domain_urls.uri_priority, flags=["read"], succeed=True)
+
+    # Producer will post messages constantly for 30 seconds
+    producer.batch_post(
+        domain_urls.uri_priority,
+        payload="msg",
+        msg_size=1024,
+        event_size=1,
+        events_count=300000,
+        post_interval=0.1,
+        post_rate=1,
+    )
+
+    east2 = cluster.start_node("east2")
+    east2.wait_status(wait_leader=True, wait_ready=True)

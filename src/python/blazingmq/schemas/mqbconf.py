@@ -299,7 +299,7 @@ class QueueModeFanout:
         },
     )
     publish_app_id_metrics: bool = field(
-        default=False,
+        default=True,
         metadata={
             "name": "publishAppIdMetrics",
             "type": "Element",
