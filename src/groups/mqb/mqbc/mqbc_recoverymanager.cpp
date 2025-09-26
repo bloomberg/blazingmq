@@ -1098,17 +1098,17 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
-    // Store first syncpoint after rollover sequence number.
+    // Get first syncpoint after rollover sequence number.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
         const mqbs::RecordHeader& recHeader =
             jit.firstSyncPointAfterRolloverHeader();
 
-        BALL_LOG_INFO
-            << d_clusterData.identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "Store first sync point after rollover sequence number "
-            << recHeader.partitionSequenceNumber() << " from journal file ["
-            << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Get first sync point after rollover sequence number "
+                      << recHeader.partitionSequenceNumber()
+                      << " from journal file ["
+                      << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
 
         recoveryCtx.d_firstSyncPointAfterRolloverSeqNum =
             recHeader.partitionSequenceNumber();

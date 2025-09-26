@@ -443,7 +443,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
-    // Store first sync point after rollover position.
+    // Get first sync point after rollover.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
         const RecordHeader& recHeader =
             jit.firstSyncPointAfterRolloverHeader();
@@ -2825,11 +2825,12 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     rJournalFilePos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
     // Update first sync point of JournalFileHeader of new active file set with
-    // 'syncPointOffset'.  A non-zero JournalFileHeader.d_firstSyncPointOffset
-    // implies that rollover was successfully finished (this may help during
-    // recovery after crash) ** NOTE ** Updating
-    // JournalFileHeader.d_firstSyncPointOffset must be the last operation to
-    // occur in rolling over file store.
+    // 'syncPointOffset'.  A non-zero
+    // JournalFileHeader.d_firstSyncPointAfterRolloverOffset implies that
+    // rollover was successfully finished (this may help during recovery after
+    // crash) ** NOTE ** Updating
+    // JournalFileHeader.d_firstSyncPointAfterRolloverOffset must be the last
+    // operation to occur in rolling over file store.
 
     OffsetPtr<const FileHeader>  fhJ(rJournalFile.block(), 0);
     OffsetPtr<JournalFileHeader> jfh(rJournalFile.block(),
@@ -2839,6 +2840,7 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     jfh->setFirstSyncPointAfterRolloverOffsetWords(
         spoPair.offset() / bmqp::Protocol::k_WORD_SIZE);
 
+    // Initialize first sync point after rollover sequence number.
     d_firstSyncPointAfterRolloverSeqNum.primaryLeaseId() =
         syncPoint.primaryLeaseId();
     d_firstSyncPointAfterRolloverSeqNum.sequenceNumber() =
@@ -6222,22 +6224,6 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                     blob,
                                     recordPosition,
                                     header.messageType());
-
-            // Update journal header with first sync point after rollover
-            // offset
-            bmqp_ctrlmsg::PartitionSequenceNumber recSeqNum;
-            recSeqNum.primaryLeaseId() = recHeader->primaryLeaseId();
-            recSeqNum.sequenceNumber() = recHeader->sequenceNumber();
-
-            if (rc == 0 && d_firstSyncPointAfterRolloverSeqNum == recSeqNum) {
-                BALL_LOG_INFO
-                    << partitionDesc()
-                    << "Updating first sync point after rollover offset to "
-                    << recordPosition << " for seqNum "
-                    << recHeader->sequenceNumber();
-                setFirstSyncPointAfterRolloverOffset(
-                    header.journalOffsetWords() * bmqp::Protocol::k_WORD_SIZE);
-            }
         }
 
         // Bump up the current sequence number if record was written
