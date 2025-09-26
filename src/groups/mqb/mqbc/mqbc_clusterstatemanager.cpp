@@ -1144,7 +1144,7 @@ void ClusterStateManager::onWatchDogDispatched()
     }
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
-                  << ": Watch dog triggered because node startup healing "
+                  << ": Watchdog triggered because node startup healing "
                   << "sequence was not completed in the configured time of "
                   << d_watchDogTimeoutInterval.totalSeconds() << " seconds.";
 
