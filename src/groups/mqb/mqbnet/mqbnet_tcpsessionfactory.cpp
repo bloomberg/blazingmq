@@ -1136,8 +1136,9 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         d_scheduler_p->scheduleRecurringEvent(
             &d_heartbeatSchedulerHandle,
             interval,
-            bdlf::BindUtil::bind(&TCPSessionFactory::onHeartbeatSchedulerEvent,
-                                 this));
+            bmqu::WeakMemFnUtil::weakMemFn(
+                &TCPSessionFactory::onHeartbeatSchedulerEvent,
+                d_self.acquireWeak()));
         d_heartbeatSchedulerActive = true;
     }
     else {
@@ -1296,6 +1297,9 @@ void TCPSessionFactory::stop()
 
     if (d_heartbeatSchedulerActive) {
         d_heartbeatSchedulerActive = false;
+
+        // Cancel the scheduled heartbeat event
+        d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
 
         d_scheduler_p->scheduleEvent(
             bsls::TimeInterval(0),
