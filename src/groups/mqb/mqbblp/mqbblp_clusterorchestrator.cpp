@@ -1309,6 +1309,17 @@ void ClusterOrchestrator::processClusterStateEvent(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(event.clusterNode());
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Not processing cluster state record event from "
+                      << event.clusterNode()->nodeDescription()
+                      << " since self is stopping";
+
+        return;  // RETURN
+    }
 
     d_stateManager_mp->processClusterStateEvent(event);
 }
