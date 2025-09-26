@@ -202,6 +202,10 @@ class RecoveryManager {
         /// Receive data context.
         ReceiveDataContext d_receiveDataContext;
 
+        /// First sync point after rollover sequence number.
+        bmqp_ctrlmsg::PartitionSequenceNumber
+            d_firstSyncPointAfterRolloverSeqNum;
+
       public:
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(RecoveryContext,
@@ -356,7 +360,8 @@ class RecoveryManager {
 
     /// Process the recovery data chunks contained in the specified `blob`
     /// sent by the specified `source` for the specified `partitionId`.
-    /// Forward the processing to the specified `fs` if `fs` is open.
+    /// Forward the processing to the specified `fs` if `fs` is open. Use the
+    /// specified `firstSyncPointAfterRolloverSeqNum` to update journal header.
     /// Return 0 on success and non-zero code on error.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
@@ -364,7 +369,9 @@ class RecoveryManager {
     int processReceiveDataChunks(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                  mqbnet::ClusterNode*                source,
                                  mqbs::FileStore*                    fs,
-                                 int partitionId);
+                                 int partitionId,
+                                 const bmqp_ctrlmsg::PartitionSequenceNumber&
+                                     firstSyncPointAfterRolloverSeqNum);
 
     /// Create the internal recovery file set for the specified
     /// `partitionId`, using the specified `fs`.  Return 0 on success, non
@@ -397,12 +404,15 @@ class RecoveryManager {
 
     /// Recover latest sequence number from storage for the specified
     /// `partitionId` and populate the output in the specified `seqNum`.
+    /// If `firstSyncPointAfterRolllover` is true, recover the first sync point
+    /// after rollover sequence number instead of the latest sequence number.
     /// Return 0 on success and non-zero otherwise.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
     int recoverSeqNum(bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-                      int                                    partitionId);
+                      int                                    partitionId,
+                      bool firstSyncPointAfterRolllover = false);
 
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.
@@ -524,6 +534,7 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_liveDataSource_p(0)
 , d_bufferedEvents(basicAllocator)
 , d_receiveDataContext()
+, d_firstSyncPointAfterRolloverSeqNum()
 {
     // NOTHING
 }
@@ -541,6 +552,8 @@ inline RecoveryManager::RecoveryContext::RecoveryContext(
 , d_liveDataSource_p(other.d_liveDataSource_p)
 , d_bufferedEvents(other.d_bufferedEvents)
 , d_receiveDataContext(other.d_receiveDataContext)
+, d_firstSyncPointAfterRolloverSeqNum(
+      other.d_firstSyncPointAfterRolloverSeqNum)
 {
     // NOTHING
 }

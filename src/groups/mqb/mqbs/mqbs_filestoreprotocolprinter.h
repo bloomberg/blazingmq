@@ -137,7 +137,8 @@ void printJournalFileHeader(bsl::ostream&                     stream,
     fields.push_back("First SyncPointRecord timestamp");
     fields.push_back("First SyncPointRecord epoch");
 
-    bsls::Types::Uint64 offsetW = header.firstSyncPointOffsetWords();
+    bsls::Types::Uint64 offsetW =
+        header.firstSyncPointAfterRollloverOffsetWords();
 
     PRINTER_TYPE printer(stream, &fields);
     printer << static_cast<unsigned int>(header.headerWords())
