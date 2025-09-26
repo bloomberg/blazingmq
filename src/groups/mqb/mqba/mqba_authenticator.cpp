@@ -187,6 +187,8 @@ void Authenticator::authenticate(
     const InitialConnectionContextSp&      context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
+    // executed by an *AUTHENTICATION* thread
+
     // PRECONDITIONS
     BSLS_ASSERT(context);
 
@@ -289,6 +291,8 @@ void Authenticator::reauthenticate(
     const AuthenticationContextSp&         context,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
+    // executed by an *AUTHENTICATION* thread
+
     // PRECONDITIONS
     BSLS_ASSERT(context);
 
@@ -373,6 +377,8 @@ void Authenticator::onReauthenticateErrorOrTimeout(
     const bsl::shared_ptr<mqbnet::AuthenticationContext>& context,
     const bsl::shared_ptr<bmqio::Channel>&                channel)
 {
+    // executed by an *AUTHENTICATION* thread
+
     if (context->state().swap(State::e_CLOSED) == State::e_CLOSED) {
         return;
     }
@@ -395,6 +401,8 @@ int Authenticator::processAuthentication(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const AuthenticationContextSp&           authenticationContext)
 {
+    // executed by an *AUTHENTICATION* thread
+
     enum RcEnum {
         rc_SUCCESS                        = 0,
         rc_AUTHENTICATION_STATE_INCORRECT = -1,
@@ -424,18 +432,7 @@ int Authenticator::processAuthentication(
         response->status().category() =
             bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
         response->lifetimeMs() = result->lifetimeMs();
-
         authenticationContext->setAuthenticationResult(result);
-
-        if (authenticationContext->state().testAndSwap(
-                State::e_AUTHENTICATING,
-                State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
-            errorDescription
-                << "Failed to set authentication state for '"
-                << channel->peerUri()
-                << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-            return rc_AUTHENTICATION_STATE_INCORRECT;
-        }
 
         // Schedule authentication timeout
         if (result->lifetimeMs().has_value()) {
@@ -447,8 +444,18 @@ int Authenticator::processAuthentication(
             bslmt::LockGuard<bslmt::Mutex> lockGuard(
                 &authenticationContext->timeoutHandleMutex());  // MUTEX LOCKED
 
+            if (authenticationContext->state().testAndSwap(
+                    State::e_AUTHENTICATING,
+                    State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
+                errorDescription
+                    << "Failed to set authentication state for '"
+                    << channel->peerUri()
+                    << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
+                return rc_AUTHENTICATION_STATE_INCORRECT;
+            }
+
             if (authenticationContext->timeoutHandle()) {
-                d_scheduler->cancelEvent(
+                d_scheduler->cancelEventAndWait(
                     &authenticationContext->timeoutHandle());
             }
 
@@ -464,6 +471,17 @@ int Authenticator::processAuthentication(
                     authenticationContext,    // context
                     channel                   // channel
                     ));
+        }
+        else {
+            if (authenticationContext->state().testAndSwap(
+                    State::e_AUTHENTICATING,
+                    State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
+                errorDescription
+                    << "Failed to set authentication state for '"
+                    << channel->peerUri()
+                    << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
+                return rc_AUTHENTICATION_STATE_INCORRECT;
+            }
         }
     }
 
@@ -604,14 +622,16 @@ int Authenticator::reauthenticateAsync(
 
 void Authenticator::onClose(const AuthenticationContextSp& context)
 {
-    context->state().store(mqbnet::AuthenticationContext::State::e_CLOSED);
+    // executed by *ANY* thread
 
     // Cancel the reauthentication timer
     bslmt::LockGuard<bslmt::Mutex> lockGuard(
         &context->timeoutHandleMutex());  // MUTEX LOCKED
 
+    context->state().store(mqbnet::AuthenticationContext::State::e_CLOSED);
+
     if (context->timeoutHandle()) {
-        d_scheduler->cancelEvent(&context->timeoutHandle());
+        d_scheduler->cancelEventAndWait(&context->timeoutHandle());
     }
 }
 
