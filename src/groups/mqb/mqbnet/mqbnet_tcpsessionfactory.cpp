@@ -771,7 +771,7 @@ void TCPSessionFactory::onClose(
     const bsl::shared_ptr<InitialConnectionContext>& initialConnectionContext,
     const bmqio::Status&                             status)
 {
-    // Executed by one of the IO threads.
+    // Executed from *ANY* thread
 
     --d_nbActiveChannels;
 

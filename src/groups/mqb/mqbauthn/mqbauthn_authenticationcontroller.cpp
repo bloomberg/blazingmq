@@ -202,6 +202,8 @@ int AuthenticationController::authenticate(
     bsl::string_view                                mechanism,
     const mqbplug::AuthenticationData&              input)
 {
+    // executed by an *AUTHENTICATION* thread
+
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS                 = 0,
