@@ -366,6 +366,14 @@ void TCPSessionFactory::handleInitialConnection(
             bdlf::PlaceHolders::_5,  // initialConnectionContext
             context));
 
+    // Register as observer of the channel to get the 'onClose'
+    channel->onClose(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &TCPSessionFactory::onClose,
+                              this,
+                              initialConnectionContext,
+                              bdlf::PlaceHolders::_1 /* bmqio::Status */));
+
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
     // from the
     //       'handleInitialConnection()' call as specified on the
@@ -558,6 +566,24 @@ void TCPSessionFactory::negotiationComplete(
 
         ++d_nbSessions;
 
+        if (isClientOrProxy(session.get())) {
+            ++d_nbOpenClients;
+        }
+
+        // check if the channel is not closed (we can be in authentication
+        // thread)
+
+        if (initialConnectionContext_p->isClosed()) {
+            BALL_LOG_WARN
+                << "#TCP_UNEXPECTED_STATE TCPSessionFactory '"
+                << d_config.name()
+                << "' got an already closed channel after negotiation.";
+
+            // Since the 'session' has missed 'onClose', call 'tearDown' here.
+            session->tearDown(session, false);
+            return;  // RETURN
+        }
+
         info.createInplace(d_allocator_p,
                            channel,
                            monitoredSession,
@@ -572,10 +598,6 @@ void TCPSessionFactory::negotiationComplete(
                                                            info);
         inserted = d_channels.insert(toInsert);
         info     = inserted.first->second;
-
-        if (isClientOrProxy(info->d_session_sp.get())) {
-            ++d_nbOpenClients;
-        }
 
         if (info->d_monitor.isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
@@ -711,14 +733,6 @@ void TCPSessionFactory::channelStateCallback(
             // Keep track of active channels, for logging purposes
             ++d_nbActiveChannels;
 
-            // Register as observer of the channel to get the 'onClose'
-            channel->onClose(bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &TCPSessionFactory::onClose,
-                this,
-                channel,
-                bdlf::PlaceHolders::_1 /* bmqio::Status */));
-
             handleInitialConnection(channel, context);
         }
     } break;
@@ -743,10 +757,16 @@ void TCPSessionFactory::channelStateCallback(
     }
 }
 
-void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
-                                const bmqio::Status&                   status)
+void TCPSessionFactory::onClose(
+    const bsl::shared_ptr<InitialConnectionContext>& initialConnectionContext,
+    const bmqio::Status&                             status)
 {
+    // Executed by one of the IO threads.
+
     --d_nbActiveChannels;
+
+    const bsl::shared_ptr<bmqio::Channel>& channel =
+        initialConnectionContext->channel();
 
     int port;
     channel->properties().load(
@@ -757,6 +777,10 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
     {
         // Lookup the session and remove it from internal map
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+        // set the 'isClosed' flag under lock to be checked under lock in
+        // 'negotiationComplete'.
+        initialConnectionContext->onClose();
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
         if (it != d_channels.end()) {

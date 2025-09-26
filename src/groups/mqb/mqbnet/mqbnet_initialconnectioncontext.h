@@ -70,11 +70,6 @@ class InitialConnectionContext {
   private:
     // DATA
 
-    /// True if the session being negotiated originates
-    /// from a remote peer (i.e., a 'listen'); false if
-    /// it originates from us (i.e., a 'connect).
-    bool d_isIncoming;
-
     /// Raw pointer, held not owned, to some user data
     /// the session factory will pass back to the
     /// 'resultCb' method (used to inform of the
@@ -119,11 +114,19 @@ class InitialConnectionContext {
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
+    /// True if the session being negotiated originates
+    /// from a remote peer (i.e., a 'listen'); false if
+    /// it originates from us (i.e., a 'connect).
+    bool d_isIncoming;
+
+    /// True if the associated channel is closed (with `onClose`).
+    bool d_isClosed;
+
   public:
     // CREATORS
 
     /// Create a new object having the specified `isIncoming` value.
-    InitialConnectionContext(bool isIncoming);
+    explicit InitialConnectionContext(bool isIncoming);
 
     ~InitialConnectionContext();
 
@@ -140,6 +143,9 @@ class InitialConnectionContext {
     InitialConnectionContext&
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
+    /// Called by the IO upon `onCLose` signal
+    void onClose();
+
     // ACCESSORS
 
     /// Return the value of the corresponding field.
@@ -148,6 +154,7 @@ class InitialConnectionContext {
     void*                                      resultState() const;
     const bsl::shared_ptr<bmqio::Channel>&     channel() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
+    bool                                       isClosed() const;
 
     void complete(int                                     rc,
                   const bsl::string&                      error,
