@@ -27,8 +27,12 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocol.h>
 
 // BDE
+#include <bdlmt_eventscheduler.h>
+#include <bslma_allocator.h>
+#include <bslmt_mutex.h>
 #include <bsls_atomic.h>
 
 namespace BloombergLP {
@@ -42,17 +46,38 @@ namespace mqbnet {
 class AuthenticationContext {
   public:
     // TYPES
-    enum State {
-        e_AUTHENTICATING = 0,
-        e_AUTHENTICATED,
-    };
+    enum State { e_AUTHENTICATING = 0, e_AUTHENTICATED, e_CLOSED };
+
+    typedef bdlmt::EventScheduler::EventHandle EventHandle;
 
   private:
     // DATA
-    InitialConnectionContext*           d_initialConnectionContext_p;
+
+    /// The authentication result to be used for authorization. It is first set
+    /// during the initial authentication, and can be updated later
+    /// during re-authentication.
+    bsl::shared_ptr<mqbplug::AuthenticationResult> d_authenticationResultSp;
+
+    /// The mutex to protect the AuthenticationResult.
+    mutable bslmt::Mutex d_mutex;
+
+    InitialConnectionContext* d_initialConnectionContext_p;
+
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
-    bsls::AtomicInt                     d_state;
-    ConnectionType::Enum                d_connectionType;
+
+    EventHandle  d_timeoutHandle;
+    bslmt::Mutex d_timeoutHandleMutex;
+
+    /// The encoding type used for sending a message. It should match with the
+    /// encoding type of the received message.
+    bmqp::EncodingType::Enum d_authenticationEncodingType;
+
+    /// This is used to store the state of the authentication process. It
+    /// serves as a primitive to ensure there's no race between reading
+    /// (authorizing) and writing (reauthenticating) the AuthenticationContext.
+    bsls::AtomicInt d_state;
+
+    ConnectionType::Enum d_connectionType;
 
   private:
     // NOT IMPLEMENTED
@@ -64,28 +89,44 @@ class AuthenticationContext {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticationContext,
                                    bslma::UsesBslmaAllocator)
     // CREATORS
     AuthenticationContext(
         InitialConnectionContext*                  initialConnectionContext,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+        bmqp::EncodingType::Enum                   authenticationEncodingType,
         State                                      state,
-        ConnectionType::Enum connectionType = ConnectionType::e_UNKNOWN);
+        ConnectionType::Enum                       connectionType,
+        bslma::Allocator*                          allocator = 0);
 
     // MANIPULATORS
+    AuthenticationContext& setAuthenticationResult(
+        const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
     AuthenticationContext&
     setInitialConnectionContext(InitialConnectionContext* value);
     AuthenticationContext&
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
+    AuthenticationContext&
+    setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
     AuthenticationContext& setConnectionType(ConnectionType::Enum value);
 
     bsls::AtomicInt& state();
 
     // ACCESSORS
+
+    /// This function holds a mutex lock while accessing the
+    /// `d_authenticationResultSp` to ensure thread safety.
+    const bsl::shared_ptr<mqbplug::AuthenticationResult>&
+    authenticationResult() const;
+
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
-    ConnectionType::Enum                       connectionType() const;
+    bmqp::EncodingType::Enum authenticationEncodingType() const;
+    ConnectionType::Enum     connectionType() const;
+
+    EventHandle&  timeoutHandle();
+    bslmt::Mutex& timeoutHandleMutex();
 };
 
 }  // close package namespace

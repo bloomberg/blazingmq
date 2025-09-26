@@ -35,14 +35,16 @@ namespace mqbnet {
 // class NegotiationContext
 // ========================
 
-// VST for an implementation of NegotiationContext
-struct NegotiationContext {
+// VST for the context associated with a session being negotiated.
+class NegotiationContext {
+  private:
     // DATA
     /// The associated InitialConnectionContext passed in by the caller.
     /// Held, not owned
     InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
+    /// Set to empty if we haven't received one yet.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
 
     /// The cluster involved in the session being negotiated, or empty if
@@ -75,6 +77,39 @@ struct NegotiationContext {
 
     /// mqbnet::Cluster to inform about incoming (proxy) connection
     Cluster* d_cluster_p;
+
+    // NOT IMPLEMENTED
+    NegotiationContext(const NegotiationContext&);             // = delete;
+    NegotiationContext& operator=(const NegotiationContext&);  // = delete;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    NegotiationContext(InitialConnectionContext* initialConnectionContext,
+                       bslma::Allocator*         allocator = 0);
+
+    // MANIPULATORS
+    NegotiationContext&
+    setInitialConnectionContext(InitialConnectionContext* value);
+    NegotiationContext&
+    setNegotiationMessage(const bmqp_ctrlmsg::NegotiationMessage& value);
+    NegotiationContext& setClusterName(const bsl::string& value);
+    NegotiationContext& setConnectionType(ConnectionType::Enum value);
+    NegotiationContext& setMaxMissedHeartbeats(int value);
+    NegotiationContext& setEventProcessor(SessionEventProcessor* value);
+    NegotiationContext& setCluster(Cluster* value);
+
+    // ACCESSORS
+    InitialConnectionContext*               initialConnectionContext() const;
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage() const;
+    const bsl::string&                      clusterName() const;
+    ConnectionType::Enum                    connectionType() const;
+    int                                     maxMissedHeartbeats() const;
+    SessionEventProcessor*                  eventProcessor() const;
+    Cluster*                                cluster() const;
 };
 
 }  // close package namespace

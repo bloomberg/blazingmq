@@ -37,6 +37,13 @@
 namespace BloombergLP {
 namespace bmqauthnpass {
 
+namespace {
+
+const int k_TIMEOUT_SECONDS   = 600;
+const int k_MILLISECS_PER_SEC = 1000;
+
+}  // namespace
+
 // ------------------------------
 // class PassAuthenticationResult
 // ------------------------------
@@ -91,7 +98,7 @@ bsl::string_view PassAuthenticator::name() const
 
 bsl::string_view PassAuthenticator::mechanism() const
 {
-    return "Basic";
+    return k_MECHANISM;
 }
 
 int PassAuthenticator::authenticate(
@@ -99,9 +106,14 @@ int PassAuthenticator::authenticate(
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
-    *result = bsl::allocate_shared<PassAuthenticationResult>(d_allocator_p,
-                                                             "",
-                                                             600 * 1000);
+    BALL_LOG_INFO << "PassAuthenticator: "
+                  << "authentication passed for mechanism '" << mechanism()
+                  << "' unconditionally.";
+
+    *result = bsl::allocate_shared<PassAuthenticationResult>(
+        d_allocator_p,
+        "",
+        k_TIMEOUT_SECONDS * k_MILLISECS_PER_SEC);
     return 0;
 }
 
