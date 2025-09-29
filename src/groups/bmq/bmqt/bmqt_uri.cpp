@@ -264,12 +264,13 @@ int UriParser::parse(Uri*                     result,
 {
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS        = 0,
-        rc_INVALID_FORMAT = -1,
-        rc_BAD_QUERY      = -2,
-        rc_MISSING_DOMAIN = -3,
-        rc_MISSING_QUEUE  = -4,
-        rc_MISSING_TIER   = -5
+        rc_SUCCESS             = 0,
+        rc_INVALID_FORMAT      = -1,
+        rc_BAD_QUERY           = -2,
+        rc_MISSING_DOMAIN      = -3,
+        rc_MISSING_QUEUE       = -4,
+        rc_MISSING_TIER        = -5,
+        rc_QUEUE_NAME_TOO_LONG = -6
     };
 
     enum {
@@ -384,20 +385,11 @@ int UriParser::parse(Uri*                     result,
     }
 
     if (result->d_path.length() > Uri::k_QUEUENAME_MAX_LENGTH) {
-        // TBD: Convert to a real error once certified all active queues are
-        //      within the limit.  When converting to an error, add test cases
-        //      in the test driver.
-        BSLMT_ONCE_DO
-        {
-            bmqu::MemOutStream os;
-            os << "The queue name part of '" << uriString << "' is exceeding "
-               << "the maximum size limit of " << Uri::k_QUEUENAME_MAX_LENGTH
-               << ".  This is only a warning at the moment, but this limit "
-               << "will soon be enforced and  queue URI will be rejected!";
-            bsl::cerr << "BMQALARM [INVALID_QUEUE_NAME]: " << os.str() << '\n'
-                      << bsl::flush;
-            BALL_LOG_ERROR << os.str();
+        if (errorDescription) {
+            *errorDescription = "queue name exceeds 64 characters";
         }
+        result->reset();
+        return rc_QUEUE_NAME_TOO_LONG;
     }
 
     // Success

@@ -247,6 +247,8 @@ class PartitionStateTableActions {
 
     virtual void do_processBufferedLiveData(const ARGS& args) = 0;
 
+    virtual void do_clearBufferedLiveData(const ARGS& args) = 0;
+
     virtual void
     do_processBufferedPrimaryStatusAdvisories(const ARGS& args) = 0;
 
@@ -328,6 +330,8 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
+
+    void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
 
     void
     do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
@@ -565,7 +569,7 @@ class PartitionStateTable
             UNKNOWN);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_PUSH,
-                setExpectedDataChunkRange,
+                setExpectedDataChunkRange_clearBufferedLiveData,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_DROP,
@@ -817,6 +821,14 @@ void PartitionStateTableActions<ARGS>::
 {
     do_setExpectedDataChunkRange(args);
     do_replicaDataRequestPull(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<
+    ARGS>::do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args)
+{
+    do_setExpectedDataChunkRange(args);
+    do_clearBufferedLiveData(args);
 }
 
 template <typename ARGS>

@@ -302,7 +302,8 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         d_clusterData.clusterConfig().partitionConfig();
     d_clusterData.stats().setPartitionCfgBytes(
         partitionConfig.maxDataFileSize(),
-        partitionConfig.maxJournalFileSize());
+        partitionConfig.maxJournalFileSize(),
+        partitionConfig.maxCSLFileSize());
 
     *rc = rc_SUCCESS;
 }

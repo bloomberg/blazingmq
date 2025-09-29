@@ -136,7 +136,7 @@ class Channel {
         const bmqp::PutHeader&              d_putHeader;
         const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
 
-        PutArgs(Item& item);
+        PutArgs(const Item& item);
 
         ~PutArgs();
     };
@@ -167,7 +167,7 @@ class Channel {
 
         const bmqp::Protocol::SubQueueInfosArray& d_subQueueInfos;
 
-        ExplicitPushArgs(Item& item);
+        ExplicitPushArgs(const Item& item);
 
         ~ExplicitPushArgs();
     };
@@ -178,7 +178,7 @@ class Channel {
     struct ImplicitPushArgs : PushArgsBase {
         const bmqp::Protocol::SubQueueInfosArray& d_subQueueInfos;
 
-        ImplicitPushArgs(Item& item);
+        ImplicitPushArgs(const Item& item);
 
         ~ImplicitPushArgs();
     };
@@ -190,7 +190,7 @@ class Channel {
         const bmqt::MessageGUID& d_guid;
         const int                d_queueId;
 
-        AckArgs(Item& item);
+        AckArgs(const Item& item);
 
         ~AckArgs();
     };
@@ -202,7 +202,7 @@ class Channel {
         const int                d_subQueueId;
         const bmqt::MessageGUID& d_guid;
 
-        ConfirmArgs(Item& item);
+        ConfirmArgs(const Item& item);
 
         ~ConfirmArgs();
     };
@@ -214,7 +214,7 @@ class Channel {
         const int                d_subQueueId;
         const bmqt::MessageGUID& d_guid;
 
-        RejectArgs(Item& item);
+        RejectArgs(const Item& item);
 
         ~RejectArgs();
     };
@@ -229,7 +229,7 @@ class Channel {
         const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
         int                                 d_messageCount;
 
-        ControlArgs(Item& item);
+        ControlArgs(const Item& item);
 
         ~ControlArgs();
 
@@ -630,7 +630,7 @@ inline Channel::PutArgs::~PutArgs()
     // NOTHING
 }
 
-inline Channel::PutArgs::PutArgs(Item& item)
+inline Channel::PutArgs::PutArgs(const Item& item)
 : d_putHeader(item.d_putHeader)
 , d_data_sp(item.d_data_sp)
 {
@@ -665,7 +665,7 @@ inline Channel::PushArgsBase::~PushArgsBase()
 // struct Channel::ExplicitPushArgs
 // --------------------------------
 
-inline Channel::ExplicitPushArgs::ExplicitPushArgs(Item& item)
+inline Channel::ExplicitPushArgs::ExplicitPushArgs(const Item& item)
 : PushArgsBase(item.d_queueId,
                item.d_msgId,
                item.d_flags,
@@ -685,7 +685,7 @@ inline Channel::ExplicitPushArgs::~ExplicitPushArgs()
 // struct Channel::ImplicitPushArgs
 // --------------------------------
 
-inline Channel::ImplicitPushArgs::ImplicitPushArgs(Item& item)
+inline Channel::ImplicitPushArgs::ImplicitPushArgs(const Item& item)
 : PushArgsBase(item.d_queueId,
                item.d_msgId,
                item.d_flags,
@@ -705,7 +705,7 @@ inline Channel::ImplicitPushArgs::~ImplicitPushArgs()
 // class Channel::AckArgs
 // --------------------------
 
-inline Channel::AckArgs::AckArgs(Item& item)
+inline Channel::AckArgs::AckArgs(const Item& item)
 : d_status(item.d_status)
 , d_correlationId(item.d_correlationId)
 , d_guid(item.d_msgId)
@@ -723,7 +723,7 @@ inline Channel::AckArgs::~AckArgs()
 // class Channel::ConfirmArgs
 // --------------------------
 
-inline Channel::ConfirmArgs::ConfirmArgs(Item& item)
+inline Channel::ConfirmArgs::ConfirmArgs(const Item& item)
 : d_queueId(item.d_queueId)
 , d_subQueueId(item.d_subQueueId)
 , d_guid(item.d_msgId)
@@ -740,7 +740,7 @@ inline Channel::ConfirmArgs::~ConfirmArgs()
 // class Channel::RejectArgs
 // -------------------------
 
-inline Channel::RejectArgs::RejectArgs(Item& item)
+inline Channel::RejectArgs::RejectArgs(const Item& item)
 : d_queueId(item.d_queueId)
 , d_subQueueId(item.d_subQueueId)
 , d_guid(item.d_msgId)
@@ -757,7 +757,7 @@ inline Channel::RejectArgs::~RejectArgs()
 // class Channel::ControlArgs
 // --------------------------
 
-inline Channel::ControlArgs::ControlArgs(Item& item)
+inline Channel::ControlArgs::ControlArgs(const Item& item)
 : d_type(item.d_type)
 , d_data_sp(item.d_data_sp)
 , d_messageCount(1)

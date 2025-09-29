@@ -3972,11 +3972,12 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                     immediateFlush);
 
     // Report cluster's partition stats
-    d_clusterStats_p->setPartitionOutstandingBytes(
-        d_config.partitionId(),
-        fs->d_outstandingBytesData,
-        fs->d_outstandingBytesJournal,
-        d_sequenceNum);
+    d_clusterStats_p->setPartitionBytes(d_config.partitionId(),
+                                        fs->d_outstandingBytesData,
+                                        fs->d_outstandingBytesJournal,
+                                        fs->d_dataFilePosition,
+                                        fs->d_journalFilePosition,
+                                        d_sequenceNum);
 
     return rc_SUCCESS;
 }
@@ -4324,10 +4325,10 @@ int FileStore::writeQueueCreationRecord(
     // Create in-memory record.
     DataStoreRecordHandle handle;
     DataStoreRecord       record(RecordType::e_QUEUE_OP,
-                                 recordOffset,
-                                 queueRecLength);
+                           recordOffset,
+                           queueRecLength);
     DataStoreRecordKey    key(recHeader.sequenceNumber(),
-                              recHeader.primaryLeaseId());
+                           recHeader.primaryLeaseId());
 
     insertDataStoreRecord(&handle, key, record);
 
@@ -5207,11 +5208,13 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
     BSLS_ASSERT_SAFE(d_isOpen);
 
     // Report cluster's partition stats
-    d_clusterStats_p->setPartitionOutstandingBytes(
-        d_config.partitionId(),
-        d_fileSets[0].get()->d_outstandingBytesData,
-        d_fileSets[0].get()->d_outstandingBytesJournal,
-        d_sequenceNum);
+    const FileSet* fs = d_fileSets[0].get();
+    d_clusterStats_p->setPartitionBytes(d_config.partitionId(),
+                                        fs->d_outstandingBytesData,
+                                        fs->d_outstandingBytesJournal,
+                                        fs->d_dataFilePosition,
+                                        fs->d_journalFilePosition,
+                                        d_sequenceNum);
 
     return rc_SUCCESS;
 }

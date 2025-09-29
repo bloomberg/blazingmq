@@ -1659,6 +1659,22 @@ int RecoveryManager::loadBufferedStorageEvents(
     return rc_SUCCESS;
 }
 
+void RecoveryManager::clearBufferedStorageEvent(int partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+
+    RecoveryContext& recoveryCtx       = d_recoveryContextVec[partitionId];
+    const size_t     numBufferedEvents = recoveryCtx.d_bufferedEvents.size();
+    recoveryCtx.d_bufferedEvents.clear();
+
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: " << "Cleared all "
+                  << numBufferedEvents << " buffered storage events.";
+}
+
 // ACCESSORS
 void RecoveryManager::loadReplicaDataResponsePush(
     bmqp_ctrlmsg::ControlMessage* out,
