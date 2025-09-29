@@ -457,8 +457,9 @@ class TCPSessionFactory {
     /// the channel's status, `userData` corresponding to the one provided
     /// when calling `addObserver` to register this object as observer of
     /// the channel.
-    virtual void onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
-                         const bmqio::Status&                   status);
+    virtual void onClose(const bsl::shared_ptr<InitialConnectionContext>&
+                                              initialConnectionContext,
+                         const bmqio::Status& status);
 
     /// Reccuring scheduler event to check for all `heartbeat-enabled`
     /// channels : this will send a heartbeat if no data has been received
