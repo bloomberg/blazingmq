@@ -85,10 +85,6 @@ class Authenticator {
                         const bsl::shared_ptr<AuthenticationContext>& context,
                         const bsl::shared_ptr<bmqio::Channel>& channel) = 0;
 
-    /// Methods invoked when a channel is closed.
-    virtual void
-    onClose(const bsl::shared_ptr<AuthenticationContext>& context) = 0;
-
     // ACCESSORS
 
     /// Return the anonymous credential used for authentication.

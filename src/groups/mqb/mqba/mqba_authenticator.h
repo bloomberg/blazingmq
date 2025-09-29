@@ -182,15 +182,6 @@ class Authenticator : public mqbnet::Authenticator {
     void reauthenticate(const AuthenticationContextSp&         context,
                         const bsl::shared_ptr<bmqio::Channel>& channel);
 
-    /// Close the specified `channel` with an error code and name
-    /// indicating the re-authentication error or authentication timeout given
-    /// the specified `context`.
-    void onReauthenticateErrorOrTimeout(
-        const int                                             errorCode,
-        const bsl::string&                                    errorName,
-        const bsl::shared_ptr<mqbnet::AuthenticationContext>& context,
-        const bsl::shared_ptr<bmqio::Channel>&                channel);
-
     /// Process the authentication request in `request` and store the
     /// result in `response`.  Return 0 on success, or a non-zero error
     /// code and populate `errorDescription` with a description of the error
@@ -255,9 +246,6 @@ class Authenticator : public mqbnet::Authenticator {
     int reauthenticateAsync(bsl::ostream&                  errorDescription,
                             const AuthenticationContextSp& context,
                             const bsl::shared_ptr<bmqio::Channel>& channel)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void onClose(const AuthenticationContextSp& authenticationContext)
         BSLS_KEYWORD_OVERRIDE;
 
     /// ACCESSORS

@@ -315,13 +315,12 @@ void Authenticator::reauthenticate(
     int                              rc = rc_SUCCESS;
     bsl::string                      error;
 
-    bdlb::ScopeExitAny reauthenticateErrorGuard(
-        bdlf::BindUtil::bind(&Authenticator::onReauthenticateErrorOrTimeout,
-                             this,
-                             bsl::ref(rc),
-                             bsl::ref(error),
-                             context,
-                             channel));
+    bdlb::ScopeExitAny reauthenticateErrorGuard(bdlf::BindUtil::bind(
+        &mqbnet::AuthenticationContext::onReauthenticateErrorOrTimeout,
+        context.get(),
+        bsl::ref(rc),
+        bsl::ref(error),
+        channel));
 
     BALL_LOG_INFO << "Reauthenticating connection '" << channel->peerUri()
                   << "' with mechanism '" << authenticateRequest.mechanism()
@@ -371,29 +370,6 @@ void Authenticator::reauthenticate(
     return;
 }
 
-void Authenticator::onReauthenticateErrorOrTimeout(
-    const int                                             errorCode,
-    const bsl::string&                                    errorName,
-    const bsl::shared_ptr<mqbnet::AuthenticationContext>& context,
-    const bsl::shared_ptr<bmqio::Channel>&                channel)
-{
-    // executed by an *AUTHENTICATION* thread
-
-    if (context->state().swap(State::e_CLOSED) == State::e_CLOSED) {
-        return;
-    }
-
-    BALL_LOG_ERROR << "Reauthentication error or timeout for '"
-                   << channel->peerUri() << "' [error: " << errorName
-                   << ", code: " << errorCode << "]";
-
-    bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
-                         errorName,
-                         errorCode,
-                         d_allocator_p);
-    channel->close(status);
-}
-
 int Authenticator::processAuthentication(
     bsl::ostream&                            errorDescription,
     bmqp_ctrlmsg::AuthenticateResponse*      response,
@@ -434,54 +410,14 @@ int Authenticator::processAuthentication(
         response->lifetimeMs() = result->lifetimeMs();
         authenticationContext->setAuthenticationResult(result);
 
-        // Schedule authentication timeout
-        if (result->lifetimeMs().has_value()) {
-            BALL_LOG_DEBUG << "Scheduling authentication timeout for '"
-                           << channel->peerUri()
-                           << "' [lifetime: " << result->lifetimeMs().value()
-                           << " ms]";
+        const int scheduleRc = authenticationContext->scheduleReauthn(
+            errorDescription,
+            d_scheduler,
+            result->lifetimeMs(),
+            channel);
 
-            bslmt::LockGuard<bslmt::Mutex> lockGuard(
-                &authenticationContext->timeoutHandleMutex());  // MUTEX LOCKED
-
-            if (authenticationContext->state().testAndSwap(
-                    State::e_AUTHENTICATING,
-                    State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
-                errorDescription
-                    << "Failed to set authentication state for '"
-                    << channel->peerUri()
-                    << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-                return rc_AUTHENTICATION_STATE_INCORRECT;
-            }
-
-            if (authenticationContext->timeoutHandle()) {
-                d_scheduler->cancelEventAndWait(
-                    &authenticationContext->timeoutHandle());
-            }
-
-            d_scheduler->scheduleEvent(
-                &authenticationContext->timeoutHandle(),
-                bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
-                    .addMilliseconds(result->lifetimeMs().value()),
-                bdlf::BindUtil::bind(
-                    &Authenticator::onReauthenticateErrorOrTimeout,
-                    this,                     // authenticator
-                    -1,                       // errorCode
-                    "authenticationTimeout",  // errorName
-                    authenticationContext,    // context
-                    channel                   // channel
-                    ));
-        }
-        else {
-            if (authenticationContext->state().testAndSwap(
-                    State::e_AUTHENTICATING,
-                    State::e_AUTHENTICATED) != State::e_AUTHENTICATING) {
-                errorDescription
-                    << "Failed to set authentication state for '"
-                    << channel->peerUri()
-                    << "' to 'e_AUTHENTICATED' from 'e_AUTHENTICATING'";
-                return rc_AUTHENTICATION_STATE_INCORRECT;
-            }
+        if (scheduleRc != 0) {
+            return rc_AUTHENTICATION_STATE_INCORRECT;
         }
     }
 
@@ -618,21 +554,6 @@ int Authenticator::reauthenticateAsync(
     }
 
     return rc;
-}
-
-void Authenticator::onClose(const AuthenticationContextSp& context)
-{
-    // executed by *ANY* thread
-
-    // Cancel the reauthentication timer
-    bslmt::LockGuard<bslmt::Mutex> lockGuard(
-        &context->timeoutHandleMutex());  // MUTEX LOCKED
-
-    context->state().store(mqbnet::AuthenticationContext::State::e_CLOSED);
-
-    if (context->timeoutHandle()) {
-        d_scheduler->cancelEventAndWait(&context->timeoutHandle());
-    }
 }
 
 // ACCESSORS
