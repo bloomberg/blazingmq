@@ -476,7 +476,7 @@ ClusterStats::setPartitionBytes(int                 partitionId,
     d_partitionsStatContexts[partitionId]->setValue(
         ClusterStatsIndex::e_PARTITION_JOURNAL_OFFSET_BYTES,
         offsetJournalBytes);
-      d_partitionsStatContexts[partitionId]->setValue(
+    d_partitionsStatContexts[partitionId]->setValue(
         ClusterStatsIndex::e_PARTITION_SEQUENCE_NUMBER,
         static_cast<bsls::Types::Int64>(sequenceNumber));
     return *this;
@@ -642,9 +642,9 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
         .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
-        .value("partition.sequence_number");
         .value("partition.data_offset_bytes")
-        .value("partition.journal_offset_bytes");
+        .value("partition.journal_offset_bytes")
+        .value("partition.sequence_number");
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per

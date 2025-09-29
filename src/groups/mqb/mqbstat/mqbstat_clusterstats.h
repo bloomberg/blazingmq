@@ -288,11 +288,11 @@ class ClusterStats {
     /// journal files for the specified `partitionId` to the corresponding
     /// specified `outstandingDataBytes`, `outstandingJournalBytes`,
     /// `offsetDataBytes`, `offsetJournalBytes` and `sequenceNumber` values.
-    ClusterStats& setPartitionBytes(int                 partitionId,
-                                    bsls::Types::Int64  outstandingDataBytes,
-                                    bsls::Types::Int64  outstandingJournalBytes,
-                                    bsls::Types::Int64  offsetDataBytes,
-                                    bsls::Types::Int64  offsetJournalBytes,
+    ClusterStats& setPartitionBytes(int                partitionId,
+                                    bsls::Types::Int64 outstandingDataBytes,
+                                    bsls::Types::Int64 outstandingJournalBytes,
+                                    bsls::Types::Int64 offsetDataBytes,
+                                    bsls::Types::Int64 offsetJournalBytes,
                                     bsls::Types::Uint64 sequenceNumber);
 
     /// Return a pointer to the statcontext.
