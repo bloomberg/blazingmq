@@ -75,7 +75,6 @@
         hostName.............: name of the current host
         hostTags.............: tags of the current host
         hostDataCenter.......: datacenter the current host resides in
-        isRunningOnDev.......: true if running on dev
         logsObserverMaxSize..: maximum number of log records to keep
         latencyMonitorDomain.: common prefix of all latemon domains
         dispatcherConfig.....: configuration for the dispatcher
@@ -97,7 +96,6 @@
       <element name='hostName'             type='string'/>
       <element name='hostTags'             type='string'/>
       <element name='hostDataCenter'       type='string'/>
-      <element name='isRunningOnDev'       type='boolean'/>
       <element name='logsObserverMaxSize'  type='int'/>
       <element name='latencyMonitorDomain' type='string'
                                            default='bmq.sys.latemon.latency'/>

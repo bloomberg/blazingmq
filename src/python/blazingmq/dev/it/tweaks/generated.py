@@ -226,11 +226,6 @@ class TweakFactory:
 
             host_data_center = HostDataCenter()
 
-            class IsRunningOnDev(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[bool, NoneType]) -> Callable: ...
-
-            is_running_on_dev = IsRunningOnDev()
-
             class LogsObserverMaxSize(metaclass=TweakMetaclass):
                 def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
