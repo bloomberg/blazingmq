@@ -23,7 +23,8 @@
 ///
 
 // MQB
-#include <mqbnet_initialconnectioncontext.h>
+#include <mqbnet_connectiontype.h>
+#include <mqbplug_authenticator.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -32,10 +33,24 @@
 
 // BDE
 #include <bdlmt_eventscheduler.h>
+#include <bsl_memory.h>
+#include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslmt_mutex.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqio {
+class Channel;
+}
+namespace mqbplug {
+class AuthenticationResult;
+}
+namespace mqbnet {
+class InitialConnectionContext;
+}
+
 namespace mqbnet {
 
 // ===========================

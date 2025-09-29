@@ -115,15 +115,15 @@ int TransportManager::createAndStartTcpInterface(
 
     bslma::Allocator* alloc = d_allocators.get("Interface" +
                                                bsl::to_string(config.port()));
-    d_tcpSessionFactory_mp.load(
-        new (*alloc) TCPSessionFactory(config,
-                                       d_scheduler_p,
-                                       d_blobBufferFactory_p,
-                                       d_authenticator_mp.get(),
-                                       d_initialConnectionHandler_mp.get(),
-                                       d_statController_p,
-                                       alloc),
-        alloc);
+    d_tcpSessionFactory_mp.load(new (*alloc)
+                                    TCPSessionFactory(config,
+                                                      d_scheduler_p,
+                                                      d_blobBufferFactory_p,
+                                                      d_authenticator_mp.get(),
+                                                      d_negotiator_mp.get(),
+                                                      d_statController_p,
+                                                      alloc),
+                                alloc);
 
     return d_tcpSessionFactory_mp->start(errorDescription);
 }
@@ -337,20 +337,18 @@ int TransportManager::selfNodeIdLocked(
 }
 
 TransportManager::TransportManager(
-    bdlmt::EventScheduler*                       scheduler,
-    bdlbb::BlobBufferFactory*                    blobBufferFactory,
-    bslma::ManagedPtr<Authenticator>&            authenticator,
-    bslma::ManagedPtr<Negotiator>&               negotiator,
-    bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
-    mqbstat::StatController*                     statController,
-    bslma::Allocator*                            allocator)
+    bdlmt::EventScheduler*            scheduler,
+    bdlbb::BlobBufferFactory*         blobBufferFactory,
+    bslma::ManagedPtr<Authenticator>& authenticator,
+    bslma::ManagedPtr<Negotiator>&    negotiator,
+    mqbstat::StatController*          statController,
+    bslma::Allocator*                 allocator)
 : d_allocators(allocator)
 , d_state(e_STOPPED)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_authenticator_mp(authenticator)
 , d_negotiator_mp(negotiator)
-, d_initialConnectionHandler_mp(initialConnectionHandler)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
 , d_connectionsState(allocator)
