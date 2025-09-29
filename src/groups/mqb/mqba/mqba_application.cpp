@@ -48,7 +48,6 @@
 #include <bmqst_statcontext.h>
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
-#include <bmqu_operationchain.h>
 
 // BDE
 #include <baljsn_encoder.h>
