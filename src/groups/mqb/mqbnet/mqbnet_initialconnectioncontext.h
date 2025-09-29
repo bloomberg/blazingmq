@@ -358,7 +358,7 @@ class InitialConnectionContext {
 }  // close package namespace
 
 // -----------------------------
-// struct ClusterStateTableState
+// struct InitialConnectionState
 // -----------------------------
 
 // FREE OPERATORS
@@ -370,7 +370,7 @@ mqbnet::operator<<(bsl::ostream&                        stream,
 }
 
 // -----------------------------
-// struct ClusterStateTableEvent
+// struct InitialConnectionEvent
 // -----------------------------
 
 // FREE OPERATORS

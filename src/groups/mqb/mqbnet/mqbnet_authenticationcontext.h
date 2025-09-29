@@ -28,12 +28,12 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
+#include <bmqu_sharedresource.h>
 
 // BDE
 #include <bdlmt_eventscheduler.h>
 #include <bslma_allocator.h>
 #include <bslmt_mutex.h>
-#include <bsls_atomic.h>
 
 namespace BloombergLP {
 namespace mqbnet {
@@ -42,42 +42,94 @@ namespace mqbnet {
 // class AuthenticationContext
 // ===========================
 
+struct AuthenticationState {
+    enum Enum {
+        e_AUTHENTICATING = 0,  // Authentication is in progress.
+        e_AUTHENTICATED,       // Authentication is completed.
+        e_CLOSED               // Channel is closed.
+    };
+
+    // CLASS METHODS
+
+    /// Write the string representation of the specified enumeration
+    /// `value`
+    /// to the specified output `stream`, and return a reference to
+    /// `stream`.  Optionally specify an initial indentation `level`, whose
+    /// absolute value is incremented recursively for nested objects.  If
+    /// `level` is specified, optionally specify `spacesPerLevel`, whose
+    /// absolute value indicates the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative, format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  See `toAscii`
+    /// for what constitutes the string representation of a
+    /// @bbref{AuthenticationState::Enum} value.
+    static bsl::ostream& print(bsl::ostream&             stream,
+                               AuthenticationState::Enum value,
+                               int                       level          = 0,
+                               int                       spacesPerLevel = 4);
+
+    /// Return the non-modifiable string representation corresponding to
+    /// the specified enumeration `value`, if it exists, and a unique
+    /// (error) string otherwise.  The string representation of `value`
+    /// matches its corresponding enumerator name with the `e_` prefix
+    /// elided.  Note that specifying a `value` that does not match any of
+    /// the enumerators will result in a string representation that is
+    /// distinct from any of those corresponding to the enumerators, but is
+    /// otherwise unspecified.
+    static const char* toAscii(AuthenticationState::Enum value);
+
+    /// Return true and fills the specified `out` with the enum value
+    /// corresponding to the specified `str`, if valid, or return false and
+    /// leave `out` untouched if `str` doesn't correspond to any value of
+    /// the enum.
+    static bool fromAscii(AuthenticationState::Enum* out,
+                          const bsl::string_view     str);
+};
+
+// FREE OPERATORS
+
+/// Format the specified `value` to the specified output `stream` and return
+/// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream&             stream,
+                         AuthenticationState::Enum value);
+
 /// VST for the context associated with an connection being authenticated.
 class AuthenticationContext {
   public:
     // TYPES
-    enum State { e_AUTHENTICATING = 0, e_AUTHENTICATED, e_CLOSED };
-
+    typedef AuthenticationState::Enum          State;
     typedef bdlmt::EventScheduler::EventHandle EventHandle;
 
   private:
     // DATA
+
+    /// Used to make sure no callback is invoked on a destroyed object.
+    bmqu::SharedResource<AuthenticationContext> d_self;
+
+    bslmt::Mutex d_mutex;
 
     /// The authentication result to be used for authorization. It is first set
     /// during the initial authentication, and can be updated later
     /// during re-authentication.
     bsl::shared_ptr<mqbplug::AuthenticationResult> d_authenticationResultSp;
 
-    /// The mutex to protect the AuthenticationResult.
-    mutable bslmt::Mutex d_mutex;
+    EventHandle d_timeoutHandle;
+
+    State d_state;
 
     InitialConnectionContext* d_initialConnectionContext_p;
 
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
 
-    EventHandle  d_timeoutHandle;
-    bslmt::Mutex d_timeoutHandleMutex;
-
     /// The encoding type used for sending a message. It should match with the
     /// encoding type of the received message.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
-    /// This is used to store the state of the authentication process. It
-    /// serves as a primitive to ensure there's no race between reading
-    /// (authorizing) and writing (reauthenticating) the AuthenticationContext.
-    bsls::AtomicInt d_state;
-
     ConnectionType::Enum d_connectionType;
+
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -111,25 +163,55 @@ class AuthenticationContext {
     setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
     AuthenticationContext& setConnectionType(ConnectionType::Enum value);
 
-    bsls::AtomicInt& state();
+    /// Schedule a re-authentication timer with the specified `lifetimeMs` and
+    /// mark the state as `e_AUTHENTICATED`.
+    int scheduleReauthn(bsl::ostream&             errorDescription,
+                        bdlmt::EventScheduler*    scheduler_p,
+                        const bsl::optional<int>& lifetimeMs,
+                        const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Close the specified `channel` with an error code and name
+    /// indicating the re-authentication error or authentication timeout for
+    /// the current context.
+    void onReauthenticateErrorOrTimeout(
+        const int                              errorCode,
+        const bsl::string&                     errorName,
+        const bsl::shared_ptr<bmqio::Channel>& channel);
+
+    /// Called when a channel is closing. Cancel any outstanding
+    /// reauthentication timer.
+    void onClose(bdlmt::EventScheduler* scheduler_p);
+
+    /// Return `true` if the authentication state was `e_AUTHENTICATING`
+    /// and set it to `e_AUTHENTICATING`.  Otherwise, return `false`.
+    bool isAuthenticating();
 
     // ACCESSORS
 
     /// This function holds a mutex lock while accessing the
     /// `d_authenticationResultSp` to ensure thread safety.
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&
-    authenticationResult() const;
-
+                              authenticationResult() const;
     InitialConnectionContext* initialConnectionContext() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
     bmqp::EncodingType::Enum authenticationEncodingType() const;
     ConnectionType::Enum     connectionType() const;
-
-    EventHandle&  timeoutHandle();
-    bslmt::Mutex& timeoutHandleMutex();
 };
 
 }  // close package namespace
+
+// --------------------------
+// struct AuthenticationState
+// --------------------------
+
+// FREE OPERATORS
+inline bsl::ostream&
+mqbnet::operator<<(bsl::ostream&                     stream,
+                   mqbnet::AuthenticationState::Enum value)
+{
+    return AuthenticationState::print(stream, value, 0, -1);
+}
+
 }  // close enterprise namespace
 
 #endif

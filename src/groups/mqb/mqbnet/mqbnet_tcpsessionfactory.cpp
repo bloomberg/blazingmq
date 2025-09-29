@@ -839,7 +839,7 @@ void TCPSessionFactory::onClose(
 
         // Disable reauthentication timer if there's any
         if (channelInfo->d_authenticationCtx_sp) {
-            d_authenticator_p->onClose(channelInfo->d_authenticationCtx_sp);
+            channelInfo->d_authenticationCtx_sp->onClose(d_scheduler_p);
         }
 
         // TearDown the session
@@ -971,9 +971,7 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         channelInfo->d_authenticationCtx_sp;
     const bsl::string& description = channelInfo->d_session_sp->description();
 
-    if (context->state().testAndSwap(AuthnState::e_AUTHENTICATED,
-                                     AuthnState::e_AUTHENTICATING) !=
-        AuthnState::e_AUTHENTICATED) {
+    if (context->isAuthenticating()) {
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
                        << ": Dropping Authentication event since "
                           "authentication is in progress: "
