@@ -29,8 +29,8 @@
 ///
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
-/// This component is owned by `InitialConnectionHandler`, and its functions
-/// are called only from there.  It is not thread safe.
+/// This component is held by `InitialConnectionContext`, and its functions
+/// are called inly from there.  It is not thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>

@@ -29,13 +29,6 @@
 // that uses a provided established channel to negotiate and create an
 // 'mqbnet::Session' object.
 //
-// Note that the 'InitialConnectionContext' passed in to the
-// 'InitialConnectionHandler::handleInitialConnection()' method can be modified
-// in the InitialConnectionHandler concrete implementation to set some of its
-// members that the caller will leverage and use.
-
-// MQB
-#include <mqbnet_initialconnectioncontext.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -47,6 +40,7 @@ namespace mqbnet {
 
 // FORWARD DECLARATION
 class Session;
+class InitialConnectionContext;
 
 // ================
 // class Negotiator

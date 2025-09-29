@@ -79,9 +79,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
-#include <mqbnet_authenticator.h>
 #include <mqbnet_initialconnectioncontext.h>
-#include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
 
 #include <bmqex_sequentialcontext.h>
@@ -123,6 +121,8 @@ class Session;
 class SessionEventProcessor;
 class TCPSessionFactoryIterator;
 struct TCPSessionFactory_OperationContext;
+class Authenticator;
+class Negotiator;
 
 // =======================
 // class TCPSessionFactory
@@ -301,9 +301,8 @@ class TCPSessionFactory {
     /// Authenticator to use for authentication
     Authenticator* d_authenticator_p;
 
-    /// Initial Connection Handler to use for orchestraing
-    /// authentication and negotiation
-    InitialConnectionHandler* d_initialConnectionHandler_p;
+    /// Negotiator to use for negotiation
+    Negotiator* d_negotiator_p;
 
     /// Channels' stat context (passed to TCPSessionFactory)
     mqbstat::StatController* d_statController_p;
@@ -424,11 +423,10 @@ class TCPSessionFactory {
     /// struct created during the listen or connect call that is responsible
     /// for this negotiation (and hence, in the case of `listen`, is common for
     /// all sessions negotiated); while the specified
-    /// `initialConnectionContext_p` corresponds to the unique context passed
-    /// it to the `handleInitialConnection` method of the
-    /// InitialConnectionHandler, for that `channel`.  If the specified
-    /// `statusCode` is 0, the initial connection was a success and the
-    /// specified `session` contains the negotiated session. If `status` is
+    /// `initialConnectionContext_p` corresponds to the unique context created
+    /// during `handleInitialConnection` method for that `channel`.  If the
+    /// specified `statusCode` is 0, the initial connection was a success and
+    /// the specified `session` contains the negotiated session. If `status` is
     /// non-zero, the initial connection was a failure and `session` will be
     /// null, with the specified `errorDescription` containing a description of
     /// the error.  In either case, the specified `callback` must be invoked to
@@ -540,9 +538,9 @@ class TCPSessionFactory {
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
                       Authenticator*                    authenticator,
-                      InitialConnectionHandler* initialConnectionHandler,
-                      mqbstat::StatController*  statController,
-                      bslma::Allocator*         allocator);
+                      Negotiator*                       negotiator,
+                      mqbstat::StatController*          statController,
+                      bslma::Allocator*                 allocator);
 
     /// Destructor
     virtual ~TCPSessionFactory();
@@ -586,14 +584,14 @@ class TCPSessionFactory {
     /// provided by a call to the specified `resultCallback`; or return a
     /// non-zero code on error, in which case `resultCallback` will never be
     /// invoked.  The optionally specified `negotiationUserData` will be
-    /// passed in to the `handleInitialConnection` method of the
-    /// InitialConnectionHandler (through the InitialConnectionContext).  The
-    /// optionally specified `resultState` will be used to set the initial
-    /// value of the corresponding member of the `InitialConnectionContext`
-    /// that will be created for negotiation of this session; so that it can be
-    /// retrieved in the `initialConnectionComplete` callback method.  The
-    /// optionally specified `shouldAutoReconnect` will be used to determine if
-    /// the factory should attempt to reconnect upon loss of connection.
+    /// passed in to the `handleInitialConnection` method (through the
+    /// InitialConnectionContext).  The optionally specified `resultState` will
+    /// be used to set the initial value of the corresponding member of the
+    /// `InitialConnectionContext` that will be created for negotiation of this
+    /// session; so that it can be retrieved in the `initialConnectionComplete`
+    /// callback method.  The optionally specified `shouldAutoReconnect` will
+    /// be used to determine if the factory should attempt to reconnect upon
+    /// loss of connection.
     int connect(const bslstl::StringRef& endpoint,
                 const ResultCallback&    resultCallback,
                 bslma::ManagedPtr<void>* negotiationUserData = 0,

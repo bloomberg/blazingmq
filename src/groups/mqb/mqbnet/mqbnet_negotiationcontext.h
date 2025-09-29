@@ -66,8 +66,8 @@ class NegotiationContext {
     /// The event processor to use for initiating the
     /// read on the channel once the session has been
     /// successfully negotiated.  This may or may not be
-    /// set by the caller, before invoking
-    /// 'InitialConnectionHandler::handleInitialConnection()';
+    /// set by the caller, during
+    /// 'TcpSessionFactory::handleInitialConnection()';
     /// and may or may not be changed by the negotiator concrete
     /// implementation before invoking the
     /// 'InitialConnectionCompleteCb'.  Note that a value of 0 will

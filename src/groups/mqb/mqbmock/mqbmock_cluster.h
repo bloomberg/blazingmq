@@ -101,7 +101,6 @@ class Domain;
 }
 namespace mqbnet {
 class Negotiator;
-class InitialConnectionHandler;
 }
 
 namespace mqbmock {
@@ -119,9 +118,6 @@ class Cluster : public mqbi::Cluster {
 
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
-
-    typedef bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        InitialConnectionHandlerMp;
 
     typedef bslma::ManagedPtr<mqbnet::Negotiator> NegotiatorMp;
 
@@ -188,9 +184,6 @@ class Cluster : public mqbi::Cluster {
 
     // Negotiator
     bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
-
-    // Initial Connection Handler
-    InitialConnectionHandlerMp d_initialConnectionHandler_mp;
 
     mqbnet::TransportManager d_transportManager;
     // Transport manager

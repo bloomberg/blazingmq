@@ -344,6 +344,11 @@ void TCPSessionFactory::handleInitialConnection(
 {
     // executed by one of the *IO* threads
 
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS = 0,
+    };
+
     BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
                   << "': allocating a channel with '" << channel.get() << "' ["
                   << d_nbActiveChannels << " active channels]";
@@ -352,22 +357,24 @@ void TCPSessionFactory::handleInitialConnection(
     // the OperationContext.  This shared_ptr is bound to the
     // 'initialConnectionComplete' callback below, which is what scopes its
     // lifetime.
-    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
-    initialConnectionContext.createInplace(d_allocator_p,
-                                           context->d_isIncoming);
-    (*initialConnectionContext)
-        .setUserData(context->d_negotiationUserData_sp.get())
-        .setResultState(context->d_resultState_p)
-        .setChannel(channel)
-        .setCompleteCb(bdlf::BindUtil::bind(
-            &TCPSessionFactory::initialConnectionComplete,
-            this,
-            bdlf::PlaceHolders::_1,  // status
-            bdlf::PlaceHolders::_2,  // errorDescription
-            bdlf::PlaceHolders::_3,  // session
-            bdlf::PlaceHolders::_4,  // channel
-            bdlf::PlaceHolders::_5,  // initialConnectionContext
-            context));
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext =
+        bsl::allocate_shared<InitialConnectionContext>(
+            d_allocator_p,
+            context->d_isIncoming,
+            d_authenticator_p,
+            d_negotiator_p,
+            context->d_negotiationUserData_sp.get(),
+            context->d_resultState_p,
+            channel,
+            bdlf::BindUtil::bind(
+                &TCPSessionFactory::initialConnectionComplete,
+                this,
+                bdlf::PlaceHolders::_1,  // status
+                bdlf::PlaceHolders::_2,  // errorDescription
+                bdlf::PlaceHolders::_3,  // session
+                bdlf::PlaceHolders::_4,  // channel
+                bdlf::PlaceHolders::_5,  // initialConnectionContext
+                context));
 
     // Register as observer of the channel to get the 'onClose'
     channel->onClose(
@@ -377,14 +384,25 @@ void TCPSessionFactory::handleInitialConnection(
                               initialConnectionContext,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
-    // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
-    // from the
-    //       'handleInitialConnection()' call as specified on the
-    //       'InitialConnectionHandler::handleInitialConnection' method
-    //       contract (this means we can't have mutex lock around the call to
-    //       'handleInitialConnection').
-    d_initialConnectionHandler_p->handleInitialConnection(
-        initialConnectionContext);
+    if (!initialConnectionContext->isIncoming()) {
+        // TODO: When we are ready to move on to the next step, we should
+        // call `authenticationOutbound` here instead before calling
+        // `negotiateOutbound`.
+        initialConnectionContext->handleEvent(
+            rc_SUCCESS,
+            bsl::string(),
+            mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTATION);
+    }
+    else {
+        bmqu::MemOutStream errStream;
+        const int rc = initialConnectionContext->scheduleRead(errStream);
+        if (rc != 0) {
+            initialConnectionContext->handleEvent(
+                rc,
+                errStream.str(),
+                mqbnet::InitialConnectionEvent::e_ERROR);
+        }
+    }
 }
 
 void TCPSessionFactory::readCallback(const bmqio::Status& status,
@@ -1015,7 +1033,7 @@ TCPSessionFactory::TCPSessionFactory(
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
     Authenticator*                    authenticator,
-    InitialConnectionHandler*         initialConnectionHandler,
+    Negotiator*                       negotiator,
     mqbstat::StatController*          statController,
     bslma::Allocator*                 allocator)
 : d_self(this)  // use default allocator
@@ -1024,7 +1042,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_authenticator_p(authenticator)
-, d_initialConnectionHandler_p(initialConnectionHandler)
+, d_negotiator_p(negotiator)
 , d_statController_p(statController)
 , d_tcpChannelFactory_mp()
 , d_resolutionContext(allocator)

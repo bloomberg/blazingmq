@@ -26,7 +26,6 @@
 
 // MQB
 #include <mqbnet_authenticationcontext.h>
-#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -38,6 +37,9 @@
 namespace BloombergLP {
 
 namespace mqbnet {
+
+// FORWARD DECLARATION
+class InitialConnectionContext;
 
 // ===================
 // class Authenticator

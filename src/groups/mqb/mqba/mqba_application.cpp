@@ -22,7 +22,6 @@
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
-#include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
 #include <mqbauthn_authenticationcontroller.h>
 #include <mqbblp_clustercatalog.h>
@@ -361,20 +360,11 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
 
-    bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        initialConnectionHandlerMp(
-            new (*d_allocator_p) InitialConnectionHandler(
-                negotiatorMp.get(),
-                authenticatorMp.get(),
-                d_allocators.get("InitialConnectionHandler")),
-            d_allocator_p);
-
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
                                    authenticatorMp,
                                    negotiatorMp,
-                                   initialConnectionHandlerMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
                                d_allocator_p);

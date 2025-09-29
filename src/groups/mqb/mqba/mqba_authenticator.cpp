@@ -34,7 +34,6 @@
 #include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_initialconnectioncontext.h>
-#include <mqbnet_initialconnectionhandler.h>
 #include <mqbplug_authenticator.h>
 
 // BMQ
@@ -58,6 +57,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bsls_nullptr.h>
 #include <bsls_timeinterval.h>
 
@@ -111,9 +111,9 @@ int Authenticator::onAuthenticationRequest(
 }
 
 int Authenticator::onAuthenticationResponse(
-    bsl::ostream&                              errorDescription,
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    const InitialConnectionContextSp&          context)
+    BSLA_UNUSED bsl::ostream& errorDescription,
+    BSLA_UNUSED const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
+    BSLA_UNUSED const InitialConnectionContextSp&          context)
 {
     BALL_LOG_ERROR << "Not Implemented";
 
@@ -216,12 +216,13 @@ void Authenticator::authenticate(
     bsl::string                          error;
     mqbnet::InitialConnectionEvent::Enum input;
 
-    bdlb::ScopeExitAny Guard(bdlf::BindUtil::bind(context->handleEventCb(),
-                                                  bsl::ref(rc),
-                                                  bsl::ref(error),
-                                                  bsl::ref(input),
-                                                  context,
-                                                  bsl::nullopt));
+    bdlb::ScopeExitAny Guard(
+        bdlf::BindUtil::bind(&mqbnet::InitialConnectionContext::handleEvent,
+                             context.get(),
+                             bsl::ref(rc),
+                             bsl::ref(error),
+                             bsl::ref(input),
+                             bsl::nullopt));
 
     BALL_LOG_INFO << "Authenticating connection '" << channel->peerUri()
                   << "' with mechanism '" << authenticateRequest.mechanism()
@@ -247,8 +248,8 @@ void Authenticator::authenticate(
 
     // In the case of a default authentication, we do not need to send
     // an AuthenticationResponse, we just need to continue the negotiation.
-    if (context->state() ==
-        mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING) {
+    if (context->isState(
+            mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING)) {
         if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
             rc    = (status.code() * 10) + rc_AUTHENTICATION_FAILED;
             error = status.message();
@@ -528,7 +529,7 @@ int Authenticator::handleAuthentication(
 }
 
 int Authenticator::authenticationOutbound(
-    const AuthenticationContextSp& context)
+    BSLA_UNUSED const AuthenticationContextSp& context)
 {
     BALL_LOG_ERROR << "Not Implemented";
 
