@@ -27,6 +27,7 @@ from blazingmq.dev.it.fixtures import (
     Cluster,
     tweak,
     start_cluster,
+    fsm_multi_cluster,
 )
 
 from blazingmq.dev import paths
@@ -94,7 +95,7 @@ def _compare_journal_files(
 
 @tweak.cluster.partition_config.max_journal_file_size(884)
 def test_synch_after_missed_rollover(
-    fsm_cluster: Cluster,
+    fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
@@ -106,7 +107,7 @@ def test_synch_after_missed_rollover(
     - restart replica
     - check that replica is synchronized with primary (primary and replica journal files content is equal)
     """
-    cluster: Cluster = fsm_cluster
+    cluster: Cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
 
     leader = cluster.last_known_leader
@@ -194,7 +195,7 @@ def test_synch_after_missed_rollover(
 @start_cluster(False)
 @tweak.cluster.partition_config.max_journal_file_size(884)
 def test_synch_after_missed_rollover_after_restart(
-    fsm_cluster: Cluster,
+    fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
@@ -208,7 +209,7 @@ def test_synch_after_missed_rollover_after_restart(
     - check that replica (which is missed rollover) is synchronized with primary (primary and replica journal files content is equal)
     """
 
-    cluster = fsm_cluster
+    cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
 
     # Start cluster with leader `east1`
