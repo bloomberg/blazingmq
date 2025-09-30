@@ -683,11 +683,6 @@ int main(int argc, const char* argv[])
         bsl::cerr << "Failed to install SIGINT handler  (rc: " << rc << ")\n"
                   << bsl::flush;
     }
-    rc = ::sigaction(SIGQUIT, &sa, NULL);
-    if (rc != 0) {
-        bsl::cerr << "Failed to install SIGQUIT handler  (rc: " << rc << ")\n"
-                  << bsl::flush;
-    }
     rc = ::sigaction(SIGTERM, &sa, NULL);
     if (rc != 0) {
         bsl::cerr << "Failed to install SIGTERM handler  (rc: " << rc << ")\n"

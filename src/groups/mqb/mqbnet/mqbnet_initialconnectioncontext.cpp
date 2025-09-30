@@ -26,9 +26,13 @@ namespace mqbnet {
 // -------------------------------------
 
 InitialConnectionContext::InitialConnectionContext(bool isIncoming)
-: d_isIncoming(isIncoming)
-, d_resultState_p(0)
+: d_resultState_p(0)
 , d_userData_p(0)
+, d_channelSp()
+, d_initialConnectionCompleteCb()
+, d_negotiationCtxSp()
+, d_isIncoming(isIncoming)
+, d_isClosed(false)
 {
     // NOTHING
 }
@@ -71,6 +75,11 @@ InitialConnectionContext& InitialConnectionContext::setNegotiationContext(
     return *this;
 }
 
+void InitialConnectionContext::onClose()
+{
+    d_isClosed = true;
+}
+
 bool InitialConnectionContext::isIncoming() const
 {
     return d_isIncoming;
@@ -106,6 +115,11 @@ const bsl::shared_ptr<NegotiationContext>&
 InitialConnectionContext::negotiationContext() const
 {
     return d_negotiationCtxSp;
+}
+
+bool InitialConnectionContext::isClosed() const
+{
+    return d_isClosed;
 }
 
 }  // close package namespace

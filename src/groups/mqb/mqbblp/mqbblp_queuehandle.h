@@ -32,8 +32,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
-#include <bmqu_operationchain.h>
-
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
@@ -186,11 +184,6 @@ class QueueHandle : public mqbi::QueueHandle {
     bdlmt::Throttle d_throttledFailedAckMessages;
 
     bdlmt::Throttle d_throttledDroppedPutMessages;
-
-    /// Mechanism to serialize execution of the substream deconfigure callbacks
-    /// and the caller callback invoked when all the substreams are
-    /// deconfigured.
-    bmqu::OperationChain d_deconfigureChain;
 
     bmqp::SchemaLearner::Context d_schemaLearnerPutContext;
 

@@ -74,13 +74,29 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
-typedef bsl::function<void()> CompletionCallback;
+struct DeconfigureContext {
+    mqbi::QueueHandle::VoidFunctor d_completionCb;
 
-/// Utility function used in `bmqu::OperationChain` as the operation
-/// callback which just calls the completion callback.
-void allSubstreamsDeconfigured(const CompletionCallback& callback)
+    explicit DeconfigureContext(
+        const mqbi::QueueHandle::VoidFunctor& completionCb)
+    : d_completionCb(completionCb)
+    {
+        // NOTHING
+    }
+
+    ~DeconfigureContext()
+    {
+        if (d_completionCb) {
+            d_completionCb();
+        }
+    }
+};
+
+void onHandleDeconfigured(const bmqp_ctrlmsg::Status&,
+                          const bmqp_ctrlmsg::StreamParameters&,
+                          const bsl::shared_ptr<DeconfigureContext>&)
 {
-    callback();
+    // The only purpose is to keep a reference to the 'DeconfigureContext'.
 }
 
 }  // close unnamed namespace
@@ -546,7 +562,6 @@ QueueHandle::QueueHandle(
 , d_subStreamInfos(allocator)
 , d_downstreams(allocator)
 , d_isClientClusterMember(false)
-, d_deconfigureChain(allocator)
 , d_schemaLearnerPutContext(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
 , d_schemaLearnerPushContext(
@@ -584,8 +599,6 @@ QueueHandle::~QueueHandle()
     //                  && d_handleParameters.adminCount() == 0);
     // All resources should have been released prior to destruction of the
     // QueueHandle.
-    d_deconfigureChain.stop();
-    d_deconfigureChain.join();
 }
 
 void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
@@ -1023,8 +1036,9 @@ void QueueHandle::deconfigureDispatched(
         d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
     BSLS_ASSERT_SAFE(d_clientContext_sp);
 
-    // Fill the first link with deconfigure operations
-    bmqu::OperationChainLink link(d_deconfigureChain.allocator());
+    bsl::shared_ptr<DeconfigureContext> context(
+        new (*d_allocator_p) DeconfigureContext(deconfiguredCb),
+        d_allocator_p);
 
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         d_subStreamInfos.begin();
@@ -1032,23 +1046,14 @@ void QueueHandle::deconfigureDispatched(
         bmqp_ctrlmsg::StreamParameters nullStreamParameters;
         nullStreamParameters.appId() = citer->first;
 
-        link.insert(bdlf::BindUtil::bind(&QueueHandle::configureDispatched,
-                                         this,
-                                         nullStreamParameters,
-                                         bdlf::PlaceHolders::_1));
+        // Not tracking the results.
+        QueueHandle::configureDispatched(
+            nullStreamParameters,
+            bdlf::BindUtil::bind(onHandleDeconfigured,
+                                 bdlf::PlaceHolders::_1,
+                                 bdlf::PlaceHolders::_2,
+                                 context));
     }
-    // No-op if the link is empty
-    d_deconfigureChain.append(&link);
-
-    // Add the final operation that invokes the caller callback once all the
-    // substreams are deconfigured
-    d_deconfigureChain.appendInplace(
-        bdlf::BindUtil::bind(&allSubstreamsDeconfigured,
-                             bdlf::PlaceHolders::_1),
-        deconfiguredCb);
-
-    // execute operations in the chain
-    d_deconfigureChain.start();
 }
 
 void QueueHandle::release(

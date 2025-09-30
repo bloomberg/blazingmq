@@ -669,12 +669,11 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                     rc = ::truncate(recoveryFileSet.qlistFile().c_str(),
                                     qlistOffset);
                     if (0 != rc) {
-                        BALL_LOG_ERROR << partitionDesc()
-                                       << "Failed to truncate QLIST file "
-                                       << "at offset " << qlistOffset
-                                       << ", rc: " << rc << ", errno: ["
-                                       << errno << " [" << bsl::strerror(errno)
-                                       << "].";
+                        BALL_LOG_ERROR
+                            << partitionDesc()
+                            << "Failed to truncate QLIST file at offset "
+                            << qlistOffset << ", rc: " << rc << ", errno: ["
+                            << errno << " [" << bsl::strerror(errno) << "].";
                         FileSystemUtil::close(&journalFd);
                         FileSystemUtil::close(&qlistFd);
                         FileSystemUtil::close(&dataFd);
@@ -2275,8 +2274,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (d_isFSMWorkflow) {
                     BALL_LOG_ERROR
                         << partitionDesc()
-                        << "Encountered a DELETION record for "
-                        << "queueKey [" << rec.queueKey()
+                        << "Encountered a DELETION record for queueKey ["
+                        << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
                         << ", but the queueKey is not present in cluster "
@@ -4002,7 +4001,8 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                                         fs->d_outstandingBytesData,
                                         fs->d_outstandingBytesJournal,
                                         fs->d_dataFilePosition,
-                                        fs->d_journalFilePosition);
+                                        fs->d_journalFilePosition,
+                                        d_sequenceNum);
 
     return rc_SUCCESS;
 }
@@ -5239,7 +5239,8 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
                                         fs->d_outstandingBytesData,
                                         fs->d_outstandingBytesJournal,
                                         fs->d_dataFilePosition,
-                                        fs->d_journalFilePosition);
+                                        fs->d_journalFilePosition,
+                                        d_sequenceNum);
 
     return rc_SUCCESS;
 }
