@@ -101,6 +101,9 @@ struct ClusterStatsIndex {
         e_PARTITION_JOURNAL_BYTES
         // Value: Outstanding bytes in the journal file of the partition.
         ,
+        e_PARTITION_SEQUENCE_NUMBER
+        // Value: The latest sequence number observed for the partition.
+        ,
         e_PARTITION_DATA_OFFSET_BYTES
         // Value: Offset bytes in the data file of the partition.
         ,
@@ -249,6 +252,9 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
             STAT_SINGLE(value, e_PARTITION_CFG_JOURNAL_BYTES);
         BSLS_ASSERT_SAFE(limit != 0);
         return 100 * value / limit;
+    }
+    case Stat::e_PARTITION_SEQUENCE_NUMBER: {
+        return STAT_SINGLE(value, e_PARTITION_SEQUENCE_NUMBER);
     }
 
     default: {
@@ -444,11 +450,12 @@ ClusterStats& ClusterStats::setNodeRoleForPartition(int partitionId,
 }
 
 ClusterStats&
-ClusterStats::setPartitionBytes(int                partitionId,
-                                bsls::Types::Int64 outstandingDataBytes,
-                                bsls::Types::Int64 outstandingJournalBytes,
-                                bsls::Types::Int64 offsetDataBytes,
-                                bsls::Types::Int64 offsetJournalBytes)
+ClusterStats::setPartitionBytes(int                 partitionId,
+                                bsls::Types::Int64  outstandingDataBytes,
+                                bsls::Types::Int64  outstandingJournalBytes,
+                                bsls::Types::Int64  offsetDataBytes,
+                                bsls::Types::Int64  offsetJournalBytes,
+                                bsls::Types::Uint64 sequenceNumber)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -469,6 +476,9 @@ ClusterStats::setPartitionBytes(int                partitionId,
     d_partitionsStatContexts[partitionId]->setValue(
         ClusterStatsIndex::e_PARTITION_JOURNAL_OFFSET_BYTES,
         offsetJournalBytes);
+    d_partitionsStatContexts[partitionId]->setValue(
+        ClusterStatsIndex::e_PARTITION_SEQUENCE_NUMBER,
+        static_cast<bsls::Types::Int64>(sequenceNumber));
     return *this;
 }
 
@@ -633,7 +643,8 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
         .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_offset_bytes")
-        .value("partition.journal_offset_bytes");
+        .value("partition.journal_offset_bytes")
+        .value("partition.sequence_number");
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
