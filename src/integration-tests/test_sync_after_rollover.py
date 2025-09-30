@@ -20,7 +20,6 @@ Testing primary-replica synchronization after missed rollover.
 import glob
 from pathlib import Path
 import subprocess
-import time
 
 
 import blazingmq.dev.it.testconstants as tc
