@@ -2924,12 +2924,12 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
 
             if (beginSeqNum > endSeqNum) {
                 // Replica is ahead: we already sent ReplicaDataRequestDrop
-                continue; // CONTINUE
+                continue;  // CONTINUE
             }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
                 nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
-                continue; // CONTINUE
+                continue;  // CONTINUE
             }
 
             // Check if `eventDataVec` contains an entry for this node
