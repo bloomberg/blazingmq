@@ -303,9 +303,13 @@ void StorageManager::dispatchEventToPartition(mqbs::FileStore*          fs,
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
+    // NOTE: it is assumed that all elements in 'eventDataVec' have the same
+    // 'partitionId'.
+    const int partitionId = eventDataVec[0].partitionId();
+
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << eventDataVec[0].partitionId()
+                      << " Partition [" << partitionId
                       << "]: Cluster is stopping; skip dispatching Event '"
                       << event << "' to Partition FSM.";
         return;  // RETURN
@@ -320,10 +324,9 @@ void StorageManager::dispatchEventToPartition(mqbs::FileStore*          fs,
     // actions as documented in the state transition table for PartitionFSM.
     queueSp->emplace(event, eventDataVec);
 
-    fs->execute(bdlf::BindUtil::bind(
-        &PartitionFSM::popEventAndProcess,
-        d_partitionFSMVec[eventDataVec[0].partitionId()].get(),
-        queueSp));
+    fs->execute(bdlf::BindUtil::bind(&PartitionFSM::popEventAndProcess,
+                                     d_partitionFSMVec[partitionId].get(),
+                                     queueSp));
 }
 
 void StorageManager::setPrimaryStatusForPartitionDispatched(
@@ -885,7 +888,8 @@ void StorageManager::processReplicaStateResponseDispatched(
                 BALL_LOG_WARN
                     << d_clusterData_p->identity().description()
                     << " Partition [" << requestPartitionId
-                    << "]: " << "Need to drop replica's storage "
+                    << "]: " << "Need to drop replica's ["
+                    << cit->first->nodeDescription() << "] storage "
                     << "as its first sync point "
                     << "sequence number does not match - self: "
                     << selfFirstSyncPointAfterRollloverSeqNum << " replica: "
@@ -2009,17 +2013,20 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
         if (cit->first->nodeId() == selfNode->nodeId()) {
             continue;  // CONTINUE
         }
-        if (cit->first->nodeId() == eventData.source()->nodeId() &&
-            eventData.needDropSourceStorage()) {
-            // Skip ReplicaDataRequestPush to this node because it needs to
-            // drop its storage
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId
-                          << "]: " << "Skipping ReplicaDataRequestPush to "
-                          << cit->first->nodeDescription()
-                          << " because it needs to drop its storage.";
+
+        // Check if `eventDataVec` contains an entry for this node
+        // and check for `needDropSourceStorage` flag
+        bool skipPush = false;
+        for (size_t i = 0; i < eventDataVec.size(); ++i) {
+            if (eventDataVec[i].source()->nodeId() == cit->first->nodeId()) {
+                skipPush = eventDataVec[i].needDropSourceStorage();
+                break;
+            }
+        }
+        if (skipPush) {
             continue;  // CONTINUE
         }
+
         if (cit->second.d_seqNum <= selfSeqNum && !cit->second.d_isInSync) {
             outdatedReplicas.emplace_back(cit->first);
         }
@@ -2200,9 +2207,18 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         if (cit->second.d_seqNum > selfSeqNum && !cit->second.d_isInSync) {
             obsoleteDataReplicas.emplace_back(cit->first);
         }
-        else if (cit->first->nodeId() == eventData.source()->nodeId() &&
-                 eventData.needDropSourceStorage()) {
-            obsoleteDataReplicas.emplace_back(cit->first);
+        else {
+            // Check if `eventDataVec` contains an entry for this node
+            // and check for `needDropSourceStorage` flag
+            for (size_t i = 0; i < eventDataVec.size(); ++i) {
+                if (eventDataVec[i].source()->nodeId() ==
+                    cit->first->nodeId()) {
+                    if (eventDataVec[i].needDropSourceStorage()) {
+                        obsoleteDataReplicas.emplace_back(cit->first);
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -2908,18 +2924,28 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
 
             if (beginSeqNum > endSeqNum) {
                 // Replica is ahead: we already sent ReplicaDataRequestDrop
-                continue;
+                continue; // CONTINUE
             }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
                 nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
-                continue;
+                continue; // CONTINUE
             }
-            else if (cit->first->nodeId() == eventData.source()->nodeId() &&
-                     eventData.needDropSourceStorage()) {
+
+            // Check if `eventDataVec` contains an entry for this node
+            // and check for `needDropSourceStorage` flag
+            bool skipSend = false;
+            for (size_t i = 0; i < eventDataVec.size(); ++i) {
+                if (eventDataVec[i].source()->nodeId() ==
+                    cit->first->nodeId()) {
+                    skipSend = eventDataVec[i].needDropSourceStorage();
+                    break;
+                }
+            }
+            if (skipSend) {
                 // Replica needs to drop its partition, we already sent
                 // ReplicaDataRequestDrop
-                continue;
+                continue;  // CONTINUE
             }
 
             const int rc = d_recoveryManager_mp->processSendDataChunks(
@@ -4363,9 +4389,10 @@ void StorageManager::processPrimaryStateRequest(
         if (needDropReplicaStorage) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << " Partition [" << partitionId
-                          << "]: " << "Need to drop replica's storage "
+                          << "]: " << "Need to drop replica's ["
+                          << source->nodeDescription() << "] storage "
                           << "as its first sync point after rolllover"
-                          << "sequence number does not match - self: "
+                          << " sequence number does not match - self: "
                           << selffirstSyncPointAfterRollloverSeqNum
                           << " replica: "
                           << primaryStateRequest

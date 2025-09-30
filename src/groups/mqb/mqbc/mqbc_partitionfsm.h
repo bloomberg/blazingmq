@@ -208,7 +208,9 @@ class PartitionFSMEventData {
 
     /// Return the value of the corresponding member of this object
     const bsl::shared_ptr<bdlbb::Blob>& storageEvent() const;
-    const bool                          needDropSourceStorage() const;
+    /// Return `true` if the source storage need to be dropped, `false``
+    /// otherwise.
+    bool needDropSourceStorage() const;
 };
 
 // ==================
@@ -509,7 +511,7 @@ PartitionFSMEventData::firstSyncPointAfterRolloverSequenceNumber() const
     return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
-inline const bool PartitionFSMEventData::needDropSourceStorage() const
+inline bool PartitionFSMEventData::needDropSourceStorage() const
 {
     return d_needDropSourceStorage;
 }
