@@ -337,10 +337,8 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// the specified `arrivalTimepoint`.
     ///
     /// THREAD: This method is called from the Storage dispatcher thread.
-    void onReceipt(const bmqt::MessageGUID&  msgGUID,
-                   mqbi::QueueHandle*        queueHandle,
-                   const bsls::Types::Int64& arrivalTimepoint)
-        BSLS_KEYWORD_OVERRIDE;
+    void onReceipt(const bmqt::MessageGUID& msgGUID,
+                   mqbi::QueueHandle*       queueHandle) BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send
