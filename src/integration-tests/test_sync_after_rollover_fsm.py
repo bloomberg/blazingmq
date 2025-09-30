@@ -23,7 +23,7 @@ import subprocess
 
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     tweak,
     start_cluster,
