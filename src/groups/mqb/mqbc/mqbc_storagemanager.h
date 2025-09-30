@@ -356,7 +356,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<unsigned int> d_numReplicaDataResponsesReceivedVec;
 
-    /// Whether `d_queueKeyInfoMapVec` has been initialized.
+    /// Whether `d_queueKeyInfoMapVec` has been initialized.  This data
+    /// structure only needs to be initialized once at startup, and no more.
     bsls::AtomicBool d_isQueueKeyInfoMapVecInitialized;
 
     /// Mapping from queue key to queue info indexed by partitionId, populated
