@@ -108,10 +108,8 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (!d_state_p->storage()) {
         BSLS_ASSERT_OPT(!isReconfigure);  // Should be first configure.
 
-        // Only create a storage if this is the initial configure; reconfigure
-        // should reuse the previously created storage.
         bsl::shared_ptr<mqbi::Storage> storageSp;
-        rc = d_state_p->storageManager()->makeStorage(
+        rc = d_state_p->storageManager()->configureStorage(
             errorDescription,
             &storageSp,
             d_state_p->uri(),
@@ -163,9 +161,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     }
 
     // Inform the storage about the queue.
-    d_state_p->storageManager()->setQueueRaw(queue,
-                                             d_state_p->uri(),
-                                             d_state_p->partitionId());
+    d_state_p->storage()->setQueue(queue);
 
     rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
     if (rc != 0) {

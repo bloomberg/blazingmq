@@ -207,7 +207,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         bsl::shared_ptr<mqbi::Storage>        storageSp;
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    errorDesc(&localAllocator);
-        rc = d_state_p->storageManager()->makeStorage(
+        rc = d_state_p->storageManager()->configureStorage(
             errorDesc,
             &storageSp,
             d_state_p->uri(),
@@ -283,9 +283,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
     // Inform the storage about the queue in the appropriate thread.  This must
     // be done only after queue and its engine have been configured.
 
-    d_state_p->storageManager()->setQueueRaw(queue,
-                                             d_state_p->uri(),
-                                             d_state_p->partitionId());
+    d_state_p->storage()->setQueue(queue);
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
             mqbstat::QueueStatsDomain::Role::e_REPLICA);

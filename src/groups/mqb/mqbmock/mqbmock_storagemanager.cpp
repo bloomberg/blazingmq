@@ -75,10 +75,9 @@ void StorageManager::unregisterQueue(BSLA_UNUSED const bmqt::Uri& uri,
 
 int StorageManager::updateQueuePrimary(
     BSLA_UNUSED const bmqt::Uri& uri,
-    BSLA_UNUSED const mqbu::StorageKey& queueKey,
-    BSLA_UNUSED int                     partitionId,
-    BSLA_UNUSED const AppInfos&         addedIdKeyPairs,
-    BSLA_UNUSED const AppInfos&         removedIdKeyPairs)
+    BSLA_UNUSED int              partitionId,
+    BSLA_UNUSED const AppInfos&  addedIdKeyPairs,
+    BSLA_UNUSED const AppInfos&  removedIdKeyPairs)
 {
     return 0;
 }
@@ -112,16 +111,10 @@ void StorageManager::updateQueueReplica(
     // NOTHING
 }
 
-void StorageManager::setQueue(BSLA_UNUSED mqbi::Queue* queue,
-                              BSLA_UNUSED const bmqt::Uri& uri,
-                              BSLA_UNUSED int              partitionId)
-{
-    // NOTHING
-}
-
-void StorageManager::setQueueRaw(BSLA_UNUSED mqbi::Queue* queue,
-                                 BSLA_UNUSED const bmqt::Uri& uri,
-                                 BSLA_UNUSED int              partitionId)
+void StorageManager::resetQueue(
+    BSLA_UNUSED const bmqt::Uri& uri,
+    BSLA_UNUSED int              partitionId,
+    BSLA_UNUSED const bsl::shared_ptr<mqbi::Queue>& queue_sp)
 {
     // NOTHING
 }
@@ -169,7 +162,7 @@ void StorageManager::processReplicaDataRequest(
     // NOTHING
 }
 
-int StorageManager::makeStorage(
+int StorageManager::configureStorage(
     BSLA_UNUSED bsl::ostream& errorDescription,
     BSLA_UNUSED bsl::shared_ptr<mqbi::Storage>* out,
     BSLA_UNUSED const bmqt::Uri& uri,
