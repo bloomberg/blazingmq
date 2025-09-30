@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Testing primary-replica synchronization after missed rollover.
+Testing primary-replica synchronization after missed rollover in FSM mode.
 """
 
 import glob
@@ -94,7 +94,7 @@ def _compare_journal_files(
 
 @tweak.cluster.partition_config.max_journal_file_size(884)
 def test_synch_after_missed_rollover(
-    multi_node: Cluster,
+    fsm_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
@@ -106,7 +106,7 @@ def test_synch_after_missed_rollover(
     - restart replica
     - check that replica is synchronized with primary (primary and replica journal files content is equal)
     """
-    cluster: Cluster = multi_node
+    cluster: Cluster = fsm_cluster
     uri_priority = domain_urls.uri_priority
 
     leader = cluster.last_known_leader
@@ -194,7 +194,7 @@ def test_synch_after_missed_rollover(
 @start_cluster(False)
 @tweak.cluster.partition_config.max_journal_file_size(884)
 def test_synch_after_missed_rollover_after_restart(
-    multi_node: Cluster,
+    fsm_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
@@ -208,7 +208,7 @@ def test_synch_after_missed_rollover_after_restart(
     - check that replica (which is missed rollover) is synchronized with primary (primary and replica journal files content is equal)
     """
 
-    cluster = multi_node
+    cluster = fsm_cluster
     uri_priority = domain_urls.uri_priority
 
     # Start cluster with leader `east1`
@@ -248,9 +248,9 @@ def test_synch_after_missed_rollover_after_restart(
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
     # Wait until rollover completed on all running nodes
-    assert east1.outputs_substr("ROLLOVER COMPLETE", 25)
-    assert west1.outputs_substr("ROLLOVER COMPLETE", 25)
-    assert west2.outputs_substr("ROLLOVER COMPLETE", 25)
+    assert east1.outputs_substr("ROLLOVER COMPLETE", 10)
+    assert west1.outputs_substr("ROLLOVER COMPLETE", 10)
+    assert west2.outputs_substr("ROLLOVER COMPLETE", 10)
 
     #  Stop all running nodes
     for node in (east1, west1, west2):
