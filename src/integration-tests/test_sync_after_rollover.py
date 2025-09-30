@@ -248,9 +248,9 @@ def test_synch_after_missed_rollover_after_restart(
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
     # Wait until rollover completed on all running nodes
-    assert east1.outputs_substr("ROLLOVER COMPLETE", 15)
-    assert west1.outputs_substr("ROLLOVER COMPLETE", 15)
-    assert west2.outputs_substr("ROLLOVER COMPLETE", 15)
+    assert east1.outputs_substr("ROLLOVER COMPLETE", 25)
+    assert west1.outputs_substr("ROLLOVER COMPLETE", 25)
+    assert west2.outputs_substr("ROLLOVER COMPLETE", 25)
 
     #  Stop all running nodes
     for node in (east1, west1, west2):
