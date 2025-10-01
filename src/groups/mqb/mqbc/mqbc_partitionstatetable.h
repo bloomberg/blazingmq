@@ -318,6 +318,9 @@ class PartitionStateTableActions {
     void do_cleanupMetadata_clearPartitionInfo(const ARGS& args);
 
     void
+    do_cleanupMetadata_closeRecoveryFileSet_stopWatchDog(const ARGS& args);
+
+    void
     do_cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog(
         const ARGS& args);
 
@@ -480,11 +483,10 @@ class PartitionStateTable
             RST_UNKNOWN,
             cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
             UNKNOWN);
-        PST_CFG(
-            PRIMARY_HEALING_STG1,
-            STOP_NODE,
-            cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
-            STOPPED);
+        PST_CFG(PRIMARY_HEALING_STG1,
+                STOP_NODE,
+                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
+                STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
                 WATCH_DOG,
                 cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfPrimary,
@@ -542,11 +544,10 @@ class PartitionStateTable
                 WATCH_DOG,
                 cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfPrimary,
                 UNKNOWN);
-        PST_CFG(
-            PRIMARY_HEALING_STG2,
-            STOP_NODE,
-            cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
-            STOPPED);
+        PST_CFG(PRIMARY_HEALING_STG2,
+                STOP_NODE,
+                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
+                STOPPED);
         PST_CFG(REPLICA_HEALING,
                 DETECT_SELF_PRIMARY,
                 cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
@@ -617,11 +618,10 @@ class PartitionStateTable
                 WATCH_DOG,
                 cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfReplica,
                 UNKNOWN);
-        PST_CFG(
-            REPLICA_HEALING,
-            STOP_NODE,
-            cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
-            STOPPED);
+        PST_CFG(REPLICA_HEALING,
+                STOP_NODE,
+                cleanupMetadata_closeRecoveryFileSet_stopWatchDog,
+                STOPPED);
         PST_CFG(REPLICA_HEALED,
                 DETECT_SELF_PRIMARY,
                 cleanupMetadata_clearPartitionInfo_reapplyEvent,
@@ -792,6 +792,15 @@ void PartitionStateTableActions<ARGS>::do_cleanupMetadata_clearPartitionInfo(
 {
     do_cleanupMetadata(args);
     do_clearPartitionInfo(args);
+}
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_cleanupMetadata_closeRecoveryFileSet_stopWatchDog(const ARGS& args)
+{
+    do_cleanupMetadata(args);
+    do_closeRecoveryFileSet(args);
+    do_stopWatchDog(args);
 }
 
 template <typename ARGS>
