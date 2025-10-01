@@ -13483,11 +13483,11 @@ class AuthenticateResponse {
     // status.....: Status of the request lifetimeMs.: The duration (in
     // milliseconds) the client's session is valid for.  The client must
     // reauthenticate before the lifetime expires or it will be disconnected.
-    // The session lifetime is undefined if this value is unset.
+    // The session lifetime is valid indefinitely if this value is unset.
 
     // INSTANCE DATA
-    bdlb::NullableValue<bsls::Types::Int64> d_lifetimeMs;
-    Status                                  d_status;
+    bdlb::NullableValue<bsls::Types::Uint64> d_lifetimeMs;
+    Status                                   d_status;
 
   public:
     // TYPES
@@ -13597,7 +13597,7 @@ class AuthenticateResponse {
     // Return a reference to the modifiable "Status" attribute of this
     // object.
 
-    bdlb::NullableValue<bsls::Types::Int64>& lifetimeMs();
+    bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs();
     // Return a reference to the modifiable "LifetimeMs" attribute of this
     // object.
 
@@ -13648,7 +13648,7 @@ class AuthenticateResponse {
     // Return a reference offering non-modifiable access to the "Status"
     // attribute of this object.
 
-    const bdlb::NullableValue<bsls::Types::Int64>& lifetimeMs() const;
+    const bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs() const;
     // Return a reference offering non-modifiable access to the
     // "LifetimeMs" attribute of this object.
 
@@ -31655,7 +31655,7 @@ inline Status& AuthenticateResponse::status()
     return d_status;
 }
 
-inline bdlb::NullableValue<bsls::Types::Int64>&
+inline bdlb::NullableValue<bsls::Types::Uint64>&
 AuthenticateResponse::lifetimeMs()
 {
     return d_lifetimeMs;
@@ -31720,7 +31720,7 @@ inline const Status& AuthenticateResponse::status() const
     return d_status;
 }
 
-inline const bdlb::NullableValue<bsls::Types::Int64>&
+inline const bdlb::NullableValue<bsls::Types::Uint64>&
 AuthenticateResponse::lifetimeMs() const
 {
     return d_lifetimeMs;
