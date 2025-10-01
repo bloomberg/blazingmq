@@ -228,13 +228,8 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 /// `session` (which is a shared_ptr to the session itself) to events being
 /// enqueued to the dispatcher and let it die `naturally` when all threads are
 /// drained up to the event.
-void sessionHolderDummy(
-    const mqba::ClientSession::ShutdownCb& shutdownCallback,
-    BSLA_UNUSED const bsl::shared_ptr<void>& session)
+void sessionHolderDummy(BSLA_UNUSED const bsl::shared_ptr<void>& session)
 {
-    if (shutdownCallback) {
-        shutdownCallback();
-    }
 }
 
 /// Create the queue stats datum associated with the specified `statContext`
@@ -780,10 +775,9 @@ void ClientSession::tearDownAllQueuesDone(const bsl::shared_ptr<void>& session)
     // by having the 'handle' go out of scope.  This dispatcher event must be
     // of type 'e_DISPATCHER' to make sure this client will not be added to the
     // dispatcher's flush list, since it is being destroyed.
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&sessionHolderDummy, d_shutdownCallback, session),
-        this,
-        mqbi::DispatcherEventType::e_DISPATCHER);
+    dispatcher()->execute(bdlf::BindUtil::bind(&sessionHolderDummy, session),
+                          this,
+                          mqbi::DispatcherEventType::e_DISPATCHER);
 }
 
 void ClientSession::onHandleConfigured(
@@ -909,10 +903,7 @@ void ClientSession::onHandleConfiguredDispatched(
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
 
-void ClientSession::initiateShutdownDispatched(
-    const ShutdownCb&         callback,
-    const bsls::TimeInterval& timeout,
-    bool                      supportShutdownV2)
+void ClientSession::initiateShutdownDispatched(const ShutdownCb& callback)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -927,8 +918,7 @@ void ClientSession::initiateShutdownDispatched(
     // Want to keep `opLogger` until the end of this scope to log the current
     // operation execution time.
 
-    BALL_LOG_INFO << description()
-                  << ": initiateShutdownDispatched. Timeout: " << timeout;
+    BALL_LOG_INFO << description() << ": initiateShutdownDispatched.";
 
     bdlb::ScopeExitAny scopeExit(callback);
 
@@ -937,82 +927,10 @@ void ClientSession::initiateShutdownDispatched(
         return;  // RETURN
     }
 
-    if (d_operationState == e_SHUTTING_DOWN) {
-        // More than one cluster calls 'initiateShutdown'?
-        return;  // RETURN
-    }
-
     flush();  // Flush any pending messages
 
-    if (supportShutdownV2) {
-        d_operationState = e_DISCONNECTING;
-        d_queueSessionManager.shutDown();
-    }
-    else {
-        // 'tearDown' should invoke the 'callback'
-        d_shutdownCallback = callback;
-
-        scopeExit.release();
-
-        if (d_operationState == e_DISCONNECTING) {
-            // Not torn down yet. No need to wait for unconfirmed messages.
-            // Wait for tearDown.
-
-            closeChannel();
-            return;  // RETURN
-        }
-
-        // After de-configuring (below), wait for unconfirmed messages.
-        // Once the wait for unconfirmed is over, close the channel
-
-        ShutdownContextSp context;
-        context.createInplace(
-            d_state.d_allocator_p,
-            bdlf::BindUtil::bindS(
-                d_state.d_allocator_p,
-                bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::closeChannel,
-                                               d_self.acquireWeak())),
-            timeout);
-
-        deconfigureAndWait(context);
-    }
-}
-
-void ClientSession::deconfigureAndWait(ShutdownContextSp& context)
-{
-    // executed by the *CLIENT* dispatcher thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(context);
-
-    // Use the same 'e_SHUTTING_DOWN' state for both shutting down and
-    // StopRequest processing.
-
-    d_operationState = e_SHUTTING_DOWN;
-
-    // Fill the first link with handle deconfigure operations
-    bmqu::OperationChainLink link(d_shutdownChain.allocator());
-
-    for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
-         it != d_queueSessionManager.queues().end();
-         ++it) {
-        if (!it->second.d_hasReceivedFinalCloseQueue) {
-            link.insert(
-                bdlf::BindUtil::bind(&mqbi::QueueHandle::deconfigureAll,
-                                     it->second.d_handle_p,
-                                     bdlf::PlaceHolders::_1));
-        }
-    }
-    // No-op if the link is empty
-    d_shutdownChain.append(&link);
-
-    d_shutdownChain.appendInplace(
-        bdlf::BindUtil::bind(&ClientSession::checkUnconfirmed,
-                             this,
-                             context,
-                             bdlf::PlaceHolders::_1));
-    d_shutdownChain.start();
+    d_operationState = e_DISCONNECTING;
+    d_queueSessionManager.shutDown();
 }
 
 void ClientSession::invalidateDispatched()
@@ -1026,173 +944,6 @@ void ClientSession::invalidateDispatched()
 
     d_self.invalidate();
     d_operationState = e_DEAD;
-}
-
-void ClientSession::checkUnconfirmed(const ShutdownContextSp& shutdownCtx,
-                                     const VoidFunctor&       completionCb)
-{
-    // executed by *ANY* thread
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::checkUnconfirmedDispatched,
-                             this,
-                             shutdownCtx,
-                             completionCb),
-        this);
-}
-
-void ClientSession::checkUnconfirmedDispatched(
-    const ShutdownContextSp& shutdownCtx,
-    const VoidFunctor&       completionCb)
-{
-    // executed by the *CLIENT* dispatcher thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(d_operationState != e_RUNNING);
-    BSLS_ASSERT_SAFE(completionCb);
-
-    // Completion callback must be called to finish operation in the chain
-    bdlb::ScopeExitAny guard(completionCb);
-
-    // All the session substreams are deconfigured.  If the shutdown timeout is
-    // expired or the client is disconnected skip checking of the unconfirmed
-    // messages and break the shutdown sequence.
-    const bool isDisconnected = d_operationState != e_SHUTTING_DOWN;
-    if (bmqsys::Time::nowMonotonicClock() >= shutdownCtx->d_stopTime ||
-        isDisconnected) {
-        BALL_LOG_INFO << description()
-                      << (isDisconnected ? ": the client is disconnected."
-                                         : ": shutdown timeout has expired.")
-                      << " Skip checking unconfirmed messages";
-
-        d_periodicUnconfirmedCheckHandler.release();
-        return;  // RETURN
-    }
-
-    // Reset unconfirmed messages counter
-    shutdownCtx->d_numUnconfirmedTotal = 0;
-
-    // Add countUnconfirmed operations
-    bmqu::OperationChainLink link(d_shutdownChain.allocator());
-
-    for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
-         it != d_queueSessionManager.queues().end();
-         ++it) {
-        if (!it->second.d_hasReceivedFinalCloseQueue) {
-            link.insert(bdlf::BindUtil::bind(&ClientSession::countUnconfirmed,
-                                             this,
-                                             it->second.d_handle_p,
-                                             shutdownCtx,
-                                             bdlf::PlaceHolders::_1));
-        }
-    }
-    // No-op if the link is empty
-    d_shutdownChain.append(&link);
-
-    d_shutdownChain.appendInplace(
-        bdlf::BindUtil::bind(&ClientSession::finishCheckUnconfirmed,
-                             this,
-                             shutdownCtx,
-                             bdlf::PlaceHolders::_1));
-}
-
-void ClientSession::countUnconfirmed(mqbi::QueueHandle*       handle,
-                                     const ShutdownContextSp& shutdownCtx,
-                                     const VoidFunctor&       completionCb)
-{
-    // executed by ONE of the *QUEUE* dispatcher threads
-
-    handle->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::countUnconfirmedDispatched,
-                             this,
-                             handle,
-                             shutdownCtx,
-                             completionCb),
-        handle->queue());
-}
-
-void ClientSession::countUnconfirmedDispatched(
-    mqbi::QueueHandle*       handle,
-    const ShutdownContextSp& shutdownCtx,
-    const VoidFunctor&       completionCb)
-{
-    // executed by ONE of the *QUEUE* dispatcher threads
-
-    BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(shutdownCtx);
-    BSLS_ASSERT_SAFE(completionCb);
-
-    // It is safe to use the handle ptr here from the queue dispatcher thread
-    // context because the execution of this method is scheduled over the valid
-    // handle.  If the handle gets closed it will be released from the same
-    // context (see 'finalizeClosedHandle'), i.e. after this method is invoked.
-
-    shutdownCtx->d_numUnconfirmedTotal.add(handle->countUnconfirmed());
-
-    // Completion callback must be called to finish operation in the chain.
-    completionCb();
-}
-
-void ClientSession::finishCheckUnconfirmed(
-    const ShutdownContextSp& shutdownCtx,
-    const VoidFunctor&       completionCb)
-{
-    // executed by ONE of the *QUEUE* dispatcher threads
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::finishCheckUnconfirmedDispatched,
-                             this,
-                             shutdownCtx,
-                             completionCb),
-        this);
-}
-
-void ClientSession::finishCheckUnconfirmedDispatched(
-    const ShutdownContextSp& shutdownCtx,
-    const VoidFunctor&       completionCb)
-{
-    // executed by the *CLIENT* dispatcher thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(d_operationState != e_RUNNING);
-    BSLS_ASSERT_SAFE(completionCb);
-
-    // Completion callback must be called to finish operation in the chain
-    bdlb::ScopeExitAny guard(completionCb);
-
-    const bsls::TimeInterval nextCheckTime =
-        bmqsys::Time::nowMonotonicClock().addSeconds(1);
-
-    // If there are no unconfirmed messages, or if there is no more time to
-    // wait for the confirms, or the client is disconnected  then finish the
-    // shutdown sequence.
-    if (shutdownCtx->d_stopTime < nextCheckTime ||
-        shutdownCtx->d_numUnconfirmedTotal == 0 ||
-        d_operationState != e_SHUTTING_DOWN) {
-        BALL_LOG_INFO << description() << ": finish shutdown sequence having "
-                      << shutdownCtx->d_numUnconfirmedTotal
-                      << " unconfirmed messages";
-
-        d_periodicUnconfirmedCheckHandler.release();
-        return;  // RETURN
-    }
-
-    BALL_LOG_INFO << description() << ": Waiting for "
-                  << shutdownCtx->d_numUnconfirmedTotal
-                  << " unconfirmed messages. Next check at: [" << nextCheckTime
-                  << "]. Timeout at: [" << shutdownCtx->d_stopTime << "]";
-
-    // Schedule one more check for unconfirmed messages.
-    d_scheduler_p->scheduleEvent(
-        &d_periodicUnconfirmedCheckHandler,
-        nextCheckTime,
-        bdlf::BindUtil::bind(
-            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::checkUnconfirmed,
-                                           d_self.acquireWeak()),
-            shutdownCtx,
-            bdlf::noOp));
 }
 
 void ClientSession::closeChannel()
@@ -2687,7 +2438,6 @@ ClientSession::ClientSession(
 , d_scheduler_p(scheduler)
 , d_periodicUnconfirmedCheckHandler()
 , d_shutdownChain(allocator)
-, d_shutdownCallback()
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
@@ -2947,9 +2697,7 @@ void ClientSession::tearDown(const bsl::shared_ptr<void>& session,
     // 'session' go out of scope.
 }
 
-void ClientSession::initiateShutdown(const ShutdownCb&         callback,
-                                     const bsls::TimeInterval& timeout,
-                                     bool supportShutdownV2)
+void ClientSession::initiateShutdown(const ShutdownCb& callback)
 {
     // executed by the *ANY* thread
 
@@ -2982,9 +2730,7 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                 bdlf::MemFnUtil::memFn(
                     &ClientSession::initiateShutdownDispatched,
                     d_self.acquire()),
-                callback,
-                timeout,
-                supportShutdownV2),
+                callback),
             this,
             mqbi::DispatcherEventType::e_DISPATCHER);
         // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling
@@ -3237,12 +2983,6 @@ void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
 
     if (d_operationState == e_DEAD) {
         // The client is disconnected.  No-op
-        return;  // RETURN
-    }
-    if (d_operationState == e_SHUTTING_DOWN) {
-        // The broker is already shutting down or processing a StopRequest
-        // The de-configuring is done.
-        // Even if the waiting is in progress, still reply with StopResponse
         return;  // RETURN
     }
 

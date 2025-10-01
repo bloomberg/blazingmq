@@ -407,10 +407,7 @@ void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
     // 'session' go out of scope.
 }
 
-void AdminSession::initiateShutdown(
-    const ShutdownCb& callback,
-    BSLA_UNUSED const bsls::TimeInterval& timeout,
-    BSLA_UNUSED bool                      supportShutdownV2)
+void AdminSession::initiateShutdown(const ShutdownCb& callback)
 {
     // executed by the *ANY* thread
 

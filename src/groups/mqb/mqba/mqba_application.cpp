@@ -475,13 +475,9 @@ void Application::stop()
 
     bool supportShutdownV2 = initiateShutdown();
 
-    if (supportShutdownV2) {
-        BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
-    }
-    else {
-        BALL_LOG_INFO << ": Peers do not support "
-                      << "GRACEFUL_SHUTDOWN_V2. Retreat to V1";
-    }
+    BSLS_ASSERT_SAFE(supportShutdownV2);
+
+    BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
 
     // For each cluster in cluster catalog, inform peers about this shutdown.
     int          count = d_clusterCatalog_mp->count();
@@ -493,8 +489,7 @@ void Application::stop()
          count > 0;
          ++clusterIt, --count) {
         clusterIt.cluster()->initiateShutdown(
-            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch),
-            supportShutdownV2);
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
     }
     latch.wait();
 
@@ -627,10 +622,8 @@ bool Application::initiateShutdown()
 
     for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
          ++cit) {
-        (*cit)->initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive,
-                                                      &latchDownstreams),
-                                 shutdownTimeout,
-                                 true);
+        (*cit)->initiateShutdown(
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latchDownstreams));
     }
 
     // Need to wait for peers to update this node status to guarantee no new
