@@ -209,7 +209,8 @@ void AuthenticatedChannelFactory::authenticate(
 int AuthenticatedChannelFactory::timeoutInterval(int lifetimeMs) const
 {
     BSLS_ASSERT_SAFE(lifetimeMs >= 0);
-    const int intervalMsWithRatio  = lifetimeMs * k_REAUTHN_EARLY_RATIO;
+    const int intervalMsWithRatio  = static_cast<int>(lifetimeMs *
+                                                     k_REAUTHN_EARLY_RATIO);
     const int intervalMsWithBuffer = bsl::max(0,
                                               lifetimeMs -
                                                   k_REAUTHN_EARLY_BUFFER);

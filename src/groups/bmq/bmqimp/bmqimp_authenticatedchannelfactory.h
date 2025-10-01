@@ -25,7 +25,8 @@
 /// @bbref{bmqimp::AuthenticatedChannelFactory} is an implementation of the
 /// `bmqio::ChannelFactory` protocol that performs the initial authentication
 /// with a peer on top of a channel created using a base
-/// `bmqio::ChannelFactory`.
+/// `bmqio::ChannelFactory`.  It also provides function to handle
+/// reauthentication events.
 
 // BMQ
 #include <bmqio_channel.h>
