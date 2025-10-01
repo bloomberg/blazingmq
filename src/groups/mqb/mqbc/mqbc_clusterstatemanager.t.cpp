@@ -1900,7 +1900,7 @@ static void test19_stopNode()
     tester1.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester1.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 2.) Stopping from Follower Healing state
     Tester tester2(false);  // isLeader
@@ -1914,7 +1914,7 @@ static void test19_stopNode()
     tester2.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester2.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 3.) Stopping from Follower Healed state
     Tester tester3(false);  // isLeader
@@ -1937,7 +1937,7 @@ static void test19_stopNode()
     tester3.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester3.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 4.) Stopping from Leader Healing Stage 1 state
     Tester tester4(true);  // isLeader
@@ -1951,7 +1951,7 @@ static void test19_stopNode()
     tester4.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester4.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 5.) Stopping from Leader Healing Stage 2 state
     Tester tester5(true);  // isLeader
@@ -1988,7 +1988,7 @@ static void test19_stopNode()
     tester5.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester5.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 
     // 6.) Stopping from Leader Healed state
     Tester tester6(true);  // isLeader
@@ -2022,7 +2022,7 @@ static void test19_stopNode()
     tester6.d_clusterStateManager_mp->stop();
 
     BMQTST_ASSERT_EQ(tester6.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_STOPPING);
+                     mqbc::ClusterStateTableState::e_STOPPED);
 }
 
 static void test20_resetUnknownLeader()

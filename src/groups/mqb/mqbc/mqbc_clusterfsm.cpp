@@ -49,11 +49,6 @@ void ClusterFSMObserver::onHealedFollower()
     // NOTHING
 }
 
-void ClusterFSMObserver::onStopping()
-{
-    // NOTHING
-}
-
 // ================
 // class ClusterFSM
 // ================
@@ -126,14 +121,6 @@ void ClusterFSM::popEventAndProcess(ClusterFSMArgsSp& eventsQueue)
                      it != d_observers.end();
                      ++it) {
                     (*it)->onHealedLeader();
-                }
-                break;  // BREAK
-            }
-            case State::e_STOPPING: {
-                for (ObserversSetIter it = d_observers.begin();
-                     it != d_observers.end();
-                     ++it) {
-                    (*it)->onStopping();
                 }
                 break;  // BREAK
             }
