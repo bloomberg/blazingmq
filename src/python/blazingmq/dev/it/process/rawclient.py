@@ -229,7 +229,9 @@ class RawClient:
         print(f"Unknown encoding type: {type_specific}")
         raise ValueError("Unknown encoding in response")
 
-    def send_authentication_request(self, auth_mechanism: str, auth_data: str) -> dict:
+    def send_authentication_request(
+        self, auth_mechanism: str, auth_data: Union[str, bytes]
+    ) -> dict:
         """
         Send an authentication request to the broker with the specified
         authentication mechanism 'auth_mechanism' and authentication data 'auth_data'.
@@ -237,9 +239,15 @@ class RawClient:
         assert self._channel is not None
 
         auth_request = broker.AUTHENTICATE_REQUEST_SCHEMA
+
+        if isinstance(auth_data, str):
+            raw_bytes = auth_data.encode("utf-8")
+        else:
+            raw_bytes = auth_data  # already bytes
+
         auth_request["authenticateRequest"]["mechanism"] = auth_mechanism
         auth_request["authenticateRequest"]["data"] = base64.b64encode(
-            auth_data.encode("utf-8")  # or "ascii" if you know it's ASCII
+            raw_bytes
         ).decode("ascii")
 
         self._send_raw(self._wrap_authentication_event(auth_request))
