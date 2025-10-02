@@ -246,11 +246,6 @@ class Queue : public mqbi::Queue {
     void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return number of unconfirmed messages across all handles with the
-    /// `specified `subId'.
-    bsls::Types::Int64
-    countUnconfirmed(unsigned int subId) BSLS_KEYWORD_OVERRIDE;
-
     /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
     /// sending PUTs and ACKs.
     void stopPushing() BSLS_KEYWORD_OVERRIDE;
@@ -432,6 +427,9 @@ class Queue : public mqbi::Queue {
 
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return number of unconfirmed messages across all handles.
+    bsls::Types::Int64 countUnconfirmed() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (specific to mqbi::MockQueue)

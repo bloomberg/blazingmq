@@ -2119,16 +2119,11 @@ static void test11_initiateShutdown()
                           bmqtst::TestHelperUtil::allocator());
 
     const int                queueId          = 4;  // A queue number
-    const bool               isAtMostOnce     = false;
-    const bsls::TimeInterval timeout          = bsls::TimeInterval(10);
-    const bsls::TimeInterval semaphoreTimeout = bsls::TimeInterval(
-        0,
-        100000000);  // 100 ms
+    const bool                 isAtMostOnce     = false;
     bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
     const unsigned int         subscriptionId =
         bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
-    const unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         1,
@@ -2224,7 +2219,7 @@ static void test11_initiateShutdown()
 
     MockStorageIterator iter(bmqtst::TestHelperUtil::allocator());
 
-    PV("Shutdown without unconfirmed messages");
+    PV("Shutdown");
     {
         TestBench       tb(client(e_FirstHop),
                      isAtMostOnce,
@@ -2244,225 +2239,13 @@ static void test11_initiateShutdown()
         // Initiate client session shutdown
         tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
                                                       &callbackCounter,
-                                                      &semaphore),
-                                 timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
-        // Imitate close operation
-        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
+                                                      &semaphore));
 
         // Verify that the shutdown callback gets called
         semaphore.wait();
 
-        BMQTST_ASSERT_EQ(callbackCounter, 1);
-    }
-
-    PV("Shutdown with unconfirmed messages and timeout");
-    {
-        TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt callbackCounter(0);
-
-        // Send an 'OpenQueue` request.
-        tb.openQueue(uri, queueId);
-
-        // Confirm that the OpenQueue response has been sent downstream.
-        tb.d_cs.flush();
-        tb.assertOpenQueueResponse();
-
-        // Emulate sending PUSH.
-        tb.d_domain.d_queueHandle->deliverMessage(iter,
-                                                  msgGroupId,
-                                                  subQueueInfos,
-                                                  false);
-
-        // Verify there are unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Initiate client session shutdown
-        tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
-                                                      &callbackCounter,
-                                                      &semaphore),
-                                 timeout);
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Verify that the shutdown callback hasn't been called
-        int rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        // Advance time to reach the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
         // Imitate close operation
         tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
-
-        // Verify that the shutdown callback gets called
-        semaphore.wait();
-
-        BMQTST_ASSERT_EQ(callbackCounter, 1);
-    }
-
-    PV("Confirm a messsage while shutting down");
-    {
-        TestBench       tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt callbackCounter(0);
-
-        // Send an 'OpenQueue` request.
-        tb.openQueue(uri, queueId);
-
-        // Confirm that the OpenQueue response has been sent downstream.
-        tb.d_cs.flush();
-        tb.assertOpenQueueResponse();
-
-        // Emulate sending PUSH.
-        tb.d_domain.d_queueHandle->deliverMessage(iter,
-                                                  msgGroupId,
-                                                  subQueueInfos,
-                                                  false);
-
-        // Verify there are unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Initiate client session shutdown
-        tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
-                                                      &callbackCounter,
-                                                      &semaphore),
-                                 timeout + timeout);
-        // Long shutdown timeout
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Verify that the shutdown callback hasn't been called
-        int rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        tb.d_domain.d_queueHandle->confirmMessage(iter.guid(), subQueueId);
-
-        // Verify there are no unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Advance time less than the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
-        // Imitate close operation
-        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
-
-        // Verify that the shutdown callback gets called
-        semaphore.wait();
-
-        BMQTST_ASSERT_EQ(callbackCounter, 1);
-    }
-
-    PV("Confirm multiple messsages while shutting down");
-    {
-        const int                      NUM_MESSAGES = 5;
-        TestBench                      tb(client(e_FirstHop),
-                     isAtMostOnce,
-                     bmqtst::TestHelperUtil::allocator());
-        bsls::AtomicInt                callbackCounter(0);
-        bsl::vector<bmqt::MessageGUID> guids(
-            bmqtst::TestHelperUtil::allocator());
-        guids.reserve(NUM_MESSAGES);
-
-        // Send an 'OpenQueue` request.
-        tb.openQueue(uri, queueId);
-
-        // Confirm that the OpenQueue response has been sent downstream.
-        tb.d_cs.flush();
-        tb.assertOpenQueueResponse();
-
-        // Emulate sending PUSHs.
-        for (int i = 0; i < NUM_MESSAGES; ++i) {
-            iter.advance();
-            tb.d_domain.d_queueHandle->deliverMessage(iter,
-                                                      msgGroupId,
-                                                      subQueueInfos,
-                                                      false);
-            guids.push_back(iter.guid());
-        }
-        // Verify there are unconfirmed messages in the handle
-        BMQTST_ASSERT_EQ(NUM_MESSAGES,
-                         tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Initiate client session shutdown
-        tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
-                                                      &callbackCounter,
-                                                      &semaphore),
-                                 timeout + timeout + timeout);
-        // Long shutdown timeout
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Verify that the shutdown callback hasn't been called
-        int rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        // Confirm NUM_MESSAGES - 1 messages
-        for (int i = 0; i < NUM_MESSAGES - 1; ++i) {
-            tb.d_domain.d_queueHandle->confirmMessage(guids[i], subQueueId);
-        }
-
-        // Verify there is one unconfirmed message in the handle
-        BMQTST_ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Advance time less than the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // No 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
-
-        // Still no callback
-        rc = semaphore.timedWait(
-            bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
-            semaphoreTimeout);
-
-        BMQTST_ASSERT_NE(rc, 0);
-        BMQTST_ASSERT_EQ(callbackCounter, 0);
-
-        // Confirm the last message
-        tb.d_domain.d_queueHandle->confirmMessage(guids[NUM_MESSAGES - 1],
-                                                  subQueueId);
-
-        BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
-
-        // Advance time less than the shutdown timeout
-        tb.d_testClock.d_timeSource.advanceTime(timeout);
-
-        // Verify 'Channel::close' call
-        BMQTST_ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
-
-        // Imitate close operation
-        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
-
-        // Verify that the shutdown callback gets called
-        semaphore.wait();
 
         BMQTST_ASSERT_EQ(callbackCounter, 1);
     }

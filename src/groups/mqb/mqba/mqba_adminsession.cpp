@@ -387,9 +387,6 @@ void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
 {
     // executed by the *IO* thread
 
-    // Cancel the reads on the channel
-    d_channel_sp->cancelRead();
-
     // Enqueue an event to the client dispatcher thread and wait for it to
     // finish; only after this will we have the guarantee that no method will
     // try to use the channel.
@@ -410,10 +407,7 @@ void AdminSession::tearDown(BSLA_UNUSED const bsl::shared_ptr<void>& session,
     // 'session' go out of scope.
 }
 
-void AdminSession::initiateShutdown(
-    const ShutdownCb& callback,
-    BSLA_UNUSED const bsls::TimeInterval& timeout,
-    BSLA_UNUSED bool                      supportShutdownV2)
+void AdminSession::initiateShutdown(const ShutdownCb& callback)
 {
     // executed by the *ANY* thread
 
