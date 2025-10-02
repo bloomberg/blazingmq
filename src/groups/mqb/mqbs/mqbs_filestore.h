@@ -228,12 +228,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                           // 'd_replicationFactor', the
                                           // Receipt'ed messages are
                                           // strong consistent.
+        bool d_strongConsistency;
 
         ReceiptContext(const mqbu::StorageKey&  queueKey,
                        const bmqt::MessageGUID& guid,
                        const RecordIterator&    handle,
                        int                      count,
-                       mqbi::QueueHandle*       qH);
+                       mqbi::QueueHandle*       qH,
+                       bool                     strongConsistency);
     };
 
     struct NodeContext {
@@ -1119,12 +1121,14 @@ inline FileStore::ReceiptContext::ReceiptContext(
     const bmqt::MessageGUID& guid,
     const RecordIterator&    handle,
     int                      count,
-    mqbi::QueueHandle*       qH)
+    mqbi::QueueHandle*       qH,
+    bool                     strongConsistency)
 : d_queueKey(queueKey)
 , d_guid(guid)
 , d_handle(handle)
 , d_qH(qH)
 , d_count(count)
+, d_strongConsistency(strongConsistency)
 {
     // NOTHING
 }

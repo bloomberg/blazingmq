@@ -319,10 +319,8 @@ class Queue : public mqbi::Queue {
     /// Invoked by the Data Store when it receives quorum Receipts.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void onReceipt(const bmqt::MessageGUID&  msgGUID,
-                   mqbi::QueueHandle*        qH,
-                   const bsls::Types::Int64& arrivalTimepoint)
-        BSLS_KEYWORD_OVERRIDE;
+    void onReceipt(const bmqt::MessageGUID& msgGUID,
+                   mqbi::QueueHandle*       qH) BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send

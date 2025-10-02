@@ -565,13 +565,12 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
     }
 }
 
-void Queue::onReceipt(const bmqt::MessageGUID&  msgGUID,
-                      mqbi::QueueHandle*        queueHandle,
-                      const bsls::Types::Int64& arrivalTimepoint)
+void Queue::onReceipt(const bmqt::MessageGUID& msgGUID,
+                      mqbi::QueueHandle*       queueHandle)
 {
     BSLS_ASSERT_SAFE(d_localQueue_mp);
 
-    d_localQueue_mp->onReceipt(msgGUID, queueHandle, arrivalTimepoint);
+    d_localQueue_mp->onReceipt(msgGUID, queueHandle);
 }
 
 void Queue::onRemoval(const bmqt::MessageGUID& msgGUID,

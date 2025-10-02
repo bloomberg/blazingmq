@@ -326,15 +326,17 @@ void FileStore::cancelUnreceipted(const DataStoreRecordKey& recordKey)
         // ignore
         return;  // RETURN
     }
-    StorageMapIter sit = d_storages.find(it->second.d_queueKey);
-    if (sit != d_storages.end()) {
-        BSLS_ASSERT_SAFE(sit->second->queue());
+    if (it->second.d_strongConsistency) {
+        StorageMapIter sit = d_storages.find(it->second.d_queueKey);
+        if (sit != d_storages.end()) {
+            BSLS_ASSERT_SAFE(sit->second->queue());
 
-        sit->second->queue()->onRemoval(it->second.d_guid,
-                                        it->second.d_qH,
-                                        bmqt::AckResult::e_UNKNOWN);
+            sit->second->queue()->onRemoval(it->second.d_guid,
+                                            it->second.d_qH,
+                                            bmqt::AckResult::e_UNKNOWN);
+        }
+        // else the queue and its storage are gone; ignore the receipt
     }
-    // else the queue and its storage are gone; ignore the receipt
     d_unreceipted.erase(it);
 }
 
@@ -4047,28 +4049,40 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
         }
         if (++(from->second.d_count) >= d_replicationFactor) {
             from->second.d_handle->second.d_hasReceipt = true;
-            // notify the queue
 
-            const mqbu::StorageKey& queueKey  = from->second.d_queueKey;
-            bool                    haveQueue = (queueKey == lastKey);
-            if (!haveQueue) {
-                StorageMapIter sit = d_storages.find(queueKey);
-                if (sit != d_storages.end()) {
-                    haveQueue = true;
-                    lastKey   = queueKey;
-                    lastQueue = sit->second->queue();
-                    BSLS_ASSERT_SAFE(lastQueue);
+            // Calculate time it took for the message to be stored and
+            // replicated.
+            const bsls::Types::Int64 timeDelta =
+                bmqsys::Time::highResolutionTimer() -
+                from->second.d_handle->second.d_arrivalTimepoint;
+            d_clusterStats_p->onPartitionEvent(
+                mqbstat::ClusterStats::PartitionEventType::
+                    e_PARTITION_REPLICATION,
+                d_config.partitionId(),
+                timeDelta);
 
-                    affectedQueues.insert(lastQueue);
+            if (from->second.d_strongConsistency) {
+                // notify the queue
+                const mqbu::StorageKey& queueKey  = from->second.d_queueKey;
+                bool                    haveQueue = (queueKey == lastKey);
+                if (!haveQueue) {
+                    StorageMapIter sit = d_storages.find(queueKey);
+                    if (sit != d_storages.end()) {
+                        haveQueue = true;
+                        lastKey   = queueKey;
+                        lastQueue = sit->second->queue();
+                        BSLS_ASSERT_SAFE(lastQueue);
+
+                        affectedQueues.insert(lastQueue);
+                    }
+                    // else the queue and its storage are gone; ignore the
+                    // receipt
                 }
-                // else the queue and its storage are gone; ignore the receipt
+                if (haveQueue) {
+                    lastQueue->onReceipt(from->second.d_guid,
+                                         from->second.d_qH);
+                }  // else the queue is gone
             }
-            if (haveQueue) {
-                lastQueue->onReceipt(
-                    from->second.d_guid,
-                    from->second.d_qH,
-                    from->second.d_handle->second.d_arrivalTimepoint);
-            }  // else the queue is gone
             from = d_unreceipted.erase(from);
         }
         else {
@@ -5510,10 +5524,11 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                           guid,
                                           recordIt,
                                           1,  // receipt count
-                                          attributes->queueHandle())));
+                                          attributes->queueHandle(),
+                                          attributes->strongConsistency())));
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
     }
-    else {
+    if (!attributes->strongConsistency()) {
         if (d_replicationNotifications.find(queueKey) ==
             d_replicationNotifications.end()) {
             d_replicationNotifications.insert(queueKey);
@@ -7241,28 +7256,39 @@ void FileStore::setReplicationFactor(int value)
     while (it != d_unreceipted.end()) {
         if (it->second.d_count >= d_replicationFactor) {
             it->second.d_handle->second.d_hasReceipt = true;
-            // notify the queue.
 
-            const mqbu::StorageKey& queueKey  = it->second.d_queueKey;
-            bool                    haveQueue = (queueKey == lastKey);
-            if (!haveQueue) {
-                StorageMapIter sit = d_storages.find(queueKey);
-                if (sit != d_storages.end()) {
-                    haveQueue = true;
-                    lastKey   = queueKey;
-                    lastQueue = sit->second->queue();
-                    BSLS_ASSERT_SAFE(lastQueue);
+            // Calculate time it took for the message to be stored and
+            // replicated.
+            const bsls::Types::Int64 timeDelta =
+                bmqsys::Time::highResolutionTimer() -
+                it->second.d_handle->second.d_arrivalTimepoint;
+            d_clusterStats_p->onPartitionEvent(
+                mqbstat::ClusterStats::PartitionEventType::
+                    e_PARTITION_REPLICATION,
+                d_config.partitionId(),
+                timeDelta);
 
-                    affectedQueues.insert(lastQueue);
+            if (it->second.d_strongConsistency) {
+                // notify the queue.
+                const mqbu::StorageKey& queueKey  = it->second.d_queueKey;
+                bool                    haveQueue = (queueKey == lastKey);
+                if (!haveQueue) {
+                    StorageMapIter sit = d_storages.find(queueKey);
+                    if (sit != d_storages.end()) {
+                        haveQueue = true;
+                        lastKey   = queueKey;
+                        lastQueue = sit->second->queue();
+                        BSLS_ASSERT_SAFE(lastQueue);
+
+                        affectedQueues.insert(lastQueue);
+                    }
+                    // else the queue and its storage are gone; ignore the
+                    // receipt
                 }
-                // else the queue and its storage are gone; ignore the receipt
+                if (haveQueue) {
+                    lastQueue->onReceipt(it->second.d_guid, it->second.d_qH);
+                }  // else the queue is gone
             }
-            if (haveQueue) {
-                lastQueue->onReceipt(
-                    it->second.d_guid,
-                    it->second.d_qH,
-                    it->second.d_handle->second.d_arrivalTimepoint);
-            }  // else the queue is gone
             it = d_unreceipted.erase(it);
         }
         else {
@@ -7422,6 +7448,7 @@ void FileStore::loadMessageAttributesRaw(
                                              record.d_messagePropertiesInfo,
                                              rec->compressionAlgorithmType(),
                                              record.d_hasReceipt,
+                                             false,
                                              0,
                                              rec->crc32c(),
                                              record.d_arrivalTimepoint);
