@@ -424,7 +424,8 @@ Ledger::~Ledger()
 int Ledger::open(int flags)
 {
     if (d_state == LedgerState::e_OPENED) {
-        return LedgerOpResult::e_LEDGER_ALREADY_OPENED;  // RETURN
+        BALL_LOG_WARN << "Ledger is already opened";
+        return LedgerOpResult::e_SUCCESS;  // RETURN
     }
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_CLOSED);
 
@@ -555,7 +556,8 @@ int Ledger::open(int flags)
 int Ledger::close()
 {
     if (d_state == LedgerState::e_CLOSED) {
-        return LedgerOpResult::e_LEDGER_ALREADY_CLOSED;  // RETURN
+        BALL_LOG_WARN << "Ledger is already closed";
+        return LedgerOpResult::e_SUCCESS;  // RETURN
     }
 
     int rc = LedgerOpResult::e_UNKNOWN;
