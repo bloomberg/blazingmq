@@ -337,12 +337,9 @@ int Event::loadSchemaEvent(TYPE* message) const
     }
 
     EncodingType::Enum encodingType = EncodingType::e_BER;
-    if (d_header->type() == EventType::e_CONTROL) {
-        encodingType = EventHeaderUtil::controlEventEncodingType(*d_header);
-    }
-    else if (d_header->type() == EventType::e_AUTHENTICATION) {
-        encodingType = EventHeaderUtil::authenticationEventEncodingType(
-            *d_header);
+    if (d_header->type() == EventType::e_CONTROL ||
+        d_header->type() == EventType::e_AUTHENTICATION) {
+        encodingType = EventHeaderUtil::encodingType(*d_header);
     }
 
     bmqu::MemOutStream os;
@@ -441,7 +438,7 @@ inline EncodingType::Enum Event::authenticationEventEncodingType() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isAuthenticationEvent());
 
-    return EventHeaderUtil::authenticationEventEncodingType(*d_header);
+    return EventHeaderUtil::encodingType(*d_header);
 }
 
 inline EventType::Enum Event::type() const

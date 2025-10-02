@@ -39,8 +39,7 @@ namespace bmqauthnpass {
 
 namespace {
 
-const int k_TIMEOUT_SECONDS   = 600;
-const int k_MILLISECS_PER_SEC = 1000;
+const int k_TIMEOUT_SECONDS = 600;
 
 }  // namespace
 
@@ -52,9 +51,8 @@ PassAuthenticationResult::PassAuthenticationResult(
     bsl::string_view   principal,
     bsls::Types::Int64 lifetimeMs,
     bslma::Allocator*  allocator)
-: d_principal(principal)
+: d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
-, d_allocator_p(allocator)
 {
 }
 
@@ -113,7 +111,7 @@ int PassAuthenticator::authenticate(
     *result = bsl::allocate_shared<PassAuthenticationResult>(
         d_allocator_p,
         "",
-        k_TIMEOUT_SECONDS * k_MILLISECS_PER_SEC);
+        k_TIMEOUT_SECONDS * bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
     return 0;
 }
 

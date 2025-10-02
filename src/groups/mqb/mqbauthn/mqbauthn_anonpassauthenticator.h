@@ -30,7 +30,6 @@
 /// result and factory classes for the authenticator plugin.
 
 // MQB
-#include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 
 // BDE
@@ -44,6 +43,12 @@
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace mqbcfg {
+class AuthenticatorPluginConfig;
+}
+
 namespace mqbauthn {
 
 // ==================================
@@ -55,7 +60,6 @@ class AnonPassAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
@@ -85,8 +89,10 @@ class AnonPassAuthenticationResult : public mqbplug::AuthenticationResult {
 class AnonPassAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static constexpr const char* k_NAME      = "AnonPassAuthenticator";
-    static constexpr const char* k_MECHANISM = "Anonymous";
+    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_NAME =
+        "AnonPassAuthenticator";
+    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_MECHANISM =
+        "Anonymous";
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -99,11 +105,16 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
 
     bslma::Allocator* d_allocator_p;
 
-  public:
+  private:
     // NOT IMPLEMENTED
-    AnonPassAuthenticator(const AnonPassAuthenticator& other) = delete;
+    AnonPassAuthenticator(const AnonPassAuthenticator& other)
+        BSLS_KEYWORD_DELETED;
     AnonPassAuthenticator&
-    operator=(const AnonPassAuthenticator& other) = delete;
+    operator=(const AnonPassAuthenticator& other) BSLS_KEYWORD_DELETED;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(Authenticator, bslma::UsesBslmaAllocator)
 
     // CREATORS
 

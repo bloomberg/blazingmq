@@ -34,12 +34,12 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
-#include <mqbcfg_messages.h>
 #include <mqbplug_pluginfactory.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
@@ -48,6 +48,12 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace mqbcfg {
+class AuthenticatorPluginConfig;
+}
+
 namespace mqbplug {
 
 // ========================

@@ -49,19 +49,19 @@ class AuthenticationController {
 
     // DATA
 
-    /// True if this component is started.
-    bool d_isStarted;
-
-    /// Used to instantiate 'Authenticator'
-    /// plugins at start-time.
-    mqbplug::PluginManager* d_pluginManager_p;
-
     /// Registered authenticators
     /// Mapping an authentication mechanism to a mqbplug::Authenticator
     AuthenticatorMap d_authenticators;
 
     /// Anonymous credential
     bsl::optional<mqbcfg::Credential> d_anonymousCredential;
+
+    /// Used to instantiate 'Authenticator'
+    /// plugins at start-time.
+    mqbplug::PluginManager* d_pluginManager_p;
+
+    /// True if this component is started.
+    bool d_isStarted;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;

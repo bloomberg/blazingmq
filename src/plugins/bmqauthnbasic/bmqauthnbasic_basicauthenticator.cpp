@@ -39,8 +39,7 @@ namespace bmqauthnbasic {
 
 namespace {
 
-const int k_TIMEOUT_SECONDS   = 600;
-const int k_MILLISECS_PER_SEC = 1000;
+const int k_TIMEOUT_SECONDS = 600;
 
 }  // namespace
 
@@ -52,9 +51,8 @@ BasicAuthenticationResult::BasicAuthenticationResult(
     bsl::string_view   principal,
     bsls::Types::Int64 lifetimeMs,
     bslma::Allocator*  allocator)
-: d_principal(principal)
+: d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
-, d_allocator_p(allocator)
 {
 }
 
@@ -110,7 +108,7 @@ int BasicAuthenticator::authenticate(
     const mqbplug::AuthenticationData&              input) const
 {
     BALL_LOG_INFO << "BasicAuthenticator: "
-                  << "authentication using mechanism '" << mechanism() << ".";
+                  << "authentication using mechanism '" << mechanism() << "'.";
 
     const bsl::vector<char>& payload = input.authnPayload();
     bsl::string_view payloadView(reinterpret_cast<const char*>(payload.data()),
@@ -124,7 +122,8 @@ int BasicAuthenticator::authenticate(
     bsl::string_view username = payloadView.substr(0, colonPos);
     bsl::string_view password = payloadView.substr(colonPos + 1);
 
-    auto it = d_credentials.find(bsl::string(username));
+    bsl::map<bsl::string, bsl::string>::const_iterator it = d_credentials.find(
+        bsl::string(username, d_allocator_p));
     if (it == d_credentials.end() || it->second != password) {
         errorDescription << "Invalid username or password.";
         return -1;  // RETURN
@@ -132,8 +131,8 @@ int BasicAuthenticator::authenticate(
 
     *result = bsl::allocate_shared<BasicAuthenticationResult>(
         d_allocator_p,
-        "VALID_USER-" + bsl::string(username),
-        k_TIMEOUT_SECONDS * k_MILLISECS_PER_SEC);
+        "VALID_USER-" + bsl::string(username, d_allocator_p),
+        k_TIMEOUT_SECONDS * bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
     return 0;
 }
 

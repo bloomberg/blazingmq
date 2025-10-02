@@ -32,14 +32,9 @@
 #include <bdlb_string.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
-#include <bslmt_mutex.h>
 
 namespace BloombergLP {
 namespace mqbnet {
-
-namespace {
-BALL_LOG_SET_NAMESPACE_CATEGORY("MQBNET.AUTHENTICATIONCONTEXT");
-}
 
 // --------------------------
 // struct AuthenticationState
@@ -123,39 +118,33 @@ AuthenticationContext::AuthenticationContext(
     // NOTHING
 }
 
-AuthenticationContext& AuthenticationContext::setAuthenticationResult(
+void AuthenticationContext::setAuthenticationResult(
     const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
 {
     d_authenticationResultSp = value;
-    return *this;
 }
 
-AuthenticationContext& AuthenticationContext::setInitialConnectionContext(
+void AuthenticationContext::setInitialConnectionContext(
     InitialConnectionContext* value)
 {
     d_initialConnectionContext_p = value;
-    return *this;
 }
 
-AuthenticationContext& AuthenticationContext::setAuthenticationMessage(
+void AuthenticationContext::setAuthenticationMessage(
     const bmqp_ctrlmsg::AuthenticationMessage& value)
 {
     d_authenticationMessage = value;
-    return *this;
 }
 
-AuthenticationContext& AuthenticationContext::setAuthenticationEncodingType(
+void AuthenticationContext::setAuthenticationEncodingType(
     bmqp::EncodingType::Enum value)
 {
     d_authenticationEncodingType = value;
-    return *this;
 }
 
-AuthenticationContext&
-AuthenticationContext::setConnectionType(ConnectionType::Enum value)
+void AuthenticationContext::setConnectionType(ConnectionType::Enum value)
 {
     d_connectionType = value;
-    return *this;
 }
 
 int AuthenticationContext::scheduleReauthn(
@@ -165,6 +154,9 @@ int AuthenticationContext::scheduleReauthn(
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by an *AUTHENTICATION* thread
+
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(scheduler_p);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -179,7 +171,9 @@ int AuthenticationContext::scheduleReauthn(
         scheduler_p->cancelEventAndWait(&d_timeoutHandle);
     }
 
-    if (lifetimeMs.has_value() && lifetimeMs.value() >= 0) {
+    if (lifetimeMs.has_value()) {
+        BSLS_ASSERT_SAFE(lifetimeMs >= 0);
+
         scheduler_p->scheduleEvent(
             &d_timeoutHandle,
             bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
@@ -198,7 +192,7 @@ int AuthenticationContext::scheduleReauthn(
 }
 
 void AuthenticationContext::onReauthenticateErrorOrTimeout(
-    const int                              errorCode,
+    int                                    errorCode,
     const bsl::string&                     errorName,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
@@ -240,15 +234,15 @@ void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
     }
 }
 
-bool AuthenticationContext::isAuthenticating()
+bool AuthenticationContext::tryStartReauthentication()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    if (d_state == State::e_AUTHENTICATING) {
+    if (d_state == State::e_AUTHENTICATED) {
+        d_state = State::e_AUTHENTICATING;
         return true;
     }
 
-    d_state = State::e_AUTHENTICATING;
     return false;
 }
 

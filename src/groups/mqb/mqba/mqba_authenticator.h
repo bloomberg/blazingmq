@@ -43,6 +43,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
+#include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
@@ -72,6 +73,10 @@ namespace mqba {
 
 /// Authenticator for a BlazingMQ session with client or broker
 class Authenticator : public mqbnet::Authenticator {
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBNET.AUTHENTICATIONCONTEXT");
+
   public:
     // TYPES
 
@@ -96,21 +101,21 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // DATA
 
-    /// True if this component is started.
-    bool d_isStarted;
+    /// Thread pool to run authentication and reauthentication tasks.
+    bdlmt::ThreadPool d_threadPool;
 
     /// Authentication Controller.
     mqbauthn::AuthenticationController* d_authnController_p;
-
-    /// Thread pool to run authentication and reauthentication tasks.
-    bdlmt::ThreadPool d_threadPool;
 
     BlobSpPool* d_blobSpPool_p;
 
     /// Used to track the duration of a valid authenticated connection.
     /// If reauthentication does not occur within the specified time,
     /// an event is triggered to close the channel.
-    bdlmt::EventScheduler* d_scheduler;
+    bdlmt::EventScheduler* d_scheduler_p;
+
+    /// True if this component is started.
+    bool d_isStarted;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;

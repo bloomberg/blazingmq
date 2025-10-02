@@ -14,18 +14,19 @@
 // limitations under the License.
 
 // mqbnet_initialconnectioncontext.cpp                       -*-C++-*-
-#include <bslstl_sharedptr.h>
 #include <mqbnet_initialconnectioncontext.h>
 
 #include <mqbscm_version.h>
 
 // MQB
+#include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_negotiationcontext.h>
 
 // BMQ
 #include <bmqio_channel.h>
 #include <bmqio_channelutil.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -41,8 +42,6 @@ namespace BloombergLP {
 namespace mqbnet {
 
 namespace {
-
-BALL_LOG_SET_NAMESPACE_CATEGORY("MQBNET.INITIALCONNECTIONCONTEXT");
 
 const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 
@@ -159,7 +158,7 @@ const char* InitialConnectionEvent::toAscii(InitialConnectionEvent::Enum value)
         CASE(OUTBOUND_NEGOTATION)
         CASE(AUTH_REQUEST)
         CASE(NEGOTIATION_MESSAGE)
-        CASE(AUTH_SUCCESS)
+        CASE(AUTHN_SUCCESS)
         CASE(ERROR)
     default: return "(* UNKNOWN *)";
     }
@@ -183,7 +182,7 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
     CHECKVALUE(OUTBOUND_NEGOTATION)
     CHECKVALUE(AUTH_REQUEST)
     CHECKVALUE(NEGOTIATION_MESSAGE)
-    CHECKVALUE(AUTH_SUCCESS)
+    CHECKVALUE(AUTHN_SUCCESS)
     CHECKVALUE(ERROR)
 
     // Invalid string
@@ -277,8 +276,9 @@ int InitialConnectionContext::processBlob(bsl::ostream&      errorDescription,
         rc_INVALID_INITIALCONNECTION_MESSAGE = -1,
     };
 
-    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
-                               bmqp_ctrlmsg::NegotiationMessage> >
+    bsl::variant<bsl::monostate,
+                 bmqp_ctrlmsg::AuthenticationMessage,
+                 bmqp_ctrlmsg::NegotiationMessage>
         message;
 
     int rc = decodeInitialConnectionMessage(errorDescription, &message, blob);
@@ -287,15 +287,14 @@ int InitialConnectionContext::processBlob(bsl::ostream&      errorDescription,
         return (rc * 10) + rc_INVALID_INITIALCONNECTION_MESSAGE;  // RETURN
     }
 
-    if (!message.has_value()) {
+    if (bsl::holds_alternative<bsl::monostate>(message)) {
         errorDescription << "Decode AuthenticationMessage or "
                             "NegotiationMessage succeeds but nothing gets "
                             "loaded in.";
         return (rc * 10) + rc_INVALID_INITIALCONNECTION_MESSAGE;
     }
-
-    if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
-            message.value())) {
+    else if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+                 message)) {
         handleEvent(rc, bsl::string(), Event::e_AUTH_REQUEST, message);
     }
     else {
@@ -306,10 +305,11 @@ int InitialConnectionContext::processBlob(bsl::ostream&      errorDescription,
 }
 
 int InitialConnectionContext::decodeInitialConnectionMessage(
-    bsl::ostream& errorDescription,
-    bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
-                               bmqp_ctrlmsg::NegotiationMessage> >* message,
-    const bdlbb::Blob&                                              blob)
+    bsl::ostream&                                   errorDescription,
+    bsl::variant<bsl::monostate,
+                 bmqp_ctrlmsg::AuthenticationMessage,
+                 bmqp_ctrlmsg::NegotiationMessage>* message,
+    const bdlbb::Blob&                              blob)
 {
     BSLS_ASSERT(message);
 
@@ -420,24 +420,20 @@ int InitialConnectionContext::handleDefaultAuthentication(
     return rc;
 }
 
-InitialConnectionContext& InitialConnectionContext::setResultState(void* value)
+void InitialConnectionContext::setResultState(void* value)
 {
     d_resultState_p = value;
-    return *this;
 }
 
-InitialConnectionContext& InitialConnectionContext::setAuthenticationContext(
+void InitialConnectionContext::setAuthenticationContext(
     const bsl::shared_ptr<AuthenticationContext>& value)
 {
     d_authenticationCtxSp = value;
-    return *this;
 }
 
-InitialConnectionContext&
-InitialConnectionContext::setState(InitialConnectionState::Enum value)
+void InitialConnectionContext::setState(InitialConnectionState::Enum value)
 {
     d_state = value;
-    return *this;
 }
 
 void InitialConnectionContext::onClose()
@@ -515,12 +511,12 @@ int InitialConnectionContext::scheduleRead(bsl::ostream& errorDescription)
 }
 
 void InitialConnectionContext::handleEvent(
-    int                statusCode,
-    const bsl::string& errorDescription,
-    Event              input,
-    const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
-                                     bmqp_ctrlmsg::NegotiationMessage> >&
-        message)
+    int                                                   statusCode,
+    const bsl::string&                                    errorDescription,
+    Event                                                 input,
+    const bsl::variant<bsl::monostate,
+                       bmqp_ctrlmsg::AuthenticationMessage,
+                       bmqp_ctrlmsg::NegotiationMessage>& message)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -530,24 +526,22 @@ void InitialConnectionContext::handleEvent(
 
     bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
 
+    bmqu::MemOutStream errStream(d_allocator_p);
+    int                rc = rc_SUCCESS;
+
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
     BALL_LOG_INFO << "Enter InitialConnectionContext::handleEvent: "
                   << "state = " << d_state << ", event = " << input
-                  << "; peerUri =" << d_channelSp->peerUri()
+                  << "; peerUri = " << d_channelSp->peerUri()
                   << "; context address = " << this;
 
     State oldState = d_state;
-    State newState = d_state;
-
-    bmqu::MemOutStream errStream;
-    int                rc = rc_SUCCESS;
 
     switch (input) {
     case Event::e_OUTBOUND_NEGOTATION: {
         if (oldState == State::e_INITIAL) {
-            newState = State::e_NEGOTIATING_OUTBOUND;
-            setState(newState);
+            setState(State::e_NEGOTIATING_OUTBOUND);
 
             createNegotiationContext();
 
@@ -564,12 +558,18 @@ void InitialConnectionContext::handleEvent(
         break;
     }
     case Event::e_AUTH_REQUEST: {
+        if (!bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+                message)) {
+            rc = rc_ERROR;
+            errStream
+                << "Expecting AuthenticationMessage for event AUTH_REQUEST.";
+            break;
+        }
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg =
-            bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message.value());
+            bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message);
 
         if (oldState == State::e_INITIAL) {
-            newState = State::e_AUTHENTICATING;
-            setState(newState);
+            setState(State::e_AUTHENTICATING);
 
             rc = d_authenticator_p->handleAuthentication(errStream,
                                                          self,
@@ -583,13 +583,19 @@ void InitialConnectionContext::handleEvent(
         break;
     }
     case Event::e_NEGOTIATION_MESSAGE: {
+        if (!bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
+                message)) {
+            rc = rc_ERROR;
+            errStream << "Expecting NegotiationMessage for event "
+                         "e_NEGOTIATION_MESSAGE.";
+            break;
+        }
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMsg =
-            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message.value());
+            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message);
 
         if (oldState == State::e_INITIAL &&
             negotiationMsg.isClientIdentityValue()) {
-            newState = State::e_DEFAULT_AUTHENTICATING;
-            setState(newState);
+            setState(State::e_DEFAULT_AUTHENTICATING);
 
             createNegotiationContext();
             negotiationContext()->setNegotiationMessage(negotiationMsg);
@@ -598,8 +604,7 @@ void InitialConnectionContext::handleEvent(
         }
         else if (oldState == State::e_AUTHENTICATED &&
                  negotiationMsg.isClientIdentityValue()) {
-            newState = State::e_NEGOTIATED;
-            setState(newState);
+            setState(State::e_NEGOTIATED);
 
             createNegotiationContext();
             negotiationContext()->setNegotiationMessage(negotiationMsg);
@@ -607,8 +612,7 @@ void InitialConnectionContext::handleEvent(
         else if (oldState == State::e_NEGOTIATING_OUTBOUND &&
                  negotiationMsg.isBrokerResponseValue()) {
             // Received a BrokerResponse
-            newState = State::e_NEGOTIATED;
-            setState(newState);
+            setState(State::e_NEGOTIATED);
 
             BSLS_ASSERT_SAFE(negotiationContext());
             negotiationContext()->setNegotiationMessage(negotiationMsg);
@@ -621,17 +625,15 @@ void InitialConnectionContext::handleEvent(
         }
         break;
     }
-    case Event::e_AUTH_SUCCESS: {
+    case Event::e_AUTHN_SUCCESS: {
         if (oldState == State::e_AUTHENTICATING) {
-            newState = State::e_AUTHENTICATED;
-            setState(newState);
+            setState(State::e_AUTHENTICATED);
 
             // Now read Negotiation message
             rc = scheduleRead(errStream);
         }
         else if (oldState == State::e_DEFAULT_AUTHENTICATING) {
-            newState = State::e_NEGOTIATED;
-            setState(newState);
+            setState(State::e_NEGOTIATED);
 
             BSLS_ASSERT_SAFE(negotiationContext());
             BSLS_ASSERT_SAFE(negotiationContext()
@@ -661,28 +663,21 @@ void InitialConnectionContext::handleEvent(
     }
 
     BALL_LOG_INFO << "In initial connection state transition: " << oldState
-                  << " -> (" << input << ") -> " << newState;
+                  << " -> (" << input << ") -> " << d_state;
 
     bsl::shared_ptr<mqbnet::Session> session;
 
-    if (rc == 0 && newState == State::e_NEGOTIATED) {
+    if (rc == 0 && d_state == State::e_NEGOTIATED) {
         rc = d_negotiator_p->createSessionOnMsgType(errStream, &session, this);
         BALL_LOG_INFO << "Created a session with " << channel()->peerUri();
     }
 
-    if (rc != 0 || newState == State::e_NEGOTIATED) {
+    if (rc != 0 || d_state == State::e_NEGOTIATED) {
         BALL_LOG_INFO << "Finished initial connection with rc = " << rc
                       << ", error = '" << errStream.str() << "'";
         guard.release()->unlock();
         complete(rc, errStream.str(), session);
     }
-}
-
-bool InitialConnectionContext::isState(State state)
-{
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-
-    return d_state == state;
 }
 
 bool InitialConnectionContext::isIncoming() const
@@ -726,6 +721,8 @@ InitialConnectionContext::negotiationContext() const
 
 InitialConnectionState::Enum InitialConnectionContext::state() const
 {
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
     return d_state;
 }
 

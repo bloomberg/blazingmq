@@ -56,7 +56,6 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
@@ -86,7 +85,10 @@ class FailAuthenticationResult : public mqbplug::AuthenticationResult {
 class FailAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static constexpr const char* k_NAME = "FailAuthenticator";
+    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_NAME =
+        "FailAuthenticator";
+    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_MECHANISM =
+        "Basic";
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -99,10 +101,16 @@ class FailAuthenticator : public mqbplug::Authenticator {
 
     bslma::Allocator* d_allocator_p;
 
-  public:
+  private:
     // NOT IMPLEMENTED
-    FailAuthenticator(const FailAuthenticator& other)            = delete;
-    FailAuthenticator& operator=(const FailAuthenticator& other) = delete;
+    FailAuthenticator(const FailAuthenticator& other) BSLS_KEYWORD_DELETED;
+    FailAuthenticator&
+    operator=(const FailAuthenticator& other) BSLS_KEYWORD_DELETED;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(FailAuthenticationResult,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 

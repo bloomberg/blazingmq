@@ -31,10 +31,8 @@ namespace bmqauthnpass {
 // -------------------
 
 PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
-: d_plugins(bslma::Default::allocator(allocator))
+: d_plugins(allocator)
 {
-    allocator = bslma::Default::allocator(allocator);
-
     mqbplug::PluginInfo& authnpassPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         "PassAuthenticator");

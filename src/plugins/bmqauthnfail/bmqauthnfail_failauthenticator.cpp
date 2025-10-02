@@ -45,9 +45,8 @@ FailAuthenticationResult::FailAuthenticationResult(
     bsl::string_view   principal,
     bsls::Types::Int64 lifetimeMs,
     bslma::Allocator*  allocator)
-: d_principal(principal)
+: d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
-, d_allocator_p(allocator)
 {
 }
 
@@ -91,7 +90,7 @@ bsl::string_view FailAuthenticator::name() const
 
 bsl::string_view FailAuthenticator::mechanism() const
 {
-    return "Basic";
+    return k_MECHANISM;
 }
 
 int FailAuthenticator::authenticate(
