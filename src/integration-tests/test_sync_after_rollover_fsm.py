@@ -149,47 +149,10 @@ def test_synch_after_missed_rollover(
     # Wait until replica synchronizes with cluster
     assert replica.outputs_substr("Cluster (itCluster) is available", 10)
 
+    assert leader == cluster.last_known_leader
+
     # Check that leader and replica journal files are equal
-    leader = cluster.last_known_leader
-
-    leader_journal_files_after_rollover = glob.glob(
-        str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*journal*"
-    )
-    replica_journal_files_after_rollover = glob.glob(
-        str(cluster.work_dir.joinpath(replica.name, "storage")) + "/*journal*"
-    )
-
-    # Check that number of journal files equal to partitions number
-    num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_journal_files_after_rollover) == num_partitions
-    assert len(replica_journal_files_after_rollover) == num_partitions
-
-    # Check that content of leader and replica journal files is equal
-    for leader_file, replica_file in zip(
-        sorted(leader_journal_files_after_rollover),
-        sorted(replica_journal_files_after_rollover),
-    ):
-        # Run storage tool on leader journal file in "detail" mode to check record order and content
-        leader_res = _run_storage_tool(leader_file, "details")
-        assert leader_res.returncode == 0
-
-        # Run storage tool on replica journal file in "detail" mode to check record order and content
-        replica_res = _run_storage_tool(replica_file, "details")
-        assert replica_res.returncode == 0
-
-        # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout
-
-        # Run storage tool on leader journal file in "summary" mode to check journal file headers
-        leader_res = _run_storage_tool(leader_file, "summary")
-        assert leader_res.returncode == 0
-
-        # Run storage tool on replica journal file in "summary" mode to check journal file headers
-        replica_res = _run_storage_tool(replica_file, "summary")
-        assert replica_res.returncode == 0
-
-        # Check that content of leader and replica journal files is equal
-        assert leader_res.stdout == replica_res.stdout
+    _compare_journal_files(leader.name, replica.name, cluster)
 
 
 @start_cluster(False)
