@@ -195,14 +195,14 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Whether this StorageMgr has started.
     bsls::AtomicBool d_isStarted;
 
-    /// List of event handles for the watch dog, indexed by partitionId.
+    /// List of event handles for the watchdog, indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
     EventHandles d_watchDogEventHandles;
 
-    /// Timeout interval for the watch dog.
+    /// Timeout interval for the watchdog.
     const bsls::TimeInterval d_watchDogTimeoutInterval;
 
     /// Flag to denote if a low disk space warning was issued.  This flag is
@@ -403,13 +403,13 @@ class StorageManager BSLS_KEYWORD_FINAL
     void recoveredQueuesCb(int                    partitionId,
                            const QueueKeyInfoMap& queueKeyInfoMap);
 
-    /// Process the watch dog trigger event for the specified `partitionId`,
+    /// Process the watchdog trigger event for the specified `partitionId`,
     /// indicating unhealthiness in the Partition FSM.
     ///
     /// THREAD: Executed by the scheduler thread.
     void onWatchDog(int partitionId);
 
-    /// Process the watch dog trigger event for the specified `partitionId`,
+    /// Process the watchdog trigger event for the specified `partitionId`,
     /// indicating unhealthiness in the Partition FSM.
     ///
     /// THREAD: This method is invoked in the associated cluster's
