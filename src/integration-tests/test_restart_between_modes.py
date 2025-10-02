@@ -60,7 +60,9 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
 
 
 def restart_cluster_from_legacy_to_fsm(
-    cluster: Cluster, producer: Client, consumers: List[Client]
+    cluster: Cluster,
+    producer: Client,
+    consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
     Restart the `cluster` from non-FSM to FSM mode.
@@ -79,7 +81,9 @@ def restart_cluster_from_legacy_to_fsm(
 
 
 def restart_cluster_from_fsm_to_legacy(
-    cluster: Cluster, producer: Client, consumers: List[Client]
+    cluster: Cluster,
+    producer: Client,  # pylint: disable=unused-argument
+    consumers: List[Client],
 ):
     """
     Restart the `cluster` from FSM to non-FSM mode.
