@@ -945,6 +945,25 @@ fsm_cluster_params = [
 ]
 
 
+fsm_multi_cluster_params = [
+    pytest.param(
+        functools.partial(multi_node_cluster_config, mode=Mode.FSM),
+        id="fsm_multi_node",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.multi,
+            *Mode.FSM.marks,
+        ],
+    ),
+]
+
+
 @pytest.fixture(params=fsm_cluster_params)
 def fsm_cluster(request):
+    yield from cluster_fixture(request, request.param)
+
+
+@pytest.fixture(params=fsm_multi_cluster_params)
+def fsm_multi_cluster(request):
     yield from cluster_fixture(request, request.param)

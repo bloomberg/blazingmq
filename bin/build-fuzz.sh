@@ -28,10 +28,10 @@ export FUZZER_FLAG="fuzzer-no-link"
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.23.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"

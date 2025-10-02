@@ -542,6 +542,9 @@ class AdminCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AdminCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AdminCommand>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -758,6 +761,9 @@ class AdminCommandResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AdminCommandResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AdminCommandResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -974,6 +980,8 @@ class AppIdInfo {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AppIdInfo)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AppIdInfo> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -1257,6 +1265,9 @@ class CloseQueueResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::CloseQueueResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::CloseQueueResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -1484,6 +1495,9 @@ class ConsumerInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ConsumerInfo)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConsumerInfo>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -1631,6 +1645,9 @@ class Disconnect {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::Disconnect)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Disconnect> : bsl::true_type {
+};
 
 namespace bmqp_ctrlmsg {
 
@@ -1783,6 +1800,9 @@ class DisconnectResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::DisconnectResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::DisconnectResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -1929,6 +1949,8 @@ class DummyType {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DummyType)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::DummyType> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -2212,6 +2234,9 @@ class ElectionProposal {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectionProposal)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectionProposal>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -2361,6 +2386,9 @@ class ElectionResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectionResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectionResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -2534,6 +2562,9 @@ class ElectorNodeStatus {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ElectorNodeStatus)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectorNodeStatus>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -2749,6 +2780,9 @@ class FollowerClusterStateRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::FollowerClusterStateRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerClusterStateRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -2900,6 +2934,9 @@ class FollowerLSNRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::FollowerLSNRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerLSNRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -3131,6 +3168,8 @@ class GuidInfo {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::GuidInfo)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::GuidInfo> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -3281,6 +3320,9 @@ class HeartbeatResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::HeartbeatResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::HeartbeatResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -3430,6 +3472,9 @@ class LeaderHeartbeat {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::LeaderHeartbeat)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderHeartbeat>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -3615,6 +3660,9 @@ class LeaderMessageSequence {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderMessageSequence)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderMessageSequence>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -3764,6 +3812,9 @@ class LeaderPassive {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::LeaderPassive)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderPassive>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -3916,6 +3967,9 @@ class LeaderSyncDataQuery {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderSyncDataQuery)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncDataQuery>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -4067,6 +4121,9 @@ class LeaderSyncStateQuery {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderSyncStateQuery)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncStateQuery>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -4219,6 +4276,9 @@ class LeadershipCessionNotification {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeadershipCessionNotification)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeadershipCessionNotification>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -4488,6 +4548,9 @@ class PartitionPrimaryInfo {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionPrimaryInfo)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionPrimaryInfo>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -4675,6 +4738,9 @@ class PartitionSequenceNumber {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionSequenceNumber)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSequenceNumber>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -4878,6 +4944,9 @@ class PartitionSyncDataQueryResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionSyncDataQueryResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncDataQueryResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -5053,6 +5122,9 @@ class PartitionSyncStateQuery {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionSyncStateQuery)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncStateQuery>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -5330,6 +5402,9 @@ class QueueAssignmentRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueAssignmentRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueAssignmentRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -5574,6 +5649,9 @@ class QueueUnassignmentRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueUnassignmentRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueUnassignmentRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -5725,6 +5803,9 @@ class RegistrationResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::RegistrationResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::RegistrationResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -5963,6 +6044,9 @@ class RoutingConfiguration {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::RoutingConfiguration)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::RoutingConfiguration>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -6194,6 +6278,9 @@ class ScoutingRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ScoutingRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ScoutingRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -6368,6 +6455,9 @@ class ScoutingResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ScoutingResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ScoutingResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -6667,6 +6757,9 @@ class StopRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::StopRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StopRequest> : bsl::true_type {
+};
 
 namespace bmqp_ctrlmsg {
 
@@ -6878,6 +6971,9 @@ class StopResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::StopResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StopResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -7175,6 +7271,9 @@ class SubQueueIdInfo {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::SubQueueIdInfo)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SubQueueIdInfo>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -7390,6 +7489,8 @@ class SyncPoint {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::SyncPoint)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SyncPoint> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -7761,6 +7862,9 @@ class ClientIdentity {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ClientIdentity)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ClientIdentity>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -7957,6 +8061,9 @@ class DumpMessages {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DumpMessages)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::DumpMessages>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -8602,6 +8709,9 @@ class Expression {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::Expression)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Expression> : bsl::true_type {
+};
 
 namespace bmqp_ctrlmsg {
 
@@ -8776,6 +8886,9 @@ class FollowerLSNResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::FollowerLSNResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerLSNResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -8949,6 +9062,9 @@ class LeaderAdvisoryAck {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderAdvisoryAck)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderAdvisoryAck>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -9139,6 +9255,9 @@ class LeaderAdvisoryCommit {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderAdvisoryCommit)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderAdvisoryCommit>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -9312,6 +9431,9 @@ class LeaderSyncStateQueryResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderSyncStateQueryResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncStateQueryResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -9484,6 +9606,9 @@ class NodeStatusAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::NodeStatusAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::NodeStatusAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -9713,6 +9838,9 @@ class PartitionPrimaryAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionPrimaryAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionPrimaryAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -9723,23 +9851,35 @@ namespace bmqp_ctrlmsg {
 class PrimaryStateRequest {
     // This type represents a request sent to the primary by a replica to ask
     // for primary's sequence number.  The replica also sends it own sequence
-    // number as part of this request.
+    // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
-    // sequenceNumber: Replica's sequence number for corresponding partition.
+    // latestSequenceNumber: Replica's latest sequence number for corresponding
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
-    PartitionSequenceNumber d_sequenceNumber;
+    PartitionSequenceNumber d_latestSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_PARTITION_ID = 0, ATTRIBUTE_ID_SEQUENCE_NUMBER = 1 };
+    enum {
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+    };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID    = 0,
-        ATTRIBUTE_INDEX_SEQUENCE_NUMBER = 1
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -9802,9 +9942,14 @@ class PrimaryStateRequest {
     // Return a reference to the modifiable "PartitionId" attribute of this
     // object.
 
-    PartitionSequenceNumber& sequenceNumber();
-    // Return a reference to the modifiable "SequenceNumber" attribute of
-    // this object.
+    PartitionSequenceNumber& latestSequenceNumber();
+    // Return a reference to the modifiable "LatestSequenceNumber"
+    // attribute of this object.
+
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -9852,9 +9997,15 @@ class PrimaryStateRequest {
     int partitionId() const;
     // Return the value of the "PartitionId" attribute of this object.
 
-    const PartitionSequenceNumber& sequenceNumber() const;
+    const PartitionSequenceNumber& latestSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "SequenceNumber" attribute of this object.
+    // "LatestSequenceNumber" attribute of this object.
+
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
+    // Return a reference offering non-modifiable access to the
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const PrimaryStateRequest& lhs,
@@ -9864,7 +10015,9 @@ class PrimaryStateRequest {
     // have the same value if each respective attribute has the same value.
     {
         return lhs.partitionId() == rhs.partitionId() &&
-               lhs.sequenceNumber() == rhs.sequenceNumber();
+               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const PrimaryStateRequest& lhs,
@@ -9890,9 +10043,7 @@ class PrimaryStateRequest {
     // effectively provides a 'bsl::hash' specialization for
     // 'PrimaryStateRequest'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.partitionId());
-        hashAppend(hashAlg, object.sequenceNumber());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -9902,6 +10053,9 @@ class PrimaryStateRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PrimaryStateRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PrimaryStateRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -9911,23 +10065,35 @@ namespace bmqp_ctrlmsg {
 
 class PrimaryStateResponse {
     // This type represents a response sent by a primary to the replica along
-    // with its sequence number.
+    // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
-    // sequenceNumber: Primary's sequence number for corresponding partition.
+    // latestSequenceNumber: Primary's latest sequence number for corresponding
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
-    PartitionSequenceNumber d_sequenceNumber;
+    PartitionSequenceNumber d_latestSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_PARTITION_ID = 0, ATTRIBUTE_ID_SEQUENCE_NUMBER = 1 };
+    enum {
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+    };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID    = 0,
-        ATTRIBUTE_INDEX_SEQUENCE_NUMBER = 1
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -9990,9 +10156,14 @@ class PrimaryStateResponse {
     // Return a reference to the modifiable "PartitionId" attribute of this
     // object.
 
-    PartitionSequenceNumber& sequenceNumber();
-    // Return a reference to the modifiable "SequenceNumber" attribute of
-    // this object.
+    PartitionSequenceNumber& latestSequenceNumber();
+    // Return a reference to the modifiable "LatestSequenceNumber"
+    // attribute of this object.
+
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -10040,9 +10211,15 @@ class PrimaryStateResponse {
     int partitionId() const;
     // Return the value of the "PartitionId" attribute of this object.
 
-    const PartitionSequenceNumber& sequenceNumber() const;
+    const PartitionSequenceNumber& latestSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "SequenceNumber" attribute of this object.
+    // "LatestSequenceNumber" attribute of this object.
+
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
+    // Return a reference offering non-modifiable access to the
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const PrimaryStateResponse& lhs,
@@ -10052,7 +10229,9 @@ class PrimaryStateResponse {
     // have the same value if each respective attribute has the same value.
     {
         return lhs.partitionId() == rhs.partitionId() &&
-               lhs.sequenceNumber() == rhs.sequenceNumber();
+               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const PrimaryStateResponse& lhs,
@@ -10078,9 +10257,7 @@ class PrimaryStateResponse {
     // effectively provides a 'bsl::hash' specialization for
     // 'PrimaryStateResponse'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.partitionId());
-        hashAppend(hashAlg, object.sequenceNumber());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -10090,6 +10267,9 @@ class PrimaryStateResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PrimaryStateResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PrimaryStateResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -10295,6 +10475,9 @@ class PrimaryStatusAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PrimaryStatusAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PrimaryStatusAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -10590,6 +10773,9 @@ class QueueHandleParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueHandleParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueHandleParameters>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -10835,6 +11021,8 @@ class QueueInfo {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueInfo)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueInfo> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -11111,6 +11299,9 @@ class QueueInfoUpdate {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueInfoUpdate)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueInfoUpdate>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -11395,6 +11586,9 @@ class QueueStreamParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueStreamParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueStreamParameters>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -11569,6 +11763,9 @@ class RegistrationRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::RegistrationRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::RegistrationRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -11788,6 +11985,9 @@ class ReplicaDataRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ReplicaDataRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaDataRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -12009,6 +12209,9 @@ class ReplicaDataResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ReplicaDataResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaDataResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -12018,24 +12221,36 @@ namespace bmqp_ctrlmsg {
 
 class ReplicaStateRequest {
     // This type represents a request sent to the replica by the primary to ask
-    // for replica's sequence number.  The primary also sends its own sequence
-    // number as part of this request.
+    // for replica's sequence numbers.  The primary also sends its own sequence
+    // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
-    // sequenceNumber: Primary's sequence number for corresponding partition.
+    // latestSequenceNumber: Primary's latest sequence number for corresponding
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
-    PartitionSequenceNumber d_sequenceNumber;
+    PartitionSequenceNumber d_latestSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_PARTITION_ID = 0, ATTRIBUTE_ID_SEQUENCE_NUMBER = 1 };
+    enum {
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+    };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID    = 0,
-        ATTRIBUTE_INDEX_SEQUENCE_NUMBER = 1
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -12098,9 +12313,14 @@ class ReplicaStateRequest {
     // Return a reference to the modifiable "PartitionId" attribute of this
     // object.
 
-    PartitionSequenceNumber& sequenceNumber();
-    // Return a reference to the modifiable "SequenceNumber" attribute of
-    // this object.
+    PartitionSequenceNumber& latestSequenceNumber();
+    // Return a reference to the modifiable "LatestSequenceNumber"
+    // attribute of this object.
+
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -12148,9 +12368,15 @@ class ReplicaStateRequest {
     int partitionId() const;
     // Return the value of the "PartitionId" attribute of this object.
 
-    const PartitionSequenceNumber& sequenceNumber() const;
+    const PartitionSequenceNumber& latestSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "SequenceNumber" attribute of this object.
+    // "LatestSequenceNumber" attribute of this object.
+
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
+    // Return a reference offering non-modifiable access to the
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaStateRequest& lhs,
@@ -12160,7 +12386,9 @@ class ReplicaStateRequest {
     // have the same value if each respective attribute has the same value.
     {
         return lhs.partitionId() == rhs.partitionId() &&
-               lhs.sequenceNumber() == rhs.sequenceNumber();
+               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const ReplicaStateRequest& lhs,
@@ -12186,9 +12414,7 @@ class ReplicaStateRequest {
     // effectively provides a 'bsl::hash' specialization for
     // 'ReplicaStateRequest'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.partitionId());
-        hashAppend(hashAlg, object.sequenceNumber());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -12198,6 +12424,9 @@ class ReplicaStateRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ReplicaStateRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaStateRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -12207,23 +12436,35 @@ namespace bmqp_ctrlmsg {
 
 class ReplicaStateResponse {
     // This type represents a response sent by a replica to the primary along
-    // with its sequence number.
+    // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
-    // sequenceNumber: Replica's sequence number for corresponding partition.
+    // latestSequenceNumber: Replica's latest sequence number for corresponding
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
+    // sync point after rollover sequence number for corresponding partition.
 
     // INSTANCE DATA
-    PartitionSequenceNumber d_sequenceNumber;
+    PartitionSequenceNumber d_latestSequenceNumber;
+    PartitionSequenceNumber d_firstSyncPointAfterRolloverSequenceNumber;
     int                     d_partitionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_PARTITION_ID = 0, ATTRIBUTE_ID_SEQUENCE_NUMBER = 1 };
+    enum {
+        ATTRIBUTE_ID_PARTITION_ID                                    = 0,
+        ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
+    };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_PARTITION_ID    = 0,
-        ATTRIBUTE_INDEX_SEQUENCE_NUMBER = 1
+        ATTRIBUTE_INDEX_PARTITION_ID                                    = 0,
+        ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER                          = 1,
+        ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER = 2
     };
 
     // CONSTANTS
@@ -12286,9 +12527,14 @@ class ReplicaStateResponse {
     // Return a reference to the modifiable "PartitionId" attribute of this
     // object.
 
-    PartitionSequenceNumber& sequenceNumber();
-    // Return a reference to the modifiable "SequenceNumber" attribute of
-    // this object.
+    PartitionSequenceNumber& latestSequenceNumber();
+    // Return a reference to the modifiable "LatestSequenceNumber"
+    // attribute of this object.
+
+    PartitionSequenceNumber& firstSyncPointAfterRolloverSequenceNumber();
+    // Return a reference to the modifiable
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -12336,9 +12582,15 @@ class ReplicaStateResponse {
     int partitionId() const;
     // Return the value of the "PartitionId" attribute of this object.
 
-    const PartitionSequenceNumber& sequenceNumber() const;
+    const PartitionSequenceNumber& latestSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
-    // "SequenceNumber" attribute of this object.
+    // "LatestSequenceNumber" attribute of this object.
+
+    const PartitionSequenceNumber&
+    firstSyncPointAfterRolloverSequenceNumber() const;
+    // Return a reference offering non-modifiable access to the
+    // "FirstSyncPointAfterRolloverSequenceNumber" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const ReplicaStateResponse& lhs,
@@ -12348,7 +12600,9 @@ class ReplicaStateResponse {
     // have the same value if each respective attribute has the same value.
     {
         return lhs.partitionId() == rhs.partitionId() &&
-               lhs.sequenceNumber() == rhs.sequenceNumber();
+               lhs.latestSequenceNumber() == rhs.latestSequenceNumber() &&
+               lhs.firstSyncPointAfterRolloverSequenceNumber() ==
+                   rhs.firstSyncPointAfterRolloverSequenceNumber();
     }
 
     friend bool operator!=(const ReplicaStateResponse& lhs,
@@ -12374,9 +12628,7 @@ class ReplicaStateResponse {
     // effectively provides a 'bsl::hash' specialization for
     // 'ReplicaStateResponse'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.partitionId());
-        hashAppend(hashAlg, object.sequenceNumber());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -12386,6 +12638,9 @@ class ReplicaStateResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ReplicaStateResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaStateResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -12830,6 +13085,8 @@ class Status {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::Status)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Status> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -13048,6 +13305,9 @@ class StorageSyncResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::StorageSyncResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StorageSyncResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -13233,6 +13493,9 @@ class SyncPointOffsetPair {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::SyncPointOffsetPair)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SyncPointOffsetPair>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -13528,6 +13791,9 @@ class BrokerResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::BrokerResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::BrokerResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -13755,6 +14021,9 @@ class CloseQueue {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::CloseQueue)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::CloseQueue> : bsl::true_type {
+};
 
 namespace bmqp_ctrlmsg {
 
@@ -13980,6 +14249,9 @@ class ConfigureQueueStream {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ConfigureQueueStream)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureQueueStream>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -14162,6 +14434,9 @@ class ElectorMessage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectorMessage)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectorMessage>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -14406,6 +14681,9 @@ class LeaderAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -14613,6 +14891,8 @@ class OpenQueue {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::OpenQueue)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::OpenQueue> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -15220,6 +15500,9 @@ class PartitionSyncDataQuery {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionSyncDataQuery)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncDataQuery>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -15453,6 +15736,9 @@ class PartitionSyncDataQueryStatus {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionSyncDataQueryStatus)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncDataQueryStatus>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -15668,6 +15954,9 @@ class PartitionSyncStateQueryResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::PartitionSyncStateQueryResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<
+    bmqp_ctrlmsg::PartitionSyncStateQueryResponse> : bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -15893,6 +16182,9 @@ class QueueAssignmentAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueAssignmentAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueAssignmentAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -16160,6 +16452,9 @@ class QueueUnAssignmentAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueUnAssignmentAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueUnAssignmentAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -16387,6 +16682,9 @@ class QueueUpdateAdvisory {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueUpdateAdvisory)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueUpdateAdvisory>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -16562,6 +16860,9 @@ class StateNotification {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::StateNotification)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StateNotification>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -16771,6 +17072,9 @@ class StorageSyncRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::StorageSyncRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StorageSyncRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -17013,6 +17317,9 @@ class Subscription {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::Subscription)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Subscription>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -17231,6 +17538,9 @@ class ConfigureQueueStreamResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ConfigureQueueStreamResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureQueueStreamResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -17452,6 +17762,9 @@ class FollowerClusterStateResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::FollowerClusterStateResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerClusterStateResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -17668,6 +17981,9 @@ class LeaderSyncDataQueryResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::LeaderSyncDataQueryResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncDataQueryResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -18210,6 +18526,9 @@ class OpenQueueResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::OpenQueueResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::OpenQueueResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -18385,6 +18704,9 @@ class PartitionMessage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::PartitionMessage)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionMessage>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -18615,6 +18937,9 @@ class StreamParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::StreamParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StreamParameters>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -19236,6 +19561,9 @@ class ConfigureStream {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ConfigureStream)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureStream>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -19453,6 +19781,9 @@ class ClusterStateFSMMessage {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ClusterStateFSMMessage)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ClusterStateFSMMessage>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -19667,6 +19998,9 @@ class ConfigureStreamResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ConfigureStreamResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureStreamResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -21032,6 +21366,9 @@ class ClusterMessage {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ClusterMessage)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ClusterMessage>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -21873,6 +22210,9 @@ class ControlMessage {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::ControlMessage)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ControlMessage>
+: bsl::true_type {};
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -27766,6 +28106,17 @@ PartitionPrimaryAdvisory::partitions() const
 // class PrimaryStateRequest
 // -------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void PrimaryStateRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->latestSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -27779,8 +28130,17 @@ int PrimaryStateRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_sequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -27799,10 +28159,16 @@ int PrimaryStateRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(&d_partitionId,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_sequenceNumber,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+            &d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return manipulator(
+            &d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -27829,9 +28195,15 @@ inline int& PrimaryStateRequest::partitionId()
     return d_partitionId;
 }
 
-inline PartitionSequenceNumber& PrimaryStateRequest::sequenceNumber()
+inline PartitionSequenceNumber& PrimaryStateRequest::latestSequenceNumber()
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline PartitionSequenceNumber&
+PrimaryStateRequest::firstSyncPointAfterRolloverSequenceNumber()
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -27846,8 +28218,17 @@ int PrimaryStateRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_sequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -27865,9 +28246,16 @@ int PrimaryStateRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_partitionId,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
-        return accessor(d_sequenceNumber,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
+        return accessor(
+            d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return accessor(
+            d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -27895,14 +28283,32 @@ inline int PrimaryStateRequest::partitionId() const
 }
 
 inline const PartitionSequenceNumber&
-PrimaryStateRequest::sequenceNumber() const
+PrimaryStateRequest::latestSequenceNumber() const
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline const PartitionSequenceNumber&
+PrimaryStateRequest::firstSyncPointAfterRolloverSequenceNumber() const
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // --------------------------
 // class PrimaryStateResponse
 // --------------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void PrimaryStateResponse::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->latestSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
+}
 
 // CLASS METHODS
 // MANIPULATORS
@@ -27917,8 +28323,17 @@ int PrimaryStateResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_sequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -27937,10 +28352,16 @@ int PrimaryStateResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(&d_partitionId,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_sequenceNumber,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+            &d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return manipulator(
+            &d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -27967,9 +28388,15 @@ inline int& PrimaryStateResponse::partitionId()
     return d_partitionId;
 }
 
-inline PartitionSequenceNumber& PrimaryStateResponse::sequenceNumber()
+inline PartitionSequenceNumber& PrimaryStateResponse::latestSequenceNumber()
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline PartitionSequenceNumber&
+PrimaryStateResponse::firstSyncPointAfterRolloverSequenceNumber()
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -27984,8 +28411,17 @@ int PrimaryStateResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_sequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -28003,9 +28439,16 @@ int PrimaryStateResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_partitionId,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
-        return accessor(d_sequenceNumber,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
+        return accessor(
+            d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return accessor(
+            d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -28033,9 +28476,15 @@ inline int PrimaryStateResponse::partitionId() const
 }
 
 inline const PartitionSequenceNumber&
-PrimaryStateResponse::sequenceNumber() const
+PrimaryStateResponse::latestSequenceNumber() const
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline const PartitionSequenceNumber&
+PrimaryStateResponse::firstSyncPointAfterRolloverSequenceNumber() const
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ---------------------------
@@ -29817,6 +30266,17 @@ ReplicaDataResponse::endSequenceNumber() const
 // class ReplicaStateRequest
 // -------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void ReplicaStateRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->latestSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -29830,8 +30290,17 @@ int ReplicaStateRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_sequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -29850,10 +30319,16 @@ int ReplicaStateRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(&d_partitionId,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_sequenceNumber,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+            &d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return manipulator(
+            &d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -29880,9 +30355,15 @@ inline int& ReplicaStateRequest::partitionId()
     return d_partitionId;
 }
 
-inline PartitionSequenceNumber& ReplicaStateRequest::sequenceNumber()
+inline PartitionSequenceNumber& ReplicaStateRequest::latestSequenceNumber()
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline PartitionSequenceNumber&
+ReplicaStateRequest::firstSyncPointAfterRolloverSequenceNumber()
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -29897,8 +30378,17 @@ int ReplicaStateRequest::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_sequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -29916,9 +30406,16 @@ int ReplicaStateRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_partitionId,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
-        return accessor(d_sequenceNumber,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
+        return accessor(
+            d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return accessor(
+            d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -29946,14 +30443,32 @@ inline int ReplicaStateRequest::partitionId() const
 }
 
 inline const PartitionSequenceNumber&
-ReplicaStateRequest::sequenceNumber() const
+ReplicaStateRequest::latestSequenceNumber() const
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline const PartitionSequenceNumber&
+ReplicaStateRequest::firstSyncPointAfterRolloverSequenceNumber() const
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // --------------------------
 // class ReplicaStateResponse
 // --------------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void ReplicaStateResponse::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->latestSequenceNumber());
+    hashAppend(hashAlgorithm,
+               this->firstSyncPointAfterRolloverSequenceNumber());
+}
 
 // CLASS METHODS
 // MANIPULATORS
@@ -29968,8 +30483,17 @@ int ReplicaStateResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_sequenceNumber,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = manipulator(
+        &d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -29988,10 +30512,16 @@ int ReplicaStateResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(&d_partitionId,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
         return manipulator(
-            &d_sequenceNumber,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+            &d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return manipulator(
+            &d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -30018,9 +30548,15 @@ inline int& ReplicaStateResponse::partitionId()
     return d_partitionId;
 }
 
-inline PartitionSequenceNumber& ReplicaStateResponse::sequenceNumber()
+inline PartitionSequenceNumber& ReplicaStateResponse::latestSequenceNumber()
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline PartitionSequenceNumber&
+ReplicaStateResponse::firstSyncPointAfterRolloverSequenceNumber()
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // ACCESSORS
@@ -30035,8 +30571,17 @@ int ReplicaStateResponse::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_sequenceNumber,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    ret = accessor(
+        d_latestSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_firstSyncPointAfterRolloverSequenceNumber,
+        ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     if (ret) {
         return ret;
     }
@@ -30054,9 +30599,16 @@ int ReplicaStateResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_partitionId,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
-    case ATTRIBUTE_ID_SEQUENCE_NUMBER: {
-        return accessor(d_sequenceNumber,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SEQUENCE_NUMBER]);
+    case ATTRIBUTE_ID_LATEST_SEQUENCE_NUMBER: {
+        return accessor(
+            d_latestSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATEST_SEQUENCE_NUMBER]);
+    }
+    case ATTRIBUTE_ID_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER: {
+        return accessor(
+            d_firstSyncPointAfterRolloverSequenceNumber,
+            ATTRIBUTE_INFO_ARRAY
+                [ATTRIBUTE_INDEX_FIRST_SYNC_POINT_AFTER_ROLLOVER_SEQUENCE_NUMBER]);
     }
     default: return NOT_FOUND;
     }
@@ -30084,9 +30636,15 @@ inline int ReplicaStateResponse::partitionId() const
 }
 
 inline const PartitionSequenceNumber&
-ReplicaStateResponse::sequenceNumber() const
+ReplicaStateResponse::latestSequenceNumber() const
 {
-    return d_sequenceNumber;
+    return d_latestSequenceNumber;
+}
+
+inline const PartitionSequenceNumber&
+ReplicaStateResponse::firstSyncPointAfterRolloverSequenceNumber() const
+{
+    return d_firstSyncPointAfterRolloverSequenceNumber;
 }
 
 // -----------------------------
