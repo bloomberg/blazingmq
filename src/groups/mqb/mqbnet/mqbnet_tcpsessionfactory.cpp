@@ -628,6 +628,8 @@ void TCPSessionFactory::initialConnectionComplete(
         inserted = d_channels.insert(toInsert);
         info     = inserted.first->second;
 
+        ++d_nbActiveChannels;
+
         if (info->d_monitor.isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
             // Enable/Disable heartbeating under the lock
@@ -759,9 +761,6 @@ void TCPSessionFactory::channelStateCallback(
                     bmqsys::Time::highResolutionTimer();
             }  // close mutex lock guard // UNLOCK
 
-            // Keep track of active channels, for logging purposes
-            ++d_nbActiveChannels;
-
             handleInitialConnection(channel, context);
         }
     } break;
@@ -792,8 +791,6 @@ void TCPSessionFactory::onClose(
 {
     // Executed from *ANY* thread
 
-    --d_nbActiveChannels;
-
     const bsl::shared_ptr<bmqio::Channel>& channel =
         initialConnectionContext->channel();
 
@@ -815,6 +812,8 @@ void TCPSessionFactory::onClose(
         if (it != d_channels.end()) {
             channelInfo = it->second;
             d_channels.erase(it);
+
+            --d_nbActiveChannels;
 
             // Synchronously remove from heartbeat monitored channels
             if (channelInfo->d_monitor.isHearbeatEnabled() &&
