@@ -92,15 +92,12 @@ class NegotiationContext {
                        bslma::Allocator*         allocator = 0);
 
     // MANIPULATORS
-    NegotiationContext&
-    setInitialConnectionContext(InitialConnectionContext* value);
-    NegotiationContext&
-    setNegotiationMessage(const bmqp_ctrlmsg::NegotiationMessage& value);
-    NegotiationContext& setClusterName(const bsl::string& value);
-    NegotiationContext& setConnectionType(ConnectionType::Enum value);
-    NegotiationContext& setMaxMissedHeartbeats(int value);
-    NegotiationContext& setEventProcessor(SessionEventProcessor* value);
-    NegotiationContext& setCluster(Cluster* value);
+    void setNegotiationMessage(const bmqp_ctrlmsg::NegotiationMessage& value);
+    void setClusterName(const bsl::string& value);
+    void setConnectionType(ConnectionType::Enum value);
+    void setMaxMissedHeartbeats(int value);
+    void setEventProcessor(SessionEventProcessor* value);
+    void setCluster(Cluster* value);
 
     // ACCESSORS
     InitialConnectionContext*               initialConnectionContext() const;

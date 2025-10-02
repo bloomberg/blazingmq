@@ -32,6 +32,7 @@
 #include <bmqu_sharedresource.h>
 
 // BDE
+#include <ball_log.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_memory.h>
 #include <bsl_string_view.h>
@@ -111,6 +112,10 @@ bsl::ostream& operator<<(bsl::ostream&             stream,
 
 /// VST for the context associated with an connection being authenticated.
 class AuthenticationContext {
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBNET.AUTHENTICATIONCONTEXT");
+
   public:
     // TYPES
     typedef AuthenticationState::Enum          State;
@@ -168,15 +173,13 @@ class AuthenticationContext {
         bslma::Allocator*                          allocator = 0);
 
     // MANIPULATORS
-    AuthenticationContext& setAuthenticationResult(
+    void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
-    AuthenticationContext&
-    setInitialConnectionContext(InitialConnectionContext* value);
-    AuthenticationContext&
+    void setInitialConnectionContext(InitialConnectionContext* value);
+    void
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
-    AuthenticationContext&
-    setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
-    AuthenticationContext& setConnectionType(ConnectionType::Enum value);
+    void setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
+    void setConnectionType(ConnectionType::Enum value);
 
     /// Schedule a re-authentication timer with the specified `lifetimeMs` and
     /// mark the state as `e_AUTHENTICATED`.
@@ -199,7 +202,7 @@ class AuthenticationContext {
 
     /// Return `true` if the authentication state was `e_AUTHENTICATING`
     /// and set it to `e_AUTHENTICATING`.  Otherwise, return `false`.
-    bool isAuthenticating();
+    bool tryStartReauthentication();
 
     // ACCESSORS
 

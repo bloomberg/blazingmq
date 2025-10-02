@@ -101,6 +101,7 @@ class Domain;
 }
 namespace mqbnet {
 class Negotiator;
+class Authenticator;
 }
 
 namespace mqbmock {
@@ -120,6 +121,8 @@ class Cluster : public mqbi::Cluster {
         EventProcessor;
 
     typedef bslma::ManagedPtr<mqbnet::Negotiator> NegotiatorMp;
+
+    typedef bslma::ManagedPtr<mqbnet::Authenticator> AuthenticatorMp;
 
     typedef bslma::ManagedPtr<mqbnet::Cluster> NetClusterMp;
 
@@ -180,10 +183,10 @@ class Cluster : public mqbi::Cluster {
     // Test channels
 
     // Authenticator
-    bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
+    AuthenticatorMp d_authenticator_mp;
 
     // Negotiator
-    bslma::ManagedPtr<mqbnet::Negotiator> d_negotiator_mp;
+    NegotiatorMp d_negotiator_mp;
 
     mqbnet::TransportManager d_transportManager;
     // Transport manager

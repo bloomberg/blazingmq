@@ -924,24 +924,13 @@ struct EventHeaderUtil {
     // CLASS METHODS
 
     /// Set the appropriate bits in the specified `eventHeader` to represent
-    /// the specified encoding `type` for a control event.
-    static void setControlEventEncodingType(EventHeader*       eventHeader,
-                                            EncodingType::Enum type);
+    /// the specified encoding `type` for a control or an authentication event.
+    static void setEncodingType(EventHeader*       eventHeader,
+                                EncodingType::Enum type);
 
-    /// Set the appropriate bits in the specified `eventHeader` to represent
-    /// the specified encoding `type` for an authentication event.
-    static void setAuthenticationEventEncodingType(EventHeader* eventHeader,
-                                                   EncodingType::Enum type);
-
-    /// Return the encoding type for a control event represented by the
-    /// appropriate bits in the specified `eventHeader`.
-    static EncodingType::Enum
-    controlEventEncodingType(const EventHeader& eventHeader);
-
-    /// Return the encoding type for a authentication event represented by the
-    /// appropriate bits in the specified `eventHeader`.
-    static EncodingType::Enum
-    authenticationEventEncodingType(const EventHeader& eventHeader);
+    /// Return the encoding type for a control event or an authentication event
+    /// represented by the appropriate bits in the specified `eventHeader`.
+    static EncodingType::Enum encodingType(const EventHeader& eventHeader);
 };
 
 // ===================
@@ -3845,32 +3834,12 @@ inline unsigned char EventHeader::typeSpecific() const
 // struct EventHeaderUtil
 // ----------------------
 
-inline void
-EventHeaderUtil::setControlEventEncodingType(EventHeader*       eventHeader,
+inline void EventHeaderUtil::setEncodingType(EventHeader*       eventHeader,
                                              EncodingType::Enum type)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventHeader->type() == EventType::e_CONTROL);
-    BSLS_ASSERT_SAFE(type != EncodingType::e_UNKNOWN);
-
-    unsigned char typeSpecific = eventHeader->typeSpecific();
-
-    // Reset the bits for encoding type
-    typeSpecific &= static_cast<unsigned char>(~k_CONTROL_EVENT_ENCODING_MASK);
-
-    // Set those bits to represent 'type'
-    typeSpecific |= static_cast<unsigned char>(
-        type << k_CONTROL_EVENT_ENCODING_START_IDX);
-
-    eventHeader->setTypeSpecific(typeSpecific);
-}
-
-inline void
-EventHeaderUtil::setAuthenticationEventEncodingType(EventHeader* eventHeader,
-                                                    EncodingType::Enum type)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventHeader->type() == EventType::e_AUTHENTICATION);
+    BSLS_ASSERT_SAFE(eventHeader->type() == EventType::e_CONTROL ||
+                     eventHeader->type() == EventType::e_AUTHENTICATION);
     BSLS_ASSERT_SAFE(type != EncodingType::e_UNKNOWN);
 
     unsigned char typeSpecific = eventHeader->typeSpecific();
@@ -3886,22 +3855,11 @@ EventHeaderUtil::setAuthenticationEventEncodingType(EventHeader* eventHeader,
 }
 
 inline EncodingType::Enum
-EventHeaderUtil::controlEventEncodingType(const EventHeader& eventHeader)
+EventHeaderUtil::encodingType(const EventHeader& eventHeader)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventHeader.type() == EventType::e_CONTROL);
-
-    const unsigned char typeSpecific = eventHeader.typeSpecific();
-    const int encodingType = (typeSpecific & k_CONTROL_EVENT_ENCODING_MASK) >>
-                             k_CONTROL_EVENT_ENCODING_START_IDX;
-    return static_cast<EncodingType::Enum>(encodingType);
-}
-
-inline EncodingType::Enum EventHeaderUtil::authenticationEventEncodingType(
-    const EventHeader& eventHeader)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(eventHeader.type() == EventType::e_AUTHENTICATION);
+    BSLS_ASSERT_SAFE(eventHeader.type() == EventType::e_CONTROL ||
+                     eventHeader.type() == EventType::e_AUTHENTICATION);
 
     const unsigned char typeSpecific = eventHeader.typeSpecific();
     const int encodingType = (typeSpecific & k_CONTROL_EVENT_ENCODING_MASK) >>

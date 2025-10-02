@@ -51,8 +51,8 @@
 #include <bmqp_protocol.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_functional.h>
-#include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
@@ -147,7 +147,7 @@ struct InitialConnectionEvent {
         e_OUTBOUND_NEGOTATION = 1,
         e_AUTH_REQUEST        = 2,  // handleAuthentication
         e_NEGOTIATION_MESSAGE = 3,  // handleNegotiationMessage
-        e_AUTH_SUCCESS        = 4,
+        e_AUTHN_SUCCESS       = 4,
         e_ERROR               = 5
     };
 
@@ -203,6 +203,10 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 /// Each session being authenticated and negotiated get its own context.
 class InitialConnectionContext
 : public bsl::enable_shared_from_this<InitialConnectionContext> {
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBNET.INITIALCONNECTIONCONTEXT");
+
   public:
     // TYPES
     typedef bsl::function<void(
@@ -218,7 +222,7 @@ class InitialConnectionContext
 
   private:
     // DATA
-    bslmt::Mutex d_mutex;
+    mutable bslmt::Mutex d_mutex;
 
     /// Authenticator to use for authenticating a connection.
     mqbnet::Authenticator* d_authenticator_p;
@@ -281,7 +285,7 @@ class InitialConnectionContext
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
     /// The state of the initial connection.
-    InitialConnectionState::Enum d_state;
+    State d_state;
 
     /// True if the session being negotiated originates
     /// from a remote peer (i.e., a 'listen'); false if
@@ -324,7 +328,7 @@ class InitialConnectionContext
 
   private:
     // PRIVATE MANIPULATORS
-    InitialConnectionContext& setState(InitialConnectionState::Enum value);
+    void setState(State value);
 
     int readBlob(bsl::ostream&        errorDescription,
                  bdlbb::Blob*         outPacket,
@@ -336,16 +340,15 @@ class InitialConnectionContext
     int processBlob(bsl::ostream& errorDescription, const bdlbb::Blob& blob);
 
     /// Decode the initial connection messages received in the specified
-    /// `blob` and store it, on success, in the specified optional
-    /// `negotiationMsg`, returning 0.  Return a non-zero code on error and
-    /// populate the specified `errorDescription` with a description of the
-    /// error.
+    /// `blob` and store it, on success, in the specified `message`, returning
+    /// 0.  Return a non-zero code on error and populate the specified
+    /// `errorDescription` with a description of the error.
     int decodeInitialConnectionMessage(
-        bsl::ostream& errorDescription,
-        bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
-                                   bmqp_ctrlmsg::NegotiationMessage> >*
-                           message,
-        const bdlbb::Blob& blob);
+        bsl::ostream&                                   errorDescription,
+        bsl::variant<bsl::monostate,
+                     bmqp_ctrlmsg::AuthenticationMessage,
+                     bmqp_ctrlmsg::NegotiationMessage>* message,
+        const bdlbb::Blob&                              blob);
 
     /// Create and initialize a `NegotiationContext`.
     void createNegotiationContext();
@@ -356,19 +359,15 @@ class InitialConnectionContext
     /// error.
     int handleDefaultAuthentication(bsl::ostream& errorDescription);
 
-    // PRIVATE ACCESSORS
-    InitialConnectionState::Enum state() const;
-
   public:
     // MANIPULATORS
 
-    /// Set the corresponding field to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    InitialConnectionContext& setResultState(void* value);
-    InitialConnectionContext& setAuthenticationContext(
+    /// Set the corresponding field to the specified `value`.
+    void setResultState(void* value);
+    void setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
 
-    /// Called by the IO upon `onCLose` signal
+    /// Called by the IO upon `onClose` signal
     void onClose();
 
     /// Read callback method invoked when receiving data in the specified
@@ -391,17 +390,13 @@ class InitialConnectionContext
     /// to handle, the current context is associated to this event, and the
     /// specified `message` is an optional message that may be used to handle
     /// the event.
-    void handleEvent(
-        int                statusCode,
-        const bsl::string& errorDescription,
-        Event              input,
-        const bsl::optional<bsl::variant<bmqp_ctrlmsg::AuthenticationMessage,
-                                         bmqp_ctrlmsg::NegotiationMessage> >&
-            message = bsl::nullopt);
-
-    /// Compare the current state with the specified `state`.  Return true if
-    /// they are the same, and false otherwise.
-    bool isState(State state);
+    void handleEvent(int                statusCode,
+                     const bsl::string& errorDescription,
+                     Event              input,
+                     const bsl::variant<bsl::monostate,
+                                        bmqp_ctrlmsg::AuthenticationMessage,
+                                        bmqp_ctrlmsg::NegotiationMessage>&
+                         message = bsl::monostate());
 
     // ACCESSORS
 
@@ -415,6 +410,8 @@ class InitialConnectionContext
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     bool                                       isClosed() const;
+
+    State state() const;
 
     void complete(int                                     rc,
                   const bsl::string&                      error,

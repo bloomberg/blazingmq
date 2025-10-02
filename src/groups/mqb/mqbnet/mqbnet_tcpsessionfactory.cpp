@@ -366,7 +366,8 @@ void TCPSessionFactory::handleInitialConnection(
             context->d_negotiationUserData_sp.get(),
             context->d_resultState_p,
             channel,
-            bdlf::BindUtil::bind(
+            bdlf::BindUtil::bindS(
+                d_allocator_p,
                 &TCPSessionFactory::initialConnectionComplete,
                 this,
                 bdlf::PlaceHolders::_1,  // status
@@ -989,7 +990,7 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         channelInfo->d_authenticationCtx_sp;
     const bsl::string& description = channelInfo->d_session_sp->description();
 
-    if (context->isAuthenticating()) {
+    if (!context->tryStartReauthentication()) {
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
                        << ": Dropping Authentication event since "
                           "authentication is in progress: "

@@ -32,12 +32,6 @@
 namespace BloombergLP {
 namespace mqbauthn {
 
-namespace {
-
-BALL_LOG_SET_NAMESPACE_CATEGORY("MQBAUTHN.ANONPASSAUTHENTICATOR");
-
-}  // namespace
-
 // ----------------------------------
 // class AnonPassAuthenticationResult
 // ----------------------------------
@@ -46,9 +40,8 @@ AnonPassAuthenticationResult::AnonPassAuthenticationResult(
     bsl::string_view                  principal,
     bsl::optional<bsls::Types::Int64> lifetimeMs,
     bslma::Allocator*                 allocator)
-: d_principal(principal)
+: d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
-, d_allocator_p(allocator)
 {
 }
 

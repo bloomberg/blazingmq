@@ -33,7 +33,6 @@
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
-#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_session.h>
 #include <mqbstat_queuestats.h>
 

@@ -25,6 +25,7 @@
 /// (re)authenticates a connection with a BlazingMQ client or another bmqbrkr.
 
 // MQB
+#include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 
 // BMQ
@@ -32,6 +33,7 @@
 
 // BDE
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_ostream.h>
 
 namespace BloombergLP {

@@ -50,8 +50,8 @@ typedef bsl::unordered_set<mqbplug::PluginFactory*> PluginFactories;
 AuthenticationController::AuthenticationController(
     mqbplug::PluginManager* pluginManager,
     bslma::Allocator*       allocator)
-: d_isStarted(false)
-, d_pluginManager_p(pluginManager)
+: d_pluginManager_p(pluginManager)
+, d_isStarted(false)
 , d_allocator_p(allocator)
 {
 }
@@ -65,7 +65,8 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS             = 0,
-        rc_DUPLICATE_MECHANISM = -1
+        rc_DUPLICATE_MECHANISM = -1,
+        rc_INVALID_CONFIG      = -2
     };
 
     bmqu::MemOutStream errorStream(d_allocator_p);
@@ -90,7 +91,7 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
         d_anonymousCredential->identity() = "";
     }
     else if (anonymousCredential->isCredentialValue()) {
-        BALL_LOG_INFO << "Using configured anonymous credential.'";
+        BALL_LOG_INFO << "Using configured anonymous credential.";
         d_anonymousCredential = anonymousCredential->credential();
     }
     else if (anonymousCredential->isDisallowValue()) {
@@ -98,10 +99,9 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
         d_anonymousCredential.reset();
     }
     else {
-        errorDescription << "Invalid anonymous credential configuration: "
-                            "expected 'credential' or 'disallow', got '"
-                         << anonymousCredential << "'";
-        return rc_DUPLICATE_MECHANISM;  // RETURN
+        errorDescription << "Expected credential or disallow but received a "
+                            "type that's not defined.";
+        return rc_INVALID_CONFIG;  // RETURN
     }
 
     // Initialize Authenticators from plugins

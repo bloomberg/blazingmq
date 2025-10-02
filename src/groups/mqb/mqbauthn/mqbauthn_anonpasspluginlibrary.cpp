@@ -19,7 +19,6 @@
 #include <mqbauthn_anonpassauthenticator.h>
 
 // BDE
-#include <bsl_vector.h>
 #include <bslma_default.h>
 
 namespace BloombergLP {
@@ -30,10 +29,8 @@ namespace mqbauthn {
 // -------------------
 
 PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
-: d_plugins(bslma::Default::allocator(allocator))
+: d_plugins(allocator)
 {
-    allocator = bslma::Default::allocator(allocator);
-
     mqbplug::PluginInfo& authnpassPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         mqbauthn::AnonPassAuthenticator::k_NAME);

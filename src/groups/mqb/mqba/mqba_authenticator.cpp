@@ -42,8 +42,8 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
-#include <bmqsys_threadutil.h>
 #include <bmqu_memoutstream.h>
+#include <bslmt_threadutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -58,15 +58,12 @@
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
-#include <bsls_nullptr.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
 namespace mqba {
 
 namespace {
-
-BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.AUTHENTICATOR");
 
 const int k_MIN_THREADS = 0;  // Minimum number of threads in the thread pool
 const int k_MAX_THREADS = 1;  // Maximum number of threads in the thread pool
@@ -126,6 +123,8 @@ int Authenticator::sendAuthenticationMessage(
     const bsl::shared_ptr<bmqio::Channel>&     channel,
     bmqp::EncodingType::Enum                   authenticationEncodingType)
 {
+    // executed by an *AUTHENTICATION* thread
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS       = 0,
@@ -167,10 +166,11 @@ int Authenticator::authenticateAsync(
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     int rc = d_threadPool.enqueueJob(
-        bdlf::BindUtil::bind(&Authenticator::authenticate,
-                             this,
-                             context,
-                             channel));
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &Authenticator::authenticate,
+                              this,
+                              context,
+                              channel));
 
     if (rc != 0) {
         errorDescription
@@ -216,13 +216,13 @@ void Authenticator::authenticate(
     bsl::string                          error;
     mqbnet::InitialConnectionEvent::Enum input;
 
-    bdlb::ScopeExitAny Guard(
+    bdlb::ScopeExitAny handleEventOnReturn(
         bdlf::BindUtil::bind(&mqbnet::InitialConnectionContext::handleEvent,
                              context.get(),
                              bsl::ref(rc),
                              bsl::ref(error),
                              bsl::ref(input),
-                             bsl::nullopt));
+                             bsl::monostate()));
 
     BALL_LOG_INFO << "Authenticating connection '" << channel->peerUri()
                   << "' with mechanism '" << authenticateRequest.mechanism()
@@ -248,15 +248,15 @@ void Authenticator::authenticate(
 
     // In the case of a default authentication, we do not need to send
     // an AuthenticationResponse, we just need to continue the negotiation.
-    if (context->isState(
-            mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING)) {
+    if (context->state() ==
+        mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING) {
         if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
             rc    = (status.code() * 10) + rc_AUTHENTICATION_FAILED;
             error = status.message();
             input = InitialConnectionEvent::e_ERROR;
         }
         else {
-            input = InitialConnectionEvent::e_AUTH_SUCCESS;
+            input = InitialConnectionEvent::e_AUTHN_SUCCESS;
         }
         return;  // RETURN
     }
@@ -284,7 +284,7 @@ void Authenticator::authenticate(
     }
 
     // Authentication succeeded.  Transition to the next state.
-    input = InitialConnectionEvent::e_AUTH_SUCCESS;
+    input = InitialConnectionEvent::e_AUTHN_SUCCESS;
     return;
 }
 
@@ -312,9 +312,8 @@ void Authenticator::reauthenticate(
     bmqp_ctrlmsg::AuthenticateResponse& response =
         authenticationResponse.makeAuthenticateResponse();
 
-    bsl::shared_ptr<mqbnet::Session> session;
-    int                              rc = rc_SUCCESS;
-    bsl::string                      error;
+    int         rc = rc_SUCCESS;
+    bsl::string error;
 
     bdlb::ScopeExitAny reauthenticateErrorGuard(bdlf::BindUtil::bind(
         &mqbnet::AuthenticationContext::onReauthenticateErrorOrTimeout,
@@ -367,8 +366,6 @@ void Authenticator::reauthenticate(
 
     // Reauthentication succeeded, release the error guard
     reauthenticateErrorGuard.release();
-
-    return;
 }
 
 int Authenticator::processAuthentication(
@@ -413,11 +410,16 @@ int Authenticator::processAuthentication(
 
         const int scheduleRc = authenticationContext->scheduleReauthn(
             errorDescription,
-            d_scheduler,
+            d_scheduler_p,
             result->lifetimeMs(),
             channel);
 
         if (scheduleRc != 0) {
+            // `response` wouldn't be sent in this case as the connection will
+            // be closed by the caller.
+            response->status().code() = scheduleRc;
+            response->status().category() =
+                bmqp_ctrlmsg::StatusCategory::E_REFUSED;
             return rc_AUTHENTICATION_STATE_INCORRECT;
         }
     }
@@ -431,18 +433,22 @@ Authenticator::Authenticator(
     BlobSpPool*                         blobSpPool,
     bdlmt::EventScheduler*              scheduler,
     bslma::Allocator*                   allocator)
-: d_isStarted(false)
-, d_authnController_p(authnController)
-, d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
+: d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
                k_MIN_THREADS,                                // min threads
                k_MAX_THREADS,                                // max threads
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
+, d_authnController_p(authnController)
 , d_blobSpPool_p(blobSpPool)
-, d_scheduler(scheduler)
+, d_scheduler_p(scheduler)
+, d_isStarted(false)
 , d_allocator_p(allocator)
 {
-    // NOTHING
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_authnController_p);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
+    BSLS_ASSERT_SAFE(d_scheduler_p);
+    BSLS_ASSERT_SAFE(d_allocator_p);
 }
 
 /// Destructor
@@ -542,10 +548,11 @@ int Authenticator::reauthenticateAsync(
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     int rc = d_threadPool.enqueueJob(
-        bdlf::BindUtil::bind(&Authenticator::reauthenticate,
-                             this,
-                             context,
-                             channel));
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &Authenticator::reauthenticate,
+                              this,
+                              context,
+                              channel));
 
     if (rc != 0) {
         errorDescription << "Failed to enqueue authentication job for '"

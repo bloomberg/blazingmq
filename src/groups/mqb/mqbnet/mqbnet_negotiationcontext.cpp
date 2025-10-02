@@ -28,8 +28,8 @@ NegotiationContext::NegotiationContext(
     InitialConnectionContext* initialConnectionContext,
     bslma::Allocator*         allocator)
 : d_initialConnectionContext_p(initialConnectionContext)
-, d_negotiationMessage(bmqp_ctrlmsg::NegotiationMessage())
-, d_clusterName(bsl::string(), allocator)
+, d_negotiationMessage(allocator)
+, d_clusterName(allocator)
 , d_connectionType(mqbnet::ConnectionType::e_UNKNOWN)
 , d_maxMissedHeartbeats(0)
 , d_eventProcessor_p(bsl::nullptr_t())
@@ -38,51 +38,35 @@ NegotiationContext::NegotiationContext(
     // NOTHING
 }
 
-NegotiationContext& NegotiationContext::setInitialConnectionContext(
-    InitialConnectionContext* value)
-{
-    d_initialConnectionContext_p = value;
-    return *this;
-}
-
-NegotiationContext& NegotiationContext::setNegotiationMessage(
+void NegotiationContext::setNegotiationMessage(
     const bmqp_ctrlmsg::NegotiationMessage& value)
 {
     d_negotiationMessage = value;
-    return *this;
 }
 
-NegotiationContext&
-NegotiationContext::setClusterName(const bsl::string& value)
+void NegotiationContext::setClusterName(const bsl::string& value)
 {
     d_clusterName = value;
-    return *this;
 }
 
-NegotiationContext&
-NegotiationContext::setConnectionType(ConnectionType::Enum value)
+void NegotiationContext::setConnectionType(ConnectionType::Enum value)
 {
     d_connectionType = value;
-    return *this;
 }
 
-NegotiationContext& NegotiationContext::setMaxMissedHeartbeats(int value)
+void NegotiationContext::setMaxMissedHeartbeats(int value)
 {
     d_maxMissedHeartbeats = value;
-    return *this;
 }
 
-NegotiationContext&
-NegotiationContext::setEventProcessor(SessionEventProcessor* value)
+void NegotiationContext::setEventProcessor(SessionEventProcessor* value)
 {
     d_eventProcessor_p = value;
-    return *this;
 }
 
-NegotiationContext& NegotiationContext::setCluster(Cluster* value)
+void NegotiationContext::setCluster(Cluster* value)
 {
     d_cluster_p = value;
-    return *this;
 }
 
 // ACCESSORS
