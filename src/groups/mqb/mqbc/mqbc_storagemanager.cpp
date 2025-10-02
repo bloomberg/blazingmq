@@ -876,9 +876,7 @@ void StorageManager::processReplicaStateResponseDispatched(
             d_clusterData_p->membership().selfNode(),
             primaryLeaseId,
             response.latestSequenceNumber(),
-            response.firstSyncPointAfterRolloverSequenceNumber(),
-            static_cast<mqbnet::ClusterNode*>(0),  // highestSeqNumNode
-            PartitionSeqNumDataRange());           // seqNumDataRange
+            response.firstSyncPointAfterRolloverSequenceNumber());
 
         BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
     }
@@ -1354,7 +1352,7 @@ void StorageManager::do_storeSelfSeq(const PartitionFSMArgsSp& args)
         }
     }
     nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum =
-        getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
+        getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
     nodeSeqNumCtx.d_isInSync = false;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -1596,9 +1594,9 @@ void StorageManager::do_replicaStateRequest(const PartitionFSMArgsSp& args)
     replicaStateRequest.latestSequenceNumber() =
         d_nodeToSeqNumCtxMapVec[partitionId][selfNode].d_seqNum;
 
-    // Get own first sync point sequence number
+    // Get own first sync point after rollover sequence number
     replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
-        getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
+        getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
     contextSp->setDestinationNodes(replicas);
     contextSp->setResponseCb(
@@ -1645,9 +1643,9 @@ void StorageManager::do_replicaStateResponse(const PartitionFSMArgsSp& args)
                                [d_clusterData_p->membership().selfNode()]
                                    .d_seqNum;
 
-    // Get own first sync point sequence number
+    // Get own first sync point after rollover sequence number
     response.firstSyncPointAfterRolloverSequenceNumber() =
-        getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
+        getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
     BSLS_ASSERT_SAFE(eventData.source());
     BSLS_ASSERT_SAFE(eventData.source()->nodeId() ==
@@ -1803,9 +1801,9 @@ void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
                                [d_clusterData_p->membership().selfNode()]
                                    .d_seqNum;
 
-    // Get own first sync point sequence number
+    // Get own first sync point after rollover sequence number
     primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber() =
-        getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
+        getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
     mqbnet::ClusterNode* destNode = eventData.primary();
 
@@ -1871,9 +1869,9 @@ void StorageManager::do_primaryStateResponse(const PartitionFSMArgsSp& args)
                                [d_clusterData_p->membership().selfNode()]
                                    .d_seqNum;
 
-    // Get own first sync point sequence number
+    // Get own first sync point after rollover sequence number
     response.firstSyncPointAfterRolloverSequenceNumber() =
-        getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
+        getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
 
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());
@@ -2186,12 +2184,9 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         else if (cit->second.d_seqNum !=
                      bmqp_ctrlmsg::PartitionSequenceNumber() &&
                  cit->second.d_firstSyncPointAfterRolloverSeqNum !=
-                     selfFirstSyncAfterRolloverSeqNum) {  // Node with non
-                                                          // empty storage and
-                                                          // different first
-                                                          // sync point after
-                                                          // rollover is
-                                                          // obsolete.
+                     selfFirstSyncAfterRolloverSeqNum) {
+            // Node with non-empty storage and different first sync point after
+            // rollover is obsolete.
             obsoleteDataReplicas.emplace_back(cit->first);
         }
     }
@@ -3150,12 +3145,11 @@ void StorageManager::do_updateStorage(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_fileStores.size() >
                      static_cast<unsigned int>(partitionId));
 
-    // Get first sync point after rollover sequenceNumber from source node.
-    bmqp_ctrlmsg::PartitionSequenceNumber firstSyncPointAfterRolloverSeqNum;
+    // Get first sync point after rollover sequence number from source node.
     NodeToSeqNumCtxMapIter it = d_nodeToSeqNumCtxMapVec[partitionId].find(
         source);
     BSLS_ASSERT_SAFE(it != d_nodeToSeqNumCtxMapVec[partitionId].end());
-    firstSyncPointAfterRolloverSeqNum =
+    bmqp_ctrlmsg::PartitionSequenceNumber firstSyncPointAfterRolloverSeqNum =
         it->second.d_firstSyncPointAfterRolloverSeqNum;
 
     mqbs::FileStore* fs =
@@ -4340,9 +4334,6 @@ void StorageManager::processPrimaryStateRequest(
         return;  // RETURN
     }
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
     EventData eventDataVec;
     eventDataVec.emplace_back(
         source,
@@ -4351,6 +4342,9 @@ void StorageManager::processPrimaryStateRequest(
         1,
         primaryStateRequest.latestSequenceNumber(),
         primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_PRIMARY_STATE_RQST,
@@ -4841,7 +4835,7 @@ const mqbs::FileStore& StorageManager::fileStore(int partitionId) const
 }
 
 const bmqp_ctrlmsg::PartitionSequenceNumber
-StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
+StorageManager::getSelfFirstSyncPointAfterRolloverSequenceNumber(
     int partitionId) const
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
@@ -4855,14 +4849,14 @@ StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
 
     // Get own first sync point after rolllover sequence number
     bmqp_ctrlmsg::PartitionSequenceNumber
-        selffirstSyncPointAfterRollloverSeqNum;
+        selfFirstSyncPointAfterRollloverSeqNum;
     if (fs->isOpen()) {
-        selffirstSyncPointAfterRollloverSeqNum =
+        selfFirstSyncPointAfterRollloverSeqNum =
             fs->firstSyncPointAfterRolloverSeqNum();
     }
     else {
         const int rc = d_recoveryManager_mp->recoverSeqNum(
-            &selffirstSyncPointAfterRollloverSeqNum,
+            &selfFirstSyncPointAfterRollloverSeqNum,
             partitionId,
             true);
         if (rc != 0) {
@@ -4872,10 +4866,10 @@ StorageManager::getSelffirstSyncPointAfterRolloverSequenceNumber(
                              "rolllover sequence "
                              "number for partition "
                           << partitionId << ". rc=" << rc;
-            selffirstSyncPointAfterRollloverSeqNum.reset();
+            selfFirstSyncPointAfterRollloverSeqNum.reset();
         }
     }
-    return selffirstSyncPointAfterRollloverSeqNum;
+    return selfFirstSyncPointAfterRollloverSeqNum;
 }
 
 }  // close package namespace

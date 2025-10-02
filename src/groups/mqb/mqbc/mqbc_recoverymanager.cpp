@@ -690,14 +690,6 @@ int RecoveryManager::processReceiveDataChunks(
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currSeqNum.sequenceNumber() ==
                          fs->sequenceNumber());
 
-        // Set first sync point after rollover sequence number before
-        // processing data chunks.
-        if (firstSyncPointAfterRolloverSeqNum !=
-            bmqp_ctrlmsg::PartitionSequenceNumber()) {
-            fs->setFirstSyncPointAfterRolloverSeqNum(
-                firstSyncPointAfterRolloverSeqNum);
-        }
-
         fs->processStorageEvent(blob, true /* isPartitionSyncEvent */, source);
 
         receiveDataCtx.d_currSeqNum.primaryLeaseId() = fs->primaryLeaseId();

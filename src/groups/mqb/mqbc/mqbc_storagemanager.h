@@ -715,8 +715,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
 
+    /// Return own the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber
-    getSelffirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
+    getSelfFirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
 
   public:
     // TRAITS
