@@ -868,35 +868,6 @@ void StorageManager::processReplicaStateResponseDispatched(
                                                 .at(response.partitionId())
                                                 .primaryLeaseId();
 
-        // Decide to drop replica's storage
-        // if it is not empty and its first sync point does not match primary's
-        // one.
-        bool needDropReplicaStorage = false;
-        if (response.latestSequenceNumber() !=
-            bmqp_ctrlmsg::PartitionSequenceNumber()) {
-            // Replica's storage is not empty, need to check first sync point
-            // after rollover sequence number.
-            bmqp_ctrlmsg::PartitionSequenceNumber
-                selfFirstSyncPointAfterRollloverSeqNum =
-                    getSelffirstSyncPointAfterRolloverSequenceNumber(
-                        requestPartitionId);
-            needDropReplicaStorage =
-                selfFirstSyncPointAfterRollloverSeqNum !=
-                response.firstSyncPointAfterRolloverSequenceNumber();
-
-            if (needDropReplicaStorage) {
-                BALL_LOG_WARN
-                    << d_clusterData_p->identity().description()
-                    << " Partition [" << requestPartitionId
-                    << "]: " << "Need to drop replica's ["
-                    << cit->first->nodeDescription() << "] storage "
-                    << "as its first sync point "
-                    << "sequence number does not match - self: "
-                    << selfFirstSyncPointAfterRollloverSeqNum << " replica: "
-                    << response.firstSyncPointAfterRolloverSequenceNumber();
-            }
-        }
-
         eventDataVec.emplace_back(
             cit->first,
             responseId,
@@ -907,8 +878,7 @@ void StorageManager::processReplicaStateResponseDispatched(
             response.latestSequenceNumber(),
             response.firstSyncPointAfterRolloverSequenceNumber(),
             static_cast<mqbnet::ClusterNode*>(0),  // highestSeqNumNode
-            PartitionSeqNumDataRange(),            // seqNumDataRange
-            needDropReplicaStorage);
+            PartitionSeqNumDataRange());           // seqNumDataRange
 
         BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
     }
@@ -2004,6 +1974,10 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
                      nodeToSeqNumCtxMap.end());
     const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum =
         nodeToSeqNumCtxMap.at(selfNode).d_seqNum;
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+        selfFirstSyncAfterRolloverSeqNum =
+            nodeToSeqNumCtxMap.at(selfNode)
+                .d_firstSyncPointAfterRolloverSeqNum;
 
     // Determine the outdated and up-to-date replicas
     ClusterNodeVec outdatedReplicas;
@@ -2014,16 +1988,11 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
             continue;  // CONTINUE
         }
 
-        // Check if `eventDataVec` contains an entry for this node
-        // and check for `needDropSourceStorage` flag
-        bool skipPush = false;
-        for (size_t i = 0; i < eventDataVec.size(); ++i) {
-            if (eventDataVec[i].source()->nodeId() == cit->first->nodeId()) {
-                skipPush = eventDataVec[i].needDropSourceStorage();
-                break;
-            }
-        }
-        if (skipPush) {
+        // Skip node with empty storage and different first sync point after
+        // rollover, it needs to drop its storage.
+        if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
+            cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                selfFirstSyncAfterRolloverSeqNum) {
             continue;  // CONTINUE
         }
 
@@ -2198,27 +2167,32 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
                      nodeToSeqNumCtxMap.end());
     const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum =
         nodeToSeqNumCtxMap.at(selfNode).d_seqNum;
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+        selfFirstSyncAfterRolloverSeqNum =
+            nodeToSeqNumCtxMap.at(selfNode)
+                .d_firstSyncPointAfterRolloverSeqNum;
 
     // Determine the replicas with obsolete data to be dropped
     ClusterNodeVec obsoleteDataReplicas;
     for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
          cit != nodeToSeqNumCtxMap.cend();
          cit++) {
+        if (cit->first->nodeId() == selfNode->nodeId()) {
+            continue;  // CONTINUE
+        }
         if (cit->second.d_seqNum > selfSeqNum && !cit->second.d_isInSync) {
             obsoleteDataReplicas.emplace_back(cit->first);
         }
-        else {
-            // Check if `eventDataVec` contains an entry for this node
-            // and check for `needDropSourceStorage` flag
-            for (size_t i = 0; i < eventDataVec.size(); ++i) {
-                if (eventDataVec[i].source()->nodeId() ==
-                    cit->first->nodeId()) {
-                    if (eventDataVec[i].needDropSourceStorage()) {
-                        obsoleteDataReplicas.emplace_back(cit->first);
-                    }
-                    break;
-                }
-            }
+        else if (cit->second.d_seqNum !=
+                     bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                 cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                     selfFirstSyncAfterRolloverSeqNum) {  // Node with non
+                                                          // empty storage and
+                                                          // different first
+                                                          // sync point after
+                                                          // rollover is
+                                                          // obsolete.
+            obsoleteDataReplicas.emplace_back(cit->first);
         }
     }
 
@@ -2911,6 +2885,11 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
         const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum =
             nodeToSeqNumCtxMap[selfNode].d_seqNum;
 
+        const bmqp_ctrlmsg::PartitionSequenceNumber&
+            selfFirstSyncAfterRolloverSeqNum =
+                nodeToSeqNumCtxMap[selfNode]
+                    .d_firstSyncPointAfterRolloverSeqNum;
+
         for (NodeToSeqNumCtxMapCIter cit = nodeToSeqNumCtxMap.cbegin();
              cit != nodeToSeqNumCtxMap.cend();
              cit++) {
@@ -2931,20 +2910,13 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
                 continue;  // CONTINUE
             }
-
-            // Check if `eventDataVec` contains an entry for this node
-            // and check for `needDropSourceStorage` flag
-            bool skipSend = false;
-            for (size_t i = 0; i < eventDataVec.size(); ++i) {
-                if (eventDataVec[i].source()->nodeId() ==
-                    cit->first->nodeId()) {
-                    skipSend = eventDataVec[i].needDropSourceStorage();
-                    break;
-                }
-            }
-            if (skipSend) {
-                // Replica needs to drop its partition, we already sent
-                // ReplicaDataRequestDrop
+            else if (cit->second.d_seqNum !=
+                         bmqp_ctrlmsg::PartitionSequenceNumber() &&
+                     cit->second.d_firstSyncPointAfterRolloverSeqNum !=
+                         selfFirstSyncAfterRolloverSeqNum) {
+                // Skip node with non empty storage and different first sync
+                // point after rollover, we already sent
+                // ReplicaDataRequestDrop.
                 continue;  // CONTINUE
             }
 
@@ -4371,35 +4343,6 @@ void StorageManager::processPrimaryStateRequest(
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
 
-    // Decide to drop replica's storage
-    // if it is not empty and its first sync point does not match primary's
-    // one.
-    bool needDropReplicaStorage = false;
-    if (primaryStateRequest.latestSequenceNumber() !=
-        bmqp_ctrlmsg::PartitionSequenceNumber()) {
-        // Replica's storage is not empty, need to check first sync point after
-        // rollover sequence number.
-        bmqp_ctrlmsg::PartitionSequenceNumber
-            selffirstSyncPointAfterRollloverSeqNum =
-                getSelffirstSyncPointAfterRolloverSequenceNumber(partitionId);
-        needDropReplicaStorage =
-            selffirstSyncPointAfterRollloverSeqNum !=
-            primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber();
-
-        if (needDropReplicaStorage) {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId
-                          << "]: " << "Need to drop replica's ["
-                          << source->nodeDescription() << "] storage "
-                          << "as its first sync point after rolllover"
-                          << " sequence number does not match - self: "
-                          << selffirstSyncPointAfterRollloverSeqNum
-                          << " replica: "
-                          << primaryStateRequest
-                                 .firstSyncPointAfterRolloverSequenceNumber();
-        }
-    }
-
     EventData eventDataVec;
     eventDataVec.emplace_back(
         source,
@@ -4407,8 +4350,7 @@ void StorageManager::processPrimaryStateRequest(
         partitionId,
         1,
         primaryStateRequest.latestSequenceNumber(),
-        primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber(),
-        needDropReplicaStorage);
+        primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_PRIMARY_STATE_RQST,
