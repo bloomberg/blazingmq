@@ -593,7 +593,8 @@ class ClientSession : public mqbnet::Session,
 
     /// Process the specified `event` received from the optionally specified
     /// `source` node.  Note that this method is the entry point for all
-    /// incoming events coming from the remote peer.
+    /// incoming events coming from the remote peer.  The behavior is undefined
+    /// unless `event` is not `AuthenticationEvent`.
     void processEvent(const bmqp::Event&   event,
                       mqbnet::ClusterNode* source = 0) BSLS_KEYWORD_OVERRIDE;
 

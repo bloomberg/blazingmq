@@ -373,9 +373,9 @@ int TransportManager::start(bsl::ostream& errorDescription)
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS                    = 0,
-        rc_TCP_INTERFACE              = -1,
-        rc_INITIAL_CONNECTION_HANDLER = -2
+        rc_SUCCESS       = 0,
+        rc_TCP_INTERFACE = -1,
+        rc_AUTHENTICATOR = -2
     };
 
     BALL_LOG_INFO << "Starting TransportManager";
@@ -399,7 +399,7 @@ int TransportManager::start(bsl::ostream& errorDescription)
     // Start the Authenticator
     rc = d_authenticator_mp->start(errorDescription);
     if (rc != 0) {
-        return (rc * 10) + rc_INITIAL_CONNECTION_HANDLER;  // RETURN
+        return (rc * 10) + rc_AUTHENTICATOR;  // RETURN
     }
 
     d_state = e_STARTING;

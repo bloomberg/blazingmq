@@ -426,11 +426,10 @@ class TCPSessionFactory {
     /// `initialConnectionContext_p` corresponds to the unique context created
     /// during `handleInitialConnection` method for that `channel`.  If the
     /// specified `statusCode` is 0, the initial connection was a success and
-    /// the specified `session` contains the negotiated session. If `status` is
-    /// non-zero, the initial connection was a failure and `session` will be
+    /// the specified `session` contains the negotiated session.  If `status`
+    /// is non-zero, the initial connection was a failure and `session` will be
     /// null, with the specified `errorDescription` containing a description of
-    /// the error.  In either case, the specified `callback` must be invoked to
-    /// notify the channel factory of the status.
+    /// the error.
     void initialConnectionComplete(
         int                                      statusCode,
         const bsl::string&                       errorDescription,
@@ -495,7 +494,7 @@ class TCPSessionFactory {
     /// Cancel any open listener operations and clear them out.
     void cancelListeners();
 
-    /// Stop all hearbeats
+    /// Stop all hearbeats.
     void stopHeartbeats();
 
     // PRIVATE ACCESSORS

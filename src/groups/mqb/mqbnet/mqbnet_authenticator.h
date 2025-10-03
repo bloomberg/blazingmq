@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_authenticator.h -*-C++-*-
+// mqbnet_authenticator.h                                       -*-C++-*-
 #ifndef INCLUDED_MQBNET_AUTHENTICATOR
 #define INCLUDED_MQBNET_AUTHENTICATOR
 
@@ -57,12 +57,12 @@ class Authenticator {
 
     // MANIPULATORS
 
-    /// Start the Authenticator.  Return 0 on success, or a non-zero error
+    /// Start the authenticator.  Return 0 on success, or a non-zero error
     /// code and populate the specified `errorDescription` with a description
     /// of the error otherwise.
     virtual int start(bsl::ostream& errorDescription) = 0;
 
-    /// Stop the Authenticator.
+    /// Stop the authenticator.
     virtual void stop() = 0;
 
     /// Authenticate the connection based on the type of AuthenticationMessage
@@ -74,13 +74,14 @@ class Authenticator {
         const bsl::shared_ptr<InitialConnectionContext>& context,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 
-    /// Send out outbound authentication message with the specified `context`.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
+    /// Produce and send outbound authentication message with the specified
+    /// `context`.  Return 0 on success, or a non-zero error code and populate
+    /// the specified `errorDescription` with a description of the error
+    /// otherwise.
     virtual int authenticationOutbound(
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
-    /// Schedule a re-authentication job in the thread pool using the
+    /// Schedule a reauthentication job in the thread pool using the
     /// specified `context` and `channel`.  Return 0 on success, or a
     /// non-zero error code and populate the specified `errorDescription`
     /// with a description of the error otherwise.

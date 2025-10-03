@@ -21,8 +21,6 @@
 // MQB
 #include <mqbplug_authenticator.h>
 
-// BMQ
-
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_memory.h>

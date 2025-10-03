@@ -75,7 +75,7 @@ namespace mqba {
 class Authenticator : public mqbnet::Authenticator {
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("MQBNET.AUTHENTICATIONCONTEXT");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBA.AUTHENTICATOR");
 
   public:
     // TYPES
@@ -101,11 +101,14 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // DATA
 
-    /// Thread pool to run authentication and reauthentication tasks.
-    bdlmt::ThreadPool d_threadPool;
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
     /// Authentication Controller.
     mqbauthn::AuthenticationController* d_authnController_p;
+
+    /// Thread pool to run authentication and reauthentication tasks.
+    bdlmt::ThreadPool d_threadPool;
 
     BlobSpPool* d_blobSpPool_p;
 
@@ -116,9 +119,6 @@ class Authenticator : public mqbnet::Authenticator {
 
     /// True if this component is started.
     bool d_isStarted;
-
-    /// Allocator to use.
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -181,7 +181,7 @@ class Authenticator : public mqbnet::Authenticator {
                       const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Reauthenticate the connection using the `AuthenticationMessage`
-    /// stored in `context`.  If re-authentication fails, invoke
+    /// stored in `context`.  If reauthentication fails, invoke
     /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
     /// state of `context` as appropriate.
     void reauthenticate(const AuthenticationContextSp&         context,
@@ -244,7 +244,7 @@ class Authenticator : public mqbnet::Authenticator {
     int authenticationOutbound(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Schedule a re-authentication job in the thread pool using the
+    /// Schedule a reauthentication job in the thread pool using the
     /// specified `context` and `channel`.  Return 0 on success, or a
     /// non-zero error code and populate the specified `errorDescription`
     /// with a description of the error otherwise.

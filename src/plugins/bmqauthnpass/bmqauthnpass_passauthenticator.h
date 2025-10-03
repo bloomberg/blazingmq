@@ -109,7 +109,7 @@ class PassAuthenticator : public mqbplug::Authenticator {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(PassAuthenticationResult,
+    BSLMF_NESTED_TRAIT_DECLARATION(PassAuthenticator,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
@@ -142,12 +142,12 @@ class PassAuthenticator : public mqbplug::Authenticator {
 
     // MANIPULATORS
 
-    /// Start the Authenticator and return 0 on success, or return a non-zero
+    /// Start the authenticator and return 0 on success, or return a non-zero
     /// value and populate the specified `errorDescription` with the
     /// description of any failure encountered.
     int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
-    /// Stop the Authenticator.
+    /// Stop the authenticator.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
 

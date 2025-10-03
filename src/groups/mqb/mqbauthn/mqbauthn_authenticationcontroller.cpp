@@ -30,6 +30,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_string.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsl_unordered_set.h>
@@ -40,6 +41,14 @@ namespace mqbauthn {
 namespace {
 
 typedef bsl::unordered_set<mqbplug::PluginFactory*> PluginFactories;
+
+inline bsl::string normalizeMechanism(bsl::string_view  mech,
+                                      bslma::Allocator* allocator = 0)
+{
+    bsl::string out(mech.begin(), mech.end(), allocator);
+    bdlb::String::toUpper(&out);
+    return out;
+}
 
 }  // close unnamed namespace
 
@@ -58,16 +67,18 @@ AuthenticationController::AuthenticationController(
 
 int AuthenticationController::start(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(!d_isStarted &&
-                    "start() can only be called once on this object");
-
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS             = 0,
-        rc_DUPLICATE_MECHANISM = -1,
-        rc_INVALID_CONFIG      = -2
+        rc_ALREADY_STARTED     = -1,
+        rc_DUPLICATE_MECHANISM = -2,
+        rc_INVALID_CONFIG      = -3
     };
+
+    if (d_isStarted) {
+        errorDescription << "start() can only be called once on this object";
+        return rc_ALREADY_STARTED;
+    }
 
     bmqu::MemOutStream errorStream(d_allocator_p);
 
@@ -118,9 +129,12 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
                 dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(*factoryIt);
             AuthenticatorMp authenticator = factory->create(d_allocator_p);
 
+            const bsl::string normMech =
+                normalizeMechanism(authenticator->mechanism(), d_allocator_p);
+
             // Check if there's an authenticator with duplicate mechanism
             AuthenticatorMap::const_iterator cit = d_authenticators.find(
-                authenticator->mechanism());
+                normMech);
             if (cit != d_authenticators.cend()) {
                 errorDescription << "Attempting to create duplicate "
                                     "authenticator with mechanism '"
@@ -141,7 +155,7 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
 
             // Add the authenticator into the collection
             d_authenticators.emplace(
-                authenticator->mechanism(),
+                normMech,
                 bslmf::MovableRefUtil::move(authenticator));
         }
 
@@ -167,14 +181,15 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
             }
 
             // Add the authenticator into the collection
+            const bsl::string normMech =
+                normalizeMechanism(authenticator->mechanism(), d_allocator_p);
             d_authenticators.emplace(
-                authenticator->mechanism(),
+                normMech,
                 bslmf::MovableRefUtil::move(authenticator));
         }
     }
 
     d_isStarted = true;
-
     return rc_SUCCESS;
 }
 
@@ -214,7 +229,8 @@ int AuthenticationController::authenticate(
     int                rc = rc_SUCCESS;
     bmqu::MemOutStream errorStream(d_allocator_p);
 
-    AuthenticatorMap::const_iterator cit = d_authenticators.find(mechanism);
+    const bsl::string normMech = normalizeMechanism(mechanism, d_allocator_p);
+    AuthenticatorMap::const_iterator cit = d_authenticators.find(normMech);
     if (cit != d_authenticators.cend()) {
         const AuthenticatorMp& authenticator = cit->second;
         BALL_LOG_DEBUG << "AuthenticationController: "

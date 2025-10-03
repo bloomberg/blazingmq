@@ -21,10 +21,10 @@
 ///
 /// @brief Provide an default anonymous pass authenticator plugin.
 ///
-/// @bbref{mqbauthn::AnonPassAuthenticator} provides an authenticator plugin
-/// that always authenticates successfully, regardless of the input provided.
-/// It's used as a default authenticator for the anonymous credential when no
-/// other authenticator is configured.
+/// @bbref{mqbauthn::AnonPassAuthenticator} provides a built-in authenticator
+/// plugin that always authenticates successfully, regardless of the input
+/// provided. It's used as a default authenticator for the anonymous credential
+/// when no other authenticator is configured.
 /// @bbref{mqbauthn::AnonPassAuthenticationResult} and
 /// @bbref{mqbauthn::AnonPassAuthenticatorPluginFactory} are the corresponding
 /// result and factory classes for the authenticator plugin.
@@ -99,11 +99,12 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.ANONPASSAUTHENTICATOR");
 
     // DATA
-    const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
+    bslma::Allocator* d_allocator_p;
+
+    BSLA_UNUSED const mqbcfg::AuthenticatorPluginConfig*
+                      d_authenticatorConfig_p;
 
     bool d_isStarted;
-
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -114,7 +115,8 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Authenticator, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(AnonPassAuthenticator,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 

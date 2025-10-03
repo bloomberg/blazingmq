@@ -30,7 +30,7 @@
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
 /// This component is held by `InitialConnectionContext`, and its functions
-/// are called inly from there.  It is not thread safe.
+/// are called only from there.  It is not thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>
