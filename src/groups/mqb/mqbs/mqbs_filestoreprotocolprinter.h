@@ -100,13 +100,13 @@ void printFileHeader(bsl::ostream&                     stream,
                      const mqbs::MappedFileDescriptor& mfd,
                      bslma::Allocator*                 allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(5);
-    fields.push_back("Protocol Version");
-    fields.push_back("Bitness");
-    fields.push_back("FileType");
-    fields.push_back("HeaderWords");
-    fields.push_back("PartitionId");
+    fields.emplace_back("Protocol Version");
+    fields.emplace_back("Bitness");
+    fields.emplace_back("FileType");
+    fields.emplace_back("HeaderWords");
+    fields.emplace_back("PartitionId");
 
     const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
 
@@ -124,18 +124,18 @@ void printJournalFileHeader(bsl::ostream&                     stream,
                             const mqbs::MappedFileDescriptor& journalFd,
                             bslma::Allocator*                 allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(10);
-    fields.push_back("HeaderWords");
-    fields.push_back("RecordWords");
-    fields.push_back("First SyncPointRecord offset words");
-    fields.push_back("First SyncPointRecord type");
-    fields.push_back("First SyncPointRecord primaryNodeId");
-    fields.push_back("First SyncPointRecord primaryLeaseId");
-    fields.push_back("First SyncPointRecord sequenceNumber");
-    fields.push_back("First SyncPointRecord dataFileOffset");
-    fields.push_back("First SyncPointRecord timestamp");
-    fields.push_back("First SyncPointRecord epoch");
+    fields.emplace_back("HeaderWords");
+    fields.emplace_back("RecordWords");
+    fields.emplace_back("First SyncPointRecord offset words");
+    fields.emplace_back("First SyncPointRecord type");
+    fields.emplace_back("First SyncPointRecord primaryNodeId");
+    fields.emplace_back("First SyncPointRecord primaryLeaseId");
+    fields.emplace_back("First SyncPointRecord sequenceNumber");
+    fields.emplace_back("First SyncPointRecord dataFileOffset");
+    fields.emplace_back("First SyncPointRecord timestamp");
+    fields.emplace_back("First SyncPointRecord epoch");
 
     bsls::Types::Uint64 offsetW = header.firstSyncPointOffsetWords();
 
@@ -183,10 +183,10 @@ void printDataFileHeader(bsl::ostream&               stream,
                          const mqbs::DataFileHeader& header,
                          bslma::Allocator*           allocator = 0)
 {
-    bsl::vector<const char*> fields(allocator);
+    bsl::vector<bsl::string> fields(allocator);
     fields.reserve(2);
-    fields.push_back("HeaderWords");
-    fields.push_back("FileId (FileKey)");
+    fields.emplace_back("HeaderWords");
+    fields.emplace_back("FileId (FileKey)");
 
     bmqu::MemOutStream os;
     os << header.fileKey();
