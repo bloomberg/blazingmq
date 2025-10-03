@@ -67,9 +67,9 @@ AnonPassAuthenticationResult::lifetimeMs() const
 AnonPassAuthenticator::AnonPassAuthenticator(
     const mqbcfg::AuthenticatorPluginConfig* config,
     bslma::Allocator*                        allocator)
-: d_authenticatorConfig_p(config)
+: d_allocator_p(allocator)
+, d_authenticatorConfig_p(config)
 , d_isStarted(false)
-, d_allocator_p(allocator)
 {
     if (!config) {
         // No config is provided for an anonymous authenticator.
@@ -110,11 +110,12 @@ int AnonPassAuthenticator::authenticate(
     return 0;
 }
 
-int AnonPassAuthenticator::start(BSLA_UNUSED bsl::ostream& errorDescription)
+int AnonPassAuthenticator::start(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(!d_isStarted &&
-                    "start() can only be called once on this object");
+    if (d_isStarted) {
+        errorDescription << "start() can only be called once on this object";
+        return -1;
+    }
 
     d_isStarted = true;
 

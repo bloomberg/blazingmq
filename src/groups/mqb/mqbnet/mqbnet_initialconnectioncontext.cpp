@@ -45,8 +45,8 @@ namespace {
 
 const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 
-// Proxy that captures a shared_ptr to extend lifetime.
-void readCallbackProxy(
+// Trampoline that captures a shared_ptr to extend lifetime.
+void readCallbackTrampoline(
     const bsl::shared_ptr<BloombergLP::mqbnet::InitialConnectionContext>& self,
     const BloombergLP::bmqio::Status& status,
     int*                              numNeeded,
@@ -495,7 +495,7 @@ int InitialConnectionContext::scheduleRead(bsl::ostream& errorDescription)
     bmqio::Status status;
     channel()->read(&status,
                     bmqp::Protocol::k_PACKET_MIN_SIZE,
-                    bdlf::BindUtil::bind(&readCallbackProxy,
+                    bdlf::BindUtil::bind(&readCallbackTrampoline,
                                          self,
                                          bdlf::PlaceHolders::_1,   // status
                                          bdlf::PlaceHolders::_2,   // numNeeded

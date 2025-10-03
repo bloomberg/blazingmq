@@ -43,7 +43,6 @@
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
 #include <bmqu_memoutstream.h>
-#include <bslmt_threadutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -58,6 +57,7 @@
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslmt_threadutil.h>
 #include <bsls_timeinterval.h>
 
 namespace BloombergLP {
@@ -236,9 +236,9 @@ void Authenticator::authenticate(
                                           channel,
                                           context->authenticationContext());
 
-    // Return code processRc is rc_SUCCESS even when authentication fails,
-    // since we still need to continue sending the AuthenticationResponse back
-    // to the client.
+    // Return code processRc is rc_SUCCESS even when plugin authentication
+    // fails, since we still need to continue sending the
+    // AuthenticationResponse back to the client.
     if (processRc != rc_SUCCESS) {
         rc    = (processRc * 10) + rc_PROCESS_AUTHENTICATION_FAILED;
         error = processErrStream.str();
@@ -433,22 +433,22 @@ Authenticator::Authenticator(
     BlobSpPool*                         blobSpPool,
     bdlmt::EventScheduler*              scheduler,
     bslma::Allocator*                   allocator)
-: d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
+: d_allocator_p(allocator)
+, d_authnController_p(authnController)
+, d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
                k_MIN_THREADS,                                // min threads
                k_MAX_THREADS,                                // max threads
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
-, d_authnController_p(authnController)
 , d_blobSpPool_p(blobSpPool)
 , d_scheduler_p(scheduler)
 , d_isStarted(false)
-, d_allocator_p(allocator)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_allocator_p);
     BSLS_ASSERT_SAFE(d_authnController_p);
     BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_scheduler_p);
-    BSLS_ASSERT_SAFE(d_allocator_p);
 }
 
 /// Destructor
@@ -461,9 +461,10 @@ Authenticator::~Authenticator()
 
 int Authenticator::start(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(!d_isStarted &&
-                    "start() can only be called once on this object");
+    if (d_isStarted) {
+        errorDescription << "start() can only be called once on this object";
+        return -1;
+    }
 
     BALL_LOG_INFO << "Starting Authenticator";
 

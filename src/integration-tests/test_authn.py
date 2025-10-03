@@ -137,9 +137,9 @@ def test_authenticate_pass_concurrent(single_node: Cluster) -> None:
 @config_authentication
 def test_reauthenticate_basic_pass(single_node: Cluster) -> None:
     """
-    This test checks the behavior of re-authentication with Basic mechanism.
+    This test checks the behavior of reauthentication with Basic mechanism.
     It simulates a scenario where the initial authentication is successful,
-    and a subsequent re-authentication with a change of credential successes.
+    and a subsequent reauthentication with a change of credential successes.
     """
 
     # Start the raw client
@@ -155,7 +155,7 @@ def test_reauthenticate_basic_pass(single_node: Cluster) -> None:
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
-    # Pass: Sending re-authentication request with valid credentials
+    # Pass: Sending reauthentication request with valid credentials
     auth_resp = client.send_authentication_request("Basic", "user1:password1")
     assert auth_resp["authenticateResponse"]["status"]["code"] == 0
 
@@ -169,10 +169,10 @@ def test_reauthenticate_basic_pass(single_node: Cluster) -> None:
 @config_authentication
 def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
     """
-    This test checks the behavior of re-authentication with Basic mechanism.
+    This test checks the behavior of reauthentication with Basic mechanism.
     It simulates a scenario where the initial authentication is successful,
-    but a subsequent re-authentication fails due to invalid credentials.
-    The test ensures that the client cannot proceed with negotiation after a failed re-authentication.
+    but a subsequent reauthentication fails due to invalid credentials.
+    The test ensures that the client cannot proceed with negotiation after a failed reauthentication.
     """
 
     # Start the raw client
@@ -188,11 +188,11 @@ def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
-    # Fail: Sending re-authentication request with invalid credentials
+    # Fail: Sending reauthentication request with invalid credentials
     auth_resp = client.send_authentication_request("Basic", "user1:password2")
     assert auth_resp["authenticateResponse"]["status"]["code"] != 0
 
-    # Fail: Sending negotiation request after failed re-authentication
+    # Fail: Sending negotiation request after failed reauthentication
     with pytest.raises(ConnectionError):
         nego_resp = client.send_negotiation_request()
 

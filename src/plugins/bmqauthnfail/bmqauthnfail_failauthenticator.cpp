@@ -37,6 +37,12 @@
 namespace BloombergLP {
 namespace bmqauthnfail {
 
+namespace {
+
+const int k_TIMEOUT_SECONDS = 600;
+
+}  // namespace
+
 // ------------------------------
 // class FailAuthenticationResult
 // ------------------------------
@@ -106,9 +112,10 @@ int FailAuthenticator::authenticate(
                      << "authentication failed for mechanism '" << mechanism()
                      << "' unconditionally.";
 
-    *result = bsl::allocate_shared<FailAuthenticationResult>(d_allocator_p,
-                                                             "",
-                                                             600 * 1000);
+    *result = bsl::allocate_shared<FailAuthenticationResult>(
+        d_allocator_p,
+        "",
+        k_TIMEOUT_SECONDS * bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
     return -1;
 }
 

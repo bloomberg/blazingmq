@@ -19,7 +19,8 @@
 
 /// @file mqbauthn_anonpasspluginlibrary.h
 ///
-/// @brief Provide library of anonymous pass authenticator plugin for broker.
+/// @brief Provide library of anonymous pass built-in authenticator plugin for
+/// the broker.
 ///
 /// @bbref{mqbauthn::PluginLibrary} provides the definition for the
 /// 'PluginLibrary' class, which represents and publishes anonymous pass

@@ -530,13 +530,13 @@ void TCPSessionFactory::initialConnectionComplete(
     const InitialConnectionContext*          initialConnectionContext_p,
     const bsl::shared_ptr<OperationContext>& operationContext)
 {
-    // executed by one of the *IO* threads or authentication threads
+    // executed by one of the *IO* threads or an *AUTHENTICATION* thread
 
     if (statusCode != 0) {
         // Failed to negotiate
         BALL_LOG_WARN << "#INITIAL_CONNECTION TCPSessionFactory '"
                       << d_config.name() << "' "
-                      << "failed to authenticate and negotiate a session "
+                      << "failed to authenticate/negotiate a session "
                       << "[channel: '" << channel.get()
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";

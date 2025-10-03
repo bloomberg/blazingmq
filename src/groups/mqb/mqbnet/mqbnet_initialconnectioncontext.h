@@ -18,26 +18,25 @@
 #define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
 /// @file mqbnet_initialconnectioncontext.h
-/// @brief Provide the context for handling an initial connection.
+/// @brief Context for authenticating and negotiating a new session.
 ///
-/// @bbref{mqbnet::InitialConnectionContext} is a holds the context associated
-/// with a session being negotiated and functions necessary for handling an
-/// initial connection.
+/// InitialConnectionContext owns the transient state needed while a
+/// connection is performing the initial handshake (authentication followed
+/// by negotiation, or direct negotiation with implicit/anonymous
+/// authentication).
 ///
-/// For the data it holds, it allows bi-directional generic communication
-/// between the application layer and the transport layer: for example, a user
-/// data information can be passed in at application layer, kept and carried
-/// over in the transport layer and retrieved in the negotiator concrete
-/// implementation.  Similarly, a 'cookie' can be passed in from application
-/// layer, to the result callback notification in the transport layer (usefull
-/// for 'listen-like' established connection where the entry point doesn't
-/// allow to bind specific user data, which then can be retrieved at
-/// application layer during negotiation).
+/// Responsibilities:
+/// - Hold caller‐supplied opaque pointers (user data / result state) so they
+///   can flow between transport and application layers.
+/// - Drive the read loop: schedule reads, accumulate bytes, decode control
+///   messages (Authentication / Negotiation), and dispatch them.
+/// - Track handshake state and invoke the completion callback exactly once
+///   with either a fully constructed Session or an error.
+/// - Bridge to AuthenticationContext / NegotiationContext once those phases
+///   are established.
 ///
-/// For the initial connection logic, It either reads incoming Authentication
-/// and Negotiation messages from the IO layer, dispatches them to the
-/// appropriate handler for processing, or calling the appropriate handler to
-/// send outbound Authentication and Negotiation messages.
+/// A single instance is created per inbound or outbound connection attempt
+/// and is discarded once the channel is closed.
 
 // MQB
 #include <mqbnet_authenticator.h>
@@ -271,10 +270,10 @@ class InitialConnectionContext
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
 
-    /// The encoding type that an authentication message uses.
-    /// This is set by the `Authenticator` when it receives an
-    /// authentication message, and is used when it sends an
-    /// authentication message back to the remote peer.
+    /// Encoding for authentication messages.  Defaults to BER until the first
+    /// inbound authentication message is decoded, then set to that message's
+    /// encoding and reused for outbound replies.  Temporary field; copied into
+    /// the AuthenticationContext later.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
     /// The AuthenticationContext updated upon receiving an
@@ -308,7 +307,7 @@ class InitialConnectionContext
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticationContext,
+    BSLMF_NESTED_TRAIT_DECLARATION(InitialConnectionContext,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
@@ -370,26 +369,23 @@ class InitialConnectionContext
     /// Called by the IO upon `onClose` signal
     void onClose();
 
-    /// Read callback method invoked when receiving data in the specified
-    /// `blob`, if the specified `status` indicates success.  The specified
-    /// `numNeeded` can be used to indicate if more bytes are needed in
-    /// order to get a full message.  The specified `context` holds the
-    /// initial connection context associated to this read.
+    /// Read callback invoked when data is available on the channel.
+    /// Process the received `blob` if `status` indicates success.
+    /// Set `numNeeded` to request additional bytes if needed for a
+    /// full message.
     void readCallback(const bmqio::Status& status,
                       int*                 numNeeded,
                       bdlbb::Blob*         blob);
 
-    /// Schedule a read for the initial connection of the session of the
-    /// current context.  Return a non-zero code on error and
-    /// populate the specified `errorDescription` with a description of the
-    /// error.
+    /// Schedule the next read operation on the channel.
+    /// Return 0 on success, or a non-zero error code and populate
+    /// `errorDescription` with details on failure.
     int scheduleRead(bsl::ostream& errorDescription);
 
-    /// Handle an event occurs under the current state given the specified
-    /// `statusCode` and `errorDescription`. The specified `input` is the event
-    /// to handle, the current context is associated to this event, and the
-    /// specified `message` is an optional message that may be used to handle
-    /// the event.
+    /// Process a handshake event with the given `statusCode` and
+    /// `errorDescription`. The `input` specifies the event type, and
+    /// `message` contains any associated control message data.
+    /// This drives the authentication/negotiation state machine.
     void handleEvent(int                statusCode,
                      const bsl::string& errorDescription,
                      Event              input,

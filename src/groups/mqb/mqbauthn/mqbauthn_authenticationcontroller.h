@@ -17,6 +17,17 @@
 #ifndef INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 #define INCLUDED_MQBAUTHN_AUTHENTICATIONCONTROLLER
 
+/// @file mqbauthn_authenticationcontroller.h
+///
+/// @brief Provide a small utility class that orchestrates authenticator
+/// plugins.
+///
+/// @bbref{AuthenticationController} provides a small utility class that
+/// orchestrates authenticator plugins. Responsibilities include creating and
+/// holding plugin instances, tracking an optional anonymous credential, and
+/// offering start/stop and authenticate operations used by higher-level
+/// components.
+
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
@@ -43,20 +54,23 @@ class AuthenticationController {
 
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<mqbplug::Authenticator> AuthenticatorMp;
-    typedef bsl::unordered_map<bsl::string_view, AuthenticatorMp>
-        AuthenticatorMap;
+    typedef bslma::ManagedPtr<mqbplug::Authenticator>        AuthenticatorMp;
+    typedef bsl::unordered_map<bsl::string, AuthenticatorMp> AuthenticatorMap;
 
     // DATA
 
-    /// Registered authenticators
-    /// Mapping an authentication mechanism to a mqbplug::Authenticator
+    /// Registered authenticator plugins.
+    /// Mapping an authentication mechanism to a mqbplug::Authenticator.
+    /// The mechanisms are stored in upper case to make the lookup
+    /// case-insensitive.
     AuthenticatorMap d_authenticators;
 
-    /// Anonymous credential
+    /// Anonymous credential. If set, this credential will be used for
+    /// authentication when the client does not provide any credential.
+    /// Default anonymous credential will be used if not set.
     bsl::optional<mqbcfg::Credential> d_anonymousCredential;
 
-    /// Used to instantiate 'Authenticator'
+    /// Used to instantiate Authenticator
     /// plugins at start-time.
     mqbplug::PluginManager* d_pluginManager_p;
 
