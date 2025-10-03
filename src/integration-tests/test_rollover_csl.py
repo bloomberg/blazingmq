@@ -25,38 +25,12 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.util import wait_until
-from blazingmq.dev.it.process.broker import Broker
-from blazingmq.dev.it.process.client import Client
+from utils import simulate_rollover
 import glob
 
 pytestmark = order(4)
 
 default_app_ids = ["foo", "bar", "baz"]
-
-
-def _simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
-    i = 0
-    # Open queues until rollover detected
-    while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
-        producer.open(
-            f"bmq://{du.domain_priority}/q_dummy_{i}",
-            flags=["write,ack"],
-            succeed=True,
-        )
-        producer.close(f"bmq://{du.domain_priority}/q_dummy_{i}", succeed=True)
-        i += 1
-
-        if i % 5 == 0:
-            # do not wait for success, otherwise the following capture will fail
-            leader.force_gc_queues(block=False)
-
-        assert i < 10000, (
-            "Failed to detect rollover after opening a reasonable number of queues"
-        )
-    test_logger.info(f"Rollover detected after opening {i} queues")
-
-    # Rollover and queueUnAssignmentAdvisory interleave
-    assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
 
 
 class TestRolloverCSL:
@@ -167,7 +141,7 @@ class TestRolloverCSL:
         cluster.set_app_ids(current_app_ids, du)
 
         # SWITCH
-        _simulate_rollover(du, leader, producer)
+        simulate_rollover(du, leader, producer)
 
         cluster.restart_nodes()
         # For a standard cluster, states have already been restored as part of

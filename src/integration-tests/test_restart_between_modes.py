@@ -41,6 +41,8 @@ from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
 
+from utils import simulate_rollover
+
 pytestmark = order(2)
 timeout = 20
 
@@ -602,8 +604,24 @@ def switch_cluster_mode(request):
     return request.param
 
 
+def without_rollover(
+    du: tc.DomainUrls,  # pylint: disable=unused-argument
+    leader: Broker,  # pylint: disable=unused-argument
+    producer: Client,  # pylint: disable=unused-argument
+):
+    pass
+
+
+@pytest.fixture(params=[without_rollover, simulate_rollover])
+def optinal_rollover(request):
+    return request.param
+
+
 def test_restart_between_non_FSM_and_FSM_add_remove_app(
-    switch_fsm_cluster: Cluster, domain_urls: tc.DomainUrls, switch_cluster_mode
+    switch_fsm_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+    switch_cluster_mode,
+    optinal_rollover,
 ):
     """
     This test verifies that we can safely switch clusters between non-FSM and
@@ -681,6 +699,10 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
     cluster.set_app_ids(current_app_ids, du)
 
     # 2. SWITCH
+    # 2.1 Optional rollover
+    leader = cluster.last_known_leader
+    optinal_rollover(du, leader, producer)
+    # 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)
 
     # 3. EPILOGUE
@@ -689,3 +711,104 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
+    # TODO: test that quux gets exactly message "msg3"
+
+
+def test_restart_between_non_FSM_and_FSM_purge_queue_app(
+    switch_fsm_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+    switch_cluster_mode,
+    optinal_rollover,
+):
+    """
+    This test verifies that we can safely switch clusters between non-FSM and
+    FSM modes and add/remove appIds.
+
+    1. PROLOGUE:
+        - both priority and fanout queues
+        - post one message
+        - purge priority queue
+        - purge app "baz"
+        - post two messages
+        - confirm one on priority and "foo"
+        - add "quux" to the fanout
+        - post to fanout
+        - remove "bar"
+    2. SWITCH:
+        Apply one of the switches:
+        - non-FSM to FSM
+        - FSM to non-FSM
+    3. EPILOGUE:
+        - priority consumer gets the third message
+        - "foo" gets 3 messages
+        - "bar" gets 0 messages
+        - "baz" gets 3 messages
+        - "quux" gets the fourth message
+    """
+
+    DEFAULT_APP_IDS = ["foo", "bar", "baz"]
+
+    cluster = switch_fsm_cluster
+
+    du = domain_urls
+    # leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+    producer = proxy.create_client("producer")
+
+    # Phase 1: From Legacy Mode to FSM Mode
+
+    # 1. PROLOGUE
+    priority_queue = f"bmq://{du.domain_priority}/q_in_use"
+    fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
+    for queue in [priority_queue, fanout_queue]:
+        producer.open(queue, flags=["write,ack"], succeed=True)
+        producer.post(
+            queue,
+            ["msg1", "msg2"],
+            succeed=True,
+            wait_ack=True,
+        )
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(
+        priority_queue,
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.open(
+        fanout_queue + "?id=foo",
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.confirm(priority_queue, "+1", succeed=True)
+    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+    consumer.close(priority_queue, succeed=True)
+    consumer.close(fanout_queue + "?id=foo", succeed=True)
+    consumers = [consumer]
+
+    current_app_ids = DEFAULT_APP_IDS + ["quux"]
+    cluster.set_app_ids(current_app_ids, du)
+    producer.post(
+        fanout_queue,
+        ["msg3"],
+        succeed=True,
+        wait_ack=True,
+    )
+
+    current_app_ids.remove("bar")
+    cluster.set_app_ids(current_app_ids, du)
+
+    # 2. SWITCH
+    # 2.1 Optional rollover
+    leader = cluster.last_known_leader
+    optinal_rollover(du, leader, producer)
+    # 2.2 Switch cluster mode
+    switch_cluster_mode(cluster, producer, consumers)
+
+    # 3. EPILOGUE
+    check_if_queue_has_n_messages(consumer, priority_queue, 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 3)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
+    # TODO: test that quux gets exactly message "msg3"
