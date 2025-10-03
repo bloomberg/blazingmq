@@ -58,16 +58,18 @@ AuthenticationController::AuthenticationController(
 
 int AuthenticationController::start(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(!d_isStarted &&
-                    "start() can only be called once on this object");
-
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS             = 0,
-        rc_DUPLICATE_MECHANISM = -1,
-        rc_INVALID_CONFIG      = -2
+        rc_ALREADY_STARTED     = -1,
+        rc_DUPLICATE_MECHANISM = -2,
+        rc_INVALID_CONFIG      = -3
     };
+
+    if (d_isStarted) {
+        errorDescription << "start() can only be called once on this object";
+        return rc_ALREADY_STARTED;
+    }
 
     bmqu::MemOutStream errorStream(d_allocator_p);
 

@@ -433,22 +433,22 @@ Authenticator::Authenticator(
     BlobSpPool*                         blobSpPool,
     bdlmt::EventScheduler*              scheduler,
     bslma::Allocator*                   allocator)
-: d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
+: d_allocator_p(allocator)
+, d_authnController_p(authnController)
+, d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
                k_MIN_THREADS,                                // min threads
                k_MAX_THREADS,                                // max threads
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
-, d_authnController_p(authnController)
 , d_blobSpPool_p(blobSpPool)
 , d_scheduler_p(scheduler)
 , d_isStarted(false)
-, d_allocator_p(allocator)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_allocator_p);
     BSLS_ASSERT_SAFE(d_authnController_p);
     BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_scheduler_p);
-    BSLS_ASSERT_SAFE(d_allocator_p);
 }
 
 /// Destructor
@@ -461,9 +461,10 @@ Authenticator::~Authenticator()
 
 int Authenticator::start(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(!d_isStarted &&
-                    "start() can only be called once on this object");
+    if (d_isStarted) {
+        errorDescription << "start() can only be called once on this object";
+        return -1;
+    }
 
     BALL_LOG_INFO << "Starting Authenticator";
 

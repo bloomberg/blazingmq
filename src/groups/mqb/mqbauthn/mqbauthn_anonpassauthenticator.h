@@ -99,11 +99,11 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.ANONPASSAUTHENTICATOR");
 
     // DATA
+    bslma::Allocator* d_allocator_p;
+
     const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
 
     bool d_isStarted;
-
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -114,7 +114,8 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Authenticator, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(AnonPassAuthenticator,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 

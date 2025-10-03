@@ -114,7 +114,7 @@ class BasicAuthenticator : public mqbplug::Authenticator {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(BasicAuthenticationResult,
+    BSLMF_NESTED_TRAIT_DECLARATION(BasicAuthenticator,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS

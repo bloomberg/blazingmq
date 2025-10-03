@@ -308,7 +308,7 @@ class InitialConnectionContext
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticationContext,
+    BSLMF_NESTED_TRAIT_DECLARATION(InitialConnectionContext,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS

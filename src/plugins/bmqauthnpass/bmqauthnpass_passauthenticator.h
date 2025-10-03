@@ -109,7 +109,7 @@ class PassAuthenticator : public mqbplug::Authenticator {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(PassAuthenticationResult,
+    BSLMF_NESTED_TRAIT_DECLARATION(PassAuthenticator,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS

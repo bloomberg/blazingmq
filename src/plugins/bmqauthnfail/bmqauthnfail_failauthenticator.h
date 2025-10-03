@@ -109,7 +109,7 @@ class FailAuthenticator : public mqbplug::Authenticator {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(FailAuthenticationResult,
+    BSLMF_NESTED_TRAIT_DECLARATION(FailAuthenticator,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS

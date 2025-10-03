@@ -75,7 +75,7 @@ namespace mqba {
 class Authenticator : public mqbnet::Authenticator {
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("MQBNET.AUTHENTICATIONCONTEXT");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBA.AUTHENTICATOR");
 
   public:
     // TYPES
@@ -101,11 +101,14 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // DATA
 
-    /// Thread pool to run authentication and reauthentication tasks.
-    bdlmt::ThreadPool d_threadPool;
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
     /// Authentication Controller.
     mqbauthn::AuthenticationController* d_authnController_p;
+
+    /// Thread pool to run authentication and reauthentication tasks.
+    bdlmt::ThreadPool d_threadPool;
 
     BlobSpPool* d_blobSpPool_p;
 
@@ -116,9 +119,6 @@ class Authenticator : public mqbnet::Authenticator {
 
     /// True if this component is started.
     bool d_isStarted;
-
-    /// Allocator to use.
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
