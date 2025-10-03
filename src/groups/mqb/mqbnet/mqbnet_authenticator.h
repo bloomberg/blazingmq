@@ -25,19 +25,23 @@
 /// (re)authenticates a connection with a BlazingMQ client or another bmqbrkr.
 
 // MQB
+#include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
-#include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_ostream.h>
 
 namespace BloombergLP {
 
 namespace mqbnet {
+
+// FORWARD DECLARATION
+class InitialConnectionContext;
 
 // ===================
 // class Authenticator
@@ -53,15 +57,20 @@ class Authenticator {
 
     // MANIPULATORS
 
-    /// Authenticate the connection using the specified `authenticationMsg`
-    /// and `context`.  An `AuthenticationContext` will be created and stored
-    /// into `context`.  Set `isContinueRead` to true if further reading
-    /// should continue, or false if authentication is complete.
+    /// Start the Authenticator.  Return 0 on success, or a non-zero error
+    /// code and populate the specified `errorDescription` with a description
+    /// of the error otherwise.
+    virtual int start(bsl::ostream& errorDescription) = 0;
+
+    /// Stop the Authenticator.
+    virtual void stop() = 0;
+
+    /// Authenticate the connection based on the type of AuthenticationMessage
+    /// in the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleAuthentication(
         bsl::ostream&                                    errorDescription,
-        bool*                                            isContinueRead,
         const bsl::shared_ptr<InitialConnectionContext>& context,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 
@@ -70,6 +79,22 @@ class Authenticator {
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int authenticationOutbound(
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
+
+    /// Schedule a re-authentication job in the thread pool using the
+    /// specified `context` and `channel`.  Return 0 on success, or a
+    /// non-zero error code and populate the specified `errorDescription`
+    /// with a description of the error otherwise.
+    virtual int
+    reauthenticateAsync(bsl::ostream& errorDescription,
+                        const bsl::shared_ptr<AuthenticationContext>& context,
+                        const bsl::shared_ptr<bmqio::Channel>& channel) = 0;
+
+    // ACCESSORS
+
+    /// Return the anonymous credential used for authentication.
+    /// If no anonymous credential is set, return an empty optional.
+    virtual const bsl::optional<mqbcfg::Credential>&
+    anonymousCredential() const = 0;
 };
 
 }  // close package namespace

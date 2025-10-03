@@ -26,7 +26,7 @@ jobs:
     uses: ./.github/workflows/build-ubuntu.yaml
     with:
       ref: ${{ github.sha }}
-      target: "bmqbrkr bmqtool bmqstoragetool all.it bmqauthnpass bmqauthnfail"
+      target: "bmqbrkr bmqtool bmqstoragetool all.it bmqauthnpass bmqauthnfail bmqauthnbasic"
       save_build_as_artifacts: true
       run_unit_tests: false
 
@@ -202,6 +202,7 @@ jobs:
     name: Sanitize
     uses: ./.github/workflows/sanitize.yaml
     needs: integration_tests_ubuntu
+    if: ${{ !cancelled() }}          # runs on success or failure
 
   integration_tests_storagetool_ubuntu:
     name: IT [Storage tool]

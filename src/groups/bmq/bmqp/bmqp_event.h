@@ -161,6 +161,10 @@ class Event {
     /// returns true.
     Event clone(bslma::Allocator* allocator) const;
 
+    /// Return the encoding type of this Authentication event.  The
+    /// behavior is undefined unless `isAuthenticationEvent()` returns true.
+    EncodingType::Enum authenticationEventEncodingType() const;
+
     /// Return the type of this event.  The behavior is undefined unless
     /// `isValid()` returns true.
     EventType::Enum type() const;
@@ -333,8 +337,9 @@ int Event::loadSchemaEvent(TYPE* message) const
     }
 
     EncodingType::Enum encodingType = EncodingType::e_BER;
-    if (d_header->type() == EventType::e_CONTROL) {
-        encodingType = EventHeaderUtil::controlEventEncodingType(*d_header);
+    if (d_header->type() == EventType::e_CONTROL ||
+        d_header->type() == EventType::e_AUTHENTICATION) {
+        encodingType = EventHeaderUtil::encodingType(*d_header);
     }
 
     bmqu::MemOutStream os;
@@ -426,6 +431,14 @@ inline Event Event::clone(bslma::Allocator* allocator) const
     BSLS_ASSERT_SAFE(allocator);
 
     return Event(d_blob_p, allocator, true /* clone == true */);
+}
+
+inline EncodingType::Enum Event::authenticationEventEncodingType() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isAuthenticationEvent());
+
+    return EventHeaderUtil::encodingType(*d_header);
 }
 
 inline EventType::Enum Event::type() const
