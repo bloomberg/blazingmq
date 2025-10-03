@@ -25,6 +25,7 @@ from blazingmq.dev.it.fixtures import (
 
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 
 def simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
@@ -50,3 +51,16 @@ def simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
 
     # Rollover and queueUnAssignmentAdvisory interleave
     assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
+
+
+def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
+    test_logger.info(f"Check if queue {queue} still has {n} messages")
+    consumer.open(
+        queue,
+        flags=["read"],
+        succeed=True,
+    )
+    assert wait_until(
+        lambda: len(consumer.list(queue, block=True)) == n,
+        3,
+    )

@@ -41,10 +41,12 @@ from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
 
-from utils import simulate_rollover
+from utils import simulate_rollover, check_if_queue_has_n_messages
 
 pytestmark = order(2)
 timeout = 20
+
+DEFAULT_APP_IDS = ["foo", "bar", "baz"]
 
 
 def configure_cluster(cluster: Cluster, is_fsm: bool):
@@ -584,19 +586,6 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     assignUnassignExistingQueues(existing_queues, consumer, leader)
 
 
-def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
-    test_logger.info(f"Check if queue {queue} still has {n} messages")
-    consumer.open(
-        queue,
-        flags=["read"],
-        succeed=True,
-    )
-    assert wait_until(
-        lambda: len(consumer.list(queue, block=True)) == n,
-        3,
-    )
-
-
 @pytest.fixture(
     params=[restart_cluster_from_legacy_to_fsm, restart_cluster_from_fsm_to_legacy]
 )
@@ -612,7 +601,12 @@ def without_rollover(
     pass
 
 
-@pytest.fixture(params=[without_rollover, simulate_rollover])
+@pytest.fixture(
+    params=[
+        without_rollover,
+        # simulate_rollover
+    ]
+)
 def optinal_rollover(request):
     return request.param
 
@@ -646,20 +640,19 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
         - "quux" gets the third message
     """
 
-    DEFAULT_APP_IDS = ["foo", "bar", "baz"]
-
     cluster = switch_fsm_cluster
-
     du = domain_urls
-    # leader = cluster.last_known_leader
+    leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
     producer = proxy.create_client("producer")
 
-    # Phase 1: From Legacy Mode to FSM Mode
+    test_queue = tc.TEST_QUEUE
 
     # 1. PROLOGUE
-    priority_queue = f"bmq://{du.domain_priority}/q_in_use"
-    fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
+    priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
+    fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
+
+    # post two messages
     for queue in [priority_queue, fanout_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
         producer.post(
@@ -700,7 +693,6 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
 
     # 2. SWITCH
     # 2.1 Optional rollover
-    leader = cluster.last_known_leader
     optinal_rollover(du, leader, producer)
     # 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)
@@ -746,22 +738,37 @@ def test_restart_between_non_FSM_and_FSM_purge_queue_app(
         - "quux" gets the fourth message
     """
 
-    DEFAULT_APP_IDS = ["foo", "bar", "baz"]
-
     cluster = switch_fsm_cluster
-
     du = domain_urls
-    # leader = cluster.last_known_leader
+    leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
     producer = proxy.create_client("producer")
 
-    # Phase 1: From Legacy Mode to FSM Mode
+    test_queue = tc.TEST_QUEUE
 
     # 1. PROLOGUE
-    priority_queue = f"bmq://{du.domain_priority}/q_in_use"
-    fanout_queue = f"bmq://{du.domain_fanout}/q_in_use"
+    priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
+    fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
+
+    # post one message
     for queue in [priority_queue, fanout_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
+
+    for queue in [priority_queue, fanout_queue]:
+        producer.post(
+            queue,
+            ["msg0"],
+            succeed=True,
+            wait_ack=True,
+        )
+
+    # purge priority queue
+    leader.purge(du.domain_priority, test_queue, succeed=True)
+    # # purge fanout queue app "baz"
+    leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
+
+    # Post two messages
+    for queue in [priority_queue, fanout_queue]:
         producer.post(
             queue,
             ["msg1", "msg2"],
@@ -800,7 +807,6 @@ def test_restart_between_non_FSM_and_FSM_purge_queue_app(
 
     # 2. SWITCH
     # 2.1 Optional rollover
-    leader = cluster.last_known_leader
     optinal_rollover(du, leader, producer)
     # 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)

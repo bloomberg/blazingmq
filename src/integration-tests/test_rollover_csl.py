@@ -25,7 +25,7 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.util import wait_until
-from utils import simulate_rollover
+from utils import simulate_rollover, check_if_queue_has_n_messages
 import glob
 
 pytestmark = order(4)
@@ -150,57 +150,8 @@ class TestRolloverCSL:
             producer.wait_state_restored()
 
         # EPILOGUE
-        test_logger.info("Check if priority queue still has 1 message")
-        consumer.open(
-            priority_queue,
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(priority_queue, block=True)) == 1,
-            3,
-        )
-
-        test_logger.info("Check if app 'foo' still has 2 messages")
-        consumer.open(
-            fanout_queue + "?id=foo",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=foo", block=True)) == 2,
-            3,
-        )
-
-        test_logger.info("Verify that removed app 'bar' cannot receive any message")
-        consumer.open(
-            fanout_queue + "?id=bar",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=bar", block=True)) == 0,
-            3,
-        )
-
-        test_logger.info("Check if app 'baz' still has 3 messages")
-        consumer.open(
-            fanout_queue + "?id=baz",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=baz", block=True)) == 3,
-            3,
-        )
-
-        test_logger.info("Check if app 'quux' still has 1 message")
-        consumer.open(
-            fanout_queue + "?id=quux",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=quux", block=True)) == 1,
-            3,
-        )
+        check_if_queue_has_n_messages(consumer, priority_queue, 1)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
