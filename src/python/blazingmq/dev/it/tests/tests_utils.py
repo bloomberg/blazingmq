@@ -17,18 +17,52 @@
 Utility function for testing rollover
 """
 
+import re
+import time
+
 import blazingmq.dev.it.testconstants as tc
 
-from blazingmq.dev.it.fixtures import (
-    test_logger,
-)
+from blazingmq.dev.it.fixtures import test_logger, Cluster
 
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 
+def ensure_message_at_storage_layer(
+    cluster: Cluster, partition_id: int, queue_uri: str, num_messages: int
+):
+    """
+    Assert that in the `partitionId` of the `cluster`, there are exactly
+    `numMessages` messages in the storage of the `queueUri`.
+    """
+
+    # Before restarting the cluster, ensure that all nodes in the cluster
+    # have received the message at the storage layer.  This is necessary
+    # in the absence of stronger consistency in storage replication in
+    # BMQ.  Presence of message in the storage at each node is checked by
+    # sending 'STORAGE SUMMARY' command and grepping its output.
+    for node in cluster.nodes():
+        node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
+
+    time.sleep(2)
+    for node in cluster.nodes():
+        assert node.outputs_regex(
+            r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, num_messages)
+            + re.escape(queue_uri),
+            timeout=20,
+        )
+        # Above regex is to match line:
+        # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
+        # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,
+        # QueueUri respectively.
+
+
 def simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
+    """
+    Simulate rollover of CSL file by opening and closing many queues.
+    """
+
     i = 0
     # Open queues until rollover detected
     while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
@@ -54,13 +88,19 @@ def simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
 
 
 def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
+    """
+    Check if `queue` has exactly `n` messages.
+    """
+
     test_logger.info(f"Check if queue {queue} still has {n} messages")
     consumer.open(
         queue,
         flags=["read"],
         succeed=True,
     )
+    msgs = consumer.list(queue, block=True)
     assert wait_until(
-        lambda: len(consumer.list(queue, block=True)) == n,
+        lambda: len(msgs) == n,
         3,
     )
+    return msgs

@@ -286,7 +286,9 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         'True', raise an exception if the command does not succeed.
         """
 
-        self.command(f"DOMAINS DOMAIN {domain} QUEUE {queue} PURGE {appid}")
+        self.command(
+            f"DOMAINS DOMAIN {domain} QUEUE {queue} PURGE {appid}", block, succeed
+        )
 
     def reconfigure_domain(self, domain: str, succeed: bool = False):
         """

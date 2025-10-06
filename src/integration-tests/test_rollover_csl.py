@@ -24,8 +24,10 @@ from blazingmq.dev.it.fixtures import (
     test_logger,
     tweak,
 )
-from blazingmq.dev.it.util import wait_until
-from utils import simulate_rollover, check_if_queue_has_n_messages
+from blazingmq.dev.it.tests.tests_utils import (
+    simulate_rollover,
+    check_if_queue_has_n_messages,
+)
 import glob
 
 pytestmark = order(4)

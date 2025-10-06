@@ -39,9 +39,13 @@ from blazingmq.dev.it.fixtures import (
 )  # pylint: disable=unused-import
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
-from blazingmq.dev.it.util import attempt, wait_until
+from blazingmq.dev.it.util import wait_until
 
-from utils import simulate_rollover, check_if_queue_has_n_messages
+from blazingmq.dev.it.tests.tests_utils import (
+    ensure_message_at_storage_layer,
+    check_if_queue_has_n_messages,
+    # simulate_rollover,
+)
 
 pytestmark = order(2)
 timeout = 20
@@ -207,7 +211,7 @@ def post_new_queues_and_verify(
 
         producer.open(new_queue, flags=["write", "ack"], succeed=True)
         producer.post(new_queue, payload=["msg0"], wait_ack=True, succeed=True)
-        ensureMessageAtStorageLayer(cluster, partition_id, new_queue, 1)
+        ensure_message_at_storage_layer(cluster, partition_id, new_queue, 1)
 
         for consumer, app_id in zip(domain_consumers, consuming_app_ids):
             consumer.open(
@@ -275,7 +279,7 @@ def post_existing_queues_and_verify(
                 wait_ack=True,
                 succeed=True,
             )
-            ensureMessageAtStorageLayer(
+            ensure_message_at_storage_layer(
                 cluster,
                 queues[i][PARTITION_ELEMENT_IDX],
                 queues[i][QUEUE_ELEMENT_IDX],
@@ -301,35 +305,6 @@ def post_existing_queues_and_verify(
             "bar",
             NUM_MESSAGES_IN_QUEUE,
         )
-
-
-def ensureMessageAtStorageLayer(
-    cluster: Cluster, partitionId: int, queueUri: str, numMessages: int
-):
-    """
-    Assert that in the `partitionId` of the `cluster`, there are exactly
-    `numMessages` messages in the storage of the `queueUri`.
-    """
-
-    # Before restarting the cluster, ensure that all nodes in the cluster
-    # have received the message at the storage layer.  This is necessary
-    # in the absence of stronger consistency in storage replication in
-    # BMQ.  Presence of message in the storage at each node is checked by
-    # sending 'STORAGE SUMMARY' command and grepping its output.
-    for node in cluster.nodes():
-        node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
-
-    time.sleep(2)
-    for node in cluster.nodes():
-        assert node.outputs_regex(
-            r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partitionId, numMessages)
-            + re.escape(queueUri),
-            timeout=20,
-        )
-        # Above regex is to match line:
-        # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
-        # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,
-        # QueueUri respectively.
 
 
 def close_and_unassign_queue(queueUri: str, client: Client, leader: Broker):
@@ -590,6 +565,10 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     params=[restart_cluster_from_legacy_to_fsm, restart_cluster_from_fsm_to_legacy]
 )
 def switch_cluster_mode(request):
+    """
+    Fixture to switch cluster mode between non-FSM and FSM.
+    """
+
     return request.param
 
 
@@ -598,7 +577,9 @@ def without_rollover(
     leader: Broker,  # pylint: disable=unused-argument
     producer: Client,  # pylint: disable=unused-argument
 ):
-    pass
+    """
+    Simulate fixture scenario without rollover. Just do nothing.
+    """
 
 
 @pytest.fixture(
@@ -607,15 +588,19 @@ def without_rollover(
         # simulate_rollover
     ]
 )
-def optinal_rollover(request):
+def optional_rollover(request):
+    """
+    Fixture to optionally simulate rollover of CSL file.
+    """
+
     return request.param
 
 
-def test_restart_between_non_FSM_and_FSM_add_remove_app(
+def test_restart_between_legacy_and_fsm_add_remove_app(
     switch_fsm_cluster: Cluster,
     domain_urls: tc.DomainUrls,
     switch_cluster_mode,
-    optinal_rollover,
+    optional_rollover,
 ):
     """
     This test verifies that we can safely switch clusters between non-FSM and
@@ -642,7 +627,6 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
 
     cluster = switch_fsm_cluster
     du = domain_urls
-    leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
     producer = proxy.create_client("producer")
 
@@ -693,7 +677,7 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
 
     # 2. SWITCH
     # 2.1 Optional rollover
-    optinal_rollover(du, leader, producer)
+    optional_rollover(du, cluster.last_known_leader, producer)
     # 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)
 
@@ -702,15 +686,17 @@ def test_restart_between_non_FSM_and_FSM_add_remove_app(
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
-    # TODO: test that quux gets exactly message "msg3"
+    quux_messages = check_if_queue_has_n_messages(
+        consumer, fanout_queue + "?id=quux", 1
+    )
+    assert re.match(r"msg3", quux_messages[0].payload)
 
 
-def test_restart_between_non_FSM_and_FSM_purge_queue_app(
+def test_restart_between_legacy_and_fsm_purge_queue_app(
     switch_fsm_cluster: Cluster,
     domain_urls: tc.DomainUrls,
     switch_cluster_mode,
-    optinal_rollover,
+    optional_rollover,
 ):
     """
     This test verifies that we can safely switch clusters between non-FSM and
@@ -740,7 +726,6 @@ def test_restart_between_non_FSM_and_FSM_purge_queue_app(
 
     cluster = switch_fsm_cluster
     du = domain_urls
-    leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
     producer = proxy.create_client("producer")
 
@@ -763,9 +748,9 @@ def test_restart_between_non_FSM_and_FSM_purge_queue_app(
         )
 
     # purge priority queue
-    leader.purge(du.domain_priority, test_queue, succeed=True)
+    cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
     # # purge fanout queue app "baz"
-    leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
+    cluster.last_known_leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
 
     # Post two messages
     for queue in [priority_queue, fanout_queue]:
@@ -807,7 +792,7 @@ def test_restart_between_non_FSM_and_FSM_purge_queue_app(
 
     # 2. SWITCH
     # 2.1 Optional rollover
-    optinal_rollover(du, leader, producer)
+    optional_rollover(du, cluster.last_known_leader, producer)
     # 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)
 
@@ -816,5 +801,7 @@ def test_restart_between_non_FSM_and_FSM_purge_queue_app(
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 3)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
-    # TODO: test that quux gets exactly message "msg3"
+    quux_messages = check_if_queue_has_n_messages(
+        consumer, fanout_queue + "?id=quux", 1
+    )
+    assert re.match(r"msg3", quux_messages[0].payload)
