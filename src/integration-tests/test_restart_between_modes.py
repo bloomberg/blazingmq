@@ -597,7 +597,7 @@ def optional_rollover(request):
 
 
 def test_restart_between_legacy_and_fsm_add_remove_app(
-    switch_fsm_cluster: Cluster,
+    cluster: Cluster,
     domain_urls: tc.DomainUrls,
     switch_cluster_mode,
     optional_rollover,
@@ -625,7 +625,6 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         - "quux" gets the third message
     """
 
-    cluster = switch_fsm_cluster
     du = domain_urls
     proxy = next(cluster.proxy_cycle())
     producer = proxy.create_client("producer")
@@ -693,7 +692,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
 
 
 def test_restart_between_legacy_and_fsm_purge_queue_app(
-    switch_fsm_cluster: Cluster,
+    cluster: Cluster,
     domain_urls: tc.DomainUrls,
     switch_cluster_mode,
     optional_rollover,
@@ -724,7 +723,6 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         - "quux" gets the fourth message
     """
 
-    cluster = switch_fsm_cluster
     du = domain_urls
     proxy = next(cluster.proxy_cycle())
     producer = proxy.create_client("producer")
