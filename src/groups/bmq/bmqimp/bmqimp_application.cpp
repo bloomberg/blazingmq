@@ -288,6 +288,9 @@ void Application::channelStateCallback(
         BALL_LOG_ERROR << id() << "Could not establish session with '"
                        << endpoint << "' [event: " << event
                        << ", status: " << status << "]";
+        if (channel) {
+            channel->close(status);
+        }
     } break;  // BREAK
     default: {
         BALL_LOG_ERROR << id() << "Session with '" << endpoint << "' is now"
