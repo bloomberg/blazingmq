@@ -277,7 +277,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             f"CMD CLUSTERS CLUSTER {self.cluster_name} FORCE_GC_QUEUES", block, succeed
         )
 
-    def purge(self, domain: str, queue: str, appid="*", block=None, succeed=None):
+    def purge(self, domain: str, queue: str, appid="*", *, block=None, succeed=None):
         """
         Purge messages from the specified 'queue' in the specified 'domain'.
         If 'app' is specified, only messages from the specified fanout app
