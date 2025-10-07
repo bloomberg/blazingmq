@@ -176,7 +176,7 @@ void StorageManager::onWatchDogDispatched(int partitionId)
     BMQTSK_ALARMLOG_ALARM("RECOVERY")
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId
-        << "]: " << "Watch dog triggered because partition startup healing "
+        << "]: " << "Watchdog triggered because partition startup healing "
         << "sequence was not completed in the configured time of "
         << d_watchDogTimeoutInterval.totalSeconds() << " seconds."
         << BMQTSK_ALARMLOG_END;
@@ -1154,14 +1154,8 @@ void StorageManager::do_startWatchDog(const PartitionFSMArgsSp& args)
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    if (static_cast<const bdlmt::EventSchedulerEventHandle::Event*>(
-            d_watchDogEventHandles[partitionId]) != 0) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "Not starting watchdog since it has already been "
-                      << "started.";
-        return;  // RETURN
-    }
+    // Clear any existing watchdog before starting the timer anew.
+    d_watchDogEventHandles[partitionId].release();
 
     d_clusterData_p->scheduler().scheduleEvent(
         &d_watchDogEventHandles[partitionId],
@@ -1191,8 +1185,6 @@ void StorageManager::do_stopWatchDog(const PartitionFSMArgsSp& args)
                        << " Partition [" << partitionId << "]: "
                        << "Failed to cancel WatchDog, rc: " << rc;
     }
-
-    d_watchDogEventHandles[partitionId].release();
 }
 
 void StorageManager::do_openRecoveryFileSet(const PartitionFSMArgsSp& args)

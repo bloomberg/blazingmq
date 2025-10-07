@@ -2425,19 +2425,19 @@ static void test23_selectLeaderFromFollower()
 
 static void test24_watchDogLeader()
 // ------------------------------------------------------------------------
-// WATCH DOG LEADER
+// WATCHDOG LEADER
 //
 // Concerns:
 //   Verify that the watchdog triggers upon timeout when the leader is
 //   healing.
 //
 // Testing:
-//   Watch dog for healing leader
+//   Watchdog for healing leader
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
-                                      "WATCH DOG LEADER");
+                                      "WATCHDOG LEADER");
 
     Tester tester(true);  // isLeader
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
@@ -2456,11 +2456,11 @@ static void test24_watchDogLeader()
     tester.verifyFollowerLSNRequestsSent();
     tester.clearChannels();
 
-    // 1.b.) Trigger watch dog via timeout
+    // 1.b.) Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that the watch dog triggers re-transition to Leader Healing
+    // Verify that the watchdog triggers re-transition to Leader Healing
     // Stage 1, where we send follower LSN requests again.
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
@@ -2494,11 +2494,11 @@ static void test24_watchDogLeader()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
-    // 2.b.) Trigger watch dog via timeout
+    // 2.b.) Trigger watchdog via timeout
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that the watch dog triggers re-transition to Leader Healing
+    // Verify that the watchdog triggers re-transition to Leader Healing
     // Stage 1, where we send follower LSN requests again.
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
@@ -2520,30 +2520,30 @@ static void test24_watchDogLeader()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALED);
 
-    // 3.b.) Attempt to trigger watch dog via timeout, but should fail
+    // 3.b.) Attempt to trigger watchdog via timeout, but should fail
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION);
     tester.d_cluster_mp->waitForScheduler();
 
-    // Verify that watch dog did not trigger
+    // Verify that watchdog did not trigger
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALED);
 }
 
 static void test25_watchDogFollower()
 // ------------------------------------------------------------------------
-// WATCH DOG FOLLOWER
+// WATCHDOG FOLLOWER
 //
 // Concerns:
 //   Verify that the watchdog triggers upon timeout when the follower is
 //   healing.
 //
 // Testing:
-//   Watch dog for healing follower
+//   Watchdog for healing follower
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
-                                      "WATCH DOG FOLLOWER");
+                                      "WATCHDOG FOLLOWER");
 
     Tester tester(false);  // isLeader
 
