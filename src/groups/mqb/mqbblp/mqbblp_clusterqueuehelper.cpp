@@ -2244,6 +2244,9 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             queueContext->d_stateQInfo_sp->appInfos(),
             context.d_domain_p);
 
+        // Not checking the result.  If not successful, storage is not in the
+        // 'storageMap'.  Subsequent queue configure will then fail.
+
         // Queue must have been registered with storage manager before
         // registering it with the domain, otherwise Queue.configure() will
         // fail.
@@ -2274,11 +2277,14 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     /// `mqbi::Queue::configure` might have set a queue raw pointer in the
     /// corresponding storage.  Make sure we unset this if we exit the scope
     /// on error.
+
     bdlb::ScopeExitAny queuePtrGuard(
         bdlf::BindUtil::bindS(d_allocator_p,
-                              &mqbi::Storage::setQueue,
-                              queueSp->storage(),
-                              static_cast<mqbi::Queue*>(0)));
+                              &mqbi::StorageManager::resetQueue,
+                              d_storageManager_p,
+                              queueContext->uri(),
+                              queueContext->partitionId(),
+                              queueSp));
 
     if (rc != 0) {
         // Queue.configure() failed.
@@ -4023,13 +4029,9 @@ void ClusterQueueHelper::deleteQueue(QueueContext* queueContext)
     // partitionId assigned to queue, etc.
 
     if (!d_cluster_p->isRemote()) {
-        d_storageManager_p->setQueue(static_cast<mqbi::Queue*>(0),
-                                     queueContext->uri(),
-                                     queueContext->partitionId());
-
-        // Explicitly synchronize since 'StorageMgr::setQueue' does not.
-
-        d_cluster_p->dispatcher()->synchronize(queue);
+        d_storageManager_p->resetQueue(queueContext->uri(),
+                                       queueContext->partitionId(),
+                                       queueContext->d_liveQInfo.d_queue_sp);
     }
 
     queue->domain()->unregisterQueue(queue);

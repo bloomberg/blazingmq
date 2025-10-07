@@ -606,6 +606,9 @@ int Queue::configure(bsl::ostream* errorDescription_p,
 
     if (wait) {
         bslmt::Semaphore sync;
+
+        // NOTE: Use the e_DISPATCHER type to prevent adding the queue to the
+        // dispatcher flush list because the queue may fail to configure
         dispatcher()->execute(
             bdlf::BindUtil::bind(&Queue::configureDispatchedAndPost,
                                  this,
@@ -613,7 +616,8 @@ int Queue::configure(bsl::ostream* errorDescription_p,
                                  errorDescription_p,
                                  isReconfigure,
                                  &sync),
-            this);
+            this,
+            mqbi::DispatcherEventType::e_DISPATCHER);
 
         sync.wait();
     }

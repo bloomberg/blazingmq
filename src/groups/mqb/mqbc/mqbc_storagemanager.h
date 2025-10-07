@@ -781,11 +781,10 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    int updateQueuePrimary(const bmqt::Uri&        uri,
-                           const mqbu::StorageKey& queueKey,
-                           int                     partitionId,
-                           const AppInfos&         addedIdKeyPairs,
-                           const AppInfos&         removedIdKeyPairs)
+    int updateQueuePrimary(const bmqt::Uri& uri,
+                           int              partitionId,
+                           const AppInfos&  addedIdKeyPairs,
+                           const AppInfos&  removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
     void registerQueueReplica(int                     partitionId,
@@ -806,22 +805,14 @@ class StorageManager BSLS_KEYWORD_FINAL
                             const AppInfos&         appIdKeyPairs,
                             mqbi::Domain* domain = 0) BSLS_KEYWORD_OVERRIDE;
 
-    /// Set the queue instance associated with the file-backed storage for
+    /// Reset the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Note that this method *does* *not*
-    /// synchronize on the queue-dispatcher thread.
-    void setQueue(mqbi::Queue*     queue,
-                  const bmqt::Uri& uri,
-                  int              partitionId) BSLS_KEYWORD_OVERRIDE;
-
-    /// Set the queue instance associated with the file-backed storage for
-    /// the specified `uri` mapped to the specified `partitionId` to the
-    /// specified `queue` value.  Behavior is undefined unless `queue` is
-    /// non-null or unless this routine is invoked from the dispatcher
-    /// thread associated with the `partitionId`.
-    void setQueueRaw(mqbi::Queue*     queue,
-                     const bmqt::Uri& uri,
-                     int              partitionId) BSLS_KEYWORD_OVERRIDE;
+    /// specified `queue` value.  The specified `queue_sp` keeps the queue
+    /// until the reset is complete.
+    void resetQueue(const bmqt::Uri&                    uri,
+                    int                                 partitionId,
+                    const bsl::shared_ptr<mqbi::Queue>& queue_sp)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
@@ -866,14 +857,14 @@ class StorageManager BSLS_KEYWORD_FINAL
                                    mqbnet::ClusterNode*                source)
         BSLS_KEYWORD_OVERRIDE;
 
-    int makeStorage(bsl::ostream&                      errorDescription,
-                    bsl::shared_ptr<mqbi::Storage>*    out,
-                    const bmqt::Uri&                   uri,
-                    const mqbu::StorageKey&            queueKey,
-                    int                                partitionId,
-                    const bsls::Types::Int64           messageTtl,
-                    const int                          maxDeliveryAttempts,
-                    const mqbconfm::StorageDefinition& storageDef)
+    int configureStorage(bsl::ostream&                   errorDescription,
+                         bsl::shared_ptr<mqbi::Storage>* out,
+                         const bmqt::Uri&                uri,
+                         const mqbu::StorageKey&         queueKey,
+                         int                             partitionId,
+                         const bsls::Types::Int64        messageTtl,
+                         const int                       maxDeliveryAttempts,
+                         const mqbconfm::StorageDefinition& storageDef)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
