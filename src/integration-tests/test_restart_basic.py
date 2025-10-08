@@ -29,7 +29,7 @@ from blazingmq.dev.it.fixtures import (
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
 
-from blazingmq.dev.it.tests.tests_utils import (
+from blazingmq.dev.it.cluster_util import (
     ensure_message_at_storage_layer,
 )
 

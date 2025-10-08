@@ -24,7 +24,7 @@ from blazingmq.dev.it.fixtures import (
     test_logger,
     tweak,
 )
-from blazingmq.dev.it.tests.tests_utils import (
+from blazingmq.dev.it.cluster_util import (
     simulate_csl_rollover,
     check_if_queue_has_n_messages,
 )

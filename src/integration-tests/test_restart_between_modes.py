@@ -41,7 +41,7 @@ from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
-from blazingmq.dev.it.tests.tests_utils import (
+from blazingmq.dev.it.cluster_util import (
     ensure_message_at_storage_layer,
     check_if_queue_has_n_messages,
     # simulate_csl_rollover,
