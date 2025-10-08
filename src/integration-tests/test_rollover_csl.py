@@ -25,7 +25,7 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.tests.tests_utils import (
-    simulate_rollover,
+    simulate_csl_rollover,
     check_if_queue_has_n_messages,
 )
 import glob
@@ -52,18 +52,7 @@ class TestRolloverCSL:
         )
         assert len(csl_files_before_rollover) == 1
 
-        i = 0
-        # Open queues until rollover detected
-        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
-            producer.open(
-                f"bmq://{domain_priority}/q{i}", flags=["write,ack"], succeed=True
-            )
-            producer.close(f"bmq://{domain_priority}/q{i}", succeed=True)
-            i += 1
-            assert i < 10000, (
-                "Failed to detect rollover after opening a reasonable number of queues"
-            )
-        test_logger.info(f"Rollover detected after opening {i} queues")
+        simulate_csl_rollover(domain_urls, leader, producer)
 
         csl_files_after_rollover = glob.glob(
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
@@ -143,7 +132,7 @@ class TestRolloverCSL:
         cluster.set_app_ids(current_app_ids, du)
 
         # SWITCH
-        simulate_rollover(du, leader, producer)
+        simulate_csl_rollover(du, leader, producer)
 
         cluster.restart_nodes()
         # For a standard cluster, states have already been restored as part of

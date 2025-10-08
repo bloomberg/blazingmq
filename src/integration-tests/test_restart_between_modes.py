@@ -44,7 +44,7 @@ from blazingmq.dev.it.util import wait_until
 from blazingmq.dev.it.tests.tests_utils import (
     ensure_message_at_storage_layer,
     check_if_queue_has_n_messages,
-    # simulate_rollover,
+    # simulate_csl_rollover,
 )
 
 pytestmark = order(2)
@@ -585,7 +585,7 @@ def without_rollover(
 @pytest.fixture(
     params=[
         without_rollover,
-        # simulate_rollover
+        # simulate_csl_rollover
     ]
 )
 def optional_rollover(request):

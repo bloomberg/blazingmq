@@ -13,10 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Utility function for testing rollover
-"""
-
 import re
 import time
 
@@ -58,7 +54,7 @@ def ensure_message_at_storage_layer(
         # QueueUri respectively.
 
 
-def simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
+def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     """
     Simulate rollover of CSL file by opening and closing many queues.
     """
@@ -89,7 +85,7 @@ def simulate_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
 
 def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
     """
-    Check if `queue` has exactly `n` messages.
+    Use the `consumer` to check if `queue` has exactly `n` messages.
     """
 
     test_logger.info(f"Check if queue {queue} still has {n} messages")
@@ -101,6 +97,6 @@ def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
     msgs = consumer.list(queue, block=True)
     assert wait_until(
         lambda: len(msgs) == n,
-        3,
+        timeout=3,
     )
     return msgs
