@@ -1882,7 +1882,6 @@ class AppConfig:
     hostName.............: name of the current host
     hostTags.............: tags of the current host
     hostDataCenter.......: datacenter the current host resides in
-    isRunningOnDev.......: true if running on dev
     logsObserverMaxSize..: maximum number of log records to keep
     latencyMonitorDomain.: common part of all latemon domains
     dispatcherConfig.....: configuration for the dispatcher
@@ -1954,15 +1953,6 @@ class AppConfig:
         default=None,
         metadata={
             "name": "hostDataCenter",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    is_running_on_dev: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "isRunningOnDev",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
