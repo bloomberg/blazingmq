@@ -31,10 +31,8 @@ namespace bmqauthnfail {
 // -------------------
 
 PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
-: d_plugins(bslma::Default::allocator(allocator))
+: d_plugins(allocator)
 {
-    allocator = bslma::Default::allocator(allocator);
-
     mqbplug::PluginInfo& authnfailPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         "FailAuthenticator");

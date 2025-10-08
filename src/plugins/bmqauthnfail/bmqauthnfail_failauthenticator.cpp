@@ -37,6 +37,12 @@
 namespace BloombergLP {
 namespace bmqauthnfail {
 
+namespace {
+
+const int k_TIMEOUT_SECONDS = 600;
+
+}  // namespace
+
 // ------------------------------
 // class FailAuthenticationResult
 // ------------------------------
@@ -45,9 +51,8 @@ FailAuthenticationResult::FailAuthenticationResult(
     bsl::string_view   principal,
     bsls::Types::Int64 lifetimeMs,
     bslma::Allocator*  allocator)
-: d_principal(principal)
+: d_principal(principal, allocator)
 , d_lifetimeMs(lifetimeMs)
-, d_allocator_p(allocator)
 {
 }
 
@@ -91,17 +96,26 @@ bsl::string_view FailAuthenticator::name() const
 
 bsl::string_view FailAuthenticator::mechanism() const
 {
-    return "Basic";
+    return k_MECHANISM;
 }
 
 int FailAuthenticator::authenticate(
-    BSLA_UNUSED bsl::ostream&                       errorDescription,
+    bsl::ostream&                                   errorDescription,
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
-    *result = bsl::allocate_shared<FailAuthenticationResult>(d_allocator_p,
-                                                             "",
-                                                             600 * 1000);
+    BALL_LOG_INFO << "FailAuthenticator: "
+                  << "authentication failed for mechanism '" << mechanism()
+                  << "' unconditionally.";
+
+    errorDescription << "FailAuthenticator: "
+                     << "authentication failed for mechanism '" << mechanism()
+                     << "' unconditionally.";
+
+    *result = bsl::allocate_shared<FailAuthenticationResult>(
+        d_allocator_p,
+        "",
+        k_TIMEOUT_SECONDS * bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
     return -1;
 }
 

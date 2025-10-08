@@ -56,7 +56,6 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
     // DATA
     bsl::string                       d_principal;
     bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-    BSLA_UNUSED bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
@@ -86,7 +85,10 @@ class PassAuthenticationResult : public mqbplug::AuthenticationResult {
 class PassAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static constexpr const char* k_NAME = "PassAuthenticator";
+    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_NAME =
+        "PassAuthenticator";
+    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_MECHANISM =
+        "Basic";
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -99,10 +101,16 @@ class PassAuthenticator : public mqbplug::Authenticator {
 
     bslma::Allocator* d_allocator_p;
 
-  public:
+  private:
     // NOT IMPLEMENTED
-    PassAuthenticator(const PassAuthenticator& other)            = delete;
-    PassAuthenticator& operator=(const PassAuthenticator& other) = delete;
+    PassAuthenticator(const PassAuthenticator& other) BSLS_KEYWORD_DELETED;
+    PassAuthenticator&
+    operator=(const PassAuthenticator& other) BSLS_KEYWORD_DELETED;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(PassAuthenticator,
+                                   bslma::UsesBslmaAllocator)
 
     // CREATORS
 
@@ -134,12 +142,12 @@ class PassAuthenticator : public mqbplug::Authenticator {
 
     // MANIPULATORS
 
-    /// Start the Authenticator and return 0 on success, or return a non-zero
+    /// Start the authenticator and return 0 on success, or return a non-zero
     /// value and populate the specified `errorDescription` with the
     /// description of any failure encountered.
     int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
-    /// Stop the Authenticator.
+    /// Stop the authenticator.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
 

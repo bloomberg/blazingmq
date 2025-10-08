@@ -20,11 +20,78 @@
 // MQB
 #include <mqbnet_initialconnectioncontext.h>
 
+// BMQ
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
+#include <bmqsys_time.h>
+#include <bmqu_weakmemfn.h>
+
 // BDE
-#include <bsls_atomic.h>
+#include <ball_log.h>
+#include <bdlb_print.h>
+#include <bdlb_string.h>
+#include <bsl_string.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbnet {
+
+// --------------------------
+// struct AuthenticationState
+// --------------------------
+
+bsl::ostream& AuthenticationState::print(bsl::ostream&             stream,
+                                         AuthenticationState::Enum value,
+                                         int                       level,
+                                         int spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << AuthenticationState::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char* AuthenticationState::toAscii(AuthenticationState::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(AUTHENTICATING)
+        CASE(AUTHENTICATED)
+        CASE(CLOSED)
+    default: return "(* UNKNOWN *)";
+    }
+
+#undef CASE
+}
+
+bool AuthenticationState::fromAscii(AuthenticationState::Enum* out,
+                                    const bsl::string_view     str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(toAscii(AuthenticationState::e_##M),   \
+                                       str.data(),                            \
+                                       static_cast<int>(str.length()))) {     \
+        *out = AuthenticationState::e_##M;                                    \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(AUTHENTICATING)
+    CHECKVALUE(AUTHENTICATED)
+    CHECKVALUE(CLOSED)
+
+#undef CHECKVALUE
+    return false;
+}
 
 // ---------------------------
 // class AuthenticationContext
@@ -33,40 +100,156 @@ namespace mqbnet {
 AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    bmqp::EncodingType::Enum                   authenticationEncodingType,
     State                                      state,
-    ConnectionType::Enum                       connectionType)
-: d_initialConnectionContext_p(initialConnectionContext)
-, d_authenticationMessage(authenticationMessage)
+    ConnectionType::Enum                       connectionType,
+    bslma::Allocator*                          allocator)
+: d_self(this)  // use default allocator
+, d_mutex()
+, d_authenticationResultSp()
+, d_timeoutHandle()
 , d_state(state)
+, d_initialConnectionContext_p(initialConnectionContext)
+, d_authenticationMessage(authenticationMessage)
+, d_authenticationEncodingType(authenticationEncodingType)
 , d_connectionType(connectionType)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
 
-AuthenticationContext& AuthenticationContext::setInitialConnectionContext(
+void AuthenticationContext::setAuthenticationResult(
+    const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
+{
+    d_authenticationResultSp = value;
+}
+
+void AuthenticationContext::setInitialConnectionContext(
     InitialConnectionContext* value)
 {
     d_initialConnectionContext_p = value;
-    return *this;
 }
 
-AuthenticationContext& AuthenticationContext::setAuthenticationMessage(
+void AuthenticationContext::setAuthenticationMessage(
     const bmqp_ctrlmsg::AuthenticationMessage& value)
 {
     d_authenticationMessage = value;
-    return *this;
 }
 
-bsls::AtomicInt& AuthenticationContext::state()
+void AuthenticationContext::setAuthenticationEncodingType(
+    bmqp::EncodingType::Enum value)
 {
-    return d_state;
+    d_authenticationEncodingType = value;
 }
 
-AuthenticationContext&
-AuthenticationContext::setConnectionType(ConnectionType::Enum value)
+void AuthenticationContext::setConnectionType(ConnectionType::Enum value)
 {
     d_connectionType = value;
-    return *this;
+}
+
+int AuthenticationContext::scheduleReauthn(
+    bsl::ostream&                          errorDescription,
+    bdlmt::EventScheduler*                 scheduler_p,
+    const bsl::optional<int>&              lifetimeMs,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    // executed by an *AUTHENTICATION* thread
+
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(scheduler_p);
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    if (d_state != State::e_AUTHENTICATING) {
+        errorDescription << "State not AUTHENTICATING (was " << d_state << ")";
+        return -1;
+    }
+
+    d_state = State::e_AUTHENTICATED;
+
+    if (d_timeoutHandle) {
+        scheduler_p->cancelEventAndWait(&d_timeoutHandle);
+    }
+
+    if (lifetimeMs.has_value()) {
+        BSLS_ASSERT_SAFE(lifetimeMs >= 0);
+
+        scheduler_p->scheduleEvent(
+            &d_timeoutHandle,
+            bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
+                .addMilliseconds(lifetimeMs.value()),
+            bdlf::BindUtil::bind(
+                bmqu::WeakMemFnUtil::weakMemFn(
+                    &AuthenticationContext::onReauthenticateErrorOrTimeout,
+                    d_self.acquireWeak()),
+                -1,                       // errorCode
+                "authenticationTimeout",  // errorName
+                channel                   // channel
+                ));
+    }
+
+    return 0;
+}
+
+void AuthenticationContext::onReauthenticateErrorOrTimeout(
+    int                                    errorCode,
+    const bsl::string&                     errorName,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+        if (d_state == State::e_CLOSED) {
+            return;
+        }
+    }  // UNLOCK
+
+    BALL_LOG_ERROR << "Reauthentication error or timeout for '"
+                   << channel->peerUri() << "' [error: " << errorName
+                   << ", code: " << errorCode << "]";
+
+    bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                         errorName,
+                         errorCode,
+                         d_allocator_p);
+    channel->close(status);
+}
+
+void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
+{
+    // executed by *ANY* thread
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    if (d_state == State::e_CLOSED) {
+        return;  // idempotent
+    }
+    d_state = State::e_CLOSED;
+
+    if (d_timeoutHandle) {
+        scheduler_p->cancelEventAndWait(&d_timeoutHandle);
+    }
+}
+
+bool AuthenticationContext::tryStartReauthentication()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    if (d_state == State::e_AUTHENTICATED) {
+        d_state = State::e_AUTHENTICATING;
+        return true;
+    }
+
+    return false;
+}
+
+const bsl::shared_ptr<mqbplug::AuthenticationResult>&
+AuthenticationContext::authenticationResult() const
+{
+    return d_authenticationResultSp;
 }
 
 InitialConnectionContext*
@@ -79,6 +262,12 @@ const bmqp_ctrlmsg::AuthenticationMessage&
 AuthenticationContext::authenticationMessage() const
 {
     return d_authenticationMessage;
+}
+
+bmqp::EncodingType::Enum
+AuthenticationContext::authenticationEncodingType() const
+{
+    return d_authenticationEncodingType;
 }
 
 ConnectionType::Enum AuthenticationContext::connectionType() const

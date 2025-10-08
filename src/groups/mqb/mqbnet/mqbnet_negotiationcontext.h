@@ -35,14 +35,16 @@ namespace mqbnet {
 // class NegotiationContext
 // ========================
 
-// VST for an implementation of NegotiationContext
-struct NegotiationContext {
+// VST for the context associated with a session being negotiated.
+class NegotiationContext {
+  private:
     // DATA
     /// The associated InitialConnectionContext passed in by the caller.
     /// Held, not owned
     InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
+    /// Set to empty if we haven't received one yet.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
 
     /// The cluster involved in the session being negotiated, or empty if
@@ -64,8 +66,8 @@ struct NegotiationContext {
     /// The event processor to use for initiating the
     /// read on the channel once the session has been
     /// successfully negotiated.  This may or may not be
-    /// set by the caller, before invoking
-    /// 'InitialConnectionHandler::handleInitialConnection()';
+    /// set by the caller, during
+    /// 'TcpSessionFactory::handleInitialConnection()';
     /// and may or may not be changed by the negotiator concrete
     /// implementation before invoking the
     /// 'InitialConnectionCompleteCb'.  Note that a value of 0 will
@@ -75,6 +77,36 @@ struct NegotiationContext {
 
     /// mqbnet::Cluster to inform about incoming (proxy) connection
     Cluster* d_cluster_p;
+
+    // NOT IMPLEMENTED
+    NegotiationContext(const NegotiationContext&);             // = delete;
+    NegotiationContext& operator=(const NegotiationContext&);  // = delete;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    NegotiationContext(InitialConnectionContext* initialConnectionContext,
+                       bslma::Allocator*         allocator = 0);
+
+    // MANIPULATORS
+    void setNegotiationMessage(const bmqp_ctrlmsg::NegotiationMessage& value);
+    void setClusterName(const bsl::string& value);
+    void setConnectionType(ConnectionType::Enum value);
+    void setMaxMissedHeartbeats(int value);
+    void setEventProcessor(SessionEventProcessor* value);
+    void setCluster(Cluster* value);
+
+    // ACCESSORS
+    InitialConnectionContext*               initialConnectionContext() const;
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage() const;
+    const bsl::string&                      clusterName() const;
+    ConnectionType::Enum                    connectionType() const;
+    int                                     maxMissedHeartbeats() const;
+    SessionEventProcessor*                  eventProcessor() const;
+    Cluster*                                cluster() const;
 };
 
 }  // close package namespace

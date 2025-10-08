@@ -22,7 +22,6 @@
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
-#include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
 #include <mqbauthn_authenticationcontroller.h>
 #include <mqbblp_clustercatalog.h>
@@ -335,8 +334,10 @@ int Application::start(bsl::ostream& errorDescription)
 
     // Start the transport manager
     bslma::ManagedPtr<mqbnet::Authenticator> authenticatorMp(
-        new (*d_allocator_p)
-            Authenticator(&d_blobSpPool, d_allocators.get("Authenticator")),
+        new (*d_allocator_p) Authenticator(d_authenticationController_mp.get(),
+                                           &d_blobSpPool,
+                                           d_scheduler_p,
+                                           d_allocators.get("Authenticator")),
         d_allocator_p);
 
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
@@ -359,18 +360,11 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
 
-    bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        initialConnectionHandlerMp(
-            new (*d_allocator_p) InitialConnectionHandler(
-                authenticatorMp,
-                negotiatorMp,
-                d_allocators.get("InitialConnectionHandler")),
-            d_allocator_p);
-
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
-                                   initialConnectionHandlerMp,
+                                   authenticatorMp,
+                                   negotiatorMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
                                d_allocator_p);
@@ -541,8 +535,8 @@ void Application::stop()
     STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
-    STOP_OBJ(d_statController_mp, "StatController");
     STOP_OBJ(d_authenticationController_mp, "AuthenticationController");
+    STOP_OBJ(d_statController_mp, "StatController");
     STOP_OBJ(d_pluginManager_mp, "PluginManager");
 
     // and now DESTROY everything
@@ -551,8 +545,8 @@ void Application::stop()
     DESTROY_OBJ(d_transportManager_mp, "TransportManager");
     DESTROY_OBJ(d_dispatcher_mp, "Dispatcher");
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
-    DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_authenticationController_mp, "AuthenticationController");
+    DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
 
     bsls::TimeInterval elapsedTime = bdlt::CurrentTime::now() - startTime;
