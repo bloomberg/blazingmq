@@ -262,8 +262,8 @@ class ClusterActiveNodeManager {
     /// current machine's data center.
     bool d_ignoreDataCenter;
 
-    // If true, drop the same data center requirement when selecting active
-    // node.
+    /// If true, drop the same data center requirement when selecting active
+    /// node.
     bool d_useExtendedSelection;
 
   private:
