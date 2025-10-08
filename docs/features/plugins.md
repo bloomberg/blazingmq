@@ -129,7 +129,7 @@ Prerequisites:
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 ```bash
-Usage: ./src/plugins/prometheus/tests/bmqprometheus_prometheusstatconsumer_test.py [-h] -p PATH
+Usage: ./src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  path to BlazingMQ build folder, e.g. './build/blazingmq'
