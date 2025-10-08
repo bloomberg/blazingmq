@@ -50,7 +50,7 @@ from blazingmq.dev.it.cluster_util import (
 pytestmark = order(2)
 timeout = 20
 
-DEFAULT_APP_IDS = ["foo", "bar", "baz"]
+DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
 def configure_cluster(cluster: Cluster, is_fsm: bool):

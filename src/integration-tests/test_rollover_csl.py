@@ -32,7 +32,7 @@ import glob
 
 pytestmark = order(4)
 
-default_app_ids = ["foo", "bar", "baz"]
+DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
 class TestRolloverCSL:
@@ -119,7 +119,7 @@ class TestRolloverCSL:
         consumer.close(priority_queue, succeed=True)
         consumer.close(fanout_queue + "?id=foo", succeed=True)
 
-        current_app_ids = default_app_ids + ["quux"]
+        current_app_ids = DEFAULT_APP_IDS + ["quux"]
         cluster.set_app_ids(current_app_ids, du)
         producer.post(
             fanout_queue,

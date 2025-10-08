@@ -837,6 +837,26 @@ def test_queue_purge_command(multi_node: Cluster, domain_urls: tc.DomainUrls):
         assert len(msgs) == 0
 
 
+def test_wrong_domain(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """
+    Test that opening a queue in a non-existent domain fails, while opening
+    a queue in an existing domain succeeds.
+    """
+
+    proxies = cluster.proxy_cycle()
+    producer = next(proxies).create_client("producer")
+
+    assert Client.e_SUCCESS is producer.open(
+        domain_urls.uri_fanout, flags=["write"], block=True
+    )
+    assert Client.e_SUCCESS is not producer.open(
+        "bmq://domain.does.not.exist/qqq",
+        flags=["write"],
+        block=True,
+        no_except=True,
+    )
+
+
 def test_message_properties(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Ensure that posting different sequences of MessageProperties works."""
     uri_priority = domain_urls.uri_priority

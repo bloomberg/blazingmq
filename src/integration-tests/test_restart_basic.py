@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2024-2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,26 +65,6 @@ def test_basic(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer.wait_push_event()
     assert wait_until(
         lambda: len(consumer.list(uri_priority, block=True)) == 2, timeout=2
-    )
-
-
-def test_wrong_domain(cluster: Cluster, domain_urls: tc.DomainUrls):
-    """
-    Test that opening a queue in a non-existent domain fails, while opening
-    a queue in an existing domain succeeds.
-    """
-
-    proxies = cluster.proxy_cycle()
-    producer = next(proxies).create_client("producer")
-
-    assert Client.e_SUCCESS is producer.open(
-        domain_urls.uri_fanout, flags=["write"], block=True
-    )
-    assert Client.e_SUCCESS is not producer.open(
-        "bmq://domain.does.not.exist/qqq",
-        flags=["write"],
-        block=True,
-        no_except=True,
     )
 
 

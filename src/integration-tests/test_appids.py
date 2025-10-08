@@ -30,7 +30,7 @@ from blazingmq.dev.it.util import attempt, wait_until
 
 pytestmark = order(3)
 
-default_app_ids = ["foo", "bar", "baz"]
+DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 timeout = 10
 max_msgs = 3
 
@@ -45,14 +45,14 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    all_app_ids = default_app_ids + ["quux"]
+    all_app_ids = DEFAULT_APP_IDS + ["quux"]
 
     # ---------------------------------------------------------------------
     # Create a consumer for each authorized substream.
 
     consumers = {}
 
-    for app_id in default_app_ids:
+    for app_id in DEFAULT_APP_IDS:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
         consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
@@ -105,7 +105,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    cluster.set_app_ids(default_app_ids + ["quux"], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
@@ -128,7 +128,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
 
     leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in default_app_ids:
+    for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
@@ -167,7 +167,7 @@ def test_create_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    cluster.set_app_ids(default_app_ids + ["quux"], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
@@ -195,7 +195,7 @@ def test_load_domain_authorize_open_post(cluster: Cluster, domain_urls: tc.Domai
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    cluster.set_app_ids(default_app_ids + ["quux"], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
@@ -219,7 +219,7 @@ def _test_authorize_before_domain_loaded(cluster, domain_urls: tc.DomainUrls):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    cluster.set_app_ids(default_app_ids + ["quux"], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create the queue.
@@ -247,9 +247,9 @@ def _test_command_errors(cluster, domain_urls: tc.DomainUrls):
     proxies = cluster.proxy_cycle()
     next(proxies).create_client("producer")
 
-    cluster.set_app_ids(default_app_ids + ["quux"], domain_urls)
+    cluster.set_app_ids(DEFAULT_APP_IDS + ["quux"], domain_urls)
 
-    cluster.set_app_ids(default_app_ids, domain_urls)
+    cluster.set_app_ids(DEFAULT_APP_IDS, domain_urls)
 
 
 def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.DomainUrls):
@@ -275,7 +275,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
     # message posted while 'foo' was still valid.
     foo.wait_push_event()
 
-    cluster.set_app_ids([a for a in default_app_ids if a not in ["foo"]], du)
+    cluster.set_app_ids([a for a in DEFAULT_APP_IDS if a not in ["foo"]], du)
 
     @attempt(3)
     def _():
@@ -319,7 +319,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
     assert Client.e_SUCCESS == foo.close(du.uri_fanout_foo, block=True)
 
     # Re-authorize
-    cluster.set_app_ids(default_app_ids, du)
+    cluster.set_app_ids(DEFAULT_APP_IDS, du)
 
     foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
     producer.post(du.uri_fanout, ["after-reauthorize"], block=True)
@@ -411,7 +411,7 @@ def test_unauthorized_appid_doesnt_hold_messages(
     # consume all the messages in all the authorized substreams
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in default_app_ids:
+    for app_id in DEFAULT_APP_IDS:
         appid_uri = f"{uri_fanout}?id={app_id}"
         consumer = next(proxies).create_client(app_id)
         consumer.open(appid_uri, flags=["read"], succeed=True)
@@ -453,7 +453,7 @@ def test_deauthorized_appid_doesnt_hold_messages(
     # ---------------------------------------------------------------------
     # unauthorize 'bar' and 'baz'
     cluster.set_app_ids(
-        [a for a in default_app_ids if a not in ["bar", "baz"]], domain_urls
+        [a for a in DEFAULT_APP_IDS if a not in ["bar", "baz"]], domain_urls
     )
 
     # ---------------------------------------------------------------------
@@ -563,7 +563,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    all_app_ids = default_app_ids + ["quux"]
+    all_app_ids = DEFAULT_APP_IDS + ["quux"]
 
     # ---------------------------------------------------------------------
     # Create a consumer for each authorized substream.
@@ -577,7 +577,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    cluster.set_app_ids(default_app_ids + ["quux"], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Post a message.
@@ -635,7 +635,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
         consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in default_app_ids:
+    for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
@@ -676,7 +676,7 @@ def test_csl_repair_after_stop(
 
     cluster.stop_nodes()
 
-    updated_app_ids = default_app_ids.copy()
+    updated_app_ids = DEFAULT_APP_IDS.copy()
     updated_app_ids.remove("foo")
     updated_app_ids.append("new1")
 
@@ -705,7 +705,7 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    all_app_ids = default_app_ids + ["new_app"]
+    all_app_ids = DEFAULT_APP_IDS + ["new_app"]
 
     # ---------------------------------------------------------------------
     # Create a consumer
@@ -785,7 +785,7 @@ def test_old_data_new_app(
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    _set_app_ids(cluster, default_app_ids + [new_app_1])
+    _set_app_ids(cluster, DEFAULT_APP_IDS + [new_app_1])
 
     leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
 
@@ -796,7 +796,7 @@ def test_old_data_new_app(
     # ---------------------------------------------------------------------
     # +new_app_2
     new_app_2 = "new_app_2"
-    _set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2])
+    _set_app_ids(cluster, DEFAULT_APP_IDS + [new_app_1] + [new_app_2])
 
     leader.capture(f"Registered appId '{new_app_2}'", timeout=5)
 
@@ -807,7 +807,7 @@ def test_old_data_new_app(
     # ---------------------------------------------------------------------
     # +new_app_3
     new_app_3 = "new_app_3"
-    _set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3])
+    _set_app_ids(cluster, DEFAULT_APP_IDS + [new_app_1] + [new_app_2] + [new_app_3])
 
     leader.capture(f"Registered appId '{new_app_3}'", timeout=5)
 
@@ -817,7 +817,7 @@ def test_old_data_new_app(
 
     # ---------------------------------------------------------------------
     # -new_app_2
-    _set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_3])
+    _set_app_ids(cluster, DEFAULT_APP_IDS + [new_app_1] + [new_app_3])
 
     # ---------------------------------------------------------------------
     # Post extra strong consistency message after removing new_app_2 but before
@@ -843,7 +843,7 @@ def test_old_data_new_app(
         # -----------------------------------------------------------------
         # Create a consumer for each default substream.
 
-        for app_id in default_app_ids:
+        for app_id in DEFAULT_APP_IDS:
             consumer = next(proxies).create_client(app_id)
             consumers[app_id] = consumer
             consumer.open(
@@ -872,7 +872,7 @@ def test_old_data_new_app(
 
         leader.dump_queue_internals(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE)
 
-        for app_id in default_app_ids:
+        for app_id in DEFAULT_APP_IDS:
             test_logger.info(f"Check if {app_id} has seen 5 messages")
             _verify_delivery(
                 consumers[app_id], f"{tc.URI_FANOUT_SC}?id={app_id}", 5, andConfirm
@@ -894,7 +894,7 @@ def test_old_data_new_app(
         # ---------------------------------------------------------------------
         # Stop all clients
 
-        for app_id in default_app_ids:
+        for app_id in DEFAULT_APP_IDS:
             consumers[app_id].close(
                 f"{tc.URI_FANOUT_SC}?id={app_id}", block=True, succeed=True
             )
@@ -938,7 +938,7 @@ def test_proxy_partial_push(
 
     consumers = {}
 
-    for app_id in default_app_ids:
+    for app_id in DEFAULT_APP_IDS:
         consumer = proxy.create_client(app_id)
         consumers[app_id] = consumer
         consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
@@ -972,7 +972,7 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer = proxy.create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    app_id = default_app_ids[0]
+    app_id = DEFAULT_APP_IDS[0]
     consumer = proxy.create_client(app_id)
     consumer_uri = f"{du.uri_fanout}?id={app_id}"
     consumer.open(consumer_uri, flags=["read"], succeed=True)
@@ -992,7 +992,7 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    cluster.set_app_ids(default_app_ids + [new_app_1], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + [new_app_1], du)
 
     assert consumer.close(consumer_uri, block=True) == Client.e_SUCCESS
 
@@ -1028,7 +1028,7 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    cluster.set_app_ids(default_app_ids + [new_app_1], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + [new_app_1], du)
 
     leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
 
@@ -1040,7 +1040,7 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     # consume the messages in all the authorized substreams
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in default_app_ids:
+    for app_id in DEFAULT_APP_IDS:
         appid_uri = f"{du.uri_fanout}?id={app_id}"
         consumer = next(proxies).create_client(app_id)
         consumer.open(appid_uri, flags=["read"], succeed=True)
@@ -1050,14 +1050,14 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # ---------------------------------------------------------------------
     # -new_app_1
-    cluster.set_app_ids(default_app_ids, du)
+    cluster.set_app_ids(DEFAULT_APP_IDS, du)
 
     leader.capture(f"Unregistered appId '{new_app_1}'", timeout=5)
 
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    cluster.set_app_ids(default_app_ids + [new_app_1], du)
+    cluster.set_app_ids(DEFAULT_APP_IDS + [new_app_1], du)
 
     leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
 
