@@ -129,7 +129,7 @@ Prerequisites:
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 ```bash
-Usage: ./src/plugins/prometheus/tests/prometheus_prometheusstatconsumer_test.py [-h] -p PATH
+Usage: ./src/plugins/prometheus/tests/bmqprometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  path to BlazingMQ build folder, e.g. './build/blazingmq'
@@ -216,6 +216,8 @@ Every broker reports this metric for each of the clusters it has created, with t
 
 Metrics in the following section are reported only by the leader node of the cluster.
 
+|Metric Name|Description|
+|-----------|-----------|
 |cluster_partition_cfg_journal_bytes|Configured maximum size bytes of the journal file.|
 |cluster_partition_cfg_data_bytes|Configured maximum size bytes of the data file.|
 |cluster_csl_cfg_bytes|Configured maximum size bytes of the CSL file.|
