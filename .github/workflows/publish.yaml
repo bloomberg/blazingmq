@@ -14,7 +14,7 @@ env:
 jobs:
   create-github-prerelease:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && contains(github.ref_name, "rc")
+    if: github.event_name == 'push' && contains(github.ref_name, 'rc')
     permissions:
       contents: write
 
@@ -32,7 +32,7 @@ jobs:
 
   create-github-release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && !contains(github.ref_name, "rc")
+    if: github.event_name == 'push' && !contains(github.ref_name, 'rc')
     permissions:
       contents: write
 
