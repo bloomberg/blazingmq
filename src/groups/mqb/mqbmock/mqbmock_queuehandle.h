@@ -482,12 +482,8 @@ class QueueHandle : public mqbi::QueueHandle {
     const bsl::vector<const mqbu::ResourceUsageMonitor*>
     unconfirmedMonitors(const bsl::string& appId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return number of unconfirmed messages for the optionally specified
-    /// `subId` unless it has the default value `k_UNASSIGNED_SUBQUEUE_ID`,
-    /// in which case return number of unconfirmed messages for all streams.
-    bsls::Types::Int64 countUnconfirmed(
-        unsigned int subId = bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) const
-        BSLS_KEYWORD_OVERRIDE;
+    /// Return number of unconfirmed messages for all streams.
+    bsls::Types::Int64 countUnconfirmed() const BSLS_KEYWORD_OVERRIDE;
 
     /// Print to the specified `out` object, the internal details about this
     /// queue handle.

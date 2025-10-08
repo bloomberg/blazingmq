@@ -830,16 +830,6 @@ void ClusterOrchestrator::processStopRequest(
                   << ", current status: " << ns->nodeStatus()
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
 
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    if (stopRequest.version() == bmqp::Protocol::eStopRequestVersion::e_V1 &&
-        stopRequest.clusterName() != name) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": invalid cluster name in the StopRequest from "
-                       << source->nodeDescription() << ", " << request;
-        return;  // RETURN
-    }
-
     ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_STOPPING);
 
     processNodeStoppingNotification(ns, &request);
@@ -1309,6 +1299,17 @@ void ClusterOrchestrator::processClusterStateEvent(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(event.clusterNode());
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Not processing cluster state record event from "
+                      << event.clusterNode()->nodeDescription()
+                      << " since self is stopping";
+
+        return;  // RETURN
+    }
 
     d_stateManager_mp->processClusterStateEvent(event);
 }

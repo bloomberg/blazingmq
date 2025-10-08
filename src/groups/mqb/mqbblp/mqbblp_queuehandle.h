@@ -32,8 +32,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
-#include <bmqu_operationchain.h>
-
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
@@ -186,11 +184,6 @@ class QueueHandle : public mqbi::QueueHandle {
     bdlmt::Throttle d_throttledFailedAckMessages;
 
     bdlmt::Throttle d_throttledDroppedPutMessages;
-
-    /// Mechanism to serialize execution of the substream deconfigure callbacks
-    /// and the caller callback invoked when all the substreams are
-    /// deconfigured.
-    bmqu::OperationChain d_deconfigureChain;
 
     bmqp::SchemaLearner::Context d_schemaLearnerPutContext;
 
@@ -522,12 +515,8 @@ class QueueHandle : public mqbi::QueueHandle {
     const bsl::vector<const mqbu::ResourceUsageMonitor*>
     unconfirmedMonitors(const bsl::string& appId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return number of unconfirmed messages for the optionally specified
-    /// `subId` unless it has the default value `k_UNASSIGNED_SUBQUEUE_ID`,
-    /// in which case return number of unconfirmed messages for all streams.
-    bsls::Types::Int64 countUnconfirmed(
-        unsigned int subQueueId = bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID)
-        const BSLS_KEYWORD_OVERRIDE;
+    /// Return number of unconfirmed messages for all streams.
+    bsls::Types::Int64 countUnconfirmed() const BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `out` object, the internal details about
     /// this queue handle.

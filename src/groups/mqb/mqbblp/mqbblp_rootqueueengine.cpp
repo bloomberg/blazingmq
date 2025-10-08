@@ -1945,7 +1945,6 @@ void RootQueueEngine::afterAppIdRegistered(
 
     d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
-        d_queueState_p->key(),
         d_queueState_p->partitionId(),
         addedAppIds,
         mqbi::Storage::AppInfos());
@@ -1988,7 +1987,6 @@ void RootQueueEngine::afterAppIdUnregistered(
 
     d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
-        d_queueState_p->key(),
         d_queueState_p->partitionId(),
         mqbi::Storage::AppInfos(),
         removedAppIds);

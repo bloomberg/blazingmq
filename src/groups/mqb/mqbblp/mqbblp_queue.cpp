@@ -606,6 +606,9 @@ int Queue::configure(bsl::ostream* errorDescription_p,
 
     if (wait) {
         bslmt::Semaphore sync;
+
+        // NOTE: Use the e_DISPATCHER type to prevent adding the queue to the
+        // dispatcher flush list because the queue may fail to configure
         dispatcher()->execute(
             bdlf::BindUtil::bind(&Queue::configureDispatchedAndPost,
                                  this,
@@ -613,7 +616,8 @@ int Queue::configure(bsl::ostream* errorDescription_p,
                                  errorDescription_p,
                                  isReconfigure,
                                  &sync),
-            this);
+            this,
+            mqbi::DispatcherEventType::e_DISPATCHER);
 
         sync.wait();
     }
@@ -886,39 +890,14 @@ void Queue::flush()
     }
 }
 
-bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
+bsls::Types::Int64 Queue::countUnconfirmed() const
 {
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    if (subId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
-        return d_state.handleCatalog().countUnconfirmed();  // RETURN
-    }
-
-    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    struct local {
-        static void sum(bsls::Types::Int64*                  sum,
-                        mqbi::QueueHandle*                   handle,
-                        const mqbi::QueueHandle::StreamInfo& info,
-                        unsigned int                         sample)
-        {
-            if (info.d_downstreamSubQueueId == sample) {
-                *sum += handle->countUnconfirmed();
-            }
-        }
-    };
-    bsls::Types::Int64 result = 0;
-
-    d_state.handleCatalog().iterateConsumers(
-        bdlf::BindUtil::bind(&local::sum,
-                             &result,
-                             bdlf::PlaceHolders::_1,  // handle
-                             bdlf::PlaceHolders::_2,  // info
-                             subId));
-
-    return result;
+    return d_state.handleCatalog().countUnconfirmed();  // RETURN
 }
 
 void Queue::stopPushing()

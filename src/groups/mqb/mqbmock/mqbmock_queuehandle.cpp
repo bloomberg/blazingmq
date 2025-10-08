@@ -541,21 +541,15 @@ QueueHandle::unconfirmedMonitors(BSLA_UNUSED const bsl::string& appId) const
     return out;
 }
 
-bsls::Types::Int64 QueueHandle::countUnconfirmed(unsigned int subId) const
+bsls::Types::Int64 QueueHandle::countUnconfirmed() const
 {
     bsls::Types::Int64 result = 0;
-    if (subId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
-        for (Downstreams::const_iterator itStream = d_downstreams.begin();
-             itStream != d_downstreams.end();
-             ++itStream) {
-            const Downstream& downstream = itStream->second;
-            result += downstream.d_unconfirmedMessages.size();
-        }
-    }
-    else {
-        Downstreams::const_iterator cit = d_downstreams.find(subId);
-        BSLS_ASSERT_OPT(cit != d_downstreams.end());
-        result += cit->second.d_unconfirmedMessages.size();
+
+    for (Downstreams::const_iterator itStream = d_downstreams.begin();
+         itStream != d_downstreams.end();
+         ++itStream) {
+        const Downstream& downstream = itStream->second;
+        result += downstream.d_unconfirmedMessages.size();
     }
     return result;
 }
