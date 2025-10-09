@@ -522,7 +522,7 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
         if (0 != recoveryCtx.oldSyncPointOffset()) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
                           << ": Partition [" << partitionId
-                          << "] will be truncated to the last syncPt "
+                          << "] will be truncated to the last sync point "
                           << "offsets & then local recovery will be performed."
                           << " Offset details: JOURNAL: "
                           << recoveryCtx.oldSyncPointOffset()
@@ -535,8 +535,8 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
             BALL_LOG_WARN
                 << d_clusterData_p->identity().description() << ": Partition ["
                 << partitionId
-                << "]. No syncPt is present in the local journal, and thus, "
-                << "local partition files will be archived. "
+                << "]. No sync point is present in the local journal, and "
+                << "thus, local partition files will be archived. "
                 << "Recovery will proceed as if no local files exist.";
             movePartitionFiles(partitionId,
                                d_dataStoreConfig.location(),
@@ -2083,9 +2083,9 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
                        << "]: partition sync from archived files not yet "
                        << "supported, for peer: "
                        << ppState.peer()->nodeDescription()
-                       << ", peer syncPt: "
+                       << ", peer sync point: "
                        << ppState.lastSyncPointOffsetPair().syncPoint()
-                       << ", self syncPt: " << firstSpOffPair.syncPoint();
+                       << ", self sync point: " << firstSpOffPair.syncPoint();
         return rc_ARCHIVED_FILE_SYNC_UNSUPPORTED;  // RETURN
     }
 
@@ -2286,13 +2286,15 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
             0 == syncPointRecHeader->sequenceNumber()) {
             // Peer sent a SyncPt containing invalid seqnum.
 
-            BALL_LOG_ERROR
-                << d_clusterData_p->identity().description()
-                << ": For Partition [" << partitionId << "]"
-                << ", received a SyncPt with invalid sequence number in the "
-                << "RecordHeader: (" << syncPointRecHeader->primaryLeaseId()
-                << ", " << syncPointRecHeader->sequenceNumber() << "), from "
-                << source->nodeDescription() << ". Ignoring this message.";
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << ": For Partition [" << partitionId << "]"
+                           << ", received a sync point with invalid sequence "
+                              "number in the "
+                           << "RecordHeader: ("
+                           << syncPointRecHeader->primaryLeaseId() << ", "
+                           << syncPointRecHeader->sequenceNumber()
+                           << "), from " << source->nodeDescription()
+                           << ". Ignoring this message.";
             continue;  // CONTINUE
         }
 
@@ -2329,9 +2331,9 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
 
         // Note that 'journalOpRec.primaryLeaseId()' may be smaller than what
         // appears in its RecordHeader if a new primary was chosen for this
-        // partition *while* self node was waiting for a SyncPt, *and* as its
-        // first job, the new primary issues a sync point with old leaseId &
-        // sequenceNum.  Also note that in this case, sequence number in the
+        // partition *while* self node was waiting for a sync point, *and* as
+        // its first job, the new primary issues a sync point with old leaseId
+        // & sequenceNum.  Also note that in this case, sequence number in the
         // RecordHeader will be different from 'journalOpRec->sequenceNumber()'
         // (see 'FileStore::writeJournalRecord' for same comment -- for the
         // same reason).
@@ -2342,12 +2344,12 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
 
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
                            << ": For Partition [" << partitionId << "]"
-                           << ", received a SyncPt JOURNAL_OP record "
+                           << ", received a sync point JOURNAL_OP record "
                            << "with invalid primaryLeaseId in RecordHeader."
                            << " Sequence number in RecordHeader ("
                            << syncPointRecHeader->primaryLeaseId() << ", "
                            << syncPointRecHeader->sequenceNumber()
-                           << "). Sequence number in SyncPt ("
+                           << "). Sequence number in sync point("
                            << journalOpRec->primaryLeaseId() << ", "
                            << journalOpRec->sequenceNum()
                            << "). Source: " << source->nodeDescription()
@@ -2366,11 +2368,11 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 BMQTSK_ALARMLOG_ALARM("RECOVERY")
                     << d_clusterData_p->identity().description()
                     << " Partition [" << partitionId
-                    << "]: " << "received a SyncPt record with mismatched "
+                    << "]: " << "received a sync point record with mismatched "
                     << "sequence numbers. Sequence number in RecordHeader ("
                     << syncPointRecHeader->primaryLeaseId() << ", "
                     << syncPointRecHeader->sequenceNumber()
-                    << "). Sequence number in SyncPt ("
+                    << "). Sequence number in sync point ("
                     << journalOpRec->primaryLeaseId() << ", "
                     << journalOpRec->sequenceNum()
                     << "). Source: " << source->nodeDescription()
@@ -2393,16 +2395,17 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         // behavior in this scenario.
 
         if (mqbs::SyncPointType::e_ROLLOVER == journalOpRec->syncPointType()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " Partition [" << partitionId << "] :"
-                          << "received a rolled-over SyncPt, but skipping it. "
-                          << "Sequence number in RecordHeader ("
-                          << syncPointRecHeader->primaryLeaseId() << ", "
-                          << syncPointRecHeader->sequenceNumber()
-                          << "). Sequence number in SyncPt ("
-                          << journalOpRec->primaryLeaseId() << ", "
-                          << journalOpRec->sequenceNum()
-                          << "). Source: " << source->nodeDescription();
+            BALL_LOG_INFO
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "] :"
+                << "received a rolled-over sync point, but skipping it. "
+                << "Sequence number in RecordHeader ("
+                << syncPointRecHeader->primaryLeaseId() << ", "
+                << syncPointRecHeader->sequenceNumber()
+                << "). Sequence number in sync point ("
+                << journalOpRec->primaryLeaseId() << ", "
+                << journalOpRec->sequenceNum()
+                << "). Source: " << source->nodeDescription();
 
             bmqp_ctrlmsg::SyncPoint dummySyncPt;
             RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
@@ -3165,7 +3168,7 @@ void RecoveryManager::startRecovery(
         BMQTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << ": For Partition ["
             << partitionId << "], last sync point has"
-            << " invalid SyncPt sub-type: " << journalOpRec.syncPointType()
+            << " invalid sync point sub-type: " << journalOpRec.syncPointType()
             << ". Ignoring this sync point. Recovery will proceed as if this "
             << "node had no local recoverable files for this partition."
             << BMQTSK_ALARMLOG_END;
@@ -3254,11 +3257,11 @@ void RecoveryManager::startRecovery(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": For Partition [" << partitionId << "], retrieved "
-                  << "old SyncPt at journal offset: "
+                  << "old sync point at journal offset: "
                   << bmqu::PrintUtil::prettyNumber(
                          static_cast<bsls::Types::Int64>(lastSyncPointOffset))
-                  << ". SyncPt details: " << syncPoint
-                  << ". Sequence number is SyncPt's RecordHeader ("
+                  << ". sync point details: " << syncPoint
+                  << ". Sequence number is sync point's RecordHeader ("
                   << journalOpRec.header().primaryLeaseId() << ", "
                   << journalOpRec.header().sequenceNumber() << ").";
 }
@@ -3341,7 +3344,7 @@ void RecoveryManager::processStorageEvent(
                   << "], received sync point " << syncPoint << " from node "
                   << source->nodeDescription()
                   << ". Primary's journal offset: " << primaryJournalOffset
-                  << ". Sequence number in SyncPt's RecordHeader: ("
+                  << ". Sequence number in sync point's RecordHeader: ("
                   << syncPointRecHeader.primaryLeaseId() << ", "
                   << syncPointRecHeader.sequenceNumber() << ").";
 
@@ -4073,9 +4076,9 @@ void RecoveryManager::processStorageSyncRequest(
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << req.partitionId()
-                      << "]: Begin SyncPt (A) found at journal offset: "
+                      << "]: Begin sync point (A) found at journal offset: "
                       << retA.first->offset();
-        // Note that above, the retrieved offset of SyncPt in the journal
+        // Note that above, the retrieved offset of sync point in the journal
         // will be same as 'asp.offset()'.
 
         // We skip the 'A' sync point in the response, because requester node
@@ -4116,7 +4119,7 @@ void RecoveryManager::processStorageSyncRequest(
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << req.partitionId()
-                      << "]: End SyncPt (B) found at journal offset: "
+                      << "]: End sync point (B) found at journal offset: "
                       << retB.first->offset();
         // Note that above, the retrieved offset of SyncPt in the journal
         // will be same as 'bsp.offset()'.
@@ -4209,10 +4212,11 @@ void RecoveryManager::processStorageSyncRequest(
             return;  // RETURN
         }
 
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << req.partitionId()
-                      << "]: End SyncPt (max(X, B)) found at journal offset: "
-                      << rcPair.first->offset();
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description() << " Partition ["
+            << req.partitionId()
+            << "]: End sync point (max(X, B)) found at journal offset: "
+            << rcPair.first->offset();
         // Note that the journal offset of the retrieved SyncPt printed
         // will be same as 'endSpOffset.offset()'.
 
