@@ -3615,12 +3615,20 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
     // A response must have an associated request Id
     BSLS_ASSERT_SAFE(!response.rId().isNull());
 
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&Cluster::processResponseDispatched,
-                             this,
-                             response,
-                             static_cast<mqbnet::ClusterNode*>(0)),  // source
-        this);
+    if (dispatcher()->inDispatcherThread(this)) {
+        processResponseDispatched(
+            response,
+            static_cast<mqbnet::ClusterNode*>(0));  // source
+    }
+    else {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &Cluster::processResponseDispatched,
+                this,
+                response,
+                static_cast<mqbnet::ClusterNode*>(0)),  // source
+            this);
+    }
 }
 
 void Cluster::getPrimaryNodes(int*          rc,

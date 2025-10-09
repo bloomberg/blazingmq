@@ -519,9 +519,9 @@ struct JournalFileHeader {
 
     BSLA_MAYBE_UNUSED char d_reserved[k_NUM_RESERVED_BYTES];
 
-    bdlb::BigEndianUint32 d_firstSyncPointOffsetUpperBits;
+    bdlb::BigEndianUint32 d_firstSyncPointAfterRolloverOffsetUpperBits;
 
-    bdlb::BigEndianUint32 d_firstSyncPointOffsetLowerBits;
+    bdlb::BigEndianUint32 d_firstSyncPointAfterRolloverOffsetLowerBits;
     // 0 == null
 
   public:
@@ -538,14 +538,15 @@ struct JournalFileHeader {
 
     JournalFileHeader& setRecordWords(unsigned char value);
 
-    JournalFileHeader& setFirstSyncPointOffsetWords(bsls::Types::Uint64 value);
+    JournalFileHeader&
+    setFirstSyncPointAfterRolloverOffsetWords(bsls::Types::Uint64 value);
 
     // ACCESSORS
     unsigned char headerWords() const;
 
     unsigned char recordWords() const;
 
-    bsls::Types::Uint64 firstSyncPointOffsetWords() const;
+    bsls::Types::Uint64 firstSyncPointAfterRollloverOffsetWords() const;
 };
 
 // ======================
@@ -2291,7 +2292,7 @@ inline JournalFileHeader::JournalFileHeader()
     setHeaderWords(sizeof(JournalFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     setRecordWords(FileStoreProtocol::k_JOURNAL_RECORD_SIZE /
                    bmqp::Protocol::k_WORD_SIZE);
-    setFirstSyncPointOffsetWords(0);
+    setFirstSyncPointAfterRolloverOffsetWords(0);
 }
 
 // MANIPULATORS
@@ -2310,10 +2311,11 @@ JournalFileHeader::setRecordWords(unsigned char value)
 }
 
 inline JournalFileHeader&
-JournalFileHeader::setFirstSyncPointOffsetWords(bsls::Types::Uint64 value)
+JournalFileHeader::setFirstSyncPointAfterRolloverOffsetWords(
+    bsls::Types::Uint64 value)
 {
-    bmqp::Protocol::split(&d_firstSyncPointOffsetUpperBits,
-                          &d_firstSyncPointOffsetLowerBits,
+    bmqp::Protocol::split(&d_firstSyncPointAfterRolloverOffsetUpperBits,
+                          &d_firstSyncPointAfterRolloverOffsetLowerBits,
                           value);
     return *this;
 }
@@ -2329,10 +2331,12 @@ inline unsigned char JournalFileHeader::recordWords() const
     return d_recordWords;
 }
 
-inline bsls::Types::Uint64 JournalFileHeader::firstSyncPointOffsetWords() const
+inline bsls::Types::Uint64
+JournalFileHeader::firstSyncPointAfterRollloverOffsetWords() const
 {
-    return bmqp::Protocol::combine(d_firstSyncPointOffsetUpperBits,
-                                   d_firstSyncPointOffsetLowerBits);
+    return bmqp::Protocol::combine(
+        d_firstSyncPointAfterRolloverOffsetUpperBits,
+        d_firstSyncPointAfterRolloverOffsetLowerBits);
 }
 
 // ----------------------
