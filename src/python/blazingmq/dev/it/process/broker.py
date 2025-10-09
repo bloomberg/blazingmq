@@ -281,8 +281,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         Purge messages from the specified 'queue' in the specified 'domain'.
         If 'app' is specified, only messages from the specified fanout app
-        are purged.  If 'block' is specified and set to 'True', wait
-        until the command completes.  If 'succeed' is specified and set to
+        are purged. If 'succeed' is specified and set to
         'True', raise an exception if the command does not succeed.
         """
 

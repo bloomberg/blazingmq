@@ -67,13 +67,13 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
     cluster.deploy_domains()
 
 
-def restart_cluster_from_legacy_to_fsm(
+def restart_cluster_as_fsm_mode(
     cluster: Cluster,
     producer: Client,
     consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
-    Restart the `cluster` from non-FSM to FSM mode.
+    Restart the `cluster` as FSM mode.
     """
 
     cluster.stop_nodes(prevent_leader_bounce=True)
@@ -88,13 +88,13 @@ def restart_cluster_from_legacy_to_fsm(
         producer.wait_state_restored()
 
 
-def restart_cluster_from_fsm_to_legacy(
+def restart_cluster_as_legacy_mode(
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
     consumers: List[Client],
 ):
     """
-    Restart the `cluster` from FSM to non-FSM mode.
+    Restart the `cluster` as Legacy mode.
     """
 
     # Non-FSM mode has poor healing mechanism, and can have flaky dirty
@@ -434,7 +434,7 @@ def test_restart_between_non_FSM_and_FSM(
     )
 
     # SWITCH
-    restart_cluster_from_legacy_to_fsm(cluster, producer, consumers)
+    restart_cluster_as_fsm_mode(cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -457,7 +457,7 @@ def test_restart_between_non_FSM_and_FSM(
     )
 
     # SWITCH
-    restart_cluster_from_fsm_to_legacy(cluster, producer, consumers)
+    restart_cluster_as_legacy_mode(cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -561,9 +561,7 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     assignUnassignExistingQueues(existing_queues, consumer, leader)
 
 
-@pytest.fixture(
-    params=[restart_cluster_from_legacy_to_fsm, restart_cluster_from_fsm_to_legacy]
-)
+@pytest.fixture(params=[restart_cluster_as_fsm_mode, restart_cluster_as_legacy_mode])
 def switch_cluster_mode(request):
     """
     Fixture to switch cluster mode between non-FSM and FSM.
@@ -603,8 +601,22 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     optional_rollover,
 ):
     """
-    This test verifies that we can safely switch clusters between non-FSM and
+    This test verifies that we can safely switch clusters between Legacy and
     FSM modes and add/remove appIds.
+
+    Cluster fixture starts as:
+    - Legacy mode
+    - FSM mode
+
+    switch_cluster_mode fixture switches to:
+    - Legacy mode
+    - FSM mode
+
+    Resulting in four combinations of switches:
+    1. Legacy -> FSM
+    2. FSM -> Legacy
+    3. Legacy -> Legacy
+    4. FSM -> FSM
 
     1. PROLOGUE:
         - both priority and fanout queues
@@ -698,8 +710,22 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     optional_rollover,
 ):
     """
-    This test verifies that we can safely switch clusters between non-FSM and
-    FSM modes and add/remove appIds.
+    This test verifies that we can safely switch clusters between Legacy and
+    FSM modes, add/remove appIds and purge queues/appIds.
+
+    Cluster fixture starts as:
+    - Legacy mode
+    - FSM mode
+
+    switch_cluster_mode fixture switches to:
+    - Legacy mode
+    - FSM mode
+
+    Resulting in four combinations of switches:
+    1. Legacy -> FSM
+    2. FSM -> Legacy
+    3. Legacy -> Legacy
+    4. FSM -> FSM
 
     1. PROLOGUE:
         - both priority and fanout queues
@@ -733,7 +759,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
     fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
 
-    # post one message
+    # Post one message
     for queue in [priority_queue, fanout_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
 
@@ -745,9 +771,9 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
             wait_ack=True,
         )
 
-    # purge priority queue
+    # Purge priority queue
     cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
-    # # purge fanout queue app "baz"
+    # Purge fanout queue app "baz"
     cluster.last_known_leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
 
     # Post two messages
