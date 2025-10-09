@@ -150,7 +150,7 @@ class Application {
     // Timer Event handle for statistics
     // snaphot
 
-    int d_nextStatDump;
+    bsls::Types::Int64 d_nextStatDump;
     // Counter decremented at every stat
     // snapshot, to know when to dump the
     // stats
