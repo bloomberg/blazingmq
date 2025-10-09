@@ -3954,6 +3954,8 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
         return 10 * rc + rc_WRITE_FAILURE;  // RETURN
     }
 
+    BALL_LOG_INFO << partitionDesc() << "Issued a sync point: " << *spptr;
+
     // Retrieve sync point's offset.
     bsls::Types::Uint64 syncPointJournalOffset =
         d_fileSets[0]->d_journalFilePosition -
