@@ -460,9 +460,8 @@ struct Protocol {
 struct EventType {
     // TYPES
     enum Enum {
-        e_UNDEFINED = 0,
-        e_CONTROL   = 1  // Protocol event (schema-based choice)
-        ,
+        e_UNDEFINED           = 0,
+        e_CONTROL             = 1,  // Protocol event (schema-based choice)
         e_PUT                 = 2,
         e_CONFIRM             = 3,
         e_PUSH                = 4,
