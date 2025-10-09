@@ -3215,17 +3215,18 @@ void StorageUtil::processReplicaStatusAdvisoryDispatched(
                       << "]: Received node status: " << status
                       << ", from replica node: " << source->nodeDescription()
                       << ". Self is ACTIVE primary, force-issuing a primary "
-                      << "status advisory and a SyncPt.";
+                      << "status advisory and a sync point.";
 
         forceIssueAdvisoryAndSyncPt(clusterData, fs, source, pinfo);
     }
     else {
-        BALL_LOG_INFO << clusterData->identity().description()
-                      << " Partition [" << partitionId
-                      << "]: not issuing a primary status advisory or SyncPt "
-                      << "upon receiving status advisory: " << status
-                      << ", from replica: " << source->nodeDescription()
-                      << ", because self is not an ACTIVE primary.";
+        BALL_LOG_INFO
+            << clusterData->identity().description() << " Partition ["
+            << partitionId
+            << "]: not issuing a primary status advisory or sync point "
+            << "upon receiving status advisory: " << status
+            << ", from replica: " << source->nodeDescription()
+            << ", because self is not an ACTIVE primary.";
     }
 }
 
