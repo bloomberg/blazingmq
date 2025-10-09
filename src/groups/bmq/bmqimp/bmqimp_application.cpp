@@ -85,15 +85,18 @@ statContextConfiguration(const bmqt::SessionOptions& options,
 {
     bmqst::StatContextConfiguration config("stats", allocator);
     if (options.statsDumpInterval() != bsls::TimeInterval()) {
+        // statsDumpInterval().seconds() must be < 60 minutes, which can safely
+        // be stored in an `int`.
+        const int statsDumpSeconds = static_cast<int>(
+            options.statsDumpInterval().seconds());
+
         // Stats configuration:
         //   we snapshot every second
         //   first level keeps 30s of history
         //   second level keeps enough for the dump interval
         // Because some stats require range computation, second level actually
         // has to be of size 1 more than the dump interval
-        config.defaultHistorySize(
-            30,
-            (options.statsDumpInterval().seconds() / 30) + 1);
+        config.defaultHistorySize(30, statsDumpSeconds / 30 + 1);
     }
     else {
         config.defaultHistorySize(2);
@@ -680,9 +683,13 @@ Application::Application(
     bmqst::StatValue::SnapshotLocation start;
     bmqst::StatValue::SnapshotLocation end;
     if (d_sessionOptions.statsDumpInterval() != bsls::TimeInterval()) {
+        // statsDumpInterval().seconds() must be < 60 minutes, which can safely
+        // be stored in an `int`.
+        const int statsDumpSeconds = static_cast<int>(
+            d_sessionOptions.statsDumpInterval().seconds());
+
         start.setLevel(1).setIndex(0);
-        end.setLevel(1).setIndex(
-            d_sessionOptions.statsDumpInterval().seconds() / 30);
+        end.setLevel(1).setIndex(statsDumpSeconds / 30);
     }
     else {
         start.setLevel(0).setIndex(0);
