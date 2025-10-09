@@ -31,7 +31,6 @@
         "configVersion": 999999,
         "etcDir": "",
         "hostName": "OVERRIDE",
-        "hostTags": "",
         "hostDataCenter": "OVERRIDE",
         "logsObserverMaxSize": 1000,
         "dispatcherConfig": {

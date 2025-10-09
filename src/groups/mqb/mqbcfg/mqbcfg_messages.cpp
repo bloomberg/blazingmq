@@ -5359,11 +5359,6 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("hostName") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_HOST_TAGS,
-     "hostTags",
-     sizeof("hostTags") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_HOST_DATA_CENTER,
      "hostDataCenter",
      sizeof("hostDataCenter") - 1,
@@ -5430,7 +5425,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 18; ++i) {
+    for (int i = 0; i < 17; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5456,8 +5451,6 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR];
     case ATTRIBUTE_ID_HOST_NAME:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME];
-    case ATTRIBUTE_ID_HOST_TAGS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS];
     case ATTRIBUTE_ID_HOST_DATA_CENTER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER];
     case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE:
@@ -5492,7 +5485,6 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 : d_brokerInstanceName(basicAllocator)
 , d_etcDir(basicAllocator)
 , d_hostName(basicAllocator)
-, d_hostTags(basicAllocator)
 , d_hostDataCenter(basicAllocator)
 , d_latencyMonitorDomain(DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN,
                          basicAllocator)
@@ -5516,7 +5508,6 @@ AppConfig::AppConfig(const AppConfig&  original,
 : d_brokerInstanceName(original.d_brokerInstanceName, basicAllocator)
 , d_etcDir(original.d_etcDir, basicAllocator)
 , d_hostName(original.d_hostName, basicAllocator)
-, d_hostTags(original.d_hostTags, basicAllocator)
 , d_hostDataCenter(original.d_hostDataCenter, basicAllocator)
 , d_latencyMonitorDomain(original.d_latencyMonitorDomain, basicAllocator)
 , d_stats(original.d_stats, basicAllocator)
@@ -5540,7 +5531,6 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
 : d_brokerInstanceName(bsl::move(original.d_brokerInstanceName)),
   d_etcDir(bsl::move(original.d_etcDir)),
   d_hostName(bsl::move(original.d_hostName)),
-  d_hostTags(bsl::move(original.d_hostTags)),
   d_hostDataCenter(bsl::move(original.d_hostDataCenter)),
   d_latencyMonitorDomain(bsl::move(original.d_latencyMonitorDomain)),
   d_stats(bsl::move(original.d_stats)),
@@ -5563,7 +5553,6 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
                        basicAllocator)
 , d_etcDir(bsl::move(original.d_etcDir), basicAllocator)
 , d_hostName(bsl::move(original.d_hostName), basicAllocator)
-, d_hostTags(bsl::move(original.d_hostTags), basicAllocator)
 , d_hostDataCenter(bsl::move(original.d_hostDataCenter), basicAllocator)
 , d_latencyMonitorDomain(bsl::move(original.d_latencyMonitorDomain),
                          basicAllocator)
@@ -5597,7 +5586,6 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_configVersion          = rhs.d_configVersion;
         d_etcDir                 = rhs.d_etcDir;
         d_hostName               = rhs.d_hostName;
-        d_hostTags               = rhs.d_hostTags;
         d_hostDataCenter         = rhs.d_hostDataCenter;
         d_logsObserverMaxSize    = rhs.d_logsObserverMaxSize;
         d_latencyMonitorDomain   = rhs.d_latencyMonitorDomain;
@@ -5625,7 +5613,6 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_configVersion          = bsl::move(rhs.d_configVersion);
         d_etcDir                 = bsl::move(rhs.d_etcDir);
         d_hostName               = bsl::move(rhs.d_hostName);
-        d_hostTags               = bsl::move(rhs.d_hostTags);
         d_hostDataCenter         = bsl::move(rhs.d_hostDataCenter);
         d_logsObserverMaxSize    = bsl::move(rhs.d_logsObserverMaxSize);
         d_latencyMonitorDomain   = bsl::move(rhs.d_latencyMonitorDomain);
@@ -5651,7 +5638,6 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_configVersion);
     bdlat_ValueTypeFunctions::reset(&d_etcDir);
     bdlat_ValueTypeFunctions::reset(&d_hostName);
-    bdlat_ValueTypeFunctions::reset(&d_hostTags);
     bdlat_ValueTypeFunctions::reset(&d_hostDataCenter);
     bdlat_ValueTypeFunctions::reset(&d_logsObserverMaxSize);
     d_latencyMonitorDomain = DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN;
@@ -5678,7 +5664,6 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("configVersion", this->configVersion());
     printer.printAttribute("etcDir", this->etcDir());
     printer.printAttribute("hostName", this->hostName());
-    printer.printAttribute("hostTags", this->hostTags());
     printer.printAttribute("hostDataCenter", this->hostDataCenter());
     printer.printAttribute("logsObserverMaxSize", this->logsObserverMaxSize());
     printer.printAttribute("latencyMonitorDomain",
@@ -5974,13 +5959,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.08.28
+// GENERATED BY BLP_BAS_CODEGEN_2025.09.25
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------

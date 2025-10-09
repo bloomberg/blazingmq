@@ -31,7 +31,6 @@
         "configVersion": 999999,
         "etcDir": "",
         "hostName": "earth",
-        "hostTags": "",
         "hostDataCenter": "UNUSED",
         "logsObserverMaxSize": 1000,
         "dispatcherConfig": {

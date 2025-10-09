@@ -78,13 +78,11 @@
         Generic type to hold identification of a broker.
 
         hostName......: machine name
-        hostTags......: machine tags
         brokerVersion.: version of the broker
       </documentation>
     </annotation>
     <sequence>
       <element name='hostName'      type='string'/>
-      <element name='hostTags'      type='string'/>
       <element name='brokerVersion' type='string'/>
     </sequence>
   </complexType>
@@ -363,7 +361,7 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='version' type='tns:ExpressionVersion' default='E_UNDEFINED'/>
+      <element name='version' type='mqbconfm:ExpressionVersion' default='E_UNDEFINED'/>
       <element name='text' type='string'/>
     </sequence>
   </complexType>
@@ -380,7 +378,7 @@
     </annotation>
     <sequence>
       <element name='appId'      type='string'/>
-      <element name='expression' type='tns:Expression'/>
+      <element name='expression' type='mqbconfm:Expression'/>
     </sequence>
   </complexType>
 

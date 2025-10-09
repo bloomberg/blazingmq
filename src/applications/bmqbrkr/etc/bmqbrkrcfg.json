@@ -31,7 +31,6 @@
         "configVersion": 999999,
         "etcDir": "",
         "hostName": "localhost",
-        "hostTags": "standalone",
         "hostDataCenter": "UNSPECIFIED",
         "logsObserverMaxSize": 1000,
         "dispatcherConfig": {

@@ -53,11 +53,6 @@ const bdlat_AttributeInfo BrokerIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("hostName") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_HOST_TAGS,
-     "hostTags",
-     sizeof("hostTags") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_BROKER_VERSION,
      "brokerVersion",
      sizeof("brokerVersion") - 1,
@@ -69,7 +64,7 @@ const bdlat_AttributeInfo BrokerIdentity::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 BrokerIdentity::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             BrokerIdentity::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -87,8 +82,6 @@ const bdlat_AttributeInfo* BrokerIdentity::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_HOST_NAME:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME];
-    case ATTRIBUTE_ID_HOST_TAGS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS];
     case ATTRIBUTE_ID_BROKER_VERSION:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION];
     default: return 0;
@@ -99,7 +92,6 @@ const bdlat_AttributeInfo* BrokerIdentity::lookupAttributeInfo(int id)
 
 BrokerIdentity::BrokerIdentity(bslma::Allocator* basicAllocator)
 : d_hostName(basicAllocator)
-, d_hostTags(basicAllocator)
 , d_brokerVersion(basicAllocator)
 {
 }
@@ -107,7 +99,6 @@ BrokerIdentity::BrokerIdentity(bslma::Allocator* basicAllocator)
 BrokerIdentity::BrokerIdentity(const BrokerIdentity& original,
                                bslma::Allocator*     basicAllocator)
 : d_hostName(original.d_hostName, basicAllocator)
-, d_hostTags(original.d_hostTags, basicAllocator)
 , d_brokerVersion(original.d_brokerVersion, basicAllocator)
 {
 }
@@ -116,7 +107,6 @@ BrokerIdentity::BrokerIdentity(const BrokerIdentity& original,
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 BrokerIdentity::BrokerIdentity(BrokerIdentity&& original) noexcept
 : d_hostName(bsl::move(original.d_hostName)),
-  d_hostTags(bsl::move(original.d_hostTags)),
   d_brokerVersion(bsl::move(original.d_brokerVersion))
 {
 }
@@ -124,7 +114,6 @@ BrokerIdentity::BrokerIdentity(BrokerIdentity&& original) noexcept
 BrokerIdentity::BrokerIdentity(BrokerIdentity&&  original,
                                bslma::Allocator* basicAllocator)
 : d_hostName(bsl::move(original.d_hostName), basicAllocator)
-, d_hostTags(bsl::move(original.d_hostTags), basicAllocator)
 , d_brokerVersion(bsl::move(original.d_brokerVersion), basicAllocator)
 {
 }
@@ -140,7 +129,6 @@ BrokerIdentity& BrokerIdentity::operator=(const BrokerIdentity& rhs)
 {
     if (this != &rhs) {
         d_hostName      = rhs.d_hostName;
-        d_hostTags      = rhs.d_hostTags;
         d_brokerVersion = rhs.d_brokerVersion;
     }
 
@@ -153,7 +141,6 @@ BrokerIdentity& BrokerIdentity::operator=(BrokerIdentity&& rhs)
 {
     if (this != &rhs) {
         d_hostName      = bsl::move(rhs.d_hostName);
-        d_hostTags      = bsl::move(rhs.d_hostTags);
         d_brokerVersion = bsl::move(rhs.d_brokerVersion);
     }
 
@@ -164,7 +151,6 @@ BrokerIdentity& BrokerIdentity::operator=(BrokerIdentity&& rhs)
 void BrokerIdentity::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_hostName);
-    bdlat_ValueTypeFunctions::reset(&d_hostTags);
     bdlat_ValueTypeFunctions::reset(&d_brokerVersion);
 }
 
@@ -177,7 +163,6 @@ bsl::ostream& BrokerIdentity::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("hostName", this->hostName());
-    printer.printAttribute("hostTags", this->hostTags());
     printer.printAttribute("brokerVersion", this->brokerVersion());
     printer.end();
     return stream;
@@ -525,7 +510,7 @@ const bdlat_AttributeInfo Failure::ATTRIBUTE_INFO_ARRAY[] = {
      "message",
      sizeof("message") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -734,7 +719,7 @@ const bdlat_AttributeInfo Limits::ATTRIBUTE_INFO_ARRAY[] = {
      "messagesWatermarkRatio",
      sizeof("messagesWatermarkRatio") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_BYTES,
      "bytes",
      sizeof("bytes") - 1,
@@ -744,7 +729,7 @@ const bdlat_AttributeInfo Limits::ATTRIBUTE_INFO_ARRAY[] = {
      "bytesWatermarkRatio",
      sizeof("bytesWatermarkRatio") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -834,17 +819,17 @@ const bdlat_AttributeInfo MsgGroupIdConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "rebalance",
      sizeof("rebalance") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_GROUPS,
      "maxGroups",
      sizeof("maxGroups") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_TTL_SECONDS,
      "ttlSeconds",
      sizeof("ttlSeconds") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1053,7 +1038,7 @@ const bdlat_AttributeInfo QueueModeFanout::ATTRIBUTE_INFO_ARRAY[] = {
      "publishAppIdMetrics",
      sizeof("publishAppIdMetrics") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1648,7 +1633,7 @@ const bdlat_AttributeInfo Expression::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT},
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_TEXT,
      "text",
      sizeof("text") - 1,
@@ -3268,17 +3253,17 @@ const bdlat_AttributeInfo Domain::ATTRIBUTE_INFO_ARRAY[] = {
      "maxConsumers",
      sizeof("maxConsumers") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_PRODUCERS,
      "maxProducers",
      sizeof("maxProducers") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_QUEUES,
      "maxQueues",
      sizeof("maxQueues") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MSG_GROUP_ID_CONFIG,
      "msgGroupIdConfig",
      sizeof("msgGroupIdConfig") - 1,
@@ -3288,7 +3273,7 @@ const bdlat_AttributeInfo Domain::ATTRIBUTE_INFO_ARRAY[] = {
      "maxIdleTime",
      sizeof("maxIdleTime") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MESSAGE_TTL,
      "messageTtl",
      sizeof("messageTtl") - 1,
@@ -3298,12 +3283,12 @@ const bdlat_AttributeInfo Domain::ATTRIBUTE_INFO_ARRAY[] = {
      "maxDeliveryAttempts",
      sizeof("maxDeliveryAttempts") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DEDUPLICATION_TIME_MS,
      "deduplicationTimeMs",
      sizeof("deduplicationTimeMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSISTENCY,
      "consistency",
      sizeof("consistency") - 1,
@@ -3982,14 +3967,7 @@ const char* DomainVariant::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.09.25
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
-// VERSION bmqconf:183474-1.0
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------
+// SERVICE VERSION bmqconf:183474-1.0

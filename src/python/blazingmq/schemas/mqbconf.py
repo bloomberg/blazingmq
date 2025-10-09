@@ -26,7 +26,6 @@ class BrokerIdentity:
     """Generic type to hold identification of a broker.
 
     hostName......: machine name
-    hostTags......: machine tags
     brokerVersion.: version of the broker
     """
 
@@ -34,15 +33,6 @@ class BrokerIdentity:
         default=None,
         metadata={
             "name": "hostName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    host_tags: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "hostTags",
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,

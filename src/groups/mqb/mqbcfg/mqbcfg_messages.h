@@ -8547,9 +8547,8 @@ class AppConfig {
     // brokerVersion........: version of the broker configVersion........:
     // version of the bmqbrkr.cfg config etcDir...............: directory
     // containing the json config files hostName.............: name of the
-    // current host hostTags.............: tags of the current host
-    // hostDataCenter.......: datacenter the current host resides in
-    // logsObserverMaxSize..: maximum number of log records to keep
+    // current host hostDataCenter.......: datacenter the current host resides
+    // in logsObserverMaxSize..: maximum number of log records to keep
     // latencyMonitorDomain.: common prefix of all latemon domains
     // dispatcherConfig.....: configuration for the dispatcher
     // stats................: configuration for the stats
@@ -8566,7 +8565,6 @@ class AppConfig {
     bsl::string         d_brokerInstanceName;
     bsl::string         d_etcDir;
     bsl::string         d_hostName;
-    bsl::string         d_hostTags;
     bsl::string         d_hostDataCenter;
     bsl::string         d_latencyMonitorDomain;
     StatsConfig         d_stats;
@@ -8596,22 +8594,21 @@ class AppConfig {
         ATTRIBUTE_ID_CONFIG_VERSION           = 2,
         ATTRIBUTE_ID_ETC_DIR                  = 3,
         ATTRIBUTE_ID_HOST_NAME                = 4,
-        ATTRIBUTE_ID_HOST_TAGS                = 5,
-        ATTRIBUTE_ID_HOST_DATA_CENTER         = 6,
-        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE   = 7,
-        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN   = 8,
-        ATTRIBUTE_ID_DISPATCHER_CONFIG        = 9,
-        ATTRIBUTE_ID_STATS                    = 10,
-        ATTRIBUTE_ID_NETWORK_INTERFACES       = 11,
-        ATTRIBUTE_ID_BMQCONF_CONFIG           = 12,
-        ATTRIBUTE_ID_PLUGINS                  = 13,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2    = 14,
-        ATTRIBUTE_ID_CONFIGURE_STREAM         = 15,
-        ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS  = 16,
-        ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 17
+        ATTRIBUTE_ID_HOST_DATA_CENTER         = 5,
+        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE   = 6,
+        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN   = 7,
+        ATTRIBUTE_ID_DISPATCHER_CONFIG        = 8,
+        ATTRIBUTE_ID_STATS                    = 9,
+        ATTRIBUTE_ID_NETWORK_INTERFACES       = 10,
+        ATTRIBUTE_ID_BMQCONF_CONFIG           = 11,
+        ATTRIBUTE_ID_PLUGINS                  = 12,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2    = 13,
+        ATTRIBUTE_ID_CONFIGURE_STREAM         = 14,
+        ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS  = 15,
+        ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS = 16
     };
 
-    enum { NUM_ATTRIBUTES = 18 };
+    enum { NUM_ATTRIBUTES = 17 };
 
     enum {
         ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME     = 0,
@@ -8619,19 +8616,18 @@ class AppConfig {
         ATTRIBUTE_INDEX_CONFIG_VERSION           = 2,
         ATTRIBUTE_INDEX_ETC_DIR                  = 3,
         ATTRIBUTE_INDEX_HOST_NAME                = 4,
-        ATTRIBUTE_INDEX_HOST_TAGS                = 5,
-        ATTRIBUTE_INDEX_HOST_DATA_CENTER         = 6,
-        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE   = 7,
-        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN   = 8,
-        ATTRIBUTE_INDEX_DISPATCHER_CONFIG        = 9,
-        ATTRIBUTE_INDEX_STATS                    = 10,
-        ATTRIBUTE_INDEX_NETWORK_INTERFACES       = 11,
-        ATTRIBUTE_INDEX_BMQCONF_CONFIG           = 12,
-        ATTRIBUTE_INDEX_PLUGINS                  = 13,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2    = 14,
-        ATTRIBUTE_INDEX_CONFIGURE_STREAM         = 15,
-        ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS  = 16,
-        ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 17
+        ATTRIBUTE_INDEX_HOST_DATA_CENTER         = 5,
+        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE   = 6,
+        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN   = 7,
+        ATTRIBUTE_INDEX_DISPATCHER_CONFIG        = 8,
+        ATTRIBUTE_INDEX_STATS                    = 9,
+        ATTRIBUTE_INDEX_NETWORK_INTERFACES       = 10,
+        ATTRIBUTE_INDEX_BMQCONF_CONFIG           = 11,
+        ATTRIBUTE_INDEX_PLUGINS                  = 12,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2    = 13,
+        ATTRIBUTE_INDEX_CONFIGURE_STREAM         = 14,
+        ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS  = 15,
+        ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS = 16
     };
 
     // CONSTANTS
@@ -8756,10 +8752,6 @@ class AppConfig {
     // Return a reference to the modifiable "HostName" attribute of this
     // object.
 
-    bsl::string& hostTags();
-    // Return a reference to the modifiable "HostTags" attribute of this
-    // object.
-
     bsl::string& hostDataCenter();
     // Return a reference to the modifiable "HostDataCenter" attribute of
     // this object.
@@ -8867,10 +8859,6 @@ class AppConfig {
 
     const bsl::string& hostName() const;
     // Return a reference offering non-modifiable access to the "HostName"
-    // attribute of this object.
-
-    const bsl::string& hostTags() const;
-    // Return a reference offering non-modifiable access to the "HostTags"
     // attribute of this object.
 
     const bsl::string& hostDataCenter() const;
@@ -17238,7 +17226,6 @@ void AppConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->configVersion());
     hashAppend(hashAlgorithm, this->etcDir());
     hashAppend(hashAlgorithm, this->hostName());
-    hashAppend(hashAlgorithm, this->hostTags());
     hashAppend(hashAlgorithm, this->hostDataCenter());
     hashAppend(hashAlgorithm, this->logsObserverMaxSize());
     hashAppend(hashAlgorithm, this->latencyMonitorDomain());
@@ -17260,7 +17247,6 @@ inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
            this->configVersion() == rhs.configVersion() &&
            this->etcDir() == rhs.etcDir() &&
            this->hostName() == rhs.hostName() &&
-           this->hostTags() == rhs.hostTags() &&
            this->hostDataCenter() == rhs.hostDataCenter() &&
            this->logsObserverMaxSize() == rhs.logsObserverMaxSize() &&
            this->latencyMonitorDomain() == rhs.latencyMonitorDomain() &&
@@ -17309,12 +17295,6 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_hostName,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_hostTags,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
     if (ret) {
         return ret;
     }
@@ -17428,10 +17408,6 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(&d_hostName,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
     }
-    case ATTRIBUTE_ID_HOST_TAGS: {
-        return manipulator(&d_hostTags,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
-    }
     case ATTRIBUTE_ID_HOST_DATA_CENTER: {
         return manipulator(
             &d_hostDataCenter,
@@ -17535,11 +17511,6 @@ inline bsl::string& AppConfig::hostName()
     return d_hostName;
 }
 
-inline bsl::string& AppConfig::hostTags()
-{
-    return d_hostTags;
-}
-
 inline bsl::string& AppConfig::hostDataCenter()
 {
     return d_hostDataCenter;
@@ -17631,12 +17602,6 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_hostName,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_hostTags,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
     if (ret) {
         return ret;
     }
@@ -17746,10 +17711,6 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_hostName,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
     }
-    case ATTRIBUTE_ID_HOST_TAGS: {
-        return accessor(d_hostTags,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
-    }
     case ATTRIBUTE_ID_HOST_DATA_CENTER: {
         return accessor(
             d_hostDataCenter,
@@ -17849,11 +17810,6 @@ inline const bsl::string& AppConfig::etcDir() const
 inline const bsl::string& AppConfig::hostName() const
 {
     return d_hostName;
-}
-
-inline const bsl::string& AppConfig::hostTags() const
-{
-    return d_hostTags;
 }
 
 inline const bsl::string& AppConfig::hostDataCenter() const
@@ -18241,13 +18197,6 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2025.08.28
+// GENERATED BY BLP_BAS_CODEGEN_2025.09.25
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------

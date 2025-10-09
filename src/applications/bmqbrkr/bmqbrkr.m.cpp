@@ -599,7 +599,6 @@ int main(int argc, const char* argv[])
     bsl::string configDir;
     bsl::string instanceId = "default";
     bsl::string hostName;
-    bsl::string hostTags;
     bsl::string hostDataCenter;
     int         port    = 0;
     bool        version = false;
@@ -619,11 +618,6 @@ int main(int argc, const char* argv[])
          "hostName",
          "Override host name",
          balcl::TypeInfo(&hostName),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"t|hostTags",
-         "hostTags",
-         "Override host tags",
-         balcl::TypeInfo(&hostTags),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"d|hostDataCenter",
          "hostDataCenter",
@@ -708,10 +702,6 @@ int main(int argc, const char* argv[])
 
     if (!hostName.empty()) {
         taskEnv.d_config.appConfig().hostName() = hostName;
-    }
-
-    if (!hostTags.empty()) {
-        taskEnv.d_config.appConfig().hostTags() = hostTags;
     }
 
     if (!hostDataCenter.empty()) {

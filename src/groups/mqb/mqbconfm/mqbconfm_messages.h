@@ -139,33 +139,19 @@ namespace mqbconfm {
 
 class BrokerIdentity {
     // Generic type to hold identification of a broker.
-    // hostName......: machine name hostTags......: machine tags
-    // brokerVersion.: version of the broker
+    // hostName......: machine name brokerVersion.: version of the broker
 
     // INSTANCE DATA
     bsl::string d_hostName;
-    bsl::string d_hostTags;
     bsl::string d_brokerVersion;
-
-    // PRIVATE ACCESSORS
-    template <typename t_HASH_ALGORITHM>
-    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum {
-        ATTRIBUTE_ID_HOST_NAME      = 0,
-        ATTRIBUTE_ID_HOST_TAGS      = 1,
-        ATTRIBUTE_ID_BROKER_VERSION = 2
-    };
+    enum { ATTRIBUTE_ID_HOST_NAME = 0, ATTRIBUTE_ID_BROKER_VERSION = 1 };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum {
-        ATTRIBUTE_INDEX_HOST_NAME      = 0,
-        ATTRIBUTE_INDEX_HOST_TAGS      = 1,
-        ATTRIBUTE_INDEX_BROKER_VERSION = 2
-    };
+    enum { ATTRIBUTE_INDEX_HOST_NAME = 0, ATTRIBUTE_INDEX_BROKER_VERSION = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -267,10 +253,6 @@ class BrokerIdentity {
     // Return a reference to the modifiable "HostName" attribute of this
     // object.
 
-    bsl::string& hostTags();
-    // Return a reference to the modifiable "HostTags" attribute of this
-    // object.
-
     bsl::string& brokerVersion();
     // Return a reference to the modifiable "BrokerVersion" attribute of
     // this object.
@@ -322,10 +304,6 @@ class BrokerIdentity {
     // Return a reference offering non-modifiable access to the "HostName"
     // attribute of this object.
 
-    const bsl::string& hostTags() const;
-    // Return a reference offering non-modifiable access to the "HostTags"
-    // attribute of this object.
-
     const bsl::string& brokerVersion() const;
     // Return a reference offering non-modifiable access to the
     // "BrokerVersion" attribute of this object.
@@ -338,7 +316,6 @@ class BrokerIdentity {
     // have the same value if each respective attribute has the same value.
     {
         return lhs.hostName() == rhs.hostName() &&
-               lhs.hostTags() == rhs.hostTags() &&
                lhs.brokerVersion() == rhs.brokerVersion();
     }
 
@@ -365,7 +342,9 @@ class BrokerIdentity {
     // effectively provides a 'bsl::hash' specialization for
     // 'BrokerIdentity'.
     {
-        object.hashAppendImpl(hashAlg);
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.hostName());
+        hashAppend(hashAlg, object.brokerVersion());
     }
 };
 
@@ -375,6 +354,9 @@ class BrokerIdentity {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::BrokerIdentity)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::BrokerIdentity> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -598,6 +580,9 @@ class DomainConfigRaw {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainConfigRaw)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainConfigRaw> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -822,6 +807,9 @@ class DomainResolver {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainResolver)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainResolver> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -1102,6 +1090,8 @@ class Failure {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Failure)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Failure> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1250,6 +1240,9 @@ class FileBackedStorage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::FileBackedStorage)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::FileBackedStorage>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1398,6 +1391,9 @@ class InMemoryStorage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::InMemoryStorage)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::InMemoryStorage> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -1614,6 +1610,8 @@ class Limits {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::Limits)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Limits> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1832,6 +1830,9 @@ class MsgGroupIdConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::MsgGroupIdConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::MsgGroupIdConfig>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -1982,6 +1983,9 @@ class QueueConsistencyEventual {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbconfm::QueueConsistencyEventual)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueConsistencyEventual>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -2132,6 +2136,9 @@ class QueueConsistencyStrong {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbconfm::QueueConsistencyStrong)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueConsistencyStrong>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -2281,6 +2288,9 @@ class QueueModeBroadcast {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModeBroadcast)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModeBroadcast>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -2514,6 +2524,9 @@ class QueueModeFanout {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::QueueModeFanout)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModeFanout> : bsl::true_type {
+};
 
 namespace mqbconfm {
 
@@ -2662,6 +2675,9 @@ class QueueModePriority {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::QueueModePriority)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::QueueModePriority>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -3121,6 +3137,9 @@ class DomainConfigRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainConfigRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainConfigRequest>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -3341,6 +3360,8 @@ class Expression {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Expression)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Expression> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -4512,6 +4533,9 @@ class StorageDefinition {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::StorageDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::StorageDefinition>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -4735,6 +4759,8 @@ class Subscription {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::Subscription)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Subscription> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -5107,6 +5133,8 @@ class Domain {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Domain)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::Domain> : bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -5334,6 +5362,9 @@ class DomainDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbconfm::DomainDefinition>
+: bsl::true_type {};
 
 namespace mqbconfm {
 
@@ -5594,16 +5625,6 @@ namespace mqbconfm {
 // class BrokerIdentity
 // --------------------
 
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void BrokerIdentity::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->hostName());
-    hashAppend(hashAlgorithm, this->hostTags());
-    hashAppend(hashAlgorithm, this->brokerVersion());
-}
-
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -5613,12 +5634,6 @@ int BrokerIdentity::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_hostName,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_hostTags,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
     if (ret) {
         return ret;
     }
@@ -5641,10 +5656,6 @@ int BrokerIdentity::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_HOST_NAME: {
         return manipulator(&d_hostName,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    }
-    case ATTRIBUTE_ID_HOST_TAGS: {
-        return manipulator(&d_hostTags,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
     }
     case ATTRIBUTE_ID_BROKER_VERSION: {
         return manipulator(
@@ -5676,11 +5687,6 @@ inline bsl::string& BrokerIdentity::hostName()
     return d_hostName;
 }
 
-inline bsl::string& BrokerIdentity::hostTags()
-{
-    return d_hostTags;
-}
-
 inline bsl::string& BrokerIdentity::brokerVersion()
 {
     return d_brokerVersion;
@@ -5694,12 +5700,6 @@ int BrokerIdentity::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_hostName,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_hostTags,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
     if (ret) {
         return ret;
     }
@@ -5722,10 +5722,6 @@ int BrokerIdentity::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_HOST_NAME: {
         return accessor(d_hostName,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    }
-    case ATTRIBUTE_ID_HOST_TAGS: {
-        return accessor(d_hostTags,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
     }
     case ATTRIBUTE_ID_BROKER_VERSION: {
         return accessor(d_brokerVersion,
@@ -5754,11 +5750,6 @@ int BrokerIdentity::accessAttribute(t_ACCESSOR& accessor,
 inline const bsl::string& BrokerIdentity::hostName() const
 {
     return d_hostName;
-}
-
-inline const bsl::string& BrokerIdentity::hostTags() const
-{
-    return d_hostTags;
 }
 
 inline const bsl::string& BrokerIdentity::brokerVersion() const
@@ -9166,14 +9157,7 @@ inline bool DomainVariant::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.09.25
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
-// VERSION bmqconf:183474-1.0
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2025 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------
+// SERVICE VERSION bmqconf:183474-1.0

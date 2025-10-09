@@ -1880,7 +1880,6 @@ class AppConfig:
     configVersion........: version of the bmqbrkr.cfg config
     etcDir...............: directory containing the json config files
     hostName.............: name of the current host
-    hostTags.............: tags of the current host
     hostDataCenter.......: datacenter the current host resides in
     logsObserverMaxSize..: maximum number of log records to keep
     latencyMonitorDomain.: common part of all latemon domains
@@ -1935,15 +1934,6 @@ class AppConfig:
         default=None,
         metadata={
             "name": "hostName",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    host_tags: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "hostTags",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,

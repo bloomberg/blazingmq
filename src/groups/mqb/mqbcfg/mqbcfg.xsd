@@ -73,7 +73,6 @@
         configVersion........: version of the bmqbrkr.cfg config
         etcDir...............: directory containing the json config files
         hostName.............: name of the current host
-        hostTags.............: tags of the current host
         hostDataCenter.......: datacenter the current host resides in
         logsObserverMaxSize..: maximum number of log records to keep
         latencyMonitorDomain.: common prefix of all latemon domains
@@ -94,7 +93,6 @@
       <element name='configVersion'        type='int'/>
       <element name='etcDir'               type='string'/>
       <element name='hostName'             type='string'/>
-      <element name='hostTags'             type='string'/>
       <element name='hostDataCenter'       type='string'/>
       <element name='logsObserverMaxSize'  type='int'/>
       <element name='latencyMonitorDomain' type='string'
