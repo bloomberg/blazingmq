@@ -129,7 +129,7 @@ Prerequisites:
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 ```bash
-Usage: ./src/plugins/prometheus/tests/prometheus_prometheusstatconsumer_test.py [-h] -p PATH
+Usage: ./src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  path to BlazingMQ build folder, e.g. './build/blazingmq'
@@ -214,16 +214,33 @@ Every broker reports this metric for each of the clusters it has created, with t
 |cluster_partition_cfg_journal_bytes|The configured partition’s journal size, used to compute percentage of resource used. This metric is reported only by the leader node of the cluster, with the bmqCluster and instanceName tags set, and with the host tag set to 'dummy'.|
 |cluster_partition_cfg_data_bytes|The configured partition’s data size, used to compute percentage of resource used. This metric is reported only by the leader node of the cluster, with the bmqCluster and instanceName tags set, and with the host tag set to 'dummy'.|
 
+Metrics in the following section are reported only by the leader node of the cluster.
+
+|Metric Name|Description|
+|-----------|-----------|
+|cluster_partition_cfg_journal_bytes|Configured maximum size bytes of the journal file.|
+|cluster_partition_cfg_data_bytes|Configured maximum size bytes of the data file.|
+|cluster_csl_cfg_bytes|Configured maximum size bytes of the CSL file.|
+|cluster_csl_offset_bytes|The last observed offset bytes in the newest log of the CSL.|
+|cluster_csl_write_bytes|The amount of bytes written to the CSL file during the report interval.|
+|cluster_csl_replication_time_ns_avg|Time in nanoseconds it took for replication of a new entry in CSL file. Average observed during the report interval.|
+|cluster_csl_replication_time_ns_max|Time in nanoseconds it took for replication of a new entry in CSL file. Maximum observed during the report interval.|
+
 ### Cluster partitions metrics
 The following metrics are reported for each partition, only by the primary of the partition, with the 'Cluster' and 'Instance' tags set. Note that in the following metrics name \<X\> represents the partition id (0 based integer).
 
 |Metric Name|Description|
 |-----------|-----------|
 |cluster_\<partition name\>_rollover_time|The time (in nanoseconds) it took for the rollover operation of the partition. Note that if more than one rollover happened for the partition during the report interval, then the maximum time is reported. This metric can be used to see how long, but also how often, rollover happens for a partition.|
+|cluster_\<partition name\>_replication_time_ns_avg|The average observed time in nanoseconds it took to store a message record at primary and replicate it to a majority of nodes in the cluster.|
+|cluster_\<partition name\>_replication_time_ns_max|The maximum observed time in nanoseconds it took to store a message record at primary and replicate it to a majority of nodes in the cluster.|
+|cluster_\<partition name\>_journal_offset_bytes|The latest observed offset bytes in the journal file of the partition.|
 |cluster_\<partition name\>_journal_outstanding_bytes|The maximum observed outstanding bytes in the journal file of the partition over the report interval. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
-|cluster_\<partition name\>_journal_utilization_max|The maximum observed utilization of the journal file of the partition over the report interval: '100 * cluster_\<partition name\>_journal_outstanding_bytes / cluster_partition_cfg_journal_bytes'. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
+|cluster_\<partition name\>_journal_utilization_max|The maximum observed utilization percents of the journal file of the partition.|
+|cluster_\<partition name\>_data_offset_bytes|The latest observed offset bytes in the data file of the partition.|
 |cluster_\<partition name\>_data_outstanding_bytes|The maximum observed outstanding bytes in the data file of the partition over the report interval. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
-|cluster_\<partition name\>_data_utilization_max|The maximum observed utilization of the data file of the partition over the report interval: '100 * cluster_\<partition name\>_data_outstanding_bytes / cluster_partition_cfg_data_bytes'. Note that this value is internally updated at every sync point being generated, and therefore is not an absolute exact value, but a rather close estimate.|
+|cluster_\<partition name\>_data_utilization_max|The maximum observed utilization percents of the data file of the partition.|
+|cluster_\<partition name\>_sequence_number|The latest observed sequence number of the partition.|
 
 ### Domain metrics
 Domain metrics represent high level metrics related to a domain. Only the leader node of the cluster reports them, with the 'Cluster', 'Domain', 'Tier' and 'Instance' tags set.
@@ -246,8 +263,8 @@ Queue metrics represent detailed, per queue, metrics. For each of them, the foll
 |queue_push_msgs|Total number of 'push' messages for the queue received by this broker from its upstream connections over the report interval window.|
 |queue_push_bytes|Total cumulated bytes of all 'push' messages (only application payload, excluding bmq protocol overhead) for the queue received by this broker from its upstream connections over the report interval window.|
 |queue_ack_msgs|Total number of 'ack' messages (both positive acknowledgments as well as negative ones) for the queue received by this broker from its upstream connections over the report interval window.|
-|queue_ack_time_avg|Represent the average time elapsed between when a put message was received by the downstream and when its corresponding ack was received for the messages posted during the report interval window. Note that this metric is only reported at the primary and at the first hop, that is intermediary hops do not report it. On the primary, this represents how long it took for the message to be stored and replicated in the storage, on the last hop this represents the clients perceived 'post' time.|
-|queue_ack_time_max|Represent the maximum time elapsed between when a put message was received by the downstream and when its corresponding ack was received for the messages posted during the report interval window. Note that this metric is only reported at the primary and at the first hop, that is intermediary hops do not report it. On the primary, this represents how long it took for the message to be stored and replicated in the storage, on the last hop this represents the clients perceived 'post' time.|
+|queue_ack_time_avg|Represent the average time elapsed between when a put message was received by the downstream and when its corresponding ack was received for the messages posted during the report interval window. Note that this metric is only reported at the first hop. This represents the clients perceived 'post' time.|
+|queue_ack_time_max|Represent the maximum time elapsed between when a put message was received by the downstream and when its corresponding ack was received for the messages posted during the report interval window. Note that this metric is only reported at the first hop. This represents the clients perceived 'post' time.|
 |queue_nack_msgs|Total number of failed 'nack’ (i.e. failed 'ack') generated by this broker, over the report interval window.|
 |queue_confirm_msgs|Total number of 'confirm' messages for the queue received by this broker from its downstream clients over the report interval window.|
 |queue_confirm_time_avg|This metric is only reported by the first hop, and represent the average time elapsed between when a message is pushed down to the client, and when the client confirms it, for the messages pushed during the report interval window.|
