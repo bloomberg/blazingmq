@@ -358,6 +358,24 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     pinfo.setPrimaryStatus(value);
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
+        if (!d_partitionFSMVec[partitionId]->isSelfHealed()) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId << "]: "
+                          << "Partition FSM is not yet healed; deferring "
+                          << "setting active primary in FileStore until "
+                          << "healing is complete. Will buffer an artificial "
+                          << "PrimaryStatusAdvisory for Partition FSM to "
+                          << "process when it becomes healed";
+
+            bmqp_ctrlmsg::PrimaryStatusAdvisory primaryAdv;
+            primaryAdv.partitionId()    = partitionId;
+            primaryAdv.primaryLeaseId() = pinfo.primaryLeaseId();
+            primaryAdv.status()         = value;
+
+            bufferPrimaryStatusAdvisoryDispatched(primaryAdv, pinfo.primary());
+            return;  // RETURN
+        }
+
         d_fileStores[partitionId]->setActivePrimary(pinfo.primary(),
                                                     pinfo.primaryLeaseId());
 
@@ -1085,10 +1103,12 @@ void StorageManager::bufferPrimaryStatusAdvisoryDispatched(
     const int pid = advisory.partitionId();
     BSLS_ASSERT_SAFE(0 <= pid && pid < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[pid]->inDispatcherThread());
+    BSLS_ASSERT_SAFE(source);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << pid
-                  << "]: Buffering primary status advisory: " << advisory;
+                  << "]: Buffering primary status advisory: " << advisory
+                  << " from " << source->nodeDescription();
 
     d_bufferedPrimaryStatusAdvisoryInfosVec.at(pid).push_back(
         bsl::make_pair(advisory, source));
