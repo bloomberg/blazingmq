@@ -33,7 +33,7 @@ Prerequisites:
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 
-Usage: ./prometheus_prometheusstatconsumer_test.py [-h] -p PATH
+Usage: ./bmqprometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  path to BlasingMQ build folder
@@ -274,9 +274,11 @@ def _check_initial_statistic(prometheus_host):
     all_metrics = QUEUE_METRICS + QUEUE_PRIMARY_NODE_METRICS + BROKER_METRICS
     for metric in all_metrics:
         response = _make_request(prometheus_host, "/api/v1/query", dict(query=metric))
-        assert not response["result"], _assert_message(
-            metric, "None", response["result"]
-        )  # must be empty
+        value = response["result"][-1]["value"][-1] if response["result"] else None
+        if metric in ["brkr_summary_queues_count", "brkr_summary_clients_count"]:
+            assert value == "0", _assert_message(metric, "0", value)
+        else:
+            assert value is None, _assert_message(metric, "None", value)
 
 
 def _check_statistic(prometheus_host):
@@ -285,7 +287,7 @@ def _check_statistic(prometheus_host):
     )
     for metric in all_metrics:
         response = _make_request(prometheus_host, "/api/v1/query", dict(query=metric))
-        value = response["result"][0]["value"][-1] if response["result"] else None
+        value = response["result"][-1]["value"][-1]
         # Queue statistic
         if metric == "queue_heartbeat":
             # For first queue
@@ -304,9 +306,10 @@ def _check_statistic(prometheus_host):
         elif metric == "queue_producers_count":
             assert value == "1", _assert_message(metric, "1", value)
         elif metric == "queue_consumers_count":
-            assert value is None, _assert_message(metric, "None", value)
+            assert value == "0", _assert_message(metric, "0", value)
         elif metric == "queue_put_msgs":
             # For first queue
+            value = response["result"][0]["value"][-1]
             assert value == "2", _assert_message(metric, "2", value)
             labels = response["result"][0]["metric"]
             assert labels["Queue"] == "first-queue", _assert_message(
@@ -321,16 +324,18 @@ def _check_statistic(prometheus_host):
             )
         elif metric == "queue_put_bytes":
             # For first queue
+            value = response["result"][0]["value"][-1]
             assert value == "2048", _assert_message(metric, "2048", value)
             # For second queue
             value = response["result"][1]["value"][-1]
             assert value == "1024", _assert_message(metric, "1024", value)
         elif metric == "queue_push_msgs":
-            assert value is None, _assert_message(metric, "None", value)
+            assert value == "0", _assert_message(metric, "0", value)
         elif metric == "queue_push_bytes":
-            assert value is None, _assert_message(metric, "None", value)
+            assert value == "0", _assert_message(metric, "0", value)
         elif metric == "queue_ack_msgs":
             # For first queue
+            value = response["result"][0]["value"][-1]
             assert value == "2", _assert_message(metric, "2", value)
             # For second queue
             value = response["result"][1]["value"][-1]
@@ -338,6 +343,7 @@ def _check_statistic(prometheus_host):
         # Queue primary node statistic
         elif metric == "queue_content_msgs_max":
             # For first queue
+            value = response["result"][0]["value"][-1]
             assert value == "2", _assert_message(metric, "2", value)
             # For second queue
             value = response["result"][1]["value"][-1]
