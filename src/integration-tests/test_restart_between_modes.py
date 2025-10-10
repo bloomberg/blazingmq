@@ -39,10 +39,18 @@ from blazingmq.dev.it.fixtures import (
 )  # pylint: disable=unused-import
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
-from blazingmq.dev.it.util import attempt, wait_until
+from blazingmq.dev.it.util import wait_until
+
+from blazingmq.dev.it.cluster_util import (
+    ensure_message_at_storage_layer,
+    check_if_queue_has_n_messages,
+    # simulate_csl_rollover,
+)
 
 pytestmark = order(2)
 timeout = 20
+
+DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
 def configure_cluster(cluster: Cluster, is_fsm: bool):
@@ -57,6 +65,62 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
             cluster_attr.is_fsmworkflow = is_fsm
             cluster_attr.does_fsmwrite_qlist = True
     cluster.deploy_domains()
+
+
+def restart_cluster_as_fsm_mode(
+    cluster: Cluster,
+    producer: Client,
+    consumers: List[Client],  # pylint: disable=unused-argument
+):
+    """
+    Restart the `cluster` as FSM mode.
+    """
+
+    cluster.stop_nodes(prevent_leader_bounce=True)
+
+    # Reconfigure the cluster from non-FSM to FSM mode
+    configure_cluster(cluster, is_fsm=True)
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        producer.wait_state_restored()
+
+
+def restart_cluster_as_legacy_mode(
+    cluster: Cluster,
+    producer: Client,  # pylint: disable=unused-argument
+    consumers: List[Client],
+):
+    """
+    Restart the `cluster` as Legacy mode.
+    """
+
+    # Non-FSM mode has poor healing mechanism, and can have flaky dirty
+    # shutdowns, so let's disable checking exit code here.
+    #
+    # To give an example, an in-sync node might attempt to syncrhonize with an
+    # out-of-sync node, and become out-of-sync too.  FSM mode is determined to
+    # eliminate these kinds of defects.
+    for node in cluster.nodes():
+        node.check_exit_code = False
+    cluster.stop_nodes(prevent_leader_bounce=True)
+
+    # Reconfigure the cluster from FSM to back to non-FSM mode
+    configure_cluster(cluster, is_fsm=False)
+    cluster.lower_leader_startup_wait()
+    if cluster.is_single_node:
+        cluster.start_nodes(wait_leader=True, wait_ready=True)
+        # For a standard cluster, states have already been restored as part of
+        # leader re-election.
+        for consumer in consumers:
+            consumer.wait_state_restored()
+    else:
+        # Switching from FSM to non-FSM mode could introduce start-up failure,
+        # which auto-resolve upon a second restart.
+        cluster.start_nodes(wait_leader=False, wait_ready=False)
+        check_exited_nodes_and_restart(cluster)
 
 
 def check_exited_nodes_and_restart(cluster: Cluster):
@@ -147,7 +211,7 @@ def post_new_queues_and_verify(
 
         producer.open(new_queue, flags=["write", "ack"], succeed=True)
         producer.post(new_queue, payload=["msg0"], wait_ack=True, succeed=True)
-        ensureMessageAtStorageLayer(cluster, partition_id, new_queue, 1)
+        ensure_message_at_storage_layer(cluster, partition_id, new_queue, 1)
 
         for consumer, app_id in zip(domain_consumers, consuming_app_ids):
             consumer.open(
@@ -215,7 +279,7 @@ def post_existing_queues_and_verify(
                 wait_ack=True,
                 succeed=True,
             )
-            ensureMessageAtStorageLayer(
+            ensure_message_at_storage_layer(
                 cluster,
                 queues[i][PARTITION_ELEMENT_IDX],
                 queues[i][QUEUE_ELEMENT_IDX],
@@ -241,35 +305,6 @@ def post_existing_queues_and_verify(
             "bar",
             NUM_MESSAGES_IN_QUEUE,
         )
-
-
-def ensureMessageAtStorageLayer(
-    cluster: Cluster, partitionId: int, queueUri: str, numMessages: int
-):
-    """
-    Assert that in the `partitionId` of the `cluster`, there are exactly
-    `numMessages` messages in the storage of the `queueUri`.
-    """
-
-    # Before restarting the cluster, ensure that all nodes in the cluster
-    # have received the message at the storage layer.  This is necessary
-    # in the absence of stronger consistency in storage replication in
-    # BMQ.  Presence of message in the storage at each node is checked by
-    # sending 'STORAGE SUMMARY' command and grepping its output.
-    for node in cluster.nodes():
-        node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
-
-    time.sleep(2)
-    for node in cluster.nodes():
-        assert node.outputs_regex(
-            r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partitionId, numMessages)
-            + re.escape(queueUri),
-            timeout=20,
-        )
-        # Above regex is to match line:
-        # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
-        # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,
-        # QueueUri respectively.
 
 
 def close_and_unassign_queue(queueUri: str, client: Client, leader: Broker):
@@ -325,85 +360,6 @@ def assignUnassignExistingQueues(
             # Odd index: unassign -> assign
             close_and_unassign_queue(queue, consumer, leader)
             consumer.open(queue, flags=["read"], succeed=True)
-
-
-def test_basic(cluster: Cluster, domain_urls: tc.DomainUrls):
-    uri_priority = domain_urls.uri_priority
-
-    # Start a producer and post a message.
-    proxies = cluster.proxy_cycle()
-    producer = next(proxies).create_client("producer")
-    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
-    producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
-
-    ensureMessageAtStorageLayer(cluster, 0, uri_priority, 1)
-
-    cluster.restart_nodes()
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
-    if cluster.is_single_node:
-        producer.wait_state_restored()
-
-    producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
-
-    consumer = next(proxies).create_client("consumer")
-    consumer.open(uri_priority, flags=["read"], succeed=True)
-    consumer.wait_push_event()
-    assert wait_until(
-        lambda: len(consumer.list(uri_priority, block=True)) == 2, timeout=2
-    )
-
-
-def test_wrong_domain(cluster: Cluster, domain_urls: tc.DomainUrls):
-    proxies = cluster.proxy_cycle()
-    producer = next(proxies).create_client("producer")
-
-    assert Client.e_SUCCESS is producer.open(
-        domain_urls.uri_fanout, flags=["write"], block=True
-    )
-    assert Client.e_SUCCESS is not producer.open(
-        "bmq://domain.does.not.exist/qqq",
-        flags=["write"],
-        block=True,
-        no_except=True,
-    )
-
-
-def test_migrate_domain_to_another_cluster(
-    cluster: Cluster, domain_urls: tc.DomainUrls
-):
-    uri_fanout = domain_urls.uri_fanout
-    proxies = cluster.proxy_cycle()
-    producer = next(proxies).create_client("producer")
-
-    assert Client.e_SUCCESS == producer.open(uri_fanout, flags=["write"], block=True)
-
-    # Before changing domain config of each node in the cluster, ensure that
-    # all nodes in the cluster have observed the previous open-queue event.
-    # If we don't do this, replicas may receive a queue creation event at
-    # the storage layer, pick up the domain, and, as a result, fail to
-    # successfully apply the queue creation event.
-    @attempt(3, 5)
-    def wait_replication():
-        for node in cluster.nodes():
-            node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
-
-        for node in cluster.nodes():
-            assert node.outputs_regex(
-                r"\w{10}\s+0\s+0\s+\d+\s+B\s+" + re.escape(uri_fanout),
-                timeout=1,
-            )
-            # Above regex is to match line:
-            # C1E2A44527    0      0      68  B      bmq://bmq.test.mmap.fanout/qqq
-            # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,
-            # QueueUri respectively. Since we opened only 1 queue, we know that
-            # it will be assigned to partitionId 0.
-
-    cluster.config.domains.clear()
-    cluster.deploy_domains()
-    cluster.restart_nodes()
-
-    assert Client.e_SUCCESS != producer.open(uri_fanout, flags=["write"], block=True)
 
 
 @pytest.fixture(
@@ -466,6 +422,8 @@ def test_restart_between_non_FSM_and_FSM(
     consumer_bar = next(proxies).create_client("consumer_bar")
     consumers = [consumer_priority, consumer_foo, consumer_bar]
 
+    # Phase 1: From Legacy Mode to FSM Mode
+
     # PROLOGUE
     post_new_queues_and_verify(
         cluster,
@@ -475,16 +433,8 @@ def test_restart_between_non_FSM_and_FSM(
         du,
     )
 
-    cluster.stop_nodes(prevent_leader_bounce=True)
-
-    # Reconfigure the cluster from non-FSM to FSM mode
-    configure_cluster(cluster, is_fsm=True)
-
-    cluster.start_nodes(wait_leader=True, wait_ready=True)
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
-    if cluster.is_single_node:
-        producer.wait_state_restored()
+    # SWITCH
+    restart_cluster_as_fsm_mode(cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -495,6 +445,8 @@ def test_restart_between_non_FSM_and_FSM(
         existing_fanout_queues,
     )
 
+    # Phase 2: From FSM Mode to Legacy Mode
+
     # PROLOGUE
     post_new_queues_and_verify(
         cluster,
@@ -504,30 +456,8 @@ def test_restart_between_non_FSM_and_FSM(
         du,
     )
 
-    # Non-FSM mode has poor healing mechanism, and can have flaky dirty
-    # shutdowns, so let's disable checking exit code here.
-    #
-    # To give an example, an in-sync node might attempt to syncrhonize with an
-    # out-of-sync node, and become out-of-sync too.  FSM mode is determined to
-    # eliminate these kinds of defects.
-    for node in cluster.nodes():
-        node.check_exit_code = False
-    cluster.stop_nodes(prevent_leader_bounce=True)
-
-    # Reconfigure the cluster from FSM to back to non-FSM mode
-    configure_cluster(cluster, is_fsm=False)
-    cluster.lower_leader_startup_wait()
-    if cluster.is_single_node:
-        cluster.start_nodes(wait_leader=True, wait_ready=True)
-        # For a standard cluster, states have already been restored as part of
-        # leader re-election.
-        for consumer in consumers:
-            consumer.wait_state_restored()
-    else:
-        # Switching from FSM to non-FSM mode could introduce start-up failure,
-        # which auto-resolve upon a second restart.
-        cluster.start_nodes(wait_leader=False, wait_ready=False)
-        check_exited_nodes_and_restart(cluster)
+    # SWITCH
+    restart_cluster_as_legacy_mode(cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -629,3 +559,273 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     # EPILOGUE
     leader = cluster.last_known_leader
     assignUnassignExistingQueues(existing_queues, consumer, leader)
+
+
+@pytest.fixture(params=[restart_cluster_as_fsm_mode, restart_cluster_as_legacy_mode])
+def switch_cluster_mode(request):
+    """
+    Fixture to switch cluster mode between non-FSM and FSM.
+    """
+
+    return request.param
+
+
+def without_rollover(
+    du: tc.DomainUrls,  # pylint: disable=unused-argument
+    leader: Broker,  # pylint: disable=unused-argument
+    producer: Client,  # pylint: disable=unused-argument
+):
+    """
+    Simulate fixture scenario without rollover. Just do nothing.
+    """
+
+
+@pytest.fixture(
+    params=[
+        without_rollover,
+        # simulate_csl_rollover
+    ]
+)
+def optional_rollover(request):
+    """
+    Fixture to optionally simulate rollover of CSL file.
+    """
+
+    return request.param
+
+
+def test_restart_between_legacy_and_fsm_add_remove_app(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+    switch_cluster_mode,
+    optional_rollover,
+):
+    """
+    This test verifies that we can safely switch clusters between Legacy and
+    FSM modes and add/remove appIds.
+
+    Cluster fixture starts as:
+    - Legacy mode
+    - FSM mode
+
+    switch_cluster_mode fixture switches to:
+    - Legacy mode
+    - FSM mode
+
+    Resulting in four combinations of switches:
+    1. Legacy -> FSM
+    2. FSM -> Legacy
+    3. Legacy -> Legacy
+    4. FSM -> FSM
+
+    1. PROLOGUE:
+        - both priority and fanout queues
+        - post two messages
+        - confirm one on priority and "foo"
+        - add "quux" to the fanout
+        - post to fanout
+        - remove "bar"
+    2. SWITCH:
+        Apply one of the switches:
+        - non-FSM to FSM
+        - FSM to non-FSM
+    3. EPILOGUE:
+        - priority consumer gets the second message
+        - "foo" gets 2 messages
+        - "bar" gets 0 messages
+        - "baz" gets 3 messages
+        - "quux" gets the third message
+    """
+
+    du = domain_urls
+    proxy = next(cluster.proxy_cycle())
+    producer = proxy.create_client("producer")
+
+    test_queue = tc.TEST_QUEUE
+
+    # 1. PROLOGUE
+    priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
+    fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
+
+    # post two messages
+    for queue in [priority_queue, fanout_queue]:
+        producer.open(queue, flags=["write,ack"], succeed=True)
+        producer.post(
+            queue,
+            ["msg1", "msg2"],
+            succeed=True,
+            wait_ack=True,
+        )
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(
+        priority_queue,
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.open(
+        fanout_queue + "?id=foo",
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.confirm(priority_queue, "+1", succeed=True)
+    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+    consumer.close(priority_queue, succeed=True)
+    consumer.close(fanout_queue + "?id=foo", succeed=True)
+    consumers = [consumer]
+
+    current_app_ids = DEFAULT_APP_IDS + ["quux"]
+    cluster.set_app_ids(current_app_ids, du)
+    producer.post(
+        fanout_queue,
+        ["msg3"],
+        succeed=True,
+        wait_ack=True,
+    )
+
+    current_app_ids.remove("bar")
+    cluster.set_app_ids(current_app_ids, du)
+
+    # 2. SWITCH
+    # 2.1 Optional rollover
+    optional_rollover(du, cluster.last_known_leader, producer)
+    # 2.2 Switch cluster mode
+    switch_cluster_mode(cluster, producer, consumers)
+
+    # 3. EPILOGUE
+    check_if_queue_has_n_messages(consumer, priority_queue, 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
+    quux_messages = check_if_queue_has_n_messages(
+        consumer, fanout_queue + "?id=quux", 1
+    )
+    assert re.match(r"msg3", quux_messages[0].payload)
+
+
+def test_restart_between_legacy_and_fsm_purge_queue_app(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+    switch_cluster_mode,
+    optional_rollover,
+):
+    """
+    This test verifies that we can safely switch clusters between Legacy and
+    FSM modes, add/remove appIds and purge queues/appIds.
+
+    Cluster fixture starts as:
+    - Legacy mode
+    - FSM mode
+
+    switch_cluster_mode fixture switches to:
+    - Legacy mode
+    - FSM mode
+
+    Resulting in four combinations of switches:
+    1. Legacy -> FSM
+    2. FSM -> Legacy
+    3. Legacy -> Legacy
+    4. FSM -> FSM
+
+    1. PROLOGUE:
+        - both priority and fanout queues
+        - post one message
+        - purge priority queue
+        - purge app "baz"
+        - post two messages
+        - confirm one on priority and "foo"
+        - add "quux" to the fanout
+        - post to fanout
+        - remove "bar"
+    2. SWITCH:
+        Apply one of the switches:
+        - non-FSM to FSM
+        - FSM to non-FSM
+    3. EPILOGUE:
+        - priority consumer gets the third message
+        - "foo" gets 3 messages
+        - "bar" gets 0 messages
+        - "baz" gets 3 messages
+        - "quux" gets the fourth message
+    """
+
+    du = domain_urls
+    proxy = next(cluster.proxy_cycle())
+    producer = proxy.create_client("producer")
+
+    test_queue = tc.TEST_QUEUE
+
+    # 1. PROLOGUE
+    priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
+    fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
+
+    # Post one message
+    for queue in [priority_queue, fanout_queue]:
+        producer.open(queue, flags=["write,ack"], succeed=True)
+
+    for queue in [priority_queue, fanout_queue]:
+        producer.post(
+            queue,
+            ["msg0"],
+            succeed=True,
+            wait_ack=True,
+        )
+
+    # Purge priority queue
+    cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
+    # Purge fanout queue app "baz"
+    cluster.last_known_leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
+
+    # Post two messages
+    for queue in [priority_queue, fanout_queue]:
+        producer.post(
+            queue,
+            ["msg1", "msg2"],
+            succeed=True,
+            wait_ack=True,
+        )
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(
+        priority_queue,
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.open(
+        fanout_queue + "?id=foo",
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.confirm(priority_queue, "+1", succeed=True)
+    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+    consumer.close(priority_queue, succeed=True)
+    consumer.close(fanout_queue + "?id=foo", succeed=True)
+    consumers = [consumer]
+
+    current_app_ids = DEFAULT_APP_IDS + ["quux"]
+    cluster.set_app_ids(current_app_ids, du)
+    producer.post(
+        fanout_queue,
+        ["msg3"],
+        succeed=True,
+        wait_ack=True,
+    )
+
+    current_app_ids.remove("bar")
+    cluster.set_app_ids(current_app_ids, du)
+
+    # 2. SWITCH
+    # 2.1 Optional rollover
+    optional_rollover(du, cluster.last_known_leader, producer)
+    # 2.2 Switch cluster mode
+    switch_cluster_mode(cluster, producer, consumers)
+
+    # 3. EPILOGUE
+    check_if_queue_has_n_messages(consumer, priority_queue, 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 3)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
+    quux_messages = check_if_queue_has_n_messages(
+        consumer, fanout_queue + "?id=quux", 1
+    )
+    assert re.match(r"msg3", quux_messages[0].payload)
