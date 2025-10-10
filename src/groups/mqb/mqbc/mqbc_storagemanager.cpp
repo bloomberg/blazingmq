@@ -1130,20 +1130,18 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
 
-    if (!d_partitionFSMVec[partitionId]->isSelfHealed()) {
-        EventData eventDataVec;
-        eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
-                                  -1,  // placeholder requestId
-                                  partitionId,
-                                  1);
+    EventData eventDataVec;
+    eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
+                              -1,  // placeholder requestId
+                              partitionId,
+                              1);
 
-        bsl::shared_ptr<bsl::queue<PartitionFSM::EventWithData> > queueSp =
-            bsl::allocate_shared<bsl::queue<PartitionFSM::EventWithData> >(
-                d_allocator_p);
-        queueSp->emplace(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
+    bsl::shared_ptr<bsl::queue<PartitionFSM::EventWithData> > queueSp =
+        bsl::allocate_shared<bsl::queue<PartitionFSM::EventWithData> >(
+            d_allocator_p);
+    queueSp->emplace(PartitionFSM::Event::e_STOP_NODE, eventDataVec);
 
-        d_partitionFSMVec[partitionId]->popEventAndProcess(queueSp);
-    }
+    d_partitionFSMVec[partitionId]->popEventAndProcess(queueSp);
 
     StorageUtil::processShutdownEventDispatched(
         d_clusterData_p,
@@ -2659,7 +2657,9 @@ void StorageManager::do_cleanupMetadata(const PartitionFSMArgsSp& args)
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() ==
-                     PartitionFSM::State::e_UNKNOWN);
+                         PartitionFSM::State::e_UNKNOWN ||
+                     d_partitionFSMVec[partitionId]->state() ==
+                         PartitionFSM::State::e_STOPPED);
 
     d_nodeToSeqNumCtxMapVec[partitionId].clear();
     d_numReplicaDataResponsesReceivedVec[partitionId] = 0;
@@ -3754,7 +3754,7 @@ void StorageManager::stop()
                                   1);
 
         dispatchEventToPartition(d_fileStores[pid].get(),
-                                 PartitionFSM::Event::e_RST_UNKNOWN,
+                                 PartitionFSM::Event::e_STOP_NODE,
                                  eventDataVec);
     }
 

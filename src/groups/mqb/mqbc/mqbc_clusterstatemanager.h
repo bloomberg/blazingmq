@@ -130,10 +130,10 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
 
-    /// Event handle for the watch dog.
+    /// Event handle for the watchdog.
     bdlmt::EventSchedulerEventHandle d_watchDogEventHandle;
 
-    /// Timeout interval for the watch dog.
+    /// Timeout interval for the watchdog.
     bsls::TimeInterval d_watchDogTimeoutInterval;
 
     /// Cluster configuration to use.
@@ -175,8 +175,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
   private:
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateTableActions)
-    void do_abort(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
     void do_startWatchDog(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void do_stopWatchDog(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
@@ -310,13 +308,13 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     int loadClusterStateSnapshot(ClusterState* out);
     int loadClusterStateSnapshot(bmqp_ctrlmsg::LeaderAdvisory* out);
 
-    /// Process the watch dog trigger event, indicating unhealthiness in the
+    /// Process the watchdog trigger event, indicating unhealthiness in the
     /// Cluster FSM.
     ///
     /// THREAD: Executed by the scheduler thread.
     void onWatchDog();
 
-    /// Process the watch dog trigger event, indicating unhealthiness in the
+    /// Process the watchdog trigger event, indicating unhealthiness in the
     /// Cluster FSM.
     ///
     /// THREAD: This method is invoked in the associated cluster's

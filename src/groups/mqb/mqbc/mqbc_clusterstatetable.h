@@ -56,9 +56,8 @@ struct ClusterStateTableState {
         e_LDR_HEALING_STG2 = 3,
         e_FOL_HEALED       = 4,
         e_LDR_HEALED       = 5,
-        e_STOPPING         = 6,
-        e_STOPPED          = 7,
-        e_NUM_STATES       = 8
+        e_STOPPED          = 6,
+        e_NUM_STATES       = 7
     };
 
     // CLASS METHODS
@@ -129,15 +128,14 @@ struct ClusterStateTableEvent {
         e_FAIL_FOL_CSL_RSPN      = 11,
         e_CRASH_FOL_CSL          = 12,
         e_STOP_NODE              = 13,
-        e_STOP_SUCCESS           = 14,
-        e_REGISTRATION_RQST      = 15,
-        e_REGISTRATION_RSPN      = 16,
-        e_FAIL_REGISTRATION_RSPN = 17,
-        e_RST_UNKNOWN            = 18,
-        e_CSL_CMT_SUCCESS        = 19,
-        e_CSL_CMT_FAIL           = 20,
-        e_WATCH_DOG              = 21,
-        e_NUM_EVENTS             = 22
+        e_REGISTRATION_RQST      = 14,
+        e_REGISTRATION_RSPN      = 15,
+        e_FAIL_REGISTRATION_RSPN = 16,
+        e_RST_UNKNOWN            = 17,
+        e_CSL_CMT_SUCCESS        = 18,
+        e_CSL_CMT_FAIL           = 19,
+        e_WATCH_DOG              = 20,
+        e_NUM_EVENTS             = 21
     };
 
     // CLASS METHODS
@@ -201,8 +199,6 @@ class ClusterStateTableActions {
     virtual ~ClusterStateTableActions();
 
     virtual void do_none(const ARGS& args);
-
-    virtual void do_abort(const ARGS& args) = 0;
 
     virtual void do_startWatchDog(const ARGS& args) = 0;
 
@@ -369,8 +365,7 @@ class ClusterStateTable
                 REGISTRATION_RQST,
                 sendFailureRegistrationResponse,
                 UNKNOWN);
-        CST_CFG(UNKNOWN, STOP_NODE, none, STOPPING);
-        CST_CFG(UNKNOWN, STOP_SUCCESS, abort, UNKNOWN);
+        CST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         CST_CFG(FOL_HEALING,
                 SLCT_LDR,
                 stopWatchDog_cancelRequests_reapplyEvent,
@@ -408,8 +403,7 @@ class ClusterStateTable
                 WATCH_DOG,
                 cancelRequests_reapplySelectFollower,
                 UNKNOWN);
-        CST_CFG(FOL_HEALING, STOP_NODE, stopWatchDog_cancelRequests, STOPPING);
-        CST_CFG(FOL_HEALING, STOP_SUCCESS, abort, FOL_HEALING);
+        CST_CFG(FOL_HEALING, STOP_NODE, stopWatchDog_cancelRequests, STOPPED);
         CST_CFG(LDR_HEALING_STG1,
                 SLCT_FOL,
                 stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent,
@@ -461,8 +455,7 @@ class ClusterStateTable
         CST_CFG(LDR_HEALING_STG1,
                 STOP_NODE,
                 stopWatchDog_cleanupLSNs_cancelRequests,
-                STOPPING);
-        CST_CFG(LDR_HEALING_STG1, STOP_SUCCESS, abort, LDR_HEALING_STG1);
+                STOPPED);
         CST_CFG(LDR_HEALING_STG2,
                 SLCT_FOL,
                 stopWatchDog_cleanupLSNs_cancelRequests_reapplyEvent,
@@ -528,8 +521,7 @@ class ClusterStateTable
         CST_CFG(LDR_HEALING_STG2,
                 STOP_NODE,
                 stopWatchDog_cleanupLSNs_cancelRequests,
-                STOPPING);
-        CST_CFG(LDR_HEALING_STG2, STOP_SUCCESS, abort, LDR_HEALING_STG2);
+                STOPPED);
         CST_CFG(FOL_HEALED, SLCT_LDR, reapplyEvent, UNKNOWN);
         CST_CFG(FOL_HEALED,
                 FOL_LSN_RQST,
@@ -548,8 +540,7 @@ class ClusterStateTable
                 sendFollowerClusterStateResponse_logErrorLeaderNotHealed,
                 FOL_HEALING);
         CST_CFG(FOL_HEALED, RST_UNKNOWN, none, UNKNOWN);
-        CST_CFG(FOL_HEALED, STOP_NODE, none, STOPPING);
-        CST_CFG(FOL_HEALED, STOP_SUCCESS, abort, FOL_HEALED);
+        CST_CFG(FOL_HEALED, STOP_NODE, none, STOPPED);
         CST_CFG(LDR_HEALED, SLCT_FOL, cleanupLSNs_reapplyEvent, UNKNOWN);
         CST_CFG(LDR_HEALED,
                 FOL_LSN_RQST,
@@ -564,9 +555,7 @@ class ClusterStateTable
                 sendFailureFollowerClusterStateResponse,
                 LDR_HEALED);
         CST_CFG(LDR_HEALED, RST_UNKNOWN, cleanupLSNs, UNKNOWN);
-        CST_CFG(LDR_HEALED, STOP_NODE, cleanupLSNs, STOPPING);
-        CST_CFG(LDR_HEALED, STOP_SUCCESS, abort, LDR_HEALED);
-        CST_CFG(STOPPING, STOP_SUCCESS, none, STOPPED);
+        CST_CFG(LDR_HEALED, STOP_NODE, cleanupLSNs, STOPPED);
 #undef CST_CFG
     }
 };

@@ -85,12 +85,6 @@ class ClusterFSMObserver {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     virtual void onHealedFollower();
-
-    /// Invoked when the Cluster FSM transitions to `STOPPING` state.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    virtual void onStopping();
 };
 
 // =============================
