@@ -1052,12 +1052,16 @@ void ClusterStateManager::onCommit(
                   << ": Committed advisory: " << advisory << ", with status '"
                   << status << "'";
 
+    // Note: We must apply this event to the Cluster FSM before applying the
+    // advisory to cluster state, which might jumpstart the Partition FSMs.
+    // This event can transition the Cluster FSM to healed, which must happen
+    // before any Partition FSM can start.
+    applyFSMEvent(ClusterFSM::Event::e_CSL_CMT_SUCCESS,
+                  ClusterFSMEventMetadata(d_allocator_p));
+
     const bmqp_ctrlmsg::ClusterMessage& clusterMessage =
         advisory.choice().clusterMessage();
     mqbc::ClusterUtil::apply(d_state_p, clusterMessage, *d_clusterData_p);
-
-    applyFSMEvent(ClusterFSM::Event::e_CSL_CMT_SUCCESS,
-                  ClusterFSMEventMetadata(d_allocator_p));
 }
 
 void ClusterStateManager::applyFSMEvent(
