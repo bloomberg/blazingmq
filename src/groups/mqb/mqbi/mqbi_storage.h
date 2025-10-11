@@ -175,6 +175,8 @@ class StorageMessageAttributes {
 
     bool d_hasReceipt;
 
+    bool d_strongConsistency;
+
     mqbi::QueueHandle* d_queueHandle;
 
     unsigned int d_crc32c;
@@ -214,10 +216,11 @@ class StorageMessageAttributes {
         unsigned int                         refCount,
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-        bool                                 hasReceipt       = true,
-        mqbi::QueueHandle*                   queueHandle      = 0,
-        unsigned int                         crc32c           = 0,
-        bsls::Types::Int64                   arrivalTimepoint = 0);
+        bool                                 hasReceipt        = true,
+        bool                                 strongConsistency = true,
+        mqbi::QueueHandle*                   queueHandle       = 0,
+        unsigned int                         crc32c            = 0,
+        bsls::Types::Int64                   arrivalTimepoint  = 0);
 
     // MANIPULATORS
     StorageMessageAttributes& setArrivalTimestamp(bsls::Types::Uint64 value);
@@ -243,6 +246,7 @@ class StorageMessageAttributes {
     unsigned int                       appDataLen() const;
     const bmqp::MessagePropertiesInfo& messagePropertiesInfo() const;
     bool                               hasReceipt() const;
+    bool                               strongConsistency() const;
     mqbi::QueueHandle*                 queueHandle() const;
 
     /// Return the CRC32-C associated with this object.
@@ -788,6 +792,7 @@ inline StorageMessageAttributes::StorageMessageAttributes()
 , d_appDataLen(0)
 , d_messagePropertiesInfo()
 , d_hasReceipt(true)
+, d_strongConsistency(true)
 , d_queueHandle(0)
 , d_crc32c(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
@@ -801,6 +806,7 @@ inline StorageMessageAttributes::StorageMessageAttributes(
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
     bool                                 hasReceipt,
+    bool                                 strongConsistency,
     mqbi::QueueHandle*                   queueHandle,
     unsigned int                         crc32c,
     bsls::Types::Int64                   arrivalTimepoint)
@@ -810,6 +816,7 @@ inline StorageMessageAttributes::StorageMessageAttributes(
 , d_appDataLen(appDataLen)
 , d_messagePropertiesInfo(messagePropertiesInfo)
 , d_hasReceipt(hasReceipt)
+, d_strongConsistency(strongConsistency)
 , d_queueHandle(queueHandle)
 , d_crc32c(crc32c)
 , d_compressionAlgorithmType(compressionAlgorithmType)
@@ -919,6 +926,11 @@ StorageMessageAttributes::messagePropertiesInfo() const
 inline bool StorageMessageAttributes::hasReceipt() const
 {
     return d_hasReceipt;
+}
+
+inline bool StorageMessageAttributes::strongConsistency() const
+{
+    return d_strongConsistency;
 }
 
 inline mqbi::QueueHandle* StorageMessageAttributes::queueHandle() const

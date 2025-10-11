@@ -467,7 +467,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
                 static_cast<unsigned int>(appData->length()),
                 translation,
                 putHeader.compressionAlgorithmType(),
-                !d_haveStrongConsistency,
+                false,
+                d_haveStrongConsistency,
                 doAck ? source : 0,
                 putHeader.crc32c(),
                 timePoint);  // Arrival Timepoint
@@ -484,24 +485,17 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     // Send acknowledgement if post failed or if ack was requested (both could
     // be true as well).
-    if (res != mqbi::StorageResult::e_SUCCESS || haveReceipt) {
-        // Calculate time delta between PUT and ACK
-        const bsls::Types::Int64 timeDelta =
-            bmqsys::Time::highResolutionTimer() - timePoint;
-        d_state_p->stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
-                timeDelta);
-        if (res != mqbi::StorageResult::e_SUCCESS || doAck) {
-            bmqp::AckMessage ackMessage;
-            ackMessage
-                .setStatus(bmqp::ProtocolUtil::ackResultToCode(
-                    mqbi::StorageResult::toAckResult(res)))
-                .setMessageGUID(putHeader.messageGUID());
-            // CorrelationId & QueueId are left unset as those fields will
-            // be filled downstream.
+    if (res != mqbi::StorageResult::e_SUCCESS || haveReceipt ||
+        !d_haveStrongConsistency) {
+        bmqp::AckMessage ackMessage;
+        ackMessage
+            .setStatus(bmqp::ProtocolUtil::ackResultToCode(
+                mqbi::StorageResult::toAckResult(res)))
+            .setMessageGUID(putHeader.messageGUID());
+        // CorrelationId & QueueId are left unset as those fields will
+        // be filled downstream.
 
-            source->onAckMessage(ackMessage);
-        }
+        source->onAckMessage(ackMessage);
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(res ==
@@ -547,17 +541,9 @@ void LocalQueue::onPushMessage(
                     "onPushMessage should not be called on LocalQueue");
 }
 
-void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
-                           mqbi::QueueHandle*        qH,
-                           const bsls::Types::Int64& arrivalTimepoint)
+void LocalQueue::onReceipt(const bmqt::MessageGUID& msgGUID,
+                           mqbi::QueueHandle*       qH)
 {
-    // Calculate time delta between PUT and ACK
-    const bsls::Types::Int64 timeDelta = bmqsys::Time::highResolutionTimer() -
-                                         arrivalTimepoint;
-
-    d_state_p->stats()
-        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(timeDelta);
-
     if (d_state_p->handleCatalog().hasHandle(qH)) {
         // Send acknowledgement
         bmqp::AckMessage ackMessage;
