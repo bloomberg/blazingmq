@@ -472,6 +472,14 @@ class QueueEngineTester {
     /// Note that pointers to these handles may be left dangling.
     void dropHandles();
 
+    /// Send PUSH for each of the specified `listMessages` with all Apps in the
+    /// specified `listApps` to the specified `downstream` with the specified
+    /// flag `isOutOfOrder`.
+    void push(RelayQueueEngine*        downstream,
+              const bslstl::StringRef& listApps,
+              const bslstl::StringRef& listMessages,
+              bool                     isOutOfOrder);
+
     /// Load into the specified `value` previously cached parameters sent
     /// upstream for the specified `appId`.
     bool getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,

@@ -1823,69 +1823,28 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
     return true;
 }
 
-unsigned int
-RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
-                       const bmqt::MessageGUID&            msgGUID,
-                       const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       bmqp::Protocol::SubQueueInfosArray& subscriptions,
-                       bool                                isOutOfOrder)
+void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
+                            const bmqt::MessageGUID&            msgGUID,
+                            const bsl::shared_ptr<bdlbb::Blob>& appData,
+                            bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                            bool                                isOutOfOrder)
 {
-    if (isOutOfOrder) {
-        BSLS_ASSERT_SAFE(subscriptions.size() == 1);
+    PushStream::iterator itGuid;  // uninitialized if out of order
+    unsigned int         count = 0;
 
-        // No guarantee of uniqueness.  Cannot use PushStream.
-        unsigned int subQueueId;
+    if (!isOutOfOrder) {
+        if (!d_pushStream.findOrAddLast(&itGuid, msgGUID)) {
+            BMQ_LOGTHROTTLE_WARN << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
+                                 << "Remote queue: " << d_queueState_p->uri()
+                                 << " (id: " << d_queueState_p->id()
+                                 << ") treating PUSH message for guid "
+                                 << msgGUID << " as out-of-order ";
 
-        unsigned int subscriptionId = subscriptions.begin()->id();
-        unsigned int ordinalPlusOne = 0;  // Invalid value
-
-        // Reusing 'subscriptions' to 'setPushState()' below.
-        subscriptions.begin()->setId(ordinalPlusOne);
-
-        if (subscriptionId2upstreamSubQueueId(msgGUID,
-                                              &subQueueId,
-                                              subscriptionId)) {
-            App_State* app = findApp(subQueueId);
-
-            if (app == 0) {
-                BMQ_LOGTHROTTLE_ERROR
-                    << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
-                    << "Remote queue: " << d_queueState_p->uri()
-                    << " (id: " << d_queueState_p->id()
-                    << ") discarding a PUSH message for guid " << msgGUID
-                    << ", with unknown App Id " << subQueueId;
-
-                return 0;  // RETURN
-            }
-
-            if (!checkForDuplicate(app, msgGUID)) {
-                return 0;  // RETURN
-            }
-
-            app->putForRedelivery(msgGUID);
-
-            attributes->setRefCount(1);
-
-            // Reusing 'subscriptions' to 'setPushState()' below.
-            ordinalPlusOne = 1 + app->ordinal();
-            subscriptions.begin()->setId(ordinalPlusOne);
-
-            storePush(attributes, msgGUID, appData, subscriptions, true);
-
-            // Attempt to deliver
-            processAppRedelivery(subQueueId, app);
-
-            return 1;  // RETURN
+            isOutOfOrder = true;
         }
-
-        return 0;  // RETURN
     }
 
     // Count only those subQueueIds which 'storage' is aware of.
-
-    PushStream::iterator itGuid = d_pushStream.findOrAppendMessage(msgGUID);
-    unsigned int         count  = 0;
-
     for (bmqp::Protocol::SubQueueInfosArray::iterator it =
              subscriptions.begin();
          it != subscriptions.end();
@@ -1904,59 +1863,97 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             continue;  // CONTINUE
         }
 
-        PushStream::Apps::iterator itApp = d_pushStream.d_apps.find(
-            subQueueId);
-        if (itApp == d_pushStream.d_apps.end()) {
-            AppsMap::const_iterator app_cit = d_apps.find(subQueueId);
+        if (isOutOfOrder) {
+            // No guarantee of uniqueness.  Cannot use PushStream.
 
-            if (app_cit == d_apps.end()) {
+            App_State* app = findApp(subQueueId);
+
+            if (app == 0) {
                 BMQ_LOGTHROTTLE_ERROR
                     << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
                     << ") discarding a PUSH message for guid " << msgGUID
-                    << ", with unknown App Id " << subscriptionId;
+                    << ", with unknown App Id " << subQueueId;
+
                 continue;  // CONTINUE
             }
 
-            itApp =
-                d_pushStream.d_apps.emplace(subQueueId, app_cit->second).first;
+            if (!checkForDuplicate(app, msgGUID)) {
+                continue;  // CONTINUE
+            }
+
+            app->putForRedelivery(msgGUID);
+
+            // Reusing 'subscriptions' to 'setPushState()' below.
+            ordinalPlusOne = 1 + app->ordinal();
+            subscriptions.begin()->setId(ordinalPlusOne);
+
+            attributes->setRefCount(1);
+            storePush(attributes, msgGUID, appData, subscriptions);
+
+            // Attempt to deliver
+            processAppRedelivery(subQueueId, app);
         }
         else {
-            const PushStream::App& app = itApp->second;
+            PushStream::Apps::iterator itApp = d_pushStream.d_apps.find(
+                subQueueId);
 
-            if (app.last() && app.last()->iteratorGuid() == itGuid) {
-                BMQ_LOGTHROTTLE_INFO
-                    << "Remote queue: " << d_queueState_p->uri()
-                    << " (id: " << d_queueState_p->id() << ", App '"
-                    << itApp->second.d_app->appId()
-                    << "') discarding a duplicate PUSH for guid " << msgGUID;
+            if (itApp == d_pushStream.d_apps.end()) {
+                AppsMap::const_iterator app_cit = d_apps.find(subQueueId);
 
-                continue;  // CONTINUE
+                if (app_cit == d_apps.end()) {
+                    BMQ_LOGTHROTTLE_ERROR
+                        << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
+                        << "Remote queue: " << d_queueState_p->uri()
+                        << " (id: " << d_queueState_p->id()
+                        << ") discarding a PUSH message for guid " << msgGUID
+                        << ", with unknown App Id " << subscriptionId;
+                    continue;  // CONTINUE
+                }
+
+                itApp = d_pushStream.d_apps
+                            .emplace(subQueueId, app_cit->second)
+                            .first;
+            }
+            else {
+                const PushStream::App& app = itApp->second;
+
+                if (app.last() && app.last()->iteratorGuid() == itGuid) {
+                    BMQ_LOGTHROTTLE_INFO
+                        << "Remote queue: " << d_queueState_p->uri()
+                        << " (id: " << d_queueState_p->id() << ", App '"
+                        << itApp->second.d_app->appId()
+                        << "') discarding a duplicate PUSH for guid "
+                        << msgGUID;
+
+                    continue;  // CONTINUE
+                }
+
+                if (!checkForDuplicate(app.d_app.get(), msgGUID)) {
+                    continue;  // CONTINUE
+                }
             }
 
-            if (!checkForDuplicate(app.d_app.get(), msgGUID)) {
-                continue;  // CONTINUE
-            }
+            PushStream::Element* element = d_pushStream.create(it->rdaInfo(),
+                                                               subscriptionId,
+                                                               itGuid,
+                                                               itApp);
+
+            // Reusing 'subscriptions' to 'setPushState()' below.
+            ordinalPlusOne = 1 + itApp->second.d_app->ordinal();
+            it->setId(ordinalPlusOne);
+
+            d_pushStream.add(element);
+            ++count;
         }
-
-        PushStream::Element* element =
-            d_pushStream.create(it->rdaInfo(), subscriptionId, itGuid, itApp);
-
-        // Reusing 'subscriptions' to 'setPushState()' below.
-        ordinalPlusOne = 1 + itApp->second.d_app->ordinal();
-        it->setId(ordinalPlusOne);
-
-        d_pushStream.add(element);
-        ++count;
     }
 
     if (count) {
         // Pass correct ref count
         attributes->setRefCount(count);
-        storePush(attributes, msgGUID, appData, subscriptions, false);
+        storePush(attributes, msgGUID, appData, subscriptions);
     }
-    return count;
 }
 
 bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
@@ -1995,8 +1992,7 @@ void RelayQueueEngine::storePush(
     mqbi::StorageMessageAttributes*           attributes,
     const bmqt::MessageGUID&                  msgGUID,
     const bsl::shared_ptr<bdlbb::Blob>&       appData,
-    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-    bool                                      isOutOfOrder)
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         // Save the message along with the subIds in the storage.  Note that

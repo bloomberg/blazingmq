@@ -83,7 +83,13 @@ class PushStream {
     // forward declaration
     struct Element;
 
-    enum ElementList { e_GUID = 0, e_APP = 1, e_TOTAL = 2 };
+    enum ElementList {
+        e_GUID = 0  // column
+        ,
+        e_APP = 1  // row
+        ,
+        e_TOTAL = 2
+    };
 
     struct ElementBase {
         Element* d_next_p;
@@ -215,7 +221,7 @@ class PushStream {
 
     /// Introduce the specified `guid` to the Push Stream if it is not present.
     /// Return an iterator pointing to the `guid`.
-    iterator findOrAppendMessage(const bmqt::MessageGUID& guid);
+    bool findOrAddLast(iterator* itGuid, const bmqt::MessageGUID& guid);
 
     /// Add the specified `element` to both GUID and App corresponding to the
     /// `element` (and specified when constructing the `element`).
@@ -675,10 +681,24 @@ PushStream::create(const bmqp::RdaInfo&  rda,
     return element;
 }
 
-inline PushStream::iterator
-PushStream::findOrAppendMessage(const bmqt::MessageGUID& guid)
+inline bool PushStream::findOrAddLast(iterator*                itGuid,
+                                      const bmqt::MessageGUID& guid)
 {
-    return d_stream.insert(bsl::make_pair(guid, Elements())).first;
+    BSLS_ASSERT_SAFE(itGuid);
+
+    iterator existing = d_stream.find(guid);
+    if (existing == d_stream.end()) {
+        *itGuid = d_stream.insert(bsl::make_pair(guid, Elements())).first;
+    }
+    else if (existing == --d_stream.end()) {
+        *itGuid = existing;
+    }
+    else {
+        // Anything other than the last is out of order
+        return false;
+    }
+
+    return true;
 }
 
 inline void PushStream::add(Element* element)

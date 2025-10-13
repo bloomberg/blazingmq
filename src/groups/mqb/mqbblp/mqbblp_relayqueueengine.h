@@ -353,8 +353,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void storePush(mqbi::StorageMessageAttributes*           attributes,
                    const bmqt::MessageGUID&                  msgGUID,
                    const bsl::shared_ptr<bdlbb::Blob>&       appData,
-                   const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-                   bool                                      isOutOfOrder);
+                   const bmqp::Protocol::SubQueueInfosArray& subscriptions);
 
     void beforeOneAppRemoved(unsigned int upstreamSubQueueId);
 
@@ -538,12 +537,12 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // the `msgGUID` into the PushStream; insert PushStream Elements
     // (`mqbi::AppMessage`, `upstreamSubQueueId`) pairs for each recognized App
     /// in the specified `subscriptions`.
-    /// Return number of inserted PushStream Elements.
-    unsigned int push(mqbi::StorageMessageAttributes*     attributes,
-                      const bmqt::MessageGUID&            msgGUID,
-                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                      bmqp::Protocol::SubQueueInfosArray& subscriptions,
-                      bool                                isOutOfOrder);
+
+    void push(mqbi::StorageMessageAttributes*     attributes,
+              const bmqt::MessageGUID&            msgGUID,
+              const bsl::shared_ptr<bdlbb::Blob>& appData,
+              bmqp::Protocol::SubQueueInfosArray& subscriptions,
+              bool                                isOutOfOrder);
     // ACCESSORS
 
     /// Return the reference count that should be applied to a message

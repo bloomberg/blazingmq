@@ -1699,7 +1699,7 @@ static void test19_redeliveryAndResume()
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
-    // 1. Bring up a consumer C1 with appId 'a', 'b', and 'c'.
+    // 1. Bring up a consumer C1 with appId 'a' and 'b'.
     mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
     BMQTST_ASSERT_NE(C1, k_nullHandle_p);
     BMQTST_ASSERT_EQ(C1, tester.getHandle("C1@b readCount=1"));
@@ -1872,6 +1872,110 @@ static void test20_handleParametersLimits()
     }
 }
 
+static void test21_deliverOutOfOrder()
+// ------------------------------------------------------------------------
+// REDELIVERY AND RESUME
+//
+// Concerns:
+//   1. Verifying resume for a fanout appId..
+//
+// Plan:
+//  Make the data stream of 1   2   3   4   5
+//                          |   |   |   |
+//  where   "a" state is    RL PAL  RP  |
+//          "b" state is    QH  QH PAL  |
+//                                      iterator
+//  RL - RedeliveryList, PAL - PutAsideList, QH queue handle, RP - Resume Point
+//  Then remove "b".
+//  Then trigger 'processAppRedelivery' for "a".
+//  It should 'deliverMessages' from 3 to 4 in the first phase and then attempt
+//  to advance all apps.  If the first phase fails to stop at 4, then 4 (and 5)
+//  will get processed twice.
+//
+// Testing:
+//   'processAppRedelivery'.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+
+    mqbconfm::Domain          config = fanoutConfig();
+    bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
+    appIDs.push_back("a");
+    appIDs.push_back("b");
+
+    mqbblp::QueueEngineTester                                tester(config,
+                                     false,  // start scheduler
+                                     bmqtst::TestHelperUtil::allocator());
+    mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
+
+    // 1. Bring up a consumer C1 with appId 'a' and 'b'.
+    mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
+    BMQTST_ASSERT_NE(C1, k_nullHandle_p);
+    BMQTST_ASSERT_EQ(C1, tester.getHandle("C1@b readCount=1"));
+
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@a consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@b consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+
+    // Block "b", so {b, 2} is stuck in the PushStream ({b, 1} goes to PAL)
+    C1->_setCanDeliver("b", false);
+
+    // 2. Post 1 message
+    tester.post("1");
+    tester.afterNewMessage(1);
+
+    tester.push(guard.engine(), "a, b", "1", false);
+    guard.engine()->afterNewMessage();
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 0);
+
+    // Block "a", so {a, 3} is stuck in the PushStream (ResumePoint)
+    // ({a, 2} goes to PAL)
+    C1->_setCanDeliver("a", false);
+
+    tester.post("2");
+    tester.afterNewMessage(1);
+    tester.push(guard.engine(), "a, b", "2", false);
+    guard.engine()->afterNewMessage();
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 0);  // {b, 2} is stuck
+
+    tester.post("3");
+    tester.afterNewMessage(1);
+    tester.push(guard.engine(), "a, b", "3", false);
+    guard.engine()->afterNewMessage();
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 0);
+
+    // redeliver "2" to "a" only
+    // That should force 'isOutOfOrder' to be 'true'
+    tester.push(guard.engine(), "a", "2", false);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 0);
+
+    C1->_setCanDeliver("a", true);
+    C1->_setCanDeliver("b", true);
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 3);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 3);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1894,6 +1998,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 21: test21_deliverOutOfOrder(); break;
         case 20: test20_handleParametersLimits(); break;
         case 19: test19_redeliveryAndResume(); break;
         case 18: test18_throttleRedeliveryNoMoreHandles(); break;
