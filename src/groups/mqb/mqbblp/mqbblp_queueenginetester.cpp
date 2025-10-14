@@ -143,26 +143,26 @@ static void dummyHandleConfiguredCallback(
     *rc = status.code();
 }
 
-/// Populate the specified `messages` with messages parsed from the
-/// specified `messagesStr`.  The format of `messagesStr` must be:
-///   `<msg1>,<msg2>,...,<msgN>`
+/// Populate the specified `out` with tokens parsed from the specified `in`.
+/// The format of `in` must be: `<item1>,<item2>,...,<itemN>`.  Use the
+/// specified `allocator` when creating new string out of a token.
 ///
-/// The behavior is undefined unless `messages` is formatted as above.  Note
-/// that `messages` will be cleared.
-static void parseMessages(bsl::vector<bsl::string>* messages,
-                          bsl::string               messagesStr)
+/// The behavior is undefined unless `in` is formatted as above.
+static void parseList(bsl::vector<bsl::string>* out,
+                      const bsl::string         in,
+                      bslma::Allocator*         allocator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(messages);
+    BSLS_ASSERT_OPT(out);
 
-    messages->clear();
+    out->clear();
 
-    bdlb::Tokenizer tokenizer(messagesStr, " ", ",");
+    bdlb::Tokenizer tokenizer(in, " ", ",");
 
     BSLS_ASSERT_OPT(tokenizer.isValid() && "Format error in 'messages'");
 
     while (tokenizer.isValid()) {
-        messages->push_back(tokenizer.token());
+        out->push_back(bsl::string(tokenizer.token(), allocator));
         ++tokenizer;
     }
 }
@@ -935,7 +935,7 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
                     "'createQueueEngine()' was not called");
 
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseMessages(&msgs, messages);
+    parseList(&msgs, messages, d_allocator_p);
 
     for (unsigned int i = 0; i < msgs.size(); ++i) {
         // Each message must have its own 'subscriptions'.
@@ -1045,7 +1045,6 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
     bsl::string::size_type appIdStartPosition = clientText.find_first_of("@");
     BSLS_ASSERT_OPT(clientText.find_first_of(' ', appIdStartPosition) ==
                     bsl::string::npos);
-    ;
 
     // 1.1 'clientKey'
     const bsl::string clientKey(clientText.substr(0, appIdStartPosition),
@@ -1072,7 +1071,7 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
 
     mqbmock::QueueHandle*    mockHandle = client(clientKey);
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseMessages(&msgs, messages);
+    parseList(&msgs, messages, d_allocator_p);
     for (bsl::vector<bsl::string>::size_type i = 0; i < msgs.size(); ++i) {
         MessagesMap::iterator it = d_postedMessages.find(msgs[i]);
 
@@ -1129,7 +1128,7 @@ void QueueEngineTester::reject(const bsl::string&       clientText,
 
     mqbmock::QueueHandle*    mockHandle = client(clientKey);
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseMessages(&msgs, messages);
+    parseList(&msgs, messages, d_allocator_p);
     for (bsl::vector<bsl::string>::size_type i = 0; i < msgs.size(); ++i) {
         MessagesMap::iterator it = d_postedMessages.find(msgs[i]);
 
@@ -1459,6 +1458,54 @@ void QueueEngineTester::dropHandles()
     d_clientContexts.clear();
 }
 
+void QueueEngineTester::push(RelayQueueEngine*        downstream,
+                             const bslstl::StringRef& listApps,
+                             const bslstl::StringRef& listMessages,
+                             bool                     isOutOfOrder)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(d_queueEngine_mp &&
+                    "'createQueueEngine()' was not called");
+
+    bsl::vector<bsl::string> apps(d_allocator_p);
+    parseList(&apps, listApps, d_allocator_p);
+
+    bsl::vector<bsl::string> msgs(d_allocator_p);
+    parseList(&msgs, listMessages, d_allocator_p);
+
+    bmqp::Protocol::SubQueueInfosArray subscriptions(d_allocator_p);
+
+    for (bsl::vector<bsl::string>::size_type i = 0; i < apps.size(); ++i) {
+        SubIdsMap::iterator it = d_subIds.find(apps[i]);
+
+        BSLS_ASSERT_OPT(it != d_subIds.end() && "Unknown app");
+        // msgGUID was found
+        const unsigned int id = it->second;
+        subscriptions.push_back(bmqp::SubQueueInfo(id));
+    }
+
+    for (bsl::vector<bsl::string>::size_type i = 0; i < msgs.size(); ++i) {
+        MessagesMap::iterator it = d_postedMessages.find(msgs[i]);
+
+        BSLS_ASSERT_OPT(it != d_postedMessages.end() && "Unknown message");
+        // msgGUID was found
+
+        // Need to recreate 'subscriptions' every time cause 'push' changes it.
+        bmqp::Protocol::SubQueueInfosArray copy(subscriptions, d_allocator_p);
+
+        const bmqt::MessageGUID& msgGUID = it->second;
+        BSLS_ASSERT_OPT(!msgGUID.isUnset());
+
+        mqbi::StorageMessageAttributes msgAttributes;
+
+        downstream->push(&msgAttributes,
+                         msgGUID,
+                         bsl::shared_ptr<bdlbb::Blob>(),
+                         subscriptions,
+                         isOutOfOrder);
+    }
+}
+
 bool QueueEngineTester::getUpstreamParameters(
     bmqp_ctrlmsg::StreamParameters* value,
     const bslstl::StringRef&        appId) const
@@ -1477,17 +1524,13 @@ bool QueueEngineTester::getUpstreamParameters(
     return d_queueState_mp->getUpstreamParameters(value, upstreamSubQueueId);
 }
 
-// --------------------------
-// struct QueueEngineTestUtil
-// --------------------------
-
-bsl::string QueueEngineTestUtil::getMessages(bsl::string messages,
-                                             bsl::string indices)
+bsl::string QueueEngineTester::getMessages(bsl::string messages,
+                                           bsl::string indices) const
 {
-    bsl::string              result("");
-    bsl::vector<int>         idxs;
-    bsl::vector<bsl::string> msgs;
-    parseMessages(&msgs, messages);
+    bsl::string              result("", d_allocator_p);
+    bsl::vector<int>         idxs(d_allocator_p);
+    bsl::vector<bsl::string> msgs(d_allocator_p);
+    parseList(&msgs, messages, d_allocator_p);
 
     // Parse indices
     bdlb::Tokenizer tokenizer(indices, " ", ",");
