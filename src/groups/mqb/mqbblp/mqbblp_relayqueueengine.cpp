@@ -1823,6 +1823,14 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
     return true;
 }
 
+
+//              InOrder             OutOfOrder
+//
+//  Replica     use PushStream      use RedeliveryList (per App)
+//
+//  Proxy       use PushStream      use RedeliveryList (per App)
+//              storePush           storePush
+
 void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
                             const bmqt::MessageGUID&            msgGUID,
                             const bsl::shared_ptr<bdlbb::Blob>& appData,
@@ -1835,10 +1843,10 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
     if (!isOutOfOrder) {
         if (!d_pushStream.findOrAddLast(&itGuid, msgGUID)) {
             BMQ_LOGTHROTTLE_WARN
-                << "#QUEUE_OUT_OF_ORDER_PUSH  Remote queue: "
+                << "#QUEUE_OUT_OF_ORDER_PUSH Remote queue: "
                 << d_queueState_p->uri() << " (id: " << d_queueState_p->id()
                 << ") treating PUSH message for guid " << msgGUID
-                << " as out-of-order ";
+                << " as out-of-order.";
 
             isOutOfOrder = true;
         }
@@ -1889,8 +1897,26 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             ordinalPlusOne = 1 + app->ordinal();
             it->setId(ordinalPlusOne);
 
+            // Only Proxy needs to write to a storage.  Replica writes when it
+            // receives replication.  Proxies use 'InMemoryStorage' which sums
+            // up refCount if the guid is already there.
+            // Note that `isDuplicate` detects duplicates as existing
+            // {guid, app} pairs _before_ blindly adding to the existing
+            // refCount.
+            // 1.  We need 'StorageMessageAttributes::refCount' _before_
+            //      'storePush'.
+            // 2.  In the OutOfOrder case, we need 'storePush' _before_
+            //      'processAppRedelivery' which is per app
+            // 3.  This is different from the InOrder case, when we do not call
+            //      'processAppRedelivery' and use the PushStream to deliver to
+            //      multiple apps at once.
+            // Hence, the separate call to 'storePush' outside the loop for the
+            // InOrderInOrder case.
+
             attributes->setRefCount(1);
-            storePush(attributes, msgGUID, appData, subscriptions);
+            bmqp::Protocol::SubQueueInfosArray singleApp(d_allocator_p);
+            singleApp.push_back(*it);
+            storePushIfProxy(attributes, msgGUID, appData, singleApp);
 
             // Attempt to deliver
             processAppRedelivery(subQueueId, app);
@@ -1908,7 +1934,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
                         << "Remote queue: " << d_queueState_p->uri()
                         << " (id: " << d_queueState_p->id()
                         << ") discarding a PUSH message for guid " << msgGUID
-                        << ", with unknown App Id " << subscriptionId;
+                        << ", with unknown App Id " << subQueueId;
                     continue;  // CONTINUE
                 }
 
@@ -1948,7 +1974,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
     if (count) {
         // Pass correct ref count
         attributes->setRefCount(count);
-        storePush(attributes, msgGUID, appData, subscriptions);
+        storePushIfProxy(attributes, msgGUID, appData, subscriptions);
     }
 }
 
@@ -1984,11 +2010,11 @@ bool RelayQueueEngine::isDuplicate(const App_State*         app,
     return false;
 }
 
-void RelayQueueEngine::storePush(
+void RelayQueueEngine::storePushIfProxy(
     mqbi::StorageMessageAttributes*           attributes,
     const bmqt::MessageGUID&                  msgGUID,
     const bsl::shared_ptr<bdlbb::Blob>&       appData,
-    const bmqp::Protocol::SubQueueInfosArray& subscriptions)
+    const bmqp::Protocol::SubQueueInfosArray& subQueueIds)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         // Save the message along with the subIds in the storage.  Note that
@@ -2018,8 +2044,8 @@ void RelayQueueEngine::storePush(
 
             // Reusing previously cached ordinals.
             for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
-                     subscriptions.begin();
-                 cit != subscriptions.end();
+                     subQueueIds.begin();
+                 cit != subQueueIds.end();
                  ++cit) {
                 if (cit->id() > 0) {
                     dataStreamMessage->app(cit->id() - 1).setPushState();
