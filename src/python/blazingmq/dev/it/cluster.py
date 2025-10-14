@@ -994,6 +994,28 @@ class Cluster(contextlib.AbstractContextManager):
                 json.dump(data, f, indent=4)
                 f.truncate()
 
+    def update_node_quorum_in_config(self, name: str, quorum: int):
+        """
+        Update the quorum configuration for a specific node.
+        """
+
+        for broker_name, broker_config in self.config.nodes.items():
+            if broker_name != name:
+                continue
+
+            path = self.work_dir.joinpath(broker_config.config_dir, "clusters.json")
+
+            with open(
+                path,
+                "r+",
+                encoding="utf-8",
+            ) as f:
+                data = json.load(f)
+                data["myClusters"][0]["elector"]["quorum"] = quorum
+                f.seek(0)
+                json.dump(data, f, indent=4)
+                f.truncate()
+
     def disable_exit_code_check(self):
         """Disable exit code check for all nodes in the cluster."""
 

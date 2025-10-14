@@ -1876,7 +1876,7 @@ int ClusterOrchestrator::processCommand(
         else {
             result->makeElectorResult(electorResult);
 
-            d_stateManager_mp.setLsnQuorum(d_clusterConfig.elector().quorum());
+            d_stateManager_mp->setQuorum(d_clusterConfig.elector().quorum());
         }
         return rc;  // RETURN
     }

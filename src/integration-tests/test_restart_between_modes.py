@@ -88,6 +88,43 @@ def restart_cluster_as_fsm_mode(
         producer.wait_state_restored()
 
 
+def restart_cluster_to_fsm_single_node_with_quorum_one(
+    cluster: Cluster,
+    producer: Client,
+    consumers: List[Client],  # pylint: disable=unused-argument
+):
+    """
+    Restart the `cluster` from non-FSM to FSM mode.
+    """
+
+    leader = cluster.last_known_leader
+
+    cluster.stop_nodes(prevent_leader_bounce=True)
+
+    # Reconfigure the cluster from non-FSM to FSM mode
+    configure_cluster(cluster, is_fsm=True)
+
+    # Start only the former leader and set its quorum to 1
+    # so the cluster can start up in single-node mode.
+    # print(f"Updating quorum of {leader.name} to 1")
+    # cluster.update_node_quorum_in_config(leader.name, 1)
+
+    print(f"Starting only the former leader {leader.name}")
+    leader.start()
+    print(f"Waiting until {leader.name} is started")
+    leader.wait_until_started()
+    print(f"{leader.name} is started")
+    leader.set_quorum(1)
+    print(f"Set quorum of {leader.name} to 1")
+    cluster.wait_status(wait_leader=True, wait_ready=False)
+    print(f"{leader.name} is leader and ready")
+
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        producer.wait_state_restored()
+
+
 def restart_cluster_as_legacy_mode(
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
@@ -561,7 +598,13 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     assignUnassignExistingQueues(existing_queues, consumer, leader)
 
 
-@pytest.fixture(params=[restart_cluster_as_fsm_mode, restart_cluster_as_legacy_mode])
+@pytest.fixture(
+    params=[
+        restart_cluster_as_fsm_mode,
+        restart_cluster_as_legacy_mode,
+        restart_cluster_to_fsm_single_node_with_quorum_one,
+    ]
+)
 def switch_cluster_mode(request):
     """
     Fixture to switch cluster mode between non-FSM and FSM.
@@ -710,22 +753,8 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     optional_rollover,
 ):
     """
-    This test verifies that we can safely switch clusters between Legacy and
-    FSM modes, add/remove appIds and purge queues/appIds.
-
-    Cluster fixture starts as:
-    - Legacy mode
-    - FSM mode
-
-    switch_cluster_mode fixture switches to:
-    - Legacy mode
-    - FSM mode
-
-    Resulting in four combinations of switches:
-    1. Legacy -> FSM
-    2. FSM -> Legacy
-    3. Legacy -> Legacy
-    4. FSM -> FSM
+    This test verifies that we can safely switch clusters between non-FSM and
+    FSM modes and add/remove appIds.
 
     1. PROLOGUE:
         - both priority and fanout queues
