@@ -1050,6 +1050,16 @@ void ClusterQueueHelper::processOpenQueueRequest(
             sendOpenQueueRequest(context);
         }
     }
+    else {
+        // Note: this is an extra safeguard.
+        // We do not expect this to happen, consider removing in the future.
+        BMQ_LOGTHROTTLE_ERROR
+            << d_cluster_p->description()
+            << ": unable to send and rebuffering open queue request for "
+            << context->queueContext()->uri();
+
+        context->queueContext()->d_liveQInfo.d_pending.push_back(context);
+    }
 }
 
 void ClusterQueueHelper::sendOpenQueueRequest(

@@ -733,10 +733,10 @@ void Cluster::continueShutdownDispatched(
 
     // Also update primary status for those partitions in cluster state.
 
-    const bsl::vector<int>& primaryPartitions =
+    const bsl::vector<int>& partitions =
         d_clusterData.membership().selfNodeSession()->primaryPartitions();
-    for (size_t i = 0; i < primaryPartitions.size(); ++i) {
-        const int pid = primaryPartitions[i];
+    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+        const int pid = partitions[i];
         BSLS_ASSERT_SAFE(d_state.partition(pid).primaryNode() ==
                          d_clusterData.membership().selfNode());
         d_state.setPartitionPrimaryStatus(
