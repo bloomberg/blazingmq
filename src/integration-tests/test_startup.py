@@ -14,7 +14,7 @@
 # limitations under the License.
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster, order, start_cluster
+from blazingmq.dev.it.fixtures import Cluster, order, fsm_multi_cluster, start_cluster  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(4)
@@ -67,17 +67,17 @@ def test_early_assign(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
 
 @start_cluster(start=False)
-def test_replica_late_join(multi_node: Cluster, domain_urls: tc.DomainUrls):
+def test_replica_late_join(fsm_multi_cluster: Cluster, domain_urls: tc.DomainUrls):
     """
-    In a steady-state cluster where only one replica node is down, with live
-    messages flowing, the replica node rejoins and attemps to heal itself via
-    the primary.  The concern is that the primary could send live data to the
-    replica, and then re-send that data as recovery data chunks; we would like
-    to make sure our deduplication logic is working correctly to handle this
-    case.
+    In FSM mode, in a steady-state cluster where only one replica node is down,
+    with live messages flowing, the replica node rejoins and attemps to heal
+    itself via the primary.  The concern is that the primary could send live
+    data to the replica, and then re-send that data as recovery data chunks; we
+    would like to make sure our deduplication logic is working correctly to
+    handle this case.
     """
 
-    cluster = multi_node
+    cluster = fsm_multi_cluster
 
     # Starting all nodes except `east2`, which will join later
     east1 = cluster.start_node("east1")
