@@ -1779,6 +1779,11 @@ void ClusterStateManager::onNodeStopped()
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }
 
+void ClusterStateManager::setQuorum(int quorum)
+{
+    d_lsnQuorum = quorum;
+}
+
 // MANIPULATORS
 //   (virtual: mqbc::ElectorInfoObserver)
 void ClusterStateManager::onClusterLeader(

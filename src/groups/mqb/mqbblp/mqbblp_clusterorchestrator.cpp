@@ -457,11 +457,11 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
 
     BALL_LOG_INFO_BLOCK
     {
-        BALL_LOG_OUTPUT_STREAM
-            << d_clusterData_p->identity().description() << ": "
-            << node->nodeDescription() << " has gone down. "
-            << "Node was primary for " << ns->primaryPartitions().size()
-            << " partition(s): [";
+        BALL_LOG_OUTPUT_STREAM << d_clusterData_p->identity().description()
+                               << ": " << node->nodeDescription()
+                               << " has gone down. " << "Node was primary for "
+                               << ns->primaryPartitions().size()
+                               << " partition(s): [";
         for (unsigned int i = 0; i < ns->primaryPartitions().size(); ++i) {
             BALL_LOG_OUTPUT_STREAM << ns->primaryPartitions()[i];
             if (i < (ns->primaryPartitions().size() - 1)) {
@@ -1869,11 +1869,14 @@ int ClusterOrchestrator::processCommand(
         mqbcmd::ElectorResult electorResult;
         int                   rc = d_elector_mp->processCommand(&electorResult,
                                               command.elector());
+
         if (electorResult.isErrorValue()) {
             result->makeError(electorResult.error());
         }
         else {
             result->makeElectorResult(electorResult);
+
+            d_stateManager_mp.setLsnQuorum(d_clusterConfig.elector().quorum());
         }
         return rc;  // RETURN
     }

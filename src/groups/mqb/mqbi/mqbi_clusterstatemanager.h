@@ -314,6 +314,9 @@ class ClusterStateManager {
     ///         dispatcher thread.
     virtual void onNodeStopped() = 0;
 
+    /// Set the quorum to the specified value.
+    virtual void setQuorum(int quorum) = 0;
+
     // ACCESSORS
     /// Return the cluster state managed by this instacne.
     virtual const mqbc::ClusterState* clusterState() const = 0;

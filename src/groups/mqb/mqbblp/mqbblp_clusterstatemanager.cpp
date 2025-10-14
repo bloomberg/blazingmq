@@ -1267,6 +1267,11 @@ void ClusterStateManager::onNodeStopped()
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
+void ClusterStateManager::setQuorum(int quorum)
+{
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
+}
+
 // ACCESSORS
 //   (virtual: mqbi::ClusterStateManager)
 void ClusterStateManager::validateClusterStateLedger() const
