@@ -1,3 +1,6 @@
-mqbauthn_authenticationcontroller
+mqbauthn_anonfailauthenticator
 mqbauthn_anonpassauthenticator
-mqbauthn_anonpasspluginlibrary
+mqbauthn_basicauthenticator
+mqbauthn_pluginlibrary
+mqbauthn_authenticationcontroller
+

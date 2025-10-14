@@ -19,13 +19,13 @@
 
 /// @file mqbauthn_anonpasspluginlibrary.h
 ///
-/// @brief Provide library of anonymous pass built-in authenticator plugin for
-/// the broker.
+/// @brief Provide library of all built-in authenticator plugins for the
+/// broker.
 ///
-/// @bbref{mqbauthn::PluginLibrary} provides the definition for the
-/// 'PluginLibrary' class, which represents and publishes anonymous pass
-/// authenticator plugin for interfacing with the BMQ broker (i.e.,
-/// 'bmqbrkr.tsk').
+/// @bbref{mqbauthn::PluginLibrary} provides a collection of built-in
+/// authenticator plugins that are statically linked with the BMQ broker.
+/// This library manages the lifecycle and registration of authentication
+/// plugins used by the broker process.
 
 // MQB
 #include <mqbplug_plugininfo.h>

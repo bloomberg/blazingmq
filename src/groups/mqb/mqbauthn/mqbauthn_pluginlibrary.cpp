@@ -13,10 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mqbauthn_anonpasspluginlibrary.h>
+#include <mqbauthn_pluginlibrary.h>
 
 // MQB
+#include <mqbauthn_anonfailauthenticator.h>
 #include <mqbauthn_anonpassauthenticator.h>
+#include <mqbauthn_basicauthenticator.h>
 
 // BDE
 #include <bslma_default.h>
@@ -31,6 +33,7 @@ namespace mqbauthn {
 PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
 : d_plugins(allocator)
 {
+    // AnonPassAuthenticator
     mqbplug::PluginInfo& authnpassPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         mqbauthn::AnonPassAuthenticator::k_NAME);
@@ -38,6 +41,24 @@ PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
     authnpassPluginInfo.setFactory(
         bsl::allocate_shared<AnonPassAuthenticatorPluginFactory>(allocator));
     authnpassPluginInfo.setDescription("Anonymous Pass Authenticator");
+
+    // AnonFailAuthenticator
+    mqbplug::PluginInfo& authnfailPluginInfo = d_plugins.emplace_back(
+        mqbplug::PluginType::e_AUTHENTICATOR,
+        mqbauthn::AnonFailAuthenticator::k_NAME);
+
+    authnfailPluginInfo.setFactory(
+        bsl::allocate_shared<AnonFailAuthenticatorPluginFactory>(allocator));
+    authnfailPluginInfo.setDescription("Anonymous Fail Authenticator");
+
+    // BasicAuthenticator
+    mqbplug::PluginInfo& basicPluginInfo = d_plugins.emplace_back(
+        mqbplug::PluginType::e_AUTHENTICATOR,
+        mqbauthn::BasicAuthenticator::k_NAME);
+
+    basicPluginInfo.setFactory(
+        bsl::allocate_shared<BasicAuthenticatorPluginFactory>(allocator));
+    basicPluginInfo.setDescription("Basic Username/Password Authenticator");
 }
 
 PluginLibrary::~PluginLibrary()

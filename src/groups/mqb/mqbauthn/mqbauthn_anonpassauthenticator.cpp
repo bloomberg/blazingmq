@@ -64,16 +64,10 @@ AnonPassAuthenticationResult::lifetimeMs() const
 // class AnonPassAuthenticator
 // ---------------------------
 
-AnonPassAuthenticator::AnonPassAuthenticator(
-    const mqbcfg::AuthenticatorPluginConfig* config,
-    bslma::Allocator*                        allocator)
+AnonPassAuthenticator::AnonPassAuthenticator(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
-, d_authenticatorConfig_p(config)
 , d_isStarted(false)
 {
-    if (!config) {
-        // No config is provided for an anonymous authenticator.
-    }
 }
 
 AnonPassAuthenticator::~AnonPassAuthenticator()
@@ -148,12 +142,8 @@ AnonPassAuthenticatorPluginFactory::~AnonPassAuthenticatorPluginFactory()
 bslma::ManagedPtr<mqbplug::Authenticator>
 AnonPassAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
 {
-    const mqbcfg::AuthenticatorPluginConfig* config =
-        mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
-            AnonPassAuthenticator::k_NAME);
-
     bslma::ManagedPtr<mqbplug::Authenticator> result(
-        new (*allocator) AnonPassAuthenticator(config, allocator),
+        new (*allocator) AnonPassAuthenticator(allocator),
         allocator);
     return result;
 }
