@@ -1462,7 +1462,7 @@ void ClusterStateManager::markOrphan(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(primary);
 
-    for (int i = 0; i < static_cast<int>(partitions.size()); ++i) {
+    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
         const mqbc::ClusterStatePartitionInfo& pinfo = d_state_p->partition(
             partitions[i]);
         d_state_p->setPartitionPrimary(partitions[i],
