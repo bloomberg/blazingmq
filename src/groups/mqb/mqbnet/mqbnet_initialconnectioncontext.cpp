@@ -396,14 +396,14 @@ int InitialConnectionContext::handleDefaultAuthentication(
         return -1;  // RETURN
     }
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
-    bmqp_ctrlmsg::AuthenticateRequest&  authenticateRequest =
-        authenticationMessage.makeAuthenticateRequest();
+    bmqp_ctrlmsg::AuthenticationMessage  authenticationMessage;
+    bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
+        authenticationMessage.makeAuthenticationRequest();
 
     const mqbcfg::Credential& anonymousCredential =
         d_authenticator_p->anonymousCredential().value();
-    authenticateRequest.mechanism() = anonymousCredential.mechanism();
-    authenticateRequest.data()      = bsl::vector<char>(
+    authenticationRequest.mechanism() = anonymousCredential.mechanism();
+    authenticationRequest.data()      = bsl::vector<char>(
         anonymousCredential.identity().begin(),
         anonymousCredential.identity().end());
 

@@ -82,7 +82,7 @@ int Authenticator::onAuthenticationRequest(
     // executed by one of the *IO* threads
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticateRequestValue());
+    BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticationRequestValue());
     BSLS_ASSERT_SAFE(context->isIncoming());
 
     BALL_LOG_DEBUG << "Received authentication message from '"
@@ -211,12 +211,12 @@ void Authenticator::authenticate(
     const AuthenticationContextSp& authenticationContext =
         context->authenticationContext();
 
-    const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
-        authenticationContext->authenticationMessage().authenticateRequest();
+    const bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
+        authenticationContext->authenticationMessage().authenticationRequest();
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
-    bmqp_ctrlmsg::AuthenticateResponse& response =
-        authenticationResponse.makeAuthenticateResponse();
+    bmqp_ctrlmsg::AuthenticationMessage   authenticationResponse;
+    bmqp_ctrlmsg::AuthenticationResponse& response =
+        authenticationResponse.makeAuthenticationResponse();
     bmqp_ctrlmsg::Status& status = response.status();
 
     int                                  rc = rc_SUCCESS;
@@ -233,14 +233,14 @@ void Authenticator::authenticate(
                              bsl::monostate()));
 
     BALL_LOG_INFO << "Authenticating connection '" << channel->peerUri()
-                  << "' with mechanism '" << authenticateRequest.mechanism()
+                  << "' with mechanism '" << authenticationRequest.mechanism()
                   << "'";
 
     // Build the authentication response.
     bmqu::MemOutStream processErrStream;
     int                processRc = processAuthentication(processErrStream,
                                           &response,
-                                          authenticateRequest,
+                                          authenticationRequest,
                                           channel,
                                           context->authenticationContext());
 
@@ -308,12 +308,12 @@ void Authenticator::reauthenticate(
         rc_SEND_AUTHENTICATION_RESPONSE_FAILED = -3,
     };
 
-    const bmqp_ctrlmsg::AuthenticateRequest& authenticateRequest =
-        context->authenticationMessage().authenticateRequest();
+    const bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
+        context->authenticationMessage().authenticationRequest();
 
-    bmqp_ctrlmsg::AuthenticationMessage authenticationResponse;
-    bmqp_ctrlmsg::AuthenticateResponse& response =
-        authenticationResponse.makeAuthenticateResponse();
+    bmqp_ctrlmsg::AuthenticationMessage   authenticationResponse;
+    bmqp_ctrlmsg::AuthenticationResponse& response =
+        authenticationResponse.makeAuthenticationResponse();
 
     int         rc = rc_SUCCESS;
     bsl::string error;
@@ -326,13 +326,13 @@ void Authenticator::reauthenticate(
         channel));
 
     BALL_LOG_INFO << "Reauthenticating connection '" << channel->peerUri()
-                  << "' with mechanism '" << authenticateRequest.mechanism()
+                  << "' with mechanism '" << authenticationRequest.mechanism()
                   << "'";
 
     bmqu::MemOutStream processAuthnErrStream;
     const int          processRc = processAuthentication(processAuthnErrStream,
                                                 &response,
-                                                authenticateRequest,
+                                                authenticationRequest,
                                                 channel,
                                                 context);
 
@@ -372,11 +372,11 @@ void Authenticator::reauthenticate(
 }
 
 int Authenticator::processAuthentication(
-    bsl::ostream&                            errorDescription,
-    bmqp_ctrlmsg::AuthenticateResponse*      response,
-    const bmqp_ctrlmsg::AuthenticateRequest& request,
-    const bsl::shared_ptr<bmqio::Channel>&   channel,
-    const AuthenticationContextSp&           authenticationContext)
+    bsl::ostream&                              errorDescription,
+    bmqp_ctrlmsg::AuthenticationResponse*      response,
+    const bmqp_ctrlmsg::AuthenticationRequest& request,
+    const bsl::shared_ptr<bmqio::Channel>&     channel,
+    const AuthenticationContextSp&             authenticationContext)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -514,13 +514,13 @@ int Authenticator::handleAuthentication(
 
     switch (authenticationMsg.selectionId()) {
     case bmqp_ctrlmsg::AuthenticationMessage::
-        SELECTION_ID_AUTHENTICATE_REQUEST: {
+        SELECTION_ID_AUTHENTICATION_REQUEST: {
         rc = onAuthenticationRequest(errorDescription,
                                      authenticationMsg,
                                      context);
     } break;  // BREAK
     case bmqp_ctrlmsg::AuthenticationMessage::
-        SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        SELECTION_ID_AUTHENTICATION_RESPONSE: {
         rc = onAuthenticationResponse(errorDescription,
                                       authenticationMsg,
                                       context);

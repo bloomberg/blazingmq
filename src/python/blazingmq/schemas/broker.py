@@ -155,5 +155,5 @@ ADMIN_COMMAND_SCHEMA: SchemaDescription = {
 }
 
 AUTHENTICATE_REQUEST_SCHEMA: SchemaDescription = {
-    "authenticateRequest": {"mechanism": "", "data": ""}
+    "authenticationRequest": {"mechanism": "", "data": ""}
 }

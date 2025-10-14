@@ -68,7 +68,7 @@ def test_authenticate_pass_basic(single_node: Cluster) -> None:
     client.open_channel(*single_node.admin_endpoint)
 
     auth_resp = client.send_authentication_request("Basic", "username:password")
-    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
@@ -91,7 +91,7 @@ def test_authenticate_fail_basic(single_node: Cluster) -> None:
     client.open_channel(*single_node.admin_endpoint)
 
     auth_resp = client.send_authentication_request("Basic", "username:password")
-    assert auth_resp["authenticateResponse"]["status"]["code"] != 0
+    assert auth_resp["authenticationResponse"]["status"]["code"] != 0
 
     client.stop()
 
@@ -115,7 +115,7 @@ def test_authenticate_pass_concurrent(single_node: Cluster) -> None:
         client = RawClient()
         client.open_channel(*single_node.admin_endpoint)
         auth_resp = client.send_authentication_request("Basic", f"user{idx}:password")
-        results[idx] = auth_resp["authenticateResponse"]["status"]["code"]
+        results[idx] = auth_resp["authenticationResponse"]["status"]["code"]
         client.stop()
 
     for i in range(num_threads):
@@ -149,7 +149,7 @@ def test_reauthenticate_basic_pass(single_node: Cluster) -> None:
     # Pass: Sending authentication request with Basic mechanism
     # and valid credentials
     auth_resp = client.send_authentication_request("Basic", "user1:password1")
-    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
     # Pass: Sending negotiation request after authentication
     nego_resp = client.send_negotiation_request()
@@ -157,7 +157,7 @@ def test_reauthenticate_basic_pass(single_node: Cluster) -> None:
 
     # Pass: Sending reauthentication request with valid credentials
     auth_resp = client.send_authentication_request("Basic", "user1:password1")
-    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
     client.stop()
 
@@ -182,7 +182,7 @@ def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
     # Pass: Sending authentication request with Basic mechanism
     # and valid credentials
     auth_resp = client.send_authentication_request("Basic", "user1:password1")
-    assert auth_resp["authenticateResponse"]["status"]["code"] == 0
+    assert auth_resp["authenticationResponse"]["status"]["code"] == 0
 
     # Pass: Sending negotiation request after authentication
     nego_resp = client.send_negotiation_request()
@@ -190,7 +190,7 @@ def test_reauthenticate_basic_fail(single_node: Cluster) -> None:
 
     # Fail: Sending reauthentication request with invalid credentials
     auth_resp = client.send_authentication_request("Basic", "user1:password2")
-    assert auth_resp["authenticateResponse"]["status"]["code"] != 0
+    assert auth_resp["authenticationResponse"]["status"]["code"] != 0
 
     # Fail: Sending negotiation request after failed reauthentication
     with pytest.raises(ConnectionError):

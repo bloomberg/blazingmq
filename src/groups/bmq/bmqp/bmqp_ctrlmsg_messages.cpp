@@ -404,15 +404,15 @@ AppIdInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
-// -------------------------
-// class AuthenticateRequest
-// -------------------------
+// ---------------------------
+// class AuthenticationRequest
+// ---------------------------
 
 // CONSTANTS
 
-const char AuthenticateRequest::CLASS_NAME[] = "AuthenticateRequest";
+const char AuthenticationRequest::CLASS_NAME[] = "AuthenticationRequest";
 
-const bdlat_AttributeInfo AuthenticateRequest::ATTRIBUTE_INFO_ARRAY[] = {
+const bdlat_AttributeInfo AuthenticationRequest::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_MECHANISM,
      "mechanism",
      sizeof("mechanism") - 1,
@@ -427,11 +427,11 @@ const bdlat_AttributeInfo AuthenticateRequest::ATTRIBUTE_INFO_ARRAY[] = {
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-AuthenticateRequest::lookupAttributeInfo(const char* name, int nameLength)
+AuthenticationRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
     for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
-            AuthenticateRequest::ATTRIBUTE_INFO_ARRAY[i];
+            AuthenticationRequest::ATTRIBUTE_INFO_ARRAY[i];
 
         if (nameLength == attributeInfo.d_nameLength &&
             0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
@@ -442,7 +442,7 @@ AuthenticateRequest::lookupAttributeInfo(const char* name, int nameLength)
     return 0;
 }
 
-const bdlat_AttributeInfo* AuthenticateRequest::lookupAttributeInfo(int id)
+const bdlat_AttributeInfo* AuthenticationRequest::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_MECHANISM:
@@ -454,14 +454,15 @@ const bdlat_AttributeInfo* AuthenticateRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-AuthenticateRequest::AuthenticateRequest(bslma::Allocator* basicAllocator)
+AuthenticationRequest::AuthenticationRequest(bslma::Allocator* basicAllocator)
 : d_mechanism(basicAllocator)
 , d_data(basicAllocator)
 {
 }
 
-AuthenticateRequest::AuthenticateRequest(const AuthenticateRequest& original,
-                                         bslma::Allocator* basicAllocator)
+AuthenticationRequest::AuthenticationRequest(
+    const AuthenticationRequest& original,
+    bslma::Allocator*            basicAllocator)
 : d_mechanism(original.d_mechanism, basicAllocator)
 , d_data(original.d_data, basicAllocator)
 {
@@ -469,28 +470,28 @@ AuthenticateRequest::AuthenticateRequest(const AuthenticateRequest& original,
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticateRequest::AuthenticateRequest(AuthenticateRequest&& original)
+AuthenticationRequest::AuthenticationRequest(AuthenticationRequest&& original)
     noexcept : d_mechanism(bsl::move(original.d_mechanism)),
                d_data(bsl::move(original.d_data))
 {
 }
 
-AuthenticateRequest::AuthenticateRequest(AuthenticateRequest&& original,
-                                         bslma::Allocator*     basicAllocator)
+AuthenticationRequest::AuthenticationRequest(AuthenticationRequest&& original,
+                                             bslma::Allocator* basicAllocator)
 : d_mechanism(bsl::move(original.d_mechanism), basicAllocator)
 , d_data(bsl::move(original.d_data), basicAllocator)
 {
 }
 #endif
 
-AuthenticateRequest::~AuthenticateRequest()
+AuthenticationRequest::~AuthenticationRequest()
 {
 }
 
 // MANIPULATORS
 
-AuthenticateRequest&
-AuthenticateRequest::operator=(const AuthenticateRequest& rhs)
+AuthenticationRequest&
+AuthenticationRequest::operator=(const AuthenticationRequest& rhs)
 {
     if (this != &rhs) {
         d_mechanism = rhs.d_mechanism;
@@ -502,7 +503,8 @@ AuthenticateRequest::operator=(const AuthenticateRequest& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticateRequest& AuthenticateRequest::operator=(AuthenticateRequest&& rhs)
+AuthenticationRequest&
+AuthenticationRequest::operator=(AuthenticationRequest&& rhs)
 {
     if (this != &rhs) {
         d_mechanism = bsl::move(rhs.d_mechanism);
@@ -513,7 +515,7 @@ AuthenticateRequest& AuthenticateRequest::operator=(AuthenticateRequest&& rhs)
 }
 #endif
 
-void AuthenticateRequest::reset()
+void AuthenticationRequest::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_mechanism);
     bdlat_ValueTypeFunctions::reset(&d_data);
@@ -521,9 +523,9 @@ void AuthenticateRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& AuthenticateRequest::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream& AuthenticationRequest::print(bsl::ostream& stream,
+                                           int           level,
+                                           int           spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
@@ -7428,15 +7430,15 @@ bsl::ostream& SyncPointOffsetPair::print(bsl::ostream& stream,
     return stream;
 }
 
-// --------------------------
-// class AuthenticateResponse
-// --------------------------
+// ----------------------------
+// class AuthenticationResponse
+// ----------------------------
 
 // CONSTANTS
 
-const char AuthenticateResponse::CLASS_NAME[] = "AuthenticateResponse";
+const char AuthenticationResponse::CLASS_NAME[] = "AuthenticationResponse";
 
-const bdlat_AttributeInfo AuthenticateResponse::ATTRIBUTE_INFO_ARRAY[] = {
+const bdlat_AttributeInfo AuthenticationResponse::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_STATUS,
      "status",
      sizeof("status") - 1,
@@ -7451,11 +7453,11 @@ const bdlat_AttributeInfo AuthenticateResponse::ATTRIBUTE_INFO_ARRAY[] = {
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-AuthenticateResponse::lookupAttributeInfo(const char* name, int nameLength)
+AuthenticationResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
     for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
-            AuthenticateResponse::ATTRIBUTE_INFO_ARRAY[i];
+            AuthenticationResponse::ATTRIBUTE_INFO_ARRAY[i];
 
         if (nameLength == attributeInfo.d_nameLength &&
             0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
@@ -7466,7 +7468,7 @@ AuthenticateResponse::lookupAttributeInfo(const char* name, int nameLength)
     return 0;
 }
 
-const bdlat_AttributeInfo* AuthenticateResponse::lookupAttributeInfo(int id)
+const bdlat_AttributeInfo* AuthenticationResponse::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_STATUS:
@@ -7479,15 +7481,16 @@ const bdlat_AttributeInfo* AuthenticateResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-AuthenticateResponse::AuthenticateResponse(bslma::Allocator* basicAllocator)
+AuthenticationResponse::AuthenticationResponse(
+    bslma::Allocator* basicAllocator)
 : d_lifetimeMs()
 , d_status(basicAllocator)
 {
 }
 
-AuthenticateResponse::AuthenticateResponse(
-    const AuthenticateResponse& original,
-    bslma::Allocator*           basicAllocator)
+AuthenticationResponse::AuthenticationResponse(
+    const AuthenticationResponse& original,
+    bslma::Allocator*             basicAllocator)
 : d_lifetimeMs(original.d_lifetimeMs)
 , d_status(original.d_status, basicAllocator)
 {
@@ -7495,28 +7498,30 @@ AuthenticateResponse::AuthenticateResponse(
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticateResponse::AuthenticateResponse(AuthenticateResponse&& original)
-    noexcept : d_lifetimeMs(bsl::move(original.d_lifetimeMs)),
-               d_status(bsl::move(original.d_status))
+AuthenticationResponse::AuthenticationResponse(
+    AuthenticationResponse&& original) noexcept
+: d_lifetimeMs(bsl::move(original.d_lifetimeMs)),
+  d_status(bsl::move(original.d_status))
 {
 }
 
-AuthenticateResponse::AuthenticateResponse(AuthenticateResponse&& original,
-                                           bslma::Allocator* basicAllocator)
+AuthenticationResponse::AuthenticationResponse(
+    AuthenticationResponse&& original,
+    bslma::Allocator*        basicAllocator)
 : d_lifetimeMs(bsl::move(original.d_lifetimeMs))
 , d_status(bsl::move(original.d_status), basicAllocator)
 {
 }
 #endif
 
-AuthenticateResponse::~AuthenticateResponse()
+AuthenticationResponse::~AuthenticationResponse()
 {
 }
 
 // MANIPULATORS
 
-AuthenticateResponse&
-AuthenticateResponse::operator=(const AuthenticateResponse& rhs)
+AuthenticationResponse&
+AuthenticationResponse::operator=(const AuthenticationResponse& rhs)
 {
     if (this != &rhs) {
         d_status     = rhs.d_status;
@@ -7528,8 +7533,8 @@ AuthenticateResponse::operator=(const AuthenticateResponse& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticateResponse&
-AuthenticateResponse::operator=(AuthenticateResponse&& rhs)
+AuthenticationResponse&
+AuthenticationResponse::operator=(AuthenticationResponse&& rhs)
 {
     if (this != &rhs) {
         d_status     = bsl::move(rhs.d_status);
@@ -7540,7 +7545,7 @@ AuthenticateResponse::operator=(AuthenticateResponse&& rhs)
 }
 #endif
 
-void AuthenticateResponse::reset()
+void AuthenticationResponse::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_status);
     bdlat_ValueTypeFunctions::reset(&d_lifetimeMs);
@@ -7548,9 +7553,9 @@ void AuthenticateResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& AuthenticateResponse::print(bsl::ostream& stream,
-                                          int           level,
-                                          int           spacesPerLevel) const
+bsl::ostream& AuthenticationResponse::print(bsl::ostream& stream,
+                                            int           level,
+                                            int           spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
@@ -10176,14 +10181,14 @@ Subscription::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char AuthenticationMessage::CLASS_NAME[] = "AuthenticationMessage";
 
 const bdlat_SelectionInfo AuthenticationMessage::SELECTION_INFO_ARRAY[] = {
-    {SELECTION_ID_AUTHENTICATE_REQUEST,
-     "authenticateRequest",
-     sizeof("authenticateRequest") - 1,
+    {SELECTION_ID_AUTHENTICATION_REQUEST,
+     "authenticationRequest",
+     sizeof("authenticationRequest") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_AUTHENTICATE_RESPONSE,
-     "authenticateResponse",
-     sizeof("authenticateResponse") - 1,
+    {SELECTION_ID_AUTHENTICATION_RESPONSE,
+     "authenticationResponse",
+     sizeof("authenticationResponse") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -10208,10 +10213,10 @@ AuthenticationMessage::lookupSelectionInfo(const char* name, int nameLength)
 const bdlat_SelectionInfo* AuthenticationMessage::lookupSelectionInfo(int id)
 {
     switch (id) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_REQUEST];
-    case SELECTION_ID_AUTHENTICATE_RESPONSE:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_RESPONSE];
+    case SELECTION_ID_AUTHENTICATION_REQUEST:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_REQUEST];
+    case SELECTION_ID_AUTHENTICATION_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_RESPONSE];
     default: return 0;
     }
 }
@@ -10225,15 +10230,15 @@ AuthenticationMessage::AuthenticationMessage(
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     switch (d_selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST: {
-        new (d_authenticateRequest.buffer())
-            AuthenticateRequest(original.d_authenticateRequest.object(),
-                                d_allocator_p);
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(original.d_authenticationRequest.object(),
+                                  d_allocator_p);
     } break;
-    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        new (d_authenticateResponse.buffer())
-            AuthenticateResponse(original.d_authenticateResponse.object(),
-                                 d_allocator_p);
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(original.d_authenticationResponse.object(),
+                                   d_allocator_p);
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -10246,14 +10251,14 @@ AuthenticationMessage::AuthenticationMessage(AuthenticationMessage&& original)
                d_allocator_p(original.d_allocator_p)
 {
     switch (d_selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST: {
-        new (d_authenticateRequest.buffer()) AuthenticateRequest(
-            bsl::move(original.d_authenticateRequest.object()),
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        new (d_authenticationRequest.buffer()) AuthenticationRequest(
+            bsl::move(original.d_authenticationRequest.object()),
             d_allocator_p);
     } break;
-    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        new (d_authenticateResponse.buffer()) AuthenticateResponse(
-            bsl::move(original.d_authenticateResponse.object()),
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        new (d_authenticationResponse.buffer()) AuthenticationResponse(
+            bsl::move(original.d_authenticationResponse.object()),
             d_allocator_p);
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
@@ -10266,14 +10271,14 @@ AuthenticationMessage::AuthenticationMessage(AuthenticationMessage&& original,
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     switch (d_selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST: {
-        new (d_authenticateRequest.buffer()) AuthenticateRequest(
-            bsl::move(original.d_authenticateRequest.object()),
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        new (d_authenticationRequest.buffer()) AuthenticationRequest(
+            bsl::move(original.d_authenticationRequest.object()),
             d_allocator_p);
     } break;
-    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        new (d_authenticateResponse.buffer()) AuthenticateResponse(
-            bsl::move(original.d_authenticateResponse.object()),
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        new (d_authenticationResponse.buffer()) AuthenticationResponse(
+            bsl::move(original.d_authenticationResponse.object()),
             d_allocator_p);
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
@@ -10288,11 +10293,11 @@ AuthenticationMessage::operator=(const AuthenticationMessage& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
-        case SELECTION_ID_AUTHENTICATE_REQUEST: {
-            makeAuthenticateRequest(rhs.d_authenticateRequest.object());
+        case SELECTION_ID_AUTHENTICATION_REQUEST: {
+            makeAuthenticationRequest(rhs.d_authenticationRequest.object());
         } break;
-        case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-            makeAuthenticateResponse(rhs.d_authenticateResponse.object());
+        case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+            makeAuthenticationResponse(rhs.d_authenticationResponse.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -10310,13 +10315,13 @@ AuthenticationMessage::operator=(AuthenticationMessage&& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
-        case SELECTION_ID_AUTHENTICATE_REQUEST: {
-            makeAuthenticateRequest(
-                bsl::move(rhs.d_authenticateRequest.object()));
+        case SELECTION_ID_AUTHENTICATION_REQUEST: {
+            makeAuthenticationRequest(
+                bsl::move(rhs.d_authenticationRequest.object()));
         } break;
-        case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-            makeAuthenticateResponse(
-                bsl::move(rhs.d_authenticateResponse.object()));
+        case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+            makeAuthenticationResponse(
+                bsl::move(rhs.d_authenticationResponse.object()));
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -10331,11 +10336,11 @@ AuthenticationMessage::operator=(AuthenticationMessage&& rhs)
 void AuthenticationMessage::reset()
 {
     switch (d_selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST: {
-        d_authenticateRequest.object().~AuthenticateRequest();
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        d_authenticationRequest.object().~AuthenticationRequest();
     } break;
-    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        d_authenticateResponse.object().~AuthenticateResponse();
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        d_authenticationResponse.object().~AuthenticationResponse();
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -10346,11 +10351,11 @@ void AuthenticationMessage::reset()
 int AuthenticationMessage::makeSelection(int selectionId)
 {
     switch (selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST: {
-        makeAuthenticateRequest();
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        makeAuthenticationRequest();
     } break;
-    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        makeAuthenticateResponse();
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        makeAuthenticationResponse();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -10371,103 +10376,103 @@ int AuthenticationMessage::makeSelection(const char* name, int nameLength)
     return makeSelection(selectionInfo->d_id);
 }
 
-AuthenticateRequest& AuthenticationMessage::makeAuthenticateRequest()
+AuthenticationRequest& AuthenticationMessage::makeAuthenticationRequest()
 {
-    if (SELECTION_ID_AUTHENTICATE_REQUEST == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_authenticateRequest.object());
+    if (SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_authenticationRequest.object());
     }
     else {
         reset();
-        new (d_authenticateRequest.buffer())
-            AuthenticateRequest(d_allocator_p);
-        d_selectionId = SELECTION_ID_AUTHENTICATE_REQUEST;
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_REQUEST;
     }
 
-    return d_authenticateRequest.object();
+    return d_authenticationRequest.object();
 }
 
-AuthenticateRequest& AuthenticationMessage::makeAuthenticateRequest(
-    const AuthenticateRequest& value)
+AuthenticationRequest& AuthenticationMessage::makeAuthenticationRequest(
+    const AuthenticationRequest& value)
 {
-    if (SELECTION_ID_AUTHENTICATE_REQUEST == d_selectionId) {
-        d_authenticateRequest.object() = value;
+    if (SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId) {
+        d_authenticationRequest.object() = value;
     }
     else {
         reset();
-        new (d_authenticateRequest.buffer())
-            AuthenticateRequest(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_AUTHENTICATE_REQUEST;
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_REQUEST;
     }
 
-    return d_authenticateRequest.object();
+    return d_authenticationRequest.object();
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticateRequest&
-AuthenticationMessage::makeAuthenticateRequest(AuthenticateRequest&& value)
+AuthenticationRequest&
+AuthenticationMessage::makeAuthenticationRequest(AuthenticationRequest&& value)
 {
-    if (SELECTION_ID_AUTHENTICATE_REQUEST == d_selectionId) {
-        d_authenticateRequest.object() = bsl::move(value);
+    if (SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId) {
+        d_authenticationRequest.object() = bsl::move(value);
     }
     else {
         reset();
-        new (d_authenticateRequest.buffer())
-            AuthenticateRequest(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_AUTHENTICATE_REQUEST;
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_REQUEST;
     }
 
-    return d_authenticateRequest.object();
+    return d_authenticationRequest.object();
 }
 #endif
 
-AuthenticateResponse& AuthenticationMessage::makeAuthenticateResponse()
+AuthenticationResponse& AuthenticationMessage::makeAuthenticationResponse()
 {
-    if (SELECTION_ID_AUTHENTICATE_RESPONSE == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_authenticateResponse.object());
+    if (SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_authenticationResponse.object());
     }
     else {
         reset();
-        new (d_authenticateResponse.buffer())
-            AuthenticateResponse(d_allocator_p);
-        d_selectionId = SELECTION_ID_AUTHENTICATE_RESPONSE;
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_RESPONSE;
     }
 
-    return d_authenticateResponse.object();
+    return d_authenticationResponse.object();
 }
 
-AuthenticateResponse& AuthenticationMessage::makeAuthenticateResponse(
-    const AuthenticateResponse& value)
+AuthenticationResponse& AuthenticationMessage::makeAuthenticationResponse(
+    const AuthenticationResponse& value)
 {
-    if (SELECTION_ID_AUTHENTICATE_RESPONSE == d_selectionId) {
-        d_authenticateResponse.object() = value;
+    if (SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId) {
+        d_authenticationResponse.object() = value;
     }
     else {
         reset();
-        new (d_authenticateResponse.buffer())
-            AuthenticateResponse(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_AUTHENTICATE_RESPONSE;
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_RESPONSE;
     }
 
-    return d_authenticateResponse.object();
+    return d_authenticationResponse.object();
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticateResponse&
-AuthenticationMessage::makeAuthenticateResponse(AuthenticateResponse&& value)
+AuthenticationResponse& AuthenticationMessage::makeAuthenticationResponse(
+    AuthenticationResponse&& value)
 {
-    if (SELECTION_ID_AUTHENTICATE_RESPONSE == d_selectionId) {
-        d_authenticateResponse.object() = bsl::move(value);
+    if (SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId) {
+        d_authenticationResponse.object() = bsl::move(value);
     }
     else {
         reset();
-        new (d_authenticateResponse.buffer())
-            AuthenticateResponse(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_AUTHENTICATE_RESPONSE;
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_RESPONSE;
     }
 
-    return d_authenticateResponse.object();
+    return d_authenticationResponse.object();
 }
 #endif
 
@@ -10480,13 +10485,13 @@ bsl::ostream& AuthenticationMessage::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     switch (d_selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST: {
-        printer.printAttribute("authenticateRequest",
-                               d_authenticateRequest.object());
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        printer.printAttribute("authenticationRequest",
+                               d_authenticationRequest.object());
     } break;
-    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
-        printer.printAttribute("authenticateResponse",
-                               d_authenticateResponse.object());
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        printer.printAttribute("authenticationResponse",
+                               d_authenticationResponse.object());
     } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
@@ -10497,11 +10502,11 @@ bsl::ostream& AuthenticationMessage::print(bsl::ostream& stream,
 const char* AuthenticationMessage::selectionName() const
 {
     switch (d_selectionId) {
-    case SELECTION_ID_AUTHENTICATE_REQUEST:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_REQUEST]
+    case SELECTION_ID_AUTHENTICATION_REQUEST:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_REQUEST]
             .name();
-    case SELECTION_ID_AUTHENTICATE_RESPONSE:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_RESPONSE]
+    case SELECTION_ID_AUTHENTICATION_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_RESPONSE]
             .name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);

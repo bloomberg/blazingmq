@@ -194,11 +194,11 @@ class Authenticator : public mqbnet::Authenticator {
     /// code and populate `errorDescription` with a description of the error
     /// otherwise.
     int processAuthentication(
-        bsl::ostream&                            errorDescription,
-        bmqp_ctrlmsg::AuthenticateResponse*      response,
-        const bmqp_ctrlmsg::AuthenticateRequest& request,
-        const bsl::shared_ptr<bmqio::Channel>&   channel,
-        const AuthenticationContextSp&           authenticationContext);
+        bsl::ostream&                              errorDescription,
+        bmqp_ctrlmsg::AuthenticationResponse*      response,
+        const bmqp_ctrlmsg::AuthenticationRequest& request,
+        const bsl::shared_ptr<bmqio::Channel>&     channel,
+        const AuthenticationContextSp&             authenticationContext);
 
   public:
     // TRAITS

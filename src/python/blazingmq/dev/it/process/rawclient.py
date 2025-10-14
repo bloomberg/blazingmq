@@ -245,8 +245,8 @@ class RawClient:
         else:
             raw_bytes = auth_data  # already bytes
 
-        auth_request["authenticateRequest"]["mechanism"] = auth_mechanism
-        auth_request["authenticateRequest"]["data"] = base64.b64encode(
+        auth_request["authenticationRequest"]["mechanism"] = auth_mechanism
+        auth_request["authenticationRequest"]["data"] = base64.b64encode(
             raw_bytes
         ).decode("ascii")
 
