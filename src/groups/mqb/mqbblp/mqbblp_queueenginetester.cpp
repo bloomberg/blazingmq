@@ -143,13 +143,14 @@ static void dummyHandleConfiguredCallback(
     *rc = status.code();
 }
 
-/// Populate the specified `messages` with messages parsed from the
-/// specified `messagesStr`.  The format of `messagesStr` must be:
-///   `<msg1>,<msg2>,...,<msgN>`
+/// Populate the specified `out` with tokens parsed from the specified `in`.
+/// The format of `in` must be: `<item1>,<item2>,...,<itemN>`.  Use the
+/// specified `allocator` when creating new string out of a token.
 ///
-/// The behavior is undefined unless `messages` is formatted as above.  Note
-/// that `messages` will be cleared.
-static void parseList(bsl::vector<bsl::string>* out, bsl::string in)
+/// The behavior is undefined unless `in` is formatted as above.
+static void parseList(bsl::vector<bsl::string>* out,
+                      const bsl::string         in,
+                      bslma::Allocator*         allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(out);
@@ -161,7 +162,7 @@ static void parseList(bsl::vector<bsl::string>* out, bsl::string in)
     BSLS_ASSERT_OPT(tokenizer.isValid() && "Format error in 'messages'");
 
     while (tokenizer.isValid()) {
-        out->push_back(tokenizer.token());
+        out->push_back(bsl::string(tokenizer.token(), allocator));
         ++tokenizer;
     }
 }
@@ -934,7 +935,7 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
                     "'createQueueEngine()' was not called");
 
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseList(&msgs, messages);
+    parseList(&msgs, messages, d_allocator_p);
 
     for (unsigned int i = 0; i < msgs.size(); ++i) {
         // Each message must have its own 'subscriptions'.
@@ -1070,7 +1071,7 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
 
     mqbmock::QueueHandle*    mockHandle = client(clientKey);
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseList(&msgs, messages);
+    parseList(&msgs, messages, d_allocator_p);
     for (bsl::vector<bsl::string>::size_type i = 0; i < msgs.size(); ++i) {
         MessagesMap::iterator it = d_postedMessages.find(msgs[i]);
 
@@ -1127,7 +1128,7 @@ void QueueEngineTester::reject(const bsl::string&       clientText,
 
     mqbmock::QueueHandle*    mockHandle = client(clientKey);
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseList(&msgs, messages);
+    parseList(&msgs, messages, d_allocator_p);
     for (bsl::vector<bsl::string>::size_type i = 0; i < msgs.size(); ++i) {
         MessagesMap::iterator it = d_postedMessages.find(msgs[i]);
 
@@ -1467,10 +1468,10 @@ void QueueEngineTester::push(RelayQueueEngine*        downstream,
                     "'createQueueEngine()' was not called");
 
     bsl::vector<bsl::string> apps(d_allocator_p);
-    parseList(&apps, listApps);
+    parseList(&apps, listApps, d_allocator_p);
 
     bsl::vector<bsl::string> msgs(d_allocator_p);
-    parseList(&msgs, listMessages);
+    parseList(&msgs, listMessages, d_allocator_p);
 
     bmqp::Protocol::SubQueueInfosArray subscriptions(d_allocator_p);
 
@@ -1523,17 +1524,13 @@ bool QueueEngineTester::getUpstreamParameters(
     return d_queueState_mp->getUpstreamParameters(value, upstreamSubQueueId);
 }
 
-// --------------------------
-// struct QueueEngineTestUtil
-// --------------------------
-
-bsl::string QueueEngineTestUtil::getMessages(bsl::string messages,
-                                             bsl::string indices)
+bsl::string QueueEngineTester::getMessages(bsl::string messages,
+                                           bsl::string indices) const
 {
-    bsl::string              result("");
-    bsl::vector<int>         idxs;
-    bsl::vector<bsl::string> msgs;
-    parseList(&msgs, messages);
+    bsl::string              result("", d_allocator_p);
+    bsl::vector<int>         idxs(d_allocator_p);
+    bsl::vector<bsl::string> msgs(d_allocator_p);
+    parseList(&msgs, messages, d_allocator_p);
 
     // Parse indices
     bdlb::Tokenizer tokenizer(indices, " ", ",");

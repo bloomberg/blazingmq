@@ -347,8 +347,8 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     App_State* findApp(unsigned int upstreamSubQueueId) const;
 
-    bool checkForDuplicate(const App_State*         app,
-                           const bmqt::MessageGUID& msgGUID);
+    bool isDuplicate(const App_State*         app,
+                     const bmqt::MessageGUID& msgGUID) const;
 
     void storePush(mqbi::StorageMessageAttributes*           attributes,
                    const bmqt::MessageGUID&                  msgGUID,

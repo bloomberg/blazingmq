@@ -1834,11 +1834,11 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
 
     if (!isOutOfOrder) {
         if (!d_pushStream.findOrAddLast(&itGuid, msgGUID)) {
-            BMQ_LOGTHROTTLE_WARN << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
-                                 << "Remote queue: " << d_queueState_p->uri()
-                                 << " (id: " << d_queueState_p->id()
-                                 << ") treating PUSH message for guid "
-                                 << msgGUID << " as out-of-order ";
+            BMQ_LOGTHROTTLE_WARN
+                << "#QUEUE_OUT_OF_ORDER_PUSH  Remote queue: "
+                << d_queueState_p->uri() << " (id: " << d_queueState_p->id()
+                << ") treating PUSH message for guid " << msgGUID
+                << " as out-of-order ";
 
             isOutOfOrder = true;
         }
@@ -1879,7 +1879,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
                 continue;  // CONTINUE
             }
 
-            if (!checkForDuplicate(app, msgGUID)) {
+            if (isDuplicate(app, msgGUID)) {
                 continue;  // CONTINUE
             }
 
@@ -1887,7 +1887,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
 
             // Reusing 'subscriptions' to 'setPushState()' below.
             ordinalPlusOne = 1 + app->ordinal();
-            subscriptions.begin()->setId(ordinalPlusOne);
+            it->setId(ordinalPlusOne);
 
             attributes->setRefCount(1);
             storePush(attributes, msgGUID, appData, subscriptions);
@@ -1930,21 +1930,17 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
                     continue;  // CONTINUE
                 }
 
-                if (!checkForDuplicate(app.d_app.get(), msgGUID)) {
+                if (isDuplicate(app.d_app.get(), msgGUID)) {
                     continue;  // CONTINUE
                 }
             }
 
-            PushStream::Element* element = d_pushStream.create(it->rdaInfo(),
-                                                               subscriptionId,
-                                                               itGuid,
-                                                               itApp);
+            d_pushStream.add(it->rdaInfo(), subscriptionId, itGuid, itApp);
 
             // Reusing 'subscriptions' to 'setPushState()' below.
             ordinalPlusOne = 1 + itApp->second.d_app->ordinal();
             it->setId(ordinalPlusOne);
 
-            d_pushStream.add(element);
             ++count;
         }
     }
@@ -1956,8 +1952,8 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
     }
 }
 
-bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
-                                         const bmqt::MessageGUID& msgGUID)
+bool RelayQueueEngine::isDuplicate(const App_State*         app,
+                                   const bmqt::MessageGUID& msgGUID) const
 {
     // Check the storage if this is duplicate PUSH
     // Currently, only Proxies can do this because they clear their storage
@@ -1981,11 +1977,11 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
                     << " (id: " << d_queueState_p->id() << ", App '"
                     << app->appId()
                     << "') discarding a duplicate PUSH for guid " << msgGUID;
-                return false;  // RETURN
+                return true;  // RETURN
             }
         }
     }
-    return true;
+    return false;
 }
 
 void RelayQueueEngine::storePush(

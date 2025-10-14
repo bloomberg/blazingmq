@@ -125,15 +125,9 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(C3->_numMessages(), 1);
 
     // Confirm
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0"));
 }
 
 static void test2_aggregateDownstream()
@@ -193,15 +187,9 @@ static void test2_aggregateDownstream()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 1);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0"));
 
     // 2) C3: 3 highest priority consumers
     tester.getHandle("C3 readCount=1");
@@ -219,15 +207,9 @@ static void test2_aggregateDownstream()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 3);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0,1,2"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1,2"));
 
     // 3) C3: 2 highest priority consumers
     tester.configureHandle("C3 consumerPriority=1 consumerPriorityCount=2");
@@ -243,15 +225,9 @@ static void test2_aggregateDownstream()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0,1"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1"));
 
     // 4) C2: 1 highest priority consumer
     tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
@@ -267,15 +243,9 @@ static void test2_aggregateDownstream()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0,1"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1"));
 
     // 5) C2: No highest priority consumers
     tester.configureHandle("C2 consumerPriority=0 consumerPriorityCount=1");
@@ -290,12 +260,8 @@ static void test2_aggregateDownstream()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 4);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0,1"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0,1,2,3"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0,1"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1,2,3"));
 }
 
 static void test3_reconfigure()
@@ -350,12 +316,8 @@ static void test3_reconfigure()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0"));
 
     // 2) C1: Lower priority
     tester.configureHandle("C1 consumerPriority=0 consumerPriorityCount=1");
@@ -368,9 +330,7 @@ static void test3_reconfigure()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
 
     // 3) C2: Lower priority
     tester.configureHandle("C2 consumerPriority=0 consumerPriorityCount=1");
@@ -383,12 +343,8 @@ static void test3_reconfigure()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0,1"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0,1"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
 
     // 4) C3: New highest priority
     mqbmock::QueueHandle* C3 = tester.getHandle("C3 readCount=1");
@@ -404,9 +360,7 @@ static void test3_reconfigure()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0,1"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1"));
 
     // 5) C3: Lower priority, C1: Increase priority count
     tester.configureHandle("C3 consumerPriority=0 consumerPriorityCount=1");
@@ -422,15 +376,9 @@ static void test3_reconfigure()
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0,1,2,3"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
-    tester.confirm("C3",
-                   mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
-                                                            "0,1"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0,1,2,3"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
+    tester.confirm("C3", tester.getMessages(C3->_messages(), "0,1"));
 }
 
 static void test4_cannotDeliver()
@@ -482,12 +430,8 @@ static void test4_cannotDeliver()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0"));
 
     // 2) C1: Can't deliver
     C1->_setCanDeliver(false);
@@ -500,9 +444,7 @@ static void test4_cannotDeliver()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
 
     // 3) C2: Can't deliver
     C2->_setCanDeliver(false);
@@ -521,9 +463,7 @@ static void test4_cannotDeliver()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
 
     // 5) C2: Can deliver
     C2->_setCanDeliver(true);
@@ -539,13 +479,9 @@ static void test4_cannotDeliver()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0,1"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0,1"));
 
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1"));
 }
 static void test5_localRedelivery()
 // ------------------------------------------------------------------------
@@ -590,15 +526,13 @@ static void test5_localRedelivery()
     BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
     BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
-    tester.confirm("C1",
-                   mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
-                                                            "0"));
+    tester.confirm("C1", tester.getMessages(C1->_messages(), "0"));
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
     PVV(L_ << ": C2 Messages: " << C2->_messages());
 
-    const bsl::string unconfirmedMessage =
-        mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(), "0");
+    const bsl::string unconfirmedMessage = tester.getMessages(C1->_messages(),
+                                                              "0");
 
     PVV(L_ << ": unconfirmedMessage: " << unconfirmedMessage);
 
@@ -609,12 +543,9 @@ static void test5_localRedelivery()
 
     BMQTST_ASSERT_EQ(C2->_numMessages(), 3);
     BMQTST_ASSERT_EQ(unconfirmedMessage,
-                     mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                              "2"));
+                     tester.getMessages(C2->_messages(), "2"));
 
-    tester.confirm("C2",
-                   mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
-                                                            "0,1,2"));
+    tester.confirm("C2", tester.getMessages(C2->_messages(), "0,1,2"));
 }
 
 static void test6_clearDeliveryStateWhenLostReaders()
@@ -1013,7 +944,7 @@ static void test11_roundRobinAndRedelivery()
     appIDs.push_back("b");
     appIDs.push_back("c");
 
-    mqbblp::QueueEngineTester                                tester(config,
+    mqbblp::QueueEngineTester tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1694,7 +1625,7 @@ static void test19_redeliveryAndResume()
     appIDs.push_back("a");
     appIDs.push_back("b");
 
-    mqbblp::QueueEngineTester                                tester(config,
+    mqbblp::QueueEngineTester tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1874,36 +1805,35 @@ static void test20_handleParametersLimits()
 
 static void test21_deliverOutOfOrder()
 // ------------------------------------------------------------------------
-// REDELIVERY AND RESUME
+// DETECTING OUT-OF-ORDER PUSH
 //
 // Concerns:
-//   1. Verifying resume for a fanout appId..
+//   1. Need to protect PushStream from out-of-order
 //
 // Plan:
-//  Make the data stream of 1   2   3   4   5
-//                          |   |   |   |
-//  where   "a" state is    RL PAL  RP  |
-//          "b" state is    QH  QH PAL  |
-//                                      iterator
-//  RL - RedeliveryList, PAL - PutAsideList, QH queue handle, RP - Resume Point
-//  Then remove "b".
-//  Then trigger 'processAppRedelivery' for "a".
-//  It should 'deliverMessages' from 3 to 4 in the first phase and then attempt
-//  to advance all apps.  If the first phase fails to stop at 4, then 4 (and 5)
-//  will get processed twice.
+//  Make the data stream of 1   2   3
+//                          |   |   |
+//  where   "a" state is    QH PAL  RP
+//          "b" state is   PAL  PS  PS
+//
+//  PS - PushStream, PAL - PutAsideList, QH queue handle, RP - Resume Point
+//  Note how {b, 2} is stuck in the PushStream
+//
+//  Then push {a, 2} (second time)
+//  RelayQueueEngine should detect out-of-order and enforce the flag
 //
 // Testing:
-//   'processAppRedelivery'.
+//   'isOutOfOrder'.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+    bmqtst::TestHelper::printTestName("DETECTING OUT-OF-ORDER");
 
     mqbconfm::Domain          config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
     appIDs.push_back("a");
     appIDs.push_back("b");
 
-    mqbblp::QueueEngineTester                                tester(config,
+    mqbblp::QueueEngineTester tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);

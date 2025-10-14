@@ -220,12 +220,9 @@ class PushStream {
         bslma::Allocator*                             allocator);
 
     /// Introduce the specified `guid` to the Push Stream if it is not present.
-    /// Return an iterator pointing to the `guid`.
+    /// Return `false` if it is present and not the last one.  Otherwise, load
+    /// the iterator pointing to the `guid` into the specified `itGuid`.
     bool findOrAddLast(iterator* itGuid, const bmqt::MessageGUID& guid);
-
-    /// Add the specified `element` to both GUID and App corresponding to the
-    /// `element` (and specified when constructing the `element`).
-    void add(Element* element);
 
     /// Remove the specified `element` from both GUID and App corresponding to
     /// the `element` (and specified when constructing the `element`).  If
@@ -249,13 +246,13 @@ class PushStream {
     /// Remove all Elements, Apps, and GUIDs.
     unsigned int removeAll();
 
-    /// Create new Element associated with the specified `rda`,
-    /// `subscriptionId`, `iterator` pointing to the corresponding GUID, and
-    /// `iteratorApp` pointing to the corresponding App.
-    Element* create(const bmqp::RdaInfo&  rda,
-                    unsigned int          subscriptionId,
-                    const iterator&       iterator,
-                    const Apps::iterator& iteratorApp);
+    /// Add new Element associated with the specified `rda`, `subscriptionId`,
+    /// `iterator` pointing to the corresponding GUID, and `iteratorApp`
+    /// pointing to the corresponding App.
+    Element* add(const bmqp::RdaInfo&  rda,
+                 unsigned int          subscriptionId,
+                 const iterator&       iterator,
+                 const Apps::iterator& iteratorApp);
 };
 
 // ========================
@@ -668,16 +665,25 @@ inline const PushStream::Element* PushStream::App::last() const
 // struct PushStream
 // -----------------
 
-inline PushStream::Element*
-PushStream::create(const bmqp::RdaInfo&  rda,
-                   unsigned int          subscriptionId,
-                   const iterator&       it,
-                   const Apps::iterator& iteratorApp)
+inline PushStream::Element* PushStream::add(const bmqp::RdaInfo& rda,
+                                            unsigned int    subscriptionId,
+                                            const iterator& it,
+                                            const Apps::iterator& iteratorApp)
 {
     BSLS_ASSERT_SAFE(it != d_stream.end());
 
     Element* element = new (d_pushElementsPool_sp->allocate())
         Element(rda, subscriptionId, it, iteratorApp);
+
+    // Add to the GUID
+    BSLS_ASSERT_SAFE(element);
+    BSLS_ASSERT_SAFE(element->iteratorGuid() != d_stream.end());
+
+    element->guid().add(element, e_GUID);
+
+    // Add to the App
+    element->app().add(element);
+
     return element;
 }
 
@@ -687,30 +693,18 @@ inline bool PushStream::findOrAddLast(iterator*                itGuid,
     BSLS_ASSERT_SAFE(itGuid);
 
     iterator existing = d_stream.find(guid);
+
     if (existing == d_stream.end()) {
         *itGuid = d_stream.insert(bsl::make_pair(guid, Elements())).first;
+        return true;  // RETURN
     }
-    else if (existing == --d_stream.end()) {
+    if (existing == --d_stream.end()) {
         *itGuid = existing;
-    }
-    else {
-        // Anything other than the last is out of order
-        return false;
+        return true;  // RETURN
     }
 
-    return true;
-}
-
-inline void PushStream::add(Element* element)
-{
-    // Add to the GUID
-    BSLS_ASSERT_SAFE(element);
-    BSLS_ASSERT_SAFE(element->iteratorGuid() != d_stream.end());
-
-    element->guid().add(element, e_GUID);
-
-    // Add to the App
-    element->app().add(element);
+    // Anything other than the last is out of order
+    return false;
 }
 
 inline void PushStream::remove(Element* element, bool canEraseGuid)
