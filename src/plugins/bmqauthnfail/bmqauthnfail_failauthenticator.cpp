@@ -163,6 +163,10 @@ FailAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             FailAuthenticator::k_NAME);
 
+    if (!config) {
+        return bslma::ManagedPtr<mqbplug::Authenticator>();
+    }
+
     bslma::ManagedPtr<mqbplug::Authenticator> result(
         new (*allocator) FailAuthenticator(config, allocator),
         allocator);

@@ -6008,9 +6008,9 @@ TaskConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char AuthenticatorConfig::CLASS_NAME[] = "AuthenticatorConfig";
 
 const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_PLUGINS,
-     "plugins",
-     sizeof("plugins") - 1,
+    {ATTRIBUTE_ID_AUTHENTICATORS,
+     "authenticators",
+     sizeof("authenticators") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL,
@@ -6040,8 +6040,8 @@ AuthenticatorConfig::lookupAttributeInfo(const char* name, int nameLength)
 const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case ATTRIBUTE_ID_PLUGINS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS];
+    case ATTRIBUTE_ID_AUTHENTICATORS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATORS];
     case ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL];
     default: return 0;
@@ -6051,14 +6051,14 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
 // CREATORS
 
 AuthenticatorConfig::AuthenticatorConfig(bslma::Allocator* basicAllocator)
-: d_plugins(basicAllocator)
+: d_authenticators(basicAllocator)
 , d_anonymousCredential(basicAllocator)
 {
 }
 
 AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
                                          bslma::Allocator* basicAllocator)
-: d_plugins(original.d_plugins, basicAllocator)
+: d_authenticators(original.d_authenticators, basicAllocator)
 , d_anonymousCredential(original.d_anonymousCredential, basicAllocator)
 {
 }
@@ -6066,14 +6066,14 @@ AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original)
-    noexcept : d_plugins(bsl::move(original.d_plugins)),
+    noexcept : d_authenticators(bsl::move(original.d_authenticators)),
                d_anonymousCredential(bsl::move(original.d_anonymousCredential))
 {
 }
 
 AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original,
                                          bslma::Allocator*     basicAllocator)
-: d_plugins(bsl::move(original.d_plugins), basicAllocator)
+: d_authenticators(bsl::move(original.d_authenticators), basicAllocator)
 , d_anonymousCredential(bsl::move(original.d_anonymousCredential),
                         basicAllocator)
 {
@@ -6090,7 +6090,7 @@ AuthenticatorConfig&
 AuthenticatorConfig::operator=(const AuthenticatorConfig& rhs)
 {
     if (this != &rhs) {
-        d_plugins             = rhs.d_plugins;
+        d_authenticators      = rhs.d_authenticators;
         d_anonymousCredential = rhs.d_anonymousCredential;
     }
 
@@ -6102,7 +6102,7 @@ AuthenticatorConfig::operator=(const AuthenticatorConfig& rhs)
 AuthenticatorConfig& AuthenticatorConfig::operator=(AuthenticatorConfig&& rhs)
 {
     if (this != &rhs) {
-        d_plugins             = bsl::move(rhs.d_plugins);
+        d_authenticators      = bsl::move(rhs.d_authenticators);
         d_anonymousCredential = bsl::move(rhs.d_anonymousCredential);
     }
 
@@ -6112,7 +6112,7 @@ AuthenticatorConfig& AuthenticatorConfig::operator=(AuthenticatorConfig&& rhs)
 
 void AuthenticatorConfig::reset()
 {
-    bdlat_ValueTypeFunctions::reset(&d_plugins);
+    bdlat_ValueTypeFunctions::reset(&d_authenticators);
     bdlat_ValueTypeFunctions::reset(&d_anonymousCredential);
 }
 
@@ -6124,7 +6124,7 @@ bsl::ostream& AuthenticatorConfig::print(bsl::ostream& stream,
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("plugins", this->plugins());
+    printer.printAttribute("authenticators", this->authenticators());
     printer.printAttribute("anonymousCredential", this->anonymousCredential());
     printer.end();
     return stream;

@@ -38,6 +38,7 @@
 #include <bsl_memory.h>
 #include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bslma_allocator.h>
 
 namespace BloombergLP {
@@ -89,6 +90,39 @@ class AuthenticationController {
         BSLS_CPP11_DELETED;
     AuthenticationController&
     operator=(const AuthenticationController& other) BSLS_CPP11_DELETED;
+
+    // PRIVATE MANIPULATORS
+
+    /// Set anonymous credential from config.
+    int setAnonymousCredential(bsl::ostream& errorDescription);
+
+    /// Initialize authenticators from configuration.
+    int initializeAuthenticators(bsl::ostream& errorDescription);
+
+    /// Collect all available plugin factories (built-in and external).
+    /// Load them into the specified `pluginFactories` collection.
+    /// Return 0 on success, non-zero on error.
+    int collectAvailablePluginFactories(
+        bsl::unordered_set<mqbplug::PluginFactory*>* pluginFactories);
+
+    /// Create authenticators based on configuration from the specified
+    /// `authenticatorConfig` using the specified `pluginFactories`.
+    /// Return 0 on success, non-zero on error.
+    int createConfiguredAuthenticators(
+        bsl::ostream&                                      errorDescription,
+        const bsl::unordered_set<mqbplug::PluginFactory*>& pluginFactories,
+        const mqbcfg::AuthenticatorConfig& authenticatorConfig);
+
+    /// Validate that anonymous credential mechanism matches a configured
+    /// authenticator.  Return 0 on success, non-zero on error.
+    int validateAnonymousCredential(
+        bsl::ostream&                      errorDescription,
+        const mqbcfg::AuthenticatorConfig& authenticatorConfig);
+
+    /// Ensure at least one authenticator is available for default
+    /// authentication, adding default AnonPassAuthenticator if none are
+    /// configured. Return 0 on success, non-zero on error.
+    int ensureDefaultAuthenticator(bsl::ostream& errorDescription);
 
   public:
     // TRAITS

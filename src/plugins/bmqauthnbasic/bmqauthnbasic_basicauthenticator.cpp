@@ -178,6 +178,10 @@ BasicAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             BasicAuthenticator::k_NAME);
 
+    if (!config) {
+        return bslma::ManagedPtr<mqbplug::Authenticator>();
+    }
+
     bslma::ManagedPtr<mqbplug::Authenticator> result(
         new (*allocator) BasicAuthenticator(config, allocator),
         allocator);

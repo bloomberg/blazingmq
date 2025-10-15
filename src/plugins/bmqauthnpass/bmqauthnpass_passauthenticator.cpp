@@ -159,6 +159,10 @@ PassAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             PassAuthenticator::k_NAME);
 
+    if (!config) {
+        return bslma::ManagedPtr<mqbplug::Authenticator>();
+    }
+
     bslma::ManagedPtr<mqbplug::Authenticator> result(
         new (*allocator) PassAuthenticator(config, allocator),
         allocator);

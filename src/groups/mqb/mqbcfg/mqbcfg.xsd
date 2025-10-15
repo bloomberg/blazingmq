@@ -312,16 +312,19 @@
       <documentation>
         Top level type for the broker's authentication configurations.
 
-        plugins...........:
-            Configurations for authenticator plugins. A config should be present
-            for each authenticator plugin enabled on the broker.
+        authenticators...........:
+            Configuration entries for authenticator plugins (built-in or external).
+            Each entry defines settings for a specific plugin. All plugins must have
+            unique authentication mechanisms.
         anonymousCredential.:
-            Credential used to control anonymous authentication.
-            If not set, the broker will use the default anonymous credential.
+            Controls anonymous authentication behavior. When specified, the broker
+            uses the provided credential with a matching plugin from `authenticators`.
+            When omitted, the broker defaults to AnonPassAuthenticator for anonymous
+            authentication.
       </documentation>
     </annotation>
     <sequence>
-      <element name='plugins'             type='tns:AuthenticatorPluginConfig' minOccurs="0" maxOccurs='unbounded'/>
+      <element name='authenticators'      type='tns:AuthenticatorPluginConfig' minOccurs="0" maxOccurs='unbounded'/>
       <element name='anonymousCredential' type='tns:AnonymousCredential' minOccurs='0'/>
      </sequence>
   </complexType>

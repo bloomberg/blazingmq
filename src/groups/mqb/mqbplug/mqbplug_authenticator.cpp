@@ -68,8 +68,12 @@ const mqbcfg::AuthenticatorPluginConfig*
 AuthenticatorUtil::findAuthenticatorConfig(bsl::string_view name)
 {
     const bsl::vector<mqbcfg::AuthenticatorPluginConfig>& authenticatorsCfg =
-        mqbcfg::BrokerConfig::get().authentication().plugins();
+        mqbcfg::BrokerConfig::get().authentication().authenticators();
 
+    // Linear search is acceptable here since:
+    // 1. This is typically called during startup phase, not hot path
+    // 2. Number of configured authenticators is usually small (< 10)
+    // 3. The cost of maintaining a persistent cache would outweigh benefits
     for (bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator cit =
              authenticatorsCfg.cbegin();
          cit != authenticatorsCfg.cend();

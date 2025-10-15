@@ -23,6 +23,7 @@
 
 // MQB
 #include <mqbauthn_anonpassauthenticator.h>
+#include <mqbauthn_pluginlibrary.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
@@ -33,6 +34,7 @@
 #include <bdlb_string.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
+#include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 
 namespace BloombergLP {
@@ -56,46 +58,20 @@ inline bsl::string normalizeMechanism(bsl::string_view  mech,
 // class AuthenticationController
 // ------------------------------
 
-AuthenticationController::AuthenticationController(
-    mqbplug::PluginManager* pluginManager,
-    bslma::Allocator*       allocator)
-: d_pluginManager_p(pluginManager)
-, d_isStarted(false)
-, d_allocator_p(allocator)
+int AuthenticationController::setAnonymousCredential(
+    bsl::ostream& errorDescription)
 {
-}
-
-int AuthenticationController::start(bsl::ostream& errorDescription)
-{
-    enum RcEnum {
-        // Enum for the various RC error categories
-        rc_SUCCESS             = 0,
-        rc_ALREADY_STARTED     = -1,
-        rc_DUPLICATE_MECHANISM = -2,
-        rc_INVALID_CONFIG      = -3
-    };
-
-    if (d_isStarted) {
-        errorDescription << "start() can only be called once on this object";
-        return rc_ALREADY_STARTED;
-    }
-
-    bmqu::MemOutStream errorStream(d_allocator_p);
-
-    BALL_LOG_INFO << "Starting AuthenticationController";
-
     const mqbcfg::AuthenticatorConfig& authenticatorConfig =
         mqbcfg::BrokerConfig::get().authentication();
 
-    // Set the default anonymous credential
     const bdlb::NullableValue<mqbcfg::AnonymousCredential>&
         anonymousCredential = authenticatorConfig.anonymousCredential();
 
     if (anonymousCredential.isNull()) {
         // If no anonymous credential is set, we use an empty string
         BALL_LOG_INFO << "No anonymous credential configured, "
-                         "using Anonymous as default mechanism and empty "
-                         "string as default identity.";
+                         "using ANONYMOUS as mechanism with empty "
+                         "string as the default identity.";
         d_anonymousCredential = mqbcfg::Credential();
         d_anonymousCredential->mechanism() =
             mqbauthn::AnonPassAuthenticator::k_MECHANISM;
@@ -112,82 +88,281 @@ int AuthenticationController::start(bsl::ostream& errorDescription)
     else {
         errorDescription << "Expected credential or disallow but received a "
                             "type that's not defined.";
-        return rc_INVALID_CONFIG;  // RETURN
+        return -1;  // RETURN
     }
 
-    // Initialize Authenticators from plugins
-    {
-        PluginFactories pluginFactories(d_allocator_p);
-        d_pluginManager_p->get(mqbplug::PluginType::e_AUTHENTICATOR,
-                               &pluginFactories);
+    return 0;
+}
 
-        for (PluginFactories::const_iterator factoryIt =
-                 pluginFactories.cbegin();
-             factoryIt != pluginFactories.cend();
-             ++factoryIt) {
-            mqbplug::AuthenticatorPluginFactory* factory =
-                dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(*factoryIt);
-            AuthenticatorMp authenticator = factory->create(d_allocator_p);
+int AuthenticationController::initializeAuthenticators(
+    bsl::ostream& errorDescription)
+{
+    enum RcEnum {
+        rc_SUCCESS                      = 0,
+        rc_COLLECT_FACTORIES_FAILED     = -1,
+        rc_CREATE_AUTHENTICATORS_FAILED = -2,
+        rc_VALIDATE_ANONYMOUS_FAILED    = -3,
+        rc_DEFAULT_AUTHENTICATOR_FAILED = -4
+    };
+
+    const mqbcfg::AuthenticatorConfig& authenticatorConfig =
+        mqbcfg::BrokerConfig::get().authentication();
+
+    // Step 1: Collect all available plugin factories (built-in + external)
+    PluginFactories pluginFactories(d_allocator_p);
+    if (int rc = collectAvailablePluginFactories(&pluginFactories)) {
+        return rc * 10 + rc_COLLECT_FACTORIES_FAILED;  // RETURN
+    }
+
+    // Step 2: Create authenticators based on configuration
+    if (int rc = createConfiguredAuthenticators(errorDescription,
+                                                pluginFactories,
+                                                authenticatorConfig)) {
+        return rc * 10 + rc_CREATE_AUTHENTICATORS_FAILED;  // RETURN
+    }
+
+    // Step 3: Validate anonymous credential matches a configured authenticator
+    if (int rc = validateAnonymousCredential(errorDescription,
+                                             authenticatorConfig)) {
+        return rc * 10 + rc_VALIDATE_ANONYMOUS_FAILED;  // RETURN
+    }
+
+    // Step 4: Ensure at least one authenticator is available
+    if (int rc = ensureDefaultAuthenticator(errorDescription)) {
+        return rc * 10 + rc_DEFAULT_AUTHENTICATOR_FAILED;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Successfully initialized " << d_authenticators.size()
+                  << " authenticator(s)";
+    return rc_SUCCESS;
+}
+
+int AuthenticationController::collectAvailablePluginFactories(
+    PluginFactories* pluginFactories)
+{
+    // Collect external plugin factories loaded by PluginManager
+    d_pluginManager_p->get(mqbplug::PluginType::e_AUTHENTICATOR,
+                           pluginFactories);
+
+    // Add built-in plugin factories
+    mqbauthn::PluginLibrary builtinLibrary(d_allocator_p);
+    bsl::vector<mqbplug::PluginInfo>::const_iterator it =
+        builtinLibrary.plugins().cbegin();
+    for (; it != builtinLibrary.plugins().cend(); ++it) {
+        if (it->type() == mqbplug::PluginType::e_AUTHENTICATOR) {
+            pluginFactories->insert(it->factory().get());
+        }
+    }
+
+    return 0;
+}
+
+int AuthenticationController::createConfiguredAuthenticators(
+    bsl::ostream&                      errorDescription,
+    const PluginFactories&             pluginFactories,
+    const mqbcfg::AuthenticatorConfig& authenticatorConfig)
+{
+    enum RcEnum {
+        rc_SUCCESS             = 0,
+        rc_DUPLICATE_MECHANISM = -1,
+        rc_START_AUTHENTICATOR = -2,
+        rc_PLUGIN_NOT_FOUND    = -3
+    };
+
+    bmqu::MemOutStream errorStream(d_allocator_p);
+
+    // If authenticators are explicitly configured, only create those
+    const bsl::vector<mqbcfg::AuthenticatorPluginConfig>& authenticators =
+        authenticatorConfig.authenticators();
+    if (!authenticators.empty()) {
+        BALL_LOG_INFO << "Creating " << authenticators.size()
+                      << " explicitly configured authenticator(s)";
+
+        bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator
+            configIt = authenticators.cbegin();
+        for (; configIt != authenticators.cend(); ++configIt) {
+            const bsl::string& pluginName = configIt->name();
+
+            // Find the factory for this named plugin among available factories
+            mqbplug::AuthenticatorPluginFactory* factory = 0;
+            AuthenticatorMp                      authenticator;
+
+            for (PluginFactories::const_iterator factoryIt =
+                     pluginFactories.cbegin();
+                 factoryIt != pluginFactories.cend();
+                 ++factoryIt) {
+                mqbplug::AuthenticatorPluginFactory* candidateFactory =
+                    dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(
+                        *factoryIt);
+                if (candidateFactory) {
+                    // Try to create authenticator - this will fail if no
+                    // matching config
+                    AuthenticatorMp testAuth = candidateFactory->create(
+                        d_allocator_p);
+                    if (testAuth && testAuth->name() == pluginName) {
+                        // Found the right factory and already have the
+                        // authenticator!
+                        factory       = candidateFactory;
+                        authenticator = bslmf::MovableRefUtil::move(testAuth);
+                        break;
+                    }
+                }
+            }
+
+            if (!factory) {
+                errorDescription
+                    << "Authenticator plugin '" << pluginName
+                    << "' not found in available factories. "
+                    << "Ensure the plugin is either built-in or listed "
+                    << "in plugins.enabled[] if it's external";
+                return rc_PLUGIN_NOT_FOUND;  // RETURN
+            }
+
+            // We already have the authenticator instance from the search above
+            if (!authenticator) {
+                errorDescription << "Failed to create authenticator plugin '"
+                                 << pluginName << "'";
+                continue;  // Skip if creation failed
+            }
 
             const bsl::string normMech =
                 normalizeMechanism(authenticator->mechanism(), d_allocator_p);
 
-            // Check if there's an authenticator with duplicate mechanism
+            // Check for duplicate mechanisms
             AuthenticatorMap::const_iterator cit = d_authenticators.find(
                 normMech);
             if (cit != d_authenticators.cend()) {
-                errorDescription << "Attempting to create duplicate "
-                                    "authenticator with mechanism '"
-                                 << authenticator->mechanism();
-                return rc_DUPLICATE_MECHANISM;
+                errorDescription << "Duplicate authenticator mechanism '"
+                                 << normMech << "' for plugin '" << pluginName
+                                 << "'. Each mechanism can only "
+                                 << "have one active authenticator";
+                return rc_DUPLICATE_MECHANISM;  // RETURN
             }
 
             // Start the authenticator
             if (int status = authenticator->start(errorStream)) {
+                errorDescription << "Failed to start authenticator '"
+                                 << authenticator->name()
+                                 << "': " << errorStream.str();
                 BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
                     << "Failed to start Authenticator '"
                     << authenticator->name() << "' [rc: " << status
                     << ", error: '" << errorStream.str() << "']"
                     << BMQTSK_ALARMLOG_END;
                 errorStream.reset();
-                continue;  // CONTINUE
+                return status * 10 + rc_START_AUTHENTICATOR;  // RETURN
             }
 
-            // Add the authenticator into the collection
-            d_authenticators.emplace(
-                normMech,
-                bslmf::MovableRefUtil::move(authenticator));
-        }
+            BALL_LOG_INFO << "Started authenticator '" << authenticator->name()
+                          << "' with mechanism '" << normMech << "'";
 
-        // Add the anonymous authenticator if no other authenticators
-        // are configured.
-        if (d_authenticators.empty()) {
-            BALL_LOG_INFO << "No authenticators configured, using "
-                             "AnonPassAuthenticator as default.";
-
-            // Create an anonymous pass authenticator
-            AnonPassAuthenticatorPluginFactory anonFactory;
-            AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
-
-            // Start the anonymous pass authenticator
-            if (int status = authenticator->start(errorStream)) {
-                BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
-                    << "Failed to start Authenticator '"
-                    << authenticator->name() << "' [rc: " << status
-                    << ", error: '" << errorStream.str() << "']"
-                    << BMQTSK_ALARMLOG_END;
-                errorStream.reset();
-                return status;  // RETURN
-            }
-
-            // Add the authenticator into the collection
-            const bsl::string normMech =
-                normalizeMechanism(authenticator->mechanism(), d_allocator_p);
+            // Add to collection
             d_authenticators.emplace(
                 normMech,
                 bslmf::MovableRefUtil::move(authenticator));
         }
     }
+    else {
+        BALL_LOG_INFO << "No authenticators explicitly configured, "
+                         "will use default behavior";
+    }
+
+    return rc_SUCCESS;
+}
+
+int AuthenticationController::validateAnonymousCredential(
+    bsl::ostream&                      errorDescription,
+    const mqbcfg::AuthenticatorConfig& authenticatorConfig)
+{
+    const bdlb::NullableValue<mqbcfg::AnonymousCredential>& anonCredential =
+        authenticatorConfig.anonymousCredential();
+
+    if (anonCredential->isCredentialValue()) {
+        const bsl::string normAnonMech = normalizeMechanism(
+            anonCredential->credential().mechanism(),
+            d_allocator_p);
+
+        if (d_authenticators.find(normAnonMech) == d_authenticators.cend()) {
+            errorDescription
+                << "Anonymous credential mechanism '" << normAnonMech
+                << "' does not match any configured authenticator";
+            return -1;  // RETURN
+        }
+    }
+
+    return 0;
+}
+
+int AuthenticationController::ensureDefaultAuthenticator(
+    bsl::ostream& errorDescription)
+{
+    // If no authenticators are configured, use AnonPassAuthenticator for
+    // default authentication
+    if (d_authenticators.empty()) {
+        BALL_LOG_INFO << "No authenticators configured, using "
+                         "AnonPassAuthenticator as default";
+
+        AnonPassAuthenticatorPluginFactory anonFactory;
+        AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
+
+        bmqu::MemOutStream errorStream(d_allocator_p);
+        if (int status = authenticator->start(errorStream)) {
+            errorDescription
+                << "Failed to start default AnonPassAuthenticator: "
+                << errorStream.str();
+            BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
+                << "Failed to start default Authenticator '"
+                << authenticator->name() << "' [rc: " << status << ", error: '"
+                << errorStream.str() << "']" << BMQTSK_ALARMLOG_END;
+            return status;  // RETURN
+        }
+
+        const bsl::string normMech =
+            normalizeMechanism(authenticator->mechanism(), d_allocator_p);
+        d_authenticators.emplace(normMech,
+                                 bslmf::MovableRefUtil::move(authenticator));
+    }
+
+    return 0;
+}
+
+AuthenticationController::AuthenticationController(
+    mqbplug::PluginManager* pluginManager,
+    bslma::Allocator*       allocator)
+: d_pluginManager_p(pluginManager)
+, d_isStarted(false)
+, d_allocator_p(allocator)
+{
+}
+
+int AuthenticationController::start(bsl::ostream& errorDescription)
+{
+    enum RcEnum {
+        // Enum for the various RC error categories
+        rc_SUCCESS             = 0,
+        rc_ALREADY_STARTED     = -1,
+        rc_INVALID_CONFIG      = -2,
+        rc_INIT_AUTHENTICATORS = -3
+    };
+
+    if (d_isStarted) {
+        errorDescription << "start() can only be called once on this object";
+        return rc_ALREADY_STARTED;
+    }
+
+    BALL_LOG_INFO << "Starting AuthenticationController";
+
+    int rc = setAnonymousCredential(errorDescription);
+    if (rc != 0) {
+        return rc_INVALID_CONFIG;  // RETURN
+    }
+
+    rc = initializeAuthenticators(errorDescription);
+    if (rc != 0) {
+        return rc * 10 + rc_INIT_AUTHENTICATORS;
+    }
+
+    // Initialize Authenticators from plugins
 
     d_isStarted = true;
     return rc_SUCCESS;
@@ -234,14 +409,14 @@ int AuthenticationController::authenticate(
     if (cit != d_authenticators.cend()) {
         const AuthenticatorMp& authenticator = cit->second;
         BALL_LOG_DEBUG << "AuthenticationController: "
-                       << "authenticating with mechanism '" << mechanism << "'"
+                       << "authenticating with mechanism '" << normMech << "'"
                        << " (authenticator: '" << authenticator->name()
                        << "')";
         rc = authenticator->authenticate(errorStream, result, input);
         if (rc != rc_SUCCESS) {
             errorDescription << "AuthenticationController: failed to "
                                 "authenticate with mechanism '"
-                             << mechanism << "'. (rc = " << rc
+                             << normMech << "'. (rc = " << rc
                              << "). Detailed error: " << errorStream.str();
             return (rc * 10 + rc_AUTHENTICATION_FAILED);
         }
@@ -249,7 +424,7 @@ int AuthenticationController::authenticate(
     else {
         errorDescription
             << "AuthenticationController: authentication mechanism '"
-            << mechanism << "' not supported.";
+            << normMech << "' not supported.";
         return (rc * 10 + rc_MECHANISM_NOT_SUPPORTED);
     }
 
