@@ -1419,7 +1419,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_REOPENING_OPN, E::e_RESP_OK, S::e_REOPENING_CFG},
         {S::e_REOPENING_OPN, E::e_REQ_NOT_SENT, S::e_CLOSED},
         {S::e_REOPENING_OPN, E::e_RESP_BAD, S::e_CLOSED},
-        {S::e_REOPENING_OPN, E::e_RESP_TIMEOUT, S::e_OPENING_OPN_EXPIRED},
+        {S::e_REOPENING_OPN, E::e_RESP_TIMEOUT, S::e_REOPENING_OPN},
         {S::e_REOPENING_OPN, E::e_REQ_CANCELED, S::e_REOPENING_OPN},
         {S::e_REOPENING_OPN, E::e_CHANNEL_DOWN, S::e_PENDING},
         {S::e_REOPENING_OPN, E::e_SESSION_DOWN, S::e_CLOSED},
@@ -1434,7 +1434,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_REOPENING_CFG, E::e_RESP_OK, S::e_OPENED},
         {S::e_REOPENING_CFG, E::e_REQ_NOT_SENT, S::e_CLOSING_CLS},
         {S::e_REOPENING_CFG, E::e_RESP_BAD, S::e_CLOSING_CLS},
-        {S::e_REOPENING_CFG, E::e_RESP_TIMEOUT, S::e_OPENING_CFG_EXPIRED},
+        {S::e_REOPENING_CFG, E::e_RESP_TIMEOUT, S::e_REOPENING_CFG},
         {S::e_REOPENING_CFG, E::e_REQ_CANCELED, S::e_REOPENING_CFG},
         {S::e_REOPENING_CFG, E::e_CHANNEL_DOWN, S::e_PENDING},
         {S::e_REOPENING_CFG, E::e_SESSION_DOWN, S::e_CLOSED},
@@ -2417,16 +2417,22 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Expect 'OpenQueue' request and 'Status' response.
         BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
 
-        // Set EXPIRED state
-        setQueueState(queue, QueueState::e_OPENING_OPN_EXPIRED, event);
+        // If we timeout while reopening a queue, we don't know what state the
+        // primary thinks the queue is in.  The user thinks the queue is open.
+        // The primary could have not yet processed our 'OpenQueue' request,
+        // could do so at some point in the future, or could never.  The safest
+        // thing to do is kill the connection.
 
-        logOperationTime(queue->uri().asString(), "Reopen queue");
+        // Keep the state and do not notify about response's timeout.  By
+        // killing the connection, a CHANNEL_DOWN signal will follow and the
+        // queue state will be set back to PENDING.
+        setQueueState(queue, QueueState::e_REOPENING_OPN, event);
 
-        // Notify reopen queue result
+        // Notify about reopen queue result.
         context->signal();
 
-        // Check STATE_RESTORED condition
-        d_session.enqueueStateRestoredIfNeeded();
+        // Close the channel
+        d_session.d_channel_sp->close();
     } break;
     case QueueState::e_OPENING_CFG: {
         // Expect 'OpenQueue' request and 'Status' response.
@@ -2446,16 +2452,23 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
         BSLS_ASSERT_SAFE(bmqt::QueueFlagsUtil::isReader(queue->flags()));
 
-        // Set EXPIRED state
-        setQueueState(queue, QueueState::e_OPENING_CFG_EXPIRED, event);
+        // If we timeout while reconfiguring a queue while reopening it, we
+        // don't know what state the primary thinks the queue is in.  The user
+        // thinks the queue is open.  The primary could have not yet processed
+        // our 'ConfigureQueue' request, could do so at some point in the
+        // future, or could never.  The safest thing to do is kill the
+        // connection.
 
-        logOperationTime(queue->uri().asString(), "Reopen queue");
+        // Keep the state and do not notify about response's timeout.  By
+        // killing the connection, a CHANNEL_DOWN signal will follow and the
+        // queue state will be set back to PENDING.
+        setQueueState(queue, QueueState::e_REOPENING_CFG, event);
 
-        // Notify reopen queue result
+        // Notify about reopen queue result.
         context->signal();
 
-        // Check STATE_RESTORED condition
-        d_session.enqueueStateRestoredIfNeeded();
+        // Close the channel
+        d_session.d_channel_sp->close();
     } break;
     case QueueState::e_CLOSING_CFG: {
         // Expect 'CloseQueue' request and 'Status' response.

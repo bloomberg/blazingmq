@@ -340,6 +340,9 @@ struct TestSession BSLS_CPP11_FINAL {
         e_ERR_LATE_RESPONSE = 2   // late response
     };
 
+    // Note that the following two enumerations must have consecutive
+    // enumerators:
+
     enum QueueTestStep {
         e_OPEN_OPENING = 0  // pending open queue request
         ,
@@ -373,17 +376,11 @@ struct TestSession BSLS_CPP11_FINAL {
         ,
         e_LATE_OPEN_CONFIGURING_CLS = 2  // pending close queue request
         ,
-        e_LATE_REOPEN_OPENING = 3  // late reopen 1st part respose
+        e_LATE_RECONFIGURING = 3  // expired reconfigure request
         ,
-        e_LATE_REOPEN_CONFIGURING_CFG = 4  // late reopen 2st part respose
+        e_LATE_CLOSE_CONFIGURING = 4  // late close 1st part response
         ,
-        e_LATE_REOPEN_CONFIGURING_CLS = 5  // pending close queue request
-        ,
-        e_LATE_RECONFIGURING = 6  // expired reconfigure request
-        ,
-        e_LATE_CLOSE_CONFIGURING = 7  // late close 1st part response
-        ,
-        e_LATE_CLOSE_CLOSING = 8  // late close 2st part response
+        e_LATE_CLOSE_CLOSING = 5  // late close 2st part response
     };
 
     typedef bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > EventQueue;
@@ -543,15 +540,6 @@ struct TestSession BSLS_CPP11_FINAL {
     bmqp_ctrlmsg::ControlMessage
     openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                               const bsls::TimeInterval&      timeout);
-
-    /// For the specified `queue` in the OPENED state emulate channel drop
-    /// so that the queue state is changed to PENDING and then reopening
-    /// procedure is initiated.  Wait until reopen request is expired and
-    /// send back late open response.  Return control message with close
-    /// queue request sent to the channel.
-    bmqp_ctrlmsg::ControlMessage
-    reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
-                                const bsls::TimeInterval&      timeout);
 
     /// For the specified `queue` send the close queue response generated on
     /// the specified `closeRequest`.  Verify the queue gets closed waiting
@@ -1479,45 +1467,6 @@ TestSession::openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
 }
 
 bmqp_ctrlmsg::ControlMessage
-TestSession::reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
-                                         const bsls::TimeInterval& timeout)
-{
-    bmqp_ctrlmsg::ControlMessage currentRequest(
-        bmqtst::TestHelperUtil::allocator());
-
-    // Go to the state with pending reopen request
-    currentRequest = arriveAtStep(queue, e_REOPEN_OPENING, timeout);
-
-    // Emulate request timeout.
-    advanceTime(timeout);
-
-    PVVV_SAFE(L_ << " Verify reopen request timed out");
-    BMQTST_ASSERT(
-        verifyOperationResult(bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
-                              bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
-
-    BMQTST_ASSERT_EQ(queue->state(),
-                     bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
-    BMQTST_ASSERT_EQ(queue->isValid(), false);
-
-    // We assume there is only one queue under the test and it has failed to
-    // reopen.  That means the session should emit STATE_RESTORED event because
-    // there are no more queues for reopening.
-    BMQTST_ASSERT(waitStateRestoredEvent());
-
-    PVVV_SAFE(L_ << " Send back late reopen queue response");
-    sendResponse(currentRequest);
-
-    PVVV_SAFE(L_ << " Ensure close queue request is sent");
-    currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
-
-    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-    BMQTST_ASSERT_EQ(queue->isValid(), false);
-
-    return currentRequest;
-}
-
-bmqp_ctrlmsg::ControlMessage
 TestSession::reopenQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue)
 {
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
@@ -1971,71 +1920,6 @@ void TestSession::arriveAtLateResponseStepReader(
                              bmqimp::QueueState::e_CLOSING_CLS);
             BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
-        case e_LATE_REOPEN_OPENING: {
-            // Handle pending request from the previous step
-            // waitCloseEvent = false
-            closeQueueSecondStep(queue, currentRequest, false);
-
-            currentRequest = reopenQueueFirstStepExpired(queue, timeout);
-        } break;
-        case e_LATE_REOPEN_CONFIGURING_CFG: {
-            // Handle pending request from the previous step
-            // waitCloseEvent = false
-            closeQueueSecondStep(queue, currentRequest, false);
-
-            // Go to the state with pending reopen-configure request
-            currentRequest = arriveAtStep(queue,
-                                          e_REOPEN_CONFIGURING,
-                                          timeout);
-
-            // Emulate request timeout.
-            advanceTime(timeout);
-
-            PVVV_SAFE("Step: " << currentStep
-                               << " Verify reopen request timed out");
-            BMQTST_ASSERT(verifyOperationResult(
-                bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
-                bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
-
-            BMQTST_ASSERT_EQ(queue->state(),
-                             bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
-            BMQTST_ASSERT_EQ(queue->isValid(), false);
-
-            // We assume there is only one queue under the test and it has
-            // failed to reopen.  That means the session should emit
-            // STATE_RESTORED event because there are no more queues for
-            // reopening.
-            BMQTST_ASSERT(waitStateRestoredEvent());
-
-            PVVV_SAFE("Step: " << currentStep
-                               << " Send back late configure queue response");
-            sendResponse(currentRequest);
-
-            PVVV_SAFE("Step: " << currentStep
-                               << " Ensure deconfigure queue request is sent");
-            currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
-
-            BMQTST_ASSERT_EQ(queue->state(),
-                             bmqimp::QueueState::e_CLOSING_CFG);
-            BMQTST_ASSERT_EQ(queue->isValid(), false);
-        } break;
-        case e_LATE_REOPEN_CONFIGURING_CLS: {
-            // Handle pending request from the previous step
-            BMQTST_ASSERT(isConfigure(currentRequest));
-
-            PVVV_SAFE("Step: " << currentStep
-                               << " Send back deconfigure queue response");
-            sendResponse(currentRequest);
-
-            // Now check pending close request
-            PVVV_SAFE("Step: " << currentStep
-                               << " Ensure close queue request is sent");
-            currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
-
-            BMQTST_ASSERT_EQ(queue->state(),
-                             bmqimp::QueueState::e_CLOSING_CLS);
-            BMQTST_ASSERT_EQ(queue->isValid(), false);
-        } break;
         case e_LATE_RECONFIGURING: {
             // Handle pending request from the previous step
             // waitCloseEvent = false
@@ -2134,29 +2018,6 @@ void TestSession::arriveAtLateResponseStepWriter(
         } break;
         case e_LATE_OPEN_CONFIGURING_CLS: {
             // Skip the step for the writer
-            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            BMQTST_ASSERT(queue->isValid());
-        } break;
-        case e_LATE_REOPEN_OPENING: {
-            currentRequest = reopenQueueFirstStepExpired(queue, timeout);
-        } break;
-        case e_LATE_REOPEN_CONFIGURING_CFG: {
-            // Handle pending request from the previous step
-            // waitCloseEvent = false
-            closeQueueSecondStep(queue, currentRequest, false);
-
-            // Go to the state with pending reopen-configure request
-            currentRequest = arriveAtStep(queue,
-                                          e_REOPEN_CONFIGURING,
-                                          timeout);
-
-            // No reopen-configure for the writer
-            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
-            BMQTST_ASSERT(waitStateRestoredEvent());
-        } break;
-        case e_LATE_REOPEN_CONFIGURING_CLS: {
-            // No reopen-configure for the writer
-            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
             BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
             BMQTST_ASSERT(queue->isValid());
         } break;
@@ -10345,22 +10206,12 @@ static void test59_queueLateAsyncCanceledReader2()
                            bmqt::QueueFlags::e_READ,
                            TestSession::e_LATE_OPEN_CONFIGURING_CLS,
                            bmqimp::QueueState::e_CLOSED);
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_READ,
-                           TestSession::e_LATE_REOPEN_OPENING,
-                           bmqimp::QueueState::e_CLOSED);
 }
 
 static void test60_queueLateAsyncCanceledReader3()
 {
     bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED READER TEST 3");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_READ,
-                           TestSession::e_LATE_REOPEN_CONFIGURING_CFG,
-                           bmqimp::QueueState::e_CLOSED);
 
     queueLateAsyncCanceled(L_,
                            bmqt::QueueFlags::e_READ,
@@ -10399,22 +10250,12 @@ static void test63_queueLateAsyncCanceledWriter2()
                            bmqt::QueueFlags::e_WRITE,
                            TestSession::e_LATE_OPEN_CONFIGURING_CLS,
                            bmqimp::QueueState::e_PENDING);
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_WRITE,
-                           TestSession::e_LATE_REOPEN_OPENING,
-                           bmqimp::QueueState::e_CLOSED);
 }
 
 static void test64_queueLateAsyncCanceledWriter3()
 {
     bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED WRITER TEST 3");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_WRITE,
-                           TestSession::e_LATE_REOPEN_CONFIGURING_CFG,
-                           bmqimp::QueueState::e_PENDING);
 
     queueLateAsyncCanceled(L_,
                            bmqt::QueueFlags::e_WRITE,
@@ -10457,11 +10298,6 @@ static void test67_queueLateAsyncCanceledHybrid2()
                            flags,
                            TestSession::e_LATE_OPEN_CONFIGURING_CLS,
                            bmqimp::QueueState::e_CLOSED);
-
-    queueLateAsyncCanceled(L_,
-                           flags,
-                           TestSession::e_LATE_REOPEN_OPENING,
-                           bmqimp::QueueState::e_CLOSED);
 }
 
 static void test68_queueLateAsyncCanceledHybrid3()
@@ -10472,11 +10308,6 @@ static void test68_queueLateAsyncCanceledHybrid3()
     bsls::Types::Uint64 flags = 0;
     bmqt::QueueFlagsUtil::setReader(&flags);
     bmqt::QueueFlagsUtil::setWriter(&flags);
-
-    queueLateAsyncCanceled(L_,
-                           flags,
-                           TestSession::e_LATE_REOPEN_CONFIGURING_CFG,
-                           bmqimp::QueueState::e_CLOSED);
 
     queueLateAsyncCanceled(L_,
                            flags,
