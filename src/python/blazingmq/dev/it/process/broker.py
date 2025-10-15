@@ -34,6 +34,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from blazingmq.dev.it.cluster import Cluster
 
+from blazingmq.dev.it.common import BMQTST_ASSERT
 from blazingmq.dev.it.process import proc
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
@@ -103,7 +104,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         IMPLEMENTATION NOTE: The broker is started via a script that sets up
         the environment and creates directories for storage and logs, then runs
         the broker proper via the 'exec' shell command.  Depending on the shell
-        in use, a new process is created, or not.  Thus 'pid' is overridden to
+        in use, a new process is created, or not.  Thus, 'pid' is overridden to
         make methods like 'kill' and 'stack_trace' use the correct process id.
         """
         return self._pid
@@ -113,10 +114,14 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         Wait until the broker has started.
         """
         with internal_use(self):
-            if not self.outputs_substr(
-                "BMQbrkr started successfully", timeout=START_TIMEOUT
-            ):
-                raise RuntimeError(f"Failed to start broker on {self.name}: timeout")
+            BMQTST_ASSERT(
+                self.outputs_substr(
+                    "BMQbrkr started successfully", timeout=START_TIMEOUT
+                ),
+                "Failed to start broker: timeout",
+                name=self.name,
+                cwd=self._cwd,
+            )
 
         with (self._cwd / "bmqbrkr.pid").open("r") as file:
             self._pid = int(file.read())
@@ -210,17 +215,25 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         if wait_leader:
             leader_name = matches.pop(0)
-            if leader_name is None:
-                error = f"[broker {self.name}]: no active leader"
-                self._logger.error(error)
-                raise RuntimeError(error)
+            BMQTST_ASSERT(
+                leader_name is not None,
+                "No active leader",
+                name=self.name,
+                cwd=self._cwd,
+            )
+
             self.last_known_leader = self.cluster.process(leader_name[1])
             self._logger.log(self._log_level, "leader is %s", self.last_known_leader)
 
-        if wait_ready and matches.pop(0) is None:
-            error = f"[broker {self.name}]: cluster not ready"
-            self._logger.error(error)
-            raise RuntimeError(error)
+        if wait_ready:
+            cluster_name = matches.pop(0)
+            BMQTST_ASSERT(
+                cluster_name is not None,
+                "Cluster is not ready",
+                cluster=cluster,
+                name=self.name,
+                cwd=self._cwd,
+            )
 
     def dump_queue_internals(self, domain, queue):
         """

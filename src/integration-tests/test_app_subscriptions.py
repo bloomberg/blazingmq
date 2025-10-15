@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, List, Optional
+
 import blazingmq.dev.it.testconstants as tc
 
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -25,6 +27,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     tweak,
     virtual_cluster_config,
 )
+from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 
 
@@ -34,7 +37,10 @@ class TestAppSubscriptions:
     (apps)
     """
 
-    def _start_client(self, broker, uri, name, subscriptions=[]):
+    @staticmethod
+    def _start_client(
+        broker: Broker, uri: str, name: str, subscriptions: Optional[List[Any]] = None
+    ) -> Client:
         consumer = broker.create_client(name)
         assert (
             consumer.open(

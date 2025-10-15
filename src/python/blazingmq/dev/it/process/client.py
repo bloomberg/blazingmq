@@ -112,12 +112,14 @@ class Client(BMQProcess):
         if dump_messages:
             options.append("-d")
 
+        self._endpoint: str = f"tcp://{broker[0]}:{broker[1]}"
+
         super().__init__(
             name,
             [
                 str(tool_path),
                 "-b",
-                f"tcp://{broker[0]}:{broker[1]}",
+                self._endpoint,
                 f'--logFormat="{bmqproc.PROC_LOG_FORMAT}"',
             ]
             + options,
@@ -125,6 +127,10 @@ class Client(BMQProcess):
             process_log_category="bmqtool",
             **kwargs,
         )
+
+    def __repr__(self):
+        """Provide a string representation of this object for debug."""
+        return f"Client(name='{self.name}', endpoint='{self._endpoint}')"
 
     ###########################################################################
     # Public API

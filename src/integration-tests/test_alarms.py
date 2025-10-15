@@ -55,7 +55,9 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
 
 
 @tweak.domain.max_idle_time(1)
-def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):  # pylint: disable=unused-argument
+def test_broadcast_no_alarms(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):  # pylint: disable=unused-argument
     """
     Test no broker ALARMS in broadcast mode.
     """
@@ -162,7 +164,7 @@ def test_priority_alarm_when_consumer_dropped(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     """
-    Test that alarm is triggered when consumer droppped the connection in priority mode.
+    Test that alarm is triggered when consumer dropped the connection in priority mode.
     """
     uri_priority = domain_urls.uri_priority
     leader = cluster.last_known_leader

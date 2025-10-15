@@ -25,8 +25,8 @@ pytestmark = order(4)
 def test_early_assign(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Early open a queue on a soon-to-be leader.  Legacy leader when it becomes
-    ACTIVE, starts assigning queues _before_ it assignes partitions.  Then,
-    the leader observes `onQueueAssigned` event _before_ it becomes ACTVIE
+    ACTIVE, starts assigning queues _before_ it assigns partitions.  Then,
+    the leader observes `onQueueAssigned` event _before_ it becomes ACTIVE
     primary.  If that event logic erroneously decides that the self is replica,
     the soon-to-be primary does not write QueueCreationRecord.  The primary
     still writes any posted message record though.  That leads to either assert
@@ -70,7 +70,7 @@ def test_early_assign(multi_node: Cluster, domain_urls: tc.DomainUrls):
 def test_replica_late_join(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     In a steady-state cluster where only one replica node is down, with live
-    messages flowing, the replica node rejoins and attemps to heal itself via
+    messages flowing, the replica node rejoins and attempts to heal itself via
     the primary.  The concern is that the primary could send live data to the
     replica, and then re-send that data as recovery data chunks; we would like
     to make sure our deduplication logic is working correctly to handle this

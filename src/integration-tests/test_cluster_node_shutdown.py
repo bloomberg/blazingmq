@@ -29,16 +29,11 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     order,
     multi_node,
 )
+from blazingmq.dev.it.common import BMQTestError, BMQTST_ASSERT
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(6)
-
-
-class BMQITError(RuntimeError):
-    """
-    BMQ IT error.
-    """
 
 
 class TestClusterNodeShutdown:
@@ -50,10 +45,12 @@ class TestClusterNodeShutdown:
     @staticmethod
     def open_or_raise(client: Client, uri: str, flags: List[str]):
         rc = client.open(uri, flags=flags, succeed=True)
-        if rc != Client.e_SUCCESS:
-            raise BMQITError(
-                f"Failed to open a queue: client = {client}, uri = {uri}, rc = {rc}"
-            )
+        BMQTST_ASSERT(rc == Client.e_SUCCESS,
+                      "Failed to open a queue",
+                      client=client,
+                      uri=uri,
+                      flags=flags,
+                      rc=rc)
 
     def setup_cluster(self, cluster: Cluster, domain_urls: tc.DomainUrls):
         du = domain_urls
@@ -128,7 +125,7 @@ class TestClusterNodeShutdown:
             _ = recovery.get(timeout=120)
         except queue.Empty as ex:
             # No recovery log observed
-            raise BMQITError("State is not restored") from ex
+            raise BMQTestError("State is not restored") from ex
         sleep(5)
 
         self._verify_all_queues_operational(domain_urls)  # After recovery
@@ -149,14 +146,20 @@ class TestClusterNodeShutdown:
             )
             msgs = consumer.list(uri_group, block=True)
             self.history.append((str(consumer.name), uri_group, msgs))
-            if len(msgs) != 1:
-                raise BMQITError(
-                    f"Expected 1 message, got: {len(msgs)} msgs.\nMessages history:\n{self.history}"
-                )
-            if msgs[0].payload not in expected:
-                raise BMQITError(
-                    f"Unexpected message payload: {msgs[0].payload} (expected: {expected})"
-                )
+            BMQTST_ASSERT(len(msgs) == 1,
+                          "Expected exactly 1 message",
+                          client=consumer,
+                          uri=uri_group,
+                          observed_messages=msgs,
+                          history=self.history)
+            BMQTST_ASSERT(msgs[0].payload in expected,
+                          "Unexpected message payload",
+                          client=consumer,
+                          uri=uri_group,
+                          observed_messages=msgs,
+                          history=self.history,
+                          expected_any_of=expected
+                          )
             consumer.confirm(uri_group, "*", succeed=True)
 
         def check_both_received_one_of(*expected):
