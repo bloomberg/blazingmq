@@ -1857,15 +1857,18 @@ class TaskConfig:
 class AuthenticatorConfig:
     """Top level type for the broker's authentication configurations.
 
-    plugins...........:
-    Configurations for authenticator plugins. A config should be present
-    for each authenticator plugin enabled on the broker.
+    authenticators...........:
+    Configuration entries for authenticator plugins (built-in or external).
+    Each entry defines settings for a specific plugin. All plugins must have
+    unique authentication mechanisms.
     anonymousCredential.:
-    Credential used to control anonymous authentication.
-    If not set, the broker will use the default anonymous credential.
+    Controls anonymous authentication behavior. When specified, the broker
+    uses the provided credential with a matching plugin from `authenticators`.
+    When omitted, the broker defaults to AnonPassAuthenticator for anonymous
+    authentication.
     """
 
-    plugins: List[AuthenticatorPluginConfig] = field(
+    authenticators: List[AuthenticatorPluginConfig] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -2077,7 +2080,7 @@ class AppConfig:
     hostDataCenter.......: datacenter the current host resides in
     isRunningOnDev.......: true if running on dev
     logsObserverMaxSize..: maximum number of log records to keep
-    latencyMonitorDomain.: common part of all latemon domains
+    latencyMonitorDomain.: common prefix of all latemon domains
     dispatcherConfig.....: configuration for the dispatcher
     stats................: configuration for the stats
     networkInterfaces....: configuration for the network interfaces

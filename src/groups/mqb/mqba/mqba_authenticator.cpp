@@ -54,7 +54,6 @@
 #include <bsl_memory.h>
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
-#include <bsl_string_view.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmt_threadutil.h>

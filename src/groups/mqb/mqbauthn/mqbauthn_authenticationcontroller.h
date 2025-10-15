@@ -42,6 +42,12 @@
 #include <bslma_allocator.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace mqbplug {
+class PluginLibrary;
+};
+
 namespace mqbauthn {
 
 // ==============================
@@ -71,8 +77,10 @@ class AuthenticationController {
     /// Default anonymous credential will be used if not set.
     bsl::optional<mqbcfg::Credential> d_anonymousCredential;
 
-    /// Used to instantiate Authenticator
-    /// plugins at start-time.
+    /// Hold the PluginLibrary for all the built-in authentication plugins.
+    bslma::ManagedPtr<mqbplug::PluginLibrary> d_builtInPluginLibrary;
+
+    /// Used to instantiate external authenticator plugins at start-time.
     mqbplug::PluginManager* d_pluginManager_p;
 
     /// True if this component is started.
@@ -80,9 +88,6 @@ class AuthenticationController {
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-
-  private:
-    // PRIVATE MANIPULATORS
 
   private:
     // NOT IMPLEMENTED
@@ -112,6 +117,10 @@ class AuthenticationController {
         bsl::ostream&                                      errorDescription,
         const bsl::unordered_set<mqbplug::PluginFactory*>& pluginFactories,
         const mqbcfg::AuthenticatorConfig& authenticatorConfig);
+
+    /// Create, start, and load the default anonymous authenticator.
+    /// Return 0 on success, non-zero on error.
+    int createDefaultAnonAuthenticator();
 
     /// Validate that anonymous credential mechanism matches a configured
     /// authenticator.  Return 0 on success, non-zero on error.

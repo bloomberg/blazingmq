@@ -44,7 +44,7 @@ libraries = tweak.broker.app_config.plugins.libraries([PLUGIN_DIR])
 
 config_authentication = tweak.broker.app_config.authentication(
     {
-        "plugins": [
+        "authenticators": [
             {"name": "FailAuthenticator", "configs": []},
             {"name": "PassAuthenticator", "configs": []},
             {"name": "BasicAuthenticator", "configs": []},

@@ -34,22 +34,22 @@ PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
 : d_plugins(allocator)
 {
     // AnonPassAuthenticator
-    mqbplug::PluginInfo& authnpassPluginInfo = d_plugins.emplace_back(
+    mqbplug::PluginInfo& anonPassPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         mqbauthn::AnonPassAuthenticator::k_NAME);
 
-    authnpassPluginInfo.setFactory(
+    anonPassPluginInfo.setFactory(
         bsl::allocate_shared<AnonPassAuthenticatorPluginFactory>(allocator));
-    authnpassPluginInfo.setDescription("Anonymous Pass Authenticator");
+    anonPassPluginInfo.setDescription("Anonymous Pass Authenticator");
 
     // AnonFailAuthenticator
-    mqbplug::PluginInfo& authnfailPluginInfo = d_plugins.emplace_back(
+    mqbplug::PluginInfo& anonFailPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHENTICATOR,
         mqbauthn::AnonFailAuthenticator::k_NAME);
 
-    authnfailPluginInfo.setFactory(
+    anonFailPluginInfo.setFactory(
         bsl::allocate_shared<AnonFailAuthenticatorPluginFactory>(allocator));
-    authnfailPluginInfo.setDescription("Anonymous Fail Authenticator");
+    anonFailPluginInfo.setDescription("Anonymous Fail Authenticator");
 
     // BasicAuthenticator
     mqbplug::PluginInfo& basicPluginInfo = d_plugins.emplace_back(

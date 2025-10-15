@@ -145,10 +145,9 @@ int AuthenticationController::collectAvailablePluginFactories(
                            pluginFactories);
 
     // Add built-in plugin factories
-    mqbauthn::PluginLibrary builtinLibrary(d_allocator_p);
     bsl::vector<mqbplug::PluginInfo>::const_iterator it =
-        builtinLibrary.plugins().cbegin();
-    for (; it != builtinLibrary.plugins().cend(); ++it) {
+        d_builtInPluginLibrary->plugins().cbegin();
+    for (; it != d_builtInPluginLibrary->plugins().cend(); ++it) {
         if (it->type() == mqbplug::PluginType::e_AUTHENTICATOR) {
             pluginFactories->insert(it->factory().get());
         }
@@ -241,9 +240,6 @@ int AuthenticationController::createConfiguredAuthenticators(
 
             // Start the authenticator
             if (int status = authenticator->start(errorStream)) {
-                errorDescription << "Failed to start authenticator '"
-                                 << authenticator->name()
-                                 << "': " << errorStream.str();
                 BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
                     << "Failed to start Authenticator '"
                     << authenticator->name() << "' [rc: " << status
@@ -262,22 +258,66 @@ int AuthenticationController::createConfiguredAuthenticators(
                 bslmf::MovableRefUtil::move(authenticator));
         }
     }
-    else {
-        BALL_LOG_INFO << "No authenticators explicitly configured, "
-                         "will use default behavior";
-    }
 
     return rc_SUCCESS;
+}
+
+int AuthenticationController::createDefaultAnonAuthenticator()
+{
+    // Create an anonymous pass authenticator
+    AnonPassAuthenticatorPluginFactory anonFactory;
+    AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
+
+    bmqu::MemOutStream errorStream(d_allocator_p);
+
+    // Start the anonymous pass authenticator
+    if (int status = authenticator->start(errorStream)) {
+        BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
+            << "Failed to start Authenticator '" << authenticator->name()
+            << "' [rc: " << status << ", error: '" << errorStream.str() << "']"
+            << BMQTSK_ALARMLOG_END;
+        errorStream.reset();
+        return status;  // RETURN
+    }
+
+    // Add the authenticator into the collection
+    const bsl::string normMech = normalizeMechanism(authenticator->mechanism(),
+                                                    d_allocator_p);
+    d_authenticators.emplace(normMech,
+                             bslmf::MovableRefUtil::move(authenticator));
+
+    return 0;
 }
 
 int AuthenticationController::validateAnonymousCredential(
     bsl::ostream&                      errorDescription,
     const mqbcfg::AuthenticatorConfig& authenticatorConfig)
 {
+    enum RcEnum {
+        rc_SUCCESS                        = 0,
+        rc_NO_MATCHING_AUTHENTICATOR      = -1,
+        rc_FAIL_CREATE_ANON_AUTHENTICATOR = -2
+    };
+
     const bdlb::NullableValue<mqbcfg::AnonymousCredential>& anonCredential =
         authenticatorConfig.anonymousCredential();
 
-    if (anonCredential->isCredentialValue()) {
+    if (anonCredential.isNull()) {
+        bsl::string anonMechanism =
+            bsl::string(AnonPassAuthenticator::k_MECHANISM, d_allocator_p);
+
+        if (d_authenticators.find(anonMechanism) != d_authenticators.cend()) {
+            errorDescription << "Provided anonymous authenticator but "
+                                "anonymous credential is not provided";
+            return rc_NO_MATCHING_AUTHENTICATOR;  // RETURN
+        }
+
+        int rc = createDefaultAnonAuthenticator();
+        if (rc != 0) {
+            return rc_FAIL_CREATE_ANON_AUTHENTICATOR;  // RETURN
+        }
+    }
+    else if (anonCredential->isCredentialValue()) {
         const bsl::string normAnonMech = normalizeMechanism(
             anonCredential->credential().mechanism(),
             d_allocator_p);
@@ -286,11 +326,11 @@ int AuthenticationController::validateAnonymousCredential(
             errorDescription
                 << "Anonymous credential mechanism '" << normAnonMech
                 << "' does not match any configured authenticator";
-            return -1;  // RETURN
+            return rc_NO_MATCHING_AUTHENTICATOR;  // RETURN
         }
     }
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 int AuthenticationController::ensureDefaultAuthenticator(
@@ -328,7 +368,10 @@ int AuthenticationController::ensureDefaultAuthenticator(
 AuthenticationController::AuthenticationController(
     mqbplug::PluginManager* pluginManager,
     bslma::Allocator*       allocator)
-: d_pluginManager_p(pluginManager)
+: d_builtInPluginLibrary(
+      bslma::ManagedPtrUtil::allocateManaged<mqbauthn::PluginLibrary>(
+          allocator))
+, d_pluginManager_p(pluginManager)
 , d_isStarted(false)
 , d_allocator_p(allocator)
 {
