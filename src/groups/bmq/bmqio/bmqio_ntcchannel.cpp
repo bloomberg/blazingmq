@@ -1579,7 +1579,9 @@ int NtcListener::listen(bmqio::Status*              status,
     int backlog;
     if (!options.properties().load(&backlog,
                                    NtcListenerUtil::listenBacklogProperty())) {
-        backlog = 10;
+        // The magic number 0 means the backlog will be the maximum allowed by
+        // the OS.
+        backlog = 0;
     }
 
     ntsa::Endpoint endpoint;
