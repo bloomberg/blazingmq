@@ -89,7 +89,7 @@ const char* InitialConnectionState::toAscii(InitialConnectionState::Enum value)
         CASE(INITIAL)
         CASE(AUTHENTICATING)
         CASE(AUTHENTICATED)
-        CASE(DEFAULT_AUTHENTICATING)
+        CASE(ANON_AUTHENTICATING)
         CASE(NEGOTIATING_OUTBOUND)
         CASE(NEGOTIATED)
         CASE(FAILED)
@@ -114,7 +114,7 @@ bool InitialConnectionState::fromAscii(InitialConnectionState::Enum* out,
     CHECKVALUE(INITIAL)
     CHECKVALUE(AUTHENTICATING)
     CHECKVALUE(AUTHENTICATED)
-    CHECKVALUE(DEFAULT_AUTHENTICATING)
+    CHECKVALUE(ANON_AUTHENTICATING)
     CHECKVALUE(NEGOTIATING_OUTBOUND)
     CHECKVALUE(NEGOTIATED)
     CHECKVALUE(FAILED)
@@ -382,7 +382,7 @@ void InitialConnectionContext::createNegotiationContext()
     );
 }
 
-int InitialConnectionContext::handleDefaultAuthentication(
+int InitialConnectionContext::handleAnonAuthentication(
     bsl::ostream& errorDescription)
 {
     // executed by one of the *IO* threads
@@ -598,12 +598,12 @@ void InitialConnectionContext::handleEvent(
 
         if (oldState == State::e_INITIAL &&
             negotiationMsg.isClientIdentityValue()) {
-            setState(State::e_DEFAULT_AUTHENTICATING);
+            setState(State::e_ANON_AUTHENTICATING);
 
             createNegotiationContext();
             negotiationContext()->setNegotiationMessage(negotiationMsg);
 
-            rc = handleDefaultAuthentication(errStream);
+            rc = handleAnonAuthentication(errStream);
         }
         else if (oldState == State::e_AUTHENTICATED &&
                  negotiationMsg.isClientIdentityValue()) {
@@ -638,7 +638,7 @@ void InitialConnectionContext::handleEvent(
             // Now read Negotiation message
             rc = scheduleRead(errStream);
         }
-        else if (oldState == State::e_DEFAULT_AUTHENTICATING) {
+        else if (oldState == State::e_ANON_AUTHENTICATING) {
             setState(State::e_NEGOTIATED);
 
             BSLS_ASSERT_SAFE(negotiationContext());

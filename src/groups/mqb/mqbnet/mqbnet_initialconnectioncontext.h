@@ -81,13 +81,13 @@ class NegotiationContext;
 struct InitialConnectionState {
     // TYPES
     enum Enum {
-        e_INITIAL                = 0,  // Initial state.
-        e_AUTHENTICATING         = 1,  // First message is Auth Request.
-        e_AUTHENTICATED          = 2,  // Authentication success.
-        e_DEFAULT_AUTHENTICATING = 3,  // First message is Negotiation
-        e_NEGOTIATING_OUTBOUND   = 4,  // Outbound negotiation.
-        e_NEGOTIATED             = 5,  // Negotiation success.  Final state.
-        e_FAILED                 = 6   // Final state.
+        e_INITIAL              = 0,  // Initial state.
+        e_AUTHENTICATING       = 1,  // First message is Auth Request.
+        e_AUTHENTICATED        = 2,  // Authentication success.
+        e_ANON_AUTHENTICATING  = 3,  // First message is Negotiation
+        e_NEGOTIATING_OUTBOUND = 4,  // Outbound negotiation.
+        e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
+        e_FAILED               = 6   // Final state.
     };
 
     // CLASS METHODS
@@ -351,11 +351,11 @@ class InitialConnectionContext
     /// Create and initialize a `NegotiationContext`.
     void createNegotiationContext();
 
-    /// Perform default authentication using the anonymous credential for the
+    /// Perform anonymous authentication using the anonymous credential for the
     /// current context.  Return a non-zero code on error and
     /// populate the specified `errorDescription` with a description of the
     /// error.
-    int handleDefaultAuthentication(bsl::ostream& errorDescription);
+    int handleAnonAuthentication(bsl::ostream& errorDescription);
 
   public:
     // MANIPULATORS

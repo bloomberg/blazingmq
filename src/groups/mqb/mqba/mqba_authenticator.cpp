@@ -175,7 +175,7 @@ int Authenticator::authenticateAsync(bsl::ostream& errorDescription,
         context,
         context->channel(),
         context->state() ==
-            mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING));
+            mqbnet::InitialConnectionState::e_ANON_AUTHENTICATING));
 
     if (rc != 0) {
         errorDescription
@@ -253,7 +253,7 @@ void Authenticator::authenticate(
         return;  // RETURN
     }
 
-    // In the case of a default authentication, we do not need to send
+    // In the case of an anonymous authentication, we do not need to send
     // an AuthenticationResponse, we just need to continue the negotiation.
     if (isDefaultAuthn) {
         if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {

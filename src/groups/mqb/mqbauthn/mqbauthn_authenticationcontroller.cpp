@@ -297,7 +297,7 @@ int AuthenticationController::ensureDefaultAuthenticator(
     bsl::ostream& errorDescription)
 {
     // If no authenticators are configured, use AnonPassAuthenticator for
-    // default authentication
+    // anonymous authentication
     if (d_authenticators.empty()) {
         BALL_LOG_INFO << "No authenticators configured, using "
                          "AnonPassAuthenticator as default";
@@ -307,11 +307,10 @@ int AuthenticationController::ensureDefaultAuthenticator(
 
         bmqu::MemOutStream errorStream(d_allocator_p);
         if (int status = authenticator->start(errorStream)) {
-            errorDescription
-                << "Failed to start default AnonPassAuthenticator: "
-                << errorStream.str();
+            errorDescription << "Failed to start AnonPassAuthenticator: "
+                             << errorStream.str();
             BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
-                << "Failed to start default Authenticator '"
+                << "Failed to start default anonymous authenticator '"
                 << authenticator->name() << "' [rc: " << status << ", error: '"
                 << errorStream.str() << "']" << BMQTSK_ALARMLOG_END;
             return status;  // RETURN
