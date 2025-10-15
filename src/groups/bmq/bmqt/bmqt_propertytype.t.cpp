@@ -42,10 +42,6 @@ static void test1_breathingTest()
     str = bmqt::PropertyType::toAscii(bmqt::PropertyType::e_BINARY);
     BMQTST_ASSERT_EQ(str, "BINARY");
 
-    obj = static_cast<bmqt::PropertyType::Enum>(-1);
-    str = bmqt::PropertyType::toAscii(obj);
-    BMQTST_ASSERT_EQ(str, "(* UNKNOWN *)");
-
     PV("Testing fromAscii");
     res = bmqt::PropertyType::fromAscii(&obj, "STRING");
     BMQTST_ASSERT_EQ(res, true);

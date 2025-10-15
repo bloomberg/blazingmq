@@ -579,6 +579,11 @@ class RequestManagerRequest {
     /// code associated to the Failure type of the response.
     bmqt::GenericResult::Enum result() const;
 
+    /// Convenient accessor to return the error code of the response
+    /// associated to this object: return either `success` or the error
+    /// code associated to the Failure type of the response.
+    int code() const;
+
     /// Return the description of the node the request was sent to.
     const bsl::string& nodeDescription() const;
 
@@ -1018,6 +1023,16 @@ RequestManagerRequest<REQUEST, RESPONSE>::result() const
     if (d_responseMessage.choice().isStatusValue()) {
         return static_cast<bmqt::GenericResult::Enum>(
             d_responseMessage.choice().status().category());  // RETURN
+    }
+
+    return bmqt::GenericResult::e_SUCCESS;
+}
+
+template <class REQUEST, class RESPONSE>
+int RequestManagerRequest<REQUEST, RESPONSE>::code() const
+{
+    if (d_responseMessage.choice().isStatusValue()) {
+        return d_responseMessage.choice().status().code();  // RETURN
     }
 
     return bmqt::GenericResult::e_SUCCESS;
