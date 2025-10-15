@@ -13486,8 +13486,8 @@ class AuthenticationResponse {
     // The session lifetime is valid indefinitely if this value is unset.
 
     // INSTANCE DATA
-    bdlb::NullableValue<bsls::Types::Uint64> d_lifetimeMs;
-    Status                                   d_status;
+    Status                   d_status;
+    bdlb::NullableValue<int> d_lifetimeMs;
 
   public:
     // TYPES
@@ -13598,7 +13598,7 @@ class AuthenticationResponse {
     // Return a reference to the modifiable "Status" attribute of this
     // object.
 
-    bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs();
+    bdlb::NullableValue<int>& lifetimeMs();
     // Return a reference to the modifiable "LifetimeMs" attribute of this
     // object.
 
@@ -13649,7 +13649,7 @@ class AuthenticationResponse {
     // Return a reference offering non-modifiable access to the "Status"
     // attribute of this object.
 
-    const bdlb::NullableValue<bsls::Types::Uint64>& lifetimeMs() const;
+    const bdlb::NullableValue<int>& lifetimeMs() const;
     // Return a reference offering non-modifiable access to the
     // "LifetimeMs" attribute of this object.
 
@@ -17491,8 +17491,8 @@ class AuthenticationMessage {
     // authentication of a connection with the broker, whether by a BlazingMQ
     // client or another broker.
     // choice.: enumerates all the different type of authentication packets
-    // During negotiation, the process (whether a client using the libbmq SDK,
-    // or a bmqbrkr) sends a 'authenticationRequest' message; to which the
+    // During authentication, the process (whether a client using the libbmq
+    // SDK, or a bmqbrkr) sends a 'authenticationRequest' message; to which the
     // remote peer will reply with a 'authenticationResponse' message.
 
     // INSTANCE DATA
@@ -31657,8 +31657,7 @@ inline Status& AuthenticationResponse::status()
     return d_status;
 }
 
-inline bdlb::NullableValue<bsls::Types::Uint64>&
-AuthenticationResponse::lifetimeMs()
+inline bdlb::NullableValue<int>& AuthenticationResponse::lifetimeMs()
 {
     return d_lifetimeMs;
 }
@@ -31722,7 +31721,7 @@ inline const Status& AuthenticationResponse::status() const
     return d_status;
 }
 
-inline const bdlb::NullableValue<bsls::Types::Uint64>&
+inline const bdlb::NullableValue<int>&
 AuthenticationResponse::lifetimeMs() const
 {
     return d_lifetimeMs;

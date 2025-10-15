@@ -165,12 +165,20 @@ int AuthenticationContext::scheduleReauthn(
     }
 
     if (lifetimeMs.has_value()) {
-        BSLS_ASSERT_SAFE(lifetimeMs >= 0);
+        int lifetime = lifetimeMs.value();
+
+        if (lifetime < 0) {
+            BALL_LOG_WARN
+                << "Authenticator returned negative remaining lifetime: "
+                << bsl::to_string(lifetime)
+                << ". Schedule reauthentication timer with lifetime set to 0.";
+            lifetime = 0;
+        }
 
         scheduler_p->scheduleEvent(
             &d_timeoutHandle,
             bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
-                .addMilliseconds(lifetimeMs.value()),
+                .addMilliseconds(lifetime),
             bdlf::BindUtil::bind(
                 bmqu::WeakMemFnUtil::weakMemFn(
                     &AuthenticationContext::onReauthenticateErrorOrTimeout,

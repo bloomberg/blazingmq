@@ -93,7 +93,7 @@ class AuthenticationResult {
 
     // ACCESSORS
 
-    /// Return the principal.
+    /// Return the principal in human-readable format.
     virtual bsl::string_view principal() const = 0;
 
     /// Return the remaining lifetime of an authenticated session.

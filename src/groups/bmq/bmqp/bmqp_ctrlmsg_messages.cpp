@@ -7483,16 +7483,16 @@ const bdlat_AttributeInfo* AuthenticationResponse::lookupAttributeInfo(int id)
 
 AuthenticationResponse::AuthenticationResponse(
     bslma::Allocator* basicAllocator)
-: d_lifetimeMs()
-, d_status(basicAllocator)
+: d_status(basicAllocator)
+, d_lifetimeMs()
 {
 }
 
 AuthenticationResponse::AuthenticationResponse(
     const AuthenticationResponse& original,
     bslma::Allocator*             basicAllocator)
-: d_lifetimeMs(original.d_lifetimeMs)
-, d_status(original.d_status, basicAllocator)
+: d_status(original.d_status, basicAllocator)
+, d_lifetimeMs(original.d_lifetimeMs)
 {
 }
 
@@ -7500,16 +7500,16 @@ AuthenticationResponse::AuthenticationResponse(
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 AuthenticationResponse::AuthenticationResponse(
     AuthenticationResponse&& original) noexcept
-: d_lifetimeMs(bsl::move(original.d_lifetimeMs)),
-  d_status(bsl::move(original.d_status))
+: d_status(bsl::move(original.d_status)),
+  d_lifetimeMs(bsl::move(original.d_lifetimeMs))
 {
 }
 
 AuthenticationResponse::AuthenticationResponse(
     AuthenticationResponse&& original,
     bslma::Allocator*        basicAllocator)
-: d_lifetimeMs(bsl::move(original.d_lifetimeMs))
-, d_status(bsl::move(original.d_status), basicAllocator)
+: d_status(bsl::move(original.d_status), basicAllocator)
+, d_lifetimeMs(bsl::move(original.d_lifetimeMs))
 {
 }
 #endif

@@ -1711,7 +1711,7 @@
 
         choice.: enumerates all the different type of authentication packets
 
-        During negotiation, the process (whether a client using the libbmq SDK,
+        During authentication, the process (whether a client using the libbmq SDK,
         or a bmqbrkr) sends a 'authenticationRequest' message; to which the remote
         peer will reply with a 'authenticationResponse' message.
       </documentation>
@@ -1757,7 +1757,7 @@
     </annotation>
     <sequence>
       <element name='status'      type='tns:Status' />
-      <element name='lifetimeMs'  type='nonNegativeInteger'   minOccurs='0'/>
+      <element name='lifetimeMs'  type='int'   minOccurs='0'/>
     </sequence>
   </complexType>
 
