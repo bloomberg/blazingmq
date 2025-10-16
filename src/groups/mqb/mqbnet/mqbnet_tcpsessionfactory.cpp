@@ -377,6 +377,10 @@ void TCPSessionFactory::handleInitialConnection(
                 bdlf::PlaceHolders::_5,  // initialConnectionContext
                 context));
 
+    // Cache the context.  It will be removed in 'initialConnectionComplete'.
+    d_initialConnectionContextCache[initialConnectionContext.get()] =
+        initialConnectionContext;
+
     // Register as observer of the channel to get the 'onClose'
     channel->onClose(
         bdlf::BindUtil::bindS(d_allocator_p,
@@ -554,8 +558,14 @@ void TCPSessionFactory::initialConnectionComplete(
         return;  // RETURN
     }
 
+    // Remove the cached InitialConnectionContext
+    BSLS_ASSERT_SAFE(
+        d_initialConnectionContextCache.contains(initialConnectionContext_p));
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp =
+        d_initialConnectionContextCache.at(initialConnectionContext_p);
+    d_initialConnectionContextCache.erase(initialConnectionContext_p);
+
     // Successful negotiation
-    BSLS_ASSERT_SAFE(initialConnectionContext_p);
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
 
     BALL_LOG_INFO
