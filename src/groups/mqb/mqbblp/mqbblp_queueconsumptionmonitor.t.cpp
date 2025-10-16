@@ -72,29 +72,43 @@ class QueueConsumptionMonitorTest : public QueueConsumptionMonitor {
     QueueConsumptionMonitorTest(QueueState*              queueState,
                                 const HaveUndeliveredCb& haveUndeliveredCb,
                                 const LoggingCb&         loggingCb,
-                                bslma::Allocator*        allocator)
-    : QueueConsumptionMonitor(queueState,
-                              haveUndeliveredCb,
-                              loggingCb,
-                              allocator)
-    {
-        // NOTHING
-    }
+                                bslma::Allocator*        allocator);
 
-    ~QueueConsumptionMonitorTest() BSLS_KEYWORD_OVERRIDE { reset(); }
+    ~QueueConsumptionMonitorTest() BSLS_KEYWORD_OVERRIDE;
 
     // MODIFIERS
 
-    void alarmEventDispatched() BSLS_KEYWORD_OVERRIDE
-    {
-        QueueConsumptionMonitor::alarmEventDispatched();
-    }
+    void alarmEventDispatched() BSLS_KEYWORD_OVERRIDE;
 
-    void idleEventDispatched(const bsl::string& appId) BSLS_KEYWORD_OVERRIDE
-    {
-        QueueConsumptionMonitor::idleEventDispatched(appId);
-    }
+    void idleEventDispatched(const bsl::string& appId) BSLS_KEYWORD_OVERRIDE;
 };
+
+QueueConsumptionMonitorTest::QueueConsumptionMonitorTest(
+    QueueState*              queueState,
+    const HaveUndeliveredCb& haveUndeliveredCb,
+    const LoggingCb&         loggingCb,
+    bslma::Allocator*        allocator)
+: QueueConsumptionMonitor(queueState, haveUndeliveredCb, loggingCb, allocator)
+{
+    // NOTHING
+}
+
+QueueConsumptionMonitorTest::~QueueConsumptionMonitorTest()
+{
+    reset();
+}
+
+// MODIFIERS
+
+void QueueConsumptionMonitorTest::alarmEventDispatched()
+{
+    QueueConsumptionMonitor::alarmEventDispatched();
+}
+
+void QueueConsumptionMonitorTest::idleEventDispatched(const bsl::string& appId)
+{
+    QueueConsumptionMonitor::idleEventDispatched(appId);
+}
 
 struct MockStorageIterator : public mqbi::StorageIterator {
     // PUBLIC DATA
@@ -109,68 +123,105 @@ struct MockStorageIterator : public mqbi::StorageIterator {
     mqbi::StorageMessageAttributes d_messageAttributes;
 
     // CREATORS
-    MockStorageIterator()
-    : d_guid()
-    , d_appMessage(bmqp::RdaInfo())
-    , d_appData()
-    , d_options()
-    , d_messageAttributes()
-    {
-    }
+    MockStorageIterator();
 
     // MANIPULATORS
-    void clearCache() BSLS_KEYWORD_OVERRIDE
-    {
-        d_appData.reset();
-        d_options.reset();
-        d_messageAttributes.reset();
-    }
+    void clearCache() BSLS_KEYWORD_OVERRIDE;
 
-    bool advance() BSLS_KEYWORD_OVERRIDE { return true; }
+    bool advance() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     void
-    reset(const BSLA_UNUSED bmqt::MessageGUID& where) BSLS_KEYWORD_OVERRIDE
-    {
-    }
+    reset(const BSLA_UNUSED bmqt::MessageGUID& where) BSLS_KEYWORD_OVERRIDE;
 
-    const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE
-    {
-        return d_guid;
-    }
+    const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE;
 
     const mqbi::AppMessage& appMessageView(
-        BSLA_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE
-    {
-        return d_appMessage;
-    }
+        BSLA_UNUSED unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE;
 
     mqbi::AppMessage&
-    appMessageState(BSLA_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE
-    {
-        return d_appMessage;
-    }
+    appMessageState(BSLA_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
-    const bsl::shared_ptr<bdlbb::Blob>& appData() const BSLS_KEYWORD_OVERRIDE
-    {
-        return d_appData;
-    }
+    const bsl::shared_ptr<bdlbb::Blob>& appData() const BSLS_KEYWORD_OVERRIDE;
 
-    const bsl::shared_ptr<bdlbb::Blob>& options() const BSLS_KEYWORD_OVERRIDE
-    {
-        return d_options;
-    }
+    const bsl::shared_ptr<bdlbb::Blob>& options() const BSLS_KEYWORD_OVERRIDE;
 
     const mqbi::StorageMessageAttributes&
-    attributes() const BSLS_KEYWORD_OVERRIDE
-    {
-        return d_messageAttributes;
-    }
+    attributes() const BSLS_KEYWORD_OVERRIDE;
 
-    bool atEnd() const BSLS_KEYWORD_OVERRIDE { return false; }
+    bool atEnd() const BSLS_KEYWORD_OVERRIDE;
 
-    bool hasReceipt() const BSLS_KEYWORD_OVERRIDE { return true; }
+    bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
 };
+
+MockStorageIterator::MockStorageIterator()
+: d_guid()
+, d_appMessage(bmqp::RdaInfo())
+, d_appData()
+, d_options()
+, d_messageAttributes()
+{
+}
+
+// MANIPULATORS
+void MockStorageIterator::clearCache()
+{
+    d_appData.reset();
+    d_options.reset();
+    d_messageAttributes.reset();
+}
+
+bool MockStorageIterator::advance()
+{
+    return true;
+}
+
+// ACCESSORS
+void MockStorageIterator::reset(const BSLA_UNUSED bmqt::MessageGUID& where)
+{
+}
+
+const bmqt::MessageGUID& MockStorageIterator::guid() const
+{
+    return d_guid;
+}
+
+const mqbi::AppMessage&
+MockStorageIterator::appMessageView(BSLA_UNUSED unsigned int appOrdinal) const
+{
+    return d_appMessage;
+}
+
+mqbi::AppMessage&
+MockStorageIterator::appMessageState(BSLA_UNUSED unsigned int appOrdinal)
+{
+    return d_appMessage;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& MockStorageIterator::appData() const
+{
+    return d_appData;
+}
+
+const bsl::shared_ptr<bdlbb::Blob>& MockStorageIterator::options() const
+{
+    return d_options;
+}
+
+const mqbi::StorageMessageAttributes& MockStorageIterator::attributes() const
+{
+    return d_messageAttributes;
+}
+
+bool MockStorageIterator::atEnd() const
+{
+    return false;
+}
+
+bool MockStorageIterator::hasReceipt() const
+{
+    return true;
+}
 
 struct Test : bmqtst::Test {
     // PUBLIC DATA
