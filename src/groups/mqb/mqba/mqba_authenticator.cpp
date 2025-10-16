@@ -79,6 +79,8 @@ int Authenticator::onAuthenticationRequest(
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
     const InitialConnectionContextSp&          context)
 {
+    // executed by one of the *IO* threads
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(authenticationMsg.isAuthenticateRequestValue());
     BSLS_ASSERT_SAFE(context->isIncoming());
@@ -95,14 +97,13 @@ int Authenticator::onAuthenticationRequest(
             authenticationMsg,  // authenticationMessage
             context
                 ->authenticationEncodingType(),  // authenticationEncodingType
-            State::e_AUTHENTICATING,             // state
-            mqbnet::ConnectionType::e_UNKNOWN    // connectionType
+            State::e_AUTHENTICATING              // state
         );
 
     context->setAuthenticationContext(authenticationContext);
 
     // Authenticate
-    int rc = authenticateAsync(errorDescription, context, context->channel());
+    int rc = authenticateAsync(errorDescription, context);
 
     return rc;
 }
@@ -112,6 +113,8 @@ int Authenticator::onAuthenticationResponse(
     BSLA_UNUSED const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
     BSLA_UNUSED const InitialConnectionContextSp&          context)
 {
+    // executed by one of the *IO* threads
+
     BALL_LOG_ERROR << "Not Implemented";
 
     return -1;
@@ -160,22 +163,25 @@ int Authenticator::sendAuthenticationMessage(
     return rc_SUCCESS;
 }
 
-int Authenticator::authenticateAsync(
-    bsl::ostream&                          errorDescription,
-    const InitialConnectionContextSp&      context,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+int Authenticator::authenticateAsync(bsl::ostream& errorDescription,
+                                     const InitialConnectionContextSp& context)
 {
-    int rc = d_threadPool.enqueueJob(
-        bdlf::BindUtil::bindS(d_allocator_p,
-                              &Authenticator::authenticate,
-                              this,
-                              context,
-                              channel));
+    // executed by one of the *IO* threads
+
+    int rc = d_threadPool.enqueueJob(bdlf::BindUtil::bindS(
+        d_allocator_p,
+        &Authenticator::authenticate,
+        this,
+        context,
+        context->channel(),
+        context->state() ==
+            mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING));
 
     if (rc != 0) {
         errorDescription
             << "Failed to enqueue authentication job for '"
-            << channel->peerUri() << "' [rc: " << rc << ", message: "
+            << context->channel()->peerUri() << "' [rc: " << rc
+            << ", message: "
             << context->authenticationContext()->authenticationMessage()
             << "]";
     }
@@ -185,7 +191,8 @@ int Authenticator::authenticateAsync(
 
 void Authenticator::authenticate(
     const InitialConnectionContextSp&      context,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    bool                                   isDefaultAuthn)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -214,7 +221,8 @@ void Authenticator::authenticate(
 
     int                                  rc = rc_SUCCESS;
     bsl::string                          error;
-    mqbnet::InitialConnectionEvent::Enum input;
+    mqbnet::InitialConnectionEvent::Enum input =
+        InitialConnectionEvent::e_ERROR;
 
     bdlb::ScopeExitAny handleEventOnReturn(
         bdlf::BindUtil::bind(&mqbnet::InitialConnectionContext::handleEvent,
@@ -242,18 +250,15 @@ void Authenticator::authenticate(
     if (processRc != rc_SUCCESS) {
         rc    = (processRc * 10) + rc_PROCESS_AUTHENTICATION_FAILED;
         error = processErrStream.str();
-        input = InitialConnectionEvent::e_ERROR;
         return;  // RETURN
     }
 
     // In the case of a default authentication, we do not need to send
     // an AuthenticationResponse, we just need to continue the negotiation.
-    if (context->state() ==
-        mqbnet::InitialConnectionState::e_DEFAULT_AUTHENTICATING) {
+    if (isDefaultAuthn) {
         if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
             rc    = (status.code() * 10) + rc_AUTHENTICATION_FAILED;
             error = status.message();
-            input = InitialConnectionEvent::e_ERROR;
         }
         else {
             input = InitialConnectionEvent::e_AUTHN_SUCCESS;
@@ -272,14 +277,12 @@ void Authenticator::authenticate(
     if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         rc    = (status.code() * 10) + rc_AUTHENTICATION_FAILED;
         error = status.message();
-        input = InitialConnectionEvent::e_ERROR;
         return;  // RETURN
     }
 
     if (sendRc != rc_SUCCESS) {
         rc    = (sendRc * 10) + rc_SEND_AUTHENTICATION_RESPONSE_FAILED;
         error = sendResponseErrStream.str();
-        input = InitialConnectionEvent::e_ERROR;
         return;  // RETURN
     }
 
@@ -496,6 +499,8 @@ int Authenticator::handleAuthentication(
     const InitialConnectionContextSp&          context,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
+    // executed by one of the *IO* threads
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS             = 0,

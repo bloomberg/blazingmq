@@ -154,8 +154,6 @@ class AuthenticationContext {
     /// encoding type of the received message.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
-    ConnectionType::Enum d_connectionType;
-
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
@@ -177,7 +175,6 @@ class AuthenticationContext {
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
         bmqp::EncodingType::Enum                   authenticationEncodingType,
         State                                      state,
-        ConnectionType::Enum                       connectionType,
         bslma::Allocator*                          allocator = 0);
 
     // MANIPULATORS
