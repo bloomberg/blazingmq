@@ -61,6 +61,7 @@ PartitionStateTableState::toAscii(PartitionStateTableState::Enum value)
         CASE(REPLICA_HEALING)
         CASE(PRIMARY_HEALED)
         CASE(REPLICA_HEALED)
+        CASE(STOPPED)
         CASE(NUM_STATES)
     default: return "(* UNDEFINED *)";
     }
@@ -130,6 +131,7 @@ PartitionStateTableEvent::toAscii(PartitionStateTableEvent::Enum value)
         CASE(SELF_HIGHEST_SEQ)
         CASE(REPLICA_HIGHEST_SEQ)
         CASE(WATCH_DOG)
+        CASE(STOP_NODE)
         CASE(NUM_EVENTS)
     default: return "(* UNKNOWN *)";
     }
