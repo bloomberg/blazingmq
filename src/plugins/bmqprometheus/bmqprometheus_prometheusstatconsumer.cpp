@@ -50,7 +50,6 @@
 #include <bsls_performancehint.h>
 
 // PROMETHEUS
-#include "prometheus/counter.h"
 #include "prometheus/exposer.h"
 #include "prometheus/gateway.h"
 #include "prometheus/gauge.h"
@@ -316,23 +315,26 @@ void PrometheusStatConsumer::captureQueueStats()
             // Queue metrics
             {  // for scoping only
                 static const DatapointDef defs[] = {
-                    {"queue_producers_count", Stat::e_NB_PRODUCER, false},
-                    {"queue_consumers_count", Stat::e_NB_CONSUMER, false},
-                    {"queue_put_msgs", Stat::e_PUT_MESSAGES_DELTA, true},
-                    {"queue_put_bytes", Stat::e_PUT_BYTES_DELTA, true},
-                    {"queue_push_msgs", Stat::e_PUSH_MESSAGES_DELTA, true},
-                    {"queue_push_bytes", Stat::e_PUSH_BYTES_DELTA, true},
-                    {"queue_ack_msgs", Stat::e_ACK_DELTA, true},
-                    {"queue_ack_time_avg", Stat::e_ACK_TIME_AVG, false},
-                    {"queue_ack_time_max", Stat::e_ACK_TIME_MAX, false},
-                    {"queue_nack_msgs", Stat::e_NACK_DELTA, true},
-                    {"queue_confirm_msgs", Stat::e_CONFIRM_DELTA, true},
-                    {"queue_confirm_time_avg",
-                     Stat::e_CONFIRM_TIME_AVG,
-                     false},
-                    {"queue_confirm_time_max",
-                     Stat::e_CONFIRM_TIME_MAX,
-                     false}};
+                    {"queue_producers_count", Stat::e_NB_PRODUCER},
+                    {"queue_consumers_count", Stat::e_NB_CONSUMER},
+                    {"queue_put_msgs_delta", Stat::e_PUT_MESSAGES_DELTA},
+                    {"queue_put_msgs", Stat::e_PUT_MESSAGES_ABS},
+                    {"queue_put_bytes_delta", Stat::e_PUT_BYTES_DELTA},
+                    {"queue_put_bytes", Stat::e_PUT_BYTES_ABS},
+                    {"queue_push_msgs_delta", Stat::e_PUSH_MESSAGES_DELTA},
+                    {"queue_push_msgs", Stat::e_PUSH_MESSAGES_ABS},
+                    {"queue_push_bytes_delta", Stat::e_PUSH_BYTES_DELTA},
+                    {"queue_push_bytes", Stat::e_PUSH_BYTES_ABS},
+                    {"queue_ack_msgs_delta", Stat::e_ACK_DELTA},
+                    {"queue_ack_msgs", Stat::e_ACK_ABS},
+                    {"queue_ack_time_avg", Stat::e_ACK_TIME_AVG},
+                    {"queue_ack_time_max", Stat::e_ACK_TIME_MAX},
+                    {"queue_nack_msgs_delta", Stat::e_NACK_DELTA},
+                    {"queue_nack_msgs", Stat::e_NACK_ABS},
+                    {"queue_confirm_msgs", Stat::e_CONFIRM_DELTA},
+                    {"queue_confirm_msgs", Stat::e_CONFIRM_ABS},
+                    {"queue_confirm_time_avg", Stat::e_CONFIRM_TIME_AVG},
+                    {"queue_confirm_time_max", Stat::e_CONFIRM_TIME_MAX}};
 
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
@@ -351,7 +353,7 @@ void PrometheusStatConsumer::captureQueueStats()
                             d_snapshotId,
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 dpIt->d_stat));
-                    updateMetric(dpIt, labels, value);
+                    updateMetric(dpIt->d_name, labels, value);
                 }
             }
 
@@ -359,23 +361,23 @@ void PrometheusStatConsumer::captureQueueStats()
             // primary node only.
             if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                 static const DatapointDef defs[] = {
-                    {"queue_gc_msgs", Stat::e_GC_MSGS_DELTA, true},
-                    {"queue_cfg_msgs", Stat::e_CFG_MSGS, false},
-                    {"queue_cfg_bytes", Stat::e_CFG_BYTES, false},
-                    {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
+                    {"queue_gc_msgs_delta", Stat::e_GC_MSGS_DELTA},
+                    {"queue_gc_msgs", Stat::e_GC_MSGS_ABS},
+                    {"queue_cfg_msgs", Stat::e_CFG_MSGS},
+                    {"queue_cfg_bytes", Stat::e_CFG_BYTES},
+                    {"queue_content_msgs_max", Stat::e_MESSAGES_MAX},
                     {"queue_msgs_utilization_max",
-                     Stat::e_MESSAGES_UTILIZATION_MAX,
-                     false},
-                    {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
+                     Stat::e_MESSAGES_UTILIZATION_MAX},
+                    {"queue_content_bytes_max", Stat::e_BYTES_MAX},
                     {"queue_bytes_utilization_max",
-                     Stat::e_BYTES_UTILIZATION_MAX,
-                     false},
-                    {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
-                    {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
-                    {"queue_reject_msgs", Stat::e_REJECT_DELTA, true},
-                    {"queue_nack_noquorum_msgs",
-                     Stat::e_NO_SC_MSGS_DELTA,
-                     true},
+                     Stat::e_BYTES_UTILIZATION_MAX},
+                    {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG},
+                    {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX},
+                    {"queue_reject_msgs_delta", Stat::e_REJECT_DELTA},
+                    {"queue_reject_msgs", Stat::e_REJECT_ABS},
+                    {"queue_nack_noquorum_msgs_delta",
+                     Stat::e_NO_SC_MSGS_DELTA},
+                    {"queue_nack_noquorum_msgs", Stat::e_NO_SC_MSGS_ABS},
                 };
 
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
@@ -395,7 +397,7 @@ void PrometheusStatConsumer::captureQueueStats()
                             d_snapshotId,
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 dpIt->d_stat));
-                    updateMetric(dpIt, labels, value);
+                    updateMetric(dpIt->d_name, labels, value);
                 }
             }
 
@@ -403,14 +405,14 @@ void PrometheusStatConsumer::captureQueueStats()
 
             // These per-appId metrics exist for both primary and replica
             static const DatapointDef defsCommon[] = {
-                {"queue_confirm_time_max", Stat::e_CONFIRM_TIME_MAX, false},
+                {"queue_confirm_time_max", Stat::e_CONFIRM_TIME_MAX},
             };
 
             // These per-appId metrics exist only for primary
             static const DatapointDef defsPrimary[] = {
-                {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
-                {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
-                {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
+                {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX},
+                {"queue_content_msgs_max", Stat::e_MESSAGES_MAX},
+                {"queue_content_bytes_max", Stat::e_BYTES_MAX},
             };
             for (bmqst::StatContextIterator appIdIt =
                      queueIt->subcontextIterator();
@@ -429,7 +431,7 @@ void PrometheusStatConsumer::captureQueueStats()
                             d_snapshotId,
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 dpIt->d_stat));
-                    updateMetric(dpIt, labels, value);
+                    updateMetric(dpIt->d_name, labels, value);
                 }
 
                 if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
@@ -444,7 +446,7 @@ void PrometheusStatConsumer::captureQueueStats()
                                 static_cast<
                                     mqbstat::QueueStatsDomain::Stat::Enum>(
                                     dpIt->d_stat));
-                        updateMetric(dpIt, labels, value);
+                        updateMetric(dpIt->d_name, labels, value);
                     }
                 }
             }
@@ -486,9 +488,9 @@ void PrometheusStatConsumer::captureSystemStats()
              datapoints.begin();
          it != datapoints.end();
          ++it) {
-        auto& gauge = ::prometheus::BuildGauge().Name(it->first).Register(
-            *d_prometheusRegistry_p);
-        gauge.Add(tagger.getLabels()).Set(it->second);
+        updateMetric(it->first.c_str(),
+                     tagger.getLabels(),
+                     static_cast<bsls::Types::Int64>(it->second + 0.5));
     }
 
     // POSTCONDITIONS
@@ -497,6 +499,7 @@ void PrometheusStatConsumer::captureSystemStats()
 
 void PrometheusStatConsumer::captureNetworkStats()
 {
+    typedef bmqio::StatChannelFactoryUtil::Stat  Stat;  // Shortcut
     bsl::vector<bsl::pair<bsl::string, double> > datapoints;
 
     const int k_NUM_NETWORK_STATS = 4;
@@ -506,44 +509,29 @@ void PrometheusStatConsumer::captureNetworkStats()
         d_channelsStatContext_p->getSubcontext("local");
     const bmqst::StatContext* remoteContext =
         d_channelsStatContext_p->getSubcontext("remote");
-    // NOTE: Should be StatController::k_CHANNEL_STAT_*, but can't due to
-    //       dependency limitations.
 
     Tagger tagger;
     tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
         .setDataType("host-data");
 
-#define RETRIEVE_METRIC(TAIL, STAT, CONTEXT)                                  \
-    datapoints.emplace_back("brkr_system_net_" TAIL,                          \
-                            bmqio::StatChannelFactoryUtil::getValue(          \
-                                *CONTEXT,                                     \
-                                d_snapshotId,                                 \
-                                bmqio::StatChannelFactoryUtil::Stat::STAT));
+    auto reportBytes = [&](const bsl::string&        metricName,
+                           const Stat::Enum&         stat,
+                           const bmqst::StatContext* context) {
+        const bsl::string name = "brkr_system_net_" + metricName;
+        updateMetric(name.c_str(),
+                     tagger.getLabels(),
+                     bmqio::StatChannelFactoryUtil::getValue(*context,
+                                                             d_snapshotId,
+                                                             stat));
+    };
 
-    RETRIEVE_METRIC("local_in_bytes", e_BYTES_IN_DELTA, localContext);
-    RETRIEVE_METRIC("local_out_bytes", e_BYTES_OUT_DELTA, localContext);
-    RETRIEVE_METRIC("remote_in_bytes", e_BYTES_IN_DELTA, remoteContext);
-    RETRIEVE_METRIC("remote_out_bytes", e_BYTES_OUT_DELTA, remoteContext);
-
-#undef RETRIEVE_METRIC
-
-    for (bsl::vector<bsl::pair<bsl::string, double> >::iterator it =
-             datapoints.begin();
-         it != datapoints.end();
-         ++it) {
-        auto& counter = ::prometheus::BuildCounter().Name(it->first).Register(
-            *d_prometheusRegistry_p);
-        counter.Add(tagger.getLabels()).Increment(it->second);
-    }
+    reportBytes("local_in_bytes", Stat::e_BYTES_IN_DELTA, localContext);
+    reportBytes("local_out_bytes", Stat::e_BYTES_OUT_DELTA, localContext);
+    reportBytes("remote_in_bytes", Stat::e_BYTES_IN_DELTA, remoteContext);
+    reportBytes("remote_out_bytes", Stat::e_BYTES_OUT_DELTA, remoteContext);
 
     auto reportConnections = [&](const bsl::string&        metricName,
                                  const bmqst::StatContext* context) {
-        // In order to eliminate possible duplication of port contexts
-        // aggregate them before posting
-        bsl::unordered_map<bsl::string,
-                           bsl::pair<bsls::Types::Int64, bsls::Types::Int64> >
-            portMap;
-
         bmqst::StatContextIterator it = context->subcontextIterator();
         for (; it; ++it) {
             if (it->isDeleted()) {
@@ -552,33 +540,27 @@ void PrometheusStatConsumer::captureNetworkStats()
                 break;
             }
             tagger.setPort(bsl::to_string(it->id()));
-            ::prometheus::BuildCounter()
-                .Name("brkr_system_net_" + metricName + "_delta")
-                .Register(*d_prometheusRegistry_p)
-                .Add(tagger.getLabels())
-                .Increment(static_cast<double>(
-                    bmqio::StatChannelFactoryUtil::getValue(
-                        *it,
-                        d_snapshotId,
-                        bmqio::StatChannelFactoryUtil::Stat::
-                            e_CONNECTIONS_DELTA)));
-            ::prometheus::BuildGauge()
-                .Name("brkr_system_net_" + metricName)
-                .Register(*d_prometheusRegistry_p)
-                .Add(tagger.getLabels())
-                .Set(static_cast<
-                     double>(bmqio::StatChannelFactoryUtil::getValue(
-                    *it,
-                    d_snapshotId,
-                    bmqio::StatChannelFactoryUtil::Stat::e_CONNECTIONS_ABS)));
+            const bsl::string abs   = "brkr_system_net_" + metricName;
+            const bsl::string delta = "brkr_system_net_" + metricName +
+                                      "_delta";
+
+            updateMetric(delta.c_str(),
+                         tagger.getLabels(),
+                         bmqio::StatChannelFactoryUtil::getValue(
+                             *it,
+                             d_snapshotId,
+                             Stat::e_CONNECTIONS_DELTA));
+            updateMetric(abs.c_str(),
+                         tagger.getLabels(),
+                         bmqio::StatChannelFactoryUtil::getValue(
+                             *it,
+                             d_snapshotId,
+                             Stat::e_CONNECTIONS_ABS));
         }
     };
 
     reportConnections("local_tcp_connections", localContext);
     reportConnections("remote_tcp_connections", remoteContext);
-
-    // POSTCONDITIONS
-    BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_NETWORK_STATS);
 }
 
 void PrometheusStatConsumer::captureBrokerStats()
@@ -586,8 +568,8 @@ void PrometheusStatConsumer::captureBrokerStats()
     typedef mqbstat::BrokerStats::Stat Stat;  // Shortcut
 
     static const DatapointDef defs[] = {
-        {"brkr_summary_queues_count", Stat::e_QUEUE_COUNT, false},
-        {"brkr_summary_clients_count", Stat::e_CLIENT_COUNT, false},
+        {"brkr_summary_queues_count", Stat::e_QUEUE_COUNT},
+        {"brkr_summary_clients_count", Stat::e_CLIENT_COUNT},
     };
 
     Tagger tagger;
@@ -601,7 +583,7 @@ void PrometheusStatConsumer::captureBrokerStats()
             *d_brokerStatContext_p,
             d_snapshotId,
             static_cast<Stat::Enum>(dpIt->d_stat));
-        updateMetric(dpIt, tagger.getLabels(), value);
+        updateMetric(dpIt->d_name, tagger.getLabels(), value);
     }
 }
 
@@ -634,7 +616,7 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
         // scope
         {
             static const DatapointDef defs[] = {
-                {"cluster_healthiness", Stat::e_CLUSTER_STATUS, false},
+                {"cluster_healthiness", Stat::e_CLUSTER_STATUS},
             };
 
             const mqbstat::ClusterStats::Role::Enum role =
@@ -668,29 +650,23 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                         d_snapshotId,
                         static_cast<Stat::Enum>(dpIt->d_stat));
 
-                updateMetric(dpIt, tagger.getLabels(), value);
+                updateMetric(dpIt->d_name, tagger.getLabels(), value);
             }
         }
 
         if (leaders.find(clusterIt->name()) != leaders.end()) {
             static const DatapointDef defs[] = {
                 {"cluster_partition_cfg_journal_bytes",
-                 Stat::e_PARTITION_CFG_JOURNAL_BYTES,
-                 false},
+                 Stat::e_PARTITION_CFG_JOURNAL_BYTES},
                 {"cluster_partition_cfg_data_bytes",
-                 Stat::e_PARTITION_CFG_DATA_BYTES,
-                 false},
+                 Stat::e_PARTITION_CFG_DATA_BYTES},
                 {"cluster_csl_replication_time_ns_avg",
-                 Stat::e_CSL_REPLICATION_TIME_NS_AVG,
-                 false},
+                 Stat::e_CSL_REPLICATION_TIME_NS_AVG},
                 {"cluster_csl_replication_time_ns_max",
-                 Stat::e_CSL_REPLICATION_TIME_NS_MAX,
-                 false},
-                {"cluster_csl_offset_bytes",
-                 Stat::e_CSL_LOG_OFFSET_BYTES,
-                 false},
-                {"cluster_csl_write_bytes", Stat::e_CSL_WRITE_BYTES, false},
-                {"cluster_csl_cfg_bytes", Stat::e_CSL_CFG_BYTES, false},
+                 Stat::e_CSL_REPLICATION_TIME_NS_MAX},
+                {"cluster_csl_offset_bytes", Stat::e_CSL_LOG_OFFSET_BYTES},
+                {"cluster_csl_write_bytes", Stat::e_CSL_WRITE_BYTES},
+                {"cluster_csl_cfg_bytes", Stat::e_CSL_CFG_BYTES},
             };
 
             Tagger tagger;
@@ -707,7 +683,7 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                         d_snapshotId,
                         static_cast<Stat::Enum>(dpIt->d_stat));
 
-                updateMetric(dpIt, tagger.getLabels(), value);
+                updateMetric(dpIt->d_name, tagger.getLabels(), value);
             }
         }
     }
@@ -757,30 +733,23 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
 
             const DatapointDef defs[] = {
                 {rollover_time.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME,
-                 false},
+                 mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME},
                 {journal_offset_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_OFFSET,
-                 false},
+                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_OFFSET},
                 {journal_outstanding_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT,
-                 false},
+                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT},
                 {journal_utilization.c_str(),
                  mqbstat::ClusterStats::Stat::
-                     e_PARTITION_JOURNAL_UTILIZATION_MAX,
-                 false},
+                     e_PARTITION_JOURNAL_UTILIZATION_MAX},
                 {data_offset_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_OFFSET,
-                 false},
+                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_OFFSET},
                 {data_outstanding_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT,
-                 false},
+                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT},
                 {data_utilization.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_UTILIZATION_MAX,
-                 false},
+                 mqbstat::ClusterStats::Stat::
+                     e_PARTITION_DATA_UTILIZATION_MAX},
                 {sequence_number.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_SEQUENCE_NUMBER,
-                 false}};
+                 mqbstat::ClusterStats::Stat::e_PARTITION_SEQUENCE_NUMBER}};
 
             Tagger tagger;
             tagger.setCluster(clusterIt->name())
@@ -796,7 +765,7 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                         d_snapshotId,
                         static_cast<mqbstat::ClusterStats::Stat::Enum>(
                             dpIt->d_stat));
-                updateMetric(dpIt, tagger.getLabels(), value);
+                updateMetric(dpIt->d_name, tagger.getLabels(), value);
             }
         }
     }
@@ -829,9 +798,9 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
             .setDataType("global-data");
 
         static const DatapointDef defs[] = {
-            {"domain_cfg_msgs", Stat::e_CFG_MSGS, false},
-            {"domain_cfg_bytes", Stat::e_CFG_BYTES, false},
-            {"domain_queue_count", Stat::e_QUEUE_COUNT, false},
+            {"domain_cfg_msgs", Stat::e_CFG_MSGS},
+            {"domain_cfg_bytes", Stat::e_CFG_BYTES},
+            {"domain_queue_count", Stat::e_QUEUE_COUNT},
         };
 
         for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
@@ -842,30 +811,18 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
                 d_snapshotId,
                 static_cast<Stat::Enum>(dpIt->d_stat));
 
-            updateMetric(dpIt, tagger.getLabels(), value);
+            updateMetric(dpIt->d_name, tagger.getLabels(), value);
         }
     }
 }
 
-void PrometheusStatConsumer::updateMetric(const DatapointDef*         def_p,
+void PrometheusStatConsumer::updateMetric(const char*                 name,
                                           const ::prometheus::Labels& labels,
                                           const bsls::Types::Int64    value)
 {
-    if (value != 0) {
-        // To save metrics, only report non-null values
-        if (def_p->d_isCounter) {
-            auto& counter = ::prometheus::BuildCounter()
-                                .Name(def_p->d_name)
-                                .Register(*d_prometheusRegistry_p);
-            counter.Add(labels).Increment(static_cast<double>(value));
-        }
-        else {
-            auto& gauge = ::prometheus::BuildGauge()
-                              .Name(def_p->d_name)
-                              .Register(*d_prometheusRegistry_p);
-            gauge.Add(labels).Set(static_cast<double>(value));
-        }
-    }
+    auto& gauge = ::prometheus::BuildGauge().Name(name).Register(
+        *d_prometheusRegistry_p);
+    gauge.Add(labels).Set(static_cast<double>(value));
 }
 
 void PrometheusStatConsumer::setPublishInterval(
