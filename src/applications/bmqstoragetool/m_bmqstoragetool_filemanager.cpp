@@ -245,7 +245,7 @@ bool FileManagerImpl::CslFileHandler::resetIterator(
         return false;  // RETURN
     }
 
-    // If `location` is empty, use explicitly current directory.
+    // Use current directory when `location` is empty.
     if (location.empty()) {
         location = ".";
     }
