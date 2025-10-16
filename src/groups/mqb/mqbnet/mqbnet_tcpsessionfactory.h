@@ -269,6 +269,10 @@ class TCPSessionFactory {
 
     typedef bslma::ManagedPtr<bmqio::StatChannelFactory> StatChannelFactoryMp;
 
+    typedef bsl::unordered_map<const InitialConnectionContext*,
+                               bsl::shared_ptr<InitialConnectionContext> >
+        InitialConnectionContextMp;
+
     typedef TCPSessionFactory_OperationContext OperationContext;
 
     typedef bsl::shared_ptr<bmqio::ChannelFactory::OpHandle> OpHandleSp;
@@ -318,6 +322,14 @@ class TCPSessionFactory {
     ReconnectingChannelFactoryMp d_reconnectingChannelFactory_mp;
 
     StatChannelFactoryMp d_statChannelFactory_mp;
+
+    /// Cache of shared pointers to @bbref{mqbnet::InitialConnectionContext} to
+    /// preserve their lifetime while an initial connection
+    /// (authentication/negotiation) is in progress.  Each context is added by
+    /// @bbref{handleInitialConnection} and removed by
+    /// @bbref{initialConnectionComplete} once negotiation finishes (success or
+    /// failure).
+    InitialConnectionContextMp d_initialConnectionContextCache;
 
     /// Name to use for the IO threads
     bsl::string d_threadName;
