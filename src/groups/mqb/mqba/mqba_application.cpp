@@ -46,6 +46,7 @@
 
 #include <bmqscm_version.h>
 #include <bmqst_statcontext.h>
+#include <bmqsys_operationlogger.h>
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 
@@ -977,11 +978,18 @@ int Application::processCommandCb(
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
     bool                                                fromReroute)
 {
-    bmqu::MemOutStream os;
-    int                rc = processCommand(source, cmd, os, fromReroute);
+    bmqsys::OperationLogger opLogger(d_allocator_p);
+    // Set operation name later when we have a return code
+    opLogger.start();
+
+    bmqu::MemOutStream os(d_allocator_p);
+    const int          rc = processCommand(source, cmd, os, fromReroute);
+    opLogger.operation() << "Process command '" << cmd << "' (rc = " << rc
+                         << ")";
 
     onProcessedCb(rc, os.str());
 
+    // `opLogger` logs execution time on destruction
     return rc;  // RETURN
 }
 
