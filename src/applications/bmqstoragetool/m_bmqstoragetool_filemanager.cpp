@@ -245,6 +245,11 @@ bool FileManagerImpl::CslFileHandler::resetIterator(
         return false;  // RETURN
     }
 
+    // Use current directory when `location` is empty.
+    if (location.empty()) {
+        location = ".";
+    }
+
     ledgerConfig.setLocation(location)
         .setPattern(pattern)
         .setMaxLogSize(fileSize)
