@@ -190,6 +190,26 @@ static void test1_compilationErrors()
          ErrorType::e_SYNTAX,
          "syntax error, unexpected > at offset 5"},
 
+        // chained expressions
+        {"x == y == z",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected = at offset 7"},
+        {"x != y != z",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected <> at offset 7"},
+        {"x < y < z",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected < at offset 6"},
+        {"x <= y <= z",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected <= at offset 7"},
+        {"x > y > z",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected > at offset 6"},
+        {"x >= y >= z",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected >= at offset 7"},
+
         // unsupported_ints
         {"i_0 != 9223372036854775808",
          ErrorType::e_SYNTAX,

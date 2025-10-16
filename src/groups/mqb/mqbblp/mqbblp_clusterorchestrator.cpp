@@ -464,7 +464,7 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
             << " partition(s): [";
         for (unsigned int i = 0; i < ns->primaryPartitions().size(); ++i) {
             BALL_LOG_OUTPUT_STREAM << ns->primaryPartitions()[i];
-            if (i < (ns->primaryPartitions().size() - 1)) {
+            if (i + 1 < ns->primaryPartitions().size()) {
                 BALL_LOG_OUTPUT_STREAM << ", ";
             }
         }
@@ -475,7 +475,6 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
     // followers as well.  Is the correct behavior?  Should this be done only
     // by the leader, and followers should update the info only upon being
     // notified from the leader?
-
     d_stateManager_mp->markOrphan(ns->primaryPartitions(), node);
     ns->removeAllPartitions();
 
@@ -980,7 +979,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
 
     const bsl::vector<int>& partitions =
         d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
-    for (unsigned int i = 0; i < partitions.size(); ++i) {
+    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
         d_storageManager_p->processReplicaStatusAdvisory(
             partitions[i],
             ns->clusterNode(),
@@ -1085,7 +1084,7 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
         const bsl::vector<int>& partitions = d_clusterData_p->membership()
                                                  .selfNodeSession()
                                                  ->primaryPartitions();
-        for (unsigned int i = 0; i < partitions.size(); ++i) {
+        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
             d_storageManager_p->processReplicaStatusAdvisory(
                 partitions[i],
                 source,
@@ -1186,7 +1185,7 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         const bsl::vector<int>& partitions = d_clusterData_p->membership()
                                                  .selfNodeSession()
                                                  ->primaryPartitions();
-        for (unsigned int i = 0; i < partitions.size(); ++i) {
+        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
             d_storageManager_p->processReplicaStatusAdvisory(
                 partitions[i],
                 node,

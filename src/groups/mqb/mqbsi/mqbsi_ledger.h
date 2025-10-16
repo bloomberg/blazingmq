@@ -80,9 +80,7 @@ struct LedgerOpResult {
         ,
         e_UNKNOWN                 = -1,
         e_LEDGER_NOT_EXIST        = -2,
-        e_LEDGER_ALREADY_OPENED   = -3,
-        e_LEDGER_ALREADY_CLOSED   = -4,
-        e_LEDGER_UNGRACEFUL_CLOSE = -5
+        e_LEDGER_UNGRACEFUL_CLOSE = -3
 
         // File specific
         // - - - - - - - - - - - - - - - - - - - - - -

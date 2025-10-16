@@ -313,7 +313,7 @@ class ClusterNodeStats {
     /// are monitored.
     struct EventType {
         // TYPES
-        enum Enum { e_PUT, e_PUSH, e_ACK, e_CONFIRM };
+        enum Enum { e_ACK, e_CONFIRM, e_PUT, e_PUSH };
     };
 
     /// Enum representing the various type of stats that can be obtained

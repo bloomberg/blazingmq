@@ -57,6 +57,8 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
 void PartitionFSM::popEventAndProcess(
     const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueue)
 {
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!eventsQueue->empty());
 

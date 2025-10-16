@@ -24,12 +24,15 @@ from blazingmq.dev.it.fixtures import (
     test_logger,
     tweak,
 )
-from blazingmq.dev.it.util import wait_until
+from blazingmq.dev.it.cluster_util import (
+    simulate_csl_rollover,
+    check_if_queue_has_n_messages,
+)
 import glob
 
 pytestmark = order(4)
 
-default_app_ids = ["foo", "bar", "baz"]
+DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
 class TestRolloverCSL:
@@ -49,18 +52,7 @@ class TestRolloverCSL:
         )
         assert len(csl_files_before_rollover) == 1
 
-        i = 0
-        # Open queues until rollover detected
-        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
-            producer.open(
-                f"bmq://{domain_priority}/q{i}", flags=["write,ack"], succeed=True
-            )
-            producer.close(f"bmq://{domain_priority}/q{i}", succeed=True)
-            i += 1
-            assert i < 10000, (
-                "Failed to detect rollover after opening a reasonable number of queues"
-            )
-        test_logger.info(f"Rollover detected after opening {i} queues")
+        simulate_csl_rollover(domain_urls, leader, producer)
 
         csl_files_after_rollover = glob.glob(
             str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
@@ -127,7 +119,7 @@ class TestRolloverCSL:
         consumer.close(priority_queue, succeed=True)
         consumer.close(fanout_queue + "?id=foo", succeed=True)
 
-        current_app_ids = default_app_ids + ["quux"]
+        current_app_ids = DEFAULT_APP_IDS + ["quux"]
         cluster.set_app_ids(current_app_ids, du)
         producer.post(
             fanout_queue,
@@ -140,28 +132,7 @@ class TestRolloverCSL:
         cluster.set_app_ids(current_app_ids, du)
 
         # SWITCH
-        i = 0
-        # Open queues until rollover detected
-        while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
-            producer.open(
-                f"bmq://{du.domain_priority}/q_dummy_{i}",
-                flags=["write,ack"],
-                succeed=True,
-            )
-            producer.close(f"bmq://{du.domain_priority}/q_dummy_{i}", succeed=True)
-            i += 1
-
-            if i % 5 == 0:
-                # do not wait for success, otherwise the following capture will fail
-                leader.force_gc_queues(block=False)
-
-            assert i < 10000, (
-                "Failed to detect rollover after opening a reasonable number of queues"
-            )
-        test_logger.info(f"Rollover detected after opening {i} queues")
-
-        # Rollover and queueUnAssignmentAdvisory interleave
-        assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
+        simulate_csl_rollover(du, leader, producer)
 
         cluster.restart_nodes()
         # For a standard cluster, states have already been restored as part of
@@ -170,57 +141,8 @@ class TestRolloverCSL:
             producer.wait_state_restored()
 
         # EPILOGUE
-        test_logger.info("Check if priority queue still has 1 message")
-        consumer.open(
-            priority_queue,
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(priority_queue, block=True)) == 1,
-            3,
-        )
-
-        test_logger.info("Check if app 'foo' still has 2 messages")
-        consumer.open(
-            fanout_queue + "?id=foo",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=foo", block=True)) == 2,
-            3,
-        )
-
-        test_logger.info("Verify that removed app 'bar' cannot receive any message")
-        consumer.open(
-            fanout_queue + "?id=bar",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=bar", block=True)) == 0,
-            3,
-        )
-
-        test_logger.info("Check if app 'baz' still has 3 messages")
-        consumer.open(
-            fanout_queue + "?id=baz",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=baz", block=True)) == 3,
-            3,
-        )
-
-        test_logger.info("Check if app 'quux' still has 1 message")
-        consumer.open(
-            fanout_queue + "?id=quux",
-            flags=["read"],
-            succeed=True,
-        )
-        assert wait_until(
-            lambda: len(consumer.list(fanout_queue + "?id=quux", block=True)) == 1,
-            3,
-        )
+        check_if_queue_has_n_messages(consumer, priority_queue, 1)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
+        check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)

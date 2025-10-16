@@ -280,7 +280,7 @@ void QueueHandle::deliverMessage(
     const mqbi::StorageIterator& message,
     BSLA_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray&     subscriptions,
-    BSLA_UNUSED bool                              isOutOfOrder)
+    BSLA_MAYBE_UNUSED bool                        isOutOfOrder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -304,7 +304,7 @@ void QueueHandle::deliverMessage(
             guids.insert(
                 bsl::make_pair(message.guid(),
                                bsl::make_pair(message.appData(), sId)));
-        BSLS_ASSERT_OPT(insertRC.second);
+        BSLS_ASSERT_OPT(insertRC.second || isOutOfOrder);
     }
 }
 
