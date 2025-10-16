@@ -97,6 +97,7 @@ class Authenticator : public mqbnet::Authenticator {
         InitialConnectionContextSp;
 
     typedef mqbnet::InitialConnectionEvent InitialConnectionEvent;
+    typedef mqbnet::InitialConnectionState InitialConnectionState;
 
   private:
     // DATA
@@ -165,20 +166,21 @@ class Authenticator : public mqbnet::Authenticator {
         bmqp::EncodingType::Enum                   authenticationEncodingType);
 
     /// Schedule an authentication job in the thread pool using the
-    /// specified `context` and `channel`.  Return 0 on success, or a
+    /// specified `context`.  Return 0 on success, or a
     /// non-zero error code and populate the specified `errorDescription`
     /// with a description of the error otherwise.
     int authenticateAsync(bsl::ostream&                     errorDescription,
-                          const InitialConnectionContextSp& context,
-                          const bsl::shared_ptr<bmqio::Channel>& channel);
+                          const InitialConnectionContextSp& context);
 
     /// Authenticate the connection using the `AuthenticationMessage` stored in
     /// `context`.  If authentication fails, invoke
-    /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
-    /// state of `context` as appropriate. Return 0 on success, or a
-    /// non-zero error code otherwise.
+    /// `initialConnectionCompleteCb` to close the `channel`.  Also, update the
+    /// state of `context` as appropriate.  `isDefaultAuthn` indicates if this
+    /// is default authentication.  Return 0 on success, or a non-zero error
+    /// code otherwise.
     void authenticate(const InitialConnectionContextSp&      context,
-                      const bsl::shared_ptr<bmqio::Channel>& channel);
+                      const bsl::shared_ptr<bmqio::Channel>& channel,
+                      bool                                   isDefaultAuthn);
 
     /// Reauthenticate the connection using the `AuthenticationMessage`
     /// stored in `context`.  If reauthentication fails, invoke

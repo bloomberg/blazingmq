@@ -102,7 +102,6 @@ AuthenticationContext::AuthenticationContext(
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
     bmqp::EncodingType::Enum                   authenticationEncodingType,
     State                                      state,
-    ConnectionType::Enum                       connectionType,
     bslma::Allocator*                          allocator)
 : d_self(this)  // use default allocator
 , d_mutex()
@@ -112,7 +111,6 @@ AuthenticationContext::AuthenticationContext(
 , d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
 , d_authenticationEncodingType(authenticationEncodingType)
-, d_connectionType(connectionType)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -140,11 +138,6 @@ void AuthenticationContext::setAuthenticationEncodingType(
     bmqp::EncodingType::Enum value)
 {
     d_authenticationEncodingType = value;
-}
-
-void AuthenticationContext::setConnectionType(ConnectionType::Enum value)
-{
-    d_connectionType = value;
 }
 
 int AuthenticationContext::scheduleReauthn(
@@ -211,7 +204,7 @@ void AuthenticationContext::onReauthenticateErrorOrTimeout(
                    << channel->peerUri() << "' [error: " << errorName
                    << ", code: " << errorCode << "]";
 
-    bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+    bmqio::Status status(bmqio::StatusCategory::e_CANCELED,
                          errorName,
                          errorCode,
                          d_allocator_p);
@@ -268,11 +261,6 @@ bmqp::EncodingType::Enum
 AuthenticationContext::authenticationEncodingType() const
 {
     return d_authenticationEncodingType;
-}
-
-ConnectionType::Enum AuthenticationContext::connectionType() const
-{
-    return d_connectionType;
 }
 
 }  // namespace mqbnet

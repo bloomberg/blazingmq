@@ -227,24 +227,17 @@ InitialConnectionContext::~InitialConnectionContext()
     // NOTHING
 }
 
-int InitialConnectionContext::readBlob(bsl::ostream&        errorDescription,
-                                       bdlbb::Blob*         outPacket,
-                                       bool*                isFullBlob,
-                                       const bmqio::Status& status,
-                                       int*                 numNeeded,
-                                       bdlbb::Blob*         blob)
+int InitialConnectionContext::readBlob(bsl::ostream& errorDescription,
+                                       bdlbb::Blob*  outPacket,
+                                       bool*         isFullBlob,
+                                       int*          numNeeded,
+                                       bdlbb::Blob*  blob)
 {
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                  = 0,
-        rc_READ_ERROR               = -1,
-        rc_UNRECOVERABLE_READ_ERROR = -2
+        rc_UNRECOVERABLE_READ_ERROR = -1
     };
-
-    if (!status) {
-        errorDescription << "Read error: " << status;
-        return (10 * status.category()) + rc_READ_ERROR;  // RETURN
-    }
 
     int rc = bmqio::ChannelUtil::handleRead(outPacket, numNeeded, blob);
     if (rc != 0) {
@@ -270,6 +263,8 @@ int InitialConnectionContext::readBlob(bsl::ostream&        errorDescription,
 int InitialConnectionContext::processBlob(bsl::ostream&      errorDescription,
                                           const bdlbb::Blob& blob)
 {
+    // executed by one of the *IO* threads
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                           = 0,
@@ -390,6 +385,8 @@ void InitialConnectionContext::createNegotiationContext()
 int InitialConnectionContext::handleDefaultAuthentication(
     bsl::ostream& errorDescription)
 {
+    // executed by one of the *IO* threads
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!authenticationContext());
 
@@ -445,6 +442,8 @@ void InitialConnectionContext::readCallback(const bmqio::Status& status,
                                             int*                 numNeeded,
                                             bdlbb::Blob*         blob)
 {
+    // executed by one of the *IO* threads
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS            = 0,
@@ -460,7 +459,13 @@ void InitialConnectionContext::readCallback(const bmqio::Status& status,
     bmqu::MemOutStream errStream;
     int                rc = rc_SUCCESS;
 
-    rc = readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
+    if (!status) {
+        errStream << "Read error: " << status;
+        handleEvent(rc_READ_BLOB_ERROR, errStream.str(), Event::e_ERROR);
+        return;  // RETURN
+    }
+
+    rc = readBlob(errStream, &outPacket, &isFullBlob, numNeeded, blob);
     if (rc != rc_SUCCESS) {
         handleEvent((rc * 10) + rc_READ_BLOB_ERROR,
                     errStream.str(),
@@ -518,6 +523,8 @@ void InitialConnectionContext::handleEvent(
                        bmqp_ctrlmsg::AuthenticationMessage,
                        bmqp_ctrlmsg::NegotiationMessage>& message)
 {
+    // executed by an *AUTHENTICATION* or one of the *IO* threads
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS = 0,
@@ -527,7 +534,7 @@ void InitialConnectionContext::handleEvent(
     bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
 
     bmqu::MemOutStream errStream(d_allocator_p);
-    int                rc = rc_SUCCESS;
+    int                rc = rc_ERROR;
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -551,7 +558,6 @@ void InitialConnectionContext::handleEvent(
             }
         }
         else {
-            rc = rc_ERROR;
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input;
         }
@@ -560,7 +566,6 @@ void InitialConnectionContext::handleEvent(
     case Event::e_AUTH_REQUEST: {
         if (!bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
                 message)) {
-            rc = rc_ERROR;
             errStream
                 << "Expecting AuthenticationMessage for event AUTH_REQUEST.";
             break;
@@ -576,7 +581,6 @@ void InitialConnectionContext::handleEvent(
                                                          authenticationMsg);
         }
         else {
-            rc = rc_ERROR;
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input;
         }
@@ -585,7 +589,6 @@ void InitialConnectionContext::handleEvent(
     case Event::e_NEGOTIATION_MESSAGE: {
         if (!bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
                 message)) {
-            rc = rc_ERROR;
             errStream << "Expecting NegotiationMessage for event "
                          "e_NEGOTIATION_MESSAGE.";
             break;
@@ -608,6 +611,8 @@ void InitialConnectionContext::handleEvent(
 
             createNegotiationContext();
             negotiationContext()->setNegotiationMessage(negotiationMsg);
+
+            rc = rc_SUCCESS;
         }
         else if (oldState == State::e_NEGOTIATING_OUTBOUND &&
                  negotiationMsg.isBrokerResponseValue()) {
@@ -616,9 +621,10 @@ void InitialConnectionContext::handleEvent(
 
             BSLS_ASSERT_SAFE(negotiationContext());
             negotiationContext()->setNegotiationMessage(negotiationMsg);
+
+            rc = rc_SUCCESS;
         }
         else {
-            rc = rc_ERROR;
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input << " [ negotiationMsg: " << negotiationMsg
                       << " ]";
@@ -639,9 +645,10 @@ void InitialConnectionContext::handleEvent(
             BSLS_ASSERT_SAFE(negotiationContext()
                                  ->negotiationMessage()
                                  .isClientIdentityValue());
+
+            rc = rc_SUCCESS;
         }
         else {
-            rc = rc_ERROR;
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input;
         }
@@ -657,7 +664,6 @@ void InitialConnectionContext::handleEvent(
         break;
     }
     default:
-        rc = rc_ERROR;
         errStream << "InitialConnectionContext: "
                   << "unexpected event received: " << input;
     }
@@ -667,12 +673,12 @@ void InitialConnectionContext::handleEvent(
 
     bsl::shared_ptr<mqbnet::Session> session;
 
-    if (rc == 0 && d_state == State::e_NEGOTIATED) {
+    if (rc == rc_SUCCESS && d_state == State::e_NEGOTIATED) {
         rc = d_negotiator_p->createSessionOnMsgType(errStream, &session, this);
         BALL_LOG_INFO << "Created a session with " << channel()->peerUri();
     }
 
-    if (rc != 0 || d_state == State::e_NEGOTIATED) {
+    if (rc != rc_SUCCESS || d_state == State::e_NEGOTIATED) {
         BALL_LOG_INFO << "Finished initial connection with rc = " << rc
                       << ", error = '" << errStream.str() << "'";
         guard.release()->unlock();
@@ -721,8 +727,6 @@ InitialConnectionContext::negotiationContext() const
 
 InitialConnectionState::Enum InitialConnectionContext::state() const
 {
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
-
     return d_state;
 }
 

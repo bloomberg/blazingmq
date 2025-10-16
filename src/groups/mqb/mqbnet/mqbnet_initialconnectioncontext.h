@@ -329,12 +329,11 @@ class InitialConnectionContext
     // PRIVATE MANIPULATORS
     void setState(State value);
 
-    int readBlob(bsl::ostream&        errorDescription,
-                 bdlbb::Blob*         outPacket,
-                 bool*                isFullBlob,
-                 const bmqio::Status& status,
-                 int*                 numNeeded,
-                 bdlbb::Blob*         blob);
+    int readBlob(bsl::ostream& errorDescription,
+                 bdlbb::Blob*  outPacket,
+                 bool*         isFullBlob,
+                 int*          numNeeded,
+                 bdlbb::Blob*  blob);
 
     int processBlob(bsl::ostream& errorDescription, const bdlbb::Blob& blob);
 
