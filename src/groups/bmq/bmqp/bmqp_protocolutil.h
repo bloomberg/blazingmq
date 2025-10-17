@@ -524,11 +524,11 @@ int ProtocolUtil::encodeMessage(bsl::ostream&      errorDescription,
         balber::BerEncoderOptions options;
         balber::BerEncoder        encoder(&options, allocator);
 
-        int rc = encoder.encode(out, message);
+        const int rc = encoder.encode(out, message);
 
         // Debug print message if any
         bslstl::StringRef logStr = encoder.loggedMessages();
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(logStr.length() != 0)) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!logStr.empty())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             errorDescription << "BER encoder returned the following "
                              << "[rc: " << rc << "]\n"
@@ -541,11 +541,11 @@ int ProtocolUtil::encodeMessage(bsl::ostream&      errorDescription,
         baljsn::EncoderOptions options;
         baljsn::Encoder        encoder(allocator);
 
-        int rc = encoder.encode(out, message, options);
+        const int rc = encoder.encode(out, message, options);
 
         // Debug print message if any
         bsl::string logStr = encoder.loggedMessages();
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(logStr.length() != 0)) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!logStr.empty())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             errorDescription << "JSON encoder returned the following "
                              << "[rc: " << rc << "]\n"
@@ -593,15 +593,15 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
     switch (encodingType) {
     case EncodingType::e_BER: {
         balber::BerDecoderOptions options;
-        balber::BerDecoder        decoder(&options, allocator);
         options.setSkipUnknownElements(true);
         options.setDefaultEmptyStrings(false);
+        balber::BerDecoder decoder(&options, allocator);
 
-        int rc = decoder.decode(stream, message);
+        const int rc = decoder.decode(stream, message);
 
         // Debug print message if any
         bslstl::StringRef logStr = decoder.loggedMessages();
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(logStr.length() != 0)) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!logStr.empty())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             errorDescription << "BER decoder returned the following "
                              << "[rc: " << rc << "]\n"
@@ -615,11 +615,11 @@ int ProtocolUtil::decodeMessage(bsl::ostream&      errorDescription,
         baljsn::DecoderOptions options;
         options.setSkipUnknownElements(true);
 
-        int rc = decoder.decode(stream, message, options);
+        const int rc = decoder.decode(stream, message, options);
 
         // Debug print message if any
         bsl::string logStr = decoder.loggedMessages();
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(logStr.length() != 0)) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!logStr.empty())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             errorDescription << "JSON decoder returned the following "
                              << "[rc: " << rc << "]\n"
