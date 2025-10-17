@@ -84,9 +84,10 @@ class ShutdownContext {
     // CREATORS
     ShutdownContext()
     : d_appSemaphore(0)
-    , d_shutdownCount(0){
-          // NOTHING
-      };
+    , d_shutdownCount(0)
+    {
+        // NOTHING
+    }
 };
 
 static ShutdownContext* s_shutdownContext_p = 0;

@@ -55,7 +55,8 @@ struct PartitionStateTableState {
         e_REPLICA_HEALING      = 3,
         e_PRIMARY_HEALED       = 4,
         e_REPLICA_HEALED       = 5,
-        e_NUM_STATES           = 6
+        e_STOPPED              = 6,
+        e_NUM_STATES           = 7
     };
 
     // CLASS METHODS
@@ -135,7 +136,8 @@ struct PartitionStateTableEvent {
         e_SELF_HIGHEST_SEQ             = 28,
         e_REPLICA_HIGHEST_SEQ          = 29,
         e_WATCH_DOG                    = 30,
-        e_NUM_EVENTS                   = 31
+        e_STOP_NODE                    = 31,
+        e_NUM_EVENTS                   = 32
     };
 
     // CLASS METHODS
@@ -439,6 +441,7 @@ class PartitionStateTable
             DETECT_SELF_REPLICA,
             startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
             REPLICA_HEALING);
+        PST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
                 DETECT_SELF_REPLICA,
                 cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
@@ -477,6 +480,11 @@ class PartitionStateTable
             RST_UNKNOWN,
             cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
             UNKNOWN);
+        PST_CFG(
+            PRIMARY_HEALING_STG1,
+            STOP_NODE,
+            cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
+            STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
                 WATCH_DOG,
                 cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfPrimary,
@@ -534,6 +542,11 @@ class PartitionStateTable
                 WATCH_DOG,
                 cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfPrimary,
                 UNKNOWN);
+        PST_CFG(
+            PRIMARY_HEALING_STG2,
+            STOP_NODE,
+            cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
+            STOPPED);
         PST_CFG(REPLICA_HEALING,
                 DETECT_SELF_PRIMARY,
                 cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
@@ -604,6 +617,11 @@ class PartitionStateTable
                 WATCH_DOG,
                 cleanupMetadata_closeRecoveryFileSet_reapplyDetectSelfReplica,
                 UNKNOWN);
+        PST_CFG(
+            REPLICA_HEALING,
+            STOP_NODE,
+            cleanupMetadata_clearPartitionInfo_closeRecoveryFileSet_stopWatchDog,
+            STOPPED);
         PST_CFG(REPLICA_HEALED,
                 DETECT_SELF_PRIMARY,
                 cleanupMetadata_clearPartitionInfo_reapplyEvent,
@@ -629,6 +647,10 @@ class PartitionStateTable
                 RST_UNKNOWN,
                 cleanupMetadata_clearPartitionInfo,
                 UNKNOWN);
+        PST_CFG(REPLICA_HEALED,
+                STOP_NODE,
+                cleanupMetadata_clearPartitionInfo,
+                STOPPED);
         PST_CFG(PRIMARY_HEALED,
                 DETECT_SELF_REPLICA,
                 unsupportedPrimaryDowngrade,
@@ -647,6 +669,10 @@ class PartitionStateTable
                 RST_UNKNOWN,
                 cleanupMetadata_clearPartitionInfo,
                 UNKNOWN);
+        PST_CFG(PRIMARY_HEALED,
+                STOP_NODE,
+                cleanupMetadata_clearPartitionInfo,
+                STOPPED);
 
 #undef PST_CFG
     }

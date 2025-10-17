@@ -100,7 +100,6 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     struct DatapointDef {
         const char* d_name;
         int         d_stat;
-        bool        d_isCounter;
     };
 
     using DatapointDefCIter = const DatapointDef*;
@@ -204,7 +203,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
     /// Update metric by given 'def_p', 'labels' and 'value' in Prometheus
     /// Registry.
-    void updateMetric(const DatapointDef*         def_p,
+    void updateMetric(const char*                 name,
                       const ::prometheus::Labels& labels,
                       const bsls::Types::Int64    value);
 

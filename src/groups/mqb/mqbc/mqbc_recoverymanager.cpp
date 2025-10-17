@@ -1192,7 +1192,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             unsigned int        queueRecLength    = 0;
             unsigned int        queueRecHeaderLen = 0;
             unsigned int        paddedUriLen      = 0;
-            unsigned int        numAppIds         = 0;
             BSLS_ASSERT_SAFE(0 != rec.queueUriRecordOffsetWords());
 
             queueUriRecOffset = static_cast<bsls::Types::Uint64>(
@@ -1337,8 +1336,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                     << recHeader.sequenceNumber() << ")";
                 return rc_INVALID_QLIST_RECORD;  // RETURN
             }
-
-            numAppIds = queueRecHeader->numAppIds();
 
             // Only QueueOp.CREATION & QueueOp.ADDITION records have
             // corresponding record in the QLIST file.

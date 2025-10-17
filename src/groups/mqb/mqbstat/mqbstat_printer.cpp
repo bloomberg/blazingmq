@@ -271,10 +271,6 @@ void Printer::logStats()
 {
     ++d_lastStatId;
 
-    // Put a 'reference' in the main log file. We do that first in case it
-    // crashes/hangs in dump stat, this will help figuring it
-    BALL_LOG_INFO << "Stats dumped [id: " << d_lastStatId << "]";
-
     // Dump to statslog file
     // Prepare the log record and associated attributes
     ball::Record            record;
