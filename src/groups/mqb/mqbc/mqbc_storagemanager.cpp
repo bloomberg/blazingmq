@@ -4256,6 +4256,17 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition back to Unknown in the Partition FSM.";
 
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    fs->execute(bdlf::BindUtil::bind(&StorageUtil::clearPrimaryForPartition,
+                                     fs,
+                                     &d_partitionInfoVec[partitionId],
+                                     d_clusterData_p->identity().description(),
+                                     partitionId));
+
+    // TODO Remove `clearPartitionInfo` from FSM action
+
     EventData eventDataVec;
     eventDataVec.emplace_back(
         d_clusterData_p->membership().selfNode(),
@@ -4264,9 +4275,6 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
         1,
         primary,
         d_clusterState.partitionsInfo().at(partitionId).primaryLeaseId());
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_RST_UNKNOWN,
