@@ -172,12 +172,13 @@ class StorageManager BSLS_KEYWORD_FINAL
         /// Node's latest sequence number.
         bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum;
 
-        /// Node's latest sequence number.
+        /// Sequence number of node's first sync point after rollover.
         bmqp_ctrlmsg::PartitionSequenceNumber
             d_firstSyncPointAfterRolloverSeqNum;
 
-        /// Flag of whether recovery data is in sync.
-        bool d_isInSync;
+        /// Flag of whether recovery data is already sent to that node.
+        /// It, however, does not mean that the node is already healed.
+        bool d_isRecoveryDataSent;
 
         // CREATORS
         NodeSeqNumContext();
@@ -1195,7 +1196,7 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
 : d_seqNum()
 , d_firstSyncPointAfterRolloverSeqNum()
-, d_isInSync(false)
+, d_isRecoveryDataSent(false)
 {
     // NOTHING
 }
@@ -1207,7 +1208,7 @@ inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
     bool isInSync)
 : d_seqNum(seqNum)
 , d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
-, d_isInSync(isInSync)
+, d_isRecoveryDataSent(isInSync)
 {
     // NOTHING
 }

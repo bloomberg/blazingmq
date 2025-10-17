@@ -702,7 +702,8 @@
 
         partitionId:    partition id for corresponding partition.
         latestSequenceNumber: Primary's latest sequence number for corresponding partition.
-        firstSyncPointAfterRolloverSequenceNumber: Primary's first sync point after rollover sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
@@ -720,7 +721,8 @@
 
         partitionId:    partition id for corresponding partition.
         latestSequenceNumber: Replica's latest sequence number for corresponding partition.
-        firstSyncPointAfterRolloverSequenceNumber: Replica's first sync point after rollover sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
@@ -739,7 +741,8 @@
 
         partitionId:    partition id for corresponding partition.
         latestSequenceNumber: Replica's latest sequence number for corresponding partition.
-        firstSyncPointAfterRolloverSequenceNumber: Replica's first sync point after rollover sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point 
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
@@ -757,7 +760,8 @@
 
         partitionId:    partition id for corresponding partition.
         latestSequenceNumber: Primary's latest sequence number for corresponding partition.
-        firstSyncPointAfterRolloverSequenceNumber: Primary's first sync point after rollover sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>

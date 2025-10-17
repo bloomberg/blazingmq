@@ -7512,25 +7512,6 @@ bool FileStore::hasReceipt(const DataStoreRecordHandle& handle) const
     return record.d_hasReceipt;
 }
 
-void FileStore::setFirstSyncPointAfterRolloverOffset(
-    bsls::Types::Uint64 offset)
-{
-    FileSet* activeFileSet = d_fileSets[0].get();
-    BSLS_ASSERT_SAFE(activeFileSet);
-    BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
-    BSLS_ASSERT_SAFE(offset % bmqp::Protocol::k_WORD_SIZE == 0);
-
-    MappedFileDescriptor&        journalFile = activeFileSet->d_journalFile;
-    OffsetPtr<const FileHeader>  fhJ(journalFile.block(), 0);
-    OffsetPtr<JournalFileHeader> jfh(journalFile.block(),
-                                     fhJ->headerWords() *
-                                         bmqp::Protocol::k_WORD_SIZE);
-
-    // Set offset in JournalFileHeader
-    jfh->setFirstSyncPointAfterRolloverOffsetWords(
-        offset / bmqp::Protocol::k_WORD_SIZE);
-}
-
 // -----------------------
 // class FileStoreIterator
 // -----------------------

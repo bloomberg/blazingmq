@@ -94,7 +94,7 @@ class PartitionFSMEventData {
     /// associated partitionId.
     bmqp_ctrlmsg::PartitionSequenceNumber d_partitionSequenceNumber;
 
-    /// Partition first sync point after rollover sequence number as sent by
+    /// Sequence number of the first sync point after rollover as sent by
     /// the `d_source_p` node for the associated partitionId.
     bmqp_ctrlmsg::PartitionSequenceNumber
         d_firstSyncPointAfterRolloverSequenceNumber;

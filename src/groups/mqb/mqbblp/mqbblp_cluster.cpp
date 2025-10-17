@@ -3610,25 +3610,16 @@ Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
 
 void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
 {
-    // executed by the *IO* thread
+    // executed by the cluster *DISPATCHER* thread
 
+    // PRECONDITIONS
     // A response must have an associated request Id
     BSLS_ASSERT_SAFE(!response.rId().isNull());
 
-    if (dispatcher()->inDispatcherThread(this)) {
-        processResponseDispatched(
-            response,
-            static_cast<mqbnet::ClusterNode*>(0));  // source
-    }
-    else {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &Cluster::processResponseDispatched,
-                this,
-                response,
-                static_cast<mqbnet::ClusterNode*>(0)),  // source
-            this);
-    }
+    // Call `processResponseDispatched` directly since we are already in the
+    // dispatcher thread.
+    processResponseDispatched(response,
+                              static_cast<mqbnet::ClusterNode*>(0));  // source
 }
 
 void Cluster::getPrimaryNodes(int*          rc,

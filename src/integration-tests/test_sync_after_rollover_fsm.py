@@ -33,8 +33,13 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from blazingmq.dev import paths
 
 
+# Set max journal file size to a small value to force rollover during the test
+MAX_JOURNAL_FILE_SIZE = 884
+
+
 def _run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProcess:
-    """Run storage tool on journal file in specified mode."""
+    """Run storage tool on `journal_file` in the specified `mode`."""
+
     return subprocess.run(
         [
             paths.required_paths.storagetool,
@@ -51,7 +56,7 @@ def _run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProc
 def _compare_journal_files(
     leader_name: str, replica_name: str, cluster: Cluster
 ) -> None:
-    """Compare leader and replica journal files content."""
+    """Compare leader and replica journal files content, and assert that they are equal."""
 
     leader_journal_files = glob.glob(
         str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
@@ -93,13 +98,13 @@ def _compare_journal_files(
         assert leader_res.stdout == replica_res.stdout
 
 
-@tweak.cluster.partition_config.max_journal_file_size(884)
-def test_synch_after_missed_rollover(
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+def test_sync_after_missed_rollover(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
-    Test replica journal file syncronization with cluster after missed rollover.
+    Test replica journal file synchronization with cluster after missed rollover.
     - start cluster
     - put 2 messages
     - stop replica
@@ -136,8 +141,11 @@ def test_synch_after_missed_rollover(
     replica.drain()
 
     # Put more messages w/o confirm to initiate the rollover
-    for i in range(3, 8):
+    i = 3
+    while not leader.outputs_substr("Initiating rollover", 0.01):
+        assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        i += 1
 
     # Wait until rollover completed
     assert leader.outputs_substr("ROLLOVER COMPLETE", 10)
@@ -156,13 +164,13 @@ def test_synch_after_missed_rollover(
 
 
 @start_cluster(False)
-@tweak.cluster.partition_config.max_journal_file_size(884)
-def test_synch_after_missed_rollover_after_restart(
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+def test_sync_after_missed_rollover_after_restart(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
-    Test replica journal file syncronization with cluster after missed rollover and cluster restart.
+    Test replica journal file synchronization with cluster after missed rollover and cluster restart.
     - start cluster
     - put 2 messages
     - stop replica
@@ -208,8 +216,11 @@ def test_synch_after_missed_rollover_after_restart(
     east2.drain()
 
     # Put more messages w/o confirm to initiate the rollover
-    for i in range(3, 8):
+    i = 3
+    while not east1.outputs_substr("Initiating rollover", 0.01):
+        assert i < 8, "Rollover was not initiated"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        i += 1
 
     # Wait until rollover completed on all running nodes
     assert east1.outputs_substr("ROLLOVER COMPLETE", 10)

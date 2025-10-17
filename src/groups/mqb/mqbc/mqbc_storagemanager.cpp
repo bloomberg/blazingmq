@@ -1365,12 +1365,14 @@ void StorageManager::do_storeSelfSeq(const PartitionFSMArgsSp& args)
     }
     nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum =
         getSelfFirstSyncPointAfterRolloverSequenceNumber(partitionId);
-    nodeSeqNumCtx.d_isInSync = false;
+    nodeSeqNumCtx.d_isRecoveryDataSent = false;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": In Partition [" << partitionId << "]'s FSM, "
                   << "storing self sequence number as "
-                  << d_nodeToSeqNumCtxMapVec[partitionId][selfNode].d_seqNum;
+                  << nodeSeqNumCtx.d_seqNum
+                  << ", first sync point after rollover as "
+                  << nodeSeqNumCtx.d_firstSyncPointAfterRolloverSeqNum;
 }
 
 void StorageManager::do_storePrimarySeq(const PartitionFSMArgsSp& args)
@@ -1417,8 +1419,8 @@ void StorageManager::do_storePrimarySeq(const PartitionFSMArgsSp& args)
         it->second.d_seqNum = seqNum;
         it->second.d_firstSyncPointAfterRolloverSeqNum =
             eventData.firstSyncPointAfterRolloverSequenceNumber();
-        it->second.d_isInSync = false;
-        hasNew                = true;
+        it->second.d_isRecoveryDataSent = false;
+        hasNew                          = true;
     }
 
     if (hasNew) {
@@ -1478,8 +1480,8 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
             it->second.d_seqNum = seqNum;
             it->second.d_firstSyncPointAfterRolloverSeqNum =
                 cit->firstSyncPointAfterRolloverSequenceNumber();
-            it->second.d_isInSync = false;
-            hasNew                = true;
+            it->second.d_isRecoveryDataSent = false;
+            hasNew                          = true;
         }
 
         if (hasNew) {
@@ -1998,15 +2000,16 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
             continue;  // CONTINUE
         }
 
-        // Skip node with empty storage and different first sync point after
-        // rollover, it needs to drop its storage.
+        // Skip node with non-empty storage and different first sync point
+        // after rollover, it needs to drop its storage.
         if (cit->second.d_seqNum != bmqp_ctrlmsg::PartitionSequenceNumber() &&
             cit->second.d_firstSyncPointAfterRolloverSeqNum !=
                 selfFirstSyncAfterRolloverSeqNum) {
             continue;  // CONTINUE
         }
 
-        if (cit->second.d_seqNum <= selfSeqNum && !cit->second.d_isInSync) {
+        if (cit->second.d_seqNum <= selfSeqNum &&
+            !cit->second.d_isRecoveryDataSent) {
             outdatedReplicas.emplace_back(cit->first);
         }
     }
@@ -2190,7 +2193,8 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         if (cit->first->nodeId() == selfNode->nodeId()) {
             continue;  // CONTINUE
         }
-        if (cit->second.d_seqNum > selfSeqNum && !cit->second.d_isInSync) {
+        if (cit->second.d_seqNum > selfSeqNum &&
+            !cit->second.d_isRecoveryDataSent) {
             obsoleteDataReplicas.emplace_back(cit->first);
         }
         else if (cit->second.d_seqNum !=
@@ -2249,7 +2253,7 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
                                             1);
         }
         else {
-            nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
+            nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
         }
     }
 
@@ -2901,7 +2905,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
              cit != nodeToSeqNumCtxMap.cend();
              cit++) {
             if (cit->first->nodeId() == selfNode->nodeId() ||
-                cit->second.d_isInSync) {
+                cit->second.d_isRecoveryDataSent) {
                 continue;
             }
             mqbnet::ClusterNode*                         destNode = cit->first;
@@ -2914,7 +2918,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
             }
             else if (beginSeqNum == endSeqNum) {
                 // Replica in-sync with primary: no need to send data chunks
-                nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
+                nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
                 continue;  // CONTINUE
             }
             else if (cit->second.d_seqNum !=
@@ -2952,7 +2956,7 @@ void StorageManager::do_startSendDataChunks(const PartitionFSMArgsSp& args)
                 // fire.
             }
             else {
-                nodeToSeqNumCtxMap.at(destNode).d_isInSync = true;
+                nodeToSeqNumCtxMap.at(destNode).d_isRecoveryDataSent = true;
             }
         }
     }
