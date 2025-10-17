@@ -15,4 +15,4 @@
 
 
 class BMQError(RuntimeError):
-    "Base class for all exceptions raised by BMQ."
+    """Base class for all exceptions raised by BlazingMQ."""

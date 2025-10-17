@@ -23,6 +23,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     multi_node,
     tweak,
 )
+from blazingmq.dev.it.common import BMQTestError, BMQTST_ASSERT
 from blazingmq.dev.it.util import wait_until
 from blazingmq.schemas import mqbconf
 
@@ -105,7 +106,7 @@ class TestStrongConsistency:
                     lambda: len(self.consumer.list(uri, block=True)) == 1, 2
                 )
             # the WC queue was last sending data and the SC one was first which
-            # means it is sufficent to wait on WC before checking SC
+            # means it is sufficient to wait on WC before checking SC
 
             if has_timeout:
                 # expect NACK
@@ -115,7 +116,7 @@ class TestStrongConsistency:
             else:
                 # make sure there are neither SC ACK(s) nor message(s)
                 assert not self.producer.outputs_regex(
-                    f"MESSAGE.*ACK.*{tc.URI_FANOUT_SC}", 1
+                    f"MESSAGE.*ACK.*{tc.URI_FANOUT_SC}", timeout=1
                 )
 
                 for uri in [
@@ -128,15 +129,18 @@ class TestStrongConsistency:
         if not has_timeout:
             self.consumer.wait_push_event(timeout=120)
             # make sure there are SC ACK(s) and message(s)
-            assert self.producer.outputs_regex(f"MESSAGE.*ACK.*{tc.URI_FANOUT_SC}", 25)
+            BMQTST_ASSERT(self.producer.outputs_regex(f"MESSAGE.*ACK.*{tc.URI_FANOUT_SC}", timeout=25),
+                          client=self.producer, uri=tc.URI_FANOUT_SC)
             for uri in [
                 tc.URI_FANOUT_SC_FOO,
                 tc.URI_FANOUT_SC_BAR,
                 tc.URI_FANOUT_SC_BAZ,
             ]:
-                assert wait_until(
-                    lambda: len(self.consumer.list(uri, block=True)) == 1, 2
-                )
+                BMQTST_ASSERT(wait_until(lambda: len(self.consumer.list(uri, block=True)) == 1, timeout=2),
+                              "Consumer expected exactly 1 message",
+                              client=self.consumer,
+                              uri=uri
+                              )
 
     def test_suspend_post_resume(
         self,
