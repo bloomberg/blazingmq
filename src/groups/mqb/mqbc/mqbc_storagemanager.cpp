@@ -1145,6 +1145,18 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
 
+    StorageUtil::processShutdownEventDispatched(
+        d_clusterData_p,
+        &d_partitionInfoVec[partitionId],
+        fs,
+        partitionId);
+
+    StorageUtil::clearPrimaryForPartition(
+        fs,
+        &d_partitionInfoVec[partitionId],
+        d_clusterData_p->identity().description(),
+        partitionId);
+
     EventData eventDataVec;
     eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
                               -1,  // placeholder requestId
@@ -1157,12 +1169,6 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
     queueSp->emplace(PartitionFSM::Event::e_STOP_NODE, eventDataVec);
 
     d_partitionFSMVec[partitionId]->popEventAndProcess(queueSp);
-
-    StorageUtil::processShutdownEventDispatched(
-        d_clusterData_p,
-        &d_partitionInfoVec[partitionId],
-        fs,
-        partitionId);
 }
 
 void StorageManager::forceFlushFileStores()
@@ -1494,6 +1500,7 @@ void StorageManager::do_storeReplicaSeq(const PartitionFSMArgsSp& args)
     }
 }
 
+// TODO rm
 void StorageManager::do_storePartitionInfo(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
@@ -1532,6 +1539,7 @@ void StorageManager::do_storePartitionInfo(const PartitionFSMArgsSp& args)
     }
 }
 
+// TODO rm
 void StorageManager::do_clearPartitionInfo(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
@@ -1547,7 +1555,10 @@ void StorageManager::do_clearPartitionInfo(const PartitionFSMArgsSp& args)
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
-    mqbnet::ClusterNode*         primaryNode = eventData.primary();
+    mqbnet::ClusterNode*         primaryNode =
+        eventData.primary();  // TODO Verify correctness, but no need since
+                              // this method will be deleted anyways
+    (void)primaryNode;
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -1559,8 +1570,7 @@ void StorageManager::do_clearPartitionInfo(const PartitionFSMArgsSp& args)
         fs,
         &pinfo,
         d_clusterData_p->identity().description(),
-        partitionId,
-        primaryNode);
+        partitionId);
 }
 
 void StorageManager::do_replicaStateRequest(const PartitionFSMArgsSp& args)
@@ -3911,13 +3921,23 @@ void StorageManager::stop()
     d_isStarted = false;
 
     for (size_t pid = 0; pid < d_fileStores.size(); ++pid) {
+        mqbs::FileStore* fs = d_fileStores[pid].get();
+        BSLS_ASSERT_SAFE(fs);
+
+        fs->execute(
+            bdlf::BindUtil::bind(&StorageUtil::clearPrimaryForPartition,
+                                 fs,
+                                 &d_partitionInfoVec[pid],
+                                 d_clusterData_p->identity().description(),
+                                 pid));
+
         EventData eventDataVec;
         eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
                                   -1,  // placeholder requestId
                                   pid,
                                   1);
 
-        dispatchEventToPartition(d_fileStores[pid].get(),
+        dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_STOP_NODE,
                                  eventDataVec);
     }
@@ -4202,6 +4222,13 @@ void StorageManager::setPrimaryForPartition(int                  partitionId,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(primaryNode);
 
+    /** TODO Call:
+    PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
+    pinfo.setPrimary(primaryNode);
+    pinfo.setPrimaryLeaseId(primaryLeaseId);
+    pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+    */
+
     if (primaryNode->nodeId() ==
         d_clusterData_p->membership().selfNode()->nodeId()) {
         processPrimaryDetect(partitionId, primaryNode, primaryLeaseId);
@@ -4229,6 +4256,17 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition back to Unknown in the Partition FSM.";
 
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    fs->execute(bdlf::BindUtil::bind(&StorageUtil::clearPrimaryForPartition,
+                                     fs,
+                                     &d_partitionInfoVec[partitionId],
+                                     d_clusterData_p->identity().description(),
+                                     partitionId));
+
+    // TODO Remove `clearPartitionInfo` from FSM action
+
     EventData eventDataVec;
     eventDataVec.emplace_back(
         d_clusterData_p->membership().selfNode(),
@@ -4237,9 +4275,6 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
         1,
         primary,
         d_clusterState.partitionsInfo().at(partitionId).primaryLeaseId());
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
 
     dispatchEventToPartition(fs,
                              PartitionFSM::Event::e_RST_UNKNOWN,
