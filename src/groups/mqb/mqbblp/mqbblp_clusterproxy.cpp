@@ -802,19 +802,16 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
 void ClusterProxy::processResponse(
     const bmqp_ctrlmsg::ControlMessage& response)
 {
-    // executed by *ANY* thread
+    // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     // Control message has an id
     BSLS_ASSERT_SAFE((!response.rId().isNull()));
 
-    // This is a response to a request.  Forward it to the cluster-dispatcher
-    // thread.
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterProxy::processResponseDispatched,
-                             this,
-                             response),
-        this);
+    // This is a response to a request.
+    // Call `processResponseDispatched` directly since we are already in the
+    // dispatcher thread.
+    processResponseDispatched(response);
 }
 
 void ClusterProxy::processPeerStopResponse(

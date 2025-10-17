@@ -697,16 +697,19 @@
     <annotation>
       <documentation>
         This type represents a request sent to the replica by the primary to
-        ask for replica's sequence number. The primary also sends its own
-        sequence number as part of this request.
+        ask for replica's sequence numbers. The primary also sends its own
+        sequence numbers as part of this request.
 
         partitionId:    partition id for corresponding partition.
-        sequenceNumber: Primary's sequence number for corresponding partition.
+        latestSequenceNumber: Primary's latest sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
-      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
   </complexType>
 
@@ -714,15 +717,18 @@
     <annotation>
       <documentation>
         This type represents a response sent by a replica to the primary along
-        with its sequence number.
+        with its sequence numbers.
 
         partitionId:    partition id for corresponding partition.
-        sequenceNumber: Replica's sequence number for corresponding partition.
+        latestSequenceNumber: Replica's latest sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
-      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
   </complexType>
 
@@ -731,15 +737,18 @@
       <documentation>
         This type represents a request sent to the primary by a replica to
         ask for primary's sequence number. The replica also sends it own
-        sequence number as part of this request.
+        sequence numbers as part of this request.
 
         partitionId:    partition id for corresponding partition.
-        sequenceNumber: Replica's sequence number for corresponding partition.
+        latestSequenceNumber: Replica's latest sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point 
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
-      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
   </complexType>
 
@@ -747,15 +756,18 @@
     <annotation>
       <documentation>
         This type represents a response sent by a primary to the replica along
-        with its sequence number.
+        with its sequence numbers.
 
         partitionId:    partition id for corresponding partition.
-        sequenceNumber: Primary's sequence number for corresponding partition.
+        latestSequenceNumber: Primary's latest sequence number for corresponding partition.
+        firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
+                                                   after rollover for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
-      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
     </sequence>
   </complexType>
 

@@ -599,7 +599,8 @@ class Cluster : public mqbi::Cluster,
 
     /// Process the specified `response` message as a response to previously
     /// transmitted request.  This is how cluster receives StopResponse from
-    /// a ClusterProxy.
+    /// a ClusterProxy.  This method is invoked in the cluster-dispatcher
+    /// thread.
     void processResponse(const bmqp_ctrlmsg::ControlMessage& response)
         BSLS_KEYWORD_OVERRIDE;
 
