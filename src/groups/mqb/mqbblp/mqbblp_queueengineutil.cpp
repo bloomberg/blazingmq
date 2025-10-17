@@ -942,6 +942,7 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
     // 'end' is never CONFIRMed, so the 'VirtualStorageIterator' cannot skip it
 
     d_resumePoint = bmqt::MessageGUID();
+    bool shouldBreak = false;
     while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(start->hasReceipt())) {
         if (!end->atEnd()) {
             if (start->guid() == end->guid()) {
@@ -959,27 +960,35 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
         else {
             result = tryDeliverOneMessage(delay, start, false);
 
-            if (result == Routers::e_SUCCESS) {
+            switch (result) {
+            case Routers::e_SUCCESS: {
                 reportStats(start);
-
                 ++numMessages;
-            }
-            else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                         result == Routers::e_NO_CAPACITY ||
-                         result == Routers::e_NO_SUBSCRIPTION)) {
-                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
+            } break;
+            case Routers::e_NO_SUBSCRIPTION: BSLA_FALLTHROUGH;
+            case Routers::e_NO_CAPACITY: {
                 putAside(start->guid());
                 // Do not block other Subscriptions. Continue.
-            }
-            else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                         result == Routers::e_NO_CAPACITY_ALL)) {
+            } break;
+            case Routers::e_NO_CAPACITY_ALL: BSLA_FALLTHROUGH;
+            case Routers::e_DELAY: {
+                // e_NO_CAPACITY_ALL: have to wait
+                // e_DELAY: poisoned message possibly, have to wait
                 d_resumePoint = start->guid();
-                break;
+                shouldBreak   = true;
+            } break;
+            case Routers::e_INVALID: {
+                // The {GUID, App} is not valid anymore,
+                // will never be able to send it;
+                // just consider it as sent.
+            } break;
+            default: {
+                BSLS_ASSERT_OPT(false && "Unreachable by design");
+            } break;
             }
-            else {
-                BSLS_ASSERT_SAFE(result == Routers::e_INVALID);
-                // The {GUID, App} is not valid anymore
+
+            if (shouldBreak) {
+                break;
             }
         }
 
@@ -1140,6 +1149,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
     bmqt::MessageGUID        firstGuid   = *it;
     size_t                   numMessages = 0;
 
+    bool shouldBreak = false;
     while (!list.isEnd(it)) {
         Routers::Result result = Routers::e_INVALID;
 
@@ -1170,31 +1180,40 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
         // Instead, should communicate them upstream either in CloseQueue or in
         // Rejects.
 
-        if (result == Routers::e_NO_CAPACITY_ALL) {
-            break;  // BREAK
-        }
-        else if (result == Routers::e_DELAY) {
-            break;  // BREAK
-        }
-        else if (result == Routers::e_SUCCESS) {
+        switch (result) {
+        case Routers::e_SUCCESS: {
             // Remove from the redeliveryList
             it = list.erase(it);
-
             ++numMessages;
             reportStats(reader);
-        }
-        else if (result == Routers::e_INVALID) {
-            // Couldn't send it, but will never be able to do so; just consider
-            // it as sent.
+        } break;
+        case Routers::e_NO_SUBSCRIPTION: {
+            // Skip 'it' until config changes
+            list.disable(&it);
+            list.next(&it);
+        } break;
+        case Routers::e_NO_CAPACITY: {
+            // Do not block other Subscriptions. Continue.
+            list.next(&it);
+        } break;
+        case Routers::e_NO_CAPACITY_ALL: BSLA_FALLTHROUGH;
+        case Routers::e_DELAY: {
+            shouldBreak = true;
+        } break;
+        case Routers::e_INVALID: {
+            // The {GUID, App} is not valid anymore,
+            // will never be able to send it;
+            // just consider it as sent.
             // Remove from the redeliveryList
             it = list.erase(it);
+        } break;
+        default: {
+            BSLS_ASSERT_OPT(false && "Unreachable by design");
+        } break;
         }
-        else {
-            if (result == Routers::e_NO_SUBSCRIPTION) {
-                // Skip 'it' until config changes
-                list.disable(&it);
-            }
-            list.next(&it);
+
+        if (shouldBreak) {
+            break;
         }
     };
 
