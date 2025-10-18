@@ -23,7 +23,6 @@
 #include <bmqst_statcontext.h>
 #include <bmqst_statutil.h>
 #include <bmqst_tableutil.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
@@ -450,8 +449,7 @@ int EventQueue::start()
         &bslma::ManagedPtr<bdlmt::FixedThreadPool>::reset,
         &d_threadPool_mp));
 
-    bslmt::ThreadAttributes threadAttributes =
-        bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes threadAttributes = bslmt::ThreadAttributes();
     threadAttributes.setThreadName("bmqEventQueue");
     d_threadPool_mp.load(new (*d_allocator_p)
                              bdlmt::FixedThreadPool(threadAttributes,

@@ -34,7 +34,6 @@
 #include <bmqio_statchannelfactory.h>
 #include <bmqst_statcontext.h>
 #include <bmqst_statvalue.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
@@ -729,7 +728,7 @@ int StatController::start(bsl::ostream& errorDescription)
 
     d_scheduler_mp->scheduleEvent(
         bsls::TimeInterval(0),  // execute as soon as possible
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+        bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                              "bmqSchedStat"));
 
     // Create and start the system stat monitor.  The SystemStats are used in

@@ -2,5 +2,4 @@ bmqsys_mocktime
 bmqsys_operationlogger
 bmqsys_statmonitor
 bmqsys_statmonitorsnapshotrecorder
-bmqsys_threadutil
 bmqsys_time

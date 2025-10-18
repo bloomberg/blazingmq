@@ -20,7 +20,6 @@
 
 #include <bmqex_bindutil.h>
 #include <bmqex_executionpolicy.h>
-#include <bmqsys_threadutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -55,7 +54,7 @@ bslmt::ThreadAttributes logsCleaningThreadAttributes()
     // NOTE: Use low priority scheduling thread, since the log rotation
     //       operation is a background IO cleanup job.
 
-    bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes attr = bslmt::ThreadAttributes();
     attr.setInheritSchedule(false);
     attr.setSchedulingPriority(
         bslmt::ThreadUtil::getMinSchedulingPriority(attr.schedulingPolicy()));

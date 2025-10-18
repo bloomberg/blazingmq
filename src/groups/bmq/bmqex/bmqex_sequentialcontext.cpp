@@ -18,8 +18,6 @@
 
 #include <bmqscm_version.h>
 
-#include <bmqsys_threadutil.h>
-
 // BDE
 #include <bdlf_memfn.h>
 #include <bsl_algorithm.h>  // bsl::swap
@@ -109,7 +107,7 @@ SequentialContext::~SequentialContext()
 // MANIPULATORS
 int SequentialContext::start()
 {
-    return start(bmqsys::ThreadUtil::defaultAttributes());
+    return start(bslmt::ThreadAttributes());
 }
 
 int SequentialContext::start(const bslmt::ThreadAttributes& threadAttributes)
