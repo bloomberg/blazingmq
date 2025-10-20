@@ -34,41 +34,51 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
-#include <mqbcfg_messages.h>
 #include <mqbplug_pluginfactory.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_iostream.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsl_vector.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslstl_stringref.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace mqbcfg {
+class AuthenticatorPluginConfig;
+}
+
 namespace mqbplug {
 
 // ========================
 // class AuthenticationData
 // ========================
 
-/// Interface for accessing data used during authentication in the broker.
-class AuthenticationData {
+/// Data used during authentication in the broker.
+class AuthenticationData BSLS_KEYWORD_FINAL {
+  private:
+    // DATA
+    bsl::vector<char> d_authnPayload;
+    bsl::string       d_clientIpAddress;
+
   public:
     // CREATORS
-
-    /// Destroy this object.
-    virtual ~AuthenticationData();
+    AuthenticationData(const bsl::vector<char>& authnPayload,
+                       bsl::string_view         clientIpAddress);
 
     // ACESSORS
 
     /// Return the authentication material provided by the client.
-    virtual const bsl::vector<char>& authPayload() const = 0;
+    const bsl::vector<char>& authnPayload() const;
 
     /// Return the IP Address of the client.
-    virtual bslstl::StringRef clientIpAddress() const = 0;
+    bsl::string_view clientIpAddress() const;
 };
 
 // ==========================
@@ -76,40 +86,18 @@ class AuthenticationData {
 // ==========================
 
 /// The results of authentication.
-class AuthenticationResult BSLS_KEYWORD_FINAL {
-  private:
-    // DATA
-
-    /// Client identity.
-    bsl::string d_principal;
-
-    /// The remaining lifetime of a client identity.
-    /// Empty value if client identity has a non-fixed lifetime.
-    bsl::optional<bsls::Types::Int64> d_lifetimeMs;
-
+class AuthenticationResult {
   public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(AuthenticationResult,
-                                   bslma::UsesBslmaAllocator)
-
     // CREATORS
-
-    /// Construct this object using the optionally specified `allocator`.
-    explicit AuthenticationResult(bslma::Allocator* allocator = 0);
+    virtual ~AuthenticationResult();
 
     // ACCESSORS
 
-    /// Return the corresponding data field.
-    const bsl::string&                       principal() const;
-    const bsl::optional<bsls::Types::Int64>& lifetimeMs() const;
+    /// Return the principal in human-readable format.
+    virtual bsl::string_view principal() const = 0;
 
-    // MANIPULATORS
-    /// Reset the state of this structure.
-    void reset();
-
-    /// Set the corresponding field of this structure.
-    void setPrincipal(const bslstl::StringRef& principal);
-    void setLifetimeMs(bsls::Types::Int64 lifetimeMs);
+    /// Return the remaining lifetime of an authenticated session.
+    virtual const bsl::optional<bsls::Types::Int64>& lifetimeMs() const = 0;
 };
 
 // ===================
@@ -127,10 +115,12 @@ class Authenticator {
     // ACESSORS
 
     /// Return the name of the plugin.
-    virtual bslstl::StringRef name() const = 0;
+    virtual bsl::string_view name() const = 0;
 
-    /// Return the authentication mechanism the Authenticator supports.
-    virtual bslstl::StringRef mechanism() const = 0;
+    /// Return the authentication mechanism supported by this Authenticator.
+    /// Guaranteed to return a valid mechanism once the Authenticator is
+    /// constructed.
+    virtual bsl::string_view mechanism() const = 0;
 
     /// Authenticate using the data provided in the specified `input`.
     /// - Return `0` on success, and populate the specified `result` with
@@ -139,9 +129,10 @@ class Authenticator {
     /// - Return a non-zero plugin-specific return code upon failure, and
     ///   populate the specified `errorDescription` with a brief reason for
     ///   logging purposes.
-    virtual int authenticate(bsl::ostream&             errorDescription,
-                             AuthenticationResult*     result,
-                             const AuthenticationData& input) const = 0;
+    virtual int
+    authenticate(bsl::ostream& errorDescription,
+                 bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
+                 const AuthenticationData& input) const = 0;
 
     // MANIPULATORS
 
@@ -173,53 +164,42 @@ class AuthenticatorPluginFactory : public PluginFactory {
     create(bslma::Allocator* allocator) = 0;
 };
 
+// ========================
+// struct AuthenticatorUtil
+// ========================
+
+struct AuthenticatorUtil {
+    // STATIC CLASS METHODS
+
+    /// Find authenticator config with the specified `name`
+    static const mqbcfg::AuthenticatorPluginConfig*
+    findAuthenticatorConfig(bsl::string_view name);
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// --------------------------
-// class AuthenticationResult
-// --------------------------
+// ------------------------
+// class AuthenticationData
+// ------------------------
 
-// CREATORS
-
-inline AuthenticationResult::AuthenticationResult(bslma::Allocator* allocator)
-: d_principal(allocator)
-, d_lifetimeMs()
+inline AuthenticationData::AuthenticationData(
+    const bsl::vector<char>& authnPayload,
+    bsl::string_view         clientIpAddress)
+: d_authnPayload(authnPayload)
+, d_clientIpAddress(clientIpAddress)
 {
-    // NOTHING
 }
 
-// ACCESSORS
-
-inline const bsl::string& AuthenticationResult::principal() const
+inline const bsl::vector<char>& AuthenticationData::authnPayload() const
 {
-    return d_principal;
+    return d_authnPayload;
 }
 
-inline const bsl::optional<bsls::Types::Int64>&
-AuthenticationResult::lifetimeMs() const
+inline bsl::string_view AuthenticationData::clientIpAddress() const
 {
-    return d_lifetimeMs;
-}
-
-// MANIPULATORS
-
-inline void AuthenticationResult::reset()
-{
-    d_principal.clear();
-    d_lifetimeMs.reset();
-}
-
-inline void
-AuthenticationResult::setPrincipal(const bslstl::StringRef& principal)
-{
-    d_principal = principal;
-}
-
-inline void AuthenticationResult::setLifetimeMs(bsls::Types::Int64 lifetimeMs)
-{
-    d_lifetimeMs = lifetimeMs;
+    return d_clientIpAddress;
 }
 
 }  // close package namespace
