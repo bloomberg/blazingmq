@@ -66,13 +66,16 @@ AnonAuthenticationResult::lifetimeMs() const
 // -----------------------
 
 AnonAuthenticator::AnonAuthenticator(
-    bool                                     shouldPass,
     const mqbcfg::AuthenticatorPluginConfig* config,
     bslma::Allocator*                        allocator)
 : d_allocator_p(allocator)
 , d_isStarted(false)
-, d_shouldPass(shouldPass)
+, d_shouldPass(true)
 {
+    if (!config) {
+        return;
+    }
+
     // Load the configured `shouldPass` argument
     bsl::vector<mqbcfg::PluginConfigKeyValue>::const_iterator it =
         config->configs().cbegin();
@@ -172,9 +175,10 @@ AnonAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             AnonAuthenticator::k_NAME);
 
-    bslma::ManagedPtr<mqbplug::Authenticator> result(
-        new (*allocator) AnonAuthenticator(allocator),
-        allocator);
+    bslma::ManagedPtr<mqbplug::Authenticator> result =
+        bslma::ManagedPtrUtil::allocateManaged<AnonAuthenticator>(allocator,
+                                                                  config);
+
     return result;
 }
 

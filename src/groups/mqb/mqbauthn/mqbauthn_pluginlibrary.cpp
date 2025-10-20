@@ -38,7 +38,7 @@ PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
         "AnonAuthenticator");  // Keep old name for backwards compatibility
 
     anonPluginInfo.setFactory(
-        bsl::allocate_shared<AnonAuthenticatorPluginFactory>(allocator, true));
+        bsl::allocate_shared<AnonAuthenticatorPluginFactory>(allocator));
     anonPluginInfo.setDescription("Anonymous Authenticator");
 
     // BasicAuthenticator

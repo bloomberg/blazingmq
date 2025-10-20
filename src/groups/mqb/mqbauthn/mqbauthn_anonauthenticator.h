@@ -122,12 +122,11 @@ class AnonAuthenticator : public mqbplug::Authenticator {
 
     // CREATORS
 
-    /// Construct an AnonAuthenticator with the specified `shouldPass`
-    /// behavior flag and optionally specified `allocator`.  If `shouldPass`
-    /// is true, authentication will always succeed; if false, authentication
-    /// will always fail.
-    AnonAuthenticator(bool shouldPass                                 = true,
-                      const mqbcfg::AuthenticatorPluginConfig* config = 0,
+    /// Construct an AnonAuthenticator with the specified `config`.  If
+    /// `shouldPass` in `config` is set to true, authentication will always
+    /// succeed; if false, authentication will always fail.  If no config is
+    /// set, authentication defaults to always succeed.
+    AnonAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
                       bslma::Allocator*                        allocator = 0);
 
     /// Destructor.

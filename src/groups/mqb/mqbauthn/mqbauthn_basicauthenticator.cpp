@@ -75,13 +75,14 @@ BasicAuthenticationResult::lifetimeMs() const
 BasicAuthenticator::BasicAuthenticator(
     const mqbcfg::AuthenticatorPluginConfig* config,
     bslma::Allocator*                        allocator)
-: d_authenticatorConfig_p(config)
-, d_isStarted(false)
+: d_allocator_p(allocator)
+, d_authenticatorConfig_p(config)
 , d_credentials(allocator)
-, d_allocator_p(allocator)
+, d_isStarted(false)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(config->name() == k_NAME);
+    if (!config) {
+        return;
+    }
 
     // Load the configured key-values as username and password
     bsl::vector<mqbcfg::PluginConfigKeyValue>::const_iterator it =
@@ -158,8 +159,7 @@ int BasicAuthenticator::start(bsl::ostream& errorDescription)
 
     if (!d_authenticatorConfig_p) {
         BALL_LOG_WARN << "No config provided for BasicAuthenticator '"
-                      << name() << "' with mechanism '" << mechanism()
-                      << "' - using default credentials";
+                      << name() << "' with mechanism '" << mechanism();
     }
 
     d_isStarted = true;
@@ -201,10 +201,6 @@ BasicAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
     const mqbcfg::AuthenticatorPluginConfig* config =
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             BasicAuthenticator::k_NAME);
-
-    if (!config) {
-        return bslma::ManagedPtr<mqbplug::Authenticator>();
-    }
 
     bslma::ManagedPtr<mqbplug::Authenticator> result(
         new (*allocator) BasicAuthenticator(config, allocator),

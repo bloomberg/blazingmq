@@ -105,13 +105,13 @@ class BasicAuthenticator : public mqbplug::Authenticator {
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.BASICAUTHENTICATOR");
 
     // DATA
-    const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
+    bslma::Allocator* d_allocator_p;
 
-    bool d_isStarted;
+    const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
 
     bsl::map<bsl::string, bsl::string> d_credentials;
 
-    bslma::Allocator* d_allocator_p;
+    bool d_isStarted;
 
   private:
     // NOT IMPLEMENTED
