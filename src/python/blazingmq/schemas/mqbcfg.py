@@ -193,6 +193,44 @@ class ClusterMonitorConfig:
 
 
 @dataclass
+class Credential:
+    """Type representing a credential used for authentication.
+
+    This type is used to represent a credential that can be used for
+    authentication. It contains an authentication mechanism and an
+    identity.
+    """
+
+    mechanism: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    identity: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
+class Disallow:
+    """Type representing the disallow anonymous credential configuration.
+
+    This type is used to indicate that anonymous authentication is not
+    allowed on the broker. If this is set, the broker will not use the
+    anonymous authenticator plugin. Authentication is required and
+    clients which cannot or do not authenticate will be rejected.
+    """
+
+
+@dataclass
 class DispatcherProcessorParameters:
     queue_size: Optional[int] = field(
         default=None,
@@ -542,6 +580,50 @@ class MessageThrottleConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+
+
+@dataclass
+class PluginConfigValue:
+    bool_val: Optional[bool] = field(
+        default=None,
+        metadata={
+            "name": "boolVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    int_val: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "intVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    long_val: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "longVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    double_val: Optional[float] = field(
+        default=None,
+        metadata={
+            "name": "doubleVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    string_val: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "stringVal",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
     )
 
@@ -1072,6 +1154,35 @@ class VirtualClusterInformation:
 
 
 @dataclass
+class AnonymousCredential:
+    """Type representing the anonymous credential configuration.
+
+    disallow...:
+    If set, the anonymous credential is not allowed. Authentication
+    is required and clients which cannot or do not authenticate will be
+    rejected.
+    credential.:
+    If set, the credential is used for anonymous authentication in case the client
+    does not support authentication or has not been configured to authenticate.
+    """
+
+    disallow: Optional[Disallow] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    credential: Optional[Credential] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class ClusterNodeConnection:
     """Choice of all the various transport mode available to establish connectivity
     with a node.
@@ -1344,6 +1455,32 @@ class PartitionConfig:
 
 
 @dataclass
+class PluginConfigKeyValue:
+    """The key-value pair used for plugin configurations.
+
+    key...: configuration key/name
+    value.: configuration value
+    """
+
+    key: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    value: Optional[PluginConfigValue] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
 class StatPluginConfigPrometheus:
     mode: ExportMode = field(
         default=ExportMode.E_PULL,
@@ -1473,6 +1610,33 @@ class TcpInterfaceConfig:
         },
     )
     listeners: List[TcpInterfaceListener] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
+class AuthenticatorPluginConfig:
+    """The configuration for an authenticator plugin.
+
+    name....:
+    The name of the authenticator plugin.
+    configs.:
+    Plugin-specific configurations.
+    """
+
+    name: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    configs: List[PluginConfigKeyValue] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1690,6 +1854,38 @@ class TaskConfig:
 
 
 @dataclass
+class AuthenticatorConfig:
+    """Top level type for the broker's authentication configurations.
+
+    authenticators...........:
+    Configuration entries for authenticator plugins (built-in or external).
+    Each entry defines settings for a specific plugin. All plugins must have
+    unique authentication mechanisms.
+    anonymousCredential.:
+    Controls anonymous authentication behavior. When specified, the broker
+    uses the provided credential with a matching plugin from `authenticators`.
+    When omitted, the broker defaults to AnonPassAuthenticator for anonymous
+    authentication.
+    """
+
+    authenticators: List[AuthenticatorPluginConfig] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+    anonymous_credential: Optional[AnonymousCredential] = field(
+        default=None,
+        metadata={
+            "name": "anonymousCredential",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class ClusterDefinition:
     """Type representing the configuration for a cluster.
 
@@ -1883,7 +2079,7 @@ class AppConfig:
     hostTags.............: tags of the current host
     hostDataCenter.......: datacenter the current host resides in
     logsObserverMaxSize..: maximum number of log records to keep
-    latencyMonitorDomain.: common part of all latemon domains
+    latencyMonitorDomain.: common prefix of all latemon domains
     dispatcherConfig.....: configuration for the dispatcher
     stats................: configuration for the stats
     networkInterfaces....: configuration for the network interfaces
@@ -1893,6 +2089,7 @@ class AppConfig:
     configureStream......: send new ConfigureStream instead of old ConfigureQueue
     advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
     routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
+    authentication.......: configuration for authentication
     """
 
     broker_instance_name: Optional[str] = field(
@@ -2055,6 +2252,14 @@ class AppConfig:
             "required": True,
         },
     )
+    authentication: Optional[AuthenticatorConfig] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
 
 
 @dataclass
@@ -2067,7 +2272,7 @@ class ClustersDefinition:
     myVirtualClusters..........:
     information about all the virtual clusters the current machine is
     considered to belong to (if any)
-    clusters...................: array of cluster definition
+    proxyClusters..............: array of cluster proxy definition
     """
 
     my_clusters: List[ClusterDefinition] = field(
