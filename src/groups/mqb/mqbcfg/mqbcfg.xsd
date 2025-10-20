@@ -86,6 +86,7 @@
         configureStream......: send new ConfigureStream instead of old ConfigureQueue
         advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
         routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
+        authentication.......: configuration for authentication
       </documentation>
     </annotation>
     <sequence>
@@ -108,6 +109,7 @@
       <element name='configureStream'      type='boolean' default='false'/>
       <element name='advertiseSubscriptions' type='boolean' default='false'/>
       <element name='routeCommandTimeoutMs' type='int' default='3000'/>
+      <element name='authentication'       type='tns:AuthenticatorConfig'/>
     </sequence>
   </complexType>
 
@@ -301,6 +303,120 @@
       <element name='libraries' type='string' maxOccurs='unbounded'/>
       <element name='enabled'   type='string' maxOccurs='unbounded'/>
     </sequence>
+  </complexType>
+
+  <complexType name='AuthenticatorConfig'>
+    <annotation>
+      <documentation>
+        Top level type for the broker's authentication configurations.
+
+        authenticators...........:
+            Configuration entries for authenticator plugins (built-in or external).
+            Each entry defines settings for a specific plugin. All plugins must have
+            unique authentication mechanisms.
+        anonymousCredential.:
+            Controls anonymous authentication behavior. When specified, the broker
+            uses the provided credential with a matching plugin from `authenticators`.
+            When omitted, the broker defaults to AnonPassAuthenticator for anonymous
+            authentication.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='authenticators'      type='tns:AuthenticatorPluginConfig' minOccurs="0" maxOccurs='unbounded'/>
+      <element name='anonymousCredential' type='tns:AnonymousCredential' minOccurs='0'/>
+     </sequence>
+  </complexType>
+
+  <complexType name='AnonymousCredential'>
+    <annotation>
+      <documentation>
+        Type representing the anonymous credential configuration.
+
+        disallow...:
+            If set, the anonymous credential is not allowed. Authentication
+            is required and clients which cannot or do not authenticate will be
+            rejected.
+        credential.:
+            If set, the credential is used for anonymous authentication in case the client
+            does not support authentication or has not been configured to authenticate.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='disallow'   type='tns:Disallow'/>
+      <element name='credential' type='tns:Credential'/>
+    </choice>
+  </complexType>
+
+  <complexType name="Credential">
+    <annotation>
+      <documentation>
+        Type representing a credential used for authentication.
+
+        This type is used to represent a credential that can be used for
+        authentication. It contains an authentication mechanism and an identity.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='mechanism' type='string'/>
+      <element name='identity' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Disallow">
+    <annotation>
+      <documentation>
+        Type representing the disallow anonymous credential configuration.
+
+        This type is used to indicate that anonymous authentication is not
+        allowed on the broker. If this is set, the broker will not use the
+        anonymous authenticator plugin. Authentication is required and clients
+        which cannot or do not authenticate will be rejected.
+      </documentation>
+    </annotation>
+    <sequence></sequence>
+  </complexType>
+
+  <complexType name="AuthenticatorPluginConfig">
+    <annotation>
+      <documentation>
+        The configuration for an authenticator plugin.
+
+        name....:
+            The name of the authenticator plugin.
+        configs.:
+            Plugin-specific configurations.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'    type='string'/>
+      <element name='configs' type='tns:PluginConfigKeyValue' minOccurs='0' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name="PluginConfigKeyValue">
+    <annotation>
+      <documentation>
+        The key-value pair used for plugin configurations.
+
+        key...: configuration key/name
+        value.: configuration value
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='key' type='string'/>
+      <element name='value' type="tns:PluginConfigValue">
+      </element>
+    </sequence>
+  </complexType>
+
+  <complexType name="PluginConfigValue">
+    <choice>
+      <element name='boolVal'   type='boolean'/>
+      <element name='intVal'    type='int'/>
+      <element name='longVal'   type='long'/>
+      <element name='doubleVal' type='double'/>
+      <element name='stringVal' type='string'/>
+    </choice>
   </complexType>
 
   <!-- ========================================================================
