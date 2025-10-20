@@ -1101,7 +1101,6 @@ void QueueEngineTester::reject(const bsl::string&       clientText,
     bsl::string::size_type appIdStartPosition = clientText.find_first_of("@");
     BSLS_ASSERT_OPT(clientText.find_first_of(' ', appIdStartPosition) ==
                     bsl::string::npos);
-    ;
 
     // 1.1 'clientKey'
     const bsl::string clientKey(clientText.substr(0, appIdStartPosition),

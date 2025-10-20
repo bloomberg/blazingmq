@@ -252,22 +252,37 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
     const bsl::shared_ptr<Downstream>& subStream = downstream(
         downstreamSubQueueId);
 
-    // If we previously hit the maxUnconfirmed and are now back to below the
-    // lowWatermark for BOTH messages and bytes, then we will schedule a
-    // delivery by indicating to the associated queue engine that this handle
-    // is now back to being usable.  For this reason, we have the variable
-    // 'resourceUsageStateChange' below, to capture such a transition if it
-    // occurs.
-    // Update unconfirmed messages list and stats
+    // Do not let unknown Reject through
+    const mqbi::QueueHandle::RedeliverySp& messages = subStream->d_data;
 
-    // Inform the queue about that reject.
-    int counter = d_queue_sp->rejectMessage(msgGUID,
-                                            subStream->d_upstreamSubQueueId,
-                                            this);
+    UnconfirmedMessageInfoMap::iterator it = messages->find(msgGUID);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it == messages->end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-    if (counter == 0) {
-        updateMonitor(subStream, msgGUID, bmqp::EventType::e_REJECT);
-        // That erases 'msgGUID' from 'd_unconfirmedMessages'
+        // This can happen when switching primaries and the new Primary did not
+        // get a chance to PUSH the 'msgGUID' (which the old Primary did)
+        // _before_ the Downstream generated the Reject.
+
+        // The logic of QueueEngine(s) throttles (re)delivery for messages in
+        // redelivery lists only and asserts otherwise.
+
+        BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
+                      << "Received a REJECT message from client '"
+                      << d_clientContext_sp->client()->description()
+                      << "' for queue '" << d_queue_sp->description()
+                      << "' for a message not in pending unconfirmed.";
+    }
+    else {
+        // Inform the queue about that reject.
+        int counter = d_queue_sp->rejectMessage(
+            msgGUID,
+            subStream->d_upstreamSubQueueId,
+            this);
+
+        if (counter == 0) {
+            updateMonitor(subStream, msgGUID, bmqp::EventType::e_REJECT);
+            // That erases 'msgGUID' from 'd_unconfirmedMessages'
+        }
     }
 }
 
