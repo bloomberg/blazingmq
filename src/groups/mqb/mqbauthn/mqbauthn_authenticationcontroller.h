@@ -129,8 +129,8 @@ class AuthenticationController {
         const mqbcfg::AuthenticatorConfig& authenticatorConfig);
 
     /// Ensure at least one authenticator is available for default
-    /// authentication, adding default AnonPassAuthenticator if none are
-    /// configured. Return 0 on success, non-zero on error.
+    /// authentication, adding default AnonAuthenticator if none are
+    /// configured.  Return 0 on success, non-zero on error.
     int ensureDefaultAuthenticator(bsl::ostream& errorDescription);
 
   public:

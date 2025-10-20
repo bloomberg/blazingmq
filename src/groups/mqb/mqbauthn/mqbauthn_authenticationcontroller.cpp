@@ -22,7 +22,7 @@
 #include <bmqu_memoutstream.h>
 
 // MQB
-#include <mqbauthn_anonpassauthenticator.h>
+#include <mqbauthn_anonauthenticator.h>
 #include <mqbauthn_pluginlibrary.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
@@ -74,7 +74,7 @@ int AuthenticationController::setAnonymousCredential(
                          "string as the default identity.";
         d_anonymousCredential = mqbcfg::Credential();
         d_anonymousCredential->mechanism() =
-            mqbauthn::AnonPassAuthenticator::k_MECHANISM;
+            mqbauthn::AnonAuthenticator::k_MECHANISM;
         d_anonymousCredential->identity() = "";
     }
     else if (anonymousCredential->isCredentialValue()) {
@@ -265,7 +265,7 @@ int AuthenticationController::createConfiguredAuthenticators(
 int AuthenticationController::createDefaultAnonAuthenticator()
 {
     // Create an anonymous pass authenticator
-    AnonPassAuthenticatorPluginFactory anonFactory;
+    AnonAuthenticatorPluginFactory anonFactory;
     AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
 
     bmqu::MemOutStream errorStream(d_allocator_p);
@@ -303,8 +303,8 @@ int AuthenticationController::validateAnonymousCredential(
         authenticatorConfig.anonymousCredential();
 
     if (anonCredential.isNull()) {
-        bsl::string anonMechanism =
-            bsl::string(AnonPassAuthenticator::k_MECHANISM, d_allocator_p);
+        bsl::string anonMechanism = bsl::string(AnonAuthenticator::k_MECHANISM,
+                                                d_allocator_p);
 
         if (d_authenticators.find(anonMechanism) != d_authenticators.cend()) {
             errorDescription << "Provided anonymous authenticator but "
@@ -336,18 +336,18 @@ int AuthenticationController::validateAnonymousCredential(
 int AuthenticationController::ensureDefaultAuthenticator(
     bsl::ostream& errorDescription)
 {
-    // If no authenticators are configured, use AnonPassAuthenticator for
-    // anonymous authentication
+    // If no authenticators are configured, use AnonAuthenticator for
+    // anonymous pass authentication
     if (d_authenticators.empty()) {
         BALL_LOG_INFO << "No authenticators configured, using "
-                         "AnonPassAuthenticator as default";
+                         "AnonAuthenticator as default";
 
-        AnonPassAuthenticatorPluginFactory anonFactory;
+        AnonAuthenticatorPluginFactory anonFactory;
         AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
 
         bmqu::MemOutStream errorStream(d_allocator_p);
         if (int status = authenticator->start(errorStream)) {
-            errorDescription << "Failed to start AnonPassAuthenticator: "
+            errorDescription << "Failed to start AnonAuthenticator: "
                              << errorStream.str();
             BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
                 << "Failed to start default anonymous authenticator '"

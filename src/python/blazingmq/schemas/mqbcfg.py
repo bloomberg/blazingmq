@@ -1864,8 +1864,8 @@ class AuthenticatorConfig:
     anonymousCredential.:
     Controls anonymous authentication behavior. When specified, the broker
     uses the provided credential with a matching plugin from `authenticators`.
-    When omitted, the broker defaults to AnonPassAuthenticator for anonymous
-    authentication.
+    When omitted, the broker defaults to AnonAuthenticator and always passes for
+    anonymous authentication.
     """
 
     authenticators: List[AuthenticatorPluginConfig] = field(

@@ -1,5 +1,4 @@
-mqbauthn_anonfailauthenticator
-mqbauthn_anonpassauthenticator
+mqbauthn_anonauthenticator
 mqbauthn_basicauthenticator
 mqbauthn_pluginlibrary
 mqbauthn_authenticationcontroller

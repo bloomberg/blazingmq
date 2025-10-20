@@ -13,21 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbauthn_anonpassauthenticator.h                             -*-C++-*-
-#ifndef INCLUDED_MQBAUTHN_ANONPASSAUTHENTICATOR
-#define INCLUDED_MQBAUTHN_ANONPASSAUTHENTICATOR
+// mqbauthn_anonauthenticator.h                             -*-C++-*-
+#ifndef INCLUDED_MQBAUTHN_ANONAUTHENTICATOR
+#define INCLUDED_MQBAUTHN_ANONAUTHENTICATOR
 
-/// @file mqbauthn_anonpassauthenticator.h
+/// @file mqbauthn_anonauthenticator.h
 ///
-/// @brief Provide an anonymous pass authenticator plugin.
+/// @brief Provide a configurable anonymous authenticator plugin.
 ///
-/// @bbref{mqbauthn::AnonPassAuthenticator} provides a built-in authenticator
-/// plugin that always authenticates successfully, regardless of the input
-/// provided.  It's used as a default authenticator for the anonymous
-/// credential when no other authenticator is configured.
-/// @bbref{mqbauthn::AnonPassAuthenticationResult} and
-/// @bbref{mqbauthn::AnonPassAuthenticatorPluginFactory} are the corresponding
-/// result and factory classes for the authenticator plugin.
+/// @bbref{mqbauthn::AnonAuthenticator} provides a built-in authenticator
+/// plugin that can be configured to either always succeed or always fail
+/// authentication.  When configured to pass (or default with no
+/// configuration), it allows anonymous access without credentials. When
+/// configured to fail, it blocks all authentication attempts. This is useful
+/// for testing or controlling anonymous access.
+/// @bbref{mqbauthn::AnonAuthenticatorPluginFactory} is the corresponding
+/// factory class for the authenticator plugin.
 
 // MQB
 #include <mqbplug_authenticator.h>
@@ -53,11 +54,11 @@ class AuthenticatorPluginConfig;
 
 namespace mqbauthn {
 
-// ==================================
-// class AnonPassAuthenticationResult
-// ==================================
+// ==============================
+// class AnonAuthenticationResult
+// ==============================
 
-class AnonPassAuthenticationResult : public mqbplug::AuthenticationResult {
+class AnonAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
     bsl::string                       d_principal;
@@ -65,17 +66,17 @@ class AnonPassAuthenticationResult : public mqbplug::AuthenticationResult {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(AnonPassAuthenticationResult,
+    BSLMF_NESTED_TRAIT_DECLARATION(AnonAuthenticationResult,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
 
     /// Construct this object using the optionally specified `allocator`.
-    AnonPassAuthenticationResult(bsl::string_view                  principal,
-                                 bsl::optional<bsls::Types::Int64> lifetimeMs,
-                                 bslma::Allocator*                 allocator);
+    AnonAuthenticationResult(bsl::string_view                  principal,
+                             bsl::optional<bsls::Types::Int64> lifetimeMs,
+                             bslma::Allocator*                 allocator);
 
-    ~AnonPassAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
+    ~AnonAuthenticationResult() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -84,47 +85,55 @@ class AnonPassAuthenticationResult : public mqbplug::AuthenticationResult {
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
 
-// ===========================
-// class AnonPassAuthenticator
-// ===========================
+// =======================
+// class AnonAuthenticator
+// =======================
 
-class AnonPassAuthenticator : public mqbplug::Authenticator {
+class AnonAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
     static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_NAME =
-        "AnonPassAuthenticator";
+        "AnonAuthenticator";
     static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_MECHANISM =
         "ANONYMOUS";
 
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.ANONPASSAUTHENTICATOR");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.ANONAUTHENTICATOR");
 
     // DATA
     bslma::Allocator* d_allocator_p;
 
     bool d_isStarted;
 
+    /// If true, authentication always succeeds; if false, always fails.
+    bool d_shouldPass;
+
   private:
     // NOT IMPLEMENTED
-    AnonPassAuthenticator(const AnonPassAuthenticator& other)
-        BSLS_KEYWORD_DELETED;
-    AnonPassAuthenticator&
-    operator=(const AnonPassAuthenticator& other) BSLS_KEYWORD_DELETED;
+    AnonAuthenticator(const AnonAuthenticator& other) BSLS_KEYWORD_DELETED;
+    AnonAuthenticator&
+    operator=(const AnonAuthenticator& other) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(AnonPassAuthenticator,
+    BSLMF_NESTED_TRAIT_DECLARATION(AnonAuthenticator,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
 
-    AnonPassAuthenticator(bslma::Allocator* allocator = 0);
+    /// Construct an AnonAuthenticator with the specified `shouldPass`
+    /// behavior flag and optionally specified `allocator`.  If `shouldPass`
+    /// is true, authentication will always succeed; if false, authentication
+    /// will always fail.
+    AnonAuthenticator(bool shouldPass                                 = true,
+                      const mqbcfg::AuthenticatorPluginConfig* config = 0,
+                      bslma::Allocator*                        allocator = 0);
 
     /// Destructor.
-    ~AnonPassAuthenticator() BSLS_KEYWORD_OVERRIDE;
+    ~AnonAuthenticator() BSLS_KEYWORD_OVERRIDE;
 
-    // MANIPULATORS
+    // ACCESSORS
 
     /// Return the name of the plugin.
     bsl::string_view name() const BSLS_KEYWORD_OVERRIDE;
@@ -133,12 +142,15 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
     bsl::string_view mechanism() const BSLS_KEYWORD_OVERRIDE;
 
     /// Authenticate using the data provided in the specified `input`.
-    /// - Return `0` on success, and populate the specified `result` with
+    /// Behavior depends on the `shouldPass` configuration:
+    /// - If `shouldPass` is true:
+    ///   Return `0` on success, and populate the specified `result` with
     ///   client identity and its remaining lifetime if it has a fixed
     ///   duration.
-    /// - Return a non-zero plugin-specific return code upon failure, and
+    /// - If `shouldPass` is false:
+    ///   Return a non-zero plugin-specific return code upon failure, and
     ///   populate the specified `errorDescription` with a brief reason for
-    ///   logging purposes.
+    ///   logging purposes. The `result` will not be populated.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
                      const mqbplug::AuthenticationData& input) const
@@ -155,16 +167,17 @@ class AnonPassAuthenticator : public mqbplug::Authenticator {
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
-// ========================================
-// class AnonPassAuthenticatorPluginFactory
-// ========================================
+// ====================================
+// class AnonAuthenticatorPluginFactory
+// ====================================
 
-class AnonPassAuthenticatorPluginFactory
+class AnonAuthenticatorPluginFactory
 : public mqbplug::AuthenticatorPluginFactory {
   public:
     // CREATORS
-    AnonPassAuthenticatorPluginFactory();
-    ~AnonPassAuthenticatorPluginFactory() BSLS_KEYWORD_OVERRIDE;
+    explicit AnonAuthenticatorPluginFactory();
+
+    ~AnonAuthenticatorPluginFactory() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     bslma::ManagedPtr<mqbplug::Authenticator>
