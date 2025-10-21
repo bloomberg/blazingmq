@@ -71,7 +71,9 @@ class AdminClient(RawClient):
         return the domain configuration as a structured dictionary.
         """
 
-        admin_response: str = self.send_admin(f"ENCODING JSON_COMPACT DOMAINS DOMAIN {domain_name} INFOS")
+        admin_response: str = self.send_admin(
+            f"ENCODING JSON_COMPACT DOMAINS DOMAIN {domain_name} INFOS"
+        )
 
         # Top-level domain information has the following structure:
         # {
