@@ -77,7 +77,7 @@ class AdminClient(RawClient):
         # {
         #     "domainInfo": {
         #         "name": str,
-        #         "configJson: str,
+        #         "configJson": str,
         #         ...
         #     }
         # }
