@@ -5076,14 +5076,14 @@ static void test47_handleParametersLimits()
 
 static void test48_unknownReject()
 // ------------------------------------------------------------------------
-// UNKNOWN REJECT
+// UNEXPECTED_REJECT
 //
 // Concerns:
 //   When switching Primary, the new Primary can receive a Reject before
 //   sending PUSH.
 //
 // Plan:
-//   1) Configure 3 handles, C1, C2, C3  each with distinct app ids.
+//   1) Configure 3 handles, C1, C2, C3 each with distinct app ids.
 //   2) Make C1 stop delivery at a resume point behind C2 and C3
 //   3) Generate Reject for the message at the resume point
 //   4) Make C1 resume the delivery
@@ -5092,7 +5092,7 @@ static void test48_unknownReject()
 //   This tests 'mqbmock::QueueHandle' which should mimic 'mqbblb::QueueHandle'
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("UNKNOWN REJECT");
+    bmqtst::TestHelper::printTestName("UNEXPECTED_REJECT");
 
     mqbconfm::Domain config      = fanoutConfig("a,b,c");
     config.maxDeliveryAttempts() = 5;
