@@ -173,90 +173,90 @@ int AuthenticationController::createConfiguredAuthenticators(
     // If authenticators are explicitly configured, only create those
     const bsl::vector<mqbcfg::AuthenticatorPluginConfig>& authenticators =
         authenticatorConfig.authenticators();
-    if (!authenticators.empty()) {
-        BALL_LOG_INFO << "Creating " << authenticators.size()
-                      << " explicitly configured authenticator(s)";
 
-        bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator
-            configIt = authenticators.cbegin();
-        for (; configIt != authenticators.cend(); ++configIt) {
-            const bsl::string& pluginName = configIt->name();
+    if (authenticators.empty()) {
+        BALL_LOG_INFO << "No configured authenticator(s)";
+        return rc_SUCCESS;
+    }
 
-            // Find the factory for this named plugin among available factories
-            mqbplug::AuthenticatorPluginFactory* factory = 0;
-            AuthenticatorMp                      authenticator;
+    BALL_LOG_INFO << "Creating " << authenticators.size()
+                  << " explicitly configured authenticator(s)";
 
-            for (PluginFactories::const_iterator factoryIt =
-                     pluginFactories.cbegin();
-                 factoryIt != pluginFactories.cend();
-                 ++factoryIt) {
-                mqbplug::AuthenticatorPluginFactory* candidateFactory =
-                    dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(
-                        *factoryIt);
-                if (candidateFactory) {
-                    // Try to create authenticator - this will fail if no
-                    // matching config
-                    AuthenticatorMp testAuth = candidateFactory->create(
-                        d_allocator_p);
-                    if (testAuth && testAuth->name() == pluginName) {
-                        // Found the right factory and already have the
-                        // authenticator!
-                        factory       = candidateFactory;
-                        authenticator = bslmf::MovableRefUtil::move(testAuth);
-                        break;
-                    }
+    bsl::vector<mqbcfg::AuthenticatorPluginConfig>::const_iterator configIt =
+        authenticators.cbegin();
+    for (; configIt != authenticators.cend(); ++configIt) {
+        const bsl::string& pluginName = configIt->name();
+
+        // Find the factory for this named plugin among available factories
+        mqbplug::AuthenticatorPluginFactory* factory = 0;
+        AuthenticatorMp                      authenticator;
+
+        for (PluginFactories::const_iterator factoryIt =
+                 pluginFactories.cbegin();
+             factoryIt != pluginFactories.cend();
+             ++factoryIt) {
+            mqbplug::AuthenticatorPluginFactory* candidateFactory =
+                dynamic_cast<mqbplug::AuthenticatorPluginFactory*>(*factoryIt);
+            if (candidateFactory) {
+                // Try to create authenticator - this will fail if no
+                // matching config
+                AuthenticatorMp testAuth = candidateFactory->create(
+                    d_allocator_p);
+                if (testAuth && testAuth->name() == pluginName) {
+                    // Found the right factory and already have the
+                    // authenticator!
+                    factory       = candidateFactory;
+                    authenticator = bslmf::MovableRefUtil::move(testAuth);
+                    break;
                 }
             }
-
-            if (!factory) {
-                errorDescription
-                    << "Authenticator plugin '" << pluginName
-                    << "' not found in available factories. "
-                    << "Ensure the plugin is either built-in or listed "
-                    << "in plugins.enabled[] if it's external";
-                return rc_PLUGIN_NOT_FOUND;  // RETURN
-            }
-
-            // We already have the authenticator instance from the search above
-            if (!authenticator) {
-                errorDescription << "Failed to create authenticator plugin '"
-                                 << pluginName << "'";
-                continue;  // Skip if creation failed
-            }
-
-            const bsl::string normMech =
-                normalizeMechanism(authenticator->mechanism(), d_allocator_p);
-
-            // Check for duplicate mechanisms
-            AuthenticatorMap::const_iterator cit = d_authenticators.find(
-                normMech);
-            if (cit != d_authenticators.cend()) {
-                errorDescription << "Duplicate authenticator mechanism '"
-                                 << normMech << "' for plugin '" << pluginName
-                                 << "'. Each mechanism can only "
-                                 << "have one active authenticator";
-                return rc_DUPLICATE_MECHANISM;  // RETURN
-            }
-
-            // Start the authenticator
-            if (int status = authenticator->start(errorStream)) {
-                BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
-                    << "Failed to start Authenticator '"
-                    << authenticator->name() << "' [rc: " << status
-                    << ", error: '" << errorStream.str() << "']"
-                    << BMQTSK_ALARMLOG_END;
-                errorStream.reset();
-                return status * 10 + rc_START_AUTHENTICATOR;  // RETURN
-            }
-
-            BALL_LOG_INFO << "Started authenticator '" << authenticator->name()
-                          << "' with mechanism '" << normMech << "'";
-
-            // Add to collection
-            d_authenticators.emplace(
-                normMech,
-                bslmf::MovableRefUtil::move(authenticator));
         }
+
+        if (!factory) {
+            errorDescription
+                << "Authenticator plugin '" << pluginName
+                << "' not found in available factories. "
+                << "Ensure the plugin is either built-in or listed "
+                << "in plugins.enabled[] if it's external";
+            return rc_PLUGIN_NOT_FOUND;  // RETURN
+        }
+
+        // We already have the authenticator instance from the search above
+        if (!authenticator) {
+            errorDescription << "Failed to create authenticator plugin '"
+                             << pluginName << "'";
+            continue;  // Skip if creation failed
+        }
+
+        const bsl::string normMech =
+            normalizeMechanism(authenticator->mechanism(), d_allocator_p);
+
+        // Check for duplicate mechanisms
+        AuthenticatorMap::const_iterator cit = d_authenticators.find(normMech);
+        if (cit != d_authenticators.cend()) {
+            errorDescription << "Duplicate authenticator mechanism '"
+                             << normMech << "' for plugin '" << pluginName
+                             << "'. Each mechanism can only "
+                             << "have one active authenticator";
+            return rc_DUPLICATE_MECHANISM;  // RETURN
+        }
+
+        // Start the authenticator
+        if (int status = authenticator->start(errorStream)) {
+            BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
+                << "Failed to start Authenticator '" << authenticator->name()
+                << "' [rc: " << status << ", error: '" << errorStream.str()
+                << "']" << BMQTSK_ALARMLOG_END;
+            errorStream.reset();
+            return status * 10 + rc_START_AUTHENTICATOR;  // RETURN
+        }
+
+        BALL_LOG_INFO << "Started authenticator '" << authenticator->name()
+                      << "' with mechanism '" << normMech << "'";
+
+        // Add to collection
+        d_authenticators.emplace(normMech,
+                                 bslmf::MovableRefUtil::move(authenticator));
     }
 
     return rc_SUCCESS;

@@ -89,7 +89,7 @@ namespace mqbcfg {
 class MessageThrottleConfig;
 }
 namespace mqbcfg {
-class PluginConfigValue;
+class PluginSettingValue;
 }
 namespace mqbcfg {
 class Plugins;
@@ -134,7 +134,7 @@ namespace mqbcfg {
 class PartitionConfig;
 }
 namespace mqbcfg {
-class PluginConfigKeyValue;
+class PluginSettingKeyValue;
 }
 namespace mqbcfg {
 class StatPluginConfigPrometheus;
@@ -2812,11 +2812,11 @@ BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
 
 namespace mqbcfg {
 
-// =======================
-// class PluginConfigValue
-// =======================
+// ========================
+// class PluginSettingValue
+// ========================
 
-class PluginConfigValue {
+class PluginSettingValue {
     // INSTANCE DATA
     union {
         bsls::ObjectBuffer<bool>               d_boolVal;
@@ -2833,7 +2833,7 @@ class PluginConfigValue {
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
-    bool isEqualTo(const PluginConfigValue& rhs) const;
+    bool isEqualTo(const PluginSettingValue& rhs) const;
 
   public:
     // TYPES
@@ -2874,46 +2874,46 @@ class PluginConfigValue {
     // exists, and 0 otherwise.
 
     // CREATORS
-    explicit PluginConfigValue(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'PluginConfigValue' having the default
+    explicit PluginSettingValue(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'PluginSettingValue' having the default
     // value.  Use the optionally specified 'basicAllocator' to supply
     // memory.  If 'basicAllocator' is 0, the currently installed default
     // allocator is used.
 
-    PluginConfigValue(const PluginConfigValue& original,
-                      bslma::Allocator*        basicAllocator = 0);
-    // Create an object of type 'PluginConfigValue' having the value of the
-    // specified 'original' object.  Use the optionally specified
+    PluginSettingValue(const PluginSettingValue& original,
+                       bslma::Allocator*         basicAllocator = 0);
+    // Create an object of type 'PluginSettingValue' having the value of
+    // the specified 'original' object.  Use the optionally specified
     // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
     // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    PluginConfigValue(PluginConfigValue&& original) noexcept;
-    // Create an object of type 'PluginConfigValue' having the value of the
-    // specified 'original' object.  After performing this action, the
+    PluginSettingValue(PluginSettingValue&& original) noexcept;
+    // Create an object of type 'PluginSettingValue' having the value of
+    // the specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
 
-    PluginConfigValue(PluginConfigValue&& original,
-                      bslma::Allocator*   basicAllocator);
-    // Create an object of type 'PluginConfigValue' having the value of the
-    // specified 'original' object.  After performing this action, the
+    PluginSettingValue(PluginSettingValue&& original,
+                       bslma::Allocator*    basicAllocator);
+    // Create an object of type 'PluginSettingValue' having the value of
+    // the specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
     // Use the optionally specified 'basicAllocator' to supply memory.  If
     // 'basicAllocator' is 0, the currently installed default allocator is
     // used.
 #endif
 
-    ~PluginConfigValue();
+    ~PluginSettingValue();
     // Destroy this object.
 
     // MANIPULATORS
-    PluginConfigValue& operator=(const PluginConfigValue& rhs);
+    PluginSettingValue& operator=(const PluginSettingValue& rhs);
     // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    PluginConfigValue& operator=(PluginConfigValue&& rhs);
+    PluginSettingValue& operator=(PluginSettingValue&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
@@ -3080,18 +3080,18 @@ class PluginConfigValue {
     // Return the symbolic name of the current selection of this object.
 
     // HIDDEN FRIENDS
-    friend bool operator==(const PluginConfigValue& lhs,
-                           const PluginConfigValue& rhs)
+    friend bool operator==(const PluginSettingValue& lhs,
+                           const PluginSettingValue& rhs)
     // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-    // value, and 'false' otherwise.  Two 'PluginConfigValue' objects have
+    // value, and 'false' otherwise.  Two 'PluginSettingValue' objects have
     // the same value if either the selections in both objects have the
     // same ids and the same values, or both selections are undefined.
     {
         return lhs.isEqualTo(rhs);
     }
 
-    friend bool operator!=(const PluginConfigValue& lhs,
-                           const PluginConfigValue& rhs)
+    friend bool operator!=(const PluginSettingValue& lhs,
+                           const PluginSettingValue& rhs)
     // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
     // the same values, as determined by 'operator==', and 'false'
     // otherwise.
@@ -3099,8 +3099,8 @@ class PluginConfigValue {
         return !(lhs == rhs);
     }
 
-    friend bsl::ostream& operator<<(bsl::ostream&            stream,
-                                    const PluginConfigValue& rhs)
+    friend bsl::ostream& operator<<(bsl::ostream&             stream,
+                                    const PluginSettingValue& rhs)
     // Format the specified 'rhs' to the specified output 'stream' and
     // return a reference to the modifiable 'stream'.
     {
@@ -3108,12 +3108,12 @@ class PluginConfigValue {
     }
 
     template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&        hashAlg,
-                           const PluginConfigValue& object)
+    friend void hashAppend(t_HASH_ALGORITHM&         hashAlg,
+                           const PluginSettingValue& object)
     // Pass the specified 'object' to the specified 'hashAlg'.  This
     // function integrates with the 'bslh' modular hashing system and
     // effectively provides a 'bsl::hash' specialization for
-    // 'PluginConfigValue'.
+    // 'PluginSettingValue'.
     {
         return object.hashAppendImpl(hashAlg);
     }
@@ -3124,7 +3124,7 @@ class PluginConfigValue {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginConfigValue)
+    mqbcfg::PluginSettingValue)
 
 namespace mqbcfg {
 
@@ -6789,17 +6789,17 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
-// ==========================
-// class PluginConfigKeyValue
-// ==========================
+// ===========================
+// class PluginSettingKeyValue
+// ===========================
 
-class PluginConfigKeyValue {
-    // The key-value pair used for plugin configurations.
-    // key...: configuration key/name value.: configuration value
+class PluginSettingKeyValue {
+    // The key-value pair used for plugin settings.
+    // key...: setting key/name value.: setting value
 
     // INSTANCE DATA
-    bsl::string       d_key;
-    PluginConfigValue d_value;
+    bsl::string        d_key;
+    PluginSettingValue d_value;
 
   public:
     // TYPES
@@ -6827,29 +6827,29 @@ class PluginConfigKeyValue {
     // exists, and 0 otherwise.
 
     // CREATORS
-    explicit PluginConfigKeyValue(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'PluginConfigKeyValue' having the default
+    explicit PluginSettingKeyValue(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'PluginSettingKeyValue' having the default
     // value.  Use the optionally specified 'basicAllocator' to supply
     // memory.  If 'basicAllocator' is 0, the currently installed default
     // allocator is used.
 
-    PluginConfigKeyValue(const PluginConfigKeyValue& original,
-                         bslma::Allocator*           basicAllocator = 0);
-    // Create an object of type 'PluginConfigKeyValue' having the value of
+    PluginSettingKeyValue(const PluginSettingKeyValue& original,
+                          bslma::Allocator*            basicAllocator = 0);
+    // Create an object of type 'PluginSettingKeyValue' having the value of
     // the specified 'original' object.  Use the optionally specified
     // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
     // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    PluginConfigKeyValue(PluginConfigKeyValue&& original) noexcept;
-    // Create an object of type 'PluginConfigKeyValue' having the value of
+    PluginSettingKeyValue(PluginSettingKeyValue&& original) noexcept;
+    // Create an object of type 'PluginSettingKeyValue' having the value of
     // the specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
 
-    PluginConfigKeyValue(PluginConfigKeyValue&& original,
-                         bslma::Allocator*      basicAllocator);
-    // Create an object of type 'PluginConfigKeyValue' having the value of
+    PluginSettingKeyValue(PluginSettingKeyValue&& original,
+                          bslma::Allocator*       basicAllocator);
+    // Create an object of type 'PluginSettingKeyValue' having the value of
     // the specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
     // Use the optionally specified 'basicAllocator' to supply memory.  If
@@ -6857,16 +6857,16 @@ class PluginConfigKeyValue {
     // used.
 #endif
 
-    ~PluginConfigKeyValue();
+    ~PluginSettingKeyValue();
     // Destroy this object.
 
     // MANIPULATORS
-    PluginConfigKeyValue& operator=(const PluginConfigKeyValue& rhs);
+    PluginSettingKeyValue& operator=(const PluginSettingKeyValue& rhs);
     // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    PluginConfigKeyValue& operator=(PluginConfigKeyValue&& rhs);
+    PluginSettingKeyValue& operator=(PluginSettingKeyValue&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
@@ -6908,7 +6908,7 @@ class PluginConfigKeyValue {
     bsl::string& key();
     // Return a reference to the modifiable "Key" attribute of this object.
 
-    PluginConfigValue& value();
+    PluginSettingValue& value();
     // Return a reference to the modifiable "Value" attribute of this
     // object.
 
@@ -6959,13 +6959,13 @@ class PluginConfigKeyValue {
     // Return a reference offering non-modifiable access to the "Key"
     // attribute of this object.
 
-    const PluginConfigValue& value() const;
+    const PluginSettingValue& value() const;
     // Return a reference offering non-modifiable access to the "Value"
     // attribute of this object.
 
     // HIDDEN FRIENDS
-    friend bool operator==(const PluginConfigKeyValue& lhs,
-                           const PluginConfigKeyValue& rhs)
+    friend bool operator==(const PluginSettingKeyValue& lhs,
+                           const PluginSettingKeyValue& rhs)
     // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
@@ -6973,15 +6973,15 @@ class PluginConfigKeyValue {
         return lhs.key() == rhs.key() && lhs.value() == rhs.value();
     }
 
-    friend bool operator!=(const PluginConfigKeyValue& lhs,
-                           const PluginConfigKeyValue& rhs)
+    friend bool operator!=(const PluginSettingKeyValue& lhs,
+                           const PluginSettingKeyValue& rhs)
     // Returns '!(lhs == rhs)'
     {
         return !(lhs == rhs);
     }
 
-    friend bsl::ostream& operator<<(bsl::ostream&               stream,
-                                    const PluginConfigKeyValue& rhs)
+    friend bsl::ostream& operator<<(bsl::ostream&                stream,
+                                    const PluginSettingKeyValue& rhs)
     // Format the specified 'rhs' to the specified output 'stream' and
     // return a reference to the modifiable 'stream'.
     {
@@ -6989,12 +6989,12 @@ class PluginConfigKeyValue {
     }
 
     template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&           hashAlg,
-                           const PluginConfigKeyValue& object)
+    friend void hashAppend(t_HASH_ALGORITHM&            hashAlg,
+                           const PluginSettingKeyValue& object)
     // Pass the specified 'object' to the specified 'hashAlg'.  This
     // function integrates with the 'bslh' modular hashing system and
     // effectively provides a 'bsl::hash' specialization for
-    // 'PluginConfigKeyValue'.
+    // 'PluginSettingKeyValue'.
     {
         using bslh::hashAppend;
         hashAppend(hashAlg, object.key());
@@ -7007,7 +7007,7 @@ class PluginConfigKeyValue {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::PluginConfigKeyValue)
+    mqbcfg::PluginSettingKeyValue)
 
 namespace mqbcfg {
 
@@ -7595,20 +7595,20 @@ namespace mqbcfg {
 
 class AuthenticatorPluginConfig {
     // The configuration for an authenticator plugin.
-    // name....: The name of the authenticator plugin.  configs.:
-    // Plugin-specific configurations.
+    // name.....: The name of the authenticator plugin.  settings.:
+    // Plugin-specific settings.
 
     // INSTANCE DATA
-    bsl::vector<PluginConfigKeyValue> d_configs;
-    bsl::string                       d_name;
+    bsl::vector<PluginSettingKeyValue> d_settings;
+    bsl::string                        d_name;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_CONFIGS = 1 };
+    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_SETTINGS = 1 };
 
     enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_CONFIGS = 1 };
+    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_SETTINGS = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -7711,8 +7711,8 @@ class AuthenticatorPluginConfig {
     // Return a reference to the modifiable "Name" attribute of this
     // object.
 
-    bsl::vector<PluginConfigKeyValue>& configs();
-    // Return a reference to the modifiable "Configs" attribute of this
+    bsl::vector<PluginSettingKeyValue>& settings();
+    // Return a reference to the modifiable "Settings" attribute of this
     // object.
 
     // ACCESSORS
@@ -7762,8 +7762,8 @@ class AuthenticatorPluginConfig {
     // Return a reference offering non-modifiable access to the "Name"
     // attribute of this object.
 
-    const bsl::vector<PluginConfigKeyValue>& configs() const;
-    // Return a reference offering non-modifiable access to the "Configs"
+    const bsl::vector<PluginSettingKeyValue>& settings() const;
+    // Return a reference offering non-modifiable access to the "Settings"
     // attribute of this object.
 
     // HIDDEN FRIENDS
@@ -7773,7 +7773,7 @@ class AuthenticatorPluginConfig {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.name() == rhs.name() && lhs.configs() == rhs.configs();
+        return lhs.name() == rhs.name() && lhs.settings() == rhs.settings();
     }
 
     friend bool operator!=(const AuthenticatorPluginConfig& lhs,
@@ -7801,7 +7801,7 @@ class AuthenticatorPluginConfig {
     {
         using bslh::hashAppend;
         hashAppend(hashAlg, object.name());
-        hashAppend(hashAlg, object.configs());
+        hashAppend(hashAlg, object.settings());
     }
 };
 
@@ -13316,16 +13316,16 @@ inline unsigned int MessageThrottleConfig::highInterval() const
     return d_highInterval;
 }
 
-// -----------------------
-// class PluginConfigValue
-// -----------------------
+// ------------------------
+// class PluginSettingValue
+// ------------------------
 
 // CLASS METHODS
 // PRIVATE ACCESSORS
 template <typename t_HASH_ALGORITHM>
-void PluginConfigValue::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+void PluginSettingValue::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 {
-    typedef PluginConfigValue Class;
+    typedef PluginSettingValue Class;
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->selectionId());
     switch (this->selectionId()) {
@@ -13348,9 +13348,9 @@ void PluginConfigValue::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     }
 }
 
-inline bool PluginConfigValue::isEqualTo(const PluginConfigValue& rhs) const
+inline bool PluginSettingValue::isEqualTo(const PluginSettingValue& rhs) const
 {
-    typedef PluginConfigValue Class;
+    typedef PluginSettingValue Class;
     if (this->selectionId() == rhs.selectionId()) {
         switch (rhs.selectionId()) {
         case Class::SELECTION_ID_BOOL_VAL:
@@ -13374,82 +13374,82 @@ inline bool PluginConfigValue::isEqualTo(const PluginConfigValue& rhs) const
 }
 
 // CREATORS
-inline PluginConfigValue::PluginConfigValue(bslma::Allocator* basicAllocator)
+inline PluginSettingValue::PluginSettingValue(bslma::Allocator* basicAllocator)
 : d_selectionId(SELECTION_ID_UNDEFINED)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
 
-inline PluginConfigValue::~PluginConfigValue()
+inline PluginSettingValue::~PluginSettingValue()
 {
     reset();
 }
 
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int PluginConfigValue::manipulateSelection(t_MANIPULATOR& manipulator)
+int PluginSettingValue::manipulateSelection(t_MANIPULATOR& manipulator)
 {
     switch (d_selectionId) {
-    case PluginConfigValue::SELECTION_ID_BOOL_VAL:
+    case PluginSettingValue::SELECTION_ID_BOOL_VAL:
         return manipulator(&d_boolVal.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_BOOL_VAL]);
-    case PluginConfigValue::SELECTION_ID_INT_VAL:
+    case PluginSettingValue::SELECTION_ID_INT_VAL:
         return manipulator(&d_intVal.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_INT_VAL]);
-    case PluginConfigValue::SELECTION_ID_LONG_VAL:
+    case PluginSettingValue::SELECTION_ID_LONG_VAL:
         return manipulator(&d_longVal.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_LONG_VAL]);
-    case PluginConfigValue::SELECTION_ID_DOUBLE_VAL:
+    case PluginSettingValue::SELECTION_ID_DOUBLE_VAL:
         return manipulator(&d_doubleVal.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_DOUBLE_VAL]);
-    case PluginConfigValue::SELECTION_ID_STRING_VAL:
+    case PluginSettingValue::SELECTION_ID_STRING_VAL:
         return manipulator(&d_stringVal.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_STRING_VAL]);
     default:
-        BSLS_ASSERT(PluginConfigValue::SELECTION_ID_UNDEFINED ==
+        BSLS_ASSERT(PluginSettingValue::SELECTION_ID_UNDEFINED ==
                     d_selectionId);
         return -1;
     }
 }
 
-inline bool& PluginConfigValue::boolVal()
+inline bool& PluginSettingValue::boolVal()
 {
     BSLS_ASSERT(SELECTION_ID_BOOL_VAL == d_selectionId);
     return d_boolVal.object();
 }
 
-inline int& PluginConfigValue::intVal()
+inline int& PluginSettingValue::intVal()
 {
     BSLS_ASSERT(SELECTION_ID_INT_VAL == d_selectionId);
     return d_intVal.object();
 }
 
-inline bsls::Types::Int64& PluginConfigValue::longVal()
+inline bsls::Types::Int64& PluginSettingValue::longVal()
 {
     BSLS_ASSERT(SELECTION_ID_LONG_VAL == d_selectionId);
     return d_longVal.object();
 }
 
-inline double& PluginConfigValue::doubleVal()
+inline double& PluginSettingValue::doubleVal()
 {
     BSLS_ASSERT(SELECTION_ID_DOUBLE_VAL == d_selectionId);
     return d_doubleVal.object();
 }
 
-inline bsl::string& PluginConfigValue::stringVal()
+inline bsl::string& PluginSettingValue::stringVal()
 {
     BSLS_ASSERT(SELECTION_ID_STRING_VAL == d_selectionId);
     return d_stringVal.object();
 }
 
 // ACCESSORS
-inline int PluginConfigValue::selectionId() const
+inline int PluginSettingValue::selectionId() const
 {
     return d_selectionId;
 }
 
 template <typename t_ACCESSOR>
-int PluginConfigValue::accessSelection(t_ACCESSOR& accessor) const
+int PluginSettingValue::accessSelection(t_ACCESSOR& accessor) const
 {
     switch (d_selectionId) {
     case SELECTION_ID_BOOL_VAL:
@@ -13471,62 +13471,62 @@ int PluginConfigValue::accessSelection(t_ACCESSOR& accessor) const
     }
 }
 
-inline const bool& PluginConfigValue::boolVal() const
+inline const bool& PluginSettingValue::boolVal() const
 {
     BSLS_ASSERT(SELECTION_ID_BOOL_VAL == d_selectionId);
     return d_boolVal.object();
 }
 
-inline const int& PluginConfigValue::intVal() const
+inline const int& PluginSettingValue::intVal() const
 {
     BSLS_ASSERT(SELECTION_ID_INT_VAL == d_selectionId);
     return d_intVal.object();
 }
 
-inline const bsls::Types::Int64& PluginConfigValue::longVal() const
+inline const bsls::Types::Int64& PluginSettingValue::longVal() const
 {
     BSLS_ASSERT(SELECTION_ID_LONG_VAL == d_selectionId);
     return d_longVal.object();
 }
 
-inline const double& PluginConfigValue::doubleVal() const
+inline const double& PluginSettingValue::doubleVal() const
 {
     BSLS_ASSERT(SELECTION_ID_DOUBLE_VAL == d_selectionId);
     return d_doubleVal.object();
 }
 
-inline const bsl::string& PluginConfigValue::stringVal() const
+inline const bsl::string& PluginSettingValue::stringVal() const
 {
     BSLS_ASSERT(SELECTION_ID_STRING_VAL == d_selectionId);
     return d_stringVal.object();
 }
 
-inline bool PluginConfigValue::isBoolValValue() const
+inline bool PluginSettingValue::isBoolValValue() const
 {
     return SELECTION_ID_BOOL_VAL == d_selectionId;
 }
 
-inline bool PluginConfigValue::isIntValValue() const
+inline bool PluginSettingValue::isIntValValue() const
 {
     return SELECTION_ID_INT_VAL == d_selectionId;
 }
 
-inline bool PluginConfigValue::isLongValValue() const
+inline bool PluginSettingValue::isLongValValue() const
 {
     return SELECTION_ID_LONG_VAL == d_selectionId;
 }
 
-inline bool PluginConfigValue::isDoubleValValue() const
+inline bool PluginSettingValue::isDoubleValValue() const
 {
     return SELECTION_ID_DOUBLE_VAL == d_selectionId;
 }
 
-inline bool PluginConfigValue::isStringValValue() const
+inline bool PluginSettingValue::isStringValValue() const
 {
     return SELECTION_ID_STRING_VAL == d_selectionId;
 }
 
-inline bool PluginConfigValue::isUndefinedValue() const
+inline bool PluginSettingValue::isUndefinedValue() const
 {
     return SELECTION_ID_UNDEFINED == d_selectionId;
 }
@@ -16875,14 +16875,14 @@ inline const StorageSyncConfig& PartitionConfig::syncConfig() const
     return d_syncConfig;
 }
 
-// --------------------------
-// class PluginConfigKeyValue
-// --------------------------
+// ---------------------------
+// class PluginSettingKeyValue
+// ---------------------------
 
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int PluginConfigKeyValue::manipulateAttributes(t_MANIPULATOR& manipulator)
+int PluginSettingKeyValue::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
@@ -16900,8 +16900,8 @@ int PluginConfigKeyValue::manipulateAttributes(t_MANIPULATOR& manipulator)
 }
 
 template <typename t_MANIPULATOR>
-int PluginConfigKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                              int            id)
+int PluginSettingKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                               int            id)
 {
     enum { NOT_FOUND = -1 };
 
@@ -16918,9 +16918,9 @@ int PluginConfigKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
 }
 
 template <typename t_MANIPULATOR>
-int PluginConfigKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                              const char*    name,
-                                              int            nameLength)
+int PluginSettingKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                               const char*    name,
+                                               int            nameLength)
 {
     enum { NOT_FOUND = -1 };
 
@@ -16933,19 +16933,19 @@ int PluginConfigKeyValue::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline bsl::string& PluginConfigKeyValue::key()
+inline bsl::string& PluginSettingKeyValue::key()
 {
     return d_key;
 }
 
-inline PluginConfigValue& PluginConfigKeyValue::value()
+inline PluginSettingValue& PluginSettingKeyValue::value()
 {
     return d_value;
 }
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int PluginConfigKeyValue::accessAttributes(t_ACCESSOR& accessor) const
+int PluginSettingKeyValue::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
@@ -16963,7 +16963,7 @@ int PluginConfigKeyValue::accessAttributes(t_ACCESSOR& accessor) const
 }
 
 template <typename t_ACCESSOR>
-int PluginConfigKeyValue::accessAttribute(t_ACCESSOR& accessor, int id) const
+int PluginSettingKeyValue::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -16979,9 +16979,9 @@ int PluginConfigKeyValue::accessAttribute(t_ACCESSOR& accessor, int id) const
 }
 
 template <typename t_ACCESSOR>
-int PluginConfigKeyValue::accessAttribute(t_ACCESSOR& accessor,
-                                          const char* name,
-                                          int         nameLength) const
+int PluginSettingKeyValue::accessAttribute(t_ACCESSOR& accessor,
+                                           const char* name,
+                                           int         nameLength) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -16994,12 +16994,12 @@ int PluginConfigKeyValue::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline const bsl::string& PluginConfigKeyValue::key() const
+inline const bsl::string& PluginSettingKeyValue::key() const
 {
     return d_key;
 }
 
-inline const PluginConfigValue& PluginConfigKeyValue::value() const
+inline const PluginSettingValue& PluginSettingKeyValue::value() const
 {
     return d_value;
 }
@@ -17603,8 +17603,8 @@ int AuthenticatorPluginConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_configs,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    ret = manipulator(&d_settings,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS]);
     if (ret) {
         return ret;
     }
@@ -17623,9 +17623,9 @@ int AuthenticatorPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(&d_name,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
     }
-    case ATTRIBUTE_ID_CONFIGS: {
-        return manipulator(&d_configs,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    case ATTRIBUTE_ID_SETTINGS: {
+        return manipulator(&d_settings,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS]);
     }
     default: return NOT_FOUND;
     }
@@ -17652,9 +17652,10 @@ inline bsl::string& AuthenticatorPluginConfig::name()
     return d_name;
 }
 
-inline bsl::vector<PluginConfigKeyValue>& AuthenticatorPluginConfig::configs()
+inline bsl::vector<PluginSettingKeyValue>&
+AuthenticatorPluginConfig::settings()
 {
-    return d_configs;
+    return d_settings;
 }
 
 // ACCESSORS
@@ -17668,7 +17669,7 @@ int AuthenticatorPluginConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_configs, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    ret = accessor(d_settings, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS]);
     if (ret) {
         return ret;
     }
@@ -17686,9 +17687,9 @@ int AuthenticatorPluginConfig::accessAttribute(t_ACCESSOR& accessor,
     case ATTRIBUTE_ID_NAME: {
         return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
     }
-    case ATTRIBUTE_ID_CONFIGS: {
-        return accessor(d_configs,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS]);
+    case ATTRIBUTE_ID_SETTINGS: {
+        return accessor(d_settings,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS]);
     }
     default: return NOT_FOUND;
     }
@@ -17715,10 +17716,10 @@ inline const bsl::string& AuthenticatorPluginConfig::name() const
     return d_name;
 }
 
-inline const bsl::vector<PluginConfigKeyValue>&
-AuthenticatorPluginConfig::configs() const
+inline const bsl::vector<PluginSettingKeyValue>&
+AuthenticatorPluginConfig::settings() const
 {
-    return d_configs;
+    return d_settings;
 }
 
 // -----------------

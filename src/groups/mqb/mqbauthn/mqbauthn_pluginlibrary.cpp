@@ -19,9 +19,6 @@
 #include <mqbauthn_anonauthenticator.h>
 #include <mqbauthn_basicauthenticator.h>
 
-// BDE
-#include <bslma_default.h>
-
 namespace BloombergLP {
 namespace mqbauthn {
 

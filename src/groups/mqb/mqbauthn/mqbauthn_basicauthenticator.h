@@ -27,7 +27,8 @@
 /// It's designed for testing or development purposes and uses basic mechanism
 /// to authenticate based on username and password.
 /// The credential that's passed in as AuthenticationData is expected to be
-/// a string of the form "username:password".
+/// a string of the form "username:password".  The colon character (:) is
+/// forbidden in "username" but accepted in "password".
 /// @bbref{mqbauthn::BasicAuthenticationResult} and
 /// @bbref{mqbauthn::BasicAuthenticatorPluginFactory} are the corresponding
 /// result and factory classes for the authenticator plugin.
@@ -42,7 +43,6 @@
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
-#include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bsls_keyword.h>
@@ -106,8 +106,6 @@ class BasicAuthenticator : public mqbplug::Authenticator {
 
     // DATA
     bslma::Allocator* d_allocator_p;
-
-    const mqbcfg::AuthenticatorPluginConfig* d_authenticatorConfig_p;
 
     bsl::map<bsl::string, bsl::string> d_credentials;
 

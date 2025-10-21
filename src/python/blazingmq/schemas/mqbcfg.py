@@ -585,7 +585,7 @@ class MessageThrottleConfig:
 
 
 @dataclass
-class PluginConfigValue:
+class PluginSettingValue:
     bool_val: Optional[bool] = field(
         default=None,
         metadata={
@@ -1455,11 +1455,11 @@ class PartitionConfig:
 
 
 @dataclass
-class PluginConfigKeyValue:
-    """The key-value pair used for plugin configurations.
+class PluginSettingKeyValue:
+    """The key-value pair used for plugin settings.
 
-    key...: configuration key/name
-    value.: configuration value
+    key...: setting key/name
+    value.: setting value
     """
 
     key: Optional[str] = field(
@@ -1470,7 +1470,7 @@ class PluginConfigKeyValue:
             "required": True,
         },
     )
-    value: Optional[PluginConfigValue] = field(
+    value: Optional[PluginSettingValue] = field(
         default=None,
         metadata={
             "type": "Element",
@@ -1622,10 +1622,10 @@ class TcpInterfaceConfig:
 class AuthenticatorPluginConfig:
     """The configuration for an authenticator plugin.
 
-    name....:
+    name.....:
     The name of the authenticator plugin.
-    configs.:
-    Plugin-specific configurations.
+    settings.:
+    Plugin-specific settings.
     """
 
     name: Optional[str] = field(
@@ -1636,7 +1636,7 @@ class AuthenticatorPluginConfig:
             "required": True,
         },
     )
-    configs: List[PluginConfigKeyValue] = field(
+    settings: List[PluginSettingKeyValue] = field(
         default_factory=list,
         metadata={
             "type": "Element",

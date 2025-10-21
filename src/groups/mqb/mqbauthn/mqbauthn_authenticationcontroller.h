@@ -19,10 +19,10 @@
 
 /// @file mqbauthn_authenticationcontroller.h
 ///
-/// @brief Provide a small utility class that orchestrates authenticator
+/// @brief Provide an utility class that orchestrates authenticator
 /// plugins.
 ///
-/// @bbref{AuthenticationController} provides a small utility class that
+/// @bbref{AuthenticationController} provides an utility class that
 /// orchestrates authenticator plugins. Responsibilities include creating and
 /// holding plugin instances, tracking an optional anonymous credential, and
 /// offering start/stop and authenticate operations used by higher-level
@@ -92,9 +92,9 @@ class AuthenticationController {
   private:
     // NOT IMPLEMENTED
     AuthenticationController(const AuthenticationController& other)
-        BSLS_CPP11_DELETED;
+        BSLS_KEYWORD_DELETED;
     AuthenticationController&
-    operator=(const AuthenticationController& other) BSLS_CPP11_DELETED;
+    operator=(const AuthenticationController& other) BSLS_KEYWORD_DELETED;
 
     // PRIVATE MANIPULATORS
 

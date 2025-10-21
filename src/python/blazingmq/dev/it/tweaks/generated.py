@@ -726,7 +726,7 @@ class TweakFactory:
 
                     name = Name()
 
-                    class Configs(metaclass=TweakMetaclass):
+                    class Settings(metaclass=TweakMetaclass):
                         class Key(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[str, NoneType]
@@ -773,7 +773,8 @@ class TweakFactory:
                             def __call__(
                                 self,
                                 value: typing.Union[
-                                    blazingmq.schemas.mqbcfg.PluginConfigValue, NoneType
+                                    blazingmq.schemas.mqbcfg.PluginSettingValue,
+                                    NoneType,
                                 ],
                             ) -> Callable: ...
 
@@ -781,7 +782,7 @@ class TweakFactory:
 
                         def __call__(self, value: None) -> Callable: ...
 
-                    configs = Configs()
+                    settings = Settings()
 
                     def __call__(self, value: None) -> Callable: ...
 

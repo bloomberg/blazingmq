@@ -26,7 +26,6 @@
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
-#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -36,7 +35,7 @@ namespace mqbauthn {
 
 namespace {
 
-const int k_TIMEOUT_SECONDS = 600;
+const int k_AUTHN_DURATION_SECONDS = 600;
 
 }  // namespace
 
@@ -76,21 +75,33 @@ BasicAuthenticator::BasicAuthenticator(
     const mqbcfg::AuthenticatorPluginConfig* config,
     bslma::Allocator*                        allocator)
 : d_allocator_p(allocator)
-, d_authenticatorConfig_p(config)
 , d_credentials(allocator)
 , d_isStarted(false)
 {
     if (!config) {
+        BALL_LOG_WARN << "No config provided for BasicAuthenticator '"
+                      << name() << "' with mechanism '" << mechanism() << "'.";
         return;
     }
 
     // Load the configured key-values as username and password
-    bsl::vector<mqbcfg::PluginConfigKeyValue>::const_iterator it =
-        config->configs().cbegin();
-    for (; it != config->configs().cend(); ++it) {
-        if (it->value().isStringValValue()) {
-            d_credentials[it->key()] = it->value().stringVal();
+    bool isValueFound = false;
+    bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
+        config->settings().cbegin();
+    for (; it != config->settings().cend(); ++it) {
+        if (!it->value().isStringValValue()) {
+            BALL_LOG_WARN << "Expected string for 'key-value' setting...";
+            continue;
         }
+        d_credentials[it->key()] = it->value().stringVal();
+        isValueFound             = true;
+    }
+    if (isValueFound) {
+        BALL_LOG_INFO << "... setting found.  Loaded " << d_credentials.size()
+                      << " credential(s).";
+    }
+    else {
+        BALL_LOG_INFO << "... setting not found.  Make sure this is expected.";
     }
 }
 
@@ -146,7 +157,8 @@ int BasicAuthenticator::authenticate(
     *result = bsl::allocate_shared<BasicAuthenticationResult>(
         d_allocator_p,
         "BASIC_USER-" + bsl::string(username, d_allocator_p),
-        k_TIMEOUT_SECONDS * bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
+        k_AUTHN_DURATION_SECONDS *
+            bdlt::TimeUnitRatio::k_MILLISECONDS_PER_SECOND);
     return 0;
 }
 
@@ -155,11 +167,6 @@ int BasicAuthenticator::start(bsl::ostream& errorDescription)
     if (d_isStarted) {
         errorDescription << "start() can only be called once on this object";
         return -1;
-    }
-
-    if (!d_authenticatorConfig_p) {
-        BALL_LOG_WARN << "No config provided for BasicAuthenticator '"
-                      << name() << "' with mechanism '" << mechanism();
     }
 
     d_isStarted = true;
@@ -202,10 +209,9 @@ BasicAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             BasicAuthenticator::k_NAME);
 
-    bslma::ManagedPtr<mqbplug::Authenticator> result(
-        new (*allocator) BasicAuthenticator(config, allocator),
-        allocator);
-    return result;
+    return bslma::ManagedPtrUtil::allocateManaged<BasicAuthenticator>(
+        allocator,
+        config);
 }
 
 }  // close package namespace

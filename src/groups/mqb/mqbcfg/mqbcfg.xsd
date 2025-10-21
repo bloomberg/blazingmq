@@ -381,35 +381,35 @@
       <documentation>
         The configuration for an authenticator plugin.
 
-        name....:
+        name.....:
             The name of the authenticator plugin.
-        configs.:
-            Plugin-specific configurations.
+        settings.:
+            Plugin-specific settings.
       </documentation>
     </annotation>
     <sequence>
       <element name='name'    type='string'/>
-      <element name='configs' type='tns:PluginConfigKeyValue' minOccurs='0' maxOccurs='unbounded'/>
+      <element name='settings' type='tns:PluginSettingKeyValue' minOccurs='0' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
-  <complexType name="PluginConfigKeyValue">
+  <complexType name="PluginSettingKeyValue">
     <annotation>
       <documentation>
-        The key-value pair used for plugin configurations.
+        The key-value pair used for plugin settings.
 
-        key...: configuration key/name
-        value.: configuration value
+        key...: setting key/name
+        value.: setting value
       </documentation>
     </annotation>
     <sequence>
       <element name='key' type='string'/>
-      <element name='value' type="tns:PluginConfigValue">
+      <element name='value' type="tns:PluginSettingValue">
       </element>
     </sequence>
   </complexType>
 
-  <complexType name="PluginConfigValue">
+  <complexType name="PluginSettingValue">
     <choice>
       <element name='boolVal'   type='boolean'/>
       <element name='intVal'    type='int'/>

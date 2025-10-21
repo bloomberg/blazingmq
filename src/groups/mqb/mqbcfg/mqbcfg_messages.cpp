@@ -1459,15 +1459,15 @@ bsl::ostream& MessageThrottleConfig::print(bsl::ostream& stream,
     return stream;
 }
 
-// -----------------------
-// class PluginConfigValue
-// -----------------------
+// ------------------------
+// class PluginSettingValue
+// ------------------------
 
 // CONSTANTS
 
-const char PluginConfigValue::CLASS_NAME[] = "PluginConfigValue";
+const char PluginSettingValue::CLASS_NAME[] = "PluginSettingValue";
 
-const bdlat_SelectionInfo PluginConfigValue::SELECTION_INFO_ARRAY[] = {
+const bdlat_SelectionInfo PluginSettingValue::SELECTION_INFO_ARRAY[] = {
     {SELECTION_ID_BOOL_VAL,
      "boolVal",
      sizeof("boolVal") - 1,
@@ -1497,11 +1497,11 @@ const bdlat_SelectionInfo PluginConfigValue::SELECTION_INFO_ARRAY[] = {
 // CLASS METHODS
 
 const bdlat_SelectionInfo*
-PluginConfigValue::lookupSelectionInfo(const char* name, int nameLength)
+PluginSettingValue::lookupSelectionInfo(const char* name, int nameLength)
 {
     for (int i = 0; i < 5; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
-            PluginConfigValue::SELECTION_INFO_ARRAY[i];
+            PluginSettingValue::SELECTION_INFO_ARRAY[i];
 
         if (nameLength == selectionInfo.d_nameLength &&
             0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
@@ -1512,7 +1512,7 @@ PluginConfigValue::lookupSelectionInfo(const char* name, int nameLength)
     return 0;
 }
 
-const bdlat_SelectionInfo* PluginConfigValue::lookupSelectionInfo(int id)
+const bdlat_SelectionInfo* PluginSettingValue::lookupSelectionInfo(int id)
 {
     switch (id) {
     case SELECTION_ID_BOOL_VAL:
@@ -1531,8 +1531,8 @@ const bdlat_SelectionInfo* PluginConfigValue::lookupSelectionInfo(int id)
 
 // CREATORS
 
-PluginConfigValue::PluginConfigValue(const PluginConfigValue& original,
-                                     bslma::Allocator*        basicAllocator)
+PluginSettingValue::PluginSettingValue(const PluginSettingValue& original,
+                                       bslma::Allocator* basicAllocator)
 : d_selectionId(original.d_selectionId)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -1560,7 +1560,7 @@ PluginConfigValue::PluginConfigValue(const PluginConfigValue& original,
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PluginConfigValue::PluginConfigValue(PluginConfigValue&& original) noexcept
+PluginSettingValue::PluginSettingValue(PluginSettingValue&& original) noexcept
 : d_selectionId(original.d_selectionId),
   d_allocator_p(original.d_allocator_p)
 {
@@ -1588,8 +1588,8 @@ PluginConfigValue::PluginConfigValue(PluginConfigValue&& original) noexcept
     }
 }
 
-PluginConfigValue::PluginConfigValue(PluginConfigValue&& original,
-                                     bslma::Allocator*   basicAllocator)
+PluginSettingValue::PluginSettingValue(PluginSettingValue&& original,
+                                       bslma::Allocator*    basicAllocator)
 : d_selectionId(original.d_selectionId)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -1620,7 +1620,8 @@ PluginConfigValue::PluginConfigValue(PluginConfigValue&& original,
 
 // MANIPULATORS
 
-PluginConfigValue& PluginConfigValue::operator=(const PluginConfigValue& rhs)
+PluginSettingValue&
+PluginSettingValue::operator=(const PluginSettingValue& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
@@ -1650,7 +1651,7 @@ PluginConfigValue& PluginConfigValue::operator=(const PluginConfigValue& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PluginConfigValue& PluginConfigValue::operator=(PluginConfigValue&& rhs)
+PluginSettingValue& PluginSettingValue::operator=(PluginSettingValue&& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
@@ -1679,7 +1680,7 @@ PluginConfigValue& PluginConfigValue::operator=(PluginConfigValue&& rhs)
 }
 #endif
 
-void PluginConfigValue::reset()
+void PluginSettingValue::reset()
 {
     switch (d_selectionId) {
     case SELECTION_ID_BOOL_VAL: {
@@ -1704,7 +1705,7 @@ void PluginConfigValue::reset()
     d_selectionId = SELECTION_ID_UNDEFINED;
 }
 
-int PluginConfigValue::makeSelection(int selectionId)
+int PluginSettingValue::makeSelection(int selectionId)
 {
     switch (selectionId) {
     case SELECTION_ID_BOOL_VAL: {
@@ -1730,7 +1731,7 @@ int PluginConfigValue::makeSelection(int selectionId)
     return 0;
 }
 
-int PluginConfigValue::makeSelection(const char* name, int nameLength)
+int PluginSettingValue::makeSelection(const char* name, int nameLength)
 {
     const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
                                                                    nameLength);
@@ -1741,7 +1742,7 @@ int PluginConfigValue::makeSelection(const char* name, int nameLength)
     return makeSelection(selectionInfo->d_id);
 }
 
-bool& PluginConfigValue::makeBoolVal()
+bool& PluginSettingValue::makeBoolVal()
 {
     if (SELECTION_ID_BOOL_VAL == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_boolVal.object());
@@ -1755,7 +1756,7 @@ bool& PluginConfigValue::makeBoolVal()
     return d_boolVal.object();
 }
 
-bool& PluginConfigValue::makeBoolVal(bool value)
+bool& PluginSettingValue::makeBoolVal(bool value)
 {
     if (SELECTION_ID_BOOL_VAL == d_selectionId) {
         d_boolVal.object() = value;
@@ -1769,7 +1770,7 @@ bool& PluginConfigValue::makeBoolVal(bool value)
     return d_boolVal.object();
 }
 
-int& PluginConfigValue::makeIntVal()
+int& PluginSettingValue::makeIntVal()
 {
     if (SELECTION_ID_INT_VAL == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_intVal.object());
@@ -1783,7 +1784,7 @@ int& PluginConfigValue::makeIntVal()
     return d_intVal.object();
 }
 
-int& PluginConfigValue::makeIntVal(int value)
+int& PluginSettingValue::makeIntVal(int value)
 {
     if (SELECTION_ID_INT_VAL == d_selectionId) {
         d_intVal.object() = value;
@@ -1797,7 +1798,7 @@ int& PluginConfigValue::makeIntVal(int value)
     return d_intVal.object();
 }
 
-bsls::Types::Int64& PluginConfigValue::makeLongVal()
+bsls::Types::Int64& PluginSettingValue::makeLongVal()
 {
     if (SELECTION_ID_LONG_VAL == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_longVal.object());
@@ -1811,7 +1812,7 @@ bsls::Types::Int64& PluginConfigValue::makeLongVal()
     return d_longVal.object();
 }
 
-bsls::Types::Int64& PluginConfigValue::makeLongVal(bsls::Types::Int64 value)
+bsls::Types::Int64& PluginSettingValue::makeLongVal(bsls::Types::Int64 value)
 {
     if (SELECTION_ID_LONG_VAL == d_selectionId) {
         d_longVal.object() = value;
@@ -1825,7 +1826,7 @@ bsls::Types::Int64& PluginConfigValue::makeLongVal(bsls::Types::Int64 value)
     return d_longVal.object();
 }
 
-double& PluginConfigValue::makeDoubleVal()
+double& PluginSettingValue::makeDoubleVal()
 {
     if (SELECTION_ID_DOUBLE_VAL == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_doubleVal.object());
@@ -1839,7 +1840,7 @@ double& PluginConfigValue::makeDoubleVal()
     return d_doubleVal.object();
 }
 
-double& PluginConfigValue::makeDoubleVal(double value)
+double& PluginSettingValue::makeDoubleVal(double value)
 {
     if (SELECTION_ID_DOUBLE_VAL == d_selectionId) {
         d_doubleVal.object() = value;
@@ -1853,7 +1854,7 @@ double& PluginConfigValue::makeDoubleVal(double value)
     return d_doubleVal.object();
 }
 
-bsl::string& PluginConfigValue::makeStringVal()
+bsl::string& PluginSettingValue::makeStringVal()
 {
     if (SELECTION_ID_STRING_VAL == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_stringVal.object());
@@ -1867,7 +1868,7 @@ bsl::string& PluginConfigValue::makeStringVal()
     return d_stringVal.object();
 }
 
-bsl::string& PluginConfigValue::makeStringVal(const bsl::string& value)
+bsl::string& PluginSettingValue::makeStringVal(const bsl::string& value)
 {
     if (SELECTION_ID_STRING_VAL == d_selectionId) {
         d_stringVal.object() = value;
@@ -1883,7 +1884,7 @@ bsl::string& PluginConfigValue::makeStringVal(const bsl::string& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-bsl::string& PluginConfigValue::makeStringVal(bsl::string&& value)
+bsl::string& PluginSettingValue::makeStringVal(bsl::string&& value)
 {
     if (SELECTION_ID_STRING_VAL == d_selectionId) {
         d_stringVal.object() = bsl::move(value);
@@ -1901,9 +1902,9 @@ bsl::string& PluginConfigValue::makeStringVal(bsl::string&& value)
 
 // ACCESSORS
 
-bsl::ostream& PluginConfigValue::print(bsl::ostream& stream,
-                                       int           level,
-                                       int           spacesPerLevel) const
+bsl::ostream& PluginSettingValue::print(bsl::ostream& stream,
+                                        int           level,
+                                        int           spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
@@ -1929,7 +1930,7 @@ bsl::ostream& PluginConfigValue::print(bsl::ostream& stream,
     return stream;
 }
 
-const char* PluginConfigValue::selectionName() const
+const char* PluginSettingValue::selectionName() const
 {
     switch (d_selectionId) {
     case SELECTION_ID_BOOL_VAL:
@@ -4555,15 +4556,15 @@ bsl::ostream& PartitionConfig::print(bsl::ostream& stream,
     return stream;
 }
 
-// --------------------------
-// class PluginConfigKeyValue
-// --------------------------
+// ---------------------------
+// class PluginSettingKeyValue
+// ---------------------------
 
 // CONSTANTS
 
-const char PluginConfigKeyValue::CLASS_NAME[] = "PluginConfigKeyValue";
+const char PluginSettingKeyValue::CLASS_NAME[] = "PluginSettingKeyValue";
 
-const bdlat_AttributeInfo PluginConfigKeyValue::ATTRIBUTE_INFO_ARRAY[] = {
+const bdlat_AttributeInfo PluginSettingKeyValue::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_KEY,
      "key",
      sizeof("key") - 1,
@@ -4578,11 +4579,11 @@ const bdlat_AttributeInfo PluginConfigKeyValue::ATTRIBUTE_INFO_ARRAY[] = {
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-PluginConfigKeyValue::lookupAttributeInfo(const char* name, int nameLength)
+PluginSettingKeyValue::lookupAttributeInfo(const char* name, int nameLength)
 {
     for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
-            PluginConfigKeyValue::ATTRIBUTE_INFO_ARRAY[i];
+            PluginSettingKeyValue::ATTRIBUTE_INFO_ARRAY[i];
 
         if (nameLength == attributeInfo.d_nameLength &&
             0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
@@ -4593,7 +4594,7 @@ PluginConfigKeyValue::lookupAttributeInfo(const char* name, int nameLength)
     return 0;
 }
 
-const bdlat_AttributeInfo* PluginConfigKeyValue::lookupAttributeInfo(int id)
+const bdlat_AttributeInfo* PluginSettingKeyValue::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_KEY: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY];
@@ -4605,15 +4606,15 @@ const bdlat_AttributeInfo* PluginConfigKeyValue::lookupAttributeInfo(int id)
 
 // CREATORS
 
-PluginConfigKeyValue::PluginConfigKeyValue(bslma::Allocator* basicAllocator)
+PluginSettingKeyValue::PluginSettingKeyValue(bslma::Allocator* basicAllocator)
 : d_key(basicAllocator)
 , d_value(basicAllocator)
 {
 }
 
-PluginConfigKeyValue::PluginConfigKeyValue(
-    const PluginConfigKeyValue& original,
-    bslma::Allocator*           basicAllocator)
+PluginSettingKeyValue::PluginSettingKeyValue(
+    const PluginSettingKeyValue& original,
+    bslma::Allocator*            basicAllocator)
 : d_key(original.d_key, basicAllocator)
 , d_value(original.d_value, basicAllocator)
 {
@@ -4621,28 +4622,28 @@ PluginConfigKeyValue::PluginConfigKeyValue(
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PluginConfigKeyValue::PluginConfigKeyValue(PluginConfigKeyValue&& original)
+PluginSettingKeyValue::PluginSettingKeyValue(PluginSettingKeyValue&& original)
     noexcept : d_key(bsl::move(original.d_key)),
                d_value(bsl::move(original.d_value))
 {
 }
 
-PluginConfigKeyValue::PluginConfigKeyValue(PluginConfigKeyValue&& original,
-                                           bslma::Allocator* basicAllocator)
+PluginSettingKeyValue::PluginSettingKeyValue(PluginSettingKeyValue&& original,
+                                             bslma::Allocator* basicAllocator)
 : d_key(bsl::move(original.d_key), basicAllocator)
 , d_value(bsl::move(original.d_value), basicAllocator)
 {
 }
 #endif
 
-PluginConfigKeyValue::~PluginConfigKeyValue()
+PluginSettingKeyValue::~PluginSettingKeyValue()
 {
 }
 
 // MANIPULATORS
 
-PluginConfigKeyValue&
-PluginConfigKeyValue::operator=(const PluginConfigKeyValue& rhs)
+PluginSettingKeyValue&
+PluginSettingKeyValue::operator=(const PluginSettingKeyValue& rhs)
 {
     if (this != &rhs) {
         d_key   = rhs.d_key;
@@ -4654,8 +4655,8 @@ PluginConfigKeyValue::operator=(const PluginConfigKeyValue& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PluginConfigKeyValue&
-PluginConfigKeyValue::operator=(PluginConfigKeyValue&& rhs)
+PluginSettingKeyValue&
+PluginSettingKeyValue::operator=(PluginSettingKeyValue&& rhs)
 {
     if (this != &rhs) {
         d_key   = bsl::move(rhs.d_key);
@@ -4666,7 +4667,7 @@ PluginConfigKeyValue::operator=(PluginConfigKeyValue&& rhs)
 }
 #endif
 
-void PluginConfigKeyValue::reset()
+void PluginSettingKeyValue::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_key);
     bdlat_ValueTypeFunctions::reset(&d_value);
@@ -4674,9 +4675,9 @@ void PluginConfigKeyValue::reset()
 
 // ACCESSORS
 
-bsl::ostream& PluginConfigKeyValue::print(bsl::ostream& stream,
-                                          int           level,
-                                          int           spacesPerLevel) const
+bsl::ostream& PluginSettingKeyValue::print(bsl::ostream& stream,
+                                           int           level,
+                                           int           spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
@@ -5117,9 +5118,9 @@ const bdlat_AttributeInfo AuthenticatorPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("name") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_CONFIGS,
-     "configs",
-     sizeof("configs") - 1,
+    {ATTRIBUTE_ID_SETTINGS,
+     "settings",
+     sizeof("settings") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -5147,8 +5148,8 @@ AuthenticatorPluginConfig::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
-    case ATTRIBUTE_ID_CONFIGS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGS];
+    case ATTRIBUTE_ID_SETTINGS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS];
     default: return 0;
     }
 }
@@ -5157,7 +5158,7 @@ AuthenticatorPluginConfig::lookupAttributeInfo(int id)
 
 AuthenticatorPluginConfig::AuthenticatorPluginConfig(
     bslma::Allocator* basicAllocator)
-: d_configs(basicAllocator)
+: d_settings(basicAllocator)
 , d_name(basicAllocator)
 {
 }
@@ -5165,7 +5166,7 @@ AuthenticatorPluginConfig::AuthenticatorPluginConfig(
 AuthenticatorPluginConfig::AuthenticatorPluginConfig(
     const AuthenticatorPluginConfig& original,
     bslma::Allocator*                basicAllocator)
-: d_configs(original.d_configs, basicAllocator)
+: d_settings(original.d_settings, basicAllocator)
 , d_name(original.d_name, basicAllocator)
 {
 }
@@ -5174,7 +5175,7 @@ AuthenticatorPluginConfig::AuthenticatorPluginConfig(
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 AuthenticatorPluginConfig::AuthenticatorPluginConfig(
     AuthenticatorPluginConfig&& original) noexcept
-: d_configs(bsl::move(original.d_configs)),
+: d_settings(bsl::move(original.d_settings)),
   d_name(bsl::move(original.d_name))
 {
 }
@@ -5182,7 +5183,7 @@ AuthenticatorPluginConfig::AuthenticatorPluginConfig(
 AuthenticatorPluginConfig::AuthenticatorPluginConfig(
     AuthenticatorPluginConfig&& original,
     bslma::Allocator*           basicAllocator)
-: d_configs(bsl::move(original.d_configs), basicAllocator)
+: d_settings(bsl::move(original.d_settings), basicAllocator)
 , d_name(bsl::move(original.d_name), basicAllocator)
 {
 }
@@ -5198,8 +5199,8 @@ AuthenticatorPluginConfig&
 AuthenticatorPluginConfig::operator=(const AuthenticatorPluginConfig& rhs)
 {
     if (this != &rhs) {
-        d_name    = rhs.d_name;
-        d_configs = rhs.d_configs;
+        d_name     = rhs.d_name;
+        d_settings = rhs.d_settings;
     }
 
     return *this;
@@ -5211,8 +5212,8 @@ AuthenticatorPluginConfig&
 AuthenticatorPluginConfig::operator=(AuthenticatorPluginConfig&& rhs)
 {
     if (this != &rhs) {
-        d_name    = bsl::move(rhs.d_name);
-        d_configs = bsl::move(rhs.d_configs);
+        d_name     = bsl::move(rhs.d_name);
+        d_settings = bsl::move(rhs.d_settings);
     }
 
     return *this;
@@ -5222,7 +5223,7 @@ AuthenticatorPluginConfig::operator=(AuthenticatorPluginConfig&& rhs)
 void AuthenticatorPluginConfig::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_name);
-    bdlat_ValueTypeFunctions::reset(&d_configs);
+    bdlat_ValueTypeFunctions::reset(&d_settings);
 }
 
 // ACCESSORS
@@ -5234,7 +5235,7 @@ bsl::ostream& AuthenticatorPluginConfig::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("name", this->name());
-    printer.printAttribute("configs", this->configs());
+    printer.printAttribute("settings", this->settings());
     printer.end();
     return stream;
 }

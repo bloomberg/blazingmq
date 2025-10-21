@@ -29,6 +29,22 @@
 /// for testing or controlling anonymous access.
 /// @bbref{mqbauthn::AnonAuthenticatorPluginFactory} is the corresponding
 /// factory class for the authenticator plugin.
+///
+/// The behaviour of `authenticate()` is configured by `shouldPass`.  Summary:
+///
+/// ..
+/// Behavior                            Description
+/// --------                            -----------
+/// shouldPass == true                  Return `0` (success).  Populate the
+///                                     specified `result` with the client
+///                                     identity and optional remaining
+///                                     lifetime.
+/// shouldPass == false                 Return a non-zero plugin-specific
+///                                     error code and populate
+///                                     `errorDescription` with a short
+///                                     reason for logging.  The `result`
+///                                     will not be populated.
+/// ..
 
 // MQB
 #include <mqbplug_authenticator.h>
@@ -125,7 +141,8 @@ class AnonAuthenticator : public mqbplug::Authenticator {
     /// Construct an AnonAuthenticator with the specified `config`.  If
     /// `shouldPass` in `config` is set to true, authentication will always
     /// succeed; if false, authentication will always fail.  If no config is
-    /// set, authentication defaults to always succeed.
+    /// provided, or `shouldPass` setting is missing, authentication
+    /// defaults to always succeed.
     AnonAuthenticator(const mqbcfg::AuthenticatorPluginConfig* config,
                       bslma::Allocator*                        allocator = 0);
 
@@ -141,15 +158,7 @@ class AnonAuthenticator : public mqbplug::Authenticator {
     bsl::string_view mechanism() const BSLS_KEYWORD_OVERRIDE;
 
     /// Authenticate using the data provided in the specified `input`.
-    /// Behavior depends on the `shouldPass` configuration:
-    /// - If `shouldPass` is true:
-    ///   Return `0` on success, and populate the specified `result` with
-    ///   client identity and its remaining lifetime if it has a fixed
-    ///   duration.
-    /// - If `shouldPass` is false:
-    ///   Return a non-zero plugin-specific return code upon failure, and
-    ///   populate the specified `errorDescription` with a brief reason for
-    ///   logging purposes. The `result` will not be populated.
+    /// Behavior depends on the `shouldPass` configuration.
     int authenticate(bsl::ostream& errorDescription,
                      bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
                      const mqbplug::AuthenticationData& input) const

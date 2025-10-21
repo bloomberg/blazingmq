@@ -70,7 +70,8 @@ class AuthenticationData BSLS_KEYWORD_FINAL {
   public:
     // CREATORS
     AuthenticationData(const bsl::vector<char>& authnPayload,
-                       bsl::string_view         clientIpAddress);
+                       bsl::string_view         clientIpAddress,
+                       bslma::Allocator*        allocator = 0);
 
     // ACESSORS
 
@@ -186,9 +187,10 @@ struct AuthenticatorUtil {
 
 inline AuthenticationData::AuthenticationData(
     const bsl::vector<char>& authnPayload,
-    bsl::string_view         clientIpAddress)
+    bsl::string_view         clientIpAddress,
+    bslma::Allocator*        allocator)
 : d_authnPayload(authnPayload)
-, d_clientIpAddress(clientIpAddress)
+, d_clientIpAddress(clientIpAddress, allocator)
 {
 }
 

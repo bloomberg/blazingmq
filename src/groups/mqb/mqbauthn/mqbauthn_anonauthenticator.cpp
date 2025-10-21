@@ -73,16 +73,34 @@ AnonAuthenticator::AnonAuthenticator(
 , d_shouldPass(true)
 {
     if (!config) {
+        BALL_LOG_INFO
+            << "No configuration provided, configuring AnonAuthenticator with "
+               "the default shouldPass = true";
         return;
     }
 
     // Load the configured `shouldPass` argument
-    bsl::vector<mqbcfg::PluginConfigKeyValue>::const_iterator it =
-        config->configs().cbegin();
-    for (; it != config->configs().cend(); ++it) {
-        if (it->key() == "shouldPass" && it->value().isBoolValValue()) {
-            d_shouldPass = it->value().boolVal();
+    bool isShouldPassFound = false;
+    bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
+        config->settings().cbegin();
+    for (; it != config->settings().cend(); ++it) {
+        if (it->key() == "shouldPass") {
+            if (!it->value().isBoolValValue()) {
+                BALL_LOG_WARN << "Expected bool for 'shouldPass' setting...";
+                continue;
+            }
+            d_shouldPass      = it->value().boolVal();
+            isShouldPassFound = true;
         }
+    }
+    if (isShouldPassFound) {
+        BALL_LOG_INFO << "... setting found, using shouldPass = "
+                      << d_shouldPass;
+    }
+    else {
+        BALL_LOG_INFO
+            << "... setting not found, using the default shouldPass = "
+            << d_shouldPass;
     }
 }
 
@@ -108,6 +126,9 @@ int AnonAuthenticator::authenticate(
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     BSLA_UNUSED const mqbplug::AuthenticationData& input) const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+
     if (d_shouldPass) {
         BALL_LOG_INFO << "AnonAuthenticator: "
                       << "authentication passed for mechanism '" << mechanism()
@@ -142,6 +163,9 @@ int AnonAuthenticator::start(bsl::ostream& errorDescription)
 
     d_isStarted = true;
 
+    BALL_LOG_INFO << "AnonAuthenticator started with shouldPass = "
+                  << d_shouldPass;
+
     return 0;
 }
 
@@ -152,6 +176,8 @@ void AnonAuthenticator::stop()
     }
 
     d_isStarted = false;
+
+    BALL_LOG_INFO << "AnonAuthenticator stopped";
 }
 
 // ------------------------------------
@@ -175,11 +201,8 @@ AnonAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             AnonAuthenticator::k_NAME);
 
-    bslma::ManagedPtr<mqbplug::Authenticator> result =
-        bslma::ManagedPtrUtil::allocateManaged<AnonAuthenticator>(allocator,
-                                                                  config);
-
-    return result;
+    return bslma::ManagedPtrUtil::allocateManaged<AnonAuthenticator>(allocator,
+                                                                     config);
 }
 
 }  // close package namespace
