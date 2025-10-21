@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -532,22 +532,16 @@ class TestReconfigureDomains:
         admin = AdminClient()
         admin.connect(*cluster.admin_endpoint)
 
-        # Responses received from the broker might be formatted differently.
-        # Make sure to compare only the normalized versions of the strings.
-        def normalize_string(s: str) -> str:
-            # Remove any spaces
-            return s.replace(" ", "")
-
-        res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert normalize_string('"maxDeliveryAttempts" : 0') in normalize_string(res)
+        domain_cfg = admin.get_domain_config(domain_priority)
+        assert domain_cfg["maxDeliveryAttempts"] == 0
 
         cluster.config.domains[
             domain_priority
         ].definition.parameters.max_delivery_attempts = 5
         cluster.reconfigure_domain(domain_priority, succeed=True)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert normalize_string('"maxDeliveryAttempts" : 5') in normalize_string(res)
+        domain_cfg = admin.get_domain_config(domain_priority)
+        assert domain_cfg["maxDeliveryAttempts"] == 5
 
         admin.stop()
 
