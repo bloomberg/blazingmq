@@ -532,8 +532,14 @@ class TestReconfigureDomains:
         admin = AdminClient()
         admin.connect(*cluster.admin_endpoint)
 
+        # Responses received from the broker might be formatted differently.
+        # Make sure to compare only the normalized versions of the strings.
+        def normalize_string(s: str) -> str:
+            # Remove any spaces
+            return s.replace(" ", "")
+
         res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert '"maxDeliveryAttempts" : 0' in res
+        assert normalize_string('"maxDeliveryAttempts" : 0') in normalize_string(res)
 
         cluster.config.domains[
             domain_priority
@@ -541,7 +547,7 @@ class TestReconfigureDomains:
         cluster.reconfigure_domain(domain_priority, succeed=True)
 
         res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert '"maxDeliveryAttempts" : 5' in res
+        assert normalize_string('"maxDeliveryAttempts" : 5') in normalize_string(res)
 
         admin.stop()
 
