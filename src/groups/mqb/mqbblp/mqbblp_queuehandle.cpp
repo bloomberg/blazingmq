@@ -195,7 +195,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
             << "Received a CONFIRM message from client '"
             << d_clientContext_sp->client()->description() << "' for queue '"
             << d_queue_sp->description()
-            << "' which doesn't have the subQueue: " << "downstreamSubQueueId";
+            << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
     }
     const bsl::shared_ptr<Downstream>& subStream = downstream(
