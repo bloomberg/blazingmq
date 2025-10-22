@@ -26,6 +26,54 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 
 
+def test_client_timeout_open(multi_node: Cluster, domain_urls: tc.DomainUrls):
+    """
+    If opening a queue times out on the client, the client should kill the
+    channel, dropping all queue connections, and mark the queue as closed.
+    """
+    uri_priority = domain_urls.uri_priority
+    brokers = multi_node.nodes()
+    leader = multi_node.last_known_leader
+
+    # Ensure the producer is connected to a replica
+    producer_broker = brokers[0] if brokers[0] is not leader else brokers[1]
+
+    # Start a producer
+    producer = producer_broker.create_client("producer", options=["--timeout=1"])
+
+    # Suspend all replicas to force future open to timeout
+    for broker in brokers:
+        if broker is not leader and broker is not producer_broker:
+            broker.suspend()
+
+    # Open a queue while the cluster does not have quorum
+    producer.open(uri_priority, flags=["write,ack"], succeed=False)
+
+    # Wait past the open timeout
+    time.sleep(2)
+
+    # Release suspended replicas
+    for broker in brokers:
+        if broker is not leader and broker is not producer_broker:
+            broker.resume()
+    producer_broker.capture("is back to healthy state")
+
+    # Post after timeout should result in failed Ack
+    assert (
+        producer.post(
+            uri_priority, ["1"], wait_ack=False, succeed=False, no_except=True
+        )
+        == Client.e_UNKNOWN
+    )
+
+    # But we should be able to open the queue again and post
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+    assert (
+        producer.post(uri_priority, ["2"], wait_ack=True, succeed=True)
+        == Client.e_SUCCESS
+    )
+
+
 def test_client_timeout_reopen(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     If reopening a queue times out on the client, the client should kill the

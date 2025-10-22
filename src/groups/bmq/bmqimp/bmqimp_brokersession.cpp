@@ -1412,7 +1412,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_OPENING_OPN, E::e_RESP_OK, S::e_OPENING_CFG},
         {S::e_OPENING_OPN, E::e_REQ_NOT_SENT, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_RESP_BAD, S::e_CLOSED},
-        {S::e_OPENING_OPN, E::e_RESP_TIMEOUT, S::e_OPENING_OPN_EXPIRED},
+        {S::e_OPENING_OPN, E::e_RESP_TIMEOUT, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_RESP_EXPIRED, S::e_CLOSED},
         {S::e_OPENING_OPN, E::e_SESSION_DOWN, S::e_CLOSED},
         //
@@ -1427,7 +1427,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_OPENING_CFG, E::e_RESP_OK, S::e_OPENED},
         {S::e_OPENING_CFG, E::e_REQ_NOT_SENT, S::e_CLOSING_CLS},
         {S::e_OPENING_CFG, E::e_RESP_BAD, S::e_CLOSING_CLS},
-        {S::e_OPENING_CFG, E::e_RESP_TIMEOUT, S::e_OPENING_CFG_EXPIRED},
+        {S::e_OPENING_CFG, E::e_RESP_TIMEOUT, S::e_CLOSED},
         {S::e_OPENING_CFG, E::e_RESP_EXPIRED, S::e_CLOSED},
         {S::e_OPENING_CFG, E::e_SESSION_DOWN, S::e_CLOSED},
         //
@@ -1465,12 +1465,6 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
         {S::e_CLOSING_CLS, E::e_RESP_TIMEOUT, S::e_CLOSING_CLS_EXPIRED},
         {S::e_CLOSING_CLS, E::e_REQ_CANCELED, S::e_CLOSED},
         {S::e_CLOSING_CLS, E::e_SESSION_DOWN, S::e_CLOSED},
-        //
-        {S::e_OPENING_OPN_EXPIRED, E::e_LATE_RESP, S::e_CLOSING_CLS},
-        {S::e_OPENING_OPN_EXPIRED, E::e_CHANNEL_DOWN, S::e_CLOSED},
-        //
-        {S::e_OPENING_CFG_EXPIRED, E::e_LATE_RESP, S::e_CLOSING_CFG},
-        {S::e_OPENING_CFG_EXPIRED, E::e_CHANNEL_DOWN, S::e_CLOSED},
         //
         {S::e_CLOSING_CFG_EXPIRED, E::e_LATE_RESP, S::e_CLOSING_CLS},
         {S::e_CLOSING_CFG_EXPIRED, E::e_CHANNEL_DOWN, S::e_CLOSED},
@@ -1547,8 +1541,6 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
     } break;
     case QueueState::e_CLOSING_CFG:
     case QueueState::e_CLOSING_CLS:
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING: {
@@ -1725,8 +1717,6 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
         // Notify about close result
         context->signal();
     } break;
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING:
@@ -1782,8 +1772,6 @@ void BrokerSession::QueueFsm::handleReopenRequest(
     case QueueState::e_REOPENING_CFG:
     case QueueState::e_CLOSING_CFG:
     case QueueState::e_CLOSING_CLS:
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
@@ -1847,8 +1835,6 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     case QueueState::e_REOPENING_CFG:
     case QueueState::e_CLOSING_CFG:
     case QueueState::e_CLOSING_CLS:
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED: {
         BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
@@ -1966,8 +1952,6 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
         // concurrent operations like that
         res = bmqt::CloseQueueResult::e_NOT_SUPPORTED;
     } break;
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED: {
         // TODO: do we want to let the user to explicitly close expired
@@ -2140,8 +2124,6 @@ void BrokerSession::QueueFsm::handleResponseError(
                 static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
         }
     } break;
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
@@ -2250,8 +2232,6 @@ void BrokerSession::QueueFsm::handleSessionDown(
         // Notify configure result
         context->signal();
     } break;
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
@@ -2357,8 +2337,6 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
     } break;
     case QueueState::e_OPENING_CFG:
     case QueueState::e_OPENING_OPN:
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING:
@@ -2405,13 +2383,24 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Expect 'OpenQueue' request and 'Status' response.
         BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
 
-        // Set EXPIRED state
-        setQueueState(queue, QueueState::e_OPENING_OPN_EXPIRED, event);
+        // Set CLOSED state
+        setQueueState(queue, QueueState::e_CLOSED, event);
+
+        // The queue is closed, and from our perspective, it was never opened,
+        // so decrement substream count
+        d_session.d_queueManager.decrementSubStreamCount(
+            queue->uri().canonical());
 
         logOperationTime(queue->uri().asString(), "Open queue");
 
-        // Notify open queue result
+        // Remove queue from the queue list
+        actionRemoveQueue(queue);
+
+        // Notify about open queue result
         context->signal();
+
+        // Close the channel
+        d_session.d_channel_sp->close();
     } break;
     case QueueState::e_REOPENING_OPN: {
         // Expect 'OpenQueue' request and 'Status' response.
@@ -2439,13 +2428,24 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
         BSLS_ASSERT_SAFE(bmqt::QueueFlagsUtil::isReader(queue->flags()));
 
-        // Set EXPIRED state
-        setQueueState(queue, QueueState::e_OPENING_CFG_EXPIRED, event);
+        // Set CLOSED state
+        setQueueState(queue, QueueState::e_CLOSED, event);
+
+        // The queue is closed, and from our perspective, it was never opened,
+        // so decrement substream count
+        d_session.d_queueManager.decrementSubStreamCount(
+            queue->uri().canonical());
 
         logOperationTime(queue->uri().asString(), "Open queue");
 
-        // Notify open queue result
+        // Remove queue from the queue list
+        actionRemoveQueue(queue);
+
+        // Notify about open queue result
         context->signal();
+
+        // Close the channel
+        d_session.d_channel_sp->close();
     } break;
     case QueueState::e_REOPENING_CFG: {
         // Expect 'OpenQueue' request and 'Status' response.
@@ -2506,8 +2506,6 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Notify configure queue result
         context->signal();
     } break;
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
@@ -2577,8 +2575,6 @@ void BrokerSession::QueueFsm::handleResponseExpired(
     case QueueState::e_CLOSING_CFG:
     case QueueState::e_CLOSING_CLS:
     case QueueState::e_OPENED:
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_CLOSED: {
@@ -2782,8 +2778,6 @@ void BrokerSession::QueueFsm::handleResponseOk(
         // Notify about close result.
         context->signal();
     } break;
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED:
     case QueueState::e_PENDING:
@@ -2813,49 +2807,6 @@ void BrokerSession::QueueFsm::handleLateResponse(
                   << "QueueState: " << state << "]";
 
     switch (state) {
-    case QueueState::e_OPENING_OPN_EXPIRED: {
-        // We received an openQueue *SUCCESS* response but we already timed
-        // the request out; in order to keep consistent state across all
-        // brokers, we must send a closeQueue (as far as upstream brokers are
-        // concerned, this client has the queue opened, which is not true, so
-        // roll it back).
-
-        BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
-
-        // Set queue state to CLOSING_CLS and send close queue request.
-        setQueueState(queue, QueueState::e_CLOSING_CLS, event);
-
-        // The queue was never opened.  The final close request will be sent,
-        // so decrement substream count.
-        d_session.d_queueManager.decrementSubStreamCount(
-            queue->uri().canonical());
-
-        actionCloseQueue(queue);
-    } break;
-    case QueueState::e_OPENING_CFG_EXPIRED: {
-        // 2nd part of openQueue.
-        // We received a configureQueue *SUCCESS* response but we already
-        // timed the request out.  If a queue is open, then we need to
-        // synchronize the upstream state with the state here in the SDK.
-        // Note that there are three different possible scenarios for the
-        // context in which the original configureQueue request was sent out
-        // (and for which we are processing the late response here):
-
-        BSLS_ASSERT_SAFE(bmqt::QueueFlagsUtil::isReader(queue->flags()));
-        BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
-
-        // Set queue state to CLOSING_CFG and send deconfigure queue request.
-        setQueueState(queue, QueueState::e_CLOSING_CFG, event);
-
-        bmqt::ConfigureQueueResult::Enum rc = actionDeconfigureExpiredQueue(
-            queue);
-        if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
-        }
-    } break;
     case QueueState::e_CLOSING_CFG_EXPIRED: {
         // 1st part of closeQueue.
 
@@ -2932,18 +2883,6 @@ void BrokerSession::QueueFsm::handleChannelDown(
                   << "QueueState: " << state << "]";
 
     switch (state) {
-    case QueueState::e_OPENING_OPN_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED: {
-        // Set queue state to CLOSED for expired queue
-        setQueueState(queue, QueueState::e_CLOSED, event);
-
-        // Channel is down, so there will be no more incoming responses for
-        // the expired queues.  Decrement subStream count and remove queue
-        // from the queue container.
-        d_session.d_queueManager.decrementSubStreamCount(
-            queue->uri().canonical());
-        actionRemoveQueue(queue);
-    } break;
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS_EXPIRED: {
         // Set queue state to CLOSED for expired queue
@@ -3012,8 +2951,6 @@ void BrokerSession::QueueFsm::handleQueueSuspend(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS:
     case QueueState::e_CLOSING_CLS_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
-    case QueueState::e_OPENING_OPN_EXPIRED:
     case QueueState::e_PENDING: {
         BALL_LOG_INFO << id() << "No actions for queue: " << *queue
                       << " when handling " << event;
@@ -3052,8 +2989,6 @@ void BrokerSession::QueueFsm::handleQueueResume(
     case QueueState::e_CLOSING_CFG_EXPIRED:
     case QueueState::e_CLOSING_CLS:
     case QueueState::e_CLOSING_CLS_EXPIRED:
-    case QueueState::e_OPENING_CFG_EXPIRED:
-    case QueueState::e_OPENING_OPN_EXPIRED:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED: {
         if (d_session.d_numPendingHostHealthRequests == 0 &&
