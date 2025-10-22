@@ -218,8 +218,6 @@ static void test3_printQueueStateTest()
         {bmqimp::QueueState::e_CLOSING_CLS, "CLOSING_CLS"},
         {bmqimp::QueueState::e_CLOSED, "CLOSED"},
         {bmqimp::QueueState::e_PENDING, "PENDING"},
-        {bmqimp::QueueState::e_OPENING_OPN_EXPIRED, "OPENING_OPN_EXPIRED"},
-        {bmqimp::QueueState::e_OPENING_CFG_EXPIRED, "OPENING_CFG_EXPIRED"},
         {bmqimp::QueueState::e_CLOSING_CFG_EXPIRED, "CLOSING_CFG_EXPIRED"},
         {bmqimp::QueueState::e_CLOSING_CLS_EXPIRED, "CLOSING_CLS_EXPIRED"},
         {static_cast<bmqimp::QueueState::Enum>(-1), "(* UNKNOWN *)"}};
