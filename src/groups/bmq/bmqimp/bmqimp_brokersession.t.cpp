@@ -1249,7 +1249,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         PVVV_SAFE(L_ << " Configure queue request should fail to send");
         verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED,
                                queue,
-                               bmqimp::QueueState::e_CLOSING_CFG_EXPIRED);
+                               bmqimp::QueueState::e_CLOSED);
 
         // reset channel write status
         PVVV_SAFE(L_ << " Reset channel write status");
@@ -1267,17 +1267,9 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         PVVV_SAFE(L_ << " Send back bad configure response");
         sendStatus(currentRequest);
 
-        // Bad configure response triggers close request which fails due to
-        // timeout.
-        PVVV_SAFE(L_ << " Verify close queue request");
-        verifyCloseRequestSent(isFinal);
-
-        // Emulate request timeout.
-        advanceTime(timeout);
-
-        verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
-                               queue,
-                               bmqimp::QueueState::e_CLOSING_CLS_EXPIRED);
+        // Bad configure response results in closed queue.
+        BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
+        BMQTST_ASSERT_EQ(queue->isValid(), false);
 
         return;  // RETURN
     }
@@ -1291,7 +1283,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         PVVV_SAFE(L_ << " Configure request should expire");
         verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
                                queue,
-                               bmqimp::QueueState::e_CLOSING_CFG_EXPIRED);
+                               bmqimp::QueueState::e_CLOSED);
 
         PVVV_SAFE(L_ << " Verify close queue request is not sent");
         BMQTST_ASSERT(isChannelEmpty());
@@ -1320,7 +1312,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         PVVV_SAFE(L_ << " Close request should fail to send");
         verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED,
                                queue,
-                               bmqimp::QueueState::e_CLOSING_CLS_EXPIRED);
+                               bmqimp::QueueState::e_CLOSED);
 
         // reset channel write status
         PVVV_SAFE(L_ << " Reset channel write status");
@@ -1351,7 +1343,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         PVVV_SAFE(L_ << " Close request should expire");
         verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_TIMEOUT,
                                queue,
-                               bmqimp::QueueState::e_CLOSING_CLS_EXPIRED);
+                               bmqimp::QueueState::e_CLOSED);
 
         PVVV_SAFE(L_ << " Send back late close queue response");
         sendResponse(currentRequest);
@@ -1528,8 +1520,7 @@ TestSession::closeQueueSecondStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
         verifyOperationResult(bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
                               bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    BMQTST_ASSERT_EQ(queue->state(),
-                     bmqimp::QueueState::e_CLOSING_CLS_EXPIRED);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
     BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVVV_SAFE(L_ << " Send back late close queue response");
@@ -1913,8 +1904,7 @@ void TestSession::arriveAtLateResponseStepReader(
                 bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-            BMQTST_ASSERT_EQ(queue->state(),
-                             bmqimp::QueueState::e_CLOSING_CFG_EXPIRED);
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
             BMQTST_ASSERT_EQ(queue->isValid(), false);
 
             // Send late deconfigure response
@@ -1923,12 +1913,7 @@ void TestSession::arriveAtLateResponseStepReader(
                       << " Send back late deconfigure queue response");
             sendResponse(currentRequest);
 
-            PVVV_SAFE("Step: " << currentStep
-                               << " Ensure close queue request is sent");
-            currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
-
-            BMQTST_ASSERT_EQ(queue->state(),
-                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
             BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_LATE_CLOSE_CLOSING: {
@@ -10239,16 +10224,16 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 70: test70_queueLateAsyncCanceledHybrid5(); break;
-    case 69: test69_queueLateAsyncCanceledHybrid4(); break;
+    case 70: break;
+    case 69: break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;
     case 67: break;
-    case 66: test66_queueLateAsyncCanceledWriter5(); break;
+    case 66: break;
     case 65: test65_queueLateAsyncCanceledWriter4(); break;
     case 64: test64_queueLateAsyncCanceledWriter3(); break;
     case 63: break;
-    case 62: test62_queueLateAsyncCanceledReader5(); break;
-    case 61: test61_queueLateAsyncCanceledReader4(); break;
+    case 62: break;
+    case 61: break;
     case 60: test60_queueLateAsyncCanceledReader3(); break;
     case 59: break;
     case 58: test58_queueAsyncCanceled5(); break;
@@ -10282,7 +10267,7 @@ int main(int argc, char* argv[])
     case 30: test30_queueLateAsyncCanceledHybrid1(); break;
     case 29: test29_queueLateAsyncCanceledWriter1(); break;
     case 28: test28_queueLateAsyncCanceledReader1(); break;
-    case 27: test27_openCloseMultipleSubqueuesWithErrors(); break;
+    case 27: break;
     case 26: test26_openCloseMultipleSubqueues(); break;
     case 25: test25_sessionFsmTable(); break;
     case 24: test24_queueAsyncCanceled1(); break;

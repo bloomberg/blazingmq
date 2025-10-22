@@ -145,8 +145,6 @@ const char* QueueState::toAscii(QueueState::Enum value)
         CASE(CLOSING_CLS)
         CASE(CLOSED)
         CASE(PENDING)
-        CASE(CLOSING_CFG_EXPIRED)
-        CASE(CLOSING_CLS_EXPIRED)
     default: return "(* UNKNOWN *)";
     }
 
