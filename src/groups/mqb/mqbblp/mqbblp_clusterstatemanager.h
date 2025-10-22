@@ -485,9 +485,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///         dispatcher thread.
     void onNodeStopped() BSLS_KEYWORD_OVERRIDE;
 
-    /// Set the quorum to the specified value.
-    virtual void setQuorum(int quorum) BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
     /// Return the cluster state managed by this instacne.
     const mqbc::ClusterState* clusterState() const BSLS_KEYWORD_OVERRIDE;

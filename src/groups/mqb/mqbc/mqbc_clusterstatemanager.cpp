@@ -64,7 +64,7 @@ ClusterStateManager::ClusterStateManager(
 , d_state_p(clusterState)
 , d_clusterFSM(*this)
 , d_nodeToLedgerLSNMap(allocator)
-, d_lsnQuorum((clusterConfig.nodes().size() / 2) + 1)
+// , d_lsnQuorum((clusterConfig.nodes().size() / 2) + 1)
 // TODO Add cluster config to determine Eventual vs Strong
 , d_clusterStateLedger_mp(clusterStateLedger)
 , d_storageManager_p(0)
@@ -614,7 +614,7 @@ void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    if (d_nodeToLedgerLSNMap.size() >= d_lsnQuorum) {
+    if (d_nodeToLedgerLSNMap.size() >= getLsnQuorum()) {
         // If we have a quorum of LSNs (including self LSN)
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -1777,11 +1777,6 @@ void ClusterStateManager::onNodeStopping()
 void ClusterStateManager::onNodeStopped()
 {
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
-}
-
-void ClusterStateManager::setQuorum(int quorum)
-{
-    d_lsnQuorum = quorum;
 }
 
 // MANIPULATORS

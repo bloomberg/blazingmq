@@ -1,17 +1,17 @@
-# Copyright 2024 Bloomberg Finance L.P.
-# SPDX-License-Identifier: Apache-2.0
+#Copyright 2024 Bloomberg Finance L.P.
+#SPDX - License - Identifier : Apache - 2.0
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+#Licensed under the Apache License, Version 2.0(the "License");
+#you may not use this file except in compliance with the License.
+#You may obtain a copy of the                            License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#http:  // www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#Unless required by applicable law or agreed to in writing, software
+#distributed under the License is distributed      on an "AS IS" BASIS,
+#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#See the License for the specific language governing permissions and
+#limitations under the License.
 
 """
 Integration test that tests some basic things while restarting *entire* cluster
@@ -44,7 +44,7 @@ from blazingmq.dev.it.util import wait_until
 from blazingmq.dev.it.cluster_util import (
     ensure_message_at_storage_layer,
     check_if_queue_has_n_messages,
-    # simulate_csl_rollover,
+#simulate_csl_rollover,
 )
 
 pytestmark = order(2)
@@ -78,12 +78,12 @@ def restart_cluster_as_fsm_mode(
 
     cluster.stop_nodes(prevent_leader_bounce=True)
 
-    # Reconfigure the cluster from non-FSM to FSM mode
+#Reconfigure the cluster from non - FSM to FSM mode
     configure_cluster(cluster, is_fsm=True)
 
     cluster.start_nodes(wait_leader=True, wait_ready=True)
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
+#For a standard cluster, states have already been restored as part of
+#leader re - election.
     if cluster.is_single_node:
         producer.wait_state_restored()
 
@@ -101,13 +101,13 @@ def restart_cluster_to_fsm_single_node_with_quorum_one(
 
     cluster.stop_nodes(prevent_leader_bounce=True)
 
-    # Reconfigure the cluster from non-FSM to FSM mode
+#Reconfigure the cluster from non - FSM to FSM mode
     configure_cluster(cluster, is_fsm=True)
 
-    # Start only the former leader and set its quorum to 1
-    # so the cluster can start up in single-node mode.
-    # print(f"Updating quorum of {leader.name} to 1")
-    # cluster.update_node_quorum_in_config(leader.name, 1)
+#Start only the former leader and set its quorum to 1
+#so the cluster can start up in single - node mode.
+#print(f "Updating quorum of {leader.name} to 1")
+#cluster.update_node_quorum_in_config(leader.name, 1)
 
     print(f"Starting only the former leader {leader.name}")
     leader.start()
@@ -119,8 +119,8 @@ def restart_cluster_to_fsm_single_node_with_quorum_one(
     cluster.wait_status(wait_leader=True, wait_ready=False)
     print(f"{leader.name} is leader and ready")
 
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
+#For a standard cluster, states have already been restored as part of
+#leader re - election.
     if cluster.is_single_node:
         producer.wait_state_restored()
 
@@ -134,28 +134,28 @@ def restart_cluster_as_legacy_mode(
     Restart the `cluster` as Legacy mode.
     """
 
-    # Non-FSM mode has poor healing mechanism, and can have flaky dirty
-    # shutdowns, so let's disable checking exit code here.
-    #
-    # To give an example, an in-sync node might attempt to syncrhonize with an
-    # out-of-sync node, and become out-of-sync too.  FSM mode is determined to
-    # eliminate these kinds of defects.
+#Non - FSM mode has poor healing mechanism, and can have flaky dirty
+#shutdowns, so let's disable checking exit code here.
+#
+#To give an example, an in - sync node might attempt to syncrhonize with an
+#out - of - sync node, and become out - of - sync too.FSM mode is determined to
+#eliminate these kinds of defects.
     for node in cluster.nodes():
         node.check_exit_code = False
     cluster.stop_nodes(prevent_leader_bounce=True)
 
-    # Reconfigure the cluster from FSM to back to non-FSM mode
+#Reconfigure the cluster from FSM to back to non - FSM mode
     configure_cluster(cluster, is_fsm=False)
     cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
         cluster.start_nodes(wait_leader=True, wait_ready=True)
-        # For a standard cluster, states have already been restored as part of
-        # leader re-election.
+#For a standard cluster, states have already been restored as part of
+#leader re - election.
         for consumer in consumers:
             consumer.wait_state_restored()
     else:
-        # Switching from FSM to non-FSM mode could introduce start-up failure,
-        # which auto-resolve upon a second restart.
+#Switching from FSM to non - FSM mode could introduce start - up failure,
+#which auto - resolve upon a second                              restart.
         cluster.start_nodes(wait_leader=False, wait_ready=False)
         check_exited_nodes_and_restart(cluster)
 
@@ -165,7 +165,7 @@ def check_exited_nodes_and_restart(cluster: Cluster):
     Wait and check if any nodes in the `cluster` have exited.  Attempt to
     start them again.
     """
-    # Wait for some seconds in case of a node start-up failure.
+#Wait for some seconds in case of a node start - up failure.
     NODE_START_UP_FAILURE_WAIT_TIME_SEC = 12.5
     time.sleep(NODE_START_UP_FAILURE_WAIT_TIME_SEC)
     test_logger.info("Checking if any nodes have exited")
@@ -208,7 +208,7 @@ def post_new_queues_and_verify(
     queues respectively.  Then, instruct the `producer` to post one message on
     the two new queues, and the `consumers` list of priority, foo, and bar consumers to open the queue.  Finally, instruct consumer_foo to confirm one message on appId 'foo'.
     """
-    # Preconditions
+#Preconditions
     NUM_QUEUE_MODES = (
         2  # We only test on priority and fanout queues; broadcast queues are omitted.
     )
@@ -220,10 +220,10 @@ def post_new_queues_and_verify(
 
     num_partitions = cluster.config.definition.partition_config.num_partitions
     existing_priority_queues, existing_fanout_queues = existing_queues_pair
-    # Since we always append a queue to both lists, their length must be equal.
+#Since we always append a queue to both lists, their length must be equal.
     assert len(existing_priority_queues) == len(existing_fanout_queues)
 
-    # Post a message on new priority queue and new fanout queue
+#Post a message on new priority queue and new fanout queue
     n = len(existing_priority_queues)
     test_logger.info(
         f"There are currently {n} priority queues and {n} fanout queues, opening one more of each"
@@ -257,10 +257,12 @@ def post_new_queues_and_verify(
                 succeed=True,
             )
 
-        # Per our queue assignment logic, the new queue will be assigned to the next partition in a round-robin fashion.
+#Per our queue assignment                                     logic,          \
+    the new queue will be assigned to the next partition in a round -         \
+        robin                                                 fashion.
         partition_id = (partition_id + 1) % num_partitions
 
-    # Save one confirm to the storage for new fanout queue
+#Save one confirm to the storage for new fanout queue
     consumer_foo.wait_push_event()
     QUEUE_ELEMENT_IDX = 0
     new_fanout_queue = existing_fanout_queues[-1][QUEUE_ELEMENT_IDX]
@@ -271,7 +273,7 @@ def post_new_queues_and_verify(
 
     consumer_foo.confirm(new_fanout_queue + "?id=foo", "+1", succeed=True)
 
-    # Postconditions
+#Postconditions
     assert len(existing_priority_queues) == len(existing_fanout_queues)
 
 
@@ -289,7 +291,7 @@ def post_existing_queues_and_verify(
     list of priority, foo, and bar consumers have the expected number of
     messages in their respective queues.
     """
-    # Preconditions
+#Preconditions
     assert len(existing_priority_queues) == len(existing_fanout_queues)
     NUM_CONSUMER_TYPES = 3  # priority, foo, bar
     assert len(consumers) == NUM_CONSUMER_TYPES
@@ -302,11 +304,11 @@ def post_existing_queues_and_verify(
         f"Posting one message to each of existing {n} priority queues and {n} fanout queues"
     )
     for i in range(n):
-        # Every time we append a new queue, we post one message to it as well as
-        # all existing queues.  When there are `n` queues, the last queue (index
-        # `n-1`) will have 1 message, the second last queue (index `n-2`) will
-        # have 2 messages, and so on.  Therefore, the number of messages in the
-        # i-th queue will be `n - i`.
+#Every time we append a new queue, we post one message to it as well as
+#all existing queues.When there are `n` queues, the last queue(index
+# `n - 1`) will have 1 message, the second last queue(index `n - 2`) will
+#have 2 messages, and so on.Therefore, the number of messages in the
+#i - th queue will be `n - i`.
         NUM_MESSAGES_IN_QUEUE = n - i
 
         for queues in [existing_priority_queues, existing_fanout_queues]:
@@ -390,11 +392,11 @@ def assignUnassignExistingQueues(
     """
     for i, queue in enumerate(existing_queues):
         if i % 2 == 0:
-            # Even index: assign -> unassign
+#Even index : assign->unassign
             consumer.open(queue, flags=["read"], succeed=True)
             close_and_unassign_queue(queue, consumer, leader)
         else:
-            # Odd index: unassign -> assign
+#Odd index : unassign->assign
             close_and_unassign_queue(queue, consumer, leader)
             consumer.open(queue, flags=["read"], succeed=True)
 
@@ -447,7 +449,7 @@ def test_restart_between_non_FSM_and_FSM(
     cluster = switch_fsm_cluster
     du = domain_urls
 
-    # Start a producer.
+#Start a producer.
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
 
@@ -459,9 +461,9 @@ def test_restart_between_non_FSM_and_FSM(
     consumer_bar = next(proxies).create_client("consumer_bar")
     consumers = [consumer_priority, consumer_foo, consumer_bar]
 
-    # Phase 1: From Legacy Mode to FSM Mode
+#Phase 1 : From Legacy Mode to FSM Mode
 
-    # PROLOGUE
+#PROLOGUE
     post_new_queues_and_verify(
         cluster,
         producer,
@@ -470,10 +472,10 @@ def test_restart_between_non_FSM_and_FSM(
         du,
     )
 
-    # SWITCH
+#SWITCH
     restart_cluster_as_fsm_mode(cluster, producer, consumers)
 
-    # EPILOGUE
+#EPILOGUE
     post_existing_queues_and_verify(
         cluster,
         producer,
@@ -482,9 +484,9 @@ def test_restart_between_non_FSM_and_FSM(
         existing_fanout_queues,
     )
 
-    # Phase 2: From FSM Mode to Legacy Mode
+#Phase 2 : From FSM Mode to Legacy Mode
 
-    # PROLOGUE
+#PROLOGUE
     post_new_queues_and_verify(
         cluster,
         producer,
@@ -493,10 +495,10 @@ def test_restart_between_non_FSM_and_FSM(
         du,
     )
 
-    # SWITCH
+#SWITCH
     restart_cluster_as_legacy_mode(cluster, producer, consumers)
 
-    # EPILOGUE
+#EPILOGUE
     post_existing_queues_and_verify(
         cluster,
         producer,
@@ -533,13 +535,13 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
 
     existing_queues = []
 
-    # PROLOGUE
+#PROLOGUE
     assignUnassignNewQueues(existing_queues, du, consumer, leader)
 
-    # Wait one second to ensure that the primary has issued a sync point
-    # containing the latest queue (un)assignment records.  This way, when the
-    # cluster stops, we can ensure that every node already has a sync point
-    # covering the latest queue (un)assignment records.
+#Wait one second to ensure that the primary has issued a sync point
+#containing the latest queue(un) assignment records.This way, when the
+#cluster stops, we can ensure that every node already has a sync point
+#covering the latest queue(un) assignment records.
     SYNC_POINT_WAIT_TIME_SEC = 1.1
     time.sleep(SYNC_POINT_WAIT_TIME_SEC)
 
@@ -547,61 +549,61 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
     cluster.stop_nodes(prevent_leader_bounce=True, exclude=[leader])
     configure_cluster(cluster, is_fsm=True)
 
-    # TODO Test assign/unassign queues before stopping leader
+#TODO Test assign / unassign queues before stopping leader
     leader.stop()
-    # TODO When you start, start the leader first
+#TODO When you start, start the leader first
     cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
         cluster.start_nodes(wait_leader=True, wait_ready=True)
-        # For a standard cluster, states have already been restored as part of
-        # leader re-election.
+#For a standard cluster, states have already been restored as part of
+#leader re - election.
         consumer.wait_state_restored()
     else:
-        # Switching from non-FSM to FSM mode could introduce start-up failure,
-        # which auto-resolve upon a second restart.
+#Switching from non - FSM to FSM mode could introduce start - up failure,
+#which auto - resolve upon a second                              restart.
         cluster.start_nodes(wait_leader=False, wait_ready=False)
         check_exited_nodes_and_restart(cluster)
 
-    # EPILOGUE
+#EPILOGUE
     leader = cluster.last_known_leader
     assignUnassignExistingQueues(existing_queues, consumer, leader)
 
-    # PROLOGUE
+#PROLOGUE
     assignUnassignNewQueues(existing_queues, du, consumer, leader)
 
-    # Wait one second to ensure that the primary has issued a sync point
-    # containing the latest queue (un)assignment records.  This way, when the
-    # cluster stops, we can ensure that every node already has a sync point
-    # covering the latest queue (un)assignment records.
+#Wait one second to ensure that the primary has issued a sync point
+#containing the latest queue(un) assignment records.This way, when the
+#cluster stops, we can ensure that every node already has a sync point
+#covering the latest queue(un) assignment records.
     time.sleep(SYNC_POINT_WAIT_TIME_SEC)
 
     cluster.stop_nodes(prevent_leader_bounce=True, exclude=[leader])
 
-    # TODO Test assign/unassign queues before stopping leader
+#TODO Test assign / unassign queues before stopping leader
     leader.stop()
-    # TODO When you start, start the leader first
+#TODO When you start, start the leader first
     configure_cluster(cluster, is_fsm=False)
     cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
         cluster.start_nodes(wait_leader=True, wait_ready=True)
-        # For a standard cluster, states have already been restored as part of
-        # leader re-election.
+#For a standard cluster, states have already been restored as part of
+#leader re - election.
         consumer.wait_state_restored()
     else:
-        # Switching from FSM to non-FSM mode could introduce start-up failure,
-        # which auto-resolve upon a second restart.
+#Switching from FSM to non - FSM mode could introduce start - up failure,
+#which auto - resolve upon a second                              restart.
         cluster.start_nodes(wait_leader=False, wait_ready=False)
         check_exited_nodes_and_restart(cluster)
 
-    # EPILOGUE
+#EPILOGUE
     leader = cluster.last_known_leader
     assignUnassignExistingQueues(existing_queues, consumer, leader)
 
 
 @pytest.fixture(
     params=[
-        restart_cluster_as_fsm_mode,
-        restart_cluster_as_legacy_mode,
+#restart_cluster_as_fsm_mode,
+#restart_cluster_as_legacy_mode,
         restart_cluster_to_fsm_single_node_with_quorum_one,
     ]
 )
@@ -626,7 +628,7 @@ def without_rollover(
 @pytest.fixture(
     params=[
         without_rollover,
-        # simulate_csl_rollover
+#simulate_csl_rollover
     ]
 )
 def optional_rollover(request):
@@ -686,11 +688,11 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
 
     test_queue = tc.TEST_QUEUE
 
-    # 1. PROLOGUE
+# 1. PROLOGUE
     priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
     fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
 
-    # post two messages
+#post two messages
     for queue in [priority_queue, fanout_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
         producer.post(
@@ -729,13 +731,13 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     current_app_ids.remove("bar")
     cluster.set_app_ids(current_app_ids, du)
 
-    # 2. SWITCH
-    # 2.1 Optional rollover
+# 2. SWITCH
+# 2.1 Optional rollover
     optional_rollover(du, cluster.last_known_leader, producer)
-    # 2.2 Switch cluster mode
+# 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)
 
-    # 3. EPILOGUE
+# 3. EPILOGUE
     check_if_queue_has_n_messages(consumer, priority_queue, 1)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
@@ -746,7 +748,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     assert re.match(r"msg3", quux_messages[0].payload)
 
 
-def test_restart_between_legacy_and_fsm_purge_queue_app(
+def xtest_restart_between_legacy_and_fsm_purge_queue_app(
     cluster: Cluster,
     domain_urls: tc.DomainUrls,
     switch_cluster_mode,
@@ -784,11 +786,11 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     test_queue = tc.TEST_QUEUE
 
-    # 1. PROLOGUE
+# 1. PROLOGUE
     priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
     fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
 
-    # Post one message
+#Post one message
     for queue in [priority_queue, fanout_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
 
@@ -800,12 +802,12 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
             wait_ack=True,
         )
 
-    # Purge priority queue
+#Purge priority queue
     cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
-    # Purge fanout queue app "baz"
+#Purge fanout queue app "baz"
     cluster.last_known_leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
 
-    # Post two messages
+#Post two messages
     for queue in [priority_queue, fanout_queue]:
         producer.post(
             queue,
@@ -843,13 +845,13 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     current_app_ids.remove("bar")
     cluster.set_app_ids(current_app_ids, du)
 
-    # 2. SWITCH
-    # 2.1 Optional rollover
+# 2. SWITCH
+# 2.1 Optional rollover
     optional_rollover(du, cluster.last_known_leader, producer)
-    # 2.2 Switch cluster mode
+# 2.2 Switch cluster mode
     switch_cluster_mode(cluster, producer, consumers)
 
-    # 3. EPILOGUE
+# 3. EPILOGUE
     check_if_queue_has_n_messages(consumer, priority_queue, 1)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 3)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)

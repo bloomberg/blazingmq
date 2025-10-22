@@ -1875,8 +1875,6 @@ int ClusterOrchestrator::processCommand(
         }
         else {
             result->makeElectorResult(electorResult);
-
-            d_stateManager_mp->setQuorum(d_clusterConfig.elector().quorum());
         }
         return rc;  // RETURN
     }
