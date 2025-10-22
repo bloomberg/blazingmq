@@ -108,10 +108,8 @@ class AnonAuthenticationResult : public mqbplug::AuthenticationResult {
 class AnonAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_NAME =
-        "AnonAuthenticator";
-    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_MECHANISM =
-        "ANONYMOUS";
+    static const char* k_NAME;
+    static const char* k_MECHANISM;
 
   private:
     // CLASS-SCOPE CATEGORY

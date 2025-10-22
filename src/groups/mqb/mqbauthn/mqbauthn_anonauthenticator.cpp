@@ -32,6 +32,9 @@
 namespace BloombergLP {
 namespace mqbauthn {
 
+const char* AnonAuthenticator::k_NAME      = "AnonAuthenticator";
+const char* AnonAuthenticator::k_MECHANISM = "ANONYMOUS";
+
 // ------------------------------
 // class AnonAuthenticationResult
 // ------------------------------
@@ -205,8 +208,9 @@ AnonAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             AnonAuthenticator::k_NAME);
 
-    return bslma::ManagedPtrUtil::allocateManaged<AnonAuthenticator>(allocator,
-                                                                     config);
+    return bslma::ManagedPtr<mqbplug::Authenticator>(
+        new (*allocator) AnonAuthenticator(config, allocator),
+        allocator);
 }
 
 }  // close package namespace

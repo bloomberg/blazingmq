@@ -36,6 +36,9 @@
 namespace BloombergLP {
 namespace mqbauthn {
 
+const char* BasicAuthenticator::k_NAME      = "BasicAuthenticator";
+const char* BasicAuthenticator::k_MECHANISM = "BASIC";
+
 namespace {
 
 const int k_AUTHN_DURATION_SECONDS = 600;
@@ -212,9 +215,11 @@ BasicAuthenticatorPluginFactory::create(bslma::Allocator* allocator)
         mqbplug::AuthenticatorUtil::findAuthenticatorConfig(
             BasicAuthenticator::k_NAME);
 
-    return bslma::ManagedPtrUtil::allocateManaged<BasicAuthenticator>(
-        allocator,
-        config);
+    allocator = bslma::Default::allocator(allocator);
+
+    return bslma::ManagedPtr<mqbplug::Authenticator>(
+        new (*allocator) BasicAuthenticator(config, allocator),
+        allocator);
 }
 
 }  // close package namespace

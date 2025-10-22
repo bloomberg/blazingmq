@@ -95,10 +95,8 @@ class BasicAuthenticationResult : public mqbplug::AuthenticationResult {
 class BasicAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
-    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_NAME =
-        "BasicAuthenticator";
-    static BSLS_KEYWORD_INLINE_CONSTEXPR bsl::string_view k_MECHANISM =
-        "BASIC";
+    static const char* k_NAME;
+    static const char* k_MECHANISM;
 
   private:
     // CLASS-SCOPE CATEGORY
