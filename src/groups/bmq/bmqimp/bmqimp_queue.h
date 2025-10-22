@@ -85,10 +85,6 @@ struct QueueState {
         e_CLOSED = 8  // The queue is fully closed
         ,
         e_PENDING = 9  // The queue is pending, channel is down
-        ,
-        e_CLOSING_CFG_EXPIRED = 10  // The queue deconfig request has timed out
-        ,
-        e_CLOSING_CLS_EXPIRED = 11  // The queue close request has timed out
     };
 
     // PUBLIC CONSTANTS
@@ -101,7 +97,7 @@ struct QueueState {
     /// NOTE: This value must always be equal to the highest *supported*
     /// type in the enum because it is being used to verify a QueueState
     /// field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_QUEUE_STATE = e_CLOSING_CLS_EXPIRED;
+    static const int k_HIGHEST_SUPPORTED_QUEUE_STATE = e_PENDING;
 
     // CLASS METHODS
 
