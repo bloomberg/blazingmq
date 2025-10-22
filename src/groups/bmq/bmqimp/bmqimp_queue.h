@@ -86,13 +86,9 @@ struct QueueState {
         ,
         e_PENDING = 9  // The queue is pending, channel is down
         ,
-        e_OPENING_OPN_EXPIRED = 10  // The queue open request has timed out
+        e_CLOSING_CFG_EXPIRED = 10  // The queue deconfig request has timed out
         ,
-        e_OPENING_CFG_EXPIRED = 11  // The queue config request has timed out
-        ,
-        e_CLOSING_CFG_EXPIRED = 12  // The queue deconfig request has timed out
-        ,
-        e_CLOSING_CLS_EXPIRED = 13  // The queue close request has timed out
+        e_CLOSING_CLS_EXPIRED = 11  // The queue close request has timed out
     };
 
     // PUBLIC CONSTANTS
