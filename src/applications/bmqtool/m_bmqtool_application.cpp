@@ -556,6 +556,11 @@ int Application::initialize()
     int                  rc = 0;
     bmqt::SessionOptions options;
     options.setBrokerUri(d_parameters.broker())
+        .setConnectTimeout(d_parameters.timeout())
+        .setDisconnectTimeout(d_parameters.timeout())
+        .setOpenQueueTimeout(d_parameters.timeout())
+        .setConfigureQueueTimeout(d_parameters.timeout())
+        .setCloseQueueTimeout(d_parameters.timeout())
         .setNumProcessingThreads(d_parameters.numProcessingThreads())
         .configureEventQueue(1000, 10 * 1000);
 
