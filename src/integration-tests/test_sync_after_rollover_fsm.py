@@ -316,116 +316,18 @@ def test_sync_after_missed_records(
     _compare_journal_files(leader.name, replica.name, cluster)
 
 
-@start_cluster(False)
-def test_sync_if_replica_ahead_leader_1 (
+def test_sync_if_leader_behind_replicas (
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
-    Test replica journal file synchronization with cluster when replica is ahead of the leader.
+    Test leader journal file synchronization with cluster when leader is behind replicas (e.g. missed messages).
     - start cluster, leader is east1
     - put 2 messages
-    - stop leader east1, new leader is elected
-    - put more messages
-    - stop cluster nodes
-    - start cluster nodes, leader east1 is the last to start to scenario that replicas are ahead,
-      need to drop their storages and synchronize from leader
-    - check that replicas (which were ahead leader) are synchronized with primary (primary and replica journal files content is equal)
-    """
-
-    cluster = fsm_multi_cluster
-    uri_priority = domain_urls.uri_priority
-
-    # Start cluster with leader `east1`
-    east1 = cluster.start_node("east1")
-    east1.set_quorum(3)
-    east2 = cluster.start_node("east2")
-    east2.set_quorum(5)
-    west1 = cluster.start_node("west1")
-    west1.set_quorum(5)
-    west2 = cluster.start_node("west2")
-    west2.set_quorum(5)
-
-    original_leader = east1
-
-    original_leader.wait_status(wait_leader=True, wait_ready=True)
-    assert original_leader == original_leader.last_known_leader
-
-    # Create producer and consumer
-    producer = original_leader.create_client("producer")
-    producer.open(uri_priority, flags=["write,ack"], succeed=True)
-
-    consumer = original_leader.create_client("consumer")
-    consumer.open(uri_priority, flags=["read"], succeed=True)
-
-    # Put 2 messages with confirms
-    for i in range(1, 3):
-        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
-
-        consumer.wait_push_event()
-        consumer.confirm(uri_priority, "*", succeed=True)
-
-    # Prepare new leader `east2`
-    new_leader = east2
-    new_leader.set_quorum(3)
-
-    # Stop original leader `east1`
-    original_leader.stop()
-    cluster.make_sure_node_stopped(original_leader)
-    original_leader.drain()
-
-    new_leader.wait_status(wait_leader=True, wait_ready=True)
-    assert new_leader == new_leader.last_known_leader
-
-    # # Put more messages w/o confirm to initiate the rollover
-    # for i in range(3, 8):
-    #     producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
-
-    # # Wait until rollover completed on all running nodes
-    # assert east1.outputs_substr("ROLLOVER COMPLETE", 10)
-    # assert west1.outputs_substr("ROLLOVER COMPLETE", 10)
-    # assert west2.outputs_substr("ROLLOVER COMPLETE", 10)
-
-    # #  Stop all running nodes
-    # for node in (east1, west1, west2):
-    #     node.stop()
-    #     cluster.make_sure_node_stopped(node)
-    #     node.drain()
-
-    # # Start all nodes, leader `east1` is the last to start
-    # # to initiate `ReplicaStateRequest` to all replicas
-    # for node in (east2, west1, west2):
-    #     node.start()
-    #     node.wait_until_started()
-    #     node.set_quorum(5)
-
-    # east1.start()
-    # east1.wait_until_started()
-    # east1.set_quorum(3)
-
-    # # Wait until leader `east1` is ready
-    # east1.wait_status(wait_leader=True, wait_ready=True)
-    # assert east1 == east1.last_known_leader
-
-    # # Wait until replica `east2` synchronizes with leader `east1`
-    # assert east2.outputs_substr("Cluster (itCluster) is available", 10)
-
-    # # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal
-    # _compare_journal_files(east1.name, east2.name, cluster)
-
-
-def test_sync_if_replica_ahead_leader (
-    fsm_multi_cluster: Cluster,
-    domain_urls: tc.DomainUrls,
-) -> None:
-    """
-    Test replica journal file synchronization with cluster when replica is ahead of the leader.
-    - start cluster, leader is east1
-    - put 2 messages
-    - stop leader east1, new leader is elected
-    - put more messages
-    - stop cluster nodes
-    - start cluster nodes, force `leader` (east1) to be a leader
+    - kill leader east1, new leader is elected
+    - put 2 more messages
+    - kill new leader
+    - start former leader (east1) and force it to be a leader
     - check that leader (which is behind replicas) is synchronized with replicas (leader and replica journal files content is equal)
     """
 
@@ -449,7 +351,7 @@ def test_sync_if_replica_ahead_leader (
         consumer.wait_push_event()
         consumer.confirm(uri_priority, "*", succeed=True)
 
-    # Prepare new leader
+    # Prepare next leader
     next_leader = None
     for node in cluster.nodes():
         if node != leader:
@@ -457,7 +359,7 @@ def test_sync_if_replica_ahead_leader (
             next_leader = node
     assert leader != next_leader
 
-    # Kill the leader
+    # Kill former leader
     cluster.drain()
     leader.check_exit_code = False
     leader.kill()
@@ -470,74 +372,28 @@ def test_sync_if_replica_ahead_leader (
     cluster.wait_leader()
     assert cluster.last_known_leader == next_leader
 
-    print("MyNew leader is ", next_leader.name)
+    # Put 2 more messages
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
-    # Put more messages
-    # for i in range(3, 5):
-    #     producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
-
-    #  Stop all running nodes
-    for node in cluster.nodes(exclude=leader):
-        node.stop()
-        cluster.make_sure_node_stopped(node)
-        node.drain()
-
+    # Kill current leader
     cluster.drain()
+    next_leader.check_exit_code = False
+    next_leader.kill()
+    next_leader.wait()
 
-    # Start all nodes
-    for node in cluster.nodes():
-        node.start()
-        node.wait_until_started()
-        quorum = 1 if node.name == leader.name else 5
-        node.set_quorum(quorum)
+    # Start former leader and force it to be a leader
+    leader.start()
+    leader.wait_until_started()
+    leader.set_quorum(1)
+    leader.wait_status(wait_leader=True, wait_ready=True)
 
-    # # Start original leader
-    # leader.start()
-    # leader.wait_until_started()
-    # leader.set_quorum(1)
-    # # leader.wait_status(wait_leader=True, wait_ready=True)
-
-    # #  Stop all running nodes
-    # for node in cluster.nodes(exclude=leader):
-    #     node.start()
-    #     node.wait_until_started()
-    #     node.set_quorum(5)
-
-    # leader.wait_status(wait_leader=True, wait_ready=True)
-    # cluster.wait_leader()
-
-
-    # # Kill next leader
-    # cluster.drain()
-    # next_leader.check_exit_code = False
-    # next_leader.kill()
-    # next_leader.wait()
-
-    # # Start original leader
-    # leader.start()
-    # leader.wait_until_started()
-    # leader.set_quorum(1)
-    # # leader.wait_status(wait_leader=True, wait_ready=True)
-
-    # # Wait for the new leader
-    # cluster.wait_leader()
-
-    # print("MyNew leader 1 is ", cluster.last_known_leader.name)
-    # assert cluster.last_known_leader == leader
-
-    time.sleep(15)
-
-    # Wait until replica synchronizes with cluster
-    replicas = cluster.nodes(exclude=[leader])
-    # assert len(replicas) == 2
+    # Select replica
+    replicas = cluster.nodes(exclude=[leader, next_leader])
+    assert len(replicas) == 2
     replica = replicas[0]
-    print("MyNew replica is ", replica.name)
-    print("replicas ", [node.name for node in replicas])
 
-    # assert leader.outputs_substr("Cluster (itCluster) Partition [0]: primary node (self) successfully synced the  partition.", 10)
-
-
-    # # Check that leader and replica journal files are equal
+    # Check that leader and replica journal files are equal
     _compare_journal_files(leader.name, replica.name, cluster)
 
     assert False, "Test is not finished yet"
