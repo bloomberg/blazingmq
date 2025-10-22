@@ -19,6 +19,9 @@
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 
+// BMQ
+#include <bmqtsk_alarmlog.h>
+
 // BDE
 #include <bdlt_timeunitratio.h>
 #include <bsl_iostream.h>
@@ -79,29 +82,30 @@ BasicAuthenticator::BasicAuthenticator(
 , d_isStarted(false)
 {
     if (!config) {
-        BALL_LOG_WARN << "No config provided for BasicAuthenticator '"
-                      << name() << "' with mechanism '" << mechanism() << "'.";
+        BALL_LOG_WARN << "No configuration provided, have no credentials";
         return;
     }
 
     // Load the configured key-values as username and password
-    bool isValueFound = false;
     bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
         config->settings().cbegin();
     for (; it != config->settings().cend(); ++it) {
         if (!it->value().isStringValValue()) {
-            BALL_LOG_WARN << "Expected string for 'key-value' setting...";
-            continue;
+            BALL_LOG_WARN << "Expected string for credential, got type id = "
+                          << it->value().selectionId();
         }
         d_credentials[it->key()] = it->value().stringVal();
-        isValueFound             = true;
     }
-    if (isValueFound) {
-        BALL_LOG_INFO << "... setting found.  Loaded " << d_credentials.size()
-                      << " credential(s).";
+
+    if (d_credentials.empty()) {
+        BMQTSK_ALARMLOG_ALARM("CREDENTIALS_MISSING")
+            << "No credentials found in configuration. Please double check if "
+               "this is intended."
+            << BMQTSK_ALARMLOG_END;
     }
     else {
-        BALL_LOG_INFO << "... setting not found.  Make sure this is expected.";
+        BALL_LOG_INFO << "Loaded " << d_credentials.size()
+                      << " credential(s) from configuration";
     }
 }
 
@@ -127,8 +131,7 @@ int BasicAuthenticator::authenticate(
     bsl::shared_ptr<mqbplug::AuthenticationResult>* result,
     const mqbplug::AuthenticationData&              input) const
 {
-    BALL_LOG_INFO << "BasicAuthenticator: "
-                  << "authentication using mechanism '" << mechanism() << "'.";
+    BALL_LOG_INFO << "Authentication using mechanism '" << mechanism() << "'.";
 
     const bsl::vector<char>& payload = input.authnPayload();
     bsl::string_view payloadView(reinterpret_cast<const char*>(payload.data()),

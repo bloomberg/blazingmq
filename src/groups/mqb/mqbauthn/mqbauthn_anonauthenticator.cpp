@@ -22,7 +22,6 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
-#include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
 #include <bsla_annotations.h>
@@ -73,9 +72,8 @@ AnonAuthenticator::AnonAuthenticator(
 , d_shouldPass(true)
 {
     if (!config) {
-        BALL_LOG_INFO
-            << "No configuration provided, configuring AnonAuthenticator with "
-               "the default shouldPass = true";
+        BALL_LOG_INFO << "No configuration provided, using the default "
+                         "shouldPass = true";
         return;
     }
 
@@ -86,21 +84,27 @@ AnonAuthenticator::AnonAuthenticator(
     for (; it != config->settings().cend(); ++it) {
         if (it->key() == "shouldPass") {
             if (!it->value().isBoolValValue()) {
-                BALL_LOG_WARN << "Expected bool for 'shouldPass' setting...";
+                BALL_LOG_WARN
+                    << "Expected bool for 'shouldPass' setting, got type id = "
+                    << it->value().selectionId();
                 continue;
+            }
+            if (isShouldPassFound) {
+                BALL_LOG_WARN << "Encountered duplicating setting "
+                                 "'shouldPass', overriding";
             }
             d_shouldPass      = it->value().boolVal();
             isShouldPassFound = true;
         }
     }
     if (isShouldPassFound) {
-        BALL_LOG_INFO << "... setting found, using shouldPass = "
-                      << d_shouldPass;
+        BALL_LOG_INFO << "Setting found in configuration: using shouldPass = "
+                      << (d_shouldPass ? "true" : "false");
     }
     else {
-        BALL_LOG_INFO
-            << "... setting not found, using the default shouldPass = "
-            << d_shouldPass;
+        BALL_LOG_INFO << "Setting not found in configuration: using the "
+                         "default shouldPass = "
+                      << (d_shouldPass ? "true" : "false");
     }
 }
 
@@ -132,7 +136,7 @@ int AnonAuthenticator::authenticate(
     if (d_shouldPass) {
         BALL_LOG_INFO << "AnonAuthenticator: "
                       << "authentication passed for mechanism '" << mechanism()
-                      << "' unconditionally (shouldPass=true).";
+                      << "' unconditionally (shouldPass = true).";
 
         // No `lifetime` is returned since we don't expect a user to
         // reauthenticate if they don't know how to authenticate in the first
@@ -145,7 +149,7 @@ int AnonAuthenticator::authenticate(
     else {
         BALL_LOG_INFO << "AnonAuthenticator: "
                       << "authentication failed for mechanism '" << mechanism()
-                      << "' unconditionally (shouldPass=false).";
+                      << "' unconditionally (shouldPass = false).";
 
         errorDescription << "Authentication rejected by AnonAuthenticator";
 
@@ -164,7 +168,7 @@ int AnonAuthenticator::start(bsl::ostream& errorDescription)
     d_isStarted = true;
 
     BALL_LOG_INFO << "AnonAuthenticator started with shouldPass = "
-                  << d_shouldPass;
+                  << (d_shouldPass ? "true" : "false");
 
     return 0;
 }
