@@ -463,7 +463,8 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
 
 inline int IncoreClusterStateLedger::getAckQuorum() const
 {
-    return d_clusterConfig.elector().quorum();
+    int q = d_clusterConfig.elector().quorum();
+    return q == 0 ? (d_clusterConfig.nodes().size() / 2) + 1 : q;
 }
 
 // MANIPULATORS

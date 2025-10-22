@@ -1055,8 +1055,8 @@ void ElectorStateMachine::applyNodeStatusEventToCandidate(
         // This node voted for this instance. Remove the node from the list of
         // supporters.
         BALL_LOG_INFO
-            << "Elector:CANDIDATE received NODE_UNAVAILABLE from node"
-            << " [" << sourceNodeId << "] which voted for this "
+            << "Elector:CANDIDATE received NODE_UNAVAILABLE from node" << " ["
+            << sourceNodeId << "] which voted for this "
             << "CANDIDATE. Removing node from list of voters.";
         d_supporters.erase(nodeIter);
     }
@@ -1267,8 +1267,8 @@ void ElectorStateMachine::applyScoutingRequestEvent(
         // Support the notion of sticky leader: if self sees a healthy leader,
         // notify sender that self won't support it.
 
-        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from "
-                      << "node [" << sourceNodeId << "] with term [" << term
+        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from " << "node ["
+                      << sourceNodeId << "] with term [" << term
                       << "]. But self perceives node [" << d_leaderNodeId
                       << "] as a valid leader, with term [" << d_term
                       << "]. Not supporting the scouting node.";
@@ -2102,8 +2102,8 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
         // Unicast to the specified 'destinationNodeId'.
         NodesMapIter it = d_nodes.find(output.destination());
         if (d_nodes.end() == it) {
-            BALL_LOG_ERROR << "#ELECTOR_INVALID_NODEID "
-                           << "Invalid nodeId [" << output.destination()
+            BALL_LOG_ERROR << "#ELECTOR_INVALID_NODEID " << "Invalid nodeId ["
+                           << output.destination()
                            << "] specified while trying to emit event ["
                            << output.io() << "].";
             return;  // RETURN
@@ -2295,6 +2295,7 @@ int Elector::start()
         }
     }
 
+    bsl::cout << "Elector Quorum: " << d_config.quorum() << bsl::endl;
     if (0 == d_config.quorum()) {
         d_config.quorum() = static_cast<int>(d_nodes.size()) / 2 + 1;
     }
@@ -2307,6 +2308,7 @@ int Elector::start()
             return rc_QUORUM_TOO_LARGE;  // RETURN
         }
     }
+    bsl::cout << "Elector Quorum Now: " << d_config.quorum() << bsl::endl;
 
     int rc = d_scheduler.start();
     if (0 != rc) {

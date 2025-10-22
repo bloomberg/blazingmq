@@ -1162,7 +1162,8 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 
 inline int StorageManager::getSeqNumQuorum() const
 {
-    return d_clusterConfig.elector().quorum();
+    int q = d_clusterConfig.elector().quorum();
+    return q == 0 ? (d_clusterConfig.nodes().size() / 2) + 1 : q;
 }
 
 }  // close package namespace
