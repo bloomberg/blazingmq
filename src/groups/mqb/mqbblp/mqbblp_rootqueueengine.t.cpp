@@ -5074,6 +5074,69 @@ static void test47_handleParametersLimits()
     }
 }
 
+static void test48_unknownReject()
+// ------------------------------------------------------------------------
+// UNEXPECTED_REJECT
+//
+// Concerns:
+//   When switching Primary, the new Primary can receive a Reject before
+//   sending PUSH.
+//
+// Plan:
+//   1) Configure 3 handles, C1, C2, C3 each with distinct app ids.
+//   2) Make C1 stop delivery at a resume point behind C2 and C3
+//   3) Generate Reject for the message at the resume point
+//   4) Make C1 resume the delivery
+// Testing:
+//   Handling Reject for a message not in the redelivery lists
+//   This tests 'mqbmock::QueueHandle' which should mimic 'mqbblb::QueueHandle'
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("UNEXPECTED_REJECT");
+
+    mqbconfm::Domain config      = fanoutConfig("a,b,c");
+    config.maxDeliveryAttempts() = 5;
+
+    mqbblp::QueueEngineTester tester(config,
+                                     false,
+                                     bmqtst::TestHelperUtil::allocator());
+
+    mqbblp::QueueEngineTesterGuard<mqbblp::RootQueueEngine> guard(&tester);
+
+    mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
+    mqbmock::QueueHandle* C2 = tester.getHandle("C2@b readCount=1");
+    mqbmock::QueueHandle* C3 = tester.getHandle("C3@c readCount=1");
+
+    tester.configureHandle("C1@a maxUnconfirmedMessages=1"
+                           " consumerPriority=1 consumerPriorityCount=1");
+    tester.configureHandle("C2@b maxUnconfirmedMessages=4"
+                           " consumerPriority=1 consumerPriorityCount=1");
+    tester.configureHandle("C3@c maxUnconfirmedMessages=4"
+                           " consumerPriority=2 consumerPriorityCount=1");
+
+    tester.post("1");
+    tester.afterNewMessage(1);
+
+    C1->_setCanDeliver("a", false);
+
+    tester.post("2,3");
+    tester.afterNewMessage(2);
+
+    PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 1);
+    PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 3);
+    PVV(L_ << ": C3 Messages: " << C3->_messages("c"));
+    BMQTST_ASSERT_EQ(C3->_numMessages("c"), 3);
+
+    tester.reject("C1@a", "3");  // "2" goes into Put-Aside-List
+
+    C1->_setCanDeliver("a", true);
+
+    PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 3);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -5096,6 +5159,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 48: test48_unknownReject(); break;
         case 47: test47_handleParametersLimits(); break;
         case 46: test46_throttleRedeliveryNoMoreHandles(); break;
         case 45: test45_throttleRedeliveryNewHandle(); break;

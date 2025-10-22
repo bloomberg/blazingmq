@@ -74,6 +74,13 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
+#define BMQ_LOGTHROTTLE_WARN                                                  \
+    BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
+#define BMQ_LOGTHROTTLE_INFO_BLOCK                                            \
+    BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+
 struct DeconfigureContext {
     mqbi::QueueHandle::VoidFunctor d_completionCb;
 
@@ -163,7 +170,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
         //       particular mis-usage.  Instead, we can just detect it here and
         //       emit a warning for the misbehaving client doing
         //       out-of-contract behavior.
-        BALL_LOG_WARN
+        BMQ_LOGTHROTTLE_WARN
             << "#CLIENT_IMPROPER_BEHAVIOR "
             << "Received a CONFIRM message from client '"
             << d_clientContext_sp->client()->description() << "' for queue '"
@@ -183,12 +190,12 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
             !validateDownstreamId(downstreamSubQueueId))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
-                      << "Received a CONFIRM message from client '"
-                      << d_clientContext_sp->client()->description()
-                      << "' for queue '" << d_queue_sp->description()
-                      << "' which doesn't have the subQueue: "
-                      << "downstreamSubQueueId";
+        BMQ_LOGTHROTTLE_WARN
+            << "#CLIENT_IMPROPER_BEHAVIOR "
+            << "Received a CONFIRM message from client '"
+            << d_clientContext_sp->client()->description() << "' for queue '"
+            << d_queue_sp->description()
+            << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
     }
     const bsl::shared_ptr<Downstream>& subStream = downstream(
@@ -226,12 +233,11 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
 
         // NOTE: We should not be receiving a REJECT for a queue which was not
         //       opened with READ flag.
-        BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
-                      << "Received a REJECT message from client '"
-                      << d_clientContext_sp->client()->description()
-                      << "' for queue '" << d_queue_sp->description()
-                      << "' which doesn't have the READ "
-                      << "flags";
+        BMQ_LOGTHROTTLE_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
+                             << "Received a REJECT message from client '"
+                             << d_clientContext_sp->client()->description()
+                             << "' for queue '" << d_queue_sp->description()
+                             << "' which doesn't have the READ flags";
         // NOTE: This is fine to return here and not do anything because there
         //       was supposed to be a rejection when the queue closed.
         return;  // RETURN
@@ -241,33 +247,50 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
             !validateDownstreamId(downstreamSubQueueId))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR "
-                      << "Received a REJECT message from client '"
-                      << d_clientContext_sp->client()->description()
-                      << "' for queue '" << d_queue_sp->description()
-                      << "' which doesn't have the subQueue: "
-                      << downstreamSubQueueId;
+        BMQ_LOGTHROTTLE_WARN
+            << "#CLIENT_IMPROPER_BEHAVIOR "
+            << "Received a REJECT message from client '"
+            << d_clientContext_sp->client()->description() << "' for queue '"
+            << d_queue_sp->description()
+            << "' which doesn't have the subQueue: " << downstreamSubQueueId;
         return;
     }
     const bsl::shared_ptr<Downstream>& subStream = downstream(
         downstreamSubQueueId);
 
-    // If we previously hit the maxUnconfirmed and are now back to below the
-    // lowWatermark for BOTH messages and bytes, then we will schedule a
-    // delivery by indicating to the associated queue engine that this handle
-    // is now back to being usable.  For this reason, we have the variable
-    // 'resourceUsageStateChange' below, to capture such a transition if it
-    // occurs.
-    // Update unconfirmed messages list and stats
+    // Do not let unknown Reject through
+    const mqbi::QueueHandle::RedeliverySp& messages = subStream->d_data;
 
-    // Inform the queue about that reject.
-    int counter = d_queue_sp->rejectMessage(msgGUID,
-                                            subStream->d_upstreamSubQueueId,
-                                            this);
+    UnconfirmedMessageInfoMap::iterator it = messages->find(msgGUID);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it == messages->end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-    if (counter == 0) {
-        updateMonitor(subStream, msgGUID, bmqp::EventType::e_REJECT);
-        // That erases 'msgGUID' from 'd_unconfirmedMessages'
+        // This can happen when switching primaries and the new Primary did not
+        // get a chance to PUSH the 'msgGUID' (which the old Primary did)
+        // _before_ the Downstream generated the Reject.
+
+        // The logic of QueueEngine(s) throttles (re)delivery for messages in
+        // redelivery lists only and asserts otherwise.
+
+        BMQ_LOGTHROTTLE_WARN
+            << "#UNEXPECTED_REJECT "
+            << "Received a REJECT message from client '"
+            << d_clientContext_sp->client()->description() << "' for queue '"
+            << d_queue_sp->description()
+            << "' for a message not in pending unconfirmed: " << msgGUID
+            << ".";
+    }
+    else {
+        // Inform the queue about that reject.
+        int counter = d_queue_sp->rejectMessage(
+            msgGUID,
+            subStream->d_upstreamSubQueueId,
+            this);
+
+        if (counter == 0) {
+            updateMonitor(subStream, msgGUID, bmqp::EventType::e_REJECT);
+            // That erases 'msgGUID' from 'd_unconfirmedMessages'
+        }
     }
 }
 
@@ -331,11 +354,11 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
                     msgSize);
         }
 
-        BALL_LOG_INFO_BLOCK
+        BMQ_LOGTHROTTLE_INFO_BLOCK
         {
             BALL_LOG_OUTPUT_STREAM
-                << "Received a " << eventType << " message for guid ["
-                << msgGUID << "] from client '"
+                << "[THROTTLED] Received a " << eventType
+                << " message for guid [" << msgGUID << "] from client '"
                 << d_clientContext_sp->client()->description()
                 << "' for queue '" << d_queue_sp->description()
                 << "' for a message not in pending unconfirmed.";
@@ -881,8 +904,9 @@ void QueueHandle::deliverMessage(
             // needed we way have to change this method to return a tri-value
             // (delivered, non-delivered, skipped).
             if (d_throttledDroppedPutMessages.requestPermission()) {
-                BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                              << "' skipping duplicate PUSH " << iter.guid();
+                BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queue_sp->description()
+                                     << "' skipping duplicate PUSH "
+                                     << iter.guid();
             }
             continue;  // CONTINUE
         }
@@ -1180,15 +1204,15 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_clientContext_sp)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         if (d_throttledFailedAckMessages.requestPermission()) {
-            BALL_LOG_INFO << "#CLIENT_ACK_FAILURE: Received an ACK from "
-                          << "upstream for unavailable client "
-                          << "[queue: " << d_queue_sp->description()
-                          << ", upstream queueId: " << ackMessage.queueId()
-                          << ", downstream queueId: " << id()
-                          << ", guid: " << ackMessage.messageGUID()
-                          << ", status: " << ackMessage.status()
-                          << ", correlationId: " << ackMessage.correlationId()
-                          << "]";
+            BMQ_LOGTHROTTLE_INFO
+                << "#CLIENT_ACK_FAILURE: Received an ACK from "
+                << "upstream for unavailable client "
+                << "[queue: " << d_queue_sp->description()
+                << ", upstream queueId: " << ackMessage.queueId()
+                << ", downstream queueId: " << id()
+                << ", guid: " << ackMessage.messageGUID()
+                << ", status: " << ackMessage.status()
+                << ", correlationId: " << ackMessage.correlationId() << "]";
         }
         return;  // RETURN
     }
