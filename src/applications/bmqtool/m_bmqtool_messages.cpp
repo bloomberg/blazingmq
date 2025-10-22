@@ -1,4 +1,4 @@
-// Copyright 2014-2024 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // m_bmqtool_messages.cpp          *DO NOT EDIT*           @generated -*-C++-*-
 
 #include <m_bmqtool_messages.h>
@@ -23,17 +24,17 @@
 #include <bdlb_string.h>
 
 #include <bdlb_nullablevalue.h>
+#include <bsl_string.h>
+#include <bsl_vector.h>
+#include <bslim_printer.h>
+#include <bsls_assert.h>
+#include <bsls_types.h>
+
 #include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
-#include <bsl_string.h>
 #include <bsl_utility.h>
-#include <bsl_vector.h>
-#include <bsla_annotations.h>
-#include <bslim_printer.h>
-#include <bsls_assert.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -74,32 +75,32 @@ const bdlat_AttributeInfo BatchPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "msgSize",
      sizeof("msgSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_EVENT_SIZE,
      "eventSize",
      sizeof("eventSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_EVENTS_COUNT,
      "eventsCount",
      sizeof("eventsCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_POST_INTERVAL,
      "postInterval",
      sizeof("postInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_POST_RATE,
      "postRate",
      sizeof("postRate") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_AUTO_INCREMENTED,
      "autoIncremented",
      sizeof("autoIncremented") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -289,7 +290,7 @@ const bdlat_AttributeInfo CloseQueueCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "async",
      sizeof("async") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -410,9 +411,10 @@ const char CloseStorageCommand::CLASS_NAME[] = "CloseStorageCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-CloseStorageCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
-                                         BSLA_UNUSED int         nameLength)
+CloseStorageCommand::lookupAttributeInfo(const char* name, int nameLength)
 {
+    (void)name;
+    (void)nameLength;
     return 0;
 }
 
@@ -1478,9 +1480,10 @@ const char ListQueuesCommand::CLASS_NAME[] = "ListQueuesCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-ListQueuesCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
-                                       BSLA_UNUSED int         nameLength)
+ListQueuesCommand::lookupAttributeInfo(const char* name, int nameLength)
 {
+    (void)name;
+    (void)nameLength;
     return 0;
 }
 
@@ -1704,9 +1707,10 @@ const char MetadataCommand::CLASS_NAME[] = "MetadataCommand";
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-MetadataCommand::lookupAttributeInfo(BSLA_UNUSED const char* name,
-                                     BSLA_UNUSED int         nameLength)
+MetadataCommand::lookupAttributeInfo(const char* name, int nameLength)
 {
+    (void)name;
+    (void)nameLength;
     return 0;
 }
 
@@ -2448,7 +2452,7 @@ const bdlat_AttributeInfo StartCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "async",
      sizeof("async") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2518,7 +2522,7 @@ const bdlat_AttributeInfo StopCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "async",
      sizeof("async") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2775,22 +2779,22 @@ const bdlat_AttributeInfo ConfigureQueueCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "async",
      sizeof("async") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_MESSAGES,
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SUBSCRIPTIONS,
      "subscriptions",
      sizeof("subscriptions") - 1,
@@ -3856,7 +3860,7 @@ const bdlat_AttributeInfo MessageProperty::ATTRIBUTE_INFO_ARRAY[] = {
      "type",
      sizeof("type") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -4008,22 +4012,22 @@ const bdlat_AttributeInfo OpenQueueCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "async",
      sizeof("async") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_MESSAGES,
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SUBSCRIPTIONS,
      "subscriptions",
      sizeof("subscriptions") - 1,
@@ -4353,122 +4357,124 @@ const char
 
 const int CommandLineParameters::DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO = 0;
 
+const int CommandLineParameters::DEFAULT_INITIALIZER_TIMEOUT_SEC = 300;
+
 const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_MODE,
      "mode",
      sizeof("mode") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_BROKER,
      "broker",
      sizeof("broker") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_URI,
      "queueUri",
      sizeof("queueUri") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_FLAGS,
      "queueFlags",
      sizeof("queueFlags") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LATENCY,
      "latency",
      sizeof("latency") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LATENCY_REPORT,
      "latencyReport",
      sizeof("latencyReport") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DUMP_MSG,
      "dumpMsg",
      sizeof("dumpMsg") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONFIRM_MSG,
      "confirmMsg",
      sizeof("confirmMsg") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_EVENT_SIZE,
      "eventSize",
      sizeof("eventSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MSG_SIZE,
      "msgSize",
      sizeof("msgSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_POST_RATE,
      "postRate",
      sizeof("postRate") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_EVENTS_COUNT,
      "eventsCount",
      sizeof("eventsCount") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED,
      "maxUnconfirmed",
      sizeof("maxUnconfirmed") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_POST_INTERVAL,
      "postInterval",
      sizeof("postInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_VERBOSITY,
      "verbosity",
      sizeof("verbosity") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOG_FORMAT,
      "logFormat",
      sizeof("logFormat") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MEMORY_DEBUG,
      "memoryDebug",
      sizeof("memoryDebug") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THREADS,
      "threads",
      sizeof("threads") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SHUTDOWN_GRACE,
      "shutdownGrace",
      sizeof("shutdownGrace") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NO_SESSION_EVENT_HANDLER,
      "noSessionEventHandler",
      sizeof("noSessionEventHandler") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STORAGE,
      "storage",
      sizeof("storage") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOG,
      "log",
      sizeof("log") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SEQUENTIAL_MESSAGE_PATTERN,
      "sequentialMessagePattern",
      sizeof("sequentialMessagePattern") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MESSAGE_PROPERTIES,
      "messageProperties",
      sizeof("messageProperties") - 1,
@@ -4483,14 +4489,19 @@ const bdlat_AttributeInfo CommandLineParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "autoPubSubModulo",
      sizeof("autoPubSubModulo") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_TIMEOUT_SEC,
+     "timeoutSec",
+     sizeof("timeoutSec") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 CommandLineParameters::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 26; ++i) {
+    for (int i = 0; i < 27; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             CommandLineParameters::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4557,6 +4568,8 @@ const bdlat_AttributeInfo* CommandLineParameters::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS];
     case ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO];
+    case ATTRIBUTE_ID_TIMEOUT_SEC:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC];
     default: return 0;
     }
 }
@@ -4587,6 +4600,7 @@ CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
 , d_threads(DEFAULT_INITIALIZER_THREADS)
 , d_shutdownGrace(DEFAULT_INITIALIZER_SHUTDOWN_GRACE)
 , d_autoPubSubModulo(DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO)
+, d_timeoutSec(DEFAULT_INITIALIZER_TIMEOUT_SEC)
 , d_dumpMsg(DEFAULT_INITIALIZER_DUMP_MSG)
 , d_confirmMsg(DEFAULT_INITIALIZER_CONFIRM_MSG)
 , d_memoryDebug(DEFAULT_INITIALIZER_MEMORY_DEBUG)
@@ -4620,6 +4634,7 @@ CommandLineParameters::CommandLineParameters(
 , d_threads(original.d_threads)
 , d_shutdownGrace(original.d_shutdownGrace)
 , d_autoPubSubModulo(original.d_autoPubSubModulo)
+, d_timeoutSec(original.d_timeoutSec)
 , d_dumpMsg(original.d_dumpMsg)
 , d_confirmMsg(original.d_confirmMsg)
 , d_memoryDebug(original.d_memoryDebug)
@@ -4653,6 +4668,7 @@ CommandLineParameters::CommandLineParameters(
   d_threads(bsl::move(original.d_threads)),
   d_shutdownGrace(bsl::move(original.d_shutdownGrace)),
   d_autoPubSubModulo(bsl::move(original.d_autoPubSubModulo)),
+  d_timeoutSec(bsl::move(original.d_timeoutSec)),
   d_dumpMsg(bsl::move(original.d_dumpMsg)),
   d_confirmMsg(bsl::move(original.d_confirmMsg)),
   d_memoryDebug(bsl::move(original.d_memoryDebug)),
@@ -4685,6 +4701,7 @@ CommandLineParameters::CommandLineParameters(CommandLineParameters&& original,
 , d_threads(bsl::move(original.d_threads))
 , d_shutdownGrace(bsl::move(original.d_shutdownGrace))
 , d_autoPubSubModulo(bsl::move(original.d_autoPubSubModulo))
+, d_timeoutSec(bsl::move(original.d_timeoutSec))
 , d_dumpMsg(bsl::move(original.d_dumpMsg))
 , d_confirmMsg(bsl::move(original.d_confirmMsg))
 , d_memoryDebug(bsl::move(original.d_memoryDebug))
@@ -4729,6 +4746,7 @@ CommandLineParameters::operator=(const CommandLineParameters& rhs)
         d_messageProperties        = rhs.d_messageProperties;
         d_subscriptions            = rhs.d_subscriptions;
         d_autoPubSubModulo         = rhs.d_autoPubSubModulo;
+        d_timeoutSec               = rhs.d_timeoutSec;
     }
 
     return *this;
@@ -4766,6 +4784,7 @@ CommandLineParameters::operator=(CommandLineParameters&& rhs)
         d_messageProperties        = bsl::move(rhs.d_messageProperties);
         d_subscriptions            = bsl::move(rhs.d_subscriptions);
         d_autoPubSubModulo         = bsl::move(rhs.d_autoPubSubModulo);
+        d_timeoutSec               = bsl::move(rhs.d_timeoutSec);
     }
 
     return *this;
@@ -4801,6 +4820,7 @@ void CommandLineParameters::reset()
     bdlat_ValueTypeFunctions::reset(&d_messageProperties);
     bdlat_ValueTypeFunctions::reset(&d_subscriptions);
     d_autoPubSubModulo = DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO;
+    d_timeoutSec       = DEFAULT_INITIALIZER_TIMEOUT_SEC;
 }
 
 // ACCESSORS
@@ -4839,6 +4859,7 @@ bsl::ostream& CommandLineParameters::print(bsl::ostream& stream,
     printer.printAttribute("messageProperties", this->messageProperties());
     printer.printAttribute("subscriptions", this->subscriptions());
     printer.printAttribute("autoPubSubModulo", this->autoPubSubModulo());
+    printer.printAttribute("timeoutSec", this->timeoutSec());
     printer.end();
     return stream;
 }
@@ -5027,17 +5048,17 @@ const bdlat_AttributeInfo PostCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "async",
      sizeof("async") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_GROUPID,
      "groupid",
      sizeof("groupid") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE,
      "compressionAlgorithmType",
      sizeof("compressionAlgorithmType") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MESSAGE_PROPERTIES,
      "messageProperties",
      sizeof("messageProperties") - 1,
@@ -6829,6 +6850,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.10.09.2
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
