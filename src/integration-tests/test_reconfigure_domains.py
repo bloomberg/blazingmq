@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -532,16 +532,16 @@ class TestReconfigureDomains:
         admin = AdminClient()
         admin.connect(*cluster.admin_endpoint)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert '"maxDeliveryAttempts" : 0' in res
+        domain_cfg = admin.get_domain_config(domain_priority)
+        assert domain_cfg["maxDeliveryAttempts"] == 0
 
         cluster.config.domains[
             domain_priority
         ].definition.parameters.max_delivery_attempts = 5
         cluster.reconfigure_domain(domain_priority, succeed=True)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {domain_priority} INFOS")
-        assert '"maxDeliveryAttempts" : 5' in res
+        domain_cfg = admin.get_domain_config(domain_priority)
+        assert domain_cfg["maxDeliveryAttempts"] == 5
 
         admin.stop()
 
