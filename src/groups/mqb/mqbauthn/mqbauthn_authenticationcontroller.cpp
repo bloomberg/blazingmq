@@ -336,31 +336,34 @@ int AuthenticationController::validateAnonymousCredential(
 int AuthenticationController::ensureDefaultAuthenticator(
     bsl::ostream& errorDescription)
 {
+    // Have authenticators, nothing to do
+    if (!d_authenticators.empty()) {
+        return 0;
+    }
+
     // If no authenticators are configured, use AnonAuthenticator for
     // anonymous pass authentication
-    if (d_authenticators.empty()) {
-        BALL_LOG_INFO << "No authenticators configured, using "
-                         "AnonAuthenticator as default";
+    BALL_LOG_INFO << "No authenticators configured, using "
+                     "AnonAuthenticator as default";
 
-        AnonAuthenticatorPluginFactory anonFactory;
-        AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
+    AnonAuthenticatorPluginFactory anonFactory;
+    AuthenticatorMp authenticator = anonFactory.create(d_allocator_p);
 
-        bmqu::MemOutStream errorStream(d_allocator_p);
-        if (int status = authenticator->start(errorStream)) {
-            errorDescription << "Failed to start AnonAuthenticator: "
-                             << errorStream.str();
-            BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
-                << "Failed to start default anonymous authenticator '"
-                << authenticator->name() << "' [rc: " << status << ", error: '"
-                << errorStream.str() << "']" << BMQTSK_ALARMLOG_END;
-            return status;  // RETURN
-        }
-
-        const bsl::string normMech =
-            normalizeMechanism(authenticator->mechanism(), d_allocator_p);
-        d_authenticators.emplace(normMech,
-                                 bslmf::MovableRefUtil::move(authenticator));
+    bmqu::MemOutStream errorStream(d_allocator_p);
+    if (int status = authenticator->start(errorStream)) {
+        errorDescription << "Failed to start AnonAuthenticator: "
+                         << errorStream.str();
+        BMQTSK_ALARMLOG_ALARM("#AUTHENTICATION")
+            << "Failed to start default anonymous authenticator '"
+            << authenticator->name() << "' [rc: " << status << ", error: '"
+            << errorStream.str() << "']" << BMQTSK_ALARMLOG_END;
+        return status;  // RETURN
     }
+
+    const bsl::string normMech = normalizeMechanism(authenticator->mechanism(),
+                                                    d_allocator_p);
+    d_authenticators.emplace(normMech,
+                             bslmf::MovableRefUtil::move(authenticator));
 
     return 0;
 }
@@ -416,6 +419,8 @@ void AuthenticationController::stop()
         return;  // RETURN
     }
 
+    BALL_LOG_INFO << "Stopping AuthenticationController";
+
     d_isStarted = false;
 
     // Stop all authenticators
@@ -443,9 +448,6 @@ int AuthenticationController::authenticate(
         rc_MECHANISM_NOT_SUPPORTED = -2
     };
 
-    int                rc = rc_SUCCESS;
-    bmqu::MemOutStream errorStream(d_allocator_p);
-
     const bsl::string normMech = normalizeMechanism(mechanism, d_allocator_p);
     AuthenticatorMap::const_iterator cit = d_authenticators.find(normMech);
     if (cit != d_authenticators.cend()) {
@@ -454,7 +456,9 @@ int AuthenticationController::authenticate(
                        << "authenticating with mechanism '" << normMech << "'"
                        << " (authenticator: '" << authenticator->name()
                        << "')";
-        rc = authenticator->authenticate(errorStream, result, input);
+
+        bmqu::MemOutStream errorStream(d_allocator_p);
+        const int rc = authenticator->authenticate(errorStream, result, input);
         if (rc != rc_SUCCESS) {
             errorDescription << "AuthenticationController: failed to "
                                 "authenticate with mechanism '"
@@ -467,7 +471,7 @@ int AuthenticationController::authenticate(
         errorDescription
             << "AuthenticationController: authentication mechanism '"
             << normMech << "' not supported.";
-        return (rc * 10 + rc_MECHANISM_NOT_SUPPORTED);
+        return rc_MECHANISM_NOT_SUPPORTED;
     }
 
     return rc_SUCCESS;
