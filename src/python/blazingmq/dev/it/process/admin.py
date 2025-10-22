@@ -65,7 +65,7 @@ class AdminClient(RawClient):
         self._receive_event()
 
     # Admin APIs
-    def get_domain_config(self, domain_name: str) -> Dict[Any, Any]:
+    def get_domain_config(self, domain_name: str) -> Dict[str, Any]:
         """
         Send the "DOMAINS DOMAIN <domain_name> INFOS" admin command, parse the received response and
         return the domain configuration as a structured dictionary.
