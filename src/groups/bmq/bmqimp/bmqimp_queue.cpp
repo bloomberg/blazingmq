@@ -50,6 +50,10 @@ const char k_STAT_NAME[] = "queues";
 /// time and scale it back down at print time.
 const double k_COMPRESSION_RATIO_PRECISION_FACTOR = 10000.;
 
+/// Inverse of `k_COMPRESSION_RATIO_PRECISION_FACTOR` for fast multiplication.
+const double k_COMPRESSION_RATIO_PRECISION_FACTOR_INV =
+    1 / k_COMPRESSION_RATIO_PRECISION_FACTOR;
+
 enum {
     k_STAT_IN = 0  // value = bytes received ; increments =
                    // messages received
@@ -77,7 +81,8 @@ calculateCompressionRatio(const bmqst::StatValue&                   value,
     const double ratioSum = static_cast<double>(
         bmqst::StatUtil::value(value, start));
 
-    return (ratioSum / messageCount) / k_COMPRESSION_RATIO_PRECISION_FACTOR;
+    return (ratioSum / messageCount) *
+           k_COMPRESSION_RATIO_PRECISION_FACTOR_INV;
 }
 
 double
@@ -97,7 +102,8 @@ calculateCompressionRatio(const bmqst::StatValue&                   value,
     const double ratioSum = static_cast<double>(
         bmqst::StatUtil::valueDifference(value, start, endPlus));
 
-    return (ratioSum / messageCount) / k_COMPRESSION_RATIO_PRECISION_FACTOR;
+    return (ratioSum / messageCount) *
+           k_COMPRESSION_RATIO_PRECISION_FACTOR_INV;
 }
 
 }  // close unnamed namespace
