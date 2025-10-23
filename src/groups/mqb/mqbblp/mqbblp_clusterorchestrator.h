@@ -112,6 +112,27 @@ class ClusterOrchestrator {
 
     typedef mqbc::ClusterStateQueueInfo::AppInfos AppInfos;
 
+    /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
+    /// when dispatching ElectorEvent from IO to Cluster.
+    class OnElectorEventFunctor
+    : public bmqu::ManagedCallback::CallbackFunctor {
+      private:
+        // PRIVATE DATA
+        ClusterOrchestrator* d_orchestrator_p;
+        const bmqp::Event    d_event;
+        mqbnet::ClusterNode* d_source_p;
+
+      public:
+        // CREATORS
+        explicit OnElectorEventFunctor(ClusterOrchestrator* orchestrator,
+                                       bslmf::MovableRef<bmqp::Event> event,
+                                       mqbnet::ClusterNode* source_p);
+
+        ~OnElectorEventFunctor() BSLS_KEYWORD_OVERRIDE;
+
+        void operator()() const BSLS_KEYWORD_OVERRIDE;
+    };
+
   private:
     // DATA
 
