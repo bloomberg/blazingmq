@@ -554,10 +554,10 @@ class Cluster : public mqbi::Cluster,
     /// specified `queue` with the specified `handleParameters` and invoke
     /// the specified `callback` when finished.
     void
-    configureQueue(mqbi::Queue*                               queue,
-                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-                   unsigned int upstreamSubQueueId,
-                   const mqbi::Cluster::HandleReleasedCallback& callback)
+    closeQueue(mqbi::Queue*                                 queue,
+               const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
+               unsigned int                                 upstreamSubQueueId,
+               const mqbi::Cluster::HandleReleasedCallback& callback)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked whenever an attempt was made to create a queue handle for
