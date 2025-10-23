@@ -427,7 +427,7 @@ void Cluster::configureQueue(
     }
 }
 
-void Cluster::configureQueue(
+void Cluster::closeQueue(
     BSLA_UNUSED mqbi::Queue* queue,
     BSLA_UNUSED const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
     BSLA_UNUSED unsigned int                               upstreamSubQueueId,
