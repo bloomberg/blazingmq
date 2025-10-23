@@ -1268,9 +1268,6 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // important that elector events are processed in the dispatcher thread
     // too, otherwise, depending upon thread scheduling, a new node may get
     // certain events "out of order" (some cases were found out while testing).
-    // Note that 'bindA' instead of 'bind' is needed below because we need to
-    // pass allocator to one of the 'bmqp::Event' instances created below
-    // (allocator is *not* optional for 'bmqp::Event')
 
     mqbi::DispatcherEvent* clusterEvent = dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_CLUSTER);
