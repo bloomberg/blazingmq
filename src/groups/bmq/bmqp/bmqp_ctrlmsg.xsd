@@ -16,6 +16,7 @@
        Any message sent is of either one of those top level types:
           o ControlMessage
           o NegotiationMessage
+          o AuthenticationMessage
 
        The following convention is used for controlMessage:
          Each request is just the name of the request ('openQueue',
@@ -562,7 +563,7 @@
         <element name='primaryStatusAdvisory'           type='tns:PrimaryStatusAdvisory'/>
         <element name='clusterSyncRequest'              type='tns:DummyType'/>
         <element name='clusterSyncResponse'             type='tns:DummyType'/>
-        <element name='queueUnassignedAdvisory'         type='tns:DummyType'/>        
+        <element name='queueUnassignedAdvisory'         type='tns:DummyType'/>
         <element name='queueUnAssignmentAdvisory'       type='tns:QueueUnAssignmentAdvisory'/>
         <element name='leaderAdvisoryAck'               type='tns:LeaderAdvisoryAck'/>
         <element name='leaderAdvisoryCommit'            type='tns:LeaderAdvisoryCommit'/>
@@ -1554,7 +1555,7 @@
     </restriction>
   </simpleType>
 
-    <!-- ========================================================================
+  <!-- ========================================================================
        ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
        :                       NEGOTIATION MESSAGE                            :
        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
@@ -1705,6 +1706,71 @@
         This type is used protocol messages that have been deprecated and removed.
       </documentation>
     </annotation>
+  </complexType>
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                      AUTHENTICATION MESSAGE                          :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+
+  <complexType name='AuthenticationMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being exchanged during
+        authentication of a connection with the broker, whether by a BlazingMQ
+        client or another broker.
+
+        choice.: enumerates all the different type of authentication packets
+
+        During authentication, the process (whether a client using the libbmq SDK,
+        or a bmqbrkr) sends a 'authenticationRequest' message; to which the remote
+        peer will reply with a 'authenticationResponse' message.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='authenticationRequest'      type='tns:AuthenticationRequest'/>
+      <element name='authenticationResponse'     type='tns:AuthenticationResponse'/>
+    </choice>
+  </complexType>
+
+  <complexType name='AuthenticationRequest'>
+    <annotation>
+      <documentation>
+        This request is a messages sent from a client to a broker during
+        session initiation or reauthentication. The message indicates the client
+        is attempting to authenticate with the supplied authentication material
+        to initiate a session.
+
+        mechanism.: The authentication mechanism the client intends to use
+        data......: The client's authentication material
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='mechanism' type='string'/>
+      <element name='data'      type='base64Binary'  minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='AuthenticationResponse'>
+    <annotation>
+      <documentation>
+        Response of an 'AuthenticationRequest' request indicating the result of
+        the operation. The message is sent to a client from a broker during
+        authentication.
+
+        status.....: Status of the request
+        lifetimeMs.: The duration (in milliseconds) the client's session is
+                     valid for. The client must reauthenticate before the
+                     lifetime expires or it will be disconnected.
+                     The session lifetime is valid indefinitely if this value
+                     is unset.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='status'      type='tns:Status' />
+      <element name='lifetimeMs'  type='int'   minOccurs='0'/>
+    </sequence>
   </complexType>
 
 </schema>

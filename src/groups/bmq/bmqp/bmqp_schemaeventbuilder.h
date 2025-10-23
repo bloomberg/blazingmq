@@ -154,7 +154,7 @@ class SchemaEventBuilder {
     /// Encode the templated specified `message` of the specified event
     /// `type` in this SchemaEvent, and return 0 on success or a non-zero
     /// result on error.  The behaviour is undefined unless `type` is
-    /// `CONTROL` or `ELECTOR`.
+    /// `CONTROL`, `ELECTOR`, or `AUTHENTICATION`.
     template <class TYPE>
     int setMessage(const TYPE& message, EventType::Enum type);
 
@@ -223,6 +223,7 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     BSLS_ASSERT_SAFE(d_blob_sp->length() == 0);  // Ensure the blob is empty
     BSLS_ASSERT_SAFE(d_encodingType != EncodingType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(type == EventType::e_CONTROL ||
+                     type == EventType::e_AUTHENTICATION ||
                      (type == EventType::e_ELECTOR &&
                       d_encodingType == EncodingType::e_BER));
     // Currently, we only support BER encoding for elector messages
@@ -245,10 +246,10 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     EventHeader* eventHeader = new (d_blob_sp->buffer(0).data())
         EventHeader(type);
 
-    // Specify the encoding type in the EventHeader for control messages
-    if (type == EventType::e_CONTROL) {
-        EventHeaderUtil::setControlEventEncodingType(eventHeader,
-                                                     d_encodingType);
+    // Specify the encoding type in the EventHeader for control or
+    // authentication messages
+    if (type == EventType::e_CONTROL || type == EventType::e_AUTHENTICATION) {
+        EventHeaderUtil::setEncodingType(eventHeader, d_encodingType);
     }
 
     // Append appropriate encoding of 'message' to the blob
