@@ -1276,6 +1276,11 @@ void ElectorStateMachine::applyScoutingRequestEvent(
     }
     else {
         // Self does not perceive any node as valid leader.
+        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from node ["
+                      << sourceNodeId << "] with term [" << term
+                      << "]. Self term [" << d_term << "]. "
+                      << (term > d_term ? "Supporting" : "Not supporting")
+                      << " the scouting node.";
 
         // Self will support 'sourceNodeId' only if it proposes an election
         // with a 'term' greater than self's term.
@@ -1315,6 +1320,13 @@ void ElectorStateMachine::applyScoutingResponseEvent(
     }
 
     d_scoutingInfo.addNodeResponse(sourceNodeId, willVote);
+
+    BALL_LOG_WARN << "My numSupportingNodes: "
+                  << d_scoutingInfo.numSupportingNodes()
+                  << " and my quorum is " << d_quorum
+                  << ", d_scoutingInfo.numResponses(): "
+                  << d_scoutingInfo.numResponses()
+                  << ", d_numTotalPeers: " << d_numTotalPeers;
 
     if (d_scoutingInfo.numSupportingNodes() >= static_cast<size_t>(d_quorum)) {
         // Majority of the nodes will support an election with the specified

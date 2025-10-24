@@ -183,10 +183,10 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
         ClusterUtil::loadQueuesInfo(&clusterStateSnapshot.queues(), tempState);
     }
     else {
-        // Verify that elector term in follower snapshot is less than or equal to
-        // the current elector term
+        // Verify that elector term in follower snapshot is less than the
+        // current elector term
         BSLS_ASSERT_SAFE(
-            metadata.clusterStateSnapshot().sequenceNumber().electorTerm() <=
+            metadata.clusterStateSnapshot().sequenceNumber().electorTerm() <
             d_clusterData_p->electorInfo().electorTerm());
 
         clusterStateSnapshot = metadata.clusterStateSnapshot();
