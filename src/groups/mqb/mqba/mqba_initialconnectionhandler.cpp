@@ -74,10 +74,8 @@ void InitialConnectionHandler::readCallback(
     bmqu::MemOutStream               errStream;
     bdlbb::Blob                      outPacket;
 
-    bool isFullBlob     = true;
-    bool isContinueRead = false;
-
-    int         rc = rc_SUCCESS;
+    bool        isFullBlob = true;
+    int         rc         = rc_SUCCESS;
     bsl::string error;
 
     // The completeCb is not triggered only when there's more to read
@@ -102,21 +100,7 @@ void InitialConnectionHandler::readCallback(
         return;  // RETURN
     }
 
-    rc = processBlob(errStream, &session, &isContinueRead, outPacket, context);
-    if (rc != rc_SUCCESS) {
-        rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
-        error = bsl::string(errStream.str().data(), errStream.str().length());
-        return;  // RETURN
-    }
-
-    if (isContinueRead) {
-        rc = scheduleRead(errStream, context);
-
-        if (rc == rc_SUCCESS) {
-            guard.release();
-        }
-    }
-
+    rc = processBlob(errStream, &session, outPacket, context);
     if (rc != rc_SUCCESS) {
         rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
         error = bsl::string(errStream.str().data(), errStream.str().length());
@@ -167,7 +151,6 @@ int InitialConnectionHandler::readBlob(bsl::ostream&        errorDescription,
 int InitialConnectionHandler::processBlob(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
-    bool*                             isContinueRead,
     const bdlbb::Blob&                blob,
     const InitialConnectionContextSp& context)
 {
@@ -188,14 +171,12 @@ int InitialConnectionHandler::processBlob(
     }
 
     if (negotiationMsg.has_value()) {
-        context->negotiationContext()->d_negotiationMessage =
-            negotiationMsg.value();
+        context->negotiationContext()->setNegotiationMessage(
+            negotiationMsg.value());
 
-        rc = d_negotiator_mp->createSessionOnMsgType(
-            errorDescription,
-            session,
-            isContinueRead,
-            context->negotiationContext());
+        rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
+                                                     session,
+                                                     context.get());
     }
     else {
         errorDescription
@@ -326,12 +307,9 @@ void InitialConnectionHandler::handleInitialConnection(
     // should be explicit 'bsl::shared_ptr<mqbnet::InitialConnectionContext>'.
 
     // Create an NegotiationContext for that connection
-    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext;
-    negotiationContext.createInplace(d_allocator_p);
-
-    negotiationContext->d_initialConnectionContext_p = context.get();
-    negotiationContext->d_clusterName                = "";
-    negotiationContext->d_connectionType = mqbnet::ConnectionType::e_UNKNOWN;
+    bsl::shared_ptr<mqbnet::NegotiationContext> negotiationContext =
+        bsl::allocate_shared<mqbnet::NegotiationContext>(d_allocator_p,
+                                                         context.get());
 
     context->setNegotiationContext(negotiationContext);
 
@@ -356,8 +334,7 @@ void InitialConnectionHandler::handleInitialConnection(
         rc = scheduleRead(errStream, context);
     }
     else {
-        rc = d_negotiator_mp->negotiateOutbound(errStream,
-                                                context->negotiationContext());
+        rc = d_negotiator_mp->negotiateOutbound(errStream, context);
 
         // Send outbound request success, continue to read
         if (rc == 0) {

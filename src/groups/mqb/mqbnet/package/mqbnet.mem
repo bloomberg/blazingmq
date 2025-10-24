@@ -2,6 +2,7 @@ mqbnet_channel
 mqbnet_cluster
 mqbnet_clusteractivenodemanager
 mqbnet_clusterimp
+mqbnet_connectiontype
 mqbnet_dummysession
 mqbnet_mockcluster
 mqbnet_multirequestmanager
