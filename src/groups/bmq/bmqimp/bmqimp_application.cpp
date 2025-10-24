@@ -30,7 +30,6 @@
 #include <bmqscm_version.h>
 #include <bmqst_statvalue.h>
 #include <bmqst_tableutil.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
@@ -671,7 +670,7 @@ Application::Application(
     // we can not call 'stop' on the scheduler from the 'finalizeCb', and
     // therefore have to let it stop in the application thread, i.e., from the
     // destructor of this object.
-    bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes attr = bslmt::ThreadAttributes();
     attr.setThreadName("bmqScheduler");
     int rc = d_scheduler.start(attr);
     if (rc != 0) {

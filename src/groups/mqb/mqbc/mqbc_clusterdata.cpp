@@ -26,8 +26,6 @@
 #include <bmqp_protocol.h>
 #include <bmqscm_version.h>
 
-#include <bmqsys_threadutil.h>
-
 // BDE
 #include <bdls_processutil.h>
 #include <bsl_map.h>
@@ -134,7 +132,7 @@ ClusterData::ClusterData(
                                               d_allocator_p)))
 , d_stateSpPool(8192, allocator)
 , d_miscWorkThreadPool(
-      bmqsys::ThreadUtil::defaultAttributes().setThreadName("bmqMiscWorkTP"),
+      bslmt::ThreadAttributes().setThreadName("bmqMiscWorkTP"),
       3,      // numThreads
       10000,  // maxNumPendingJobs
       allocator)

@@ -20,8 +20,6 @@
 // BMQ
 #include <bmqu_memoutstream.h>
 
-#include <bmqsys_threadutil.h>
-
 // BDE
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
@@ -294,7 +292,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     // Create and start the threadPool
     context->d_threadPool_mp.load(
         new (*d_allocator_p)
-            bdlmt::ThreadPool(bmqsys::ThreadUtil::defaultAttributes(),
+            bdlmt::ThreadPool(bslmt::ThreadAttributes(),
                               config.numProcessors(),           // min threads
                               config.numProcessors(),           // max threads
                               bsl::numeric_limits<int>::max(),  // idle time
@@ -524,13 +522,13 @@ int Dispatcher::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
-    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+    execute(bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                                  "bmqDispSession"),
             mqbi::DispatcherClientType::e_SESSION);
-    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+    execute(bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                                  "bmqDispQueue"),
             mqbi::DispatcherClientType::e_QUEUE);
-    execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+    execute(bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                                  "bmqDispCluster"),
             mqbi::DispatcherClientType::e_CLUSTER);
 

@@ -38,7 +38,6 @@
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
 #include <bmqst_statcontext.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -64,6 +63,7 @@
 #include <bslmt_mutexassert.h>
 #include <bslmt_readlockguard.h>
 #include <bslmt_semaphore.h>
+#include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_systemclocktype.h>
@@ -4772,8 +4772,8 @@ bool BrokerSession::appendOrSend(
         .setFlags(qac.d_header.flags())
         .setMessagePropertiesInfo(bmqp::MessagePropertiesInfo(qac.d_header));
 
-    BALL_LOG_DEBUG << "Adding PUT message for retransmission ["
-                   << "GUID: '" << builder.messageGUID() << "'] ";
+    BALL_LOG_DEBUG << "Adding PUT message for retransmission [" << "GUID: '"
+                   << builder.messageGUID() << "'] ";
 
     const bmqt::EventBuilderResult::Enum result = builder.packMessageRaw(
         qac.d_queueId.id());
@@ -5765,8 +5765,7 @@ BrokerSession::BrokerSession(
     resetState();
 
     // Spawn the FSM thread
-    bslmt::ThreadAttributes threadAttributes =
-        bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes threadAttributes = bslmt::ThreadAttributes();
     threadAttributes.setThreadName("bmqFSMEvtQ");
     if (bslmt::ThreadUtil::createWithAllocator(
             &d_fsmThread,
@@ -5855,7 +5854,7 @@ void BrokerSession::setChannel(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the *IO* thread
 
-    bmqsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
+    bslmt::ThreadUtil::setThreadName("bmqTCPIO");
 
     if (channel) {  // We are now connected to bmqbrkr
         BALL_LOG_INFO << id()

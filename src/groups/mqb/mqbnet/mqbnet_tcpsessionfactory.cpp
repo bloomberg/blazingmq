@@ -48,7 +48,6 @@
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
@@ -73,6 +72,7 @@
 #include <bslmf_movableref.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_once.h>
+#include <bslmt_threadutil.h>
 #include <bsls_performancehint.h>
 #include <bsls_platform.h>
 #include <bsls_systemclocktype.h>
@@ -507,12 +507,11 @@ void TCPSessionFactory::negotiationComplete(
 
     if (statusCode != 0) {
         // Failed to negotiate
-        BALL_LOG_WARN << "#SESSION_NEGOTIATION "
-                      << "TCPSessionFactory '" << d_config.name() << "' "
-                      << "failed to negotiate a session "
-                      << "[channel: '" << channel.get()
-                      << "', status: " << statusCode << ", error: '"
-                      << errorDescription << "']";
+        BALL_LOG_WARN << "#SESSION_NEGOTIATION " << "TCPSessionFactory '"
+                      << d_config.name() << "' "
+                      << "failed to negotiate a session " << "[channel: '"
+                      << channel.get() << "', status: " << statusCode
+                      << ", error: '" << errorDescription << "']";
 
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "negotiationError",
@@ -636,8 +635,8 @@ void TCPSessionFactory::negotiationComplete(
         //       called before or after 'stopListening'.  Invoke 'tearDown'
         //       explicitly (it supports subsequent calls).
 
-        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
+        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE " << "TCPSessionFactory '"
+                      << d_config.name()
                       << (result ? "' has initiated shutdown "
                                  : "' has encountered an error ")
                       << "while negotiating a session [session: '"
@@ -698,7 +697,7 @@ void TCPSessionFactory::channelStateCallback(
     // This is an infrequent enough operation (compared to a 'readCb') that it
     // is fine to do this here (since we have no other ways to
     // proactively-execute code in the IO threads created by the channelPool).
-    bmqsys::ThreadUtil::setCurrentThreadNameOnce(d_threadName);
+    bslmt::ThreadUtil::setThreadName(d_threadName);
 
     BALL_LOG_TRACE << "TCPSessionFactory '" << d_config.name()
                    << "': channelStateCallback [event: " << event
@@ -711,8 +710,8 @@ void TCPSessionFactory::channelStateCallback(
         BSLS_ASSERT_SAFE(channel);
 
         if (channel->peerUri().empty()) {
-            BALL_LOG_ERROR << "#SESSION_NEGOTIATION "
-                           << "TCPSessionFactory '" << d_config.name() << "' "
+            BALL_LOG_ERROR << "#SESSION_NEGOTIATION " << "TCPSessionFactory '"
+                           << d_config.name() << "' "
                            << "rejecting empty peer URI: '" << channel.get()
                            << "'";
 
@@ -813,8 +812,8 @@ void TCPSessionFactory::onClose(
         // however, we insert in the d_channels only upon successful
         // negotiation; therefore a failed to negotiate channel (like during
         // intrusion testing) would trigger this trace.
-        BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
+        BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE " << "TCPSessionFactory '"
+                      << d_config.name()
                       << "': OnClose channel for an unknown channel '"
                       << channel.get() << "', " << d_nbActiveChannels
                       << " active channels, status: " << status;
@@ -1082,8 +1081,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         bdlf::BindUtil::bind(&stopChannelFactory,
                              d_tcpChannelFactory_mp.get()));
 
-    bslmt::ThreadAttributes attributes =
-        bmqsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes attributes = bslmt::ThreadAttributes();
     attributes.setThreadName("bmqDNSResolver");
     rc = d_resolutionContext.start(attributes);
     BSLS_ASSERT_SAFE(rc == 0);
@@ -1224,9 +1222,8 @@ int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
 void TCPSessionFactory::stopListening()
 {
     if (!d_isListening) {
-        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
-                      << "' is not listening";
+        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE " << "TCPSessionFactory '"
+                      << d_config.name() << "' is not listening";
         return;  // RETURN
     }
     d_isListening = false;
@@ -1417,10 +1414,9 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
                              bdlf::PlaceHolders::_3,  // channel
                              context));
     if (!status) {
-        BALL_LOG_ERROR << "#TCP_LISTEN_FAILED "
-                       << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "failed listening to '" << endpoint.str()
-                       << "' [status: " << status << "]";
+        BALL_LOG_ERROR << "#TCP_LISTEN_FAILED " << "TCPSessionFactory '"
+                       << d_config.name() << "' " << "failed listening to '"
+                       << endpoint.str() << "' [status: " << status << "]";
         d_isListening = false;
         return status.category();  // RETURN
     }
@@ -1476,10 +1472,10 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
                              context));
 
     if (!status) {
-        BALL_LOG_ERROR << "#TCP_CONNECT_FAILED "
-                       << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "failed connecting to '" << endpointStream.str()
-                       << "' [status: " << status << "]";
+        BALL_LOG_ERROR << "#TCP_CONNECT_FAILED " << "TCPSessionFactory '"
+                       << d_config.name() << "' " << "failed connecting to '"
+                       << endpointStream.str() << "' [status: " << status
+                       << "]";
     }
     else {
         BALL_LOG_DEBUG << "TCPSessionFactory '" << d_config.name() << "' "
