@@ -60,7 +60,132 @@ void InitialConnectionHandler::readCallback(
     bdlbb::Blob*                      blob,
     const InitialConnectionContextSp& context)
 {
-    context->readCallback(status, numNeeded, blob);
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS            = 0,
+        rc_READ_BLOB_ERROR    = -1,
+        rc_PROCESS_BLOB_ERROR = -2,
+    };
+
+    BALL_LOG_TRACE << "InitialConnectionHandler readCb: [status: " << status
+                   << ", peer: '" << context->channel()->peerUri() << "']";
+
+    bsl::shared_ptr<mqbnet::Session> session;
+    bmqu::MemOutStream               errStream;
+    bdlbb::Blob                      outPacket;
+
+    bool        isFullBlob = true;
+    int         rc         = rc_SUCCESS;
+    bsl::string error;
+
+    // The completeCb is not triggered only when there's more to read
+    // (didn't receive a full blob; or received a full blob and
+    // successfully scheduled another read)
+    bdlb::ScopeExitAny guard(
+        bdlf::BindUtil::bind(&InitialConnectionHandler::complete,
+                             context,
+                             bsl::ref(rc),
+                             bsl::ref(error),
+                             bsl::ref(session)));
+
+    rc = readBlob(errStream, &outPacket, &isFullBlob, status, numNeeded, blob);
+    if (rc != rc_SUCCESS) {
+        rc    = (rc * 10) + rc_READ_BLOB_ERROR;
+        error = bsl::string(errStream.str().data(), errStream.str().length());
+        return;  // RETURN
+    }
+
+    if (!isFullBlob) {
+        guard.release();
+        return;  // RETURN
+    }
+
+    rc = processBlob(errStream, &session, outPacket, context);
+    if (rc != rc_SUCCESS) {
+        rc    = (rc * 10) + rc_PROCESS_BLOB_ERROR;
+        error = bsl::string(errStream.str().data(), errStream.str().length());
+        return;  // RETURN
+    }
+}
+
+int InitialConnectionHandler::readBlob(bsl::ostream&        errorDescription,
+                                       bdlbb::Blob*         outPacket,
+                                       bool*                isFullBlob,
+                                       const bmqio::Status& status,
+                                       int*                 numNeeded,
+                                       bdlbb::Blob*         blob)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                  = 0,
+        rc_READ_ERROR               = -1,
+        rc_UNRECOVERABLE_READ_ERROR = -2
+    };
+
+    if (!status) {
+        errorDescription << "Read error: " << status;
+        return (10 * status.category()) + rc_READ_ERROR;  // RETURN
+    }
+
+    int rc = bmqio::ChannelUtil::handleRead(outPacket, numNeeded, blob);
+    if (rc != 0) {
+        // This indicates a non recoverable error...
+        errorDescription << "Unrecoverable read error:\n"
+                         << bmqu::BlobStartHexDumper(blob);
+        return (rc * 10) + rc_UNRECOVERABLE_READ_ERROR;  // RETURN
+    }
+
+    if (outPacket->length() == 0) {
+        // Don't yet have a full blob
+        *isFullBlob = false;
+        return rc_SUCCESS;  // RETURN
+    }
+
+    // Have a full blob, indicate no more bytes needed (we have to do this
+    // because 'handleRead' above set it back to 4 at the end).
+    *numNeeded = 0;
+
+    return rc_SUCCESS;
+}
+
+int InitialConnectionHandler::processBlob(
+    bsl::ostream&                     errorDescription,
+    bsl::shared_ptr<mqbnet::Session>* session,
+    const bdlbb::Blob&                blob,
+    const InitialConnectionContextSp& context)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                     = 0,
+        rc_INVALID_NEGOTIATION_MESSAGE = -1,
+    };
+
+    bsl::optional<bmqp_ctrlmsg::NegotiationMessage> negotiationMsg;
+
+    int rc = decodeInitialConnectionMessage(errorDescription,
+                                            blob,
+                                            &negotiationMsg);
+
+    if (rc != 0) {
+        return (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;  // RETURN
+    }
+
+    if (negotiationMsg.has_value()) {
+        context->negotiationContext()->setNegotiationMessage(
+            negotiationMsg.value());
+
+        rc = d_negotiator_mp->createSessionOnMsgType(errorDescription,
+                                                     session,
+                                                     context.get());
+    }
+    else {
+        errorDescription
+            << "Decode NegotiationMessage succeeds but nothing is "
+               "loaded into the NegotiationMessage.";
+        rc = (rc * 10) + rc_INVALID_NEGOTIATION_MESSAGE;
+    }
+
+    return rc;
 }
 
 int InitialConnectionHandler::decodeInitialConnectionMessage(
