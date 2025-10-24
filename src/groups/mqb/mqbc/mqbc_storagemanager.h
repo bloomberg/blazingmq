@@ -690,7 +690,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
 
-    int getSeqNumQuorum() const;
+    /// Return the sequence number quorum to be used for this cluster.
+    size_t getSeqNumQuorum() const;
 
   public:
     // TRAITS
@@ -1160,10 +1161,9 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
     return d_nodeToSeqNumCtxMapVec[partitionId];
 }
 
-inline int StorageManager::getSeqNumQuorum() const
+inline size_t StorageManager::getSeqNumQuorum() const
 {
-    int q = d_clusterConfig.elector().quorum();
-    return q == 0 ? (d_clusterConfig.nodes().size() / 2) + 1 : q;
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 }  // close package namespace

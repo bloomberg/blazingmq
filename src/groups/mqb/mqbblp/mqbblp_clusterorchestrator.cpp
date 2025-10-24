@@ -658,6 +658,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         new (*d_allocator_p) mqbnet::Elector(
             d_clusterConfig.elector(),
             &d_clusterData_p->cluster(),
+            &d_clusterData_p->quorumManager(),
             bdlf::BindUtil::bind(&ClusterOrchestrator::onElectorStateChange,
                                  this,
                                  _1,   // ElectorState

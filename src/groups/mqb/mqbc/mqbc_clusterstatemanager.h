@@ -586,7 +586,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void onNodeStopped() BSLS_KEYWORD_OVERRIDE;
 
     /// Get the quorum value.
-    virtual int getLsnQuorum();
+    size_t getLsnQuorum();
 
     // MANIPULATORS
     //   (virtual: mqbc::ElectorInfoObserver)
@@ -681,10 +681,9 @@ ClusterStateManager::nodeToLSNMap() const
     return d_nodeToLedgerLSNMap;
 }
 
-inline int ClusterStateManager::getLsnQuorum()
+inline size_t ClusterStateManager::getLsnQuorum()
 {
-    int q = d_clusterConfig.elector().quorum();
-    return q == 0 ? (d_clusterConfig.nodes().size() / 2) + 1 : q;
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 }  // close package namespace

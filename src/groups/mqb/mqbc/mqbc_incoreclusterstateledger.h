@@ -188,9 +188,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// user.
     ClusterStateLedgerConsistency::Enum d_consistencyLevel;
 
-    // /// Number of nodes required to achieve consistency level.
-    // int d_ackQuorum;
-
     /// Cluster configuration to use.
     const mqbcfg::ClusterDefinition& d_clusterConfig;
 
@@ -285,7 +282,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bool isSelfLeader() const;
 
-    int getAckQuorum() const;
+    size_t getAckQuorum() const;
 
   public:
     // TRAITS
@@ -461,10 +458,9 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
     return d_clusterData_p->electorInfo().isSelfLeader();
 }
 
-inline int IncoreClusterStateLedger::getAckQuorum() const
+inline size_t IncoreClusterStateLedger::getAckQuorum() const
 {
-    int q = d_clusterConfig.elector().quorum();
-    return q == 0 ? (d_clusterConfig.nodes().size() / 2) + 1 : q;
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 // MANIPULATORS

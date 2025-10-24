@@ -1,3 +1,2 @@
-mqbcfg_brokerconfig
-mqbcfg_messages
-mqbcfg_tcpinterfaceconfigvalidator
+mqbcfg_brokerconfig mqbcfg_messages
+    mqbcfg_tcpinterfaceconfigvalidator mqbcfg_clusterquorummanager
