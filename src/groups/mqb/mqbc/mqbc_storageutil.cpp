@@ -1441,6 +1441,7 @@ void StorageUtil::recoveredQueuesCb(
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
     BSLS_ASSERT_SAFE(unrecognizedDomains && unrecognizedDomains->empty());
+    BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
@@ -1604,13 +1605,13 @@ void StorageUtil::recoveredQueuesCb(
 
     // Notify 'ClusterState' about the recognized domains to initialize the
     // corresponding `DomainStates`. So it can start reporting domain-related
-    // metrics immediately after recovery.
+    // metrics almost immediately after recovery.
     if (!recognizedDomains.empty()) {
         clusterState->cluster()->dispatcher()->execute(
             bdlf::BindUtil::bindS(allocator,
                                   &ClusterState::onDomainsCreated,
-                                 clusterState,
-                                 recognizedDomains),
+                                  clusterState,
+                                  recognizedDomains),
             clusterState->cluster());
     }
 
