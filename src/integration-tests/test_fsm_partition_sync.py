@@ -369,7 +369,7 @@ def test_sync_if_leader_missed_records(
     for node in sorted_nodes:
         node.start()
         node.wait_until_started()
-        quorum = 1 if node == next_leader else 5
+        quorum = 3 if node == next_leader else 5
         node.set_quorum(quorum)
 
     # Wait until cluster is ready
