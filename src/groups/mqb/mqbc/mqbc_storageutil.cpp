@@ -1602,7 +1602,7 @@ void StorageUtil::recoveredQueuesCb(
         }
     }
 
-    // Notify 'ClusterSate' about the recognized domains to initialize the
+    // Notify 'ClusterState' about the recognized domains to initialize the
     // corresponding `DomainStates`. So it can start reporting domain-related
     // metrics immediately after recovery.
     if (!recognizedDomains.empty()) {
