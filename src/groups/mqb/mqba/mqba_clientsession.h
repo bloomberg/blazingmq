@@ -254,8 +254,6 @@ class ClientSession : public mqbnet::Session,
 
     typedef ClientSessionState::StreamsMap StreamsMap;
 
-    typedef bsl::function<void(void)> VoidFunctor;
-
     /// Enum to signify the session's operation state.
     enum OperationState {
         /// Running normally.

@@ -993,9 +993,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
             mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
     }
 
-    // Self node needs to issue close-queue requests for all the queues for
-    // which specified 'source' node is the primary.
-
+    // Replica makes all open queues buffer PUTs (by calling 'onOpenUpstream').
     d_queueHelper.processNodeStoppingNotification(ns->clusterNode(),
                                                   request,
                                                   ns);
