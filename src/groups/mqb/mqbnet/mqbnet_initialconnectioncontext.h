@@ -364,6 +364,8 @@ class InitialConnectionContext
     void setResultState(void* value);
     void setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
+    void
+    setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
     /// Called by the IO upon `onClose` signal
     void onClose();
