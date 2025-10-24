@@ -55,7 +55,7 @@ DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 def configure_cluster(cluster: Cluster, is_fsm: bool):
     """
-    Configure the `cluster` to FSM or non-FSM mode, based on the `is_fsm` flag.
+    Configure the `cluster` to FSM or Legacy mode, based on the `is_fsm` flag.
     """
     for broker in cluster.configurator.brokers.values():
         my_clusters = broker.clusters.my_clusters
@@ -67,7 +67,7 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
     cluster.deploy_domains()
 
 
-def restart_cluster_as_fsm_mode(
+def restart_as_fsm_mode(
     cluster: Cluster,
     producer: Client,
     consumers: List[Client],  # pylint: disable=unused-argument
@@ -78,7 +78,7 @@ def restart_cluster_as_fsm_mode(
 
     cluster.stop_nodes(prevent_leader_bounce=True)
 
-    # Reconfigure the cluster from non-FSM to FSM mode
+    # Reconfigure the cluster to FSM mode
     configure_cluster(cluster, is_fsm=True)
 
     cluster.start_nodes(wait_leader=True, wait_ready=True)
@@ -88,44 +88,67 @@ def restart_cluster_as_fsm_mode(
         producer.wait_state_restored()
 
 
-def restart_cluster_to_fsm_single_node_with_quorum_one(
+def restart_to_fsm_single_node_with_quorum_one(
     cluster: Cluster,
     producer: Client,
     consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
-    Restart the `cluster` from non-FSM to FSM mode.
+    Restart the `cluster` to FSM mode.
+    Start only the former leader and set its quorum to 1,
+    so the cluster can start up in single-node mode.
     """
 
     leader = cluster.last_known_leader
 
     cluster.stop_nodes(prevent_leader_bounce=True)
 
-    # Reconfigure the cluster from non-FSM to FSM mode
+    # Reconfigure the cluster  to FSM mode
     configure_cluster(cluster, is_fsm=True)
 
     # Start only the former leader and set its quorum to 1
     # so the cluster can start up in single-node mode.
-    # print(f"Updating quorum of {leader.name} to 1")
-    # cluster.update_node_quorum_in_config(leader.name, 1)
 
-    print(f"Starting only the former leader {leader.name}")
     leader.start()
-    print(f"Waiting until {leader.name} is started")
     leader.wait_until_started()
-    print(f"{leader.name} is started")
     leader.set_quorum(1)
-    print(f"Set quorum of {leader.name} to 1")
-    cluster.wait_status(wait_leader=True, wait_ready=False)
-    print(f"{leader.name} is leader and ready")
-
-    # For a standard cluster, states have already been restored as part of
-    # leader re-election.
-    if cluster.is_single_node:
-        producer.wait_state_restored()
+    cluster.wait_status(wait_leader=True, wait_ready=True)
 
 
-def restart_cluster_as_legacy_mode(
+def restart_to_fsm_single_node_with_quorum_one_and_start_others(
+    cluster: Cluster,
+    producer: Client,
+    consumers: List[Client],  # pylint: disable=unused-argument
+):
+    """
+    Restart the `cluster` to FSM mode.
+    Start only the former leader and set its quorum to 1,
+    and then start all other nodes.
+    """
+
+    leader = cluster.last_known_leader
+
+    cluster.stop_nodes(prevent_leader_bounce=True)
+
+    # Reconfigure the cluster to FSM mode
+    configure_cluster(cluster, is_fsm=True)
+
+    # Start only the former leader and set its quorum to 1
+    # so the cluster can start up in single-node mode.
+
+    leader.start()
+    leader.wait_until_started()
+    leader.set_quorum(1)
+    cluster.wait_status(wait_leader=True, wait_ready=True)
+
+    time.sleep(5)  # wait a bit before starting other nodes
+    for node in cluster.nodes():
+        if node != leader:
+            node.start()
+            node.wait_until_started()
+
+
+def restart_as_legacy_mode(
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
     consumers: List[Client],
@@ -134,7 +157,7 @@ def restart_cluster_as_legacy_mode(
     Restart the `cluster` as Legacy mode.
     """
 
-    # Non-FSM mode has poor healing mechanism, and can have flaky dirty
+    # Legacy mode has poor healing mechanism, and can have flaky dirty
     # shutdowns, so let's disable checking exit code here.
     #
     # To give an example, an in-sync node might attempt to syncrhonize with an
@@ -144,7 +167,7 @@ def restart_cluster_as_legacy_mode(
         node.check_exit_code = False
     cluster.stop_nodes(prevent_leader_bounce=True)
 
-    # Reconfigure the cluster from FSM to back to non-FSM mode
+    # Reconfigure the cluster to Legacy mode
     configure_cluster(cluster, is_fsm=False)
     cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
@@ -154,7 +177,7 @@ def restart_cluster_as_legacy_mode(
         for consumer in consumers:
             consumer.wait_state_restored()
     else:
-        # Switching from FSM to non-FSM mode could introduce start-up failure,
+        # Switching to Legacy mode could introduce start-up failure,
         # which auto-resolve upon a second restart.
         cluster.start_nodes(wait_leader=False, wait_ready=False)
         check_exited_nodes_and_restart(cluster)
@@ -434,14 +457,14 @@ def switch_fsm_cluster(request: pytest.FixtureRequest):
     yield from cluster_fixture(request, request.param)
 
 
-def test_restart_between_non_FSM_and_FSM(
+def test_restart_between_Legacy_and_FSM(
     switch_fsm_cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     """
-    This test verifies that we can safely switch clusters between non-FSM and
-    FSM modes.  First, we start the cluster in non-FSM mode and post/confirm
+    This test verifies that we can safely switch clusters between Legacy and
+    FSM modes.  First, we start the cluster in Legacy mode and post/confirm
     some messages.  Then, we restart the cluster in FSM mode and post/confirm
-    more messages.  Finally, we restart the cluster back in non-FSM mode and
+    more messages.  Finally, we restart the cluster back in Legacy mode and
     verify those messages.
     """
     cluster = switch_fsm_cluster
@@ -471,7 +494,7 @@ def test_restart_between_non_FSM_and_FSM(
     )
 
     # SWITCH
-    restart_cluster_as_fsm_mode(cluster, producer, consumers)
+    restart_as_fsm_mode(cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -494,7 +517,7 @@ def test_restart_between_non_FSM_and_FSM(
     )
 
     # SWITCH
-    restart_cluster_as_legacy_mode(cluster, producer, consumers)
+    restart_as_legacy_mode(cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -507,13 +530,13 @@ def test_restart_between_non_FSM_and_FSM(
 
 
 @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
-def test_restart_between_non_FSM_and_FSM_unassign_queue(
+def test_restart_between_Legacy_and_FSM_unassign_queue(
     switch_fsm_cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     """
     This test verifies that we can safely assign and unassign queues while
-    switching the cluster between non-FSM and FSM modes.  We start the cluster
-    in non-FSM mode, then conduct queue assignment/unassignment operations as
+    switching the cluster between Legacy and FSM modes.  We start the cluster
+    in Legacy mode, then conduct queue assignment/unassignment operations as
     follows:
 
     q0: assign -> unassign ---> assign -> unassign                         ---> assign -> unassign
@@ -557,7 +580,7 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
         # leader re-election.
         consumer.wait_state_restored()
     else:
-        # Switching from non-FSM to FSM mode could introduce start-up failure,
+        # Switching from Legacy to FSM mode could introduce start-up failure,
         # which auto-resolve upon a second restart.
         cluster.start_nodes(wait_leader=False, wait_ready=False)
         check_exited_nodes_and_restart(cluster)
@@ -588,7 +611,7 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
         # leader re-election.
         consumer.wait_state_restored()
     else:
-        # Switching from FSM to non-FSM mode could introduce start-up failure,
+        # Switching from FSM to Legacy mode could introduce start-up failure,
         # which auto-resolve upon a second restart.
         cluster.start_nodes(wait_leader=False, wait_ready=False)
         check_exited_nodes_and_restart(cluster)
@@ -600,14 +623,15 @@ def test_restart_between_non_FSM_and_FSM_unassign_queue(
 
 @pytest.fixture(
     params=[
-        restart_cluster_as_fsm_mode,
-        restart_cluster_as_legacy_mode,
-        restart_cluster_to_fsm_single_node_with_quorum_one,
+        restart_as_fsm_mode,
+        restart_as_legacy_mode,
+        restart_to_fsm_single_node_with_quorum_one,
+        restart_to_fsm_single_node_with_quorum_one_and_start_others,
     ]
 )
 def switch_cluster_mode(request):
     """
-    Fixture to switch cluster mode between non-FSM and FSM.
+    Fixture to switch between cluster modes
     """
 
     return request.param
@@ -651,15 +675,11 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     - Legacy mode
     - FSM mode
 
-    switch_cluster_mode fixture switches to:
+    Switch_cluster_mode fixture switches to:
     - Legacy mode
     - FSM mode
-
-    Resulting in four combinations of switches:
-    1. Legacy -> FSM
-    2. FSM -> Legacy
-    3. Legacy -> Legacy
-    4. FSM -> FSM
+    - FSM mode with single node and quorum 1
+    - FSM mode with single node and quorum 1, then start other nodes
 
     1. PROLOGUE:
         - both priority and fanout queues
@@ -670,8 +690,8 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         - remove "bar"
     2. SWITCH:
         Apply one of the switches:
-        - non-FSM to FSM
-        - FSM to non-FSM
+        - Legacy to FSM
+        - FSM to Legacy
     3. EPILOGUE:
         - priority consumer gets the second message
         - "foo" gets 2 messages
@@ -753,8 +773,18 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     optional_rollover,
 ):
     """
-    This test verifies that we can safely switch clusters between non-FSM and
+    This test verifies that we can safely switch clusters between Legacy and
     FSM modes and add/remove appIds.
+
+    Cluster fixture starts as:
+    - Legacy mode
+    - FSM mode
+
+    Switch_cluster_mode fixture switches to:
+    - Legacy mode
+    - FSM mode
+    - FSM mode with single node and quorum 1
+    - FSM mode with single node and quorum 1, then start other nodes
 
     1. PROLOGUE:
         - both priority and fanout queues
@@ -768,8 +798,8 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         - remove "bar"
     2. SWITCH:
         Apply one of the switches:
-        - non-FSM to FSM
-        - FSM to non-FSM
+        - Legacy to FSM
+        - FSM to Legacy
     3. EPILOGUE:
         - priority consumer gets the third message
         - "foo" gets 3 messages
