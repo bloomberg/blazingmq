@@ -554,9 +554,11 @@ struct StorageUtil {
                       mqbi::DomainFactory*         domainFactory,
                       bslmt::Mutex*                unrecognizedDomainsLock,
                       DomainQueueMessagesCountMap* unrecognizedDomains,
+                      mqbc::ClusterState*          clusterState,
                       const bsl::string&           clusterDescription,
                       int                          partitionId,
-                      const QueueKeyInfoMap&       queueKeyInfoMap);
+                      const QueueKeyInfoMap&       queueKeyInfoMap,
+                      bslma::Allocator*            allocator);
 
     /// Print statistics regarding the specified 'unrecognizedDomains',
     /// protected by the specified 'unrecognizedDomainsLock', encountered

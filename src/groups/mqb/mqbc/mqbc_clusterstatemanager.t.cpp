@@ -172,7 +172,7 @@ struct Tester {
                 mqbc::ClusterStateManager(d_cluster_mp->_clusterDefinition(),
                                           d_cluster_mp.get(),
                                           d_cluster_mp->_clusterData(),
-                                          &d_cluster_mp->_state(),
+                                          d_cluster_mp->_state(),
                                           clusterStateLedger_mp,
                                           k_WATCHDOG_TIMEOUT_DURATION,
                                           bmqtst::TestHelperUtil::allocator()),
@@ -521,10 +521,10 @@ struct Tester {
         // Load (empty) cluster state into the response
         mqbc::ClusterUtil::loadPartitionsInfo(
             &response.clusterStateSnapshot().partitions(),
-            d_cluster_mp->_state());
+            *d_cluster_mp->_state());
         mqbc::ClusterUtil::loadQueuesInfo(
             &response.clusterStateSnapshot().queues(),
-            d_cluster_mp->_state());
+            *d_cluster_mp->_state());
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -1321,7 +1321,7 @@ static void test12_followerHighestLeaderHealed()
     clusterStateSnapshot.sequenceNumber().electorTerm()    = 1U;
     clusterStateSnapshot.sequenceNumber().sequenceNumber() = 8U;
     clusterStateSnapshot.partitions().resize(
-        tester.d_cluster_mp->_state().partitions().size());
+        tester.d_cluster_mp->_state()->partitions().size());
     for (size_t i = 0; i < clusterStateSnapshot.partitions().size(); ++i) {
         clusterStateSnapshot.partitions()[i].partitionId() = i;
     }
@@ -1739,7 +1739,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
     clusterStateSnapshot.sequenceNumber().electorTerm()    = 1U;
     clusterStateSnapshot.sequenceNumber().sequenceNumber() = 5U;
     clusterStateSnapshot.partitions().resize(
-        tester.d_cluster_mp->_state().partitions().size());
+        tester.d_cluster_mp->_state()->partitions().size());
     for (size_t i = 0; i < clusterStateSnapshot.partitions().size(); ++i) {
         clusterStateSnapshot.partitions()[i].partitionId() = i;
     }

@@ -203,7 +203,9 @@ struct TestHelper {
                              unsigned int          leaseId,
                              mqbnet::ClusterNode*  node)
     {
-        d_cluster_mp->_state().setPartitionPrimary(partitionId, leaseId, node);
+        d_cluster_mp->_state()->setPartitionPrimary(partitionId,
+                                                    leaseId,
+                                                    node);
         storageManager->setPrimaryForPartition(partitionId, node, leaseId);
     }
 
@@ -788,7 +790,7 @@ struct TestHelper {
         advisory.uri() = rec.d_uri;
         queueKey.loadBinary(&advisory.key());
         advisory.partitionId() = partitionId;
-        d_cluster_mp->_state().assignQueue(advisory);
+        d_cluster_mp->_state()->assignQueue(advisory);
 
         BSLS_ASSERT_OPT(rc == 0);
         return queueKey;
@@ -2666,7 +2668,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
 
     int rc = storageManager.start(errorDescription);
     BSLS_ASSERT_OPT(rc == 0);
-    storageManager.initializeQueueKeyInfoMap(helper.d_cluster_mp->_state());
+    storageManager.initializeQueueKeyInfoMap(*helper.d_cluster_mp->_state());
 
     mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
     fs.setIgnoreCrc32c(true);
@@ -2811,7 +2813,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
 
     const int rc = storageManager.start(errorDescription);
     BSLS_ASSERT_OPT(rc == 0);
-    storageManager.initializeQueueKeyInfoMap(helper.d_cluster_mp->_state());
+    storageManager.initializeQueueKeyInfoMap(*helper.d_cluster_mp->_state());
 
     mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
     fs.setIgnoreCrc32c(true);

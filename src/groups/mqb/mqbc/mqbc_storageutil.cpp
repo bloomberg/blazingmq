@@ -1428,9 +1428,11 @@ void StorageUtil::recoveredQueuesCb(
     mqbi::DomainFactory*         domainFactory,
     bslmt::Mutex*                unrecognizedDomainsLock,
     DomainQueueMessagesCountMap* unrecognizedDomains,
+    mqbc::ClusterState*          clusterState,
     const bsl::string&           clusterDescription,
     int                          partitionId,
-    const QueueKeyInfoMap&       queueKeyInfoMap)
+    const QueueKeyInfoMap&       queueKeyInfoMap,
+    bslma::Allocator*            allocator)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -1439,6 +1441,7 @@ void StorageUtil::recoveredQueuesCb(
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
     BSLS_ASSERT_SAFE(unrecognizedDomains && unrecognizedDomains->empty());
+    BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
@@ -1459,7 +1462,7 @@ void StorageUtil::recoveredQueuesCb(
 
     // Create scratch data structures.
 
-    DomainMap domainMap;
+    DomainMap domainMap(allocator);
 
     typedef bsl::unordered_map<mqbu::StorageKey, mqbs::ReplicatedStorage*>
                                          QueueKeyStorageMap;
@@ -1574,6 +1577,8 @@ void StorageUtil::recoveredQueuesCb(
                   << "]: domain creation step complete. Checking if all "
                   << "domains were created successfully.";
 
+    DomainMap recognizedDomains(allocator);
+
     {
         bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
             unrecognizedDomainsLock);  // LOCK
@@ -1592,7 +1597,22 @@ void StorageUtil::recoveredQueuesCb(
                     dit->first,
                     mqbs::StorageUtil::QueueMessagesCountMap()));
             }
+            else {
+                recognizedDomains.insert(*dit);
+            }
         }
+    }
+
+    // Notify 'ClusterState' about the recognized domains to initialize the
+    // corresponding `DomainStates`. So it can start reporting domain-related
+    // metrics almost immediately after recovery.
+    if (!recognizedDomains.empty()) {
+        clusterState->cluster()->dispatcher()->execute(
+            bdlf::BindUtil::bindS(allocator,
+                                  &ClusterState::onDomainsCreated,
+                                  clusterState,
+                                  recognizedDomains),
+            clusterState->cluster());
     }
 
     // All domains have been created.  Now make 2nd pass over 'queueKeyUriMap'

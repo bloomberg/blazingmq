@@ -241,7 +241,7 @@ struct TestHelper {
             isActive ? bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE
                      : bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE;
         d_cluster_mp->_state()
-            .setPartitionPrimary(partition, 1, node)
+            ->setPartitionPrimary(partition, 1, node)
             .setPartitionPrimaryStatus(partition, status);
     }
 
@@ -298,7 +298,7 @@ static void test1_breathingTest()
     helper.setPartition(3, helper.d_nodes[3], k_IS_ACTIVE);
 
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
-                                        &helper.d_cluster_mp->_state(),
+                                        helper.d_cluster_mp->_state(),
                                         bmqtst::TestHelperUtil::allocator());
     monitor.registerObserver(&notifications);
 
@@ -364,7 +364,7 @@ static void test2_checkAlarmsWithResetTest()
     helper.setPartition(3, helper.d_nodes[3], k_IS_ACTIVE);
 
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
-                                        &helper.d_cluster_mp->_state(),
+                                        helper.d_cluster_mp->_state(),
                                         bmqtst::TestHelperUtil::allocator());
     monitor.registerObserver(&notifications);
 
@@ -592,7 +592,7 @@ static void test3_alwaysInvalidStateTest()
     helper.d_cluster_mp->_setIsRestoringState(true);
 
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
-                                        &helper.d_cluster_mp->_state(),
+                                        helper.d_cluster_mp->_state(),
                                         bmqtst::TestHelperUtil::allocator());
     monitor.registerObserver(&notifications);
     bmqu::MemOutStream dummy;
