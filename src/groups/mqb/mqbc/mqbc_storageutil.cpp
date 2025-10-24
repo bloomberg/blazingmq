@@ -1607,7 +1607,8 @@ void StorageUtil::recoveredQueuesCb(
     // metrics immediately after recovery.
     if (!recognizedDomains.empty()) {
         clusterState->cluster()->dispatcher()->execute(
-            bdlf::BindUtil::bind(&ClusterState::onDomainsCreated,
+            bdlf::BindUtil::bindS(allocator,
+                                  &ClusterState::onDomainsCreated,
                                  clusterState,
                                  recognizedDomains),
             clusterState->cluster());
