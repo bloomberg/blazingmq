@@ -472,6 +472,14 @@ class QueueEngineTester {
     /// Note that pointers to these handles may be left dangling.
     void dropHandles();
 
+    /// Send PUSH for each of the specified `listMessages` with all Apps in the
+    /// specified `listApps` to the specified `downstream` with the specified
+    /// flag `isOutOfOrder`.
+    void push(RelayQueueEngine*        downstream,
+              const bslstl::StringRef& listApps,
+              const bslstl::StringRef& listMessages,
+              bool                     isOutOfOrder);
+
     /// Load into the specified `value` previously cached parameters sent
     /// upstream for the specified `appId`.
     bool getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,
@@ -480,6 +488,19 @@ class QueueEngineTester {
     void synchronizeScheduler();
 
     mqbmock::Dispatcher* dispatcher() const;
+
+    /// Return a string containing those messages that are at the specified
+    /// `indices` in the specified `messages`.  The format of `messages`:
+    ///   `<msg1>,<msg2>,...,<msgN>`
+    ///
+    /// The format of `indices`:
+    ///   `<index1>,<index2>,...,<indexK>`
+    /// Use the specified `allocator` when creating new string out of a token.
+    ///
+    /// The behavior is undefined unless `messages` and `indices` are
+    /// formatted as above, and each index in `indices` is a valid index for
+    /// `messages`.
+    bsl::string getMessages(bsl::string messages, bsl::string indices) const;
 };
 
 // ============================
@@ -534,28 +555,6 @@ class QueueEngineTesterGuard {
     /// management by this proctor, or 0 if no QueueEngine is currently being
     /// managed.
     QUEUE_ENGINE_TYPE* engine() const;
-};
-
-// ==========================
-// struct QueueEngineTestUtil
-// ==========================
-
-/// Utilities to simplify writing Queue Engine test cases.
-struct QueueEngineTestUtil {
-  public:
-    // CLASS METHODS
-
-    /// Return a string containing those messages that are at the specified
-    /// `indices` in the specified `messages`.  The format of `messages`:
-    ///   `<msg1>,<msg2>,...,<msgN>`
-    ///
-    /// The format of `indices`:
-    ///   `<index1>,<index2>,...,<indexK>`
-    ///
-    /// The behavior is undefined unless `messages` and `indices` are
-    /// formatted as above, and each index in `indices` is a valid index for
-    /// `messages`.
-    static bsl::string getMessages(bsl::string messages, bsl::string indices);
 };
 
 // ================

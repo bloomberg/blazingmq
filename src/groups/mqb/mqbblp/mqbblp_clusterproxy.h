@@ -357,7 +357,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                 bsls::TimeInterval timeout) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified `response` message as a response to previously
-    /// transmitted request.
+    /// transmitted request.  This method is invoked in the cluster-dispatcher
+    /// thread.
     void processResponse(const bmqp_ctrlmsg::ControlMessage& response)
         BSLS_KEYWORD_OVERRIDE;
     void processPeerStopResponse(const bmqp_ctrlmsg::ControlMessage& response);

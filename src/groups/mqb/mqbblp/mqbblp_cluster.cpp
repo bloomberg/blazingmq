@@ -733,10 +733,10 @@ void Cluster::continueShutdownDispatched(
 
     // Also update primary status for those partitions in cluster state.
 
-    const bsl::vector<int>& primaryPartitions =
+    const bsl::vector<int>& partitions =
         d_clusterData.membership().selfNodeSession()->primaryPartitions();
-    for (size_t i = 0; i < primaryPartitions.size(); ++i) {
-        const int pid = primaryPartitions[i];
+    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+        const int pid = partitions[i];
         BSLS_ASSERT_SAFE(d_state.partition(pid).primaryNode() ==
                          d_clusterData.membership().selfNode());
         d_state.setPartitionPrimaryStatus(
@@ -3610,17 +3610,16 @@ Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
 
 void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
 {
-    // executed by the *IO* thread
+    // executed by the cluster *DISPATCHER* thread
 
+    // PRECONDITIONS
     // A response must have an associated request Id
     BSLS_ASSERT_SAFE(!response.rId().isNull());
 
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&Cluster::processResponseDispatched,
-                             this,
-                             response,
-                             static_cast<mqbnet::ClusterNode*>(0)),  // source
-        this);
+    // Call `processResponseDispatched` directly since we are already in the
+    // dispatcher thread.
+    processResponseDispatched(response,
+                              static_cast<mqbnet::ClusterNode*>(0));  // source
 }
 
 void Cluster::getPrimaryNodes(int*          rc,

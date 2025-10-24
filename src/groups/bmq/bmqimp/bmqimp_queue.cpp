@@ -48,7 +48,11 @@ const char k_STAT_NAME[] = "queues";
 /// compression ratio is typically a double, but in the current version,
 /// stat context only handles Int64, therefore we scale it up at reporting
 /// time and scale it back down at print time.
-const int k_COMPRESSION_RATIO_PRECISION_FACTOR = 10000;
+const double k_COMPRESSION_RATIO_PRECISION_FACTOR = 10000.;
+
+/// Inverse of `k_COMPRESSION_RATIO_PRECISION_FACTOR` for fast multiplication.
+const double k_COMPRESSION_RATIO_PRECISION_FACTOR_INV =
+    1 / k_COMPRESSION_RATIO_PRECISION_FACTOR;
 
 enum {
     k_STAT_IN = 0  // value = bytes received ; increments =
@@ -65,16 +69,20 @@ double
 calculateCompressionRatio(const bmqst::StatValue&                   value,
                           const bmqst::StatValue::SnapshotLocation& start)
 {
-    const bsls::Types::Int64 messageCount = bmqst::StatUtil::increments(value,
-                                                                        start);
-    if (messageCount == 0) {
+    // All arithmetic here is done in `double`s, so we'll convert the `Int64`s
+    // from the stats layer into `double`s explicitly.
+
+    const double messageCount = static_cast<double>(
+        bmqst::StatUtil::increments(value, start));
+    if (messageCount == 0.0) {
         return 0.0;  // RETURN
     }
 
-    const bsls::Types::Int64 ratioSum = bmqst::StatUtil::value(value, start);
+    const double ratioSum = static_cast<double>(
+        bmqst::StatUtil::value(value, start));
 
-    return (static_cast<double>(ratioSum) / messageCount) /
-           k_COMPRESSION_RATIO_PRECISION_FACTOR;
+    return (ratioSum / messageCount) *
+           k_COMPRESSION_RATIO_PRECISION_FACTOR_INV;
 }
 
 double
@@ -82,17 +90,20 @@ calculateCompressionRatio(const bmqst::StatValue&                   value,
                           const bmqst::StatValue::SnapshotLocation& start,
                           const bmqst::StatValue::SnapshotLocation& endPlus)
 {
-    const bsls::Types::Int64 messageCount =
-        bmqst::StatUtil::incrementsDifference(value, start, endPlus);
-    if (messageCount == 0) {
+    // All arithmetic here is done in `double`s, so we'll convert the `Int64`s
+    // from the stats layer into `doubles` explicitly.
+
+    const double messageCount = static_cast<double>(
+        bmqst::StatUtil::incrementsDifference(value, start, endPlus));
+    if (messageCount == 0.0) {
         return 0.0;  // RETURN
     }
 
-    const bsls::Types::Int64 ratioSum =
-        bmqst::StatUtil::valueDifference(value, start, endPlus);
+    const double ratioSum = static_cast<double>(
+        bmqst::StatUtil::valueDifference(value, start, endPlus));
 
-    return (static_cast<double>(ratioSum) / messageCount) /
-           k_COMPRESSION_RATIO_PRECISION_FACTOR;
+    return (ratioSum / messageCount) *
+           k_COMPRESSION_RATIO_PRECISION_FACTOR_INV;
 }
 
 }  // close unnamed namespace

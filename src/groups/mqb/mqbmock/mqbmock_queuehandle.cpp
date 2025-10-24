@@ -245,9 +245,19 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
     Downstream&             downstream = mapIter->second;
     GUIDMap&                guids      = downstream.d_unconfirmedMessages;
     GUIDMap::const_iterator msgCiter   = guids.find(msgGUID);
-    if (msgCiter != guids.end()) {
-        guids.erase(msgCiter);
+
+    if (msgCiter == guids.end()) {
+        // This can happen when switching primaries and the new Primary did not
+        // get a chance to PUSH the 'msgGUID' (which the old Primary did)
+        // _before_ the Downstream generated the Reject.
+
+        // The logic of QueueEngine(s) throttles (re)delivery for messages in
+        // redelivery lists only and asserts otherwise.
+
+        return;  // RETURN
     }
+
+    guids.erase(msgCiter);
 
     unsigned int upstreamSubQueueId = downstream.d_upstreamSubQueueId;
     // Inform the queue about that reject.
@@ -280,7 +290,7 @@ void QueueHandle::deliverMessage(
     const mqbi::StorageIterator& message,
     BSLA_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray&     subscriptions,
-    BSLA_UNUSED bool                              isOutOfOrder)
+    BSLA_MAYBE_UNUSED bool                        isOutOfOrder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -304,7 +314,7 @@ void QueueHandle::deliverMessage(
             guids.insert(
                 bsl::make_pair(message.guid(),
                                bsl::make_pair(message.appData(), sId)));
-        BSLS_ASSERT_OPT(insertRC.second);
+        BSLS_ASSERT_OPT(insertRC.second || isOutOfOrder);
     }
 }
 

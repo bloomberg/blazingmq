@@ -301,6 +301,8 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             << "] rc: " << rc << BMQTSK_ALARMLOG_END;
     }
     recoveryCtx.d_qlistFilePosition = 0;
+
+    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
 }
 
 void RecoveryManager::setExpectedDataChunkRange(
@@ -631,7 +633,9 @@ int RecoveryManager::processReceiveDataChunks(
     const bsl::shared_ptr<bdlbb::Blob>& blob,
     mqbnet::ClusterNode*                source,
     mqbs::FileStore*                    fs,
-    int                                 partitionId)
+    int                                 partitionId,
+    const bmqp_ctrlmsg::PartitionSequenceNumber&
+        firstSyncPointAfterRolloverSeqNum)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -857,6 +861,22 @@ int RecoveryManager::processReceiveDataChunks(
                 (journalPos +
                  mqbs::FileStoreProtocol ::k_JOURNAL_RECORD_SIZE));
 
+            // Update journal header with first sync point after rollover
+            // offset
+            if (header.messageType() ==
+                    bmqp::StorageMessageType::e_JOURNAL_OP &&
+                firstSyncPointAfterRolloverSeqNum == recordSeqNum) {
+                mqbs::OffsetPtr<const mqbs::FileHeader>  fhJ(journal.block(),
+                                                            0);
+                mqbs::OffsetPtr<mqbs::JournalFileHeader> jfh(
+                    journal.block(),
+                    fhJ->headerWords() * bmqp::Protocol::k_WORD_SIZE);
+
+                // Set offset in JournalFileHeader
+                jfh->setFirstSyncPointAfterRolloverOffsetWords(
+                    journalPos / bmqp::Protocol::k_WORD_SIZE);
+            }
+
             // Keep track of journal record's offset.
 
             const bsls::Types::Uint64 recordOffset = journalPos;
@@ -1070,6 +1090,22 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Get first syncpoint after rollover sequence number.
+    if (jit.firstSyncPointAfterRolloverPosition() > 0) {
+        const mqbs::RecordHeader& recHeader =
+            jit.firstSyncPointAfterRolloverHeader();
+
+        BALL_LOG_INFO << d_clusterData.identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Get first sync point after rollover sequence number "
+                      << recHeader.partitionSequenceNumber()
+                      << " from journal file ["
+                      << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
+
+        recoveryCtx.d_firstSyncPointAfterRolloverSeqNum =
+            recHeader.partitionSequenceNumber();
+    }
+
     mqbs::FileStoreUtil::setFileHeaderOffsets(
         &recoveryCtx.d_journalFilePosition,
         &recoveryCtx.d_dataFilePosition,
@@ -1156,7 +1192,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             unsigned int        queueRecLength    = 0;
             unsigned int        queueRecHeaderLen = 0;
             unsigned int        paddedUriLen      = 0;
-            unsigned int        numAppIds         = 0;
             BSLS_ASSERT_SAFE(0 != rec.queueUriRecordOffsetWords());
 
             queueUriRecOffset = static_cast<bsls::Types::Uint64>(
@@ -1301,8 +1336,6 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                     << recHeader.sequenceNumber() << ")";
                 return rc_INVALID_QLIST_RECORD;  // RETURN
             }
-
-            numAppIds = queueRecHeader->numAppIds();
 
             // Only QueueOp.CREATION & QueueOp.ADDITION records have
             // corresponding record in the QLIST file.
@@ -1491,12 +1524,15 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
     }
     recoveryCtx.d_qlistFilePosition = 0;
 
+    recoveryCtx.d_firstSyncPointAfterRolloverSeqNum.reset();
+
     return rc_SUCCESS;
 }
 
 int RecoveryManager::recoverSeqNum(
     bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
-    int                                    partitionId)
+    int                                    partitionId,
+    bool                                   firstSyncPointAfterRolllover)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1517,6 +1553,12 @@ int RecoveryManager::recoverSeqNum(
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     int                rc          = rc_UNKNOWN;
 
+    // Retrieve first sync point after rolllover sequence number.
+    if (firstSyncPointAfterRolllover) {
+        *seqNum = recoveryCtx.d_firstSyncPointAfterRolloverSeqNum;
+        return rc_SUCCESS;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
 
     mqbs::JournalFileIterator jit;
@@ -1532,6 +1574,7 @@ int RecoveryManager::recoverSeqNum(
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Retrieve last record sequence number.
     if (jit.hasRecordSizeRemaining()) {
         const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
 

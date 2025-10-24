@@ -163,6 +163,33 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef bsl::vector<PrimaryStatusAdvisoryInfos>
         PrimaryStatusAdvisoryInfosVec;
 
+    /// VST representing node's sequence number, first sync point after
+    /// rollover sequence number and flag of whether recovery data is in sync.
+    class NodeSeqNumContext {
+      public:
+        // DATA
+
+        /// Node's latest sequence number.
+        bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum;
+
+        /// Sequence number of node's first sync point after rollover.
+        bmqp_ctrlmsg::PartitionSequenceNumber
+            d_firstSyncPointAfterRolloverSeqNum;
+
+        /// Flag of whether recovery data is already sent to that node.
+        /// It, however, does not mean that the node is already healed.
+        bool d_isRecoveryDataSent;
+
+        // CREATORS
+        NodeSeqNumContext();
+
+        explicit NodeSeqNumContext(
+            const bmqp_ctrlmsg::PartitionSequenceNumber d_seqNum,
+            const bmqp_ctrlmsg::PartitionSequenceNumber
+                 d_firstSyncPointAfterRolloverSeqNum,
+            bool isRecoveryDataSent);
+    };
+
   public:
     // TYPES
     typedef PartitionFSM::PartitionFSMArgsSp PartitionFSMArgsSp;
@@ -170,10 +197,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    /// Pair of (node sequence number, flag of whether recovery data has been
-    /// sent to that node).
-    typedef bsl::pair<bmqp_ctrlmsg::PartitionSequenceNumber, bool>
-        NodeSeqNumContext;
     typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
                                                NodeToSeqNumCtxMap;
     typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
@@ -605,6 +628,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_replicaDataResponseDrop(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -692,6 +718,10 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Return the sequence number quorum to be used for this cluster.
     size_t getSeqNumQuorum() const;
+
+    /// Return own the first sync point after rollover sequence number.
+    const bmqp_ctrlmsg::PartitionSequenceNumber
+    getSelfFirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
 
   public:
     // TRAITS
@@ -1164,6 +1194,31 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 inline size_t StorageManager::getSeqNumQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
+}
+
+// =======================================
+// class StorageManager::NodeSeqNumContext
+// =======================================
+
+// CREATORS
+inline StorageManager::NodeSeqNumContext::NodeSeqNumContext()
+: d_seqNum()
+, d_firstSyncPointAfterRolloverSeqNum()
+, d_isRecoveryDataSent(false)
+{
+    // NOTHING
+}
+
+inline StorageManager::NodeSeqNumContext::NodeSeqNumContext(
+    const bmqp_ctrlmsg::PartitionSequenceNumber seqNum,
+    const bmqp_ctrlmsg::PartitionSequenceNumber
+         firstSyncPointAfterRolloverSeqNum,
+    bool isInSync)
+: d_seqNum(seqNum)
+, d_firstSyncPointAfterRolloverSeqNum(firstSyncPointAfterRolloverSeqNum)
+, d_isRecoveryDataSent(isInSync)
+{
+    // NOTHING
 }
 
 }  // close package namespace

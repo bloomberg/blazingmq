@@ -247,6 +247,7 @@
       <element name='messageProperties'        type='tns:MessageProperty' maxOccurs='unbounded'/>
       <element name='subscriptions'            type='tns:Subscription'    maxOccurs='unbounded'/>
       <element name='autoPubSubModulo'         type='int'     default="0"/>
+      <element name='timeoutSec'               type='int'     default="300"/>
     </sequence>
   </complexType>
   <complexType name='MessageProperty'>

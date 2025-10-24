@@ -35,6 +35,7 @@
 #include <bsl_iosfwd.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 // MQB
@@ -275,6 +276,10 @@ class Parameters {
 
     int d_autoPubSubModulo;
 
+    bsls::TimeInterval d_timeout;
+    // Timeout for session operations.  This timeout is used for all timeouts
+    // in the `bmqt::SessionOptions` used by the session.
+
   public:
     // CREATORS
 
@@ -311,6 +316,7 @@ class Parameters {
     Parameters& setSubscriptions(const bsl::vector<Subscription>& value);
     Parameters& setAutoIncrementedField(const bsl::string& value);
     Parameters& setAutoPubSubModulo(int autoPubSubModulo);
+    Parameters& setTimeout(const bsls::TimeInterval& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -370,6 +376,7 @@ class Parameters {
     const bsl::vector<Subscription>&    subscriptions() const;
     const bsl::string&                  autoIncrementedField() const;
     int                                 autoPubSubModulo() const;
+    const bsls::TimeInterval&           timeout() const;
 
     const char* autoPubSubPropertyName() const;
 };
@@ -588,6 +595,13 @@ inline Parameters& Parameters::setAutoPubSubModulo(int autoPubSubModulo)
     return *this;
 }
 
+inline Parameters& Parameters::setTimeout(const bsls::TimeInterval& value)
+{
+    d_timeout = value;
+
+    return *this;
+}
+
 // ACCESSORS
 inline ParametersMode::Value Parameters::mode() const
 {
@@ -738,6 +752,11 @@ inline const bsl::string& Parameters::autoIncrementedField() const
 inline int Parameters::autoPubSubModulo() const
 {
     return d_autoPubSubModulo;
+}
+
+inline const bsls::TimeInterval& Parameters::timeout() const
+{
+    return d_timeout;
 }
 
 }  // close package namespace

@@ -2084,9 +2084,10 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
     // 'emitIOEvent' is currently always called while 'd_lock' is held, but
     // that's an implementation side effect, not part of contract.  That's why
     // we create the builder on stack instead of making it a class member.
-    bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
+    bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
+    bmqp::SchemaEventBuilder             builder(d_blobSpPool_p,
                                      bmqp::EncodingType::e_BER,
-                                     d_allocator_p);
+                                     &localAllocator);
 
     int rc = builder.setMessage(message, bmqp::EventType::e_ELECTOR);
     if (0 != rc) {

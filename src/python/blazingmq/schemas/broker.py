@@ -47,6 +47,7 @@ class EventType(IntEnum):
     HEARTBEAT_RSP = 12
     REJECT = 13
     REPLICATION_RECEIPT = 14
+    AUTHENTICATION = 15
 
 
 class TypeSpecific(IntEnum):
@@ -151,4 +152,8 @@ DISCONNECT_SCHEMA: SchemaDescription = {"rId": 0, "disconnect": {}}
 ADMIN_COMMAND_SCHEMA: SchemaDescription = {
     "rId": 0,
     "adminCommand": {"command": "help"},
+}
+
+AUTHENTICATE_REQUEST_SCHEMA: SchemaDescription = {
+    "authenticationRequest": {"mechanism": "", "data": ""}
 }

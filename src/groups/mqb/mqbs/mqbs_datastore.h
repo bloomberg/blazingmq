@@ -102,6 +102,9 @@ struct DataStoreRecord {
     // PUBLIC DATA
     RecordType::Enum d_recordType;  // Type of the journal record
 
+    bool d_hasReceipt;
+    // Strong consistency receipt.
+
     bsls::Types::Uint64 d_recordOffset;  // Offset of record in journal
 
     bsls::Types::Uint64 d_messageOffset;
@@ -142,9 +145,6 @@ struct DataStoreRecord {
     bmqp::MessagePropertiesInfo d_messagePropertiesInfo;
     // Used only if d_recordType ==
     // e_MESSAGE
-
-    bool d_hasReceipt;
-    // Strong consistency receipt.
 
     bsls::Types::Int64 d_arrivalTimepoint;
     // Arrival timepoint of the message, in
@@ -709,10 +709,6 @@ class DataStore : public mqbi::DispatcherClient {
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.
-
     /// Flush any buffered replication messages to the peers.  Behaviour is
     /// undefined unless this cluster node is the primary for this partition.
     virtual void flushStorage() = 0;
@@ -777,12 +773,12 @@ class DataStore : public mqbi::DispatcherClient {
 
 inline DataStoreRecord::DataStoreRecord()
 : d_recordType(RecordType::e_UNDEFINED)
+, d_hasReceipt(true)
 , d_recordOffset(0)
 , d_messageOffset(0)
 , d_appDataUnpaddedLen(0)
 , d_dataOrQlistRecordPaddedLen(0)
 , d_messagePropertiesInfo()
-, d_hasReceipt(true)
 , d_arrivalTimepoint(0LL)
 , d_arrivalTimestamp(0LL)
 {
@@ -792,12 +788,12 @@ inline DataStoreRecord::DataStoreRecord()
 inline DataStoreRecord::DataStoreRecord(RecordType::Enum    recordType,
                                         bsls::Types::Uint64 recordOffset)
 : d_recordType(recordType)
+, d_hasReceipt(true)
 , d_recordOffset(recordOffset)
 , d_messageOffset(0)
 , d_appDataUnpaddedLen(0)
 , d_dataOrQlistRecordPaddedLen(0)
 , d_messagePropertiesInfo()
-, d_hasReceipt(true)
 , d_arrivalTimepoint(0LL)
 , d_arrivalTimestamp(0LL)
 {
@@ -809,12 +805,12 @@ inline DataStoreRecord::DataStoreRecord(
     bsls::Types::Uint64 recordOffset,
     unsigned int        dataOrQlistRecordPaddedLen)
 : d_recordType(recordType)
+, d_hasReceipt(true)
 , d_recordOffset(recordOffset)
 , d_messageOffset(0)
 , d_appDataUnpaddedLen(0)
 , d_dataOrQlistRecordPaddedLen(dataOrQlistRecordPaddedLen)
 , d_messagePropertiesInfo()
-, d_hasReceipt(true)
 , d_arrivalTimepoint(0LL)
 , d_arrivalTimestamp(0LL)
 {
