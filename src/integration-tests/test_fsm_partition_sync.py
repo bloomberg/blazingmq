@@ -281,13 +281,11 @@ def test_sync_after_missed_records(
     consumer = proxy.create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    replicas = cluster.nodes(exclude=leader)
-    replica = replicas[0]
+    replica = cluster.nodes(exclude=leader)[0]
 
     # Put 2 messages
     for i in range(1, 3):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
-        consumer.wait_push_event()
 
     # Stop replica
     replica.stop()
