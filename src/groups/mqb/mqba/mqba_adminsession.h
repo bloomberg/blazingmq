@@ -127,10 +127,6 @@ struct AdminSessionState {
 /// A session with a BlazingMQ admin application
 class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
   private:
-    // PRIVATE TYPES
-    typedef bsl::function<void(void)> VoidFunctor;
-
-  private:
     // DATA
 
     /// This object is used to avoid executing a callback if the session has
