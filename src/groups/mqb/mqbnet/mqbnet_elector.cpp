@@ -1321,13 +1321,6 @@ void ElectorStateMachine::applyScoutingResponseEvent(
 
     d_scoutingInfo.addNodeResponse(sourceNodeId, willVote);
 
-    BALL_LOG_WARN << "My numSupportingNodes: "
-                  << d_scoutingInfo.numSupportingNodes()
-                  << " and my quorum is " << d_quorum
-                  << ", d_scoutingInfo.numResponses(): "
-                  << d_scoutingInfo.numResponses()
-                  << ", d_numTotalPeers: " << d_numTotalPeers;
-
     if (d_scoutingInfo.numSupportingNodes() >= static_cast<size_t>(d_quorum)) {
         // Majority of the nodes will support an election with the specified
         // 'term'.  Transition to candidate.
