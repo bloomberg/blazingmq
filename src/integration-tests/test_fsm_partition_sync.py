@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Testing primary-replica synchronization after missed rollover in FSM mode.
+Testing primary-replica partition synchronization in FSM mode.
 """
 
 import glob
