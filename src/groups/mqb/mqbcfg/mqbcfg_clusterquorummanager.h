@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcfg_clusterquorummanager.h                                                 -*-C++-*-
+// mqbcfg_clusterquorummanager.h -*-C++-*-
 #ifndef INCLUDED_MQBCFG_CLUSTERQUORUMMANAGER
 #define INCLUDED_MQBCFG_CLUSTERQUORUMMANAGER
 
@@ -40,33 +40,33 @@ namespace mqbcfg {
 
 /// This class provides a mechanism to manage the quorum for a cluster.
 class ClusterQuorumManager {
-    private:
-        // DATA
-        bsls::AtomicUint d_quorum;
+  private:
+    // DATA
+    bsls::AtomicUint d_quorum;
 
-    private:
-        // NOT IMPLEMENTED
-        ClusterQuorumManager(const ClusterQuorumManager&) BSLS_KEYWORD_DELETED;
-        ClusterQuorumManager&
-        operator=(const ClusterQuorumManager&) BSLS_KEYWORD_DELETED;
+  private:
+    // NOT IMPLEMENTED
+    ClusterQuorumManager(const ClusterQuorumManager&) BSLS_KEYWORD_DELETED;
+    ClusterQuorumManager&
+    operator=(const ClusterQuorumManager&) BSLS_KEYWORD_DELETED;
 
-    public:
-        // CREATORS
+  public:
+    // CREATORS
 
-        /// Create a `ClusterQuorumManager` object using the specified
-        /// `clusterConfig`. If the quorum is not specified in the config,
-        /// calculate it as the majority of nodes.
-        explicit ClusterQuorumManager(int quorum, size_t nodeCount);
+    /// Create a `ClusterQuorumManager` object using the specified
+    /// `clusterConfig`. If the quorum is not specified in the config,
+    /// calculate it as the majority of nodes.
+    explicit ClusterQuorumManager(int quorum, size_t nodeCount);
 
-        // MANIPULATORS
+    // MANIPULATORS
 
-        /// Set the quorum to the specified `value`.
-        void setQuorum(int value);
+    /// Set the quorum to the specified `value`.
+    void setQuorum(int value);
 
-        // ACCESSORS
+    // ACCESSORS
 
-        /// Return the current quorum value.
-        size_t quorum() const;
+    /// Return the current quorum value.
+    size_t quorum() const;
 };
 
 // ============================================================================
@@ -81,15 +81,16 @@ class ClusterQuorumManager {
 inline ClusterQuorumManager::ClusterQuorumManager(int quorum, size_t nodeCount)
 {
     if (0 == quorum) {
-            d_quorum.store(static_cast<int>(nodeCount) / 2 + 1);
-    } else {
-
+        d_quorum.store(static_cast<int>(nodeCount) / 2 + 1);
+    }
+    else {
         if (quorum > static_cast<int>(nodeCount)) {
             quorum = static_cast<int>(nodeCount);
-        } else if (quorum < 1) {
+        }
+        else if (quorum < 1) {
             quorum = 0;
         }
-        
+
         d_quorum.store(quorum);
     }
 }
@@ -100,7 +101,7 @@ inline void ClusterQuorumManager::setQuorum(int quorum)
     if (quorum < 1) {
         quorum = 0;
     }
-    
+
     d_quorum.store(quorum);
 }
 
