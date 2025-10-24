@@ -84,13 +84,14 @@ def restart_as_fsm_mode(
     cluster.start_nodes(wait_leader=True, wait_ready=True)
     # For a standard cluster, states have already been restored as part of
     # leader re-election.
+
     if cluster.is_single_node:
         producer.wait_state_restored()
 
 
 def restart_to_fsm_single_node_with_quorum_one(
     cluster: Cluster,
-    producer: Client,
+    producer: Client,  # pylint: disable=unused-argument
     consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
@@ -117,7 +118,7 @@ def restart_to_fsm_single_node_with_quorum_one(
 
 def restart_to_fsm_single_node_with_quorum_one_and_start_others(
     cluster: Cluster,
-    producer: Client,
+    producer: Client,  # pylint: disable=unused-argument
     consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
