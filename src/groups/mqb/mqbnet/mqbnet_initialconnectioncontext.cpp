@@ -521,6 +521,27 @@ int InitialConnectionContext::scheduleRead(bsl::ostream& errorDescription)
     return rc_SUCCESS;
 }
 
+void InitialConnectionContext::handleInitialConnection()
+{
+    if (!isIncoming()) {
+        // TODO: When we are ready to move on to the next step, we should
+        // call `authenticationOutbound` here instead before calling
+        // `negotiateOutbound`.
+        handleEvent(0,
+                    bsl::string(),
+                    mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTATION);
+    }
+    else {
+        bmqu::MemOutStream errStream;
+        const int          rc = scheduleRead(errStream);
+        if (rc != 0) {
+            handleEvent(rc,
+                        errStream.str(),
+                        mqbnet::InitialConnectionEvent::e_ERROR);
+        }
+    }
+}
+
 void InitialConnectionContext::handleEvent(
     int                                                   statusCode,
     const bsl::string&                                    errorDescription,

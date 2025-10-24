@@ -383,6 +383,9 @@ class InitialConnectionContext
     /// `errorDescription` with details on failure.
     int scheduleRead(bsl::ostream& errorDescription);
 
+    /// Entrance to the initial connection process.
+    void handleInitialConnection();
+
     /// Process a handshake event with the given `statusCode` and
     /// `errorDescription`. The `input` specifies the event type, and
     /// `message` contains any associated control message data.
