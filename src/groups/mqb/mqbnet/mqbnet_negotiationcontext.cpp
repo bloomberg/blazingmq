@@ -18,9 +18,94 @@
 
 #include <mqbscm_version.h>
 namespace BloombergLP {
-namespace mqba {
+namespace mqbnet {
 
-// NOTHING
+// ------------------------
+// class NegotiationContext
+// ------------------------
+
+NegotiationContext::NegotiationContext(
+    InitialConnectionContext* initialConnectionContext,
+    bslma::Allocator*         allocator)
+: d_initialConnectionContext_p(initialConnectionContext)
+, d_negotiationMessage(allocator)
+, d_clusterName(allocator)
+, d_connectionType(mqbnet::ConnectionType::e_UNKNOWN)
+, d_maxMissedHeartbeats(0)
+, d_eventProcessor_p(bsl::nullptr_t())
+, d_cluster_p(bsl::nullptr_t())
+{
+    // NOTHING
+}
+
+void NegotiationContext::setNegotiationMessage(
+    const bmqp_ctrlmsg::NegotiationMessage& value)
+{
+    d_negotiationMessage = value;
+}
+
+void NegotiationContext::setClusterName(const bsl::string& value)
+{
+    d_clusterName = value;
+}
+
+void NegotiationContext::setConnectionType(ConnectionType::Enum value)
+{
+    d_connectionType = value;
+}
+
+void NegotiationContext::setMaxMissedHeartbeats(int value)
+{
+    d_maxMissedHeartbeats = value;
+}
+
+void NegotiationContext::setEventProcessor(SessionEventProcessor* value)
+{
+    d_eventProcessor_p = value;
+}
+
+void NegotiationContext::setCluster(Cluster* value)
+{
+    d_cluster_p = value;
+}
+
+// ACCESSORS
+
+InitialConnectionContext* NegotiationContext::initialConnectionContext() const
+{
+    return d_initialConnectionContext_p;
+}
+
+const bmqp_ctrlmsg::NegotiationMessage&
+NegotiationContext::negotiationMessage() const
+{
+    return d_negotiationMessage;
+}
+
+const bsl::string& NegotiationContext::clusterName() const
+{
+    return d_clusterName;
+}
+
+ConnectionType::Enum NegotiationContext::connectionType() const
+{
+    return d_connectionType;
+}
+
+int NegotiationContext::maxMissedHeartbeats() const
+{
+    return d_maxMissedHeartbeats;
+}
+
+SessionEventProcessor* NegotiationContext::eventProcessor() const
+{
+    return d_eventProcessor_p;
+}
+
+Cluster* NegotiationContext::cluster() const
+{
+    return d_cluster_p;
+}
 
 }  // close package namespace
 }  // close enterprise namespace
