@@ -45,7 +45,7 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 class Session;
-struct NegotiationContext;
+class NegotiationContext;
 
 // ==============================
 // class InitialConnectionContext

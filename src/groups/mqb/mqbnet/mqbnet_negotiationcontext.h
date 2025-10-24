@@ -23,6 +23,7 @@
 ///
 
 // MQB
+#include <mqbnet_connectiontype.h>
 #include <mqbnet_initialconnectioncontext.h>
 
 // BMQ
