@@ -96,8 +96,15 @@ Message& Message::setDataRef(const char* data, size_t length)
                      "'MessageEventBuilder::startMessage' to get one");
     BSLS_ASSERT_SAFE(d_impl.d_event_p->putEventBuilder() &&
                      "message not editable");
+    BSLS_ASSERT_SAFE(0 < length && "length must be greater than zero");
+    BSLS_ASSERT_SAFE(length <= bsl::numeric_limits<int>::max() &&
+                     "length must be less than or equal to INT_MAX");
 
-    d_impl.d_event_p->putEventBuilder()->setMessagePayload(data, length);
+    // By the above, `length` can be represented by `int`.
+    const int narrowedLength = static_cast<int>(length);
+
+    d_impl.d_event_p->putEventBuilder()->setMessagePayload(data,
+                                                           narrowedLength);
     return *this;
 }
 

@@ -95,7 +95,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
   private:
     // PRIVATE TYPES
-    using LeaderSet = bsl::unordered_set<bslstl::StringRef>;
+    using LeaderSet = bsl::unordered_set<bsl::string_view>;
 
     struct DatapointDef {
         const char* d_name;
@@ -251,7 +251,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     // ACCESSORS
 
     /// Return plugin name
-    bslstl::StringRef name() const override;
+    bsl::string_view name() const override;
 
     /// Return true if Prometheus reporting is enabled, false otherwise.
     bool isEnabled() const override;
@@ -296,7 +296,7 @@ inline bsls::TimeInterval PrometheusStatConsumer::publishInterval() const
     return d_publishInterval;
 }
 
-inline bslstl::StringRef PrometheusStatConsumer::name() const
+inline bsl::string_view PrometheusStatConsumer::name() const
 {
     return "PrometheusStatConsumer";
 }

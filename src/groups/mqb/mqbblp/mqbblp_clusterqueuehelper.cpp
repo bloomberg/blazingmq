@@ -767,7 +767,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
 
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
     {
-        BALL_LOG_OUTPUT_STREAM << d_cluster_p->description() << ": ";
+        BALL_LOG_OUTPUT_STREAM << "[THROTTLED] " << d_cluster_p->description()
+                               << ": ";
 
         if (d_cluster_p->isRemote()) {
             BALL_LOG_OUTPUT_STREAM << "Queue '" << queueContext->uri()

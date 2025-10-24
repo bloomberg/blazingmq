@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,8 @@ blazingmq.dev.it.process.admin
 PURPOSE: Provide a BMQ admin client.
 """
 
-from typing import Union
+import json
+from typing import Union, Dict, Any
 
 from blazingmq.schemas import broker
 from .rawclient import RawClient
@@ -62,3 +63,27 @@ class AdminClient(RawClient):
 
         self._send_raw(self._wrap_control_event(admin_client_identity))
         self._receive_event()
+
+    # Admin APIs
+    def get_domain_config(self, domain_name: str) -> Dict[str, Any]:
+        """
+        Send the "DOMAINS DOMAIN <domain_name> INFOS" admin command, parse the received response and
+        return the domain configuration as a structured dictionary.
+        """
+
+        admin_response: str = self.send_admin(
+            f"ENCODING JSON_COMPACT DOMAINS DOMAIN {domain_name} INFOS"
+        )
+
+        # Top-level domain information has the following structure:
+        # {
+        #     "domainInfo": {
+        #         "name": str,
+        #         "configJson": str,
+        #         ...
+        #     }
+        # }
+        # Need to look up to configJson and parse the string
+        domain_stats = json.loads(admin_response)
+        config_json = domain_stats["domainInfo"]["configJson"]
+        return json.loads(config_json)

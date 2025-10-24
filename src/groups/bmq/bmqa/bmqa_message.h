@@ -218,7 +218,7 @@ class Message {
 
     /// Set the payload of this message to the specified `length` bytes
     /// starting at the specified `data` address.  The behavior is undefined
-    /// unless `data` is non-null and `length` is greater than zero.  Note that
+    /// unless `data` is non-null and `0 < length <= INT_MAX`.  Note that
     /// payload pointed to by `data` is *not* copied right away, and should not
     /// be destroyed or modified until this message has been packed (see
     /// `bmqa::MessageEventBuilder` component level documentation for correct
@@ -239,11 +239,11 @@ class Message {
 
     /// Set the payload of this message to the specified `length` bytes
     /// starting at the specified `data` address.  The behavior is undefined
-    /// unless `data` is non-null and `length` is greater than zero.  Note
-    /// that payload pointed to by `data` is *not* copied right away, and
-    /// should not be destroyed or modified until this message has been
-    /// packed (see `bmqa::MessageEventBuilder` component level
-    /// documentation for correct usage).
+    /// unless `data` is non-null and `0 < length <= INT_MAX`.  Note that
+    /// payload pointed to by `data` is *not* copied right away, and should not
+    /// be destroyed or modified until this message has been packed (see
+    /// `bmqa::MessageEventBuilder` component level documentation for correct
+    /// usage).
     Message& setDataRef(const char* data, size_t length);
 
     /// Set the properties of this message to the `MessageProperties`

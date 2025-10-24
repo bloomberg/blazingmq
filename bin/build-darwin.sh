@@ -115,7 +115,7 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    eval "$(bbs_build_env -p clang -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
@@ -129,6 +129,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/ntf-core"
     ./configure --prefix "${DIR_INSTALL}" \
                 --output "${DIR_BUILD}/ntf" \
+                --toolchain "${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
                 --without-warnings-as-errors \
                 --without-usage-examples \
                 --without-applications \

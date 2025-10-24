@@ -340,6 +340,11 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          "autoPubSubModulo",
          "autoPubSubModulo",
          balcl::TypeInfo(&params.autoPubSubModulo()),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"timeout",
+         "timeout",
+         "The timeout to use for session operations with the broker",
+         balcl::TypeInfo(&params.timeoutSec()),
          balcl::OccurrenceInfo::e_OPTIONAL}};
 
     balcl::CommandLine commandLine(specTable);

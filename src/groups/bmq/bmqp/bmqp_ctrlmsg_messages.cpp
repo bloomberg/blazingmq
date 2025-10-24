@@ -404,6 +404,137 @@ AppIdInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
+// ---------------------------
+// class AuthenticationRequest
+// ---------------------------
+
+// CONSTANTS
+
+const char AuthenticationRequest::CLASS_NAME[] = "AuthenticationRequest";
+
+const bdlat_AttributeInfo AuthenticationRequest::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_MECHANISM,
+     "mechanism",
+     sizeof("mechanism") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_DATA,
+     "data",
+     sizeof("data") - 1,
+     "",
+     bdlat_FormattingMode::e_BASE64}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthenticationRequest::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthenticationRequest::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthenticationRequest::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_MECHANISM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MECHANISM];
+    case ATTRIBUTE_ID_DATA: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticationRequest::AuthenticationRequest(bslma::Allocator* basicAllocator)
+: d_mechanism(basicAllocator)
+, d_data(basicAllocator)
+{
+}
+
+AuthenticationRequest::AuthenticationRequest(
+    const AuthenticationRequest& original,
+    bslma::Allocator*            basicAllocator)
+: d_mechanism(original.d_mechanism, basicAllocator)
+, d_data(original.d_data, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationRequest::AuthenticationRequest(AuthenticationRequest&& original)
+    noexcept : d_mechanism(bsl::move(original.d_mechanism)),
+               d_data(bsl::move(original.d_data))
+{
+}
+
+AuthenticationRequest::AuthenticationRequest(AuthenticationRequest&& original,
+                                             bslma::Allocator* basicAllocator)
+: d_mechanism(bsl::move(original.d_mechanism), basicAllocator)
+, d_data(bsl::move(original.d_data), basicAllocator)
+{
+}
+#endif
+
+AuthenticationRequest::~AuthenticationRequest()
+{
+}
+
+// MANIPULATORS
+
+AuthenticationRequest&
+AuthenticationRequest::operator=(const AuthenticationRequest& rhs)
+{
+    if (this != &rhs) {
+        d_mechanism = rhs.d_mechanism;
+        d_data      = rhs.d_data;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationRequest&
+AuthenticationRequest::operator=(AuthenticationRequest&& rhs)
+{
+    if (this != &rhs) {
+        d_mechanism = bsl::move(rhs.d_mechanism);
+        d_data      = bsl::move(rhs.d_data);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticationRequest::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_mechanism);
+    bdlat_ValueTypeFunctions::reset(&d_data);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthenticationRequest::print(bsl::ostream& stream,
+                                           int           level,
+                                           int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("mechanism", this->mechanism());
+    printer.printAttribute("data", this->data());
+    printer.end();
+    return stream;
+}
+
 // --------------------
 // class ClientLanguage
 // --------------------
@@ -7355,6 +7486,141 @@ bsl::ostream& SyncPointOffsetPair::print(bsl::ostream& stream,
     return stream;
 }
 
+// ----------------------------
+// class AuthenticationResponse
+// ----------------------------
+
+// CONSTANTS
+
+const char AuthenticationResponse::CLASS_NAME[] = "AuthenticationResponse";
+
+const bdlat_AttributeInfo AuthenticationResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_STATUS,
+     "status",
+     sizeof("status") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_LIFETIME_MS,
+     "lifetimeMs",
+     sizeof("lifetimeMs") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthenticationResponse::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthenticationResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthenticationResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_STATUS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATUS];
+    case ATTRIBUTE_ID_LIFETIME_MS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LIFETIME_MS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticationResponse::AuthenticationResponse(
+    bslma::Allocator* basicAllocator)
+: d_status(basicAllocator)
+, d_lifetimeMs()
+{
+}
+
+AuthenticationResponse::AuthenticationResponse(
+    const AuthenticationResponse& original,
+    bslma::Allocator*             basicAllocator)
+: d_status(original.d_status, basicAllocator)
+, d_lifetimeMs(original.d_lifetimeMs)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationResponse::AuthenticationResponse(
+    AuthenticationResponse&& original) noexcept
+: d_status(bsl::move(original.d_status)),
+  d_lifetimeMs(bsl::move(original.d_lifetimeMs))
+{
+}
+
+AuthenticationResponse::AuthenticationResponse(
+    AuthenticationResponse&& original,
+    bslma::Allocator*        basicAllocator)
+: d_status(bsl::move(original.d_status), basicAllocator)
+, d_lifetimeMs(bsl::move(original.d_lifetimeMs))
+{
+}
+#endif
+
+AuthenticationResponse::~AuthenticationResponse()
+{
+}
+
+// MANIPULATORS
+
+AuthenticationResponse&
+AuthenticationResponse::operator=(const AuthenticationResponse& rhs)
+{
+    if (this != &rhs) {
+        d_status     = rhs.d_status;
+        d_lifetimeMs = rhs.d_lifetimeMs;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationResponse&
+AuthenticationResponse::operator=(AuthenticationResponse&& rhs)
+{
+    if (this != &rhs) {
+        d_status     = bsl::move(rhs.d_status);
+        d_lifetimeMs = bsl::move(rhs.d_lifetimeMs);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticationResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_status);
+    bdlat_ValueTypeFunctions::reset(&d_lifetimeMs);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthenticationResponse::print(bsl::ostream& stream,
+                                            int           level,
+                                            int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("status", this->status());
+    printer.printAttribute("lifetimeMs", this->lifetimeMs());
+    printer.end();
+    return stream;
+}
+
 // --------------------
 // class BrokerResponse
 // --------------------
@@ -9960,6 +10226,348 @@ Subscription::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("consumers", this->consumers());
     printer.end();
     return stream;
+}
+
+// ---------------------------
+// class AuthenticationMessage
+// ---------------------------
+
+// CONSTANTS
+
+const char AuthenticationMessage::CLASS_NAME[] = "AuthenticationMessage";
+
+const bdlat_SelectionInfo AuthenticationMessage::SELECTION_INFO_ARRAY[] = {
+    {SELECTION_ID_AUTHENTICATION_REQUEST,
+     "authenticationRequest",
+     sizeof("authenticationRequest") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_AUTHENTICATION_RESPONSE,
+     "authenticationResponse",
+     sizeof("authenticationResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_SelectionInfo*
+AuthenticationMessage::lookupSelectionInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_SelectionInfo& selectionInfo =
+            AuthenticationMessage::SELECTION_INFO_ARRAY[i];
+
+        if (nameLength == selectionInfo.d_nameLength &&
+            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
+            return &selectionInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_SelectionInfo* AuthenticationMessage::lookupSelectionInfo(int id)
+{
+    switch (id) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_REQUEST];
+    case SELECTION_ID_AUTHENTICATION_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_RESPONSE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticationMessage::AuthenticationMessage(
+    const AuthenticationMessage& original,
+    bslma::Allocator*            basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(original.d_authenticationRequest.object(),
+                                  d_allocator_p);
+    } break;
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(original.d_authenticationResponse.object(),
+                                   d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationMessage::AuthenticationMessage(AuthenticationMessage&& original)
+    noexcept : d_selectionId(original.d_selectionId),
+               d_allocator_p(original.d_allocator_p)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        new (d_authenticationRequest.buffer()) AuthenticationRequest(
+            bsl::move(original.d_authenticationRequest.object()),
+            d_allocator_p);
+    } break;
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        new (d_authenticationResponse.buffer()) AuthenticationResponse(
+            bsl::move(original.d_authenticationResponse.object()),
+            d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+AuthenticationMessage::AuthenticationMessage(AuthenticationMessage&& original,
+                                             bslma::Allocator* basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        new (d_authenticationRequest.buffer()) AuthenticationRequest(
+            bsl::move(original.d_authenticationRequest.object()),
+            d_allocator_p);
+    } break;
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        new (d_authenticationResponse.buffer()) AuthenticationResponse(
+            bsl::move(original.d_authenticationResponse.object()),
+            d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+#endif
+
+// MANIPULATORS
+
+AuthenticationMessage&
+AuthenticationMessage::operator=(const AuthenticationMessage& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_AUTHENTICATION_REQUEST: {
+            makeAuthenticationRequest(rhs.d_authenticationRequest.object());
+        } break;
+        case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+            makeAuthenticationResponse(rhs.d_authenticationResponse.object());
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationMessage&
+AuthenticationMessage::operator=(AuthenticationMessage&& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_AUTHENTICATION_REQUEST: {
+            makeAuthenticationRequest(
+                bsl::move(rhs.d_authenticationRequest.object()));
+        } break;
+        case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+            makeAuthenticationResponse(
+                bsl::move(rhs.d_authenticationResponse.object()));
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticationMessage::reset()
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        d_authenticationRequest.object().~AuthenticationRequest();
+    } break;
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        d_authenticationResponse.object().~AuthenticationResponse();
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+
+    d_selectionId = SELECTION_ID_UNDEFINED;
+}
+
+int AuthenticationMessage::makeSelection(int selectionId)
+{
+    switch (selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        makeAuthenticationRequest();
+    } break;
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        makeAuthenticationResponse();
+    } break;
+    case SELECTION_ID_UNDEFINED: {
+        reset();
+    } break;
+    default: return -1;
+    }
+    return 0;
+}
+
+int AuthenticationMessage::makeSelection(const char* name, int nameLength)
+{
+    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
+                                                                   nameLength);
+    if (0 == selectionInfo) {
+        return -1;
+    }
+
+    return makeSelection(selectionInfo->d_id);
+}
+
+AuthenticationRequest& AuthenticationMessage::makeAuthenticationRequest()
+{
+    if (SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_authenticationRequest.object());
+    }
+    else {
+        reset();
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_REQUEST;
+    }
+
+    return d_authenticationRequest.object();
+}
+
+AuthenticationRequest& AuthenticationMessage::makeAuthenticationRequest(
+    const AuthenticationRequest& value)
+{
+    if (SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId) {
+        d_authenticationRequest.object() = value;
+    }
+    else {
+        reset();
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_REQUEST;
+    }
+
+    return d_authenticationRequest.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationRequest&
+AuthenticationMessage::makeAuthenticationRequest(AuthenticationRequest&& value)
+{
+    if (SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId) {
+        d_authenticationRequest.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_authenticationRequest.buffer())
+            AuthenticationRequest(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_REQUEST;
+    }
+
+    return d_authenticationRequest.object();
+}
+#endif
+
+AuthenticationResponse& AuthenticationMessage::makeAuthenticationResponse()
+{
+    if (SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_authenticationResponse.object());
+    }
+    else {
+        reset();
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_RESPONSE;
+    }
+
+    return d_authenticationResponse.object();
+}
+
+AuthenticationResponse& AuthenticationMessage::makeAuthenticationResponse(
+    const AuthenticationResponse& value)
+{
+    if (SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId) {
+        d_authenticationResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_RESPONSE;
+    }
+
+    return d_authenticationResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticationResponse& AuthenticationMessage::makeAuthenticationResponse(
+    AuthenticationResponse&& value)
+{
+    if (SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId) {
+        d_authenticationResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_authenticationResponse.buffer())
+            AuthenticationResponse(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATION_RESPONSE;
+    }
+
+    return d_authenticationResponse.object();
+}
+#endif
+
+// ACCESSORS
+
+bsl::ostream& AuthenticationMessage::print(bsl::ostream& stream,
+                                           int           level,
+                                           int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST: {
+        printer.printAttribute("authenticationRequest",
+                               d_authenticationRequest.object());
+    } break;
+    case SELECTION_ID_AUTHENTICATION_RESPONSE: {
+        printer.printAttribute("authenticationResponse",
+                               d_authenticationResponse.object());
+    } break;
+    default: stream << "SELECTION UNDEFINED\n";
+    }
+    printer.end();
+    return stream;
+}
+
+const char* AuthenticationMessage::selectionName() const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_REQUEST]
+            .name();
+    case SELECTION_ID_AUTHENTICATION_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_RESPONSE]
+            .name();
+    default:
+        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+        return "(* UNDEFINED *)";
+    }
 }
 
 // ----------------------------------

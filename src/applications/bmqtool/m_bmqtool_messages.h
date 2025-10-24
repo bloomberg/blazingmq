@@ -1,4 +1,4 @@
-// Copyright 2014-2024 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,23 +19,36 @@
 
 //@PURPOSE: Provide value-semantic attribute classes
 
+#include <bslalg_typetraits.h>
+
 #include <bdlat_attributeinfo.h>
+
 #include <bdlat_enumeratorinfo.h>
+
 #include <bdlat_selectioninfo.h>
+
 #include <bdlat_typetraits.h>
+
+#include <bslh_hash.h>
+#include <bsls_objectbuffer.h>
+
+#include <bslma_default.h>
+
+#include <bsls_assert.h>
+
 #include <bdlb_nullablevalue.h>
+
+#include <bsl_string.h>
+
+#include <bsl_vector.h>
+
+#include <bsls_types.h>
+
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+
 #include <bsl_ostream.h>
 #include <bsl_string.h>
-#include <bsl_vector.h>
-#include <bsla_annotations.h>
-#include <bslalg_typetraits.h>
-#include <bslh_hash.h>
-#include <bslma_default.h>
-#include <bsls_assert.h>
-#include <bsls_objectbuffer.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
 
@@ -419,6 +432,9 @@ class BatchPostCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::BatchPostCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::BatchPostCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -639,6 +655,9 @@ class CloseQueueCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::CloseQueueCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::CloseQueueCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -786,6 +805,9 @@ class CloseStorageCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::CloseStorageCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::CloseStorageCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -1005,6 +1027,9 @@ class ConfirmCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::ConfirmCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::ConfirmCommand> : bsl::true_type {
+};
 
 namespace m_bmqtool {
 
@@ -1588,6 +1613,9 @@ class DumpQueueCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::DumpQueueCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::DumpQueueCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -1854,6 +1882,8 @@ class ListCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::ListCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::ListCommand> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -2000,6 +2030,9 @@ class ListQueuesCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::ListQueuesCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::ListQueuesCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -2219,6 +2252,9 @@ class LoadPostCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::LoadPostCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::LoadPostCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -2428,6 +2464,9 @@ class MetadataCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::MetadataCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::MetadataCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -2638,6 +2677,9 @@ class OpenStorageCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::OpenStorageCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::OpenStorageCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -3170,6 +3212,8 @@ class StartCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::StartCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::StartCommand> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -3336,6 +3380,8 @@ class StopCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::StopCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::StopCommand> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -3596,6 +3642,8 @@ class Subscription {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::Subscription)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::Subscription> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -3875,6 +3923,9 @@ class ConfigureQueueCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::ConfigureQueueCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::ConfigureQueueCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -4040,6 +4091,8 @@ class DataCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::DataCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::DataCommand> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -4713,6 +4766,9 @@ class MessageProperty {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::MessageProperty)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::MessageProperty>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -5003,6 +5059,9 @@ class OpenQueueCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::OpenQueueCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::OpenQueueCommand>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -5169,6 +5228,8 @@ class QlistCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(m_bmqtool::QlistCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::QlistCommand> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -5200,6 +5261,7 @@ class CommandLineParameters {
     int                          d_threads;
     int                          d_shutdownGrace;
     int                          d_autoPubSubModulo;
+    int                          d_timeoutSec;
     bool                         d_dumpMsg;
     bool                         d_confirmMsg;
     bool                         d_memoryDebug;
@@ -5239,10 +5301,11 @@ class CommandLineParameters {
         ATTRIBUTE_ID_SEQUENTIAL_MESSAGE_PATTERN = 22,
         ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 23,
         ATTRIBUTE_ID_SUBSCRIPTIONS              = 24,
-        ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO        = 25
+        ATTRIBUTE_ID_AUTO_PUB_SUB_MODULO        = 25,
+        ATTRIBUTE_ID_TIMEOUT_SEC                = 26
     };
 
-    enum { NUM_ATTRIBUTES = 26 };
+    enum { NUM_ATTRIBUTES = 27 };
 
     enum {
         ATTRIBUTE_INDEX_MODE                       = 0,
@@ -5270,7 +5333,8 @@ class CommandLineParameters {
         ATTRIBUTE_INDEX_SEQUENTIAL_MESSAGE_PATTERN = 22,
         ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 23,
         ATTRIBUTE_INDEX_SUBSCRIPTIONS              = 24,
-        ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO        = 25
+        ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO        = 25,
+        ATTRIBUTE_INDEX_TIMEOUT_SEC                = 26
     };
 
     // CONSTANTS
@@ -5323,6 +5387,8 @@ class CommandLineParameters {
     static const char DEFAULT_INITIALIZER_SEQUENTIAL_MESSAGE_PATTERN[];
 
     static const int DEFAULT_INITIALIZER_AUTO_PUB_SUB_MODULO;
+
+    static const int DEFAULT_INITIALIZER_TIMEOUT_SEC;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5520,6 +5586,10 @@ class CommandLineParameters {
     // Return a reference to the modifiable "AutoPubSubModulo" attribute of
     // this object.
 
+    int& timeoutSec();
+    // Return a reference to the modifiable "TimeoutSec" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -5657,6 +5727,9 @@ class CommandLineParameters {
     int autoPubSubModulo() const;
     // Return the value of the "AutoPubSubModulo" attribute of this object.
 
+    int timeoutSec() const;
+    // Return the value of the "TimeoutSec" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const CommandLineParameters& lhs,
                            const CommandLineParameters& rhs)
@@ -5700,6 +5773,9 @@ class CommandLineParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::CommandLineParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::CommandLineParameters>
+: bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -5910,6 +5986,9 @@ class JournalCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::JournalCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::JournalCommand> : bsl::true_type {
+};
 
 namespace m_bmqtool {
 
@@ -6184,6 +6263,8 @@ class PostCommand {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     m_bmqtool::PostCommand)
+template <>
+struct bdlat_UsesDefaultValueFlag<m_bmqtool::PostCommand> : bsl::true_type {};
 
 namespace m_bmqtool {
 
@@ -7344,17 +7425,17 @@ inline bool CloseQueueCommand::async() const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int CloseStorageCommand::manipulateAttributes(
-    BSLA_UNUSED t_MANIPULATOR& manipulator)
+int CloseStorageCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
+    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int CloseStorageCommand::manipulateAttribute(
-    BSLA_UNUSED t_MANIPULATOR& manipulator,
-    int                        id)
+int CloseStorageCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                             int            id)
 {
+    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -7380,16 +7461,16 @@ int CloseStorageCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int CloseStorageCommand::accessAttributes(
-    BSLA_UNUSED t_ACCESSOR& accessor) const
+int CloseStorageCommand::accessAttributes(t_ACCESSOR& accessor) const
 {
+    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int CloseStorageCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
-                                         int                     id) const
+int CloseStorageCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
+    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8074,17 +8155,16 @@ inline const bdlb::NullableValue<bsl::string>& ListCommand::uri() const
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int ListQueuesCommand::manipulateAttributes(
-    BSLA_UNUSED t_MANIPULATOR& manipulator)
+int ListQueuesCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
+    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int ListQueuesCommand::manipulateAttribute(
-    BSLA_UNUSED t_MANIPULATOR& manipulator,
-    int                        id)
+int ListQueuesCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
 {
+    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8110,15 +8190,16 @@ int ListQueuesCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int ListQueuesCommand::accessAttributes(BSLA_UNUSED t_ACCESSOR& accessor) const
+int ListQueuesCommand::accessAttributes(t_ACCESSOR& accessor) const
 {
+    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int ListQueuesCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
-                                       int                     id) const
+int ListQueuesCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
+    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8297,17 +8378,16 @@ MessagePropertyType::print(bsl::ostream&              stream,
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int MetadataCommand::manipulateAttributes(
-    BSLA_UNUSED t_MANIPULATOR& manipulator)
+int MetadataCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
+    (void)manipulator;
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int MetadataCommand::manipulateAttribute(
-    BSLA_UNUSED t_MANIPULATOR& manipulator,
-    int                        id)
+int MetadataCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
 {
+    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -8333,15 +8413,16 @@ int MetadataCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int MetadataCommand::accessAttributes(BSLA_UNUSED t_ACCESSOR& accessor) const
+int MetadataCommand::accessAttributes(t_ACCESSOR& accessor) const
 {
+    (void)accessor;
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int MetadataCommand::accessAttribute(BSLA_UNUSED t_ACCESSOR& accessor,
-                                     int                     id) const
+int MetadataCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
+    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
@@ -10549,6 +10630,7 @@ void CommandLineParameters::hashAppendImpl(
     hashAppend(hashAlgorithm, this->messageProperties());
     hashAppend(hashAlgorithm, this->subscriptions());
     hashAppend(hashAlgorithm, this->autoPubSubModulo());
+    hashAppend(hashAlgorithm, this->timeoutSec());
 }
 
 inline bool
@@ -10578,7 +10660,8 @@ CommandLineParameters::isEqualTo(const CommandLineParameters& rhs) const
                rhs.sequentialMessagePattern() &&
            this->messageProperties() == rhs.messageProperties() &&
            this->subscriptions() == rhs.subscriptions() &&
-           this->autoPubSubModulo() == rhs.autoPubSubModulo();
+           this->autoPubSubModulo() == rhs.autoPubSubModulo() &&
+           this->timeoutSec() == rhs.timeoutSec();
 }
 
 // CLASS METHODS
@@ -10745,6 +10828,12 @@ int CommandLineParameters::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_timeoutSec,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -10866,6 +10955,10 @@ int CommandLineParameters::manipulateAttribute(t_MANIPULATOR& manipulator,
         return manipulator(
             &d_autoPubSubModulo,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO]);
+    }
+    case ATTRIBUTE_ID_TIMEOUT_SEC: {
+        return manipulator(&d_timeoutSec,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC]);
     }
     default: return NOT_FOUND;
     }
@@ -11015,6 +11108,11 @@ inline bsl::vector<Subscription>& CommandLineParameters::subscriptions()
 inline int& CommandLineParameters::autoPubSubModulo()
 {
     return d_autoPubSubModulo;
+}
+
+inline int& CommandLineParameters::timeoutSec()
+{
+    return d_timeoutSec;
 }
 
 // ACCESSORS
@@ -11173,6 +11271,12 @@ int CommandLineParameters::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_timeoutSec,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -11287,6 +11391,10 @@ int CommandLineParameters::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_autoPubSubModulo,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_PUB_SUB_MODULO]);
+    }
+    case ATTRIBUTE_ID_TIMEOUT_SEC: {
+        return accessor(d_timeoutSec,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TIMEOUT_SEC]);
     }
     default: return NOT_FOUND;
     }
@@ -11439,6 +11547,11 @@ CommandLineParameters::subscriptions() const
 inline int CommandLineParameters::autoPubSubModulo() const
 {
     return d_autoPubSubModulo;
+}
+
+inline int CommandLineParameters::timeoutSec() const
+{
+    return d_timeoutSec;
 }
 
 // --------------------
@@ -12400,6 +12513,6 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.10.09.2
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
