@@ -374,7 +374,6 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     queue()
         ->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
-
             msgSize);
 
     d_isEmpty.storeRelaxed(0);

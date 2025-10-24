@@ -288,8 +288,8 @@ class Cluster : public DispatcherClient {
     /// used by this cluster.
     virtual RequestManagerType& requestManager() = 0;
 
-    // Return a reference offering a modifiable access to the multi request
-    // manager used by this cluster.
+    /// Return a reference offering a modifiable access to the multi request
+    /// manager used by this cluster.
     virtual MultiRequestManagerType& multiRequestManager() = 0;
 
     /// Send the specified `request` with the specified `timeout` to the

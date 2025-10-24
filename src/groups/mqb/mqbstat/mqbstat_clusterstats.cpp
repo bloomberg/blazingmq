@@ -109,6 +109,10 @@ struct ClusterStatsIndex {
         ,
         e_PARTITION_JOURNAL_OFFSET_BYTES
         // Value: Offset bytes in the journal file of the partition.
+        ,
+        e_PARTITION_REPLICATION_TIME_NS
+        // Value: Time in nanoseconds it took for replication of a new entry
+        //        in journal file.
     };
 };
 
@@ -256,6 +260,18 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
     case Stat::e_PARTITION_SEQUENCE_NUMBER: {
         return STAT_SINGLE(value, e_PARTITION_SEQUENCE_NUMBER);
     }
+    case Stat::e_PARTITION_REPLICATION_TIME_NS_AVG: {
+        const bsls::Types::Int64 value =
+            STAT_RANGE(averagePerEvent, e_PARTITION_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::max() ? 0
+                                                                       : value;
+    }
+    case Stat::e_PARTITION_REPLICATION_TIME_NS_MAX: {
+        const bsls::Types::Int64 value =
+            STAT_RANGE(rangeMax, e_PARTITION_REPLICATION_TIME_NS);
+        return value == bsl::numeric_limits<bsls::Types::Int64>::min() ? 0
+                                                                       : value;
+    }
 
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
@@ -328,6 +344,10 @@ void ClusterStats::onPartitionEvent(PartitionEventType::Enum type,
     switch (type) {
     case PartitionEventType::e_PARTITION_ROLLOVER: {
         sc->reportValue(ClusterStatsIndex::e_PARTITION_ROLLOVER_TIME, value);
+    } break;
+    case PartitionEventType::e_PARTITION_REPLICATION: {
+        sc->reportValue(ClusterStatsIndex::e_PARTITION_REPLICATION_TIME_NS,
+                        value);
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unknown event type");
@@ -644,7 +664,8 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE)
         .value("partition.data_offset_bytes")
         .value("partition.journal_offset_bytes")
-        .value("partition.sequence_number");
+        .value("partition.sequence_number")
+        .value("partition.replication_time_ns", bmqst::StatValue::e_DISCRETE);
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per

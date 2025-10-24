@@ -606,14 +606,14 @@ void PrometheusStatConsumer::collectLeaders(LeaderSet* leaders)
 
 void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
 {
+    typedef mqbstat::ClusterStats::Stat Stat;  // Shortcut
+
     const bmqst::StatContext& clustersStatContext = *d_clustersStatContext_p;
 
     for (bmqst::StatContextIterator clusterIt =
              clustersStatContext.subcontextIterator();
          clusterIt;
          ++clusterIt) {
-        typedef mqbstat::ClusterStats::Stat Stat;  // Shortcut
-
         // scope
         {
             static const DatapointDef defs[] = {
@@ -692,6 +692,8 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
 
 void PrometheusStatConsumer::captureClusterPartitionsStats()
 {
+    typedef mqbstat::ClusterStats::Stat Stat;  // Shortcut
+
     // Iterate over each cluster
     for (bmqst::StatContextIterator clusterIt =
              d_clustersStatContext_p->subcontextIterator();
@@ -731,26 +733,29 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
             const bsl::string data_utilization = prefix +
                                                  "data_utilization_max";
             const bsl::string sequence_number = prefix + "sequence_number";
+            const bsl::string replication_time_avg = prefix +
+                                                     "replication_time_ns_avg";
+            const bsl::string replication_time_max = prefix +
+                                                     "replication_time_ns_max";
 
             const DatapointDef defs[] = {
-                {rollover_time.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME},
+                {rollover_time.c_str(), Stat::e_PARTITION_ROLLOVER_TIME},
                 {journal_offset_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_OFFSET},
+                 Stat::e_PARTITION_JOURNAL_OFFSET},
                 {journal_outstanding_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT},
+                 Stat::e_PARTITION_JOURNAL_CONTENT},
                 {journal_utilization.c_str(),
-                 mqbstat::ClusterStats::Stat::
-                     e_PARTITION_JOURNAL_UTILIZATION_MAX},
-                {data_offset_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_OFFSET},
+                 Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX},
+                {data_offset_bytes.c_str(), Stat::e_PARTITION_DATA_OFFSET},
                 {data_outstanding_bytes.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT},
+                 Stat::e_PARTITION_DATA_CONTENT},
                 {data_utilization.c_str(),
-                 mqbstat::ClusterStats::Stat::
-                     e_PARTITION_DATA_UTILIZATION_MAX},
-                {sequence_number.c_str(),
-                 mqbstat::ClusterStats::Stat::e_PARTITION_SEQUENCE_NUMBER}};
+                 Stat::e_PARTITION_DATA_UTILIZATION_MAX},
+                {sequence_number.c_str(), Stat::e_PARTITION_SEQUENCE_NUMBER},
+                {replication_time_avg.c_str(),
+                 Stat::e_PARTITION_REPLICATION_TIME_NS_AVG},
+                {replication_time_max.c_str(),
+                 Stat::e_PARTITION_REPLICATION_TIME_NS_MAX}};
 
             Tagger tagger;
             tagger.setCluster(clusterIt->name())
