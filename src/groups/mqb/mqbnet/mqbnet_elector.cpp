@@ -1276,6 +1276,11 @@ void ElectorStateMachine::applyScoutingRequestEvent(
     }
     else {
         // Self does not perceive any node as valid leader.
+        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from node ["
+                      << sourceNodeId << "] with term [" << term
+                      << "]. Self term [" << d_term << "]. "
+                      << (term > d_term ? "Supporting" : "Not supporting")
+                      << " the scouting node.";
 
         // Self will support 'sourceNodeId' only if it proposes an election
         // with a 'term' greater than self's term.
