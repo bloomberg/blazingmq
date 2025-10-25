@@ -209,8 +209,8 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received status " << status
+                  << " Partition [" << partitionId
+                  << "]: " << "Received status " << status
                   << " for sending data chunks from Recovery Manager.";
 
     EventData eventDataVec;
@@ -343,8 +343,8 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
     PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
     if (!pinfo.primary()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Failed to set primary status to " << value
+                       << " Partition [" << partitionId
+                       << "]: " << "Failed to set primary status to " << value
                        << "because primary is perceived as ** NULL **";
 
         return;  // RETURN
@@ -505,9 +505,9 @@ void StorageManager::processReplicaDataRequestPull(
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received ReplicaDataRequestPull: " << message << " from "
-                  << source->nodeDescription() << ".";
+                  << " Partition [" << partitionId
+                  << "]: " << "Received ReplicaDataRequestPull: " << message
+                  << " from " << source->nodeDescription() << ".";
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -571,9 +571,9 @@ void StorageManager::processReplicaDataRequestPush(
         d_clusterState.partitionsInfo().at(partitionId).primaryNodeId());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received ReplicaDataRequestPush: " << message << " from "
-                  << source->nodeDescription() << ".";
+                  << " Partition [" << partitionId
+                  << "]: " << "Received ReplicaDataRequestPush: " << message
+                  << " from " << source->nodeDescription() << ".";
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -642,9 +642,9 @@ void StorageManager::processReplicaDataRequestDrop(
         d_clusterState.partitionsInfo().at(partitionId).primaryNodeId());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received ReplicaDataRequestDrop: " << message << " from "
-                  << source->nodeDescription() << ".";
+                  << " Partition [" << partitionId
+                  << "]: " << "Received ReplicaDataRequestDrop: " << message
+                  << " from " << source->nodeDescription() << ".";
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -835,8 +835,8 @@ void StorageManager::processReplicaStateResponseDispatched(
 
         if (cit->second.choice().isStatusValue()) {
             BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << " Partition [" << requestPartitionId << "]: "
-                          << "Received failed ReplicaStateResponse "
+                          << " Partition [" << requestPartitionId
+                          << "]: " << "Received failed ReplicaStateResponse "
                           << cit->second.choice().status() << " from "
                           << cit->first->nodeDescription()
                           << ". Skipping this node's response.";
@@ -873,9 +873,10 @@ void StorageManager::processReplicaStateResponseDispatched(
                 .replicaStateResponse();
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << requestPartitionId << "]: "
-                      << "Received ReplicaStateResponse " << cit->second
-                      << " from " << cit->first->nodeDescription();
+                      << " Partition [" << requestPartitionId
+                      << "]: " << "Received ReplicaStateResponse "
+                      << cit->second << " from "
+                      << cit->first->nodeDescription();
 
         BSLS_ASSERT_SAFE(d_clusterState.partitionsInfo()
                              .at(response.partitionId())
@@ -1215,8 +1216,8 @@ void StorageManager::do_stopWatchDog(const PartitionFSMArgsSp& args)
         d_watchDogEventHandles[partitionId]);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Failed to cancel WatchDog, rc: " << rc;
+                       << " Partition [" << partitionId
+                       << "]: " << "Failed to cancel WatchDog, rc: " << rc;
     }
 }
 
@@ -2586,8 +2587,8 @@ void StorageManager::do_processBufferedLiveData(const PartitionFSMArgsSp& args)
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Opened successfully, applying "
+                  << " Partition [" << partitionId
+                  << "]: " << "Opened successfully, applying "
                   << bufferedStorageEvents.size()
                   << " buffered storage events to the partition.";
 
@@ -3030,8 +3031,8 @@ void StorageManager::do_setExpectedDataChunkRange(
     }
     else {
         bmqu::MemOutStream out;
-        out << "Partition [" << partitionId << "]'s FSM "
-            << "(state = '" << d_partitionFSMVec[partitionId]->state() << "')"
+        out << "Partition [" << partitionId << "]'s FSM " << "(state = '"
+            << d_partitionFSMVec[partitionId]->state() << "')"
             << ": Unexpected event '" << eventWithData.first
             << "' caused action 'do_setExpectedDataChunkRange'.";
         BSLS_ASSERT_SAFE(false && out.str().data());
@@ -3141,8 +3142,8 @@ void StorageManager::do_updateStorage(const PartitionFSMArgsSp& args)
 
         if (bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE != pinfo.primaryStatus()) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " Partition [" << partitionId << "]: "
-                           << "Received a partition sync event from: "
+                           << " Partition [" << partitionId
+                           << "]: " << "Received a partition sync event from: "
                            << source->nodeDescription()
                            << ", while self is ACTIVE replica.";
             return;  // RETURN
@@ -3150,8 +3151,8 @@ void StorageManager::do_updateStorage(const PartitionFSMArgsSp& args)
     }
     else if (pinfo.primary()->nodeId() != source->nodeId()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Received a partition sync event from: "
+                       << " Partition [" << partitionId
+                       << "]: " << "Received a partition sync event from: "
                        << source->nodeDescription()
                        << ", but neither self is primary nor the sender is "
                        << "perceived as the primary.";
@@ -3180,8 +3181,8 @@ void StorageManager::do_updateStorage(const PartitionFSMArgsSp& args)
         firstSyncPointAfterRolloverSeqNum);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received status " << rc
+                  << " Partition [" << partitionId
+                  << "]: " << "Received status " << rc
                   << " for receiving data chunks from Recovery Manager.";
 
     EventData eventDataVecOut;
@@ -3302,11 +3303,11 @@ void StorageManager::do_checkQuorumRplcaDataRspn(
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
-    if (d_numReplicaDataResponsesReceivedVec[partitionId] >= d_seqNumQuorum) {
+    if (d_numReplicaDataResponsesReceivedVec[partitionId] >=
+        getSeqNumQuorum()) {
         // If we have a quorum of replica data responses (including self)
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "A quorum ("
+                      << " Partition [" << partitionId << "]: " << "A quorum ("
                       << d_numReplicaDataResponsesReceivedVec[partitionId]
                       << ") of cluster nodes now has healed partitions. "
                       << "Transitiong self to healed primary";
@@ -3333,8 +3334,8 @@ void StorageManager::do_reapplyEvent(const PartitionFSMArgsSp& args)
     const int partitionId = eventDataVec[0].partitionId();
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << " Re-apply event: " << eventWithData.first
+                  << " Partition [" << partitionId
+                  << "]: " << " Re-apply event: " << eventWithData.first
                   << " in the Partition FSM.";
 
     args->eventsQueue()->push(eventWithData);
@@ -3362,7 +3363,7 @@ void StorageManager::do_checkQuorumSeq(const PartitionFSMArgsSp& args)
 
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
-    if (d_nodeToSeqNumCtxMapVec[partitionId].size() >= d_seqNumQuorum) {
+    if (d_nodeToSeqNumCtxMapVec[partitionId].size() >= getSeqNumQuorum()) {
         // If we have a quorum of Replica Sequence numbers (including self
         // Seq)
 
@@ -3397,7 +3398,7 @@ void StorageManager::do_findHighestSeq(const PartitionFSMArgsSp& args)
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
     BSLS_ASSERT_SAFE(d_nodeToSeqNumCtxMapVec[partitionId].size() >=
-                     d_seqNumQuorum);
+                     getSeqNumQuorum());
 
     const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap =
         d_nodeToSeqNumCtxMapVec[partitionId];
@@ -3660,7 +3661,8 @@ StorageManager::StorageManager(
 , d_numPartitionsRecoveredQueues(0)
 , d_recoveryStartTimes(allocator)
 , d_nodeToSeqNumCtxMapVec(allocator)
-, d_seqNumQuorum((d_clusterConfig.nodes().size() / 2) + 1)  // TODO: Config??
+// , d_seqNumQuorum((d_clusterConfig.nodes().size() / 2) + 1)  // TODO:
+// Config??
 , d_numReplicaDataResponsesReceivedVec(allocator)
 , d_isQueueKeyInfoMapVecInitialized(false)
 , d_queueKeyInfoMapVec(allocator)
@@ -4300,9 +4302,9 @@ void StorageManager::processPrimaryStateRequest(
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received PrimaryStateRequest: " << message << " from "
-                  << source->nodeDescription() << ".";
+                  << " Partition [" << partitionId
+                  << "]: " << "Received PrimaryStateRequest: " << message
+                  << " from " << source->nodeDescription() << ".";
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -4360,9 +4362,9 @@ void StorageManager::processReplicaStateRequest(
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Received ReplicaStateRequest: " << message << " from "
-                  << source->nodeDescription() << ".";
+                  << " Partition [" << partitionId
+                  << "]: " << "Received ReplicaStateRequest: " << message
+                  << " from " << source->nodeDescription() << ".";
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
