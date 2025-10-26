@@ -128,6 +128,28 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
             k_FAILED
         };
 
+        //  This code relies on the fact that there can NOT be a Close request
+        //  before corresponding Open response.
+        //  There are 3 sets:  Opened, PendingClose, PendingOpen
+        //  -   Reopen applies to the Opened set
+        //  -   PendingClose is a subset of Opened.
+        //  -   Can execute PendingClose before PendingOpen but not before
+        //      Reopen
+        //
+        //  The order of execution when reopening
+        //  1.  Set the state to k_CLOSED which blocks Open requests,
+        //      subtract counters on Close without sending Close request
+        //  2.  Once there are no Open requests in flight, set the state to
+        //      k_REOPENING which blocks Close requests, send Reopen request.
+        //  3.  On Reopen success, set the state to k_OPEN which unblocks Close
+        //      and Open requests.
+        //      Attempt to Send all cached Close,
+        //      Attempt to Send all cached Open
+        //
+        //  4.  On Reopen failure, set the state to k_CLOSED which unblocks
+        //      Close and still blocks Open requests.
+        //      Attempt to Send all cached Close
+
         struct PendingClose {
             const bmqp_ctrlmsg::QueueHandleParameters   d_handleParameters;
             const mqbi::Cluster::HandleReleasedCallback d_callback;
@@ -148,12 +170,17 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         bsl::vector<PendingClose> d_pendingCloseRequests;
 
+        /// The Reopening logic blocks all new Open requests and waits for
+        /// all pending Open responses before sending Reopen request.
+        int d_numOpenRequestsInFlight;
+
         SubQueueContext(
             const bmqt::Uri&                                         uri,
             const bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>& info,
             bslma::Allocator*                                        a)
-        : d_state(k_CLOSED)
+        : d_state(k_OPEN)
         , d_pendingCloseRequests(a)
+        , d_numOpenRequestsInFlight(0)
         {
             d_parameters.uri()       = uri.asString();
             d_parameters.subIdInfo() = info;
@@ -219,7 +246,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // callback).
         // Note that this value is modified from `OpenQueueContext` possibly
         // from different threads.
-        bsls::AtomicInt d_inFlight;
+        int d_inFlight;
+
+        /// Number of requests that have been send to reopen the queues after
+        /// active node switch or primary switch.  Incremented when sending a
+        /// ReopenQueue request, and decremented either upon configure queue
+        /// response if Reopen request succeeds or Reopen response otherwise.
+        int d_numReopenQueueRequests;
 
       public:
         // TRAITS
@@ -329,8 +362,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                                     clientContext,
             const mqbi::Cluster::OpenQueueCallback& callback);
 
-        ~OpenQueueContext();
-
         void setQueueContext(QueueContext* queueContext);
 
         QueueContext* queueContext() const;
@@ -372,10 +403,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// QueueContext owns QueueLiveState that cannot be copy-constructed.
         QueueContext(const QueueContext&) BSLS_KEYWORD_DELETED;
         QueueContext& operator=(const QueueContext&) BSLS_KEYWORD_DELETED;
-
-        /// Respond to all pending OpenQueue requests with the specified
-        /// `status`.
-        void respond(const bmqp_ctrlmsg::Status& status) const;
 
         // ACCESSORS
 
@@ -433,11 +460,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Number of requests that have been send to reopen the queues after
     /// active node switch or primary switch .  This variable is incremented
-    /// when an open-queue request is sent, but decremented only upon receiving
-    /// configure queue response.  Additionally, this counter is never
-    /// explicitly set to zero.  We rely on all response callbacks being fired
-    /// (success, error, or cancel), where we decrement this variable.
-    bsls::AtomicInt d_numPendingReopenQueueRequests;
+    /// when an ReopenQueue request is sent, and decremented either upon
+    /// configure queue response if Reopen request succeeds or Reopen response
+    /// otherwise.
+    int d_numPendingReopenQueueRequests;
 
     // Whether the alarm for primary and leader nodes being different has been
     // raised at least once when gc'ing expired queues.  This is important
@@ -501,12 +527,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// been assigned; to resume the operation on any pending contexts.
     void onQueueContextAssigned(const QueueContextSp& queueContext);
 
-    /// Process pending Close requests, if any upon Reopen response.
-    void processPendingClose(QueueContextSp       queueContext,
-                             StreamsMap::iterator sqit);
+    /// Process pending Close requests for the specified `queueContext` and the
+    /// specified `sqit`, if any upon Reopen response.  If there are no more
+    /// pending Reopen queue requests, process all pending Open queue requests.
+    void finishReopening(QueueContext*        queueContext,
+                         StreamsMap::iterator sqit);
 
     /// Process pending contexts, if any, from the specified `queueContext`.
-    void processPendingContexts(const QueueContextSp& queueContext);
+    void processPendingContexts(QueueContext* queueContext);
 
     /// Process the open queue request represented by the specified
     /// `context`: that is, depending on the cluster mode and queue
@@ -531,9 +559,15 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is called from the Cluster's dispatcher thread.
     bmqt::GenericResult::Enum
-    sendReopenQueueRequest(const RequestManagerType::RequestSp& requestContext,
-                           mqbnet::ClusterNode*                 activeNode,
-                           bsls::Types::Uint64 generationCount);
+    sendReopenQueueRequest(SubQueueContext*     subQueueContext,
+                           QueueContext*        queueContext,
+                           mqbnet::ClusterNode* activeNode,
+                           bsls::Types::Uint64  generationCount,
+                           int                  numAttempts);
+
+    bmqt::GenericResult::Enum
+    sendReopenQueueRequest(SubQueueContext* subQueueContext,
+                           QueueContext*    queueContext);
 
     /// Assign the upstream subQueueId in the specified `context`.  If the
     /// queue has already been opened with the appId in the `context`,
@@ -681,7 +715,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Decrement `d_numPendingReopenQueueRequests` counter.  If the counter
     /// drops to 0, `d_stateRestoredFn` if it is set.
-    void onResponseToPendingQueueRequest();
+    void onReopenQueueCompletion();
 
     /// Upon completion of queue reopening, if the specified `queueContext`
     /// references a queue, notify the queue about success or failure
@@ -700,12 +734,12 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const bmqp_ctrlmsg::StreamParameters&              streamParameters,
         const mqbi::QueueHandle::HandleConfiguredCallback& callback);
 
-    void releaseQueueDispatched(
+    void closeQueueDispatched(
         const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
         unsigned int                                 upstreamSubQueueId,
         const mqbi::Cluster::HandleReleasedCallback& callback);
 
-    void onReleaseQueueResponse(
+    void onCloseQueueResponse(
         const RequestManagerType::RequestSp&         requestContext,
         const mqbi::Cluster::HandleReleasedCallback& callback);
 
@@ -757,7 +791,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void restoreStateCluster(int partitionId);
 
     bmqt::GenericResult::Enum
-    restoreStateHelper(QueueLiveState&      queueInfo,
+    restoreStateHelper(QueueContext*        queueContext,
                        mqbnet::ClusterNode* activeNode,
                        bsls::Types::Uint64  generationCount);
 
@@ -775,18 +809,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void checkUnconfirmedV2Dispatched(
         const bsls::TimeInterval&    whenToStop,
         const bsl::function<void()>& completionCallback);
-
-    /// Third step of StopRequest / CLOSING node advisory processing.
-    /// Issue close-queue request for the specified `queueSp`.
-    void closeQueueDispatched(const bsl::shared_ptr<StopContext>& contextSp,
-                              const bsl::shared_ptr<mqbi::Queue>& queueSp,
-                              unsigned int                        subId);
-
-    /// Fourth step of StopRequest / CLOSING node advisory processing
-    /// (after close response).  Once all queues are done, send
-    /// StopResponse.
-    void onCloseQueueResponse(const bsl::shared_ptr<StopContext>& contextSp,
-                              const bmqp_ctrlmsg::Status&         status);
 
     /// Send StopResponse to the request in the specified 'context.
     void finishStopSequence(StopContext* context);
@@ -845,7 +867,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void match(bsl::vector<bsl::string>*          added,
                bsl::vector<bsl::string>*          removed,
                const mqbc::ClusterStateQueueInfo& state,
-               const mqbconfm::QueueMode&         domainConfig);
+               const mqbconfm::QueueMode&         domainConfig) const;
+
+    /// Respond to all pending OpenQueue requests with the specified
+    /// `status`.
+    void finishAllOpening(const QueueContextSp&       queueContext,
+                          const bmqp_ctrlmsg::Status& status);
+
+    void finishOpening(
+        const OpenQueueContextSp&                         openQueueContext_sp,
+        const bmqp_ctrlmsg::Status&                       status,
+        mqbi::QueueHandle*                                queueHandle,
+        const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
+        const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterMembershipObserver)
@@ -955,10 +989,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const mqbi::QueueHandle::HandleConfiguredCallback& callback);
 
     void
-    configureQueue(mqbi::Queue*                               queue,
-                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-                   unsigned int upstreamSubQueueId,
-                   const mqbi::Cluster::HandleReleasedCallback& callback);
+    closeQueue(mqbi::Queue*                                 queue,
+               const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
+               unsigned int                                 upstreamSubQueueId,
+               const mqbi::Cluster::HandleReleasedCallback& callback);
 
     void onQueueHandleCreated(mqbi::Queue*     queue,
                               const bmqt::Uri& uri,
