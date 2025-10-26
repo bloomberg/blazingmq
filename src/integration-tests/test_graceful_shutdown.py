@@ -374,9 +374,7 @@ class TestGracefulShutdown:
         # start graceful shutdown
         active_node.exit_gracefully()
 
-        capture = self.replica_proxy.capture(
-            r"Attempting to re-issue open-queue request", timeout=10
-        )
+        capture = self.replica_proxy.capture(r"Sent ReopenQueue request", timeout=10)
         assert capture
 
         # post one more PUT
