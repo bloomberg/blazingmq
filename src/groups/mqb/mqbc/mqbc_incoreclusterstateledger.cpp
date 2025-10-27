@@ -688,7 +688,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         }
 
         iter->second.d_ackCount += 1;
-        if (iter->second.d_ackCount == d_ackQuorum) {
+        if (iter->second.d_ackCount == getAckQuorum()) {
             // Consistency level reached. Apply a commit message for the
             // advisory, broadcast it, and invoke the 'CommitCb'.
             bmqp_ctrlmsg::ClusterMessage        commitMessage;
@@ -701,7 +701,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
                              commitAdvisory.sequenceNumberCommitted());
 
-            BALL_LOG_INFO << description() << "Quorum of " << d_ackQuorum
+            BALL_LOG_INFO << description() << "Quorum of " << getAckQuorum()
                           << " acks is achieved for advisory of seqNum "
                           << ack.sequenceNumberAcked()
                           << ", creating and applying commit advisory: "
@@ -1171,9 +1171,10 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
 , d_consistencyLevel(consistencyLevel)
-, d_ackQuorum(consistencyLevel == ClusterStateLedgerConsistency::e_STRONG
-                  ? (clusterDefinition.nodes().size() / 2) + 1
-                  : 1)
+, d_clusterConfig(clusterDefinition)
+// , d_ackQuorum(consistencyLevel == ClusterStateLedgerConsistency::e_STRONG
+//                   ? (clusterDefinition.nodes().size() / 2) + 1
+//                   : 1)
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
