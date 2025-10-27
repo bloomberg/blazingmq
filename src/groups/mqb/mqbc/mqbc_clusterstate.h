@@ -519,6 +519,8 @@ class ClusterState {
     typedef DomainStates::iterator                         DomainStatesIter;
     typedef DomainStates::const_iterator                   DomainStatesCIter;
 
+    typedef bsl::map<bsl::string, mqbi::Domain*> DomainMap;
+
     typedef bsl::unordered_set<mqbu::StorageKey> QueueKeys;
     typedef QueueKeys::iterator                  QueueKeysIter;
     typedef bsl::pair<QueueKeysIter, bool>       QueueKeysInsertRc;
@@ -558,6 +560,14 @@ class ClusterState {
 
     /// TODO (FSM); remove after switching to FSM
     Assignments d_doubleAssignments;
+
+    // PRIVATE MANIPULATORS
+
+    /// Look for the specified `domain` in the internal `DomainStates` object.
+    /// If it's not found, create a `DomainState` object for the specified
+    /// `domain` and insert it to the internal container. Return a modifiable
+    /// reference to the previously inserted or found `DomainState`.
+    DomainState& getDomainState(const bsl::string& domain);
 
   public:
     // TRAITS
@@ -629,6 +639,10 @@ class ClusterState {
     /// bahavior is undefined unless `partitionId >= 0` and 'partitionId <
     /// partitionsCount'.
     ClusterState& updatePartitionNumActiveQueues(int partitionId, int delta);
+
+    /// Create a `DomainState` object for each of the specified `domains` and
+    /// insert it to the internal container if they are not present.
+    void onDomainsCreated(const DomainMap& domains);
 
     /// Assign the queue with the values (such as `uri`, `key`, `partitionId`)
     /// from the specified `queueInfo`, and register the `appIdInfos` from the
