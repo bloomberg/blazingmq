@@ -66,6 +66,9 @@ namespace bmqp_ctrlmsg {
 class AppIdInfo;
 }
 namespace bmqp_ctrlmsg {
+class AuthenticationRequest;
+}
+namespace bmqp_ctrlmsg {
 class CloseQueueResponse;
 }
 namespace bmqp_ctrlmsg {
@@ -240,6 +243,9 @@ namespace bmqp_ctrlmsg {
 class SyncPointOffsetPair;
 }
 namespace bmqp_ctrlmsg {
+class AuthenticationResponse;
+}
+namespace bmqp_ctrlmsg {
 class BrokerResponse;
 }
 namespace bmqp_ctrlmsg {
@@ -286,6 +292,9 @@ class StorageSyncRequest;
 }
 namespace bmqp_ctrlmsg {
 class Subscription;
+}
+namespace bmqp_ctrlmsg {
+class AuthenticationMessage;
 }
 namespace bmqp_ctrlmsg {
 class ConfigureQueueStreamResponse;
@@ -982,6 +991,233 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AppIdInfo)
 template <>
 struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AppIdInfo> : bsl::true_type {};
+
+namespace bmqp_ctrlmsg {
+
+// ===========================
+// class AuthenticationRequest
+// ===========================
+
+class AuthenticationRequest {
+    // This request is a messages sent from a client to a broker during session
+    // initiation or reauthentication.  The message indicates the client is
+    // attempting to authenticate with the supplied authentication material to
+    // initiate a session.
+    // mechanism.: The authentication mechanism the client intends to use
+    // data......: The client's authentication material
+
+    // INSTANCE DATA
+    bsl::string                             d_mechanism;
+    bdlb::NullableValue<bsl::vector<char> > d_data;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_MECHANISM = 0, ATTRIBUTE_ID_DATA = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_MECHANISM = 0, ATTRIBUTE_INDEX_DATA = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit AuthenticationRequest(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AuthenticationRequest' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    AuthenticationRequest(const AuthenticationRequest& original,
+                          bslma::Allocator*            basicAllocator = 0);
+    // Create an object of type 'AuthenticationRequest' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationRequest(AuthenticationRequest&& original) noexcept;
+    // Create an object of type 'AuthenticationRequest' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    AuthenticationRequest(AuthenticationRequest&& original,
+                          bslma::Allocator*       basicAllocator);
+    // Create an object of type 'AuthenticationRequest' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~AuthenticationRequest();
+    // Destroy this object.
+
+    // MANIPULATORS
+    AuthenticationRequest& operator=(const AuthenticationRequest& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationRequest& operator=(AuthenticationRequest&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& mechanism();
+    // Return a reference to the modifiable "Mechanism" attribute of this
+    // object.
+
+    bdlb::NullableValue<bsl::vector<char> >& data();
+    // Return a reference to the modifiable "Data" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& mechanism() const;
+    // Return a reference offering non-modifiable access to the "Mechanism"
+    // attribute of this object.
+
+    const bdlb::NullableValue<bsl::vector<char> >& data() const;
+    // Return a reference offering non-modifiable access to the "Data"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const AuthenticationRequest& lhs,
+                           const AuthenticationRequest& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.mechanism() == rhs.mechanism() && lhs.data() == rhs.data();
+    }
+
+    friend bool operator!=(const AuthenticationRequest& lhs,
+                           const AuthenticationRequest& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                stream,
+                                    const AuthenticationRequest& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&            hashAlg,
+                           const AuthenticationRequest& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'AuthenticationRequest'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.mechanism());
+        hashAppend(hashAlg, object.data());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::AuthenticationRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -13499,6 +13735,236 @@ struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SyncPointOffsetPair>
 
 namespace bmqp_ctrlmsg {
 
+// ============================
+// class AuthenticationResponse
+// ============================
+
+class AuthenticationResponse {
+    // Response of an 'AuthenticationRequest' request indicating the result of
+    // the operation.  The message is sent to a client from a broker during
+    // authentication.
+    // status.....: Status of the request lifetimeMs.: The duration (in
+    // milliseconds) the client's session is valid for.  The client must
+    // reauthenticate before the lifetime expires or it will be disconnected.
+    // The session lifetime is valid indefinitely if this value is unset.
+
+    // INSTANCE DATA
+    Status                   d_status;
+    bdlb::NullableValue<int> d_lifetimeMs;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_STATUS = 0, ATTRIBUTE_ID_LIFETIME_MS = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_STATUS = 0, ATTRIBUTE_INDEX_LIFETIME_MS = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit AuthenticationResponse(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AuthenticationResponse' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    AuthenticationResponse(const AuthenticationResponse& original,
+                           bslma::Allocator*             basicAllocator = 0);
+    // Create an object of type 'AuthenticationResponse' having the value
+    // of the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationResponse(AuthenticationResponse&& original) noexcept;
+    // Create an object of type 'AuthenticationResponse' having the value
+    // of the specified 'original' object.  After performing this action,
+    // the 'original' object will be left in a valid, but unspecified
+    // state.
+
+    AuthenticationResponse(AuthenticationResponse&& original,
+                           bslma::Allocator*        basicAllocator);
+    // Create an object of type 'AuthenticationResponse' having the value
+    // of the specified 'original' object.  After performing this action,
+    // the 'original' object will be left in a valid, but unspecified
+    // state.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+#endif
+
+    ~AuthenticationResponse();
+    // Destroy this object.
+
+    // MANIPULATORS
+    AuthenticationResponse& operator=(const AuthenticationResponse& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationResponse& operator=(AuthenticationResponse&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    Status& status();
+    // Return a reference to the modifiable "Status" attribute of this
+    // object.
+
+    bdlb::NullableValue<int>& lifetimeMs();
+    // Return a reference to the modifiable "LifetimeMs" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const Status& status() const;
+    // Return a reference offering non-modifiable access to the "Status"
+    // attribute of this object.
+
+    const bdlb::NullableValue<int>& lifetimeMs() const;
+    // Return a reference offering non-modifiable access to the
+    // "LifetimeMs" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const AuthenticationResponse& lhs,
+                           const AuthenticationResponse& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.status() == rhs.status() &&
+               lhs.lifetimeMs() == rhs.lifetimeMs();
+    }
+
+    friend bool operator!=(const AuthenticationResponse& lhs,
+                           const AuthenticationResponse& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                 stream,
+                                    const AuthenticationResponse& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&             hashAlg,
+                           const AuthenticationResponse& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'AuthenticationResponse'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.status());
+        hashAppend(hashAlg, object.lifetimeMs());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::AuthenticationResponse)
+
+namespace bmqp_ctrlmsg {
+
 // ====================
 // class BrokerResponse
 // ====================
@@ -17320,6 +17786,275 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 template <>
 struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Subscription>
 : bsl::true_type {};
+
+namespace bmqp_ctrlmsg {
+
+// ===========================
+// class AuthenticationMessage
+// ===========================
+
+class AuthenticationMessage {
+    // This type is the top level type for any message being exchanged during
+    // authentication of a connection with the broker, whether by a BlazingMQ
+    // client or another broker.
+    // choice.: enumerates all the different type of authentication packets
+    // During authentication, the process (whether a client using the libbmq
+    // SDK, or a bmqbrkr) sends a 'authenticationRequest' message; to which the
+    // remote peer will reply with a 'authenticationResponse' message.
+
+    // INSTANCE DATA
+    union {
+        bsls::ObjectBuffer<AuthenticationRequest>  d_authenticationRequest;
+        bsls::ObjectBuffer<AuthenticationResponse> d_authenticationResponse;
+    };
+
+    int               d_selectionId;
+    bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const AuthenticationMessage& rhs) const;
+
+  public:
+    // TYPES
+
+    enum {
+        SELECTION_ID_UNDEFINED               = -1,
+        SELECTION_ID_AUTHENTICATION_REQUEST  = 0,
+        SELECTION_ID_AUTHENTICATION_RESPONSE = 1
+    };
+
+    enum { NUM_SELECTIONS = 2 };
+
+    enum {
+        SELECTION_INDEX_AUTHENTICATION_REQUEST  = 0,
+        SELECTION_INDEX_AUTHENTICATION_RESPONSE = 1
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
+    // Return selection information for the selection indicated by the
+    // specified 'id' if the selection exists, and 0 otherwise.
+
+    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+                                                          int nameLength);
+    // Return selection information for the selection indicated by the
+    // specified 'name' of the specified 'nameLength' if the selection
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit AuthenticationMessage(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AuthenticationMessage' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    AuthenticationMessage(const AuthenticationMessage& original,
+                          bslma::Allocator*            basicAllocator = 0);
+    // Create an object of type 'AuthenticationMessage' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationMessage(AuthenticationMessage&& original) noexcept;
+    // Create an object of type 'AuthenticationMessage' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    AuthenticationMessage(AuthenticationMessage&& original,
+                          bslma::Allocator*       basicAllocator);
+    // Create an object of type 'AuthenticationMessage' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~AuthenticationMessage();
+    // Destroy this object.
+
+    // MANIPULATORS
+    AuthenticationMessage& operator=(const AuthenticationMessage& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationMessage& operator=(AuthenticationMessage&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon default
+    // construction).
+
+    int makeSelection(int selectionId);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'selectionId'.  Return 0 on success, and
+    // non-zero value otherwise (i.e., the selection is not found).
+
+    int makeSelection(const char* name, int nameLength);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'name' of the specified 'nameLength'.
+    // Return 0 on success, and non-zero value otherwise (i.e., the
+    // selection is not found).
+
+    AuthenticationRequest& makeAuthenticationRequest();
+    AuthenticationRequest&
+    makeAuthenticationRequest(const AuthenticationRequest& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationRequest&
+    makeAuthenticationRequest(AuthenticationRequest&& value);
+#endif
+    // Set the value of this object to be a "AuthenticationRequest" value.
+    // Optionally specify the 'value' of the "AuthenticationRequest".  If
+    // 'value' is not specified, the default "AuthenticationRequest" value
+    // is used.
+
+    AuthenticationResponse& makeAuthenticationResponse();
+    AuthenticationResponse&
+    makeAuthenticationResponse(const AuthenticationResponse& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AuthenticationResponse&
+    makeAuthenticationResponse(AuthenticationResponse&& value);
+#endif
+    // Set the value of this object to be a "AuthenticationResponse" value.
+    //  Optionally specify the 'value' of the "AuthenticationResponse".  If
+    // 'value' is not specified, the default "AuthenticationResponse" value
+    // is used.
+
+    template <typename t_MANIPULATOR>
+    int manipulateSelection(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' on the address of the modifiable
+    // selection, supplying 'manipulator' with the corresponding selection
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if this object has a defined selection,
+    // and -1 otherwise.
+
+    AuthenticationRequest& authenticationRequest();
+    // Return a reference to the modifiable "AuthenticationRequest"
+    // selection of this object if "AuthenticationRequest" is the current
+    // selection.  The behavior is undefined unless "AuthenticationRequest"
+    // is the selection of this object.
+
+    AuthenticationResponse& authenticationResponse();
+    // Return a reference to the modifiable "AuthenticationResponse"
+    // selection of this object if "AuthenticationResponse" is the current
+    // selection.  The behavior is undefined unless
+    // "AuthenticationResponse" is the selection of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    int selectionId() const;
+    // Return the id of the current selection if the selection is defined,
+    // and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessSelection(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' on the non-modifiable selection,
+    // supplying 'accessor' with the corresponding selection information
+    // structure.  Return the value returned from the invocation of
+    // 'accessor' if this object has a defined selection, and -1 otherwise.
+
+    const AuthenticationRequest& authenticationRequest() const;
+    // Return a reference to the non-modifiable "AuthenticationRequest"
+    // selection of this object if "AuthenticationRequest" is the current
+    // selection.  The behavior is undefined unless "AuthenticationRequest"
+    // is the selection of this object.
+
+    const AuthenticationResponse& authenticationResponse() const;
+    // Return a reference to the non-modifiable "AuthenticationResponse"
+    // selection of this object if "AuthenticationResponse" is the current
+    // selection.  The behavior is undefined unless
+    // "AuthenticationResponse" is the selection of this object.
+
+    bool isAuthenticationRequestValue() const;
+    // Return 'true' if the value of this object is a
+    // "AuthenticationRequest" value, and return 'false' otherwise.
+
+    bool isAuthenticationResponseValue() const;
+    // Return 'true' if the value of this object is a
+    // "AuthenticationResponse" value, and return 'false' otherwise.
+
+    bool isUndefinedValue() const;
+    // Return 'true' if the value of this object is undefined, and 'false'
+    // otherwise.
+
+    const char* selectionName() const;
+    // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const AuthenticationMessage& lhs,
+                           const AuthenticationMessage& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'AuthenticationMessage' objects
+    // have the same value if either the selections in both objects have
+    // the same ids and the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const AuthenticationMessage& lhs,
+                           const AuthenticationMessage& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                stream,
+                                    const AuthenticationMessage& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&            hashAlg,
+                           const AuthenticationMessage& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'AuthenticationMessage'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::AuthenticationMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -22556,6 +23291,140 @@ inline const bsl::string& AppIdInfo::appId() const
 inline const bsl::vector<char>& AppIdInfo::appKey() const
 {
     return d_appKey;
+}
+
+// ---------------------------
+// class AuthenticationRequest
+// ---------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int AuthenticationRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_mechanism,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MECHANISM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_data, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticationRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                               int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_MECHANISM: {
+        return manipulator(&d_mechanism,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MECHANISM]);
+    }
+    case ATTRIBUTE_ID_DATA: {
+        return manipulator(&d_data,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticationRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                               const char*    name,
+                                               int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& AuthenticationRequest::mechanism()
+{
+    return d_mechanism;
+}
+
+inline bdlb::NullableValue<bsl::vector<char> >& AuthenticationRequest::data()
+{
+    return d_data;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int AuthenticationRequest::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_mechanism,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MECHANISM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_data, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int AuthenticationRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_MECHANISM: {
+        return accessor(d_mechanism,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MECHANISM]);
+    }
+    case ATTRIBUTE_ID_DATA: {
+        return accessor(d_data, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int AuthenticationRequest::accessAttribute(t_ACCESSOR& accessor,
+                                           const char* name,
+                                           int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& AuthenticationRequest::mechanism() const
+{
+    return d_mechanism;
+}
+
+inline const bdlb::NullableValue<bsl::vector<char> >&
+AuthenticationRequest::data() const
+{
+    return d_data;
 }
 
 // --------------------
@@ -31281,6 +32150,141 @@ inline bsls::Types::Uint64 SyncPointOffsetPair::offset() const
     return d_offset;
 }
 
+// ----------------------------
+// class AuthenticationResponse
+// ----------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int AuthenticationResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_status, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATUS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_lifetimeMs,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LIFETIME_MS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticationResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_STATUS: {
+        return manipulator(&d_status,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATUS]);
+    }
+    case ATTRIBUTE_ID_LIFETIME_MS: {
+        return manipulator(&d_lifetimeMs,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LIFETIME_MS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int AuthenticationResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                const char*    name,
+                                                int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline Status& AuthenticationResponse::status()
+{
+    return d_status;
+}
+
+inline bdlb::NullableValue<int>& AuthenticationResponse::lifetimeMs()
+{
+    return d_lifetimeMs;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int AuthenticationResponse::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_status, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATUS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_lifetimeMs,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LIFETIME_MS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int AuthenticationResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_STATUS: {
+        return accessor(d_status,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATUS]);
+    }
+    case ATTRIBUTE_ID_LIFETIME_MS: {
+        return accessor(d_lifetimeMs,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LIFETIME_MS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int AuthenticationResponse::accessAttribute(t_ACCESSOR& accessor,
+                                            const char* name,
+                                            int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const Status& AuthenticationResponse::status() const
+{
+    return d_status;
+}
+
+inline const bdlb::NullableValue<int>&
+AuthenticationResponse::lifetimeMs() const
+{
+    return d_lifetimeMs;
+}
+
 // --------------------
 // class BrokerResponse
 // --------------------
@@ -34202,6 +35206,148 @@ inline const Expression& Subscription::expression() const
 inline const bsl::vector<ConsumerInfo>& Subscription::consumers() const
 {
     return d_consumers;
+}
+
+// ---------------------------
+// class AuthenticationMessage
+// ---------------------------
+
+// CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void AuthenticationMessage::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef AuthenticationMessage Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_AUTHENTICATION_REQUEST:
+        hashAppend(hashAlgorithm, this->authenticationRequest());
+        break;
+    case Class::SELECTION_ID_AUTHENTICATION_RESPONSE:
+        hashAppend(hashAlgorithm, this->authenticationResponse());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool
+AuthenticationMessage::isEqualTo(const AuthenticationMessage& rhs) const
+{
+    typedef AuthenticationMessage Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_AUTHENTICATION_REQUEST:
+            return this->authenticationRequest() ==
+                   rhs.authenticationRequest();
+        case Class::SELECTION_ID_AUTHENTICATION_RESPONSE:
+            return this->authenticationResponse() ==
+                   rhs.authenticationResponse();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
+// CREATORS
+inline AuthenticationMessage::AuthenticationMessage(
+    bslma::Allocator* basicAllocator)
+: d_selectionId(SELECTION_ID_UNDEFINED)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+}
+
+inline AuthenticationMessage::~AuthenticationMessage()
+{
+    reset();
+}
+
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int AuthenticationMessage::manipulateSelection(t_MANIPULATOR& manipulator)
+{
+    switch (d_selectionId) {
+    case AuthenticationMessage::SELECTION_ID_AUTHENTICATION_REQUEST:
+        return manipulator(
+            &d_authenticationRequest.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_REQUEST]);
+    case AuthenticationMessage::SELECTION_ID_AUTHENTICATION_RESPONSE:
+        return manipulator(
+            &d_authenticationResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_RESPONSE]);
+    default:
+        BSLS_ASSERT(AuthenticationMessage::SELECTION_ID_UNDEFINED ==
+                    d_selectionId);
+        return -1;
+    }
+}
+
+inline AuthenticationRequest& AuthenticationMessage::authenticationRequest()
+{
+    BSLS_ASSERT(SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId);
+    return d_authenticationRequest.object();
+}
+
+inline AuthenticationResponse& AuthenticationMessage::authenticationResponse()
+{
+    BSLS_ASSERT(SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId);
+    return d_authenticationResponse.object();
+}
+
+// ACCESSORS
+inline int AuthenticationMessage::selectionId() const
+{
+    return d_selectionId;
+}
+
+template <typename t_ACCESSOR>
+int AuthenticationMessage::accessSelection(t_ACCESSOR& accessor) const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATION_REQUEST:
+        return accessor(
+            d_authenticationRequest.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_REQUEST]);
+    case SELECTION_ID_AUTHENTICATION_RESPONSE:
+        return accessor(
+            d_authenticationResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATION_RESPONSE]);
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    }
+}
+
+inline const AuthenticationRequest&
+AuthenticationMessage::authenticationRequest() const
+{
+    BSLS_ASSERT(SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId);
+    return d_authenticationRequest.object();
+}
+
+inline const AuthenticationResponse&
+AuthenticationMessage::authenticationResponse() const
+{
+    BSLS_ASSERT(SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId);
+    return d_authenticationResponse.object();
+}
+
+inline bool AuthenticationMessage::isAuthenticationRequestValue() const
+{
+    return SELECTION_ID_AUTHENTICATION_REQUEST == d_selectionId;
+}
+
+inline bool AuthenticationMessage::isAuthenticationResponseValue() const
+{
+    return SELECTION_ID_AUTHENTICATION_RESPONSE == d_selectionId;
+}
+
+inline bool AuthenticationMessage::isUndefinedValue() const
+{
+    return SELECTION_ID_UNDEFINED == d_selectionId;
 }
 
 // ----------------------------------

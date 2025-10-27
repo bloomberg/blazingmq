@@ -58,6 +58,18 @@
 namespace BloombergLP {
 namespace mqbblp {
 
+namespace {
+
+void onHandleDeconfigured(const bmqp_ctrlmsg::Status&,
+                          const bmqp_ctrlmsg::StreamParameters&,
+                          const bsl::function<void(void)>& cb)
+{
+    BSLS_ASSERT_SAFE(cb);
+    cb();
+}
+
+}
+
 // -----------
 // class Queue
 // -----------
@@ -248,14 +260,6 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
             bmqp::QueueUtil::createHandleParameters(handle->handleParameters(),
                                                     subStreamInfo,
                                                     info.d_counts.d_readCount);
-        if (doDeconfigure) {
-            bmqp_ctrlmsg::StreamParameters nullStreamParameters;
-            nullStreamParameters.appId() = appId;
-
-            configureHandle(handle,
-                            nullStreamParameters,
-                            mqbi::QueueHandle::HandleConfiguredCallback());
-        }
 
         // Set 'isFinal' when releasing the last subStream of this handle
         isFinal = ((++citer) == handle->subStreamInfos().end());
@@ -269,12 +273,36 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
                       << "]. 'isFinal' flag: " << bsl::boolalpha << isFinal
                       << ".";
 
-        // 'releaseHandle' erases from 'handle->subStreamInfos()' invalidating
-        // the iterator.
-        releaseHandleDispatched(handle,
-                                consumerHandleParams,
-                                isFinal,  // isFinal flag
-                                mqbi::QueueHandle::HandleReleasedCallback());
+        if (doDeconfigure) {
+            bmqp_ctrlmsg::StreamParameters nullStreamParameters;
+            nullStreamParameters.appId() = appId;
+
+            // Do not send CloseQueue request without waiting for deconfigure
+            // response.
+            const bsl::function<void(void)> cb = bdlf::BindUtil::bind(
+                &Queue::releaseHandleDispatched,
+                this,
+                handle,
+                consumerHandleParams,
+                isFinal,
+                mqbi::QueueHandle::HandleReleasedCallback());
+
+            configureHandle(handle,
+                            nullStreamParameters,
+                            bdlf::BindUtil::bind(&onHandleDeconfigured,
+                                                 bdlf::PlaceHolders::_1,
+                                                 bdlf::PlaceHolders::_2,
+                                                 cb));
+        }
+        else {
+            // 'releaseHandle' erases from 'handle->subStreamInfos()'
+            // invalidating the iterator.
+            releaseHandleDispatched(
+                handle,
+                consumerHandleParams,
+                isFinal,  // isFinal flag
+                mqbi::QueueHandle::HandleReleasedCallback());
+        }
     }
 }
 

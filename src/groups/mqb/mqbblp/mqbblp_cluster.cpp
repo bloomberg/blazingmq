@@ -187,7 +187,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       d_clusterData.clusterConfig(),
                       this,
                       &d_clusterData,
-                      d_state,
+                      &d_state,
                       d_clusterData.domainFactory(),
                       clusterDispatcher,
                       k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION,
@@ -208,7 +208,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       d_clusterData.clusterConfig(),
                       this,
                       &d_clusterData,
-                      d_state,
+                      &d_state,
                       bdlf::BindUtil::bind(
                           &Cluster::onRecoveryStatus,
                           this,

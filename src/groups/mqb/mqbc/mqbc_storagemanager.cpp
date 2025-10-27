@@ -138,9 +138,11 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
                                    d_domainFactory_p,
                                    &d_unrecognizedDomainsLock,
                                    &d_unrecognizedDomains[partitionId],
+                                   d_clusterState_p,
                                    d_clusterData_p->identity().description(),
                                    partitionId,
-                                   queueKeyInfoMap);
+                                   queueKeyInfoMap,
+                                   d_allocator_p);
 
     if (++d_numPartitionsRecoveredQueues < numPartitions) {
         return;  // RETURN
@@ -568,7 +570,7 @@ void StorageManager::processReplicaDataRequestPush(
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(
         source->nodeId() ==
-        d_clusterState.partitionsInfo().at(partitionId).primaryNodeId());
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryNodeId());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -590,7 +592,7 @@ void StorageManager::processReplicaDataRequestPush(
         partitionId,
         1,
         source,
-        d_clusterState.partitionsInfo().at(partitionId).primaryLeaseId(),
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
         bmqp_ctrlmsg::PartitionSequenceNumber(),
         source,
@@ -639,7 +641,7 @@ void StorageManager::processReplicaDataRequestDrop(
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(
         source->nodeId() ==
-        d_clusterState.partitionsInfo().at(partitionId).primaryNodeId());
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryNodeId());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -877,12 +879,12 @@ void StorageManager::processReplicaStateResponseDispatched(
                       << "Received ReplicaStateResponse " << cit->second
                       << " from " << cit->first->nodeDescription();
 
-        BSLS_ASSERT_SAFE(d_clusterState.partitionsInfo()
+        BSLS_ASSERT_SAFE(d_clusterState_p->partitionsInfo()
                              .at(response.partitionId())
                              .primaryNodeId() ==
                          d_clusterData_p->membership().selfNode()->nodeId());
 
-        const unsigned int primaryLeaseId = d_clusterState.partitionsInfo()
+        const unsigned int primaryLeaseId = d_clusterState_p->partitionsInfo()
                                                 .at(response.partitionId())
                                                 .primaryLeaseId();
 
@@ -3626,7 +3628,7 @@ StorageManager::StorageManager(
     const mqbcfg::ClusterDefinition& clusterConfig,
     mqbi::Cluster*                   cluster,
     mqbc::ClusterData*               clusterData,
-    const mqbc::ClusterState&        clusterState,
+    mqbc::ClusterState*              clusterState,
     mqbi::DomainFactory*             domainFactory,
     mqbi::Dispatcher*                dispatcher,
     bsls::Types::Int64               watchDogTimeoutDuration,
@@ -3645,7 +3647,7 @@ StorageManager::StorageManager(
 , d_dispatcher_p(dispatcher)
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
-, d_clusterState(clusterState)
+, d_clusterState_p(clusterState)
 , d_clusterConfig(clusterConfig)
 , d_fileStores(allocator)
 , d_miscWorkThreadPool(1, 100, allocator)
@@ -4223,7 +4225,7 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
     BSLS_ASSERT_SAFE(primary);
     // We always clear the primary info from ClusterState first
     BSLS_ASSERT_SAFE(
-        !d_clusterState.partitionsInfo().at(partitionId).primaryNode());
+        !d_clusterState_p->partitionsInfo().at(partitionId).primaryNode());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -4236,7 +4238,7 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
         partitionId,
         1,
         primary,
-        d_clusterState.partitionsInfo().at(partitionId).primaryLeaseId());
+        d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -4495,7 +4497,7 @@ void StorageManager::processStorageEvent(
     }
 
     // Ensure that 'pid' is valid.
-    if (pid >= d_clusterState.partitions().size()) {
+    if (pid >= d_clusterState_p->partitions().size()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
             << d_cluster_p->description() << " Partition [" << pid
             << "]: " << "Received "
