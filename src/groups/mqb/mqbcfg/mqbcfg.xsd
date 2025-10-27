@@ -635,7 +635,7 @@
       <element name='heartbeatBroadcastPeriodMs' type='int' default='2000'/>
       <element name='heartbeatCheckPeriodMs'     type='int' default='1000'/>
       <element name='heartbeatMissCount'         type='int' default='10'/>
-      <element name='quorum'                     type='int' default='0'/>
+      <element name='quorum'                     type='unsignedInt' default='0'/>
       <element name='leaderSyncDelayMs'          type='int' default='80000'/>
     </sequence>
   </complexType>
