@@ -484,7 +484,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     // Send acknowledgement if post failed or if ack was requested (both could
     // be true as well).
-    if (res != mqbi::StorageResult::e_SUCCESS || doAck) {
+    if (res != mqbi::StorageResult::e_SUCCESS || (haveReceipt && doAck)) {
         bmqp::AckMessage ackMessage;
         ackMessage
             .setStatus(bmqp::ProtocolUtil::ackResultToCode(

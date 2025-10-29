@@ -20,6 +20,7 @@ commands.
 
 import dataclasses
 import json
+import time
 from typing import Dict, Optional, Union
 
 import blazingmq.dev.it.testconstants as tc
@@ -374,6 +375,9 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     admin.stop()
 
     _ = _change_leader(cluster)
+
+    # wait for at least one snapshot to initialize stats
+    time.sleep(1)
 
     admin.connect(*cluster.admin_endpoint)
 
