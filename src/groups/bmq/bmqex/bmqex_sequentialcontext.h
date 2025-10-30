@@ -203,7 +203,7 @@ class SequentialContext {
     /// function objects on this execution context. Optionally specify a
     /// `threadAttributes` used to configure the thread. If
     /// `threadAttributes` is not provided, use the value of
-    /// `bmqsys::ThreadUtil::defaultAttributes()`. Return 0 on success, and
+    /// `bslmt::ThreadAttributes()`. Return 0 on success, and
     /// a non-zero value otherwise. On failure this function has no effect.
     /// The behavior is undefined unless 'threadAttributes.detachedState()
     /// == bslmt::ThreadAttributes::e_CREATE_JOINABLE)', or if the working
