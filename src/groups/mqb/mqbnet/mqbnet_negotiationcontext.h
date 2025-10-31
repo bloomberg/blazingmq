@@ -19,8 +19,7 @@
 
 /// @file mqbnet_negotiationcontext.h
 ///
-/// @brief Provide the context for initial connection handler for establishing
-/// sessions.
+/// @brief Provide the context for negotiating and establishing sessions.
 ///
 
 // MQB
@@ -32,30 +31,20 @@
 namespace BloombergLP {
 namespace mqbnet {
 
-struct ConnectionType {
-    // Enum representing the type of session being negotiated, from that
-    // side of the connection's point of view.
-    enum Enum {
-        e_UNKNOWN,
-        e_CLUSTER_PROXY,   // Proxy (me) -> broker (outgoing)
-        e_CLUSTER_MEMBER,  // Cluster node -> cluster node (both)
-        e_CLIENT,          // Client or proxy -> me (incoming)
-        e_ADMIN            // Admin client -> me (incoming)
-    };
-};
-
 // ========================
 // class NegotiationContext
 // ========================
 
-// VST for an implementation of NegotiationContext
-struct NegotiationContext {
+// VST for the context associated with a session being negotiated.
+class NegotiationContext {
+  private:
     // DATA
     /// The associated InitialConnectionContext passed in by the caller.
     /// Held, not owned
     InitialConnectionContext* d_initialConnectionContext_p;
 
     /// The negotiation message received from the remote peer.
+    /// Set to empty if we haven't received one yet.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
 
     /// The cluster involved in the session being negotiated, or empty if
@@ -88,6 +77,36 @@ struct NegotiationContext {
 
     /// mqbnet::Cluster to inform about incoming (proxy) connection
     Cluster* d_cluster_p;
+
+    // NOT IMPLEMENTED
+    NegotiationContext(const NegotiationContext&);             // = delete;
+    NegotiationContext& operator=(const NegotiationContext&);  // = delete;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(NegotiationContext,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    NegotiationContext(InitialConnectionContext* initialConnectionContext,
+                       bslma::Allocator*         allocator = 0);
+
+    // MANIPULATORS
+    void setNegotiationMessage(const bmqp_ctrlmsg::NegotiationMessage& value);
+    void setClusterName(const bsl::string& value);
+    void setConnectionType(ConnectionType::Enum value);
+    void setMaxMissedHeartbeats(int value);
+    void setEventProcessor(SessionEventProcessor* value);
+    void setCluster(Cluster* value);
+
+    // ACCESSORS
+    InitialConnectionContext*               initialConnectionContext() const;
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage() const;
+    const bsl::string&                      clusterName() const;
+    ConnectionType::Enum                    connectionType() const;
+    int                                     maxMissedHeartbeats() const;
+    SessionEventProcessor*                  eventProcessor() const;
+    Cluster*                                cluster() const;
 };
 
 }  // close package namespace
