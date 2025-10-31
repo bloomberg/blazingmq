@@ -97,7 +97,9 @@ Routers::MessagePropertiesReader::MessagePropertiesReader(
 , d_schemaLearnerContext(schemaLearner.createContext())
 , d_properties(allocator)
 , d_currentMessage_p(0)
-, d_isDirty(false)
+, d_needsData(false)
+, d_root_p(0)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -116,12 +118,16 @@ void Routers::MessagePropertiesReader::_set(
 bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                                   bslma::Allocator*  allocator)
 {
-    if (d_isDirty) {
+    BSLS_ASSERT_SAFE(d_root_p);
+    if (d_needsData) {
         if (!d_appData) {
             if (d_currentMessage_p && d_currentMessage_p->appData()) {
                 d_appData = d_currentMessage_p->appData();
                 d_messagePropertiesInfo =
                     d_currentMessage_p->attributes().messagePropertiesInfo();
+
+                d_root_p->startSchema(d_messagePropertiesInfo.schemaId(),
+                                      d_allocator_p);
             }
         }
         if (d_appData) {
@@ -134,10 +140,17 @@ bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                << "]";
             }
         }
-        d_isDirty = false;
+        d_needsData = false;
     }
 
-    return d_properties.getPropertyRef(name, allocator);
+    bdld::Datum        valueRef = d_properties.getPropertyRef(name, allocator);
+    const unsigned int ordinal  = d_root_p->ordinal(name);
+
+    const PropertyRef key(ordinal, valueRef);
+
+    d_root_p->registerChoice(key, d_allocator_p);
+
+    return valueRef;
 }
 
 void Routers::MessagePropertiesReader::next(
@@ -159,7 +172,7 @@ void Routers::MessagePropertiesReader::clear()
 
     d_currentMessage_p = 0;
     d_appData.reset();
-    d_isDirty = true;
+    d_needsData = true;
 }
 
 void Routers::MessagePropertiesReader::next(
@@ -170,6 +183,46 @@ void Routers::MessagePropertiesReader::next(
 
     d_appData               = appData;
     d_messagePropertiesInfo = messagePropertiesInfo;
+}
+
+void Routers::MessagePropertiesReader::startIterating(Learning::Root* root)
+{
+    BSLS_ASSERT_SAFE(root);
+
+    d_root_p = root;
+}
+
+void Routers::MessagePropertiesReader::learn(
+    const PriorityGroups::SharedItem& pg,
+    unsigned int                      sequenceNumber,
+    bool                              doesMatch)
+{
+    BSLS_ASSERT_SAFE(d_root_p);
+
+    // This relies on the learning order always being the same
+    d_root_p->addResult(pg->value().sId(), pg, sequenceNumber, doesMatch);
+}
+
+void Routers::MessagePropertiesReader::skip(
+    const PriorityGroups::SharedItem& pg,
+    unsigned int                      sequenceNumber)
+{
+    // This relies on the learning order always being the same
+    d_root_p->addResult(pg->value().sId(), pg, sequenceNumber, false);
+}
+
+void Routers::MessagePropertiesReader::rewind()
+{
+    BSLS_ASSERT_SAFE(d_root_p);
+
+    d_root_p->rewind();
+}
+
+void Routers::MessagePropertiesReader::stopIterating()
+{
+    BSLS_ASSERT_SAFE(d_root_p);
+
+    d_root_p = 0;
 }
 
 // ==========================
@@ -599,6 +652,8 @@ void Routers::AppContext::reset()
     }
     temp.clear();
     d_priorities.clear();
+    d_root.reset();
+
     BSLS_ASSERT_SAFE(d_groups.empty());
     BSLS_ASSERT_SAFE(d_consumers.empty());
 }
@@ -611,7 +666,8 @@ Routers::Result Routers::AppContext::selectConsumer(
     BSLS_ASSERT_SAFE(currentMessage);
 
     PriorityGroup* group = 0;
-    d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
+    MessagePropertiesReader* preader = d_queue.d_preader.get();
+    d_queue.d_evaluationContext.setPropertiesReader(preader);
     ScopeExit scope(d_queue, currentMessage);
 
     if (subscriptionId != bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
@@ -623,53 +679,116 @@ Routers::Result Routers::AppContext::selectConsumer(
             group = itId->value().d_priorityGroup;
         }
     }
+    Result rc = e_INVALID;
+
     if (group) {
         if (!group->d_canDeliver) {
             // Another option is to 'iterateGroups'
-            return e_NO_CAPACITY_ALL;  // RETURN
+            rc = e_NO_CAPACITY_ALL;
         }
-        if (d_router.iterateSubscriptions(visitor, *group)) {
-            return e_SUCCESS;
+        else if (group->iterateSubscriptions(visitor)) {
+            rc = e_SUCCESS;
         }
         else {
-            group->d_canDeliver = false;
-
-            return e_NO_CAPACITY;  // RETURN
+            rc = e_NO_CAPACITY;
         }
     }
     else {
-        return d_router.iterateGroups(visitor);  // RETURN
+        preader->startIterating(&d_root);
+        rc = d_router.iterateGroups(preader, visitor, d_root);
+        preader->stopIterating();
     }
+
+    return rc;
 }
 
 // -------------------------
 // class Routers::RoundRobin
 // -------------------------
 
-Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
+//  e1 := {x == 1 && y == 1 && z == 1}
+//  e2 := {a == 1 && b == 1 && c == 1}
+//  e3 := {x == 1 && y == 1 && z == 2}
+//  e4 := {a == 1 && b == 2 && c == 1}
+//
+//  {x = 1, y = 2, z = 1, a = 1, b = 1, c = 1}
+//  {a = 1, b = 3, c = 1}
+//
+//      x = 1                     a = 1
+//     /     \                 /     \       \
+//  y = 2   y = 1           b = 1   b = 2   b = 3
+//         /     \         /       /    \       \
+//      z = 1   z = 2   c = 1   c = 1  c = 2    stop
+//        |       |       |       |
+//        e1      e3      e2      e4
+
+//      learn all properties
+//  #   a   b   c   x   y   z
+//  0   -   -   -   1   1   1   e1
+//  1   -   -   -   1   2   *   none
+//  2   -   -   -   1   1   2   e3
+
+//  x   1 -> set {0, 1, 2}
+//  y   1 -> {0, 2},    2 -> {1}
+//  z   1 -> {0},       2 -> {2}
+//
+//  intersection
+
+//  {x == 1 && y == 1}  vs. {y == 1 && x == 1}
+
+//   0  1  2  3  4  5
+//  {x, y, a, b, c, z}
+//
+//  x -> y -> a -> b -> c -> z
+//  1    2
+//  -    -    1    1    1    -
+//            2    1    1
+//       1    -    -    -    1
+//
+//  x   1  2  3     <- lookup x
+//      | \  /
+//  y   1  2  3     <- lookup y
+//
+//  {0, 0}  {0, 1}  {2, 1}
+//
+//  {x = 1, y = 1}  {x = 2, y = 1}  {x = 3, y = 1}
+//
+//  A.  x |3|, y |3|    -> 6
+//  AR. y |1|, x |3|    -> 4
+//
+//  B.  x |3|, y |3|    -> 6
+
+Routers::Result
+Routers::RoundRobin::iterateGroups(MessagePropertiesReader* preader,
+                                   const Visitor&           visitor,
+                                   const Learning::Root&    root)
 {
-    bool haveMatch        = false;
-    bool noneHaveCapacity = true;
+    bool         haveMatch        = false;
+    bool         noneHaveCapacity = true;
+    unsigned int sequenceNumber   = 0;
 
     for (Priorities::iterator itPriority = d_priorities.begin();
          itPriority != d_priorities.end() && !haveMatch;
          ++itPriority) {
-        Priority::PriorityGroupList& groups =
-            itPriority->second.d_highestGroups;
+        PriorityGroupList& groups = itPriority->second.d_highestGroups;
 
-        for (Priority::PriorityGroupList::iterator itGroup = groups.begin();
+        for (PriorityGroupList::const_iterator itGroup = groups.begin();
              itGroup != groups.end();
-             ++itGroup) {
+             ++itGroup, ++sequenceNumber) {
             PriorityGroup& group = (*itGroup)->value();
 
             BSLS_ASSERT_SAFE(!group.d_highestSubscriptions.empty());
 
+            preader->rewind();
+
             if (group.d_canDeliver) {
                 if (group.evaluate()) {
-                    if (iterateSubscriptions(visitor, group)) {
+                    preader->learn(*itGroup, sequenceNumber, true);
+
+                    if (group.iterateSubscriptions(visitor)) {
                         return e_SUCCESS;  // RETURN
                     }
-                    group.d_canDeliver = false;
+
                     haveMatch          = true;
                     // Assume, no handle 'canDeliver' or delay is engaged.
                     // Do not "spill over" to lower priorities if there is a
@@ -678,6 +797,14 @@ Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
                 else {
                     noneHaveCapacity = false;
                 }
+                // see if we have learned anything previously
+                if (root.iterateLearnedResults(&haveMatch,
+                                               visitor,
+                                               sequenceNumber)) {
+                    return e_SUCCESS;  // RETURN
+                }
+                // Resume with 'itGroup'.  Will skip previously encountered
+                // learned results because 'd_canDeliver == false'
             }
         }
     }
@@ -693,16 +820,16 @@ Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
     }
 }
 
-bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
-                                               PriorityGroup& group)
+bool Routers::PriorityGroup::iterateSubscriptions(const Visitor& visitor)
 {
-    SubscriptionList& subscriptions = group.d_highestSubscriptions;
+    SubscriptionList& subscriptions = d_highestSubscriptions;
 
     for (SubscriptionList::iterator itSubscription = subscriptions.begin();
          itSubscription != subscriptions.end();
          ++itSubscription) {
-        const Subscription* subscription = *itSubscription;
-        mqbi::QueueHandle*  handle       = subscription->handle();
+        const Subscription*      subscription = *itSubscription;
+        const mqbi::QueueHandle* handle       = subscription->handle();
+
         BSLS_ASSERT_SAFE(handle);
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
@@ -720,6 +847,8 @@ bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
         }
     }
 
+    d_canDeliver = false;
+
     return false;
 }
 
@@ -729,12 +858,13 @@ bool Routers::AppContext::iterateConsumers(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(message);
+    BSLS_ASSERT_SAFE(d_queue.d_preader.get());
 
     ScopeExit scope(d_queue, message);
 
-    BSLS_ASSERT_SAFE(d_queue.d_preader.get());
     d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
 
+    d_queue.d_preader->startIterating(&d_root);
     for (Consumers::const_iterator itConsumer = d_consumers.begin();
          itConsumer != d_consumers.end();
          ++itConsumer) {
@@ -762,9 +892,27 @@ const Routers::Subscription* Routers::AppContext::selectSubscription(
          ++it) {
         const Subscription* subscription = *it;
 
+        d_queue.d_preader->rewind();
+
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
                 subscription->d_downstreamSubscriptionId))) {
             PriorityGroup& group = subscription->d_itGroup->value();
+
+            // TODO: remove
+            SubscriptionList& list = group.d_highestSubscriptions;
+
+            unsigned int match = 0;
+            for (SubscriptionList::iterator itSubscription = list.begin();
+                 itSubscription != list.end();
+                 ++itSubscription) {
+                const Subscription* temp = *itSubscription;
+
+                if (temp->d_itSubscriber->value().d_itConsumer == itConsumer) {
+                    ++match;
+                }
+            }
+            BSLS_ASSERT_SAFE(match == 1);
+
             if (group.evaluate()) {
                 return subscription;  // RETURN
             }

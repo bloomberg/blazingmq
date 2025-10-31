@@ -396,7 +396,7 @@ int SchemaLearner::read(Context&                     context,
     if (rc == 0) {
         if (!schemaHandle->d_schema_sp) {
             // Learn new schema.
-            schemaHandle->d_schema_sp = mps->makeSchema(d_allocator_p);
+            schemaHandle->d_schema_sp = mps->getSchema(d_allocator_p);
         }
     }
     else {

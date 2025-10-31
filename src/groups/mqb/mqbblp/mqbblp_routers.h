@@ -176,6 +176,7 @@
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslh_hash.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
 #include <bsls_keyword.h>
@@ -189,6 +190,257 @@ class RoundRobinRouter;
 }
 
 namespace mqbblp {
+
+struct PropertyRef {
+    const unsigned int d_ordinal;
+    const bdld::Datum& d_value;
+
+    PropertyRef(unsigned int ordinal, const bdld::Datum& value)
+    : d_ordinal(ordinal)
+    , d_value(value)
+    {
+        // NOTHING
+    }
+};
+
+template <typename T>
+class Learning {
+  public:
+    //    class PropertyHashAlgo {
+    //      private:
+    //        // DATA
+    //        bsls::Types::Uint64 d_result;
+    //
+    //      public:
+    //        // TYPES
+    //        typedef bsls::Types::Uint64 result_type;
+    //
+    //        // CREATORS
+    //
+    //        /// Default constructor.
+    //        PropertyHashAlgo()
+    //        : d_result(0)
+    //        {
+    //            // NOTHING
+    //        }
+    //
+    //        // MANIPULATORS
+    //        void operator()(const PropertyRef& property)
+    //        {
+    //
+    //        }
+    //
+    //        /// Compute and return the hash for the StorageKey.
+    //        result_type computeHash()
+    //        {
+    //            return d_result;
+    //        }
+    //    };
+
+    struct Property;
+
+    typedef bsl::shared_ptr<Property> PropertyPtr;
+
+    typedef bsl::unordered_map<PropertyRef, PropertyPtr> PropertyChoices;
+
+    typedef bsl::map<unsigned int, T> Learned;
+    struct Property {
+        const unsigned int d_ordinal;
+        const bdld::Datum  d_value;
+        PropertyChoices    d_choices;
+
+        Learned d_learned;
+
+        Property(bslma::Allocator* allocator)
+        : d_ordinal(0)
+        , d_value()
+        , d_choices(allocator)
+        , d_learned(allocator)
+        {
+            // NOTHING
+        }
+
+        Property(const PropertyRef& key, bslma::Allocator* allocator)
+        : d_ordinal(key.d_ordinal)
+        , d_value(key.d_value.clone(allocator))
+        , d_choices(allocator)
+        , d_learned(allocator)
+        {
+            // NOTHING
+        }
+
+        void reset()
+        {
+            d_choices.clear();
+            d_learned.clear();
+        }
+    };
+
+    struct Entity {
+        unsigned int d_sequenceNum;
+        bool         d_isKnown;
+
+        Entity(unsigned int sequenceNumber)
+        : d_sequenceNum(sequenceNumber)
+        , d_isKnown(false)
+        {
+            // NOTHING
+        }
+    };
+
+    typedef bsl::unordered_map<unsigned int, Entity> Entities;
+
+    struct Root {
+        typedef bsl::unordered_map<unsigned int, PropertyPtr> Schemas;
+        typedef bsl::unordered_map<bsl::string, unsigned int> NameRegistry;
+
+        Entities     d_results;
+        unsigned int d_numKnown;
+        unsigned int d_total;
+
+        Schemas d_schemas;
+
+        Property* d_start_p;
+        Property* d_current_p;
+
+        NameRegistry d_names;
+
+        mutable bsls::Types::Uint64 d_hits;
+        mutable bsls::Types::Uint64 d_iterations;
+        mutable bsls::Types::Uint64 d_runs;
+
+        Root(bslma::Allocator* allocator)
+        : d_results(allocator)
+        , d_numKnown(0)
+        , d_total(0)
+        , d_schemas(allocator)
+        , d_start_p(0)
+        , d_current_p(0)
+        , d_names(allocator)
+        , d_hits(0)
+        , d_iterations(0)
+        , d_runs(0)
+        {
+            // NOTHING
+
+            startSchema(bmqp::MessagePropertiesInfo::k_NO_SCHEMA, allocator);
+        }
+
+        unsigned int numKnown() const { return d_numKnown; }
+
+        unsigned int ordinal(const bsl::string& name)
+        {
+            NameRegistry::const_iterator cit = d_names.find(name);
+
+            if (cit == d_names.cend()) {
+                cit = d_names.emplace(name, d_names.size()).first;
+            }
+
+            return cit->second;
+        }
+
+        void startSchema(unsigned int id, bslma::Allocator* allocator)
+        {
+            typename Schemas::iterator it = d_schemas.find(id);
+
+            if (it == d_schemas.end()) {
+                PropertyPtr& newPropertyPtr = d_schemas[id];
+                newPropertyPtr.createInplace(allocator, allocator);
+                d_start_p = newPropertyPtr.get();
+            }
+            else {
+                d_start_p = it->second.get();
+            }
+            d_current_p = d_start_p;
+            ++d_runs;
+        }
+
+        void registerChoice(const PropertyRef& key,
+                            bslma::Allocator*  allocator)
+        {
+            BSLS_ASSERT_SAFE(d_current_p);
+
+            PropertyChoices& choices = d_current_p->d_choices;
+
+            const typename PropertyChoices::const_iterator cit = choices.find(
+                key);
+
+            if (cit == choices.end()) {
+                // seeing this MessageProperty value first time at this
+                // iteration. need to deep copy.
+
+                PropertyPtr next;
+
+                next.createInplace(allocator, key, allocator);
+
+                choices.insert(
+                    bsl::make_pair(PropertyRef(next->d_ordinal, next->d_value),
+                                   next));
+
+                d_current_p = next.get();
+            }
+            else {
+                d_current_p = cit->second.get();
+            }
+        }
+        unsigned int addResult(unsigned int id,
+                               const T&     result,
+                               unsigned int sequenceNumber,
+                               bool         isKnown)
+        {
+            typename Entities::iterator cit = d_results.find(id);
+            if (cit == d_results.cend()) {
+                cit = d_results.emplace(id, sequenceNumber).first;
+                ++d_total;
+            }
+            else {
+                BSLS_ASSERT_SAFE(sequenceNumber == cit->second.d_sequenceNum);
+            }
+            if (isKnown) {
+                if (!cit->second.d_isKnown) {
+                    cit->second.d_isKnown = true;
+                    ++d_numKnown;
+                }
+
+                d_current_p->d_learned.emplace(sequenceNumber, result);
+            }
+
+            return cit->first;
+        }
+        void rewind()
+        {
+            d_current_p = currentStart();
+            ++d_iterations;
+        }
+        Property* currentStart() const { return d_start_p; }
+
+        void reset()
+        {
+            d_results.clear();
+            d_numKnown = 0;
+            d_total    = 0;
+
+            d_hits       = 0;
+            d_iterations = 0;
+
+            PropertyPtr temp =
+                d_schemas[bmqp::MessagePropertiesInfo::k_NO_SCHEMA];
+            temp->reset();
+            d_schemas.clear();
+            d_schemas[bmqp::MessagePropertiesInfo::k_NO_SCHEMA] = temp;
+            d_start_p                                           = temp.get();
+        }
+
+        template <class Visitor>
+        bool iterateLearnedResults(bool*          haveMatch_p,
+                                   const Visitor& visitor,
+                                   unsigned int   sequenceNum) const;
+
+        bsls::Types::Uint64 hits() const { return d_hits; }
+        bsls::Types::Uint64 iterations() const { return d_iterations; }
+        bsls::Types::Uint64 runs() const { return d_runs; }
+    };
+};
 
 // =============
 // class Routers
@@ -419,6 +671,7 @@ class Routers {
     };
 
     typedef Registry<unsigned int, SubscriptionId> SubscriptionIds;
+    typedef bsl::function<bool(const Routers::Subscription*)> Visitor;
 
     /// VST representing all `Subscription`s with the same priority and the
     /// same Expression.
@@ -449,6 +702,13 @@ class Routers {
         bool add(const Subscription* subscription);
 
         bool evaluate();
+
+        /// Iterate all highest priority `Subscription`s within this object and
+        /// scall the specified `visitor` for each `Subscription` which has
+        /// `canDeliver` consumer.  If the `visitor` returns `true`, stop
+        /// iterating, move the subscription to the end of the list if it has
+        /// been selected `d_consumerPriorityCount` times, and return `true`.
+        bool iterateSubscriptions(const Visitor& visitor);
 
         unsigned int sId() const;
     };
@@ -521,14 +781,13 @@ class Routers {
         unsigned int upstreamId() const;
     };
 
+    typedef bsl::list<PriorityGroups::SharedItem> PriorityGroupList;
+
     /// Mechanism representing all `Subscription` `PriorityGroup`s with the
     /// same priority.  One per received priority per App
     struct Priority {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Priority, bslma::UsesBslmaAllocator)
-
-        // TYPES
-        typedef bsl::list<PriorityGroups::SharedItem> PriorityGroupList;
 
         // DATA
 
@@ -550,7 +809,7 @@ class Routers {
         ~Priority();
     };
 
-    typedef bsl::map<int, Priority, std::greater<int> > Priorities;
+    typedef Learning<PriorityGroups::SharedItem> Learning;
 
     struct MessagePropertiesReader : public bmqeval::PropertiesReader {
       private:
@@ -568,9 +827,15 @@ class Routers {
         const mqbi::StorageIterator* d_currentMessage_p;
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bmqp::MessagePropertiesInfo  d_messagePropertiesInfo;
-        bool                         d_isDirty;
+
+        bool d_needsData;
+
+        Learning::Root* d_root_p;
+
+        bslma::Allocator* d_allocator_p;
 
       public:
+        // TYPES
         MessagePropertiesReader(bmqp::SchemaLearner& schemaLearner,
                                 bslma::Allocator*    allocator);
 
@@ -592,6 +857,17 @@ class Routers {
 
         /// Reset the reader to the state of empty properties.
         void clear();
+
+        void startIterating(Learning::Root* root);
+
+        void rewind();
+        void learn(const PriorityGroups::SharedItem& pg,
+                   unsigned int                      sequenceNumber,
+                   bool                              doesMatch);
+        void skip(const PriorityGroups::SharedItem& pg,
+                  unsigned int                      sequenceNumber);
+
+        void stopIterating();
     };
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid
@@ -633,8 +909,6 @@ class Routers {
         void loadInternals(mqbcmd::Routing* out) const;
     };
 
-    typedef bsl::function<bool(const Routers::Subscription*)> Visitor;
-
     enum Result {
         /// Found Subscription and there is capacity.
         e_SUCCESS = 0,
@@ -649,6 +923,8 @@ class Routers {
         /// Not valid anymore due to Confirm/Purge.
         e_INVALID = 5
     };
+
+    typedef bsl::map<int, Priority, std::greater<int> > Priorities;
 
     /// Class that implements round-robin routing policy.
     class RoundRobin {
@@ -673,16 +949,9 @@ class Routers {
         /// subscription to the end of round-robind selection list if it has
         /// been selected `d_consumerPriorityCount` times , and return
         /// `true`.
-        Result iterateGroups(const Visitor& visitor);
-
-        /// Iterate all highest priority `Subscription`s within the
-        /// specified `group` and call the specified `visitor` for each
-        /// `Subscription` which has `canDeliver` consumer.  If the
-        /// `visitor` returns `true`, stop iterating, move the subscription
-        /// to the end of round-robind selection list if it has been
-        /// selected `d_consumerPriorityCount` times, and return `true`.
-        bool iterateSubscriptions(const Visitor& visitor,
-                                  PriorityGroup& group);
+        Result iterateGroups(MessagePropertiesReader* preader,
+                             const Visitor&           visitor,
+                             const Learning::Root&    root);
 
         void print(bsl::ostream& os, int level, int spacesPerLevel) const;
     };
@@ -709,6 +978,8 @@ class Routers {
         bmqeval::CompilationContext d_compilationContext;
 
         unsigned int d_priorityCount;
+
+        Learning::Root d_root;
 
         bslma::Allocator* d_allocator_p;
 
@@ -845,6 +1116,7 @@ inline Routers::AppContext::AppContext(QueueRoutingContext& queue,
 , d_router(d_priorities)
 , d_compilationContext(allocator)
 , d_priorityCount(0)
+, d_root(allocator)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -990,7 +1262,7 @@ inline const bsl::string& Routers::Subscription::expression() const
 
 inline unsigned int Routers::Subscription::upstreamId() const
 {
-    return d_itGroup->value().d_itId->d_key;
+    return d_itGroup->value().sId();
 }
 
 // ------------------------------
@@ -1146,6 +1418,46 @@ inline Routers::RoundRobin::RoundRobin(Priorities& priorities)
 : d_priorities(priorities)
 {
     // NOTHING
+}
+
+template <>
+template <>
+inline bool
+Learning<Routers::PriorityGroups::SharedItem>::Root::iterateLearnedResults(
+    bool*                   haveMatch_p,
+    const Routers::Visitor& visitor,
+    unsigned int            sequenceNum) const
+{
+    BSLS_ASSERT_SAFE(d_current_p);
+    BSLS_ASSERT_SAFE(haveMatch_p);
+
+    const Learned& learned = d_current_p->d_learned;
+    for (Learned::const_iterator cit = learned.upper_bound(sequenceNum);
+         cit != learned.cend();
+         ++cit) {
+        Routers::PriorityGroup& pg = cit->second->value();
+        if (pg.iterateSubscriptions(visitor)) {
+            ++d_hits;
+            return true;  // RETURN
+        }
+        *haveMatch_p = true;
+    }
+    return false;
+}
+
+// FREE FUNCTIONS
+
+/// Apply the specified `hashAlgo` to the specified `queueId`.
+template <class HASH_ALGORITHM>
+void hashAppend(HASH_ALGORITHM& hashAlgo, const PropertyRef& property)
+{
+    bslh::hashAppend(hashAlgo, property.d_ordinal);
+    bdld::hashAppend(hashAlgo, property.d_value);
+}
+
+inline bool operator==(const PropertyRef& lhs, const PropertyRef& rhs)
+{
+    return lhs.d_ordinal == rhs.d_ordinal && lhs.d_value == rhs.d_value;
 }
 
 }  // close package namespace

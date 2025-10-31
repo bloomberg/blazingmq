@@ -230,10 +230,6 @@ bool operator!=(const DataStoreRecordKey& lhs, const DataStoreRecordKey& rhs);
 /// CorrelationId objects so that CorrelationId can be used as key in a map.
 bool operator<(const DataStoreRecordKey& lhs, const DataStoreRecordKey& rhs);
 
-// FREE FUNCTIONS
-template <class HASH_ALGORITHM>
-void hashAppend(HASH_ALGORITHM& hashAlgo, const DataStoreRecordKey& key);
-
 // ================================
 // class DataStoreRecordKeyHashAlgo
 // ================================
@@ -836,15 +832,6 @@ inline DataStoreRecordKey::DataStoreRecordKey(
 , d_primaryLeaseId(primaryLeaseId)
 {
     // NOTHING
-}
-
-// FREE FUNCTIONS
-template <class HASH_ALGORITHM>
-void hashAppend(HASH_ALGORITHM& hashAlgo, const mqbs::DataStoreRecordKey& key)
-{
-    using bslh::hashAppend;  // for ADL
-    hashAppend(hashAlgo, key.d_sequenceNum);
-    hashAppend(hashAlgo, key.d_primaryLeaseId);
 }
 
 // --------------------------------

@@ -1374,6 +1374,14 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
                           << currentMessage->guid();
         }
     }
+    else if (result == Routers::e_SUCCESS &&
+             d_routing_sp->d_root.runs() % 1000 == 0) {
+        BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queue_p->description()
+                      << "', appId = '" << appId() << "' cache hits "
+                      << d_routing_sp->d_root.hits() << " iterations "
+                      << d_routing_sp->d_root.iterations() << " runs "
+                      << d_routing_sp->d_root.runs();
+    }
 
     return result;
 }

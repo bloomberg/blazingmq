@@ -385,7 +385,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
 
                     if (mps.streamIn(appData, input.isExtended()) == 0) {
                         // Learn new schema.
-                        schema   = mps.makeSchema(d_allocator_p);
+                        schema   = mps.getSchema(d_allocator_p);
                         schema_p = &schema;
                     }
                 }
