@@ -704,15 +704,15 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                  clusterIt->subcontextIterator();
              partitionIt;
              ++partitionIt) {
-            mqbstat::ClusterStats::PrimaryStatus::Enum primaryStatus =
-                static_cast<mqbstat::ClusterStats::PrimaryStatus::Enum>(
+            mqbstat::PartitionStats::PrimaryStatus::Enum primaryStatus =
+                static_cast<mqbstat::PartitionStats::PrimaryStatus::Enum>(
                     mqbstat::ClusterStats::getValue(
                         *partitionIt,
                         d_snapshotId,
                         mqbstat::ClusterStats::Stat::
                             e_PARTITION_PRIMARY_STATUS));
             if (primaryStatus !=
-                mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY) {
+                mqbstat::PartitionStats::PrimaryStatus::e_PRIMARY) {
                 // Only report partition stats from the primary node
                 continue;  // CONTINUE
             }
