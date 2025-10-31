@@ -471,7 +471,12 @@ class MessageProperties {
     // accessing the returned reference after this object changes its
     // state.
 
-    SchemaPtr makeSchema(bslma::Allocator* allocator);
+    SchemaPtr getSchema(bslma::Allocator* allocator);
+
+    /// Look up an ordinal for the specified `name`, load it into the specified
+    /// `index`, and return `true` if this object has a valid schema.  Return
+    /// `false` otherwise.
+    bool loadIndex(int* index, const bsl::string& name) const;
 
     /// Return a blob having the BlazingMQ wire protocol representation of
     /// this instance.  The specified `info` controls MessagePropertyHeader
@@ -878,7 +883,7 @@ MessageProperties::setPropertyAsBinary(const bsl::string&       name,
 // ACCESSORS
 
 inline MessageProperties::SchemaPtr
-MessageProperties::makeSchema(bslma::Allocator* allocator)
+MessageProperties::getSchema(bslma::Allocator* allocator)
 {
     if (!d_schema) {
         d_schema.load(new (*allocator)
