@@ -1242,20 +1242,20 @@ int StorageUtil::assignPartitionDispatcherThreads(
             bsl::string("Partition") + bsl::to_string(i));
 
         bsl::shared_ptr<mqbs::FileStore> fsSp(
-            new (*fileStoreAllocator)
-                mqbs::FileStore(dsCfg,
-                                processorId,
-                                dispatcher,
-                                clusterData->membership().netCluster(),
-                                &clusterData->stats(),
-                                blobSpPool,
-                                &clusterData->stateSpPool(),
-                                threadPool,
-                                cluster.isCSLModeEnabled(),
-                                cluster.isFSMWorkflow(),
-                                cluster.doesFSMwriteQLIST(),
-                                replicationFactor,
-                                fileStoreAllocator),
+            new (*fileStoreAllocator) mqbs::FileStore(
+                dsCfg,
+                processorId,
+                dispatcher,
+                clusterData->membership().netCluster(),
+                clusterData->stats().getPartitionStats(dsCfg.partitionId()),
+                blobSpPool,
+                &clusterData->stateSpPool(),
+                threadPool,
+                cluster.isCSLModeEnabled(),
+                cluster.isFSMWorkflow(),
+                cluster.doesFSMwriteQLIST(),
+                replicationFactor,
+                fileStoreAllocator),
             fileStoreAllocator);
 
         (*fileStores)[i] = fsSp;
