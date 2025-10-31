@@ -52,6 +52,8 @@ namespace BloombergLP {
 
 namespace mqbstat {
 
+class PartitionStats;
+
 // ==================
 // class ClusterStats
 // ==================
@@ -60,19 +62,6 @@ namespace mqbstat {
 class ClusterStats {
   public:
     // TYPES
-
-    /// Enum representing the various types of events for which statistics
-    /// are monitored.
-    struct PartitionEventType {
-        // TYPES
-        enum Enum {
-            /// Time in nanoseconds it took for the rollover operation.
-            e_PARTITION_ROLLOVER,
-            /// Time in nanoseconds it took for the replication of a new entry
-            /// in journal file.
-            e_PARTITION_REPLICATION
-        };
-    };
 
     /// Enum representing the various type of stats that can be obtained
     /// from this object.
@@ -150,14 +139,6 @@ class ClusterStats {
         enum Enum { e_FOLLOWER, e_LEADER };
     };
 
-    /// Enum representing the primary status of a partition.  The values
-    /// should remain in that order, so that we favor primary by returning
-    /// the maximum observed value over the report interval.
-    struct PrimaryStatus {
-        // TYPES
-        enum Enum { e_UNKNOWN, e_REPLICA, e_PRIMARY };
-    };
-
     /// Enum representing the role (member or proxy) of a broker for a given
     /// cluster.
     struct Role {
@@ -199,12 +180,10 @@ class ClusterStats {
     /// StatContext for the cluster
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
 
-    /// StatContext for each partition in
-    /// the cluster, indexed by the
-    /// partition id.  Those statContext
-    /// are created as children of the
-    /// above 'd_StatContext_mp'.
-    bsl::vector<bsl::shared_ptr<bmqst::StatContext> > d_partitionsStatContexts;
+    /// `PartitionStats` for each partition in the cluster, indexed by the
+    /// partition id. Each instance contains a `StatContext` that is created as
+    /// a child of the above `d_StatContext_mp`.
+    bsl::vector<bsl::shared_ptr<PartitionStats> > d_partitionsStats;
 
   private:
     // NOT IMPLEMENTED
@@ -230,10 +209,13 @@ class ClusterStats {
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
+    /// Get the `PartitionStats` of the specified `partitionId`.
+    bsl::shared_ptr<PartitionStats> getPartitionStats(int partitionId) const;
+
     // CREATORS
 
     /// Create a new object in an uninitialized state.
-    ClusterStats(bslma::Allocator* allocator);
+    explicit ClusterStats(bslma::Allocator* allocator);
 
     // MANIPULATORS
 
@@ -245,14 +227,6 @@ class ClusterStats {
                     int                 partitionsCount,
                     bmqst::StatContext* clusterStatContext,
                     bslma::Allocator*   allocator);
-
-    /// Update statistics for the event of the specified `type` for the
-    /// specified `partitionId` and with the specified `value` (depending on
-    /// the `type`, `value` can represent the number of bytes, a counter,
-    /// some nanoseconds elapsed, ...).
-    void onPartitionEvent(PartitionEventType::Enum type,
-                          int                      partitionId,
-                          bsls::Types::Int64       value);
 
     /// Update the `cluster_status` field of the StatContext being referred
     /// to by this object to be the specified `value`.
@@ -278,11 +252,6 @@ class ClusterStats {
                                        bsls::Types::Int64 journalBytes,
                                        bsls::Types::Int64 cslBytes);
 
-    /// Set the primary status of the specified `partitionId` to the
-    /// specified `value`.
-    ClusterStats& setNodeRoleForPartition(int                 partitionId,
-                                          PrimaryStatus::Enum value);
-
     /// Set the csl replication time of the StatContext being referred
     /// to by this object to be the specified `value`.
     ClusterStats& setCslReplicationTime(bsls::Types::Int64 value);
@@ -295,16 +264,68 @@ class ClusterStats {
     /// this object by the specified `delta`.
     ClusterStats& addCslOffsetBytes(bsls::Types::Int64 delta);
 
-    /// Set the partition outstanding bytes of the specified data and
-    /// journal files for the specified `partitionId` to the corresponding
-    /// specified `outstandingDataBytes`, `outstandingJournalBytes`,
-    /// `offsetDataBytes`, `offsetJournalBytes` and `sequenceNumber` values.
-    ClusterStats& setPartitionBytes(int                partitionId,
-                                    bsls::Types::Int64 outstandingDataBytes,
-                                    bsls::Types::Int64 outstandingJournalBytes,
-                                    bsls::Types::Int64 offsetDataBytes,
-                                    bsls::Types::Int64 offsetJournalBytes,
-                                    bsls::Types::Uint64 sequenceNumber);
+    /// Return a pointer to the statcontext.
+    bmqst::StatContext* statContext();
+};
+
+// ====================
+// class PartitionStats
+// ====================
+
+/// Mechanism to keep track of individual overall statistics of a partition
+class PartitionStats {
+  public:
+    // TYPES
+
+    /// Enum representing the primary status of a partition.  The values
+    /// should remain in that order, so that we favor primary by returning
+    /// the maximum observed value over the report interval.
+    struct PrimaryStatus {
+        // TYPES
+        enum Enum { e_UNKNOWN, e_REPLICA, e_PRIMARY };
+    };
+
+  private:
+    // DATA
+
+    /// StatContext for the partition
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
+
+  private:
+    // NOT IMPLEMENTED
+    PartitionStats(const PartitionStats&) BSLS_CPP11_DELETED;
+
+    /// Copy constructor and assignment operator are not implemented.
+    PartitionStats& operator=(const PartitionStats&) BSLS_CPP11_DELETED;
+
+  public:
+    // CREATORS
+
+    /// Create a new object in an uninitialized state.
+    explicit PartitionStats(
+        const bsl::shared_ptr<bmqst::StatContext>& statContext);
+
+    /// Set the time in nanoseconds it took for the rollover operation to the
+    /// specified `value`.
+    PartitionStats& setRoloverTime(bsls::Types::Int64 value);
+
+    /// Set the time in nanoseconds it took for the replication of a new entry
+    /// in journal file to the specified `value`.
+    PartitionStats& setReplicationTime(bsls::Types::Int64 value);
+
+    /// Set the primary status of the partition to the specified `value`.
+    PartitionStats& setNodeRole(PrimaryStatus::Enum value);
+
+    /// Set the partition outstanding bytes of the partition data and journal
+    /// files to the corresponding specified `outstandingDataBytes`,
+    /// `outstandingJournalBytes`, `offsetDataBytes`, `offsetJournalBytes` and
+    /// `sequenceNumber` values.
+    PartitionStats&
+    setPartitionBytes(bsls::Types::Uint64 outstandingDataBytes,
+                      bsls::Types::Uint64 outstandingJournalBytes,
+                      bsls::Types::Uint64 offsetDataBytes,
+                      bsls::Types::Uint64 offsetJournalBytes,
+                      bsls::Types::Uint64 sequenceNumber);
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
@@ -454,6 +475,15 @@ struct ClusterStatsUtil {
 inline bmqst::StatContext* ClusterStats::statContext()
 {
     return d_statContext_mp.get();
+}
+
+// --------------------
+// class PartitionStats
+// --------------------
+
+inline bmqst::StatContext* PartitionStats::statContext()
+{
+    return d_statContext_sp.get();
 }
 
 // ----------------------

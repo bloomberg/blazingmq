@@ -223,7 +223,8 @@ struct Tester {
                                          0,  // processorId
                                          &d_dispatcher,
                                          d_cluster_mp.get(),
-                                         &d_clusterStats,
+                                         d_clusterStats.getPartitionStats(
+                                             d_dsCfg.partitionId()),
                                          d_blobSpPool_sp.get(),
                                          &d_statePool,
                                          &d_miscWorkThreadPool,
