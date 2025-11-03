@@ -657,7 +657,8 @@ void LocalQueue::loadInternals(mqbcmd::LocalQueue* out) const
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
-    d_queueEngine_mp->loadInternals(&out->queueEngine());
+    d_queueEngine_mp->loadInternals(&out->queueEngine(),
+                                    bsl::numeric_limits<unsigned int>::max());
 }
 
 mqbi::Domain* LocalQueue::domain() const

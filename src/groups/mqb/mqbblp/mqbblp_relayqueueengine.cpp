@@ -380,7 +380,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
     {
         mqbcmd::QueueEngine outqe(d_allocator_p);
-        loadInternals(&outqe);
+        loadInternals(&outqe, 10);
 
         BALL_LOG_OUTPUT_STREAM << "[THROTTLED] For queue ["
                                << d_queueState_p->uri()
@@ -1244,7 +1244,8 @@ void RelayQueueEngine::configureHandle(
     App_State*   app                = findApp(upstreamSubQueueId);
     BSLS_ASSERT_SAFE(app);
 
-    context->initializeRouting(d_queueState_p->routingContext());
+    context->initializeRouting(d_queueState_p->routingContext(),
+                               app->upstreamSubQueueId());
 
     configureApp(*app, handle, streamParameters, context);
 }
@@ -1675,7 +1676,8 @@ mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
     return mqbi::StorageResult::e_INVALID_OPERATION;
 }
 
-void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
+void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out,
+                                     unsigned int         max) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1724,8 +1726,8 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
         it->second->loadInternals(&appState);
     }
 
-    d_queueState_p->routingContext().loadInternals(
-        &relayQueueEngine.routing());
+    d_queueState_p->routingContext().loadInternals(&relayQueueEngine.routing(),
+                                                   max);
 }
 
 void RelayQueueEngine::registerStorage(const bsl::string&      appId,

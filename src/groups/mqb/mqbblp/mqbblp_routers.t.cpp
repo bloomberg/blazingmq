@@ -272,6 +272,9 @@ static void test3_parse()
 
     Visitor visitor1, visitor2;
 
+    mqbblp::Learning<unsigned int>::Root root(
+        bmqtst::TestHelperUtil::allocator());
+
     {
         bmqp_ctrlmsg::Subscription& subscription =
             streamParams.subscriptions()[0];
@@ -294,6 +297,7 @@ static void test3_parse()
         {
             mqbblp::Routers::AppContext appContext(
                 queueContext,
+                upstreamSubQueueId,
                 bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream errorStream(
                 bmqtst::TestHelperUtil::allocator());
@@ -307,11 +311,11 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(appContext.finalize(), size_t(priorityCount));
             appContext.registerSubscriptions();
 
-            mqbblp::Routers::RoundRobin router(appContext.d_priorities);
-            BMQTST_ASSERT_EQ(router.iterateGroups(
+            BMQTST_ASSERT_EQ(appContext.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1),
+                                 root),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
@@ -330,6 +334,7 @@ static void test3_parse()
         {
             mqbblp::Routers::AppContext appContext(
                 queueContext,
+                upstreamSubQueueId,
                 bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream errorStream(
                 bmqtst::TestHelperUtil::allocator());
@@ -344,12 +349,11 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(appContext.finalize(), size_t(priorityCount));
             appContext.registerSubscriptions();
 
-            mqbblp::Routers::RoundRobin router(appContext.d_priorities);
-
-            BMQTST_ASSERT_EQ(router.iterateGroups(
+            BMQTST_ASSERT_EQ(appContext.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1),
+                                 root),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
@@ -372,11 +376,10 @@ static void test3_parse()
         {
             mqbblp::Routers::AppContext appContext(
                 queueContext,
+                upstreamSubQueueId,
                 bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream errorStream(
                 bmqtst::TestHelperUtil::allocator());
-
-            mqbblp::Routers::RoundRobin router(appContext.d_priorities);
 
             appContext.load(&handle1,
                             &errorStream,
@@ -395,25 +398,28 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(appContext.finalize(), size_t(2 * priorityCount));
             appContext.registerSubscriptions();
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
+            BMQTST_ASSERT_EQ(appContext.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1),
+                                 root),
                              mqbblp::Routers::e_SUCCESS);
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
+            BMQTST_ASSERT_EQ(appContext.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor2,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1),
+                                 root),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(visitor2.d_handle, visitor1.d_handle);
             BMQTST_ASSERT_EQ(visitor2.d_subQueueId, visitor1.d_subQueueId);
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
+            BMQTST_ASSERT_EQ(appContext.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor2,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1),
+                                 root),
                              mqbblp::Routers::e_SUCCESS);
 
             if (visitor1.d_handle == &handle1) {
@@ -465,6 +471,7 @@ static void test4_generate()
     unsigned int                upstreamSubQueueId = 1;
     mqbblp::Routers::AppContext appContext(
         queueContext,
+        upstreamSubQueueId,
         bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream errorStream(bmqtst::TestHelperUtil::allocator());
 

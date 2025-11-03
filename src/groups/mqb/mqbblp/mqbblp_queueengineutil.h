@@ -499,7 +499,7 @@ struct QueueEngineUtil_AppState {
     int setSubscription(const mqbconfm::Expression& value);
 
     /// Evaluate the application subscription
-    bool evaluateAppSubcription();
+    bool evaluateAppSubcription(unsigned int run);
 
     /// Change the state to authorized, thus enabling delivery
     void authorize(const mqbu::StorageKey& appKey, unsigned int appOrdinal);

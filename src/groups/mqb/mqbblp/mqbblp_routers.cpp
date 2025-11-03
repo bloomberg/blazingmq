@@ -53,10 +53,10 @@ class ScopeExit {
               const mqbi::StorageIterator*          currentMessage)
     : d_queue(queue)
     {
-        d_queue.d_preader->next(currentMessage);
+        d_queue.d_preader->start(currentMessage);
     }
 
-    ~ScopeExit() { d_queue.d_preader->next(0); }
+    ~ScopeExit() { d_queue.d_preader->clear(); }
 
   private:
     // NOT IMPLEMENTED
@@ -92,14 +92,18 @@ void Routers::Consumer::registerSubscriptions(mqbi::QueueHandle* handle)
 
 Routers::MessagePropertiesReader::MessagePropertiesReader(
     bmqp::SchemaLearner& schemaLearner,
+    LearningIds::Root*   root,
     bslma::Allocator*    allocator)
 : d_schemaLearner(schemaLearner)
 , d_schemaLearnerContext(schemaLearner.createContext())
 , d_properties(allocator)
 , d_currentMessage_p(0)
-, d_isDirty(false)
+, d_needsData(false)
+, d_root_p(root)
+, d_runs(1)
+, d_allocator_p(allocator)
 {
-    // NOTHING
+    d_properties.setDeepCopy(false);
 }
 
 Routers::MessagePropertiesReader::~MessagePropertiesReader()
@@ -116,12 +120,16 @@ void Routers::MessagePropertiesReader::_set(
 bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                                   bslma::Allocator*  allocator)
 {
-    if (d_isDirty) {
+    BSLS_ASSERT_SAFE(d_root_p);
+    if (d_needsData) {
         if (!d_appData) {
             if (d_currentMessage_p && d_currentMessage_p->appData()) {
                 d_appData = d_currentMessage_p->appData();
                 d_messagePropertiesInfo =
                     d_currentMessage_p->attributes().messagePropertiesInfo();
+
+                //                d_root_p->startSchema(d_messagePropertiesInfo.schemaId(),
+                //                                      d_allocator_p);
             }
         }
         if (d_appData) {
@@ -134,18 +142,27 @@ bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                << "]";
             }
         }
-        d_isDirty = false;
+        d_needsData = false;
     }
 
-    return d_properties.getPropertyRef(name, allocator);
+    const PropertyRef key(d_root_p->ordinal(name),
+                          d_properties.getPropertyRef(name, allocator));
+
+    d_root_p->registerChoice(key, d_allocator_p);
+
+    return key.d_value;
 }
 
-void Routers::MessagePropertiesReader::next(
+void Routers::MessagePropertiesReader::start(
     const mqbi::StorageIterator* currentMessage)
 {
-    if (currentMessage == d_currentMessage_p && currentMessage) {
+    BSLS_ASSERT_SAFE(currentMessage);
+
+    if (currentMessage == d_currentMessage_p) {
         return;  // RETURN
     }
+    ++d_runs;
+
     // Not loading mqbi::StorageIterator::appData to check equality
 
     clear();
@@ -159,24 +176,67 @@ void Routers::MessagePropertiesReader::clear()
 
     d_currentMessage_p = 0;
     d_appData.reset();
-    d_isDirty = true;
+    d_needsData = true;
 }
 
-void Routers::MessagePropertiesReader::next(
+void Routers::MessagePropertiesReader::start(
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     const bmqp::MessagePropertiesInfo&  messagePropertiesInfo)
 {
     clear();
 
+    ++d_runs;
     d_appData               = appData;
     d_messagePropertiesInfo = messagePropertiesInfo;
+}
+
+void Routers::MessagePropertiesReader::startIterating(LearningIds::Root* root)
+{
+    BSLS_ASSERT_SAFE(root);
+
+    d_root_p = root;
+}
+
+void Routers::MessagePropertiesReader::learn(unsigned int id,
+                                             unsigned int sequenceNumber,
+                                             bool         doesMatch)
+{
+    BSLS_ASSERT_SAFE(d_root_p);
+
+    // This relies on the learning order always being the same
+    d_root_p->addResult(id, sequenceNumber, doesMatch);
+}
+
+// void Routers::MessagePropertiesReader::skip(
+//     unsigned int                      id,
+//     unsigned int                      sequenceNumber)
+//{
+//     // This relies on the learning order always being the same
+//     d_root_p->addResult(id, sequenceNumber, false);
+// }
+
+void Routers::MessagePropertiesReader::rewind()
+{
+    BSLS_ASSERT_SAFE(d_root_p);
+
+    d_root_p->rewind();
+}
+
+void Routers::MessagePropertiesReader::stopIterating()
+{
+    BSLS_ASSERT_SAFE(d_root_p);
+}
+
+unsigned int Routers::MessagePropertiesReader::numRuns() const
+{
+    return d_runs;
 }
 
 // ==========================
 // struct Routers::Expression
 // ==========================
 
-bool Routers::Expression::evaluate()
+bool Routers::Expression::evaluate(unsigned int run)
 {
     /// |============|=========|========================|
     /// | isCompiled | isValid | evaluate() = ?         |
@@ -187,6 +247,10 @@ bool Routers::Expression::evaluate()
     /// | true       | true    | d_evaluator.evaluate() |
     /// |============|=========|========================|
 
+    if (run == d_lastRun) {
+        return d_lastResult;  // RETURN
+    }
+    d_lastRun = run;
     if (d_evaluator.isValid()) {
         /// 1. If there are no errors during evaluation, evaluator returns
         ///    the expression evaluation result (a bool).
@@ -195,18 +259,21 @@ bool Routers::Expression::evaluate()
         /// - Result type is not a boolean
         /// - Property used in the expression is not found in the message
         /// - Unexpected type for expression operand
-        return d_evaluator.evaluate(*d_evaluationContext_p);  // RETURN
+        d_lastResult = d_evaluator.evaluate(*d_evaluationContext_p);
+    }
+    else {
+        d_lastResult = true;
     }
 
-    return true;
+    return d_lastResult;
 }
 
-bool Routers::PriorityGroup::evaluate()
+bool Routers::PriorityGroup::evaluate(unsigned int run)
 {
     const Expressions::SharedItem& it         = d_itId->value().d_itExpression;
     Expression&                    expression = it->value();
 
-    return expression.evaluate();
+    return expression.evaluate(run);
 }
 
 unsigned int Routers::PriorityGroup::sId() const
@@ -338,8 +405,6 @@ void Routers::AppContext::load(
             const SubscriptionIds::SharedItem itId = d_queue.d_groupIds.record(
                 subscriptionId,
                 SubscriptionId(itExpression, upstreamSubQueueId));
-            // This always adds new 'SubscriptionId' since 'PriorityGroups' has
-            // stronger id uniqueness than 'Queue'.
 
             itGroup = d_groups.record(expr,
                                       PriorityGroup(itId, d_allocator_p));
@@ -421,10 +486,8 @@ unsigned int Routers::AppContext::finalize()
                     subscription.d_itGroup;
                 PriorityGroup& group = itGroup->value();
 
-                BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ConsumerInfo& ci =
-                    subscription.d_ci;
-
-                BSLS_ASSERT_SAFE(priority == ci.consumerPriority());
+                BSLS_ASSERT_SAFE(priority ==
+                                 subscription.d_ci.consumerPriority());
 
                 // Accumulate all priorities to inform upstream
                 bool isFirstTime = group.add(&subscription);
@@ -462,6 +525,9 @@ unsigned int Routers::AppContext::finalize()
             ++itPriority;
         }
     }
+
+    // setInitialNumBuckets to the total of unique subscriptions.
+    d_queue.d_root.setInitialNumBuckets(d_queue.d_groupIds.size());
 
     return d_priorityCount;
 }
@@ -501,13 +567,14 @@ unsigned int Routers::QueueRoutingContext::nextSubscriptionId()
     return ++d_nextSubscriptionId;
 }
 
-void Routers::QueueRoutingContext::loadInternals(mqbcmd::Routing* out) const
+void Routers::QueueRoutingContext::loadInternals(mqbcmd::Routing* out,
+                                                 unsigned int     max) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     for (SubscriptionIds::const_iterator cit = d_groupIds.begin();
-         cit != d_groupIds.end();
-         ++cit) {
+         cit != d_groupIds.end() && max;
+         ++cit, --max) {
         mqbcmd::SubscriptionGroup outSG(d_allocator_p);
         const SubscriptionId&     sId = d_groupIds.value(cit);
 
@@ -599,6 +666,7 @@ void Routers::AppContext::reset()
     }
     temp.clear();
     d_priorities.clear();
+
     BSLS_ASSERT_SAFE(d_groups.empty());
     BSLS_ASSERT_SAFE(d_consumers.empty());
 }
@@ -611,7 +679,8 @@ Routers::Result Routers::AppContext::selectConsumer(
     BSLS_ASSERT_SAFE(currentMessage);
 
     PriorityGroup* group = 0;
-    d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
+    MessagePropertiesReader* preader = d_queue.d_preader.get();
+    d_queue.d_evaluationContext.setPropertiesReader(preader);
     ScopeExit scope(d_queue, currentMessage);
 
     if (subscriptionId != bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
@@ -623,53 +692,58 @@ Routers::Result Routers::AppContext::selectConsumer(
             group = itId->value().d_priorityGroup;
         }
     }
+    Result rc = e_INVALID;
+
     if (group) {
         if (!group->d_canDeliver) {
             // Another option is to 'iterateGroups'
-            return e_NO_CAPACITY_ALL;  // RETURN
+            rc = e_NO_CAPACITY_ALL;
         }
-        if (d_router.iterateSubscriptions(visitor, *group)) {
-            return e_SUCCESS;
+        else if (group->iterateSubscriptions(visitor)) {
+            rc = e_SUCCESS;
         }
         else {
-            group->d_canDeliver = false;
-
-            return e_NO_CAPACITY;  // RETURN
+            rc = e_NO_CAPACITY;
         }
     }
     else {
-        return d_router.iterateGroups(visitor);  // RETURN
+        preader->startIterating(&d_queue.d_root);
+        rc = iterateGroups(visitor, d_queue.d_root);
+        preader->stopIterating();
     }
+
+    return rc;
 }
 
-// -------------------------
-// class Routers::RoundRobin
-// -------------------------
-
-Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
+Routers::Result Routers::AppContext::iterateGroups(const Visitor&     visitor,
+                                                   LearningIds::Root& root)
 {
-    bool haveMatch        = false;
-    bool noneHaveCapacity = true;
+    BSLS_ASSERT_SAFE(d_queue.d_preader);
+
+    MessagePropertiesReader& preader          = *d_queue.d_preader;
+    bool         haveMatch        = false;
+    bool                     noneHaveCapacity = true;
 
     for (Priorities::iterator itPriority = d_priorities.begin();
          itPriority != d_priorities.end() && !haveMatch;
          ++itPriority) {
-        Priority::PriorityGroupList& groups =
-            itPriority->second.d_highestGroups;
+        PriorityGroupVector& groups = itPriority->second.d_highestGroups;
 
-        for (Priority::PriorityGroupList::iterator itGroup = groups.begin();
-             itGroup != groups.end();
-             ++itGroup) {
-            PriorityGroup& group = (*itGroup)->value();
+        for (unsigned int i = 0; i < groups.size(); ++i) {
+            PriorityGroup& group = groups[i]->value();
 
             BSLS_ASSERT_SAFE(!group.d_highestSubscriptions.empty());
 
+            preader.rewind();
+
             if (group.d_canDeliver) {
-                if (group.evaluate()) {
-                    if (iterateSubscriptions(visitor, group)) {
+                if (group.evaluate(preader.numRuns())) {
+                    preader.learn(group.sId(), id(), true);
+
+                    if (group.iterateSubscriptions(visitor)) {
                         return e_SUCCESS;  // RETURN
                     }
-                    group.d_canDeliver = false;
+
                     haveMatch          = true;
                     // Assume, no handle 'canDeliver' or delay is engaged.
                     // Do not "spill over" to lower priorities if there is a
@@ -677,6 +751,51 @@ Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
                 }
                 else {
                     noneHaveCapacity = false;
+                }
+
+                // see if we have learned anything previously
+                LearningIds::Learned& results = root.learnedResults();
+
+                for (LearningIds::Learned::const_iterator cit =
+                         results.find(id());
+                     cit != results.cend();) {
+                    if (cit->first != id()) {
+                        break;
+                    }
+                    SubscriptionIds::SharedItem itId = d_queue.d_groupIds.find(
+                        cit->second);
+
+                    PriorityGroup* result = 0;
+                    if (itId) {
+                        result = itId->value().d_priorityGroup;
+                    }
+                    if (result) {
+                        if (result->d_canDeliver) {
+                            if (result->iterateSubscriptions(visitor)) {
+                                root.hit();
+                                return e_SUCCESS;  // RETURN
+                            }
+                        }
+                        haveMatch = true;
+                        ++cit;
+
+                        // Resume other iteration from last known result
+                        // This relies on learning always being synchronous
+                        // with the iteration.  I
+                        // i = cit->first;
+                    }
+                    else {
+                        // Erase outdated learned result
+                        cit = results.erase(cit);
+                    }
+
+                    // There is a potential to optimize iterating the same
+                    // group more than once by relying on some sequence number.
+                    // Something like 'i = cit->first;'
+                    // But this requires synchronizing learned results with the
+                    // config.  The former has longer lifetime than the latter,
+                    // otherwise every small (+- a consumer, for example) event
+                    // would reset previous learning.
                 }
             }
         }
@@ -693,16 +812,16 @@ Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
     }
 }
 
-bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
-                                               PriorityGroup& group)
+bool Routers::PriorityGroup::iterateSubscriptions(const Visitor& visitor)
 {
-    SubscriptionList& subscriptions = group.d_highestSubscriptions;
+    SubscriptionList& subscriptions = d_highestSubscriptions;
 
     for (SubscriptionList::iterator itSubscription = subscriptions.begin();
          itSubscription != subscriptions.end();
          ++itSubscription) {
-        const Subscription* subscription = *itSubscription;
-        mqbi::QueueHandle*  handle       = subscription->handle();
+        const Subscription*      subscription = *itSubscription;
+        const mqbi::QueueHandle* handle       = subscription->handle();
+
         BSLS_ASSERT_SAFE(handle);
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
@@ -720,6 +839,8 @@ bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
         }
     }
 
+    d_canDeliver = false;
+
     return false;
 }
 
@@ -729,12 +850,13 @@ bool Routers::AppContext::iterateConsumers(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(message);
+    BSLS_ASSERT_SAFE(d_queue.d_preader.get());
 
     ScopeExit scope(d_queue, message);
 
-    BSLS_ASSERT_SAFE(d_queue.d_preader.get());
     d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
 
+    d_queue.d_preader->startIterating(&d_queue.d_root);
     for (Consumers::const_iterator itConsumer = d_consumers.begin();
          itConsumer != d_consumers.end();
          ++itConsumer) {
@@ -762,10 +884,28 @@ const Routers::Subscription* Routers::AppContext::selectSubscription(
          ++it) {
         const Subscription* subscription = *it;
 
+        d_queue.d_preader->rewind();
+
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
                 subscription->d_downstreamSubscriptionId))) {
             PriorityGroup& group = subscription->d_itGroup->value();
-            if (group.evaluate()) {
+
+            // TODO: remove
+            SubscriptionList& list = group.d_highestSubscriptions;
+
+            unsigned int match = 0;
+            for (SubscriptionList::iterator itSubscription = list.begin();
+                 itSubscription != list.end();
+                 ++itSubscription) {
+                const Subscription* temp = *itSubscription;
+
+                if (temp->d_itSubscriber->value().d_itConsumer == itConsumer) {
+                    ++match;
+                }
+            }
+            BSLS_ASSERT_SAFE(match == 1);
+
+            if (group.evaluate(d_queue.d_preader->numRuns())) {
                 return subscription;  // RETURN
             }
         }
@@ -828,7 +968,7 @@ void Routers::AppContext::loadInternals(mqbcmd::RoundRobinRouter* out) const
     }
 }
 
-void Routers::RoundRobin::print(bsl::ostream& os,
+void Routers::AppContext::print(bsl::ostream& os,
                                 int           level,
                                 int           spacesPerLevel) const
 {

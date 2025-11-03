@@ -1799,7 +1799,8 @@ void RemoteQueue::loadInternals(mqbcmd::RemoteQueue* out) const
     }
 
     // QueueEngine
-    d_queueEngine_mp->loadInternals(&out->queueEngine());
+    d_queueEngine_mp->loadInternals(&out->queueEngine(),
+                                    bsl::numeric_limits<unsigned int>::max());
 }
 
 }  // close package namespace

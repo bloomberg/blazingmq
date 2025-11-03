@@ -112,7 +112,7 @@ static void test2_readingTest()
                         theLearner.multiplex(clientSession, input),
                         blob));
 
-    bmqp::MessageProperties::SchemaPtr schema1 = out.makeSchema(
+    bmqp::MessageProperties::SchemaPtr schema1 = out.getSchema(
         bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(
@@ -123,7 +123,7 @@ static void test2_readingTest()
                         blob));
 
     BMQTST_ASSERT_EQ(schema1,
-                     out.makeSchema(bmqtst::TestHelperUtil::allocator()));
+                     out.getSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     int start = bsl::rand() % num;
@@ -146,7 +146,7 @@ static void test2_readingTest()
                         blob));
 
     bmqp::MessageProperties::SchemaPtr schema2;
-    schema2 = out.makeSchema(bmqtst::TestHelperUtil::allocator());
+    schema2 = out.getSchema(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_NE(schema1, schema2);
     // ...unless the input is recycled
 
@@ -196,17 +196,17 @@ static void test3_observingTest()
     BMQTST_ASSERT_EQ(0, theLearner.read(server, &out1, input, blob));
     BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
-    bmqp::MessageProperties::SchemaPtr schema1 = out1.makeSchema(
+    bmqp::MessageProperties::SchemaPtr schema1 = out1.getSchema(
         bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(schema1,
-                     out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
+                     out2.getSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
     BMQTST_ASSERT_EQ(schema1,
-                     out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
+                     out2.getSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     bmqp::MessagePropertiesInfo recycledInput(true, 1, true);
@@ -216,7 +216,7 @@ static void test3_observingTest()
     BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
     BMQTST_ASSERT_NE(schema1,
-                     out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
+                     out2.getSchema(bmqtst::TestHelperUtil::allocator()));
     // ...unless the input is recycled
 }
 
