@@ -156,7 +156,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// ledger leader sequence number.
     NodeToLSNMap d_nodeToLedgerLSNMap;
 
-
     /// Underlying cluster state ledger.
     ClusterStateLedgerMp d_clusterStateLedger_mp;
 
@@ -580,9 +579,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///         dispatcher thread.
     void onNodeStopped() BSLS_KEYWORD_OVERRIDE;
 
-    /// Get the quorum value.
-    size_t getLsnQuorum();
-
     // MANIPULATORS
     //   (virtual: mqbc::ElectorInfoObserver)
 
@@ -629,6 +625,9 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///
     /// @note Used for testing purposes only.
     const NodeToLSNMap& nodeToLSNMap() const;
+
+    /// Get the quorum value.
+    size_t getLsnQuorum() const;
 };
 
 // ============================================================================
@@ -676,7 +675,7 @@ ClusterStateManager::nodeToLSNMap() const
     return d_nodeToLedgerLSNMap;
 }
 
-inline size_t ClusterStateManager::getLsnQuorum()
+inline size_t ClusterStateManager::getLsnQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }
