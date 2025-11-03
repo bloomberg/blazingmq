@@ -188,9 +188,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// user.
     ClusterStateLedgerConsistency::Enum d_consistencyLevel;
 
-    /// Cluster configuration to use.
-    const mqbcfg::ClusterDefinition& d_clusterConfig;
-
     /// Ledger configuration.
     mqbsi::LedgerConfig d_ledgerConfig;
 

@@ -1174,7 +1174,6 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
 , d_consistencyLevel(consistencyLevel)
-, d_clusterConfig(clusterDefinition)
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
