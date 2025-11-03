@@ -1602,7 +1602,7 @@ void ElectorStateMachine::enable(int                           selfId,
                                  int                           numTotalPeers,
                                  int leaderInactivityIntervalMs)
 {
-    int quorum = quorumManager->quorum();
+    unsigned int quorum = quorumManager->quorum();
 
     BSLS_ASSERT_SAFE(0 < quorum);
     BSLS_ASSERT_SAFE(k_INVALID_NODE_ID != selfId);
@@ -2453,8 +2453,9 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
     if (command.isSetTunableValue()) {
         const mqbcmd::SetTunable& tunable = command.setTunable();
         if (bdlb::StringRefUtil::areEqualCaseless(tunable.name(), "QUORUM")) {
-            if (!tunable.value().isTheIntegerValue() ||
-                tunable.value().theInteger() < 0) {
+            const bsls::Types::Int64 quorum = tunable.value().theInteger();
+
+            if (!tunable.value().isTheIntegerValue() || quorum < 0) {
                 bmqu::MemOutStream output;
                 output << "The QUORUM tunable must be a non-negative integer, "
                           "but instead the following was specified: "
@@ -2470,11 +2471,10 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
                 electorResult->makeTunableConfirmation();
             tunableConfirmation.name() = "Quorum";
             tunableConfirmation.oldValue().makeTheInteger(d_config.quorum());
-            tunableConfirmation.newValue().makeTheInteger(
-                tunable.value().theInteger());
+            tunableConfirmation.newValue().makeTheInteger(quorum);
 
             BSLS_ASSERT_SAFE(d_quorumManager_p);
-            d_quorumManager_p->setQuorum(tunable.value().theInteger());
+            d_quorumManager_p->setQuorum(static_cast<unsigned int>(quorum));
 
             return 0;  // RETURN
         }

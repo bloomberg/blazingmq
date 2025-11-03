@@ -30,11 +30,9 @@
 ///
 /// This component is thread safe.
 
-// MQB
-#include <mqbcfg_messages.h>
-
 // BDE
 #include <bsls_atomic.h>
+#include <bsls_keyword.h>
 
 namespace BloombergLP {
 namespace mqbcfg {
@@ -58,20 +56,19 @@ class ClusterQuorumManager {
   public:
     // CREATORS
 
-    /// Create a `ClusterQuorumManager` object using the specified
-    /// `clusterConfig`. If the quorum is not specified in the config,
-    /// calculate it as the majority of nodes.
-    explicit ClusterQuorumManager(int quorum, size_t nodeCount);
-
+    /// Create a `ClusterQuorumManager` object using the specified `quorum`
+    /// and `nodeCount`. If the `quorum` is 0, it is calculated as the
+    /// majority of `nodeCount`.
+    explicit ClusterQuorumManager(unsigned int quorum, size_t nodeCount);
     // MANIPULATORS
 
     /// Set the quorum to the specified `value`.
-    void setQuorum(int value);
+    void setQuorum(unsigned int value);
 
     // ACCESSORS
 
     /// Return the current quorum value.
-    size_t quorum() const;
+    unsigned int quorum() const;
 };
 
 // ============================================================================
@@ -83,25 +80,21 @@ class ClusterQuorumManager {
 // ------------------------
 
 // CREATORS
-inline ClusterQuorumManager::ClusterQuorumManager(int quorum, size_t nodeCount)
+inline ClusterQuorumManager::ClusterQuorumManager(unsigned int quorum,
+                                                  size_t       nodeCount)
 {
     if (0 == quorum) {
-        d_quorum.store(static_cast<int>(nodeCount) / 2 + 1);
+        quorum = nodeCount / 2 + 1;
     }
-    else {
-        if (quorum > static_cast<int>(nodeCount)) {
-            quorum = static_cast<int>(nodeCount);
-        }
-        else if (quorum < 1) {
-            quorum = 0;
-        }
+    else if (quorum > nodeCount) {
+        quorum = nodeCount;
+    }
 
-        d_quorum.store(quorum);
-    }
+    d_quorum.store(quorum);
 }
 
 // MANIPULATORS
-inline void ClusterQuorumManager::setQuorum(int quorum)
+inline void ClusterQuorumManager::setQuorum(unsigned int quorum)
 {
     if (quorum < 1) {
         quorum = 0;
@@ -111,7 +104,7 @@ inline void ClusterQuorumManager::setQuorum(int quorum)
 }
 
 // ACCESSORS
-inline size_t ClusterQuorumManager::quorum() const
+inline unsigned int ClusterQuorumManager::quorum() const
 {
     return d_quorum.load();
 }

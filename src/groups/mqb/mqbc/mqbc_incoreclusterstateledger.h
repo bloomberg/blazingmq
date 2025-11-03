@@ -279,7 +279,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bool isSelfLeader() const;
 
-    size_t getAckQuorum() const;
+    unsigned int getAckQuorum() const;
 
   public:
     // TRAITS
@@ -455,7 +455,7 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
     return d_clusterData_p->electorInfo().isSelfLeader();
 }
 
-inline size_t IncoreClusterStateLedger::getAckQuorum() const
+inline unsigned int IncoreClusterStateLedger::getAckQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }

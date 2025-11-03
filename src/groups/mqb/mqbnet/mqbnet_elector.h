@@ -673,7 +673,7 @@ class ElectorStateMachine {
     bool isValidSourceNode(int sourceNodeId) const;
 
     /// Return the quorum required for winning an election.
-    size_t getQuorum() const;
+    unsigned int getQuorum() const;
 
   public:
     // TRAITS
@@ -1290,7 +1290,7 @@ inline bool ElectorStateMachine::isValidSourceNode(int sourceNodeId) const
     return true;
 }
 
-inline size_t ElectorStateMachine::getQuorum() const
+inline unsigned int ElectorStateMachine::getQuorum() const
 {
     BSLS_ASSERT_SAFE(d_quorumManager_p);
 

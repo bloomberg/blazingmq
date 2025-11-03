@@ -627,7 +627,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     const NodeToLSNMap& nodeToLSNMap() const;
 
     /// Get the quorum value.
-    size_t getLsnQuorum() const;
+    unsigned int getLsnQuorum() const;
 };
 
 // ============================================================================
@@ -675,7 +675,7 @@ ClusterStateManager::nodeToLSNMap() const
     return d_nodeToLedgerLSNMap;
 }
 
-inline size_t ClusterStateManager::getLsnQuorum() const
+inline unsigned int ClusterStateManager::getLsnQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }

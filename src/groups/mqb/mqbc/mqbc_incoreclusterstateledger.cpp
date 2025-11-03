@@ -689,7 +689,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
 
         iter->second.d_ackCount += 1;
 
-        const size_t ackQuorum = getAckQuorum();
+        const unsigned int ackQuorum = getAckQuorum();
 
         if (iter->second.d_ackCount == ackQuorum) {
             // Consistency level reached. Apply a commit message for the
