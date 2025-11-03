@@ -1172,9 +1172,6 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_clusterState_p(clusterState)
 , d_consistencyLevel(consistencyLevel)
 , d_clusterConfig(clusterDefinition)
-// , d_ackQuorum(consistencyLevel == ClusterStateLedgerConsistency::e_STRONG
-//                   ? (clusterDefinition.nodes().size() / 2) + 1
-//                   : 1)
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
