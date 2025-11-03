@@ -1154,11 +1154,11 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
 // CREATORS
 IncoreClusterStateLedger::IncoreClusterStateLedger(
-    const mqbcfg::ClusterDefinition&    clusterDefinition,
-    ClusterData*                        clusterData,
-    ClusterState*                       clusterState,
-    BlobSpPool*                         blobSpPool_p,
-    bslma::Allocator*                   allocator)
+    const mqbcfg::ClusterDefinition& clusterDefinition,
+    ClusterData*                     clusterData,
+    ClusterState*                    clusterState,
+    BlobSpPool*                      blobSpPool_p,
+    bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_isOpen(false)
 , d_blobSpPool_p(blobSpPool_p)

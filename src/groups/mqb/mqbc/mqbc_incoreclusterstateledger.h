@@ -290,11 +290,11 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// `clusterState`, and using the specified `bufferFactory` and `allocator`
     /// to supply memory.
     IncoreClusterStateLedger(
-        const mqbcfg::ClusterDefinition&    clusterDefinition,
-        ClusterData*                        clusterData,
-        ClusterState*                       clusterState,
-        BlobSpPool*                         blobSpPool_p,
-        bslma::Allocator*                   allocator);
+        const mqbcfg::ClusterDefinition& clusterDefinition,
+        ClusterData*                     clusterData,
+        ClusterState*                    clusterState,
+        BlobSpPool*                      blobSpPool_p,
+        bslma::Allocator*                allocator);
 
     /// Destructor.
     ~IncoreClusterStateLedger() BSLS_KEYWORD_OVERRIDE;
