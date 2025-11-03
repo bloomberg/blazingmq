@@ -4590,6 +4590,7 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
         }
 
         if (node == 0) {
+            // Replica makes all open queues buffer PUTs.
             queue->dispatcher()->execute(
                 bdlf::BindUtil::bind(&mqbi::Queue::onLostUpstream, queue),
                 queue);

@@ -277,7 +277,7 @@ struct Tester {
         for (mqbnet::Cluster::NodesList::iterator iter = nodes.begin();
              iter != nodes.end();
              ++iter) {
-            d_cluster_mp->_state().setPartitionPrimary(pid, 1, *iter);
+            d_cluster_mp->_state()->setPartitionPrimary(pid, 1, *iter);
             ++pid;
         }
 
@@ -287,7 +287,7 @@ struct Tester {
                     d_cluster_mp->_clusterDefinition(),
                     mqbc::ClusterStateLedgerConsistency::e_STRONG,
                     d_cluster_mp->_clusterData(),
-                    &d_cluster_mp->_state(),
+                    d_cluster_mp->_state(),
                     d_cluster_mp->_blobSpPool(),
                     bmqtst::TestHelperUtil::allocator()),
             bmqtst::TestHelperUtil::allocator());
@@ -316,7 +316,7 @@ struct Tester {
         ++d_commitCounter;
 
         if (status == mqbc::ClusterStateLedgerCommitStatus::e_SUCCESS) {
-            mqbc::ClusterUtil::apply(&d_cluster_mp->_state(),
+            mqbc::ClusterUtil::apply(d_cluster_mp->_state(),
                                      advisory.choice().clusterMessage(),
                                      *d_cluster_mp->_clusterData());
         }
@@ -1388,7 +1388,7 @@ static void test10_persistanceFollower()
                                    mqbmock::Cluster::k_LEADER_NODE_ID)) == 0);
 
     // Apply 'QueueUnAssignmentAdvisory'
-    bmqp_ctrlmsg::ClusterMessage           qUnassignedAdvisoryMsg;
+    bmqp_ctrlmsg::ClusterMessage             qUnassignedAdvisoryMsg;
     bmqp_ctrlmsg::QueueUnAssignmentAdvisory& qUnassignedAdvisory =
         qUnassignedAdvisoryMsg.choice().makeQueueUnAssignmentAdvisory();
     tester.d_cluster_mp->_clusterData()
@@ -1663,7 +1663,7 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(tester.broadcastedMessage(0) == expectedPmAdvisory);
 
     // Apply 'QueueUnAssignmentAdvisory'
-    bmqp_ctrlmsg::ClusterMessage           qUnassignedAdvisoryMsg;
+    bmqp_ctrlmsg::ClusterMessage             qUnassignedAdvisoryMsg;
     bmqp_ctrlmsg::QueueUnAssignmentAdvisory& qUnassignedAdvisory =
         qUnassignedAdvisoryMsg.choice().makeQueueUnAssignmentAdvisory();
     tester.d_cluster_mp->_clusterData()

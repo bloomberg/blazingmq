@@ -463,6 +463,40 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
     return *this;
 }
 
+ClusterState::DomainState&
+ClusterState::getDomainState(const bsl::string& domain)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+
+    DomainStatesIter domIt = d_domainStates.find(domain);
+    if (domIt == d_domainStates.end()) {
+        DomainStateSp domainState;
+        domainState.createInplace(d_allocator_p, d_allocator_p);
+        domIt = d_domainStates.emplace(domain, domainState).first;
+    }
+    return *domIt->second;
+}
+
+void ClusterState::onDomainsCreated(const DomainMap& domains)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+
+    DomainMap::const_iterator it = domains.cbegin();
+    for (; it != domains.cend(); ++it) {
+        if (it->second != 0) {
+            DomainState& domState = getDomainState(it->first);
+            domState.setDomain(it->second);
+            domState.adjustQueueCount(0);
+        }
+    }
+}
+
 void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -470,29 +504,16 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
 
-    const bmqt::Uri& uri         = advisory.uri();
+    const bmqt::Uri&      uri         = advisory.uri();
     const int             partitionId = advisory.partitionId();
-    DomainStatesIter      domIt = domainStates().find(uri.qualifiedDomain());
-    UriToQueueInfoMapIter queueIt;
+    DomainState&          domState    = getDomainState(uri.qualifiedDomain());
+    UriToQueueInfoMapIter queueIt     = domState.queuesInfo().find(uri);
     QueueInfoSp           newQueueInfo;
     QueueInfoSp&          queue = newQueueInfo;
 
-    if (domIt == domainStates().end()) {
-        ClusterState::DomainStateSp domainState;
-        domainState.createInplace(d_allocator_p, d_allocator_p);
-        domIt =
-            domainStates().emplace(uri.qualifiedDomain(), domainState).first;
-
-        queueIt = domIt->second->queuesInfo().end();
-    }
-    else {
-        queueIt = domIt->second->queuesInfo().find(uri);
-    }
-
-    if (queueIt == domIt->second->queuesInfo().end()) {
+    if (queueIt == domState.queuesInfo().end()) {
         newQueueInfo.createInplace(d_allocator_p, advisory, d_allocator_p);
-
-        queueIt = domIt->second->queuesInfo().emplace(uri, queue).first;
+        queueIt = domState.queuesInfo().emplace(uri, queue).first;
     }
     else {
         queue = queueIt->second;
@@ -782,7 +803,6 @@ void ClusterState::DomainState::adjustQueueCount(int by)
     if (d_domain_p != 0) {
         d_domain_p->domainStats()
             ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT>(
-
                 d_numAssignedQueues);
     }
 }

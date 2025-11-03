@@ -266,7 +266,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Associated persistent cluster data for this node.
     ///
     /// THREAD: **Must** be accessed in the cluster dispatcher thread.
-    const mqbc::ClusterState& d_clusterState;
+    mqbc::ClusterState* d_clusterState_p;
 
     /// Cluster config to use.
     const mqbcfg::ClusterDefinition& d_clusterConfig;
@@ -735,7 +735,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     StorageManager(const mqbcfg::ClusterDefinition& clusterConfig,
                    mqbi::Cluster*                   cluster,
                    mqbc::ClusterData*               clusterData,
-                   const mqbc::ClusterState&        clusterState,
+                   mqbc::ClusterState*              clusterState,
                    mqbi::DomainFactory*             domainFactory,
                    mqbi::Dispatcher*                dispatcher,
                    bsls::Types::Int64               watchDogTimeoutDuration,

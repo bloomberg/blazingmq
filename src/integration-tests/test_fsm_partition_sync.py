@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """
-Testing primary-replica synchronization after missed rollover in FSM mode.
+Testing primary-replica partition synchronization in FSM mode.
 """
 
 import glob
@@ -253,3 +253,131 @@ def test_sync_after_missed_rollover_after_restart(
 
     # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal
     _compare_journal_files(east1.name, east2.name, cluster)
+
+
+def test_sync_after_missed_records(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test replica journal file synchronization with cluster after missed records.
+    - start cluster
+    - put 2 messages
+    - stop replica
+    - put more messages
+    - restart replica
+    - check that replica is synchronized with primary (primary and replica journal files content is equal)
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    replica = cluster.nodes(exclude=leader)[0]
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop replica
+    replica.stop()
+    cluster.make_sure_node_stopped(replica)
+    replica.drain()
+
+    # Put two more messages
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Restart the stopped replica which missed messages
+    replica.start()
+    replica.wait_until_started()
+
+    # Wait until replica synchronizes with cluster
+    assert replica.outputs_substr("Cluster (itCluster) is available", 10)
+
+    assert leader == cluster.last_known_leader
+
+    # Check that leader and replica journal files are equal
+    _compare_journal_files(leader.name, replica.name, cluster)
+
+
+def test_sync_if_leader_missed_records(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test leader journal file synchronization with cluster when it missed records.
+    - start cluster, leader is east1
+    - put 2 messages
+    - kill replica east2, mark it as a `next_leader`
+    - put 2 more messages
+    - stop all running nodes
+    - start all nodes, force `next_leader` (east2) to be a leader
+    - check that leader (which is behind replicas) is synchronized with replicas (leader and replica journal files content is equal)
+    """
+
+    cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    # Start cluster with leader `east1`
+    leader = cluster.last_known_leader
+
+    # Create producer and consumer
+    producer = leader.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = leader.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Mark `next_leader` node (east2)
+    next_leader = cluster.nodes(exclude=leader)[0]
+
+    # Kill `next_leader` node
+    cluster.drain()
+    next_leader.check_exit_code = False
+    next_leader.kill()
+    next_leader.wait()
+
+    # Put 2 more messages
+    for i in range(3, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Stop all running nodes
+    for node in cluster.nodes(exclude=next_leader):
+        node.check_exit_code = False
+        node.stop()
+        cluster.make_sure_node_stopped(node)
+
+    cluster.drain()
+
+    # Start all nodes, `next_leader` is the first, force it to be a leader
+    sorted_nodes = sorted(
+        cluster.nodes(), key=lambda node: 0 if node == next_leader else 1
+    )
+    for node in sorted_nodes:
+        node.start()
+        node.wait_until_started()
+        quorum = 3 if node == next_leader else 5
+        node.set_quorum(quorum)
+
+    # Wait until cluster is ready
+    next_leader.wait_status(wait_leader=True, wait_ready=True)
+    assert next_leader.last_known_leader == next_leader
+
+    # Select replica
+    replica = cluster.nodes(exclude=next_leader)[0]
+
+    # Check that `next_leader` and replica journal files are equal
+    _compare_journal_files(next_leader.name, replica.name, cluster)

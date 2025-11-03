@@ -438,9 +438,11 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         d_domainFactory_p,
         &d_unrecognizedDomainsLock,
         &d_unrecognizedDomains[partitionId],
+        d_clusterState_p,
         d_clusterData_p->identity().description(),
         partitionId,
-        queueKeyInfoMap);
+        queueKeyInfoMap,
+        d_allocator_p);
 
     if (++d_numPartitionsRecoveredQueues < numPartitions) {
         return;  // RETURN
@@ -687,7 +689,7 @@ void StorageManager::processPartitionSyncEvent(
     BSLS_ASSERT_SAFE(pid < d_fileStores.size());
 
     // Ensure that 'pid' is valid.
-    if (pid >= d_clusterState.partitions().size()) {
+    if (pid >= d_clusterState_p->partitions().size()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
             << d_cluster_p->description()
             << ": Received partition-sync event from node "
@@ -698,7 +700,8 @@ void StorageManager::processPartitionSyncEvent(
     }
 
     PartitionInfo                    pinfo;
-    const ClusterStatePartitionInfo& cspinfo = d_clusterState.partition(pid);
+    const ClusterStatePartitionInfo& cspinfo = d_clusterState_p->partition(
+        pid);
     pinfo.setPrimary(cspinfo.primaryNode());
     pinfo.setPrimaryLeaseId(cspinfo.primaryLeaseId());
     pinfo.setPrimaryStatus(cspinfo.primaryStatus());
@@ -928,7 +931,7 @@ StorageManager::StorageManager(
     const mqbcfg::ClusterDefinition& clusterConfig,
     mqbi::Cluster*                   cluster,
     mqbc::ClusterData*               clusterData,
-    const mqbc::ClusterState&        clusterState,
+    mqbc::ClusterState*              clusterState,
     const RecoveryStatusCb&          recoveryStatusCb,
     const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
     mqbi::DomainFactory*             domainFactory,
@@ -947,7 +950,7 @@ StorageManager::StorageManager(
 , d_clusterConfig(clusterConfig)
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
-, d_clusterState(clusterState)
+, d_clusterState_p(clusterState)
 , d_recoveryManager_mp()
 , d_fileStores(allocator)
 , d_miscWorkThreadPool_p(threadPool)
@@ -1596,7 +1599,7 @@ void StorageManager::processStorageEvent(
     BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
 
     // Ensure that 'pid' is valid.
-    if (pid >= d_clusterState.partitions().size()) {
+    if (pid >= d_clusterState_p->partitions().size()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
             << d_cluster_p->description() << ": Received storage event "
             << "from node " << source->nodeDescription() << " with "
@@ -1612,7 +1615,7 @@ void StorageManager::processStorageEvent(
         bmqp_ctrlmsg::NodeStatus::E_STARTING ==
             d_clusterData_p->membership().selfNodeStatus() ||
         isZero(d_clusterData_p->electorInfo().leaderMessageSequence());
-    const ClusterStatePartitionInfo& pinfo = d_clusterState.partition(pid);
+    const ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(pid);
     if (!mqbc::StorageUtil::validateStorageEvent(
             rawEvent,
             pid,
@@ -1843,7 +1846,7 @@ void StorageManager::processRecoveryEvent(
     BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
 
     // Ensure that 'pid' is valid.
-    if (pid >= d_clusterState.partitions().size()) {
+    if (pid >= d_clusterState_p->partitions().size()) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_cluster_p->description()
             << ": Received recovery event from node "

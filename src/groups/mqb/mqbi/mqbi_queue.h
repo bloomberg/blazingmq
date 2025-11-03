@@ -864,13 +864,11 @@ class Queue : public DispatcherClient {
 
     /// Invoked by the Data Store when it receives quorum Receipts for the
     /// specified `msgGUID`.  Send ACK to the specified `queueHandle` if it
-    /// is present in the queue handle catalog.  Update AVK time stats using
-    /// the specified `arrivalTimepoint`.
+    /// is present in the queue handle catalog.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void onReceipt(const bmqt::MessageGUID&  msgGUID,
-                           mqbi::QueueHandle*        queueHandle,
-                           const bsls::Types::Int64& arrivalTimepoint) = 0;
+    virtual void onReceipt(const bmqt::MessageGUID& msgGUID,
+                           mqbi::QueueHandle*       queueHandle) = 0;
 
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send

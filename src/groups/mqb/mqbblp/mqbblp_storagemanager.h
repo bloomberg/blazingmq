@@ -223,7 +223,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
     mqbc::ClusterData* d_clusterData_p;
 
-    const mqbc::ClusterState& d_clusterState;
+    mqbc::ClusterState* d_clusterState_p;
 
     /// Recovery manager.  Empty if this is a local cluster.
     RecoveryManagerMp d_recoveryManager_mp;
@@ -406,7 +406,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     StorageManager(const mqbcfg::ClusterDefinition& clusterConfig,
                    mqbi::Cluster*                   cluster,
                    mqbc::ClusterData*               clusterData,
-                   const mqbc::ClusterState&        clusterState,
+                   mqbc::ClusterState*              clusterState,
                    const RecoveryStatusCb&          recoveryStatusCb,
                    const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
                    mqbi::DomainFactory*             domainFactory,

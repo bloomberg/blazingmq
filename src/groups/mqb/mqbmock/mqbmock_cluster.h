@@ -428,7 +428,7 @@ class Cluster : public mqbi::Cluster {
     mqbc::ClusterData* _clusterData();
 
     /// Get a modifiable reference to this object's cluster state.
-    mqbc::ClusterState& _state();
+    mqbc::ClusterState* _state();
 
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
@@ -590,9 +590,9 @@ inline mqbc::ClusterData* Cluster::_clusterData()
     return d_clusterData_mp.get();
 }
 
-inline mqbc::ClusterState& Cluster::_state()
+inline mqbc::ClusterState* Cluster::_state()
 {
-    return d_state;
+    return &d_state;
 }
 
 inline bdlbb::BlobBufferFactory* Cluster::bufferFactory()
