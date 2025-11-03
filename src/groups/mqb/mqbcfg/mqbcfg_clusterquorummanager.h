@@ -24,6 +24,11 @@
 /// @bbref{mqbcfg::ClusterQuorumManager} is a thread safe class that
 /// encapsulates the quorum value for a cluster, allowing it to be set and
 /// retrieved safely across multiple threads.
+///
+/// Thread Safety
+/// =============
+///
+/// This component is thread safe.
 
 // MQB
 #include <mqbcfg_messages.h>
