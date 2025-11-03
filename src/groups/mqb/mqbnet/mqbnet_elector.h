@@ -1017,7 +1017,8 @@ class Elector : public SessionEventProcessor {
     /// Create an elector instance with the specified `config`, invoking the
     /// specified `callback` whenever elector state changes, using the
     /// specified `cluster` for emitting I/O events, using the specified
-    /// `initalTerm` and using the specified `blobSpPool_p` for blobs
+    /// `quorumManager` for reading quorum, using the specified
+    /// `initialTerm` and using the specified `blobSpPool_p` for blobs
     /// allocation and `allocator` for memory allocation.
     Elector(mqbcfg::ElectorConfig&        config,
             mqbi::Cluster*                cluster,
