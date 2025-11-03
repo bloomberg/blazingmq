@@ -64,7 +64,6 @@ ClusterStateManager::ClusterStateManager(
 , d_state_p(clusterState)
 , d_clusterFSM(*this)
 , d_nodeToLedgerLSNMap(allocator)
-// , d_lsnQuorum((clusterConfig.nodes().size() / 2) + 1)
 // TODO Add cluster config to determine Eventual vs Strong
 , d_clusterStateLedger_mp(clusterStateLedger)
 , d_storageManager_p(0)
