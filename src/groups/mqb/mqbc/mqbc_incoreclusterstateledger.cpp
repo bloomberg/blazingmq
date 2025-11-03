@@ -533,12 +533,6 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                           << "' to all cluster nodes";
         }
 
-        // A follower does not reply Ack under eventual consistency
-        if (!isSelfLeader() &&
-            d_consistencyLevel == ClusterStateLedgerConsistency::e_EVENTUAL) {
-            return rc_SUCCESS;  // RETURN
-        }
-
         bmqp_ctrlmsg::ClusterMessage ackMessage;
         ackMessage.choice().makeLeaderAdvisoryAck().sequenceNumberAcked() =
             sequenceNumber;
@@ -1161,7 +1155,6 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 // CREATORS
 IncoreClusterStateLedger::IncoreClusterStateLedger(
     const mqbcfg::ClusterDefinition&    clusterDefinition,
-    ClusterStateLedgerConsistency::Enum consistencyLevel,
     ClusterData*                        clusterData,
     ClusterState*                       clusterState,
     BlobSpPool*                         blobSpPool_p,
@@ -1173,7 +1166,6 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_commitCb()
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
-, d_consistencyLevel(consistencyLevel)
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)

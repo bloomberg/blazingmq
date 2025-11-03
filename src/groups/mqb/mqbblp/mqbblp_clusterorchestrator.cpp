@@ -581,7 +581,6 @@ ClusterOrchestrator::ClusterOrchestrator(
                             mqbc::IncoreClusterStateLedger>(
                             d_allocators.get("ClusterStateLedger"),
                             clusterConfig,
-                            mqbc::ClusterStateLedgerConsistency::e_STRONG,
                             d_clusterData_p,
                             clusterState,
                             &d_clusterData_p->blobSpPool())),
@@ -598,7 +597,6 @@ ClusterOrchestrator::ClusterOrchestrator(
                             mqbc::IncoreClusterStateLedger>(
                             d_allocators.get("ClusterStateLedger"),
                             clusterConfig,
-                            mqbc::ClusterStateLedgerConsistency::e_STRONG,
                             d_clusterData_p,
                             clusterState,
                             &d_clusterData_p->blobSpPool())),
