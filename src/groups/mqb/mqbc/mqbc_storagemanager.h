@@ -348,9 +348,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
 
-    // /// Quorum config to use for Sequence numbers being collected by self if
-    // /// primary while getting the latest view of the partitions owned by
-    // self const unsigned int d_seqNumQuorum;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
