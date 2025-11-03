@@ -156,9 +156,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// ledger leader sequence number.
     NodeToLSNMap d_nodeToLedgerLSNMap;
 
-    // /// Number of LSN views gathered from cluster nodes (including self)
-    // /// required to achieve a quorum.
-    // unsigned int d_lsnQuorum;
 
     /// Underlying cluster state ledger.
     ClusterStateLedgerMp d_clusterStateLedger_mp;
