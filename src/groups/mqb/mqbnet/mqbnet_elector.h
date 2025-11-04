@@ -490,7 +490,7 @@ class ElectorStateMachine {
 
     mqbcfg::ClusterQuorumManager* d_quorumManager_p;
 
-    int d_numTotalPeers;
+    size_t d_numTotalPeers;
 
     int d_selfId;
 
@@ -704,7 +704,7 @@ class ElectorStateMachine {
     /// 0 or `numTotalPeers < quorum`.
     void enable(int                           selfId,
                 mqbcfg::ClusterQuorumManager* quorumManager,
-                int                           numTotalPeers,
+                size_t                        numTotalPeers,
                 int                           leaderInactivityIntervalMs);
 
     /// Disable this state machine by moving it to `DORMANT` state, such

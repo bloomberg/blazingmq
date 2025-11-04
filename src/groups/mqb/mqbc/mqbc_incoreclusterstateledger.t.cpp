@@ -285,7 +285,6 @@ struct Tester {
             new (*bmqtst::TestHelperUtil::allocator())
                 mqbc::IncoreClusterStateLedger(
                     d_cluster_mp->_clusterDefinition(),
-                    mqbc::ClusterStateLedgerConsistency::e_STRONG,
                     d_cluster_mp->_clusterData(),
                     d_cluster_mp->_state(),
                     d_cluster_mp->_blobSpPool(),
@@ -1752,8 +1751,8 @@ static void test11_persistanceAcrossRolloverLeader()
         qadvisory.queues().push_back(qinfoI);
     }
 
-    size_t i = 0;
-    bool   hasUncommittedBeforeRollover =
+    int  i = 0;
+    bool hasUncommittedBeforeRollover =
         true;  // Either the qadvisory or its commit can trigger rollover.  If
                // the commit triggers rollover, that means we have an
                // uncomitted advisory before rollover.

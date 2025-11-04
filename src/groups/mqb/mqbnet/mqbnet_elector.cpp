@@ -1356,8 +1356,7 @@ void ElectorStateMachine::applyScoutingResponseEvent(
         return;  // RETURN
     }
 
-    if (d_scoutingInfo.numResponses() ==
-        static_cast<size_t>(d_numTotalPeers)) {
+    if (d_scoutingInfo.numResponses() == d_numTotalPeers) {
         // All nodes have responded, but as per previous 'if' check, majority
         // of the nodes did not express support.  This means that this round of
         // scouting request failed.  Elector needs to wait random time before
@@ -1604,15 +1603,11 @@ void ElectorStateMachine::applyScoutingResultTimerEvent(
 // MANIPULATORS
 void ElectorStateMachine::enable(int                           selfId,
                                  mqbcfg::ClusterQuorumManager* quorumManager,
-                                 int                           numTotalPeers,
+                                 size_t                        numTotalPeers,
                                  int leaderInactivityIntervalMs)
 {
-    unsigned int quorum = quorumManager->quorum();
-
-    BSLS_ASSERT_SAFE(0 < quorum);
     BSLS_ASSERT_SAFE(k_INVALID_NODE_ID != selfId);
     BSLS_ASSERT_SAFE(0 < leaderInactivityIntervalMs);
-    BSLS_ASSERT_SAFE(quorum <= numTotalPeers);
 
     if (isEnabled()) {
         return;  // RETURN
@@ -2479,7 +2474,9 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
             tunableConfirmation.newValue().makeTheInteger(quorum);
 
             BSLS_ASSERT_SAFE(d_quorumManager_p);
-            d_quorumManager_p->setQuorum(static_cast<unsigned int>(quorum));
+            d_quorumManager_p->setQuorum(
+                static_cast<unsigned int>(quorum),
+                static_cast<unsigned int>(d_nodes.size()));
 
             return 0;  // RETURN
         }

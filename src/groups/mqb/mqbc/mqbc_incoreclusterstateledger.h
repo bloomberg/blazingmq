@@ -95,7 +95,7 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     bsls::Types::Uint64 d_timestampNs;
 
     /// Number of ACKs received for this `ClusterMessage`.
-    int d_ackCount;
+    unsigned int d_ackCount;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(IncoreClusterStateLedger_ClusterMessageInfo,

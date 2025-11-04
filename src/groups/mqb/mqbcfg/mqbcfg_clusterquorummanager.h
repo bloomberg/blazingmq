@@ -31,6 +31,7 @@
 /// This component is thread safe.
 
 // BDE
+#include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_keyword.h>
 
@@ -59,11 +60,11 @@ class ClusterQuorumManager {
     /// Create a `ClusterQuorumManager` object using the specified `quorum`
     /// and `nodeCount`. If the `quorum` is 0, it is calculated as the
     /// majority of `nodeCount`.
-    explicit ClusterQuorumManager(unsigned int quorum, size_t nodeCount);
+    explicit ClusterQuorumManager(unsigned int quorum, unsigned int nodeCount);
     // MANIPULATORS
 
-    /// Set the quorum to the specified `value`.
-    void setQuorum(unsigned int value);
+    /// Set the quorum to the specified value.
+    void setQuorum(unsigned int quorum, unsigned int nodeCount);
 
     // ACCESSORS
 
@@ -81,7 +82,14 @@ class ClusterQuorumManager {
 
 // CREATORS
 inline ClusterQuorumManager::ClusterQuorumManager(unsigned int quorum,
-                                                  size_t       nodeCount)
+                                                  unsigned int nodeCount)
+{
+    setQuorum(quorum, nodeCount);
+}
+
+// MANIPULATORS
+inline void ClusterQuorumManager::setQuorum(unsigned int quorum,
+                                            unsigned int nodeCount)
 {
     if (0 == quorum) {
         quorum = nodeCount / 2 + 1;
@@ -93,20 +101,12 @@ inline ClusterQuorumManager::ClusterQuorumManager(unsigned int quorum,
     d_quorum.store(quorum);
 }
 
-// MANIPULATORS
-inline void ClusterQuorumManager::setQuorum(unsigned int quorum)
-{
-    if (quorum < 1) {
-        quorum = 0;
-    }
-
-    d_quorum.store(quorum);
-}
-
 // ACCESSORS
 inline unsigned int ClusterQuorumManager::quorum() const
 {
-    return d_quorum.load();
+    unsigned int quorum = d_quorum.load();
+    BSLS_ASSERT_SAFE(0 < quorum);
+    return quorum;
 }
 
 }  // close package namespace
