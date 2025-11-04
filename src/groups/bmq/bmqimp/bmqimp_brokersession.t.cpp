@@ -5129,7 +5129,7 @@ static void queueAsyncCanceled_REOPEN_OPENING()
             k_QUEUE_EVENT,                 // queue operation
             TestSession::e_REQ_UNDEFINED,  // retransmitted request
             false,  // expect queue operation event on channel down
-            true,   // expect queue operation event on disconnect
+            false,  // expect queue operation event on disconnect
             false,  // STATE_RESTORED event after channel down
             true,   // STATE_RESTORED event after disconnect
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
@@ -5141,7 +5141,7 @@ static void queueAsyncCanceled_REOPEN_OPENING()
             k_QUEUE_EVENT,                 // queue operation
             TestSession::e_REQ_UNDEFINED,  // retransmitted request
             false,  // expect queue operation event on channel down
-            true,   // expect queue operation event on disconnect
+            false,  // expect queue operation event on disconnect
             false,  // STATE_RESTORED event after channel down
             true,   // STATE_RESTORED event after disconnect
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
@@ -5153,7 +5153,7 @@ static void queueAsyncCanceled_REOPEN_OPENING()
             k_QUEUE_EVENT,                 // queue operation
             TestSession::e_REQ_UNDEFINED,  // retransmitted request
             false,  // expect queue operation event on channel down
-            true,   // expect queue operation event on disconnect
+            false,  // expect queue operation event on disconnect
             false,  // STATE_RESTORED event after channel down
             true,   // STATE_RESTORED event after disconnect
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
@@ -5196,7 +5196,7 @@ static void queueAsyncCanceled_REOPEN_CONFIGURING()
             k_QUEUE_EVENT,                 // queue operation
             TestSession::e_REQ_UNDEFINED,  // retransmitted request
             false,  // expect queue operation event on channel down
-            true,   // expect queue operation event on disconnect
+            false,  // expect queue operation event on disconnect
             false,  // STATE_RESTORED event after channel down
             true,   // STATE_RESTORED event after disconnect
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
@@ -5220,7 +5220,7 @@ static void queueAsyncCanceled_REOPEN_CONFIGURING()
             k_QUEUE_EVENT,                 // queue operation
             TestSession::e_REQ_UNDEFINED,  // retransmitted request
             false,  // expect queue operation event on channel down
-            true,   // expect queue operation event on disconnect
+            false,  // expect queue operation event on disconnect
             false,  // STATE_RESTORED event after channel down
             true,   // STATE_RESTORED event after disconnect
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
@@ -6671,10 +6671,6 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         PVV_SAFE("Step 5. Verify reopen request was sent");
         obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
 
-        BMQTST_ASSERT(obj.verifyOperationResult(
-            bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
-            bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED));
-
         BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
         PVV_SAFE("Step 6. Verify the queue gets closed");
@@ -6717,10 +6713,6 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         if (bmqt::QueueFlagsUtil::isReader(queue->flags())) {
             PVV_SAFE("Step 12. Verify configure request was sent");
             obj.verifyRequestSent(TestSession::e_REQ_CONFIG_QUEUE);
-
-            BMQTST_ASSERT(obj.verifyOperationResult(
-                bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
-                bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED));
 
             BMQTST_ASSERT(obj.waitStateRestoredEvent());
 

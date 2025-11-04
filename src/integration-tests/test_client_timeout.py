@@ -122,6 +122,12 @@ def test_client_timeout_reopen(multi_node: Cluster, domain_urls: tc.DomainUrls):
         == Client.e_SUCCESS
     )
 
+    # Make sure the producer has not seen a QUEUE_REOPEN_RESULT failure.
+    assert not producer.outputs_substr(
+        '==> EVENT received: [ type = "SESSION" sessionEventType = QUEUE_REOPEN_RESULT statusCode = -',
+        5,
+    )
+
 
 def test_client_timeout_close(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """

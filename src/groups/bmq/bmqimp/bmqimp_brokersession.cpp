@@ -3174,13 +3174,18 @@ void BrokerSession::asyncRequestNotifier(
     }
     else if (context->isError()) {
         bmqt::GenericResult::Enum result = context->result();
-
-        enqueueSessionEvent(eventType,
-                            result,
-                            context->response().choice().status().message(),
-                            correlationId,
-                            queue,
-                            eventCallback);
+        // Don't deliver error on e_QUEUE_REOPEN_RESULT.  This is to avoid
+        // existing applications incorrectly handling e_QUEUE_REOPEN_RESULT
+        // failures.  It's hard for an application to handle this correctly.
+        if (bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT != eventType) {
+            enqueueSessionEvent(
+                eventType,
+                result,
+                context->response().choice().status().message(),
+                correlationId,
+                queue,
+                eventCallback);
+        }
     }
     else {
         enqueueSessionEvent(eventType,
