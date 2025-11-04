@@ -58,12 +58,12 @@ class ClusterQuorumManager {
     // CREATORS
 
     /// Create a `ClusterQuorumManager` object using the specified `quorum`
-    /// and `nodeCount`. If the `quorum` is 0, it is calculated as the
-    /// majority of `nodeCount`.
+    /// and `nodeCount`.
     explicit ClusterQuorumManager(unsigned int quorum, unsigned int nodeCount);
     // MANIPULATORS
 
-    /// Set the quorum to the specified value.
+    /// Set the quorum to the specified value. If the `quorum` is 0,
+    /// it is calculated as the majority of `nodeCount`.
     void setQuorum(unsigned int quorum, unsigned int nodeCount);
 
     // ACCESSORS
@@ -94,9 +94,10 @@ inline void ClusterQuorumManager::setQuorum(unsigned int quorum,
     if (0 == quorum) {
         quorum = nodeCount / 2 + 1;
     }
-    else if (quorum > nodeCount) {
-        quorum = nodeCount;
-    }
+
+    // It is permissible for 'quorum' to be greater than 'nodeCount'. This
+    // is useful in testing scenarios to prevent a leader from being
+    // elected.
 
     d_quorum.store(quorum);
 }
