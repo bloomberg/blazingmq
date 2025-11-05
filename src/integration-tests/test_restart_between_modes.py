@@ -775,7 +775,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 ):
     """
     This test verifies that we can safely switch clusters between Legacy and
-    FSM modes and add/remove appIds.
+    FSM modes, add/remove appIds and purge queues/appIds.
 
     Cluster fixture starts as:
     - Legacy mode
