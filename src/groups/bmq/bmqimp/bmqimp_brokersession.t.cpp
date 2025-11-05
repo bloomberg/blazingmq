@@ -3823,8 +3823,10 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
+    int rc;
+
     PVV_SAFE("Close unopened queue async");
-    int rc = obj.session().closeQueueAsync(pQueue, timeout);
+    rc = obj.session().closeQueueAsync(pQueue, timeout);
 
     // Verify the result
     BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);

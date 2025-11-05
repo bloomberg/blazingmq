@@ -224,6 +224,44 @@ void makeDeconfigure(bmqp_ctrlmsg::ControlMessage* request)
     }
 }
 
+/// @brief This function translates other result code types into the
+/// less-specific StatusCategory error code.
+bmqp_ctrlmsg::StatusCategory::Value intoStatusCategory(int res)
+{
+    switch (res) {
+    case bmqt::GenericResult::e_SUCCESS: {
+        return bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    } break;
+    case bmqt::GenericResult::e_UNKNOWN: {
+        return bmqp_ctrlmsg::StatusCategory::E_UNKNOWN;
+    } break;
+    case bmqt::GenericResult::e_TIMEOUT: {
+        return bmqp_ctrlmsg::StatusCategory::E_TIMEOUT;
+    } break;
+    case bmqt::GenericResult::e_NOT_CONNECTED: {
+        return bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED;
+    } break;
+    case bmqt::GenericResult::e_CANCELED: {
+        return bmqp_ctrlmsg::StatusCategory::E_CANCELED;
+    } break;
+    case bmqt::GenericResult::e_NOT_SUPPORTED: {
+        return bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED;
+    } break;
+    case bmqt::GenericResult::e_REFUSED: {
+        return bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    } break;
+    case bmqt::GenericResult::e_INVALID_ARGUMENT: {
+        return bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
+    } break;
+    case bmqt::GenericResult::e_NOT_READY: {
+        return bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
+    } break;
+    default: {
+        return bmqp_ctrlmsg::StatusCategory::E_UNKNOWN;
+    } break;
+    }
+}
+
 }  // close unnamed namespace
 
 // ------------
@@ -1013,7 +1051,7 @@ void BrokerSession::QueueFsm::setQueueId(
 
 void BrokerSession::QueueFsm::injectErrorResponse(
     const RequestManagerType::RequestSp& context,
-    bmqp_ctrlmsg::StatusCategory::Value  status,
+    int                                  status,
     const bslstl::StringRef&             reason)
 {
     // executed by the FSM thread
@@ -1022,7 +1060,7 @@ void BrokerSession::QueueFsm::injectErrorResponse(
 
     // Inject an error response which will be handled outside the Queue FSM
     bmqp::ControlMessageUtil::makeStatus(&context->response(),
-                                         status,
+                                         intoStatusCategory(status),
                                          status,
                                          reason);
 }
@@ -1526,10 +1564,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
                                                                context,
                                                                timeout);
         if (rc != bmqt::OpenQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
 
         // Return SUCCESS result.  Any error will be reported through the
@@ -1564,7 +1599,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
 void BrokerSession::QueueFsm::handleRequestNotSent(
     const bsl::shared_ptr<Queue>&        queue,
     const RequestManagerType::RequestSp& context,
-    bmqp_ctrlmsg::StatusCategory::Value  status)
+    int                                  status)
 {
     // executed by the FSM thread
 
@@ -1769,10 +1804,7 @@ void BrokerSession::QueueFsm::handleReopenRequest(
                                                                   context,
                                                                   timeout);
         if (res != bmqt::OpenQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(res));
+            handleRequestNotSent(queue, context, res);
         }
     } break;
     case QueueState::e_OPENED:
@@ -1930,10 +1962,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
                                                                      context,
                                                                      timeout);
         if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_PENDING: {
@@ -2134,10 +2163,7 @@ void BrokerSession::QueueFsm::handleResponseError(
                                                               absTimeout);
         if (rc != bmqt::GenericResult::e_SUCCESS) {
             // Failed to send close request.
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_OPENING_OPN_EXPIRED:
@@ -2650,10 +2676,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
             timeout,
             false);  // isReopenRequest
         if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_REOPENING_OPN: {
@@ -2691,10 +2714,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
             timeout,
             true);  // isReopenRequest
         if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_OPENING_CFG: {
@@ -2746,10 +2766,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
                                                               timeout);
         if (rc != bmqt::GenericResult::e_SUCCESS) {
             // Failed to send close request.
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_CLOSING_CLS: {
@@ -2837,10 +2854,7 @@ void BrokerSession::QueueFsm::handleLateResponse(
         bmqt::ConfigureQueueResult::Enum rc = actionDeconfigureExpiredQueue(
             queue);
         if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_CLOSING_CFG_EXPIRED: {
@@ -2881,10 +2895,7 @@ void BrokerSession::QueueFsm::handleLateResponse(
         bmqt::ConfigureQueueResult::Enum rc =
             actionReconfigureQueue(queue, context->response());
         if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(
-                queue,
-                context,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc));
+            handleRequestNotSent(queue, context, rc);
         }
     } break;
     case QueueState::e_CLOSING_CFG:
@@ -3274,7 +3285,7 @@ void BrokerSession::asyncRequestNotifier(
                             eventCallback);
     }
     else if (context->isError()) {
-        bmqt::GenericResult::Enum result = context->result();
+        int result = context->code();
 
         enqueueSessionEvent(eventType,
                             result,
@@ -3303,13 +3314,13 @@ void BrokerSession::syncRequestNotifier(
     BSLS_ASSERT_SAFE(semaphore);
     BSLS_ASSERT_SAFE(status);
 
-    bmqt::GenericResult::Enum result = bmqt::GenericResult::e_SUCCESS;
+    int result = bmqt::GenericResult::e_SUCCESS;
 
     if (!context) {
         result = bmqt::GenericResult::e_REFUSED;
     }
     else if (context->isError()) {
-        result = context->result();
+        result = context->code();
     }
     else {
         result = bmqt::GenericResult::e_SUCCESS;
@@ -4448,7 +4459,7 @@ void BrokerSession::onResumeQueueConfigured(
 
         if (queueSp->isOpened() &&
             context->result() != bmqt::GenericResult::e_CANCELED) {
-            bmqt::GenericResult::Enum status = context->result();
+            int status = context->code();
 
             // We issue two e_QUEUE_RESUMED events in succession.
             // 1. An event with callback attached, which allows PUTs to queue.
@@ -5047,10 +5058,9 @@ void BrokerSession::doOpenQueue(
     // Failure - we still want to notify the user, so we need to "manually"
     //           enqueue an event on the event queue.
     // Inject an error response which will be handled outside the Queue FSM
-    d_queueFsm.injectErrorResponse(
-        context,
-        static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc),
-        bmqt::OpenQueueResult::toAscii(rc));
+    d_queueFsm.injectErrorResponse(context,
+                                   rc,
+                                   bmqt::OpenQueueResult::toAscii(rc));
 
     context->signal();
 }
@@ -5095,10 +5105,9 @@ void BrokerSession::doConfigureQueue(
 
     // Failure - we still want to notify the user, so we need to "manually"
     //           enqueue an event on the event queue.
-    d_queueFsm.injectErrorResponse(
-        context,
-        static_cast<bmqp_ctrlmsg::StatusCategory::Value>(rc),
-        bmqt::ConfigureQueueResult::toAscii(rc));
+    d_queueFsm.injectErrorResponse(context,
+                                   rc,
+                                   bmqt::ConfigureQueueResult::toAscii(rc));
 
     context->signal();
 }
@@ -5132,10 +5141,9 @@ void BrokerSession::doCloseQueue(
     if (res != bmqt::CloseQueueResult::e_SUCCESS) {
         // Failure - we still want to notify the user, so we need to "manually"
         //           enqueue an event on the event queue.
-        d_queueFsm.injectErrorResponse(
-            closeContext,
-            static_cast<bmqp_ctrlmsg::StatusCategory::Value>(res),
-            bmqt::CloseQueueResult::toAscii(res));
+        d_queueFsm.injectErrorResponse(closeContext,
+                                       res,
+                                       bmqt::CloseQueueResult::toAscii(res));
         closeContext->signal();
     }
 }
@@ -6471,7 +6479,7 @@ void BrokerSession::onCloseQueueConfigured(
             // Set user response
             d_queueFsm.injectErrorResponse(
                 closeQueueContext,
-                static_cast<bmqp_ctrlmsg::StatusCategory::Value>(result),
+                context->code(),
                 "The request was canceled [reason: connection was lost]");
         }
         else if (configureQueueContext->isLocalTimeout()) {

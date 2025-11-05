@@ -468,10 +468,10 @@ static void test4_generate()
         bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream errorStream(bmqtst::TestHelperUtil::allocator());
 
-    bsl::string           appId("foo", bmqtst::TestHelperUtil::allocator());
-    int                   priorityCount = 2;
-    int                   priority      = 2;
-    unsigned int          subQueueId    = 13;
+    bsl::string  appId("foo", bmqtst::TestHelperUtil::allocator());
+    int          priorityCount = 2;
+    int          priority      = 2;
+    unsigned int subQueueId    = 13;
 
     in.appId() = appId;
     in.subscriptions().resize(1);
