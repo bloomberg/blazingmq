@@ -1407,6 +1407,13 @@ void ClusterUtil::sendClusterState(
                      clusterData->electorInfo().electorState());
     BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
 
+    if (clusterData->clusterConfig().clusterAttributes().isFSMWorkflow()) {
+        // In FSM mode, the *only* possible caller of this method is
+        // `onNodeUnavailable()`.  In all other cases, the Cluster FSM is
+        // responsible for sending the cluster state updates to followers.
+        BSLS_ASSERT_SAFE(sendPartitionPrimaryInfo && !sendQueuesInfo);
+    }
+
     if (sendPartitionPrimaryInfo) {
         BSLS_ASSERT_SAFE(partitions.size() ==
                          clusterState.partitions().size());
