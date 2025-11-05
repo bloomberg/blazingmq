@@ -3748,7 +3748,7 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
                     << "Failed ACK for queue '" << queue->uri()
                     << "' [status: "
                     << bmqp::ProtocolUtil::ackResultFromCode(ackMsg.status())
-                    << ", GUID: " << ackMsg.messageGUID() << "]";);
+                    << ", GUID: " << ackMsg.messageGUID() << "]");
         }
 
         bmqt::CorrelationId correlationId;
