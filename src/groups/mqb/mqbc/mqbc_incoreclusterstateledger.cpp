@@ -59,10 +59,10 @@
 #include <bdlt_epochutil.h>
 #include <bsl_cstring.h>
 #include <bsl_ctime.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
-#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslmf_allocatorargt.h>
 #include <bsls_keyword.h>
@@ -1500,6 +1500,25 @@ IncoreClusterStateLedger::getIterator() const
         d_allocator_p);
 
     return mp;
+}
+
+void IncoreClusterStateLedger::uncommittedAdvisories(
+    ClusterMessageCRefList* out) const
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(out);
+
+    for (AdvisoriesMapCIter iter = d_uncommittedAdvisories.begin();
+         iter != d_uncommittedAdvisories.end();
+         ++iter) {
+        const ClusterMessageInfo& info = iter->second;
+        out->push_back(bsl::cref(info.d_clusterMessage));
+    }
 }
 
 }  // close package namespace

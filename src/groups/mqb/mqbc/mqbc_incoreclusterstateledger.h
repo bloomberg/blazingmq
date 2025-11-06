@@ -81,7 +81,8 @@ class ClusterNode;
 namespace mqbc {
 
 /// Struct holding a cluster message and its associated state in the cluster
-/// state ledger (record id, number of acknowledgements received, etc.).
+/// state ledger (replication timestamp, number of acknowledgements received,
+/// etc.).
 struct IncoreClusterStateLedger_ClusterMessageInfo {
     /// Cluster message, one of:
     ///   - `PartitionPrimaryAdvisory`,
@@ -142,22 +143,24 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
+    typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
+
+    /// Map from a `LeaderMessageSequence` to cluster message and its
+    /// associated information.
+    ///
+    /// `sequenceNumber -> {clusterMessage, replicationTimestamp, ackCount}`
+    typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
+                                 ClusterMessageInfo>
+                                          AdvisoriesMap;
+    typedef AdvisoriesMap::const_iterator AdvisoriesMapCIter;
+    typedef AdvisoriesMap::iterator       AdvisoriesMapIter;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.INCORECLUSTERSTATELEDGER");
 
     // TYPES
-    typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
-    typedef ClusterStateLedgerCommitStatus              CommitStatus;
-
-    /// Map from a `LeaderMessageSequence` to cluster message and its
-    /// associated information.
-    ///
-    /// `sequenceNumber -> {clusterMessage, recordId, ackCount}`
-    typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
-                                 ClusterMessageInfo>
-                                    AdvisoriesMap;
-    typedef AdvisoriesMap::iterator AdvisoriesMapIter;
+    typedef ClusterStateLedgerCommitStatus CommitStatus;
 
   private:
     // DATA
@@ -391,6 +394,13 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bslma::ManagedPtr<ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into `out` the list of uncommitted advisories as const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
