@@ -726,7 +726,7 @@ static void testN1_benchmark(benchmark::State& state)
 //  Performance
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("URI CONSTRUCTION PERFORMANCE TEST");
+    bmqtst::TestHelper::printTestName("URI PERFORMANCE TEST");
 
     bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
