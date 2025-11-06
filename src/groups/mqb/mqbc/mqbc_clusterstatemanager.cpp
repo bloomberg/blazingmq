@@ -224,8 +224,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
         ClusterUtil::assignPartitions(&clusterStateSnapshot.partitions(),
                                       &tempState,
                                       d_clusterConfig.masterAssignment(),
-                                      *d_clusterData_p,
-                                      true);  // isCSLMode
+                                      *d_clusterData_p);
     }
 
     // Apply the new leader's first advisory
@@ -1468,8 +1467,7 @@ void ClusterStateManager::assignPartitions(
     ClusterUtil::assignPartitions(partitions,
                                   d_state_p,
                                   d_clusterConfig.masterAssignment(),
-                                  *d_clusterData_p,
-                                  true);  // isCSLMode
+                                  *d_clusterData_p);
 }
 
 bool ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
@@ -1543,6 +1541,8 @@ void ClusterStateManager::sendClusterState(
                                         *d_state_p,
                                         sendPartitionPrimaryInfo,
                                         sendQueuesInfo,
+                                        true,  // trustCSL
+                                        d_allocator_p,
                                         node,
                                         partitions);
 }

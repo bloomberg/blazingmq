@@ -448,7 +448,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
-                  << "]: primary node (self) successfully synced the "
+                  << "]: primary node (self) successfully synced the"
                   << " partition. Current leaseId: " << pinfo.primaryLeaseId();
 
     // Update primary status via cluster state manager which will also notify
@@ -1092,14 +1092,10 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                 // thread scheduling, 'source' may see that heartbeat after the
                 // first advisory.
 
-                bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
-                mqbc::ClusterUtil::loadPartitionsInfo(&partitions,
-                                                      *clusterState());
                 d_stateManager_mp->sendClusterState(
                     true,  // sendPartitionPrimaryInfo
                     true,  // sendQueuesInfo
-                    source,
-                    partitions);
+                    source);
             }
         }
         else if (d_clusterConfig.clusterAttributes().isFSMWorkflow() &&
@@ -1209,14 +1205,10 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
                     << ": leader (self) is ACTIVE; will send leader"
                     << " advisory to new node: " << node->nodeDescription();
 
-                bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
-                mqbc::ClusterUtil::loadPartitionsInfo(&partitions,
-                                                      *clusterState());
                 d_stateManager_mp->sendClusterState(
                     true,  // sendPartitionPrimaryInfo
                     true,  // sendQueuesInfo
-                    node,
-                    partitions);
+                    node);
             }
         }
 
@@ -1836,12 +1828,9 @@ void ClusterOrchestrator::processLeaderPassiveNotification(
     }
 
     // Self is an ACTIVE leader - broadcast 'LeaaderAdvisory'
-    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
-    mqbc::ClusterUtil::loadPartitionsInfo(&partitions, *clusterState());
     d_stateManager_mp->sendClusterState(true,  // sendPartitionPrimaryInfo
                                         true,  // sendQueuesInfo
-                                        0,
-                                        partitions);
+                                        0);
 }
 
 void ClusterOrchestrator::onRecoverySuccess()

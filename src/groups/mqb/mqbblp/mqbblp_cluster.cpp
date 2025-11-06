@@ -3362,6 +3362,8 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
                     << "Encountered leader-primary divergence: this node is "
                        "still the primary but the leadership has gone to "
                     << (node ? node->hostName() : "UNDEFINED");
+                d_clusterData.membership().setSelfNodeStatus(
+                    bmqp_ctrlmsg::NodeStatus::E_STOPPING);
                 mqbu::ExitUtil::shutdown(
                     mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
             }
