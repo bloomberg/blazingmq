@@ -91,14 +91,25 @@ void ClusterStateManager::onCommit(
                   << ": Committed advisory: " << advisory << ", with status '"
                   << status << "'";
 
+    // NOTE: We *must* apply the advisory to in-memory cluster state before
+    // setting leader status as ACTIVE.  Otherwise, the state-restore event
+    // emitted by setting as ACTIVE, might assign a queue with a different
+    // queue key than the one specified in the advisory.
+    mqbc::ClusterUtil::apply(d_state_p, clusterMessage, *d_clusterData_p);
+
     // Leader status is set to ACTIVE during FSM, not CSL. Since we are still
     // in the phase of enabling CSL, we need to explicitly set it here.
     if (clusterMessage.choice().isLeaderAdvisoryValue()) {
-        d_clusterData_p->electorInfo().setLeaderStatus(
-            mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+        if (d_clusterData_p->electorInfo().isSelfLeader()) {
+            d_clusterData_p->electorInfo().onSelfActiveLeader();
+        }
+        else {
+            d_clusterData_p->electorInfo().setLeaderStatus(
+                mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+        }
     }
 
-    mqbc::ClusterUtil::apply(d_state_p, clusterMessage, *d_clusterData_p);
+    d_trustCSL = true;
 }
 
 void ClusterStateManager::onSelfActiveLeader()
@@ -114,8 +125,6 @@ void ClusterStateManager::onSelfActiveLeader()
                   << ": setting self as active leader, will assign partitions "
                   << " and broadcast cluster state to peers.";
 
-    d_clusterData_p->electorInfo().onSelfActiveLeader();
-
     bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
     assignPartitions(&partitions);
 
@@ -123,6 +132,10 @@ void ClusterStateManager::onSelfActiveLeader()
                      true,  // sendQueuesInfo
                      0,
                      partitions);
+
+    // NOTE: Do not notify elector that we are active leader yet.  Wait until
+    // the commit of the first CSL advisory, in case we need to construct a CSL
+    // "merged state" to ensure correctness.
 }
 
 void ClusterStateManager::leaderSyncCb()
@@ -688,6 +701,7 @@ ClusterStateManager::ClusterStateManager(
     bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
+, d_trustCSL(false)
 , d_isStarted(false)
 , d_clusterConfig(clusterConfig)
 , d_cluster_p(cluster)
@@ -827,16 +841,14 @@ void ClusterStateManager::assignPartitions(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfActiveLeader());
+    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader());
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
     BSLS_ASSERT_SAFE(partitions && partitions->empty());
 
-    mqbc::ClusterUtil::assignPartitions(
-        partitions,
-        d_state_p,
-        d_clusterConfig.masterAssignment(),
-        *d_clusterData_p,
-        d_clusterConfig.clusterAttributes().isCSLModeEnabled());
+    mqbc::ClusterUtil::assignPartitions(partitions,
+                                        d_state_p,
+                                        d_clusterConfig.masterAssignment(),
+                                        *d_clusterData_p);
 }
 
 bool ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
@@ -911,6 +923,8 @@ void ClusterStateManager::sendClusterState(
                                         *d_state_p,
                                         sendPartitionPrimaryInfo,
                                         sendQueuesInfo,
+                                        d_trustCSL,
+                                        d_allocator_p,
                                         node,
                                         partitions);
 }

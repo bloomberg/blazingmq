@@ -231,6 +231,10 @@ void ElectorInfo::onSelfActiveLeader()
     BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_LEADER);
     BSLS_ASSERT_SAFE(d_leaderNode_p);
 
+    if (d_leaderStatus == ElectorInfoLeaderStatus::e_ACTIVE) {
+        return;  // RETURN
+    }
+
     BALL_LOG_INFO << "#ELECTOR_INFO: onSelfActiveLeader(): "
                   << "leader = " << d_leaderNode_p->nodeDescription()
                   << ", LSN = " << d_leaderMessageSequence << ".";
