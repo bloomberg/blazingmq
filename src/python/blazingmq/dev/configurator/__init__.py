@@ -94,12 +94,17 @@ class Broker:
 
     @property
     def host(self) -> str:
-        return self.config.app_config.network_interfaces.tcp_interface.name
+        if self.listeners:
+            return self.listeners[0].name
+        else:
+            return self.config.app_config.network_interfaces.tcp_interface.name
 
     @property
-    def port(self) -> str:
-        return self.config.app_config.network_interfaces.tcp_interface.port
-
+    def port(self) -> int:
+        if self.listeners:
+            return self.listeners[0].port
+        else:
+            return self.config.app_config.network_interfaces.tcp_interface.port
 
     @property
     def config_dir(self) -> Path:
@@ -411,6 +416,7 @@ class Proto:
                         node_low_watermark=5242880,
                         node_high_watermark=1073741824,
                         heartbeat_interval_ms=3000,
+                        listeners=[],
                     ),
                 ),
                 bmqconf_config=mqbcfg.BmqconfConfig(cache_ttlseconds=30),

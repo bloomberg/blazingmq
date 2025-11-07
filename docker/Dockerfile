@@ -15,7 +15,11 @@ RUN apt-get update && \
     libfl-dev \
     libbenchmark-dev \
     libgmock-dev \
+    libgtest-dev \
+    liblz4-dev \
+    libssl-dev \
     libz-dev \
+    libzstd-dev \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -50,10 +54,19 @@ FROM docker.io/ubuntu:24.04
 
 COPY --from=builder /bmq /usr/local
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    openssl
+
 RUN groupadd bmq \
     && useradd bmq --home /var/local/bmq --system --gid bmq --shell /usr/bin/bash
 USER bmq
 WORKDIR /var/local/bmq
-RUN mkdir -p logs storage/archive
+COPY bin/gen-tls-certs.sh gen-tls-certs.sh
+
+RUN mkdir -p logs storage/archive certs && \
+    cd certs && \
+    ../gen-tls-certs.sh ca ca-cert dummy && \
+    ../gen-tls-certs.sh server ca-cert broker_ dummy
 
 CMD [ "/bin/bash" ]

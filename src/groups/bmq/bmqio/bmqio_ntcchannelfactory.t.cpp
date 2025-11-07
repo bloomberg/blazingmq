@@ -39,17 +39,17 @@
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
-#include <bslmt_latch.h>
 #include <bslma_allocator.h>
+#include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 // BMQ
 #include <bmqtst_testhelper.h>
+#include <bmqu_blob.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
-#include <bmqu_blob.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -370,7 +370,6 @@ class Tester {
     typedef Tester_ChannelInfo                 ChannelInfo;
     typedef Tester_HandleInfo                  HandleInfo;
     typedef Tester_ResultCbInfo                ResultCbInfo;
-    typedef UpgradeCbInfo                      UpgradeCbInfo;
     typedef bsl::map<bsl::string, ChannelInfo> ChannelMap;
     typedef bsl::map<bsl::string, HandleInfo>  HandleMap;
     typedef bsl::shared_ptr<NtcChannel>        NtcChannelPtr;
@@ -385,6 +384,8 @@ class Tester {
     HandleMap                                    d_handleMap;
     PreCreateCbCallList                          d_preCreateCbCalls;
     bool                                         d_setPreCreateCb;
+    bool                                         d_setEncryptionServer;
+    bool                                         d_setEncryptionClient;
     bslma::ManagedPtr<NtcChannelFactory>         d_object;
     bslmt::Mutex                                 d_mutex;
     bsl::shared_ptr<ntci::Interface>             d_interface;
@@ -433,6 +434,17 @@ class Tester {
     /// Destroy the object being tested and reset all supporting objects.
     void destroy();
 
+    /// Initialize the root authority certificate for the server and client.
+    void initEncryptionAuthority();
+
+    /// Initialize the server certificate and private key and configure the
+    /// channel factory to use it for upgrading listeners.
+    void initEncryptionServer();
+
+    /// Initialize the client encryption settings and configure the
+    /// channel factory to use it for upgrading connections.
+    void initEncryptionClient();
+
     // NOT IMPLEMENTED
     Tester(const Tester&);
     Tester& operator=(const Tester&);
@@ -451,6 +463,16 @@ class Tester {
     /// the next time `init` is called to the specified `value`.  By default
     /// this is `false`.
     void setPreCreateCb(bool value);
+
+    /// Set whether an `encryptionServer` will be set on the
+    /// `NtcChannelFactory` the next time `init` is called to the specified
+    /// `value`.  By default this is `false`.
+    void setEncryptionServer(bool value);
+
+    /// Set whether an `encryptionClient` will be set on the
+    /// `NtcChannelFactory` the next time `init` is called to the specified
+    /// `value`.  By default this is `false`.
+    void setEncryptionClient(bool value);
 
     /// Find and return a free port by opening and dropping a handle.
     /// Note that the found port might become occupied in an unlikely event of
@@ -601,17 +623,6 @@ class Tester {
     /// Return a reference providing modifiable access to the object being
     /// tested.
     NtcChannelFactory& object();
-
-    /// Initialize the root authority certificate for the server and client.
-    void setEncryptionAuthority();
-
-    /// Initialize the server certificate and private key and configure the
-    /// channel factory to use it for upgrading listeners.
-    void setEncryptionServer();
-
-    /// Initialize the client encryption settings and configure the
-    /// channel factory to use it for upgrading connections.
-    void setEncryptionClient();
 };
 
 // ------------
@@ -686,6 +697,11 @@ void Tester::channelWatermarkCb(const bsl::string&         channelName,
 
 void Tester::destroy()
 {
+    d_serverPrivateKey.reset();
+    d_serverCertificate.reset();
+    d_authorityPrivateKey.reset();
+    d_authorityCertificate.reset();
+
     d_interface.reset();
     d_preCreateCbCalls.clear();
 
@@ -711,6 +727,8 @@ Tester::Tester(bslma::Allocator* basicAllocator)
 , d_handleMap(basicAllocator)
 , d_preCreateCbCalls(basicAllocator)
 , d_setPreCreateCb(false)
+, d_setEncryptionServer(false)
+, d_setEncryptionClient(false)
 , d_object()
 , d_mutex()
 , d_interface()
@@ -732,6 +750,16 @@ void Tester::setPreCreateCb(bool value)
     d_setPreCreateCb = value;
 }
 
+void Tester::setEncryptionServer(bool value)
+{
+    d_setEncryptionServer = value;
+}
+
+void Tester::setEncryptionClient(bool value)
+{
+    d_setEncryptionClient = value;
+}
+
 int Tester::findFreeEphemeralPort()
 {
     const char* k_HANDLE_NAME = "listenHandle";
@@ -750,7 +778,7 @@ int Tester::findFreeEphemeralPort()
     return port;
 }
 
-void Tester::setEncryptionAuthority()
+void Tester::initEncryptionAuthority()
 {
     if (d_authorityCertificate && d_authorityPrivateKey) {
         // Authority root has already been initialized, no need to set it again
@@ -785,7 +813,7 @@ void Tester::setEncryptionAuthority()
     d_authorityPrivateKey.swap(authorityPrivateKey);
 }
 
-void Tester::setEncryptionServer()
+void Tester::initEncryptionServer()
 {
     if (d_serverCertificate && d_serverPrivateKey) {
         // Authority root has already been initialized, no need to set it again
@@ -793,7 +821,7 @@ void Tester::setEncryptionServer()
     }
 
     // Ensure the authority is initialized as its our root of trust
-    setEncryptionAuthority();
+    initEncryptionAuthority();
 
     // Create an encryption server and configure the encryption server to
     // accept upgrades to TLS 1.3 and higher, to cryptographically identify
@@ -853,11 +881,11 @@ void Tester::setEncryptionServer()
     BMQTST_ASSERT(!error);
 }
 
-void Tester::setEncryptionClient()
+void Tester::initEncryptionClient()
 {
     ntsa::Error error;
 
-    setEncryptionAuthority();
+    initEncryptionAuthority();
 
     // Create an encryption client and configure the encryption client to
     // request upgrades using TLS 1.2 require identification from the
@@ -907,6 +935,12 @@ void Tester::init(int line)
                                                 this,
                                                 bdlf::PlaceHolders::_1,
                                                 bdlf::PlaceHolders::_2));
+    }
+    if (d_setEncryptionServer) {
+        initEncryptionServer();
+    }
+    if (d_setEncryptionClient) {
+        initEncryptionClient();
     }
 
     int ret = d_object->start();
@@ -1364,7 +1398,6 @@ NtcChannelFactory& Tester::object()
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-
 static void test9_tlsClientFailsOnPlaintextServer()
 // ------------------------------------------------------------------------
 // PRE CREATION CB TEST
@@ -1380,16 +1413,13 @@ static void test9_tlsClientFailsOnPlaintextServer()
 
     Tester t(bmqtst::TestHelperUtil::allocator());
 
+    // Use TLS for both connections and listeners
+    t.setEncryptionServer(true);
+
     // Concern 'a'
     t.init(L_);
 
     {
-        // We have to stop the factory to modify its configuration
-        t.object().stop();
-
-        // Use TLS for both connections and listeners
-        t.setEncryptionServer();
-
         ChannelUpgradeHandler upgradeCounter(
             bmqtst::TestHelperUtil::allocator());
 
@@ -1433,19 +1463,12 @@ static void test8_upgradeChannelTest()
 
     Tester t(bmqtst::TestHelperUtil::allocator());
 
+    // Use TLS for both connections and listeners
+    t.setEncryptionServer(true);
+    t.setEncryptionClient(true);
+
     // Concern 'a'
     t.init(L_);
-
-    {
-        // We have to stop the factory to modify its configuration
-        t.object().stop();
-
-        // Use TLS for both connections and listeners
-        t.setEncryptionServer();
-        t.setEncryptionClient();
-
-        BMQTST_ASSERT_EQ(0, t.object().start());
-    }
 
     ChannelUpgradeHandler upgradeCounter(bmqtst::TestHelperUtil::allocator());
 

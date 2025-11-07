@@ -1103,6 +1103,8 @@ class TcpInterfaceListener:
 
     name.................:
     A name to associate this listener to.
+    address..............:
+    The IPv4 address this listener will accept connections on.
     port.................:
     The port this listener will accept connections on.
     tls..................:
@@ -1111,6 +1113,14 @@ class TcpInterfaceListener:
 
     name: Optional[str] = field(
         default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    address: str = field(
+        default="0.0.0.0",
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
@@ -2151,7 +2161,7 @@ class AppConfig:
     advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
     routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
     authentication.......: configuration for authentication
-    tlsConfig............: optional configuation for TLS
+    tlsConfig............: optional configuration for TLS
     """
 
     broker_instance_name: Optional[str] = field(

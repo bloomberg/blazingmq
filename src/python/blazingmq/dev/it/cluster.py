@@ -627,12 +627,12 @@ class Cluster(contextlib.AbstractContextManager):
 
     def create_client(
         self,
-        prefix,
+        prefix: str,
         broker: Broker,
-        start=True,
-        dump_messages=True,
-        options=None,
-        port=None,
+        start: bool = True,
+        dump_messages: bool = True,
+        options: str = None,
+        port: Optional[int] = None,
     ) -> Client:
         """
         Create a client with the specified name.
@@ -650,7 +650,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         if port is None:
             if broker.config.listeners:
-                port = broker.config.listeners[0]
+                port = broker.config.listeners[0].port
             else:
                 port = broker.config.port
 
