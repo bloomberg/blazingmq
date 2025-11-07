@@ -441,8 +441,9 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     }
 
     printer << epochValue << rec.type() << rec.syncPointType()
-            << rec.primaryLeaseId() << rec.sequenceNum() << rec.primaryNodeId()
-            << rec.dataFileOffsetDwords();
+            << rec.syncPointData().primaryLeaseId() << rec.syncPointData().sequenceNum() << rec.syncPointData().primaryNodeId()
+            << rec.syncPointData().dataFileOffsetDwords();
+    // TODO: add if else for other JournalOpTypes
 
     stream << "\n";
 }

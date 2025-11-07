@@ -381,3 +381,58 @@ def test_sync_if_leader_missed_records(
 
     # Check that `next_leader` and replica journal files are equal
     _compare_journal_files(next_leader.name, replica.name, cluster)
+
+
+
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
+def test_journal_size_increase(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Simulate multiple rollovers:
+    - start cluster
+    - put messages
+    - wait for rollover
+    - repeat 3 steps above multiple times.
+    """
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # replicas = cluster.nodes(exclude=leader)
+    # replica = replicas[0]
+
+    def make_rollover() -> None:
+
+        # Put 2 messages with confirms
+        for i in range(1, 3):
+            producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+            consumer.wait_push_event()
+            consumer.confirm(uri_priority, "*", succeed=True)
+
+        # Put more messages w/o confirm to initiate the rollover
+        NUM_MESSAGES = 50
+        i = 3
+        while not leader.outputs_substr("Initiating rollover", 0.01):
+            assert i < NUM_MESSAGES, "Rollover was not initiated"
+            producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+            i += 1
+
+        # Wait until rollover completed
+        assert leader.outputs_substr("ROLLOVER COMPLETE", 10)
+
+    NUM_ROLLOVERS = 5
+    for _ in range(NUM_ROLLOVERS):
+        make_rollover()
+
+    assert False, "Not implemented yet"

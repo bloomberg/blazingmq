@@ -128,6 +128,9 @@ void printJournalFileHeader(bsl::ostream&                     stream,
     fields.reserve(10);
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
+
+    //TODO: if (mqbs::JournalOpType::e_SYNCPOINT == joRec->type()) {
+
     fields.push_back("First SyncPointRecord offset words");
     fields.push_back("First SyncPointRecord type");
     fields.push_back("First SyncPointRecord primaryNodeId");
@@ -154,17 +157,19 @@ void printJournalFileHeader(bsl::ostream&                     stream,
         printer << " ** NA ** ";
     }
     else {
-        mqbs::OffsetPtr<const mqbs::JournalOpRecord> spRec(
+        mqbs::OffsetPtr<const mqbs::JournalOpRecord> joRec(
             journalFd.block(),
             offsetW * bmqp::Protocol::k_WORD_SIZE);
 
-        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == spRec->type());
+        if (mqbs::JournalOpType::e_SYNCPOINT == joRec->type()) {
+            printer << joRec->syncPointType() << joRec->syncPointData().primaryNodeId()
+                    << joRec->syncPointData().primaryLeaseId() << joRec->syncPointData().sequenceNum()
+                    << joRec->syncPointData().dataFileOffsetDwords();
+        } else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == joRec->type()) {
+            // TODO: implement
+        }
 
-        printer << spRec->syncPointType() << spRec->primaryNodeId()
-                << spRec->primaryLeaseId() << spRec->sequenceNum()
-                << spRec->dataFileOffsetDwords();
-
-        bsls::Types::Uint64 epochValue = spRec->header().timestamp();
+        bsls::Types::Uint64 epochValue = joRec->header().timestamp();
         bdlt::Datetime      datetime;
         int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
         if (0 != rc) {

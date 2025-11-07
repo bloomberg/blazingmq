@@ -2153,7 +2153,7 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
                      syncPtRec->syncPointType());
 
     bsls::Types::Uint64 qlistMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(syncPtRec->syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
 
     if (fti.qlistFd().fileSize() < qlistMapOffset) {
@@ -2171,7 +2171,7 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     }
 
     bsls::Types::Uint64 dataMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(syncPtRec->syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
 
     if (fti.dataFd().fileSize() < dataMapOffset) {
@@ -2239,6 +2239,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         if (bmqp::StorageMessageType::e_JOURNAL_OP != header.messageType()) {
             continue;  // CONTINUE
         }
+
+        // TODO: change description
 
         // So we have encountered a JournalOp record in the stream.  Currently,
         // there is 1 type of JournalOp record: SYNCPOINT (see
@@ -2314,6 +2316,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
+        
+        //TODO: Need to handle storage size update sync point type???
 
         if (mqbs::SyncPointType::e_UNDEFINED ==
             journalOpRec->syncPointType()) {

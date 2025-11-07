@@ -699,11 +699,17 @@ bsl::ostream& JournalOpRecord::print(bsl::ostream& stream,
     printer.printAttribute("flags", flags());
     printer.printAttribute("type", type());
     printer.printAttribute("syncPointType", syncPointType());
-    printer.printAttribute("sequenceNum", sequenceNum());
-    printer.printAttribute("primaryNodeId", primaryNodeId());
-    printer.printAttribute("primaryLeaseId", primaryLeaseId());
-    printer.printAttribute("dataFileOffsetDwords", dataFileOffsetDwords());
-    printer.printAttribute("qlistFileOffsetWords", qlistFileOffsetWords());
+    if (JournalOpType::e_SYNCPOINT == type()) {
+        const JournalOpRecord::SyncPointData& syncPoint = syncPointData();
+        printer.printAttribute("sequenceNum", syncPoint.sequenceNum());
+        printer.printAttribute("primaryNodeId", syncPoint.primaryNodeId());
+        printer.printAttribute("primaryLeaseId", syncPoint.primaryLeaseId());
+        printer.printAttribute("dataFileOffsetDwords", syncPoint.dataFileOffsetDwords());
+        printer.printAttribute("qlistFileOffsetWords", syncPoint.qlistFileOffsetWords());
+    } else if (JournalOpType::e_UPDATE_STORAGE_SIZE == type()) {
+        // TODO: implement
+    }
+
     printer.end();
 
     return stream;

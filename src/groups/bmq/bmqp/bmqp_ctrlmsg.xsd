@@ -705,12 +705,14 @@
         latestSequenceNumber: Primary's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
                                                    after rollover for corresponding partition.
+        partitionMaxFileSizes: Maximum journal/data/qlist file sizes for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='partitionMaxFileSizes' type='tns:PartitionMaxFileSizes'/>
     </sequence>
   </complexType>
 
@@ -724,12 +726,14 @@
         latestSequenceNumber: Replica's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point
                                                    after rollover for corresponding partition.
+        partitionMaxFileSizes: Maximum journal/data/qlist file sizes for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='partitionMaxFileSizes' type='tns:PartitionMaxFileSizes'/>
     </sequence>
   </complexType>
 
@@ -744,12 +748,14 @@
         latestSequenceNumber: Replica's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of replica's first sync point 
                                                    after rollover for corresponding partition.
+        partitionMaxFileSizes: Maximum journal/data/qlist file sizes for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='partitionMaxFileSizes' type='tns:PartitionMaxFileSizes'/>
     </sequence>
   </complexType>
 
@@ -763,12 +769,14 @@
         latestSequenceNumber: Primary's latest sequence number for corresponding partition.
         firstSyncPointAfterRolloverSequenceNumber: Sequence number of primary's first sync point
                                                    after rollover for corresponding partition.
+        partitionMaxFileSizes: Maximum journal/data/qlist file sizes for corresponding partition.
       </documentation>
     </annotation>
     <sequence>
       <element name='partitionId'    type='int'/>
       <element name='latestSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='firstSyncPointAfterRolloverSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='partitionMaxFileSizes' type='tns:PartitionMaxFileSizes'/>
     </sequence>
   </complexType>
 
@@ -884,6 +892,19 @@
       <element name='partitionId'    type='int'/>
       <element name='primaryNodeId'  type='int'/>
       <element name='primaryLeaseId' type='unsignedInt'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionMaxFileSizes'>
+    <annotation>
+      <documentation>
+        This type represents the maximum file sizes for a partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='dataFileSize' type='unsignedLong'/>
+      <element name='journalFileSize' type='unsignedLong'/>
+      <element name='qlistFileSize' type='unsignedLong'/>
     </sequence>
   </complexType>
 
