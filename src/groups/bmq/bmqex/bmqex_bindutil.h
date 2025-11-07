@@ -170,7 +170,7 @@ namespace bmqex {
 // struct BindUtil_DummyNullaryFunction
 // ====================================
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 
 /// Provides a dummy nullary function object which result type is the same
 /// as the result type of the specified `FUNCTION` when invoked with
@@ -257,7 +257,7 @@ class BindUtil_BindWrapper {
     typename ExecutionUtil::ExecuteResult<POLICY, FUNCTION>::Type
     operator()() const;
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=8
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=8
 
     /// Call `ExecutionUtil::execute(p, bsl::move(f2))` and return the
     /// result of that operation, where `p` is the contained execution
@@ -375,7 +375,7 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()() const
     return ExecutionUtil::execute(d_policy, d_function.object());
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=8
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=8
 template <class POLICY, class FUNCTION>
 template <class ARG1, class... ARGS>
 inline typename ExecutionUtil::ExecuteResult<
@@ -422,7 +422,7 @@ BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
 }  // close package namespace
 }  // close enterprise namespace
 
-#endif // End C++11 code
+#endif  // End C++11 code
 
 #include <bsl_type_traits.h>
 

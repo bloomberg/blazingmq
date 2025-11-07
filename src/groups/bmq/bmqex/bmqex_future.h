@@ -955,7 +955,7 @@ class FutureSharedState {
     /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 
     /// Atomically initialize the stored value as if by direct-non-list-
     /// initializing an object of type `R` with 'bsl::forward<ARGS>(
@@ -1668,7 +1668,7 @@ inline void FutureSharedState<R>::setValue(bslmf::MovableRef<R> value)
     emplaceValue(bslmf::MovableRefUtil::move(value));
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 template <class R>
 template <class... ARGS>
 inline void FutureSharedState<R>::emplaceValue(ARGS&&... args)
@@ -1906,7 +1906,7 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 
 }  // close enterprise namespace
 
-#endif // End C++11 code
+#endif  // End C++11 code
 
 #include <bsl_type_traits.h>
 

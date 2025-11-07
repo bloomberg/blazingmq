@@ -157,7 +157,7 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     /// call a destructor for it and set this object empty.
     void reset();
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
     /// Construct a callback object of the specified CALLBACK_TYPE in this
     /// objects' reusable buffer, with the specified `args` passed to its
     /// constructor.  The buffer must be empty before construction, it is
@@ -271,7 +271,7 @@ inline void ManagedCallback::operator()() const
     (*reinterpret_cast<const CallbackFunctor*>(d_callbackBuffer.data()))();
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 template <class CALLBACK_TYPE, class... ARGS>
 inline void ManagedCallback::createInplace(ARGS&&... args)
 {
@@ -284,6 +284,6 @@ inline void ManagedCallback::createInplace(ARGS&&... args)
 }  // close package namespace
 }  // close enterprise namespace
 
-#endif // End C++11 code
+#endif  // End C++11 code
 
 #endif
