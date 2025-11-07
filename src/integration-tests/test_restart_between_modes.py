@@ -53,6 +53,32 @@ timeout = 20
 DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
+def postFewMessages(producer: Client, queue: str, messages: List[str]):
+    """
+    Instruct the `producer` to post many `messages` on the `queue`.
+    """
+
+    producer.post(
+        queue,
+        messages,
+        wait_ack=True,
+        succeed=True,
+    )
+
+
+def confirmOneMessage(consumer: Client, queue_with_appid: str):
+    """
+    Instruct the `client` to confirm one message on the `queue`
+    """
+    consumer.open(
+        queue_with_appid,
+        flags=["read"],
+        succeed=True,
+    )
+    consumer.confirm(queue_with_appid, "+1", succeed=True)
+    consumer.close(queue_with_appid, succeed=True)
+
+
 def configure_cluster(cluster: Cluster, is_fsm: bool):
     """
     Configure the `cluster` to FSM or Legacy mode, based on the `is_fsm` flag.
@@ -622,10 +648,13 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 
 @pytest.fixture(
     params=[
-        restart_as_fsm_mode,
-        restart_as_legacy_mode,
-        restart_to_fsm_single_node_with_quorum_one,
-        restart_to_fsm_single_node_with_quorum_one_and_start_others,
+        (restart_as_fsm_mode, restart_as_legacy_mode),
+        (restart_as_legacy_mode, restart_as_fsm_mode),
+        (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode),
+        (
+            restart_to_fsm_single_node_with_quorum_one_and_start_others,
+            restart_as_legacy_mode,
+        ),
     ]
 )
 def switch_cluster_mode(request):
@@ -691,12 +720,17 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         Apply one of the switches:
         - Legacy to FSM
         - FSM to Legacy
-    3. EPILOGUE:
+    3. VERIFY:
         - priority consumer gets the second message
         - "foo" gets 2 messages
         - "bar" gets 0 messages
         - "baz" gets 3 messages
         - "quux" gets the third message
+
+    4. POST MORE MESSAGES
+    5. SWITCH BACK
+        Switch back to the original mode
+    6. VERIFY AGAIN
     """
 
     du = domain_urls
@@ -712,38 +746,18 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     # post two messages
     for queue in [priority_queue, fanout_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
-        producer.post(
-            queue,
-            ["msg1", "msg2"],
-            succeed=True,
-            wait_ack=True,
-        )
+
+    for queue in [priority_queue, fanout_queue]:
+        postFewMessages(producer, queue, ["msg1", "msg2"])
 
     consumer = proxy.create_client("consumer")
-    consumer.open(
-        priority_queue,
-        flags=["read"],
-        succeed=True,
-    )
-    consumer.open(
-        fanout_queue + "?id=foo",
-        flags=["read"],
-        succeed=True,
-    )
-    consumer.confirm(priority_queue, "+1", succeed=True)
-    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
-    consumer.close(priority_queue, succeed=True)
-    consumer.close(fanout_queue + "?id=foo", succeed=True)
-    consumers = [consumer]
+    confirmOneMessage(consumer, priority_queue)
+    confirmOneMessage(consumer, fanout_queue + "?id=foo")
 
     current_app_ids = DEFAULT_APP_IDS + ["quux"]
     cluster.set_app_ids(current_app_ids, du)
-    producer.post(
-        fanout_queue,
-        ["msg3"],
-        succeed=True,
-        wait_ack=True,
-    )
+
+    postFewMessages(producer, fanout_queue, ["msg3"])
 
     current_app_ids.remove("bar")
     cluster.set_app_ids(current_app_ids, du)
@@ -752,9 +766,9 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     # 2.1 Optional rollover
     optional_rollover(du, cluster.last_known_leader, producer)
     # 2.2 Switch cluster mode
-    switch_cluster_mode(cluster, producer, consumers)
+    switch_cluster_mode[0](cluster, producer, [consumer])
 
-    # 3. EPILOGUE
+    # 3. VERIFY
     check_if_queue_has_n_messages(consumer, priority_queue, 1)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
@@ -763,6 +777,20 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         consumer, fanout_queue + "?id=quux", 1
     )
     assert re.match(r"msg3", quux_messages[0].payload)
+
+    # 4. POST MORE MESSAGES
+    for queue in [priority_queue, fanout_queue]:
+        postFewMessages(producer, queue, ["msg4"])
+
+    # 5. SWITCH BACK
+    switch_cluster_mode[1](cluster, producer, [consumer])
+
+    # 6. VERIFY AGAIN
+    check_if_queue_has_n_messages(consumer, priority_queue, 1 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1 + 1)
 
 
 def test_restart_between_legacy_and_fsm_purge_queue_app(
@@ -799,12 +827,17 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         Apply one of the switches:
         - Legacy to FSM
         - FSM to Legacy
-    3. EPILOGUE:
+    3. VERIFY:
         - priority consumer gets the third message
         - "foo" gets 3 messages
         - "bar" gets 0 messages
         - "baz" gets 3 messages
         - "quux" gets the fourth message
+
+    4. POST MORE MESSAGES
+    5. SWITCH BACK
+        Switch back to the original mode
+    6. VERIFY AGAIN
     """
 
     du = domain_urls
@@ -822,12 +855,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         producer.open(queue, flags=["write,ack"], succeed=True)
 
     for queue in [priority_queue, fanout_queue]:
-        producer.post(
-            queue,
-            ["msg0"],
-            succeed=True,
-            wait_ack=True,
-        )
+        postFewMessages(producer, queue, ["msg0"])
 
     # Purge priority queue
     cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
@@ -836,38 +864,16 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     # Post two messages
     for queue in [priority_queue, fanout_queue]:
-        producer.post(
-            queue,
-            ["msg1", "msg2"],
-            succeed=True,
-            wait_ack=True,
-        )
+        postFewMessages(producer, queue, ["msg1", "msg2"])
 
     consumer = proxy.create_client("consumer")
-    consumer.open(
-        priority_queue,
-        flags=["read"],
-        succeed=True,
-    )
-    consumer.open(
-        fanout_queue + "?id=foo",
-        flags=["read"],
-        succeed=True,
-    )
-    consumer.confirm(priority_queue, "+1", succeed=True)
-    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
-    consumer.close(priority_queue, succeed=True)
-    consumer.close(fanout_queue + "?id=foo", succeed=True)
-    consumers = [consumer]
+    confirmOneMessage(consumer, priority_queue)
+    confirmOneMessage(consumer, fanout_queue + "?id=foo")
 
     current_app_ids = DEFAULT_APP_IDS + ["quux"]
     cluster.set_app_ids(current_app_ids, du)
-    producer.post(
-        fanout_queue,
-        ["msg3"],
-        succeed=True,
-        wait_ack=True,
-    )
+
+    postFewMessages(producer, fanout_queue, ["msg3"])
 
     current_app_ids.remove("bar")
     cluster.set_app_ids(current_app_ids, du)
@@ -876,9 +882,9 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     # 2.1 Optional rollover
     optional_rollover(du, cluster.last_known_leader, producer)
     # 2.2 Switch cluster mode
-    switch_cluster_mode(cluster, producer, consumers)
+    switch_cluster_mode[0](cluster, producer, [consumer])
 
-    # 3. EPILOGUE
+    # 3. VERIFY
     check_if_queue_has_n_messages(consumer, priority_queue, 1)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 3)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
@@ -887,3 +893,17 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         consumer, fanout_queue + "?id=quux", 1
     )
     assert re.match(r"msg3", quux_messages[0].payload)
+
+    # 4. POST MORE MESSAGES
+    for queue in [priority_queue, fanout_queue]:
+        postFewMessages(producer, queue, ["msg4"])
+
+    # 5. SWITCH BACK
+    switch_cluster_mode[1](cluster, producer, [consumer])
+
+    # 6. VERIFY AGAIN
+    check_if_queue_has_n_messages(consumer, priority_queue, 1 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 3 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1 + 1)

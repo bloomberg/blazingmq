@@ -99,4 +99,5 @@ def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
         lambda: len(msgs) == n,
         timeout=3,
     )
+    consumer.close(queue, succeed=True)
     return msgs
