@@ -13,20 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqex_bindutil_cpp03.cpp                                           -*-C++-*-
+#include <bmqio_channelfactorypipeline.h>
 
-// Automatically generated file.  **DO NOT EDIT**
+namespace BloombergLP {
+namespace bmqio {
 
-// Generated on Mon Nov 10 18:42:03 2025
-// Command line: sim_cpp11_features.pl bmqex_bindutil.cpp
-
-#define INCLUDED_BMQEX_BINDUTIL_CPP03  // Disable inclusion
-#include <bmqex_bindutil_cpp03.h>      // Pro-forma #include
-
-// Empty file except when compiling bmqex_bindutil.cpp
-#ifdef COMPILING_BMQEX_BINDUTIL_CPP
-
-// No C++03 Expansion
-
-#endif // defined(COMPILING_BMQEX_BINDUTIL_CPP)
-
+}
+}
