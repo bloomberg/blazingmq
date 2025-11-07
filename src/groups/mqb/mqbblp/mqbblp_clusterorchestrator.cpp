@@ -44,6 +44,7 @@
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslmf_movableref.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 
@@ -1272,10 +1273,11 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
 
     (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
 
+    bmqp::Event clonedEvent = event.clone(d_allocator_p);
     clusterEvent->callback()
         .createInplace<ClusterOrchestrator::OnElectorEventFunctor>(
             this,
-            event.clone(d_allocator_p),
+            bslmf::MovableRefUtil::move(clonedEvent),
             source);
 
     dispatcher()->dispatchEvent(clusterEvent, d_cluster_p);
