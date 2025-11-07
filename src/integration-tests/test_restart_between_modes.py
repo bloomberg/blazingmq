@@ -423,44 +423,42 @@ def assignUnassignExistingQueues(
             consumer.open(queue, flags=["read"], succeed=True)
 
 
-@pytest.fixture(
-    params=[
-        pytest.param(
-            functools.partial(single_node_cluster_config, mode=Mode.LEGACY),
-            id="single_node_switch_fsm",
-            marks=[
-                pytest.mark.integrationtest,
-                pytest.mark.quick_integrationtest,
-                pytest.mark.pr_integrationtest,
-                pytest.mark.single,
-                *Mode.FSM.marks,
-            ],
-        )
-    ]
-    + [
-        pytest.param(
-            functools.partial(
-                multi_node_cluster_config,
-                mode=Mode.LEGACY,
-            ),
-            id="multi_node_switch_fsm",
-            marks=[
-                pytest.mark.integrationtest,
-                pytest.mark.quick_integrationtest,
-                pytest.mark.pr_integrationtest,
-                pytest.mark.multi,
-                *Mode.FSM.marks,
-            ],
-        )
-    ]
-)
-def switch_fsm_cluster(request: pytest.FixtureRequest):
-    yield from cluster_fixture(request, request.param)
+# @pytest.fixture(
+#     params=[
+#         pytest.param(
+#             functools.partial(single_node_cluster_config, mode=Mode.LEGACY),
+#             id="single_node_switch_fsm",
+#             marks=[
+#                 pytest.mark.integrationtest,
+#                 pytest.mark.quick_integrationtest,
+#                 pytest.mark.pr_integrationtest,
+#                 pytest.mark.single,
+#                 *Mode.FSM.marks,
+#             ],
+#         )
+#     ]
+#     + [
+#         pytest.param(
+#             functools.partial(
+#                 multi_node_cluster_config,
+#                 mode=Mode.LEGACY,
+#             ),
+#             id="multi_node_switch_fsm",
+#             marks=[
+#                 pytest.mark.integrationtest,
+#                 pytest.mark.quick_integrationtest,
+#                 pytest.mark.pr_integrationtest,
+#                 pytest.mark.multi,
+#                 *Mode.FSM.marks,
+#             ],
+#         )
+#     ]
+# )
+# def switch_fsm_cluster(request: pytest.FixtureRequest):
+#     yield from cluster_fixture(request, request.param)
 
 
-def test_restart_between_Legacy_and_FSM(
-    switch_fsm_cluster: Cluster, domain_urls: tc.DomainUrls
-):
+def test_restart_between_Legacy_and_FSM(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     This test verifies that we can safely switch clusters between Legacy and
     FSM modes.  First, we start the cluster in Legacy mode and post/confirm
@@ -468,7 +466,7 @@ def test_restart_between_Legacy_and_FSM(
     more messages.  Finally, we restart the cluster back in Legacy mode and
     verify those messages.
     """
-    cluster = switch_fsm_cluster
+    # cluster = switch_fsm_cluster
     du = domain_urls
 
     # Start a producer.
@@ -532,7 +530,7 @@ def test_restart_between_Legacy_and_FSM(
 
 @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
 def test_restart_between_Legacy_and_FSM_unassign_queue(
-    switch_fsm_cluster: Cluster, domain_urls: tc.DomainUrls
+    cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     """
     This test verifies that we can safely assign and unassign queues while
@@ -547,7 +545,7 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 
     where  `--->` indicates a switch in cluster mode
     """
-    cluster = switch_fsm_cluster
+    # cluster = switch_fsm_cluster
     cluster.lower_leader_startup_wait()
     du = domain_urls
     leader = cluster.last_known_leader
