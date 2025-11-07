@@ -100,7 +100,6 @@ class Broker:
     def port(self) -> str:
         return self.config.app_config.network_interfaces.tcp_interface.port
 
-
     @property
     def config_dir(self) -> Path:
         return Path(self.name) / "etc"

@@ -215,6 +215,16 @@ void ResolvingChannelFactory::connect(Status*                      status,
                              bdlf::PlaceHolders::_3));  // channel
 }
 
+int ResolvingChannelFactory::start()
+{
+    return d_config.d_baseFactory_p->start();
+}
+
+void ResolvingChannelFactory::stop()
+{
+    return d_config.d_baseFactory_p->stop();
+}
+
 // ----------------------------------
 // struct ResolvingChannelFactoryUtil
 // ----------------------------------
