@@ -419,7 +419,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
                 << "#CLIENT_IMPROPER_BEHAVIOR "
                 << "Failed PUT message for queue [" << d_state_p->uri()
                 << "] from client [" << source->client()->description()
-                << "]. Queue not opened in WRITE mode by the client.";);
+                << "]. Queue not opened in WRITE mode by the client.");
 
         bmqp::AckMessage ackMessage;
         ackMessage

@@ -108,7 +108,7 @@ void ClusterProxy::generateNack(bmqt::AckResult::Enum               status,
         d_throttledSkippedPutMessages,
         BALL_LOG_ERROR << description() << ": skipping relay-PUT message ["
                        << "queueId: " << putHeader.queueId() << ", GUID: "
-                       << putHeader.messageGUID() << "], rc: " << rc << ".";);
+                       << putHeader.messageGUID() << "], rc: " << rc << ".");
 }
 
 void ClusterProxy::startDispatched()
@@ -485,7 +485,7 @@ void ClusterProxy::onAckEvent(const mqbi::DispatcherAckEvent& event)
                 BALL_LOG_INFO << "Received an ACK for unknown queue "
                               << "[queueId: " << ackMessage.queueId()
                               << ", guid: " << ackMessage.messageGUID()
-                              << ", status: " << ackMessage.status() << "]";);
+                              << ", status: " << ackMessage.status() << "]");
             continue;  // RETURN
         }
 
@@ -518,7 +518,7 @@ void ClusterProxy::onRelayPutEvent(const mqbi::DispatcherPutEvent& event,
             BALL_LOG_WARN << description() << ": skipping relay-PUT message ["
                           << "queueId: " << ph.queueId() << ", GUID: "
                           << ph.messageGUID() << "], genCount: " << genCount
-                          << " vs " << term << ".";);
+                          << " vs " << term << ".");
         return;  // RETURN
     }
 

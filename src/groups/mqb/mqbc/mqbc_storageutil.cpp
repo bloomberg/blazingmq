@@ -867,7 +867,7 @@ void StorageUtil::storageMonitorCb(
                           << bmqu::PrintUtil::prettyBytes(
                                  minimumRequiredDiskSpace)
                           << ", available: "
-                          << bmqu::PrintUtil::prettyBytes(availableSpace););
+                          << bmqu::PrintUtil::prettyBytes(availableSpace));
     }
     else {
         if (*lowDiskspaceWarning) {
