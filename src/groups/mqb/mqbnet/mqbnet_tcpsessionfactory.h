@@ -83,9 +83,9 @@
 #include <mqbstat_statcontroller.h>
 
 #include <bmqex_sequentialcontext.h>
-#include <bmqio_certificatestore.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolvingchannelfactory.h>
 #include <bmqio_statchannelfactory.h>
@@ -249,77 +249,12 @@ class TCPSessionFactory {
         void onDeleteChannelContext(bsl::uint16_t port);
     };
 
-    struct ChannelFactoryPipelineConfig;
-
-    class ChannelFactoryPipeline : public bmqio::ChannelFactory {
-      private:
-        // TYPES
-
-        /// Shortcut for a managedPtr to the `bmqio::TCPChannelFactory`
-        typedef bslma::ManagedPtr<bmqio::NtcChannelFactory>
-            TCPChannelFactoryMp;
-
-        typedef bslma::ManagedPtr<bmqio::ResolvingChannelFactory>
-            ResolvingChannelFactoryMp;
-
-        typedef bslma::ManagedPtr<bmqio::ReconnectingChannelFactory>
-            ReconnectingChannelFactoryMp;
-
-        typedef bslma::ManagedPtr<bmqio::StatChannelFactory>
-            StatChannelFactoryMp;
-
-        // DATA
-
-        TCPChannelFactoryMp d_tcpChannelFactory_mp;
-
-        ResolvingChannelFactoryMp d_resolvingChannelFactory_mp;
-
-        ReconnectingChannelFactoryMp d_reconnectingChannelFactory_mp;
-
-        StatChannelFactoryMp d_statChannelFactory_mp;
-
-        bslma::Allocator* d_allocator_p;
-
-      public:
-        // CREATORS
-
-        ChannelFactoryPipeline(const ChannelFactoryPipelineConfig& config,
-                               bslma::Allocator* allocator_p = 0);
-
-        // MANIPULATORS
-
-        void listen(bmqio::Status*               status,
-                    bslma::ManagedPtr<OpHandle>* handle,
-                    const bmqio::ListenOptions&  options,
-                    const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
-
-        void connect(bmqio::Status*               status,
-                     bslma::ManagedPtr<OpHandle>* handle,
-                     const bmqio::ConnectOptions& options,
-                     const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
-
-        int start(bsl::ostream&      errorDescription,
-                  const bsl::string& configName);
-
-        void stop();
-
-        /// Load into the specified `result` the channel having the specified
-        /// `channelId`. Return 0 on success and a non-zero value otherwise.
-        int lookupChannel(bsl::shared_ptr<bmqio::NtcChannel>* result,
-                          int                                 channelId);
-    };
-
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
 
     /// Map associating a `Channel` to its corresponding `ChannelInfo` (as
     /// shared_ptr because of the atomicInt which has no copy constructor).
     typedef bsl::unordered_map<const bmqio::Channel*, ChannelInfoSp>
         ChannelMap;
-
-    /// Shortcut for a managedPtr to the `bmqio::TCPChannelFactory`
-    typedef bslma::ManagedPtr<bmqio::NtcChannelFactory> TCPChannelFactoryMp;
-
-    typedef bsl::shared_ptr<bmqio::NtcChannelFactory> TCPChannelFactorySp;
 
     typedef bslma::ManagedPtr<bmqio::ResolvingChannelFactory>
         ResolvingChannelFactoryMp;
@@ -363,18 +298,14 @@ class TCPSessionFactory {
     /// Channels' stat context (passed to TCPSessionFactory)
     mqbstat::StatController* d_statController_p;
 
-    /// ChannelFactory
-    TCPChannelFactoryMp d_tcpChannelFactory_mp;
-
     /// Executor context used for performing DNS resolution
     bmqex::SequentialContext d_resolutionContext;
 
-    bslma::ManagedPtr<ChannelFactoryPipeline> d_channelFactoryPipeline_mp;
+    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+        d_channelFactoryPipeline_mp;
 
-    bslma::ManagedPtr<ChannelFactoryPipeline> d_tlsChannelFactoryPipeline_mp;
-
-    // Whether TLS enabled or not
-    bool d_useTls;
+    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+        d_tlsChannelFactoryPipeline_mp;
 
     /// Name to use for the IO threads
     bsl::string d_threadName;
@@ -567,10 +498,6 @@ class TCPSessionFactory {
 
     /// Stop all hearbeats
     void stopHeartbeats();
-
-    /// Prepare the channel for negotiation.
-    void negotiationInit(bsl::shared_ptr<bmqio::Channel>   channel,
-                         bsl::shared_ptr<OperationContext> context);
 
     /// Check that the TCP interfaces are valid.
     ///

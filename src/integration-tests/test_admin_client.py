@@ -127,8 +127,13 @@ def expect_same_structure(
             assert expected.check(entry), path
         else:
             assert isinstance(expected, int)
-            if entry != expected:
-                raise RuntimeError(f"Path: {path}, {entry} != {expected} (expected)")
+            assert entry == expected, (
+                path,
+                "Actual value:",
+                entry,
+                "Expected value:",
+                expected,
+            )
 
 
 def test_breathing(

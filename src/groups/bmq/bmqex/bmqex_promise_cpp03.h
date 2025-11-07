@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Nov  6 22:23:31 2025
+// Generated on Mon Nov 10 18:42:03 2025
 // Command line: sim_cpp11_features.pl bmqex_promise.h
 
 #ifdef COMPILING_BMQEX_PROMISE_H
@@ -162,26 +162,20 @@ class Promise {
 #endif  // BMQEX_PROMISE_VARIADIC_LIMIT_A >= 1
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_A >= 2
-    template <class ARGS_1,
-              class ARGS_2>
+    template <class ARGS_1, class ARGS_2>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2);
 #endif  // BMQEX_PROMISE_VARIADIC_LIMIT_A >= 2
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_A >= 3
-    template <class ARGS_1,
-              class ARGS_2,
-              class ARGS_3>
+    template <class ARGS_1, class ARGS_2, class ARGS_3>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3);
 #endif  // BMQEX_PROMISE_VARIADIC_LIMIT_A >= 3
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_A >= 4
-    template <class ARGS_1,
-              class ARGS_2,
-              class ARGS_3,
-              class ARGS_4>
+    template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
@@ -274,8 +268,8 @@ class Promise {
 #endif  // BMQEX_PROMISE_VARIADIC_LIMIT_A >= 9
 
 #else
-// The generated code below is a workaround for the absence of perfect
-// forwarding in some compilers.
+    // The generated code below is a workaround for the absence of perfect
+    // forwarding in some compilers.
 
     template <class... ARGS>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
@@ -583,8 +577,7 @@ inline void Promise<R>::setValue(bslmf::MovableRef<R> value)
 #endif
 #if BMQEX_PROMISE_VARIADIC_LIMIT_B >= 0
 template <class R>
-inline void Promise<R>::emplaceValue(
-                               )
+inline void Promise<R>::emplaceValue()
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -595,8 +588,8 @@ inline void Promise<R>::emplaceValue(
 #if BMQEX_PROMISE_VARIADIC_LIMIT_B >= 1
 template <class R>
 template <class ARGS_1>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1)
+inline void Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1)
+                                         args_1)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -606,11 +599,10 @@ inline void Promise<R>::emplaceValue(
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_B >= 2
 template <class R>
-template <class ARGS_1,
-          class ARGS_2>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
+template <class ARGS_1, class ARGS_2>
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -621,13 +613,11 @@ inline void Promise<R>::emplaceValue(
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_B >= 3
 template <class R>
-template <class ARGS_1,
-          class ARGS_2,
-          class ARGS_3>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
+template <class ARGS_1, class ARGS_2, class ARGS_3>
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -639,15 +629,12 @@ inline void Promise<R>::emplaceValue(
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_B >= 4
 template <class R>
-template <class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
+template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -660,17 +647,13 @@ inline void Promise<R>::emplaceValue(
 
 #if BMQEX_PROMISE_VARIADIC_LIMIT_B >= 5
 template <class R>
-template <class ARGS_1,
-          class ARGS_2,
-          class ARGS_3,
-          class ARGS_4,
-          class ARGS_5>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
+template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4, class ARGS_5>
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -690,13 +673,13 @@ template <class ARGS_1,
           class ARGS_4,
           class ARGS_5,
           class ARGS_6>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -718,14 +701,14 @@ template <class ARGS_1,
           class ARGS_5,
           class ARGS_6,
           class ARGS_7>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -749,15 +732,15 @@ template <class ARGS_1,
           class ARGS_6,
           class ARGS_7,
           class ARGS_8>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -783,16 +766,16 @@ template <class ARGS_1,
           class ARGS_7,
           class ARGS_8,
           class ARGS_9>
-inline void Promise<R>::emplaceValue(
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
-                              BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_7) args_7,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_8) args_8,
+                         BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_9) args_9)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -813,8 +796,8 @@ inline void Promise<R>::emplaceValue(
 // forwarding in some compilers.
 template <class R>
 template <class... ARGS>
-inline void Promise<R>::emplaceValue(
-                               BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
+inline void
+Promise<R>::emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args)
 {
     BSLS_ASSERT(d_sharedState);
 
@@ -1021,9 +1004,8 @@ inline void bmqex::swap(Promise<R>& lhs, Promise<R>& rhs) BSLS_KEYWORD_NOEXCEPT
 
 }  // close enterprise namespace
 
-#else // if ! defined(DEFINED_BMQEX_PROMISE_H)
-# error Not valid except when included from bmqex_promise.h
-#endif // ! defined(COMPILING_BMQEX_PROMISE_H)
+#else  // if ! defined(DEFINED_BMQEX_PROMISE_H)
+#error Not valid except when included from bmqex_promise.h
+#endif  // ! defined(COMPILING_BMQEX_PROMISE_H)
 
-#endif // ! defined(INCLUDED_BMQEX_PROMISE_CPP03)
-
+#endif  // ! defined(INCLUDED_BMQEX_PROMISE_CPP03)

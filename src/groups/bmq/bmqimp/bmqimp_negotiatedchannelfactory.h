@@ -188,6 +188,12 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
                  bslma::ManagedPtr<OpHandle>* handle,
                  const bmqio::ConnectOptions& options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+    /// Start the base channel factory.
+    int start() BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the base channel factory.
+    void stop() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
