@@ -523,7 +523,7 @@ bdlmt::SignalerConnection NtcChannelFactory::onUpgrade(const UpgradeFn& cb)
 
 int NtcChannelFactory::lookupChannel(
     bsl::shared_ptr<bmqio::NtcChannel>* result,
-    int                                 channelId)
+    int                                 channelId) const
 {
     return d_channels.find(channelId, result);
 }

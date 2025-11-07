@@ -92,22 +92,12 @@
                         "name": "TCPListener",
                         "port": 30114,
                         "tls": false
-                    },
-                    {
-                        "name": "TLSListener",
-                        "port": 30115,
-                        "tls": true
                     }
                 ]
             }
         },
         "bmqconfConfig": {
             "cacheTTLSeconds": 30
-        },
-        "tlsConfig": {
-            "certificateAuthority": "/blazingmq/certs/ca-cert",
-            "certificate": "/blazingmq/certs/broker_host_cert.pem",
-            "key": "/blazingmq/certs/broker_private_key.pem"
         }
     }
 }
