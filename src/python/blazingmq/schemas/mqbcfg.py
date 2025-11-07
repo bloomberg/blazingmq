@@ -2151,7 +2151,7 @@ class AppConfig:
     advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
     routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
     authentication.......: configuration for authentication
-    tlsConfig............: optional configuation for TLS
+    tlsConfig............: optional configuration for TLS
     """
 
     broker_instance_name: Optional[str] = field(

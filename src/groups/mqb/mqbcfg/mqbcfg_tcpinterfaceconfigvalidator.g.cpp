@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbcfg_tcpinterfaceconfigvalidator.t.cpp                           -*-C++-*-
+// mqbcfg_tcpinterfaceconfigvalidator.g.cpp                           -*-C++-*-
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
 
 // MQB
@@ -28,39 +28,27 @@
 #include <bsla_annotations.h>
 #include <bsls_asserttest.h>
 
+// GTest
+#include <gtest/gtest.h>
+
 using namespace BloombergLP;
 
-struct TcpInterfaceConfigValidatorTest : bmqtst::Test {
-    // CREATORS
-    TcpInterfaceConfigValidatorTest();
-    ~TcpInterfaceConfigValidatorTest() BSLS_KEYWORD_OVERRIDE;
-};
+class TcpInterfaceConfigValidatorTest : public ::testing::Test {};
 
-TcpInterfaceConfigValidatorTest::TcpInterfaceConfigValidatorTest()
+TEST_F(TcpInterfaceConfigValidatorTest, breathingTest)
 {
-    // NOTHING
+    EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK, 0);
 }
 
-TcpInterfaceConfigValidatorTest::~TcpInterfaceConfigValidatorTest()
-{
-    // NOTHING
-}
-
-BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, breathingTest)
-{
-    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK, 0);
-}
-
-BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, emptyConfigIsValid)
+TEST_F(TcpInterfaceConfigValidatorTest, emptyConfigIsValid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
 
-    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK,
-                     validator(config));
+    EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK, validator(config));
 }
 
-BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
+TEST_F(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
@@ -77,11 +65,11 @@ BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
         listener.name() = "Test";
     }
 
-    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_NAME,
-                     validator(config));
+    EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_NAME,
+              validator(config));
 }
 
-BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
+TEST_F(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
@@ -100,11 +88,11 @@ BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
         listener.port() = 8000;
     }
 
-    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_PORT,
-                     validator(config));
+    EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_PORT,
+              validator(config));
 }
 
-BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
+TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
 
@@ -113,8 +101,8 @@ BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
         mqbcfg::TcpInterfaceListener& listener =
             config.listeners().emplace_back();
         listener.port() = 0x10000;
-        BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
-                         validator(config));
+        EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
+                  validator(config));
     }
 
     {
@@ -122,8 +110,8 @@ BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
         mqbcfg::TcpInterfaceListener& listener =
             config.listeners().emplace_back();
         listener.port() = -1;
-        BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
-                         validator(config));
+        EXPECT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
+                  validator(config));
     }
 }
 
@@ -135,7 +123,9 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqtst::runTest(_testCase);
+    ::testing::InitGoogleTest(&argc, argv);
+
+    bmqtst::TestHelperUtil::testStatus() = RUN_ALL_TESTS();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

@@ -287,7 +287,7 @@ class NtcChannel : public bmqio::Channel,
 
     /// Notify using the specified `status` and remove each existing reader.
     void drainReaders(const bmqio::Status& status);
-    
+
     /// @brief Process the upgradeServer of this socket to TLS
     void processUpgrade(const bsl::shared_ptr<ntci::Upgradable>& upgradable,
                         const ntca::UpgradeEvent&                upgradeEvent,

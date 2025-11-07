@@ -28,5 +28,4 @@
 
 // No C++03 Expansion
 
-#endif // defined(COMPILING_BMQU_MANAGEDCALLBACK_CPP)
-
+#endif  // defined(COMPILING_BMQU_MANAGEDCALLBACK_CPP)
