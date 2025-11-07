@@ -195,3 +195,32 @@ class TestClusterNodeShutdown:
             check_both_received_one_of("msg1", "msg2")
         else:
             check_both_received_one_of("msg2")
+
+    def test_open_queue_while_cluster_blips_quorum(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        Test that if a cluster temporarily loses quorum, clients can still open
+        queues and operate normally once quorum is restored.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        replica = cluster.process(self.proxy2.get_active_node())
+
+        # Kill the nodes which is neither primary nor replica to lose quorum
+        nodes_to_kill = [n for n in cluster.nodes() if n not in (primary, replica)]
+
+        for node in nodes_to_kill:
+            node.check_exit_code = False
+            node.kill()
+        primary.outputs_regex("LEADER lost quorum")
+
+        # Producer tries to open a new queue; will not succeed
+        self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        # Restart one of the killed nodes to restore quorum
+        nodes_to_kill[0].start()
+
+        # Now the replica should receive an openQueueReponse
+        replica.outputs_regex(f"OpenQueueResponse.*{du.uri_priority_2}")
