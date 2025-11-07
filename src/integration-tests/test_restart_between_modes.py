@@ -449,42 +449,9 @@ def assignUnassignExistingQueues(
             consumer.open(queue, flags=["read"], succeed=True)
 
 
-# @pytest.fixture(
-#     params=[
-#         pytest.param(
-#             functools.partial(single_node_cluster_config, mode=Mode.LEGACY),
-#             id="single_node_switch_fsm",
-#             marks=[
-#                 pytest.mark.integrationtest,
-#                 pytest.mark.quick_integrationtest,
-#                 pytest.mark.pr_integrationtest,
-#                 pytest.mark.single,
-#                 *Mode.FSM.marks,
-#             ],
-#         )
-#     ]
-#     + [
-#         pytest.param(
-#             functools.partial(
-#                 multi_node_cluster_config,
-#                 mode=Mode.LEGACY,
-#             ),
-#             id="multi_node_switch_fsm",
-#             marks=[
-#                 pytest.mark.integrationtest,
-#                 pytest.mark.quick_integrationtest,
-#                 pytest.mark.pr_integrationtest,
-#                 pytest.mark.multi,
-#                 *Mode.FSM.marks,
-#             ],
-#         )
-#     ]
-# )
-# def switch_fsm_cluster(request: pytest.FixtureRequest):
-#     yield from cluster_fixture(request, request.param)
-
-
-def test_restart_between_Legacy_and_FSM(cluster: Cluster, domain_urls: tc.DomainUrls):
+def test_restart_between_Legacy_and_FSM(
+    cluster: Cluster, domain_urls: tc.DomainUrls, switch_cluster_mode
+):
     """
     This test verifies that we can safely switch clusters between Legacy and
     FSM modes.  First, we start the cluster in Legacy mode and post/confirm
@@ -519,7 +486,7 @@ def test_restart_between_Legacy_and_FSM(cluster: Cluster, domain_urls: tc.Domain
     )
 
     # SWITCH
-    restart_as_fsm_mode(cluster, producer, consumers)
+    switch_cluster_mode[0](cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -542,7 +509,7 @@ def test_restart_between_Legacy_and_FSM(cluster: Cluster, domain_urls: tc.Domain
     )
 
     # SWITCH
-    restart_as_legacy_mode(cluster, producer, consumers)
+    switch_cluster_mode[1](cluster, producer, consumers)
 
     # EPILOGUE
     post_existing_queues_and_verify(
