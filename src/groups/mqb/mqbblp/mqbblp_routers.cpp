@@ -99,7 +99,7 @@ Routers::MessagePropertiesReader::MessagePropertiesReader(
 , d_currentMessage_p(0)
 , d_isDirty(false)
 {
-    // NOTHING
+    d_properties.setDeepCopy(false);
 }
 
 Routers::MessagePropertiesReader::~MessagePropertiesReader()

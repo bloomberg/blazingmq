@@ -101,7 +101,7 @@ class MessageProperties {
     /// Constant representing the maximum size of a
     /// `bmqp::MessageProperties` object, so that the below AlignedBuffer
     /// is big enough.
-    static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES = 184;
+    static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES = 280;
 
     // PRIVATE TYPES
     typedef bsls::AlignedBuffer<k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES>
