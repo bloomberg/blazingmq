@@ -252,7 +252,7 @@ bsls::Types::Int64 Queue::countUnconfirmed() const
     return 0;
 }
 
-void Queue::stopPushing()
+void Queue::setStopping()
 {
     // NOT IMPLENTED
 }

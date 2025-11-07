@@ -994,9 +994,12 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Delete and unregister all queues which have no clients.
     void processShutdownEvent();
 
-    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
-    /// sending PUTs and ACKs.
-    void requestToStopPushing();
+    /// Set the state of the queues to "stopping".
+    /// This is a one-way step before shutting down the broker.
+    /// In this state, the queues will:
+    /// - Continue receiving CONFIRMs, receiving and sending PUTs and ACKs.
+    /// - Stop sending PUSHes and stop idle GC.
+    void requestToStopQueues();
 
     void checkUnconfirmedV2(const bsls::TimeInterval&    whenToStop,
                             const bsl::function<void()>& completionCallback);
