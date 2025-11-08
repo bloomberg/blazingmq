@@ -689,18 +689,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                       bsl::shared_ptr<bdlbb::Blob>* options,
                       const DataStoreRecord&        record) const;
 
-    /// Attempt to garbage-collect messages for which TTL has expired where
-    /// the specified `currentTimeUtc` is the current timestamp (UTC).
-    /// Return `true`, if there are expired items unprocessed because of the
-    /// batch size limitation.   Note that this routine is no-op unless at
-    /// the primary node".
-    bool gcExpiredMessages(const bdlt::Datetime& currentTimeUtc);
+    /// Attempt to garbage-collect messages for which TTL has expired.
+    /// Note that this routine is no-op unless at the primary node.
+    void gcExpiredMessages();
 
     /// Delete an history of guids or messages maintained by this data
-    /// store.  Return `true`, if there are expired items unprocessed
-    /// because of the batch size limitation.  Note that this routine is
-    /// invoked at primary as well as replica nodes.
-    bool gcHistory();
+    /// store.  Note that this routine is invoked at primary as well as
+    /// replica nodes.
+    void gcHistory();
 
   public:
     // TRAITS
@@ -742,7 +738,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void flush() BSLS_KEYWORD_OVERRIDE;
 
     /// Iterate over all storages and run garbage collection.
-    void gcStorage();
+    /// Regularily invoked from the scheduler and executed from the dispatcher
+    /// thread.
+    void scheduledCleanupStorages();
 
     /// Return a pointer to the dispatcher this client is associated with.
     mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE;

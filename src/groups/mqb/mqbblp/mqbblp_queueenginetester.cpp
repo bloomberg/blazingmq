@@ -544,7 +544,8 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     // Create Storage
 
     mqbi::Storage* storage_p = new (*d_allocator_p)
-        mqbs::InMemoryStorage(d_mockQueue_sp->uri(),
+        mqbs::InMemoryStorage(0,  // No FileStore
+                              d_mockQueue_sp->uri(),
                               k_NULL_QUEUE_KEY,
                               d_mockDomain_mp.get(),
                               k_PARTITION_ID,
@@ -1155,9 +1156,6 @@ void QueueEngineTester::garbageCollectMessages(const int numMessages)
     BSLS_ASSERT_OPT(static_cast<unsigned int>(numMessages) <=
                     d_postedMessages.size());
 
-    bsls::Types::Uint64 latestGcMsgTimestampEpoch = 0;
-    bsls::Types::Int64  configuredTtlValue        = 0;
-
     int removing  = numMessages == 0 ? d_postedMessages.size() : numMessages;
     int remaining = removing;
 
@@ -1175,10 +1173,12 @@ void QueueEngineTester::garbageCollectMessages(const int numMessages)
         it = d_postedMessages.erase(it);
     }
 
-    d_queueState_mp->storage()->gcExpiredMessages(&latestGcMsgTimestampEpoch,
-                                                  &configuredTtlValue,
-                                                  k_MAX_MESSAGES + removing +
-                                                      1);
+    const bdlt::Datetime      currentTimeUtc;
+    const bsls::Types::Uint64 currentSecondsFromEpoch = k_MAX_MESSAGES +
+                                                        removing + 1;
+
+    d_queueState_mp->storage()->gcExpiredMessages(currentTimeUtc,
+                                                  currentSecondsFromEpoch);
 }
 
 void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)

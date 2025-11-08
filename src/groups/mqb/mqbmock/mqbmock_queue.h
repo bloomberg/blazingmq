@@ -246,9 +246,12 @@ class Queue : public mqbi::Queue {
     void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
-    /// sending PUTs and ACKs.
-    void stopPushing() BSLS_KEYWORD_OVERRIDE;
+    /// Set the state of this queue to "stopping".
+    /// This is a one-way step before shutting down the broker.
+    /// In this state, the queue will:
+    /// - Continue receiving CONFIRMs, receiving and sending PUTs and ACKs.
+    /// - Stop sending PUSHes and stop idle GC.
+    void setStopping() BSLS_KEYWORD_OVERRIDE;
 
     /// Called when a message with the specified `msgGUID`, `appData`,
     /// `options` and compressionAlgorithmType payload is pushed to this
