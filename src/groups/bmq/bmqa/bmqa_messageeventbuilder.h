@@ -390,13 +390,19 @@ class MessageEventBuilder {
   private:
     // ACCESSORS
 
-    /// Copy the message properties from the specified `builder` and inject
-    /// distributed tracing span into the copy.  Returns a shared pointer
-    /// to the new properties object with trace span injected, or a null
-    /// shared pointer if trace injection fails.
-    bsl::shared_ptr<bmqp::MessageProperties>
-    copyPropertiesAndInjectDT(bmqp::PutEventBuilder* builder,
-                              const bmqa::QueueId&   queueId) const;
+    /// Create a distributed tracing span and inject it into message
+    /// properties.  Load into the specified `properties` a copy of the
+    /// message properties from the specified `builder` with the trace
+    /// context injected, and load into the specified `span` the created
+    /// span.  Use the specified `queueId` for queue metadata.  If span
+    /// creation or serialization fails, `properties` and `span` are left
+    /// unchanged.  Note that the returned `properties` must be kept alive
+    /// until message serialization completes.
+    void copyPropertiesAndInjectDT(
+        bsl::shared_ptr<bmqp::MessageProperties>* properties,
+        bsl::shared_ptr<bmqpi::DTSpan>*           span,
+        bmqp::PutEventBuilder*                    builder,
+        const bmqa::QueueId&                      queueId) const;
 };
 
 }  // close package namespace

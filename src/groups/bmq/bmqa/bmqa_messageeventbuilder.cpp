@@ -156,11 +156,9 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
     // If distributed tracing is enabled, create a span and inject trace
     // span into message properties
     bsl::shared_ptr<bmqp::MessageProperties> propsWithDT;
+    bsl::shared_ptr<bmqpi::DTSpan>           span;
     if (d_impl.d_dtTracer_sp && d_impl.d_dtContext_sp) {
-        propsWithDT = copyPropertiesAndInjectDT(builder, queueId);
-        if (propsWithDT) {
-            builder->setMessageProperties(propsWithDT.get());
-        }
+        copyPropertiesAndInjectDT(&propsWithDT, &span, builder, queueId);
     }
 
     if (queueSpRef->isOldStyle()) {
@@ -186,7 +184,7 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
         }
 
         // Add message related info into the event on success.
-        msgImplRef.d_event_p->addMessageInfo(queueSpRef, guid, corrId);
+        msgImplRef.d_event_p->addMessageInfo(queueSpRef, guid, corrId, span);
     }
 
     return rc;
@@ -279,10 +277,11 @@ int MessageEventBuilder::messageEventSize() const
     return eventSpRef->putEventBuilder()->eventSize();
 }
 
-bsl::shared_ptr<bmqp::MessageProperties>
-MessageEventBuilder::copyPropertiesAndInjectDT(
-    bmqp::PutEventBuilder* builder,
-    const bmqa::QueueId&   queueId) const
+void MessageEventBuilder::copyPropertiesAndInjectDT(
+    bsl::shared_ptr<bmqp::MessageProperties>* properties,
+    bsl::shared_ptr<bmqpi::DTSpan>*           span,
+    bmqp::PutEventBuilder*                    builder,
+    const bmqa::QueueId&                      queueId) const
 {
     // Get message properties
     const bmqp::MessageProperties* props = builder->messageProperties();
@@ -300,36 +299,39 @@ MessageEventBuilder::copyPropertiesAndInjectDT(
         d_impl.d_dtTracer_sp->createChildSpan(d_impl.d_dtContext_sp->span(),
                                               "bmq.message.put",
                                               baggage);
-
-    if (childSpan) {
-        // Serialize the span to inject into message properties
-        bsl::vector<unsigned char> serializedSpan;
-        int rc = d_impl.d_dtTracer_sp->serializeSpan(&serializedSpan,
-                                                     childSpan);
-        if (rc != 0) {
-            BALL_LOG_WARN << "Failed to serialize span for trace context "
-                          << "injection, rc: " << rc;
-            childSpan->finish();
-            return bsl::shared_ptr<bmqp::MessageProperties>();  // RETURN
-        }
-
-        // Convert unsigned char vector to char vector for the API
-        bsl::vector<char> traceContextData(serializedSpan.begin(),
-                                           serializedSpan.end());
-
-        // Inject the serialized trace context as a reserved binary
-        // property
-        rc = propsCopy->setPropertyAsBinary(k_tracePropertyName,
-                                            traceContextData);
-        if (rc != 0) {
-            BALL_LOG_WARN << "Failed to inject trace context into "
-                          << "message properties, rc: " << rc;
-            childSpan->finish();
-            return bsl::shared_ptr<bmqp::MessageProperties>();  // RETURN
-        }
+    if (!childSpan) {
+        return;
     }
 
-    return propsCopy;
+    // Serialize the span to inject into message properties
+    bsl::vector<unsigned char> serializedSpan;
+    int rc = d_impl.d_dtTracer_sp->serializeSpan(&serializedSpan, childSpan);
+    if (rc != 0) {
+        BALL_LOG_WARN << "Failed to serialize span for trace context "
+                      << "injection, rc: " << rc;
+        childSpan->finish();
+        return;  // RETURN
+    }
+
+    // Inject the serialized trace span as a reserved binary property
+    bsl::vector<char> traceSpanData(serializedSpan.begin(),
+                                    serializedSpan.end());
+    rc = propsCopy->setPropertyAsBinary(k_tracePropertyName, traceSpanData);
+    if (rc != 0) {
+        BALL_LOG_WARN << "Failed to inject trace span into "
+                      << "message properties, rc: " << rc;
+        childSpan->finish();
+        return;  // RETURN
+    }
+
+    // Set the modified properties back to the builder
+    builder->setMessageProperties(propsCopy.get());
+
+    // Return the created span and the properties with injected trace span for
+    // later use.  Span will be stored in correlationId.  Properties need to
+    // be kept alive until it's compressed in PutEventBuilder::packMessage()
+    *span       = childSpan;
+    *properties = propsCopy;
 }
 
 }  // close package namespace
