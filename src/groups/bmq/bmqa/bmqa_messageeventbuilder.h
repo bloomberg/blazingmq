@@ -256,6 +256,9 @@
 
 #include <bmqa_message.h>
 #include <bmqa_messageevent.h>
+#include <bmqp_puteventbuilder.h>
+#include <bmqpi_dtcontext.h>
+#include <bmqpi_dttracer.h>
 #include <bmqt_resultcode.h>
 
 // BDE
@@ -309,6 +312,11 @@ struct MessageEventBuilderImpl {
     /// CONTRACT: the stored value is correct every moment when in READ mode,
     /// and the value is not guaranteed to be correct when in WRITE mode.
     int d_messageEventSizeFinal;
+
+    /// Distributed tracing tracer object.
+    bsl::shared_ptr<bmqpi::DTTracer> d_dtTracer_sp;
+
+    bsl::shared_ptr<bmqpi::DTContext> d_dtContext_sp;
 };
 
 // =========================
@@ -378,6 +386,17 @@ class MessageEventBuilder {
     /// value represents the length of entire message event, *including*
     /// BlazingMQ wire protocol overhead.
     int messageEventSize() const;
+
+  private:
+    // ACCESSORS
+
+    /// Copy the message properties from the specified `builder` and inject
+    /// distributed tracing span into the copy.  Returns a shared pointer
+    /// to the new properties object with trace span injected, or a null
+    /// shared pointer if trace injection fails.
+    bsl::shared_ptr<bmqp::MessageProperties>
+    copyPropertiesAndInjectDT(bmqp::PutEventBuilder* builder,
+                              const bmqa::QueueId&   queueId) const;
 };
 
 }  // close package namespace
