@@ -807,6 +807,17 @@ void ClusterState::DomainState::adjustQueueCount(int by)
     }
 }
 
+void ClusterState::DomainState::adjustOpenedQueueCount(int by)
+{
+    d_numOpenedQueues += by;
+
+    if (d_domain_p != 0) {
+        d_domain_p->domainStats()
+            ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT_OPEN>(
+                d_numOpenedQueues);
+    }
+}
+
 // ----------------------------------------
 // class ClusterState::PartitionIdExtractor
 // ----------------------------------------
