@@ -298,7 +298,7 @@ def post_new_queues_and_verify(
 
         producer.open(new_queue, flags=["write", "ack"], succeed=True)
         producer.post(new_queue, payload=["msg0"], wait_ack=True, succeed=True)
-        ensure_message_at_storage_layer(cluster, partition_id, new_queue, 1)
+        ensure_message_at_storage_layer(cluster, partition_id, new_queue, 1, alive=True)
 
         for consumer, app_id in zip(domain_consumers, consuming_app_ids):
             consumer.open(
@@ -371,6 +371,7 @@ def post_existing_queues_and_verify(
                 queues[i][PARTITION_ELEMENT_IDX],
                 queues[i][QUEUE_ELEMENT_IDX],
                 NUM_MESSAGES_IN_QUEUE + 1,
+                alive=True,
             )
         NUM_MESSAGES_IN_QUEUE += 1  # Increment by 1 for the new message posted
 

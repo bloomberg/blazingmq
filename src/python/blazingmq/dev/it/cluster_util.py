@@ -26,7 +26,7 @@ from blazingmq.dev.it.util import wait_until
 
 
 def ensure_message_at_storage_layer(
-    cluster: Cluster, partition_id: int, queue_uri: str, num_messages: int
+    cluster: Cluster, partition_id: int, queue_uri: str, num_messages: int, alive=False
 ):
     """
     Assert that in the `partitionId` of the `cluster`, there are exactly
@@ -38,11 +38,11 @@ def ensure_message_at_storage_layer(
     # in the absence of stronger consistency in storage replication in
     # BMQ.  Presence of message in the storage at each node is checked by
     # sending 'STORAGE SUMMARY' command and grepping its output.
-    for node in cluster.nodes():
+    for node in cluster.nodes(alive=alive):
         node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
 
     time.sleep(2)
-    for node in cluster.nodes():
+    for node in cluster.nodes(alive=alive):
         assert node.outputs_regex(
             r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, num_messages)
             + re.escape(queue_uri),
