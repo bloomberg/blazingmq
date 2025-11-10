@@ -171,15 +171,15 @@ int areEqual(const JournalOpRecord& lhs, const JournalOpRecord& rhs)
         return -2;  // RETURN
     }
 
-    if (lhs.sequenceNum() != rhs.sequenceNum()) {
+    if (lhs.syncPointData().sequenceNum() != rhs.syncPointData().sequenceNum()) {
         return -4;  // RETURN
     }
 
-    if (lhs.primaryNodeId() != rhs.primaryNodeId()) {
+    if (lhs.syncPointData().primaryNodeId() != rhs.syncPointData().primaryNodeId()) {
         return -5;  // RETURN
     }
 
-    if (lhs.primaryLeaseId() != rhs.primaryLeaseId()) {
+    if (lhs.syncPointData().primaryLeaseId() != rhs.syncPointData().primaryLeaseId()) {
         return -6;  // RETURN
     }
 
@@ -356,8 +356,7 @@ void addRecords(MemoryBlock*         block,
             // JournalOpRec.SyncPoint
             *lastSyncPtPos = currPos;
             OffsetPtr<JournalOpRecord> rec(*block, currPos);
-            new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                                            SyncPointType::e_REGULAR,
+            new (rec.get()) JournalOpRecord(SyncPointType::e_REGULAR,
                                             1234567,  // seqNum
                                             25,       // leaderTerm
                                             121,      // leaderNodeId

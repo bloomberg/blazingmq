@@ -437,25 +437,26 @@ static void test1_breathingTest()
 
         BMQTST_ASSERT_EQ(fh.flags(), 0U);
         BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_UNDEFINED);
-        BMQTST_ASSERT_EQ(fh.sequenceNum(), 0ULL);
-        BMQTST_ASSERT_EQ(fh.primaryNodeId(), 0);
-        BMQTST_ASSERT_EQ(fh.primaryLeaseId(), 0U);
+        BMQTST_ASSERT_EQ(fh.syncPointData().sequenceNum(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.syncPointData().primaryNodeId(), 0);
+        BMQTST_ASSERT_EQ(fh.syncPointData().primaryLeaseId(), 0U);
         BMQTST_ASSERT_EQ(fh.magic(), 0U);
 
         // Create JournalOpRecord, set fields, assert fields
         JournalOpRecord fh2;
+        JournalOpRecord::SyncPointData& spd = fh2.syncPointData();
         fh2.setFlags(1000)
             .setType(JournalOpType::e_SYNCPOINT)
-            .setSequenceNum(k_33_BITS_MASK)
-            .setPrimaryNodeId(k_INT_MAX)
-            .setPrimaryLeaseId(k_UNSIGNED_INT_MAX)
             .setMagic(0xdeadbeef);
+        spd.setSequenceNum(k_33_BITS_MASK)
+            .setPrimaryNodeId(k_INT_MAX)
+            .setPrimaryLeaseId(k_UNSIGNED_INT_MAX);
 
         BMQTST_ASSERT_EQ(fh2.flags(), 1000U);
         BMQTST_ASSERT_EQ(fh2.type(), JournalOpType::e_SYNCPOINT);
-        BMQTST_ASSERT_EQ(fh2.sequenceNum(), k_33_BITS_MASK);
-        BMQTST_ASSERT_EQ(fh2.primaryNodeId(), k_INT_MAX);
-        BMQTST_ASSERT_EQ(fh2.primaryLeaseId(), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(spd.sequenceNum(), k_33_BITS_MASK);
+        BMQTST_ASSERT_EQ(spd.primaryNodeId(), k_INT_MAX);
+        BMQTST_ASSERT_EQ(spd.primaryLeaseId(), k_UNSIGNED_INT_MAX);
         BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 }
@@ -740,10 +741,11 @@ static void test3_printTest()
         rh.setType(RecordType::e_JOURNAL_OP);
         mqbs::JournalOpRecord jOpRec;
         jOpRec.header() = rh;
+        JournalOpRecord::SyncPointData& spd = jOpRec.syncPointData();
         jOpRec.setFlags(0)
             .setType(JournalOpType::e_SYNCPOINT)
-            .setSyncPointType(SyncPointType::e_REGULAR)
-            .setSequenceNum(9876543)
+            .setSyncPointType(SyncPointType::e_REGULAR);
+        spd.setSequenceNum(9876543)
             .setPrimaryNodeId(1)
             .setPrimaryLeaseId(8)
             .setDataFileOffsetDwords(666)
