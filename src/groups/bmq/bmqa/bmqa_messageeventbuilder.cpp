@@ -18,6 +18,7 @@
 
 #include <bmqscm_version.h>
 // BMQ
+#include <bmqa_messageproperties.h>
 #include <bmqa_queueid.h>
 #include <bmqimp_event.h>
 #include <bmqimp_queue.h>
@@ -27,14 +28,22 @@
 #include <bmqt_queueflags.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_memory.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
+#include <bsls_nullptr.h>
 #include <bsls_performancehint.h>
+#include <bslstl_sharedptr.h>
 
 namespace BloombergLP {
 namespace bmqa {
+
+// CLASS-SCOPE CATEGORY
+BALL_LOG_SET_CLASS_CATEGORY("BMQA.MESSAGEEVENTBUILDER");
+
+const char k_tracePropertyName[] = "bmq.traceparent";
 
 namespace {
 // Compile time sanity checks
@@ -143,6 +152,16 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
     bmqt::MessageGUID              guid;
     d_impl.d_guidGenerator_sp->generateGUID(&guid);
     builder->setMessageGUID(guid);
+
+    // If distributed tracing is enabled, create a span and inject trace
+    // span into message properties
+    bsl::shared_ptr<bmqp::MessageProperties> propsWithDT;
+    if (d_impl.d_dtTracer_sp && d_impl.d_dtContext_sp) {
+        propsWithDT = copyPropertiesAndInjectDT(builder, queueId);
+        if (propsWithDT) {
+            builder->setMessageProperties(propsWithDT.get());
+        }
+    }
 
     if (queueSpRef->isOldStyle()) {
         // Temporary; shall remove after 2nd roll out of "new style" brokers.
@@ -258,6 +277,59 @@ int MessageEventBuilder::messageEventSize() const
     }
 
     return eventSpRef->putEventBuilder()->eventSize();
+}
+
+bsl::shared_ptr<bmqp::MessageProperties>
+MessageEventBuilder::copyPropertiesAndInjectDT(
+    bmqp::PutEventBuilder* builder,
+    const bmqa::QueueId&   queueId) const
+{
+    // Get message properties
+    const bmqp::MessageProperties* props = builder->messageProperties();
+    bsl::shared_ptr<bmqp::MessageProperties> propsCopy =
+        bsl::make_shared<bmqp::MessageProperties>(
+            props ? *props : bmqp::MessageProperties());
+
+    // Create a child span of the current span for the PUT operation
+    bmqpi::DTSpan::Baggage baggage;
+    bsl::stringstream      ss;
+    bmqt::QueueFlagsUtil::prettyPrint(ss, queueId.flags());
+    baggage.put("bmq.queue.flags", ss.str());
+    baggage.put("bmq.queue.uri", queueId.uri().asString());
+    bsl::shared_ptr<bmqpi::DTSpan> childSpan =
+        d_impl.d_dtTracer_sp->createChildSpan(d_impl.d_dtContext_sp->span(),
+                                              "bmq.message.put",
+                                              baggage);
+
+    if (childSpan) {
+        // Serialize the span to inject into message properties
+        bsl::vector<unsigned char> serializedSpan;
+        int rc = d_impl.d_dtTracer_sp->serializeSpan(&serializedSpan,
+                                                     childSpan);
+        if (rc != 0) {
+            BALL_LOG_WARN << "Failed to serialize span for trace context "
+                          << "injection, rc: " << rc;
+            childSpan->finish();
+            return bsl::shared_ptr<bmqp::MessageProperties>();  // RETURN
+        }
+
+        // Convert unsigned char vector to char vector for the API
+        bsl::vector<char> traceContextData(serializedSpan.begin(),
+                                           serializedSpan.end());
+
+        // Inject the serialized trace context as a reserved binary
+        // property
+        rc = propsCopy->setPropertyAsBinary(k_tracePropertyName,
+                                            traceContextData);
+        if (rc != 0) {
+            BALL_LOG_WARN << "Failed to inject trace context into "
+                          << "message properties, rc: " << rc;
+            childSpan->finish();
+            return bsl::shared_ptr<bmqp::MessageProperties>();  // RETURN
+        }
+    }
+
+    return propsCopy;
 }
 
 }  // close package namespace
