@@ -39,8 +39,8 @@ namespace mqbs {
 
 namespace {
 
-const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
-
+/// The number of messages to remove from history on idle.
+const int k_GC_HISTORY_BATCH_SIZE = 1000;
 }
 
 // ---------------------
@@ -48,7 +48,8 @@ const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
 // ---------------------
 
 // CREATORS
-InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
+InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
+                                 const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  mqbi::Domain*           domain,
                                  int                     partitionId,
@@ -57,6 +58,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  bslma::Allocator*       allocator,
                                  bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
+, d_store_p(dataStore_p)
 , d_key(queueKey)
 , d_uri(uri, d_allocator_p)
 , d_partitionId(partitionId)
@@ -448,25 +450,25 @@ void InMemoryStorage::flushStorage()
     // NOTHING
 }
 
-int InMemoryStorage::gcExpiredMessages(
-    bsls::Types::Uint64* latestMsgTimestampEpoch,
-    bsls::Types::Int64*  configuredTtlValue,
-    bsls::Types::Uint64  secondsFromEpoch)
+int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
+                                       bsls::Types::Uint64   secondsFromEpoch,
+                                       int                   limit)
 {
-    *configuredTtlValue = d_ttlSeconds;
-
+    bsls::Types::Uint64      latestMsgTimestampEpoch = 0;
     int                      numMsgsDeleted = 0;
-    const bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
-    int                      limit = k_GC_MESSAGES_BATCH_SIZE;
+    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
 
-    for (ItemsMapIter next = d_items.begin(), cit;
-         --limit && next != d_items.end();) {
+    for (ItemsMapIter next = d_items.begin(), cit; next != d_items.end();) {
+        if (0 == limit--) {
+            // Will never be triggered if provided `limit` is negative
+            break;  // BREAK
+        }
         cit = next++;
 
         const mqbi::StorageMessageAttributes& attribs =
             cit->second.attributes();
-        *latestMsgTimestampEpoch = attribs.arrivalTimestamp();
 
+        latestMsgTimestampEpoch = attribs.arrivalTimestamp();
         if ((secondsFromEpoch - attribs.arrivalTimestamp()) <=
             static_cast<bsls::Types::Uint64>(d_ttlSeconds)) {
             break;  // BREAK
@@ -495,6 +497,21 @@ int InMemoryStorage::gcExpiredMessages(
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
+
+        BALL_LOG_INFO
+            << (d_store_p ? d_store_p->description() : "Partition [Unknown]: ")
+            << "For storage for queue [" << queueUri() << "] and queueKey ["
+            << queueKey() << "] configured with TTL value of [" << d_ttlSeconds
+            << "] seconds, garbage-collected [" << numMsgsDeleted
+            << "] messages due to TTL expiration. "
+            << "Timestamp (UTC) of the latest encountered message: "
+            << bdlt::EpochUtil::convertFromTimeT64(latestMsgTimestampEpoch)
+            << " (Epoch: " << latestMsgTimestampEpoch
+            << "). Current time (UTC): " << currentTimeUtc
+            << " (Epoch: " << secondsFromEpoch << ")."
+            << " Num messages remaining in the storage: "
+            << numMessages(mqbu::StorageKey::k_NULL_KEY) << ". Storage type: "
+            << (isPersistent() ? "persistent." : "in-memory.");
     }
 
     if (d_items.empty()) {
@@ -504,15 +521,14 @@ int InMemoryStorage::gcExpiredMessages(
     return numMsgsDeleted;
 }
 
-int InMemoryStorage::gcHistory(bsls::Types::Int64 now)
+void InMemoryStorage::gcHistory(bsls::Types::Int64 now)
 {
-    const int rc = d_items.gc(now, k_GC_MESSAGES_BATCH_SIZE);
+    const int rc = d_items.gc(now, k_GC_HISTORY_BATCH_SIZE);
     if (0 != rc) {
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_items.historySize());
     }
-    return rc;
 }
 
 void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)

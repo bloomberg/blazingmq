@@ -72,7 +72,7 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
-const int k_GC_MESSAGES_INTERVAL_SECONDS = 30;
+const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
 
 bsl::ostream& printRecoveryBanner(bsl::ostream&      out,
                                   const bsl::string& lastLineSuffix)

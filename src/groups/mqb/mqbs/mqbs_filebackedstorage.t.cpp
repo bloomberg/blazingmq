@@ -1756,34 +1756,28 @@ BMQTST_TEST(garbageCollect)
     BMQTST_ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 1),
                      mqbi::StorageResult::e_SUCCESS);
 
-    bsls::Types::Uint64 latestMsgTimestamp;
-    bsls::Types::Int64  configuredTtlValue;
+    const bdlt::Datetime currentTimeUtc;
     bsls::Types::Uint64 secondsFromEpoch = 5;
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 
     // Case 1: Remove Zero messages (secondsFromEpoch = Low Value)
     // Such that '0 < seccondsFromEpoch - msgTimeStamp <= TTL'
-    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(&latestMsgTimestamp,
-                                               &configuredTtlValue,
+    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(currentTimeUtc,
                                                secondsFromEpoch),
                      0);
-
-    BMQTST_ASSERT_EQ(configuredTtlValue, k_TTL);
 
     // Case 2: Remove half the messages (secondsFromEpoch = 26).
     // Here Half the messages fail the condition TTL check condition.
     secondsFromEpoch = 26;  // Since TTL is 20 half the messages expire
-    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(&latestMsgTimestamp,
-                                               &configuredTtlValue,
+    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(currentTimeUtc,
                                                secondsFromEpoch),
                      k_MSG_COUNT / 2);
 
     // Case 3: Remove all messages (secondsFromEpoch = HighValue).
     // Here all messages expire in the check condition.
     secondsFromEpoch = 100;
-    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(&latestMsgTimestamp,
-                                               &configuredTtlValue,
+    BMQTST_ASSERT_EQ(storage.gcExpiredMessages(currentTimeUtc,
                                                secondsFromEpoch),
                      k_MSG_COUNT / 2);
 

@@ -176,6 +176,13 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // DATA
     bslma::Allocator* d_allocator_p;
 
+    /// The pointer to the parent DataStore object that contains this storage.
+    /// Held, not owned.
+    /// Might be NULL:
+    /// - On a proxy (in this case `gcExpired` is not called)
+    /// - In UTs (in this case `gcExpired` might be called)
+    DataStore* d_store_p;
+
     mqbu::StorageKey d_key;
 
     bmqt::Uri d_uri;
@@ -244,7 +251,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Constructor of a new object associated to the queue having specified
     /// `uri` and using the specified `parentCapacityMeter`, and
     /// `allocator`.
-    InMemoryStorage(const bmqt::Uri&               uri,
+    InMemoryStorage(DataStore*                     dataStore_p,
+                    const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
                     int                            partitionId,
@@ -383,25 +391,19 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Return the resource capacity meter associated to this storage.
     mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
 
-    /// Attempt to garbage-collect messages for which TTL has expired, and
-    /// return the number of messages garbage-collected.  Populate the
-    /// specified `latestGcMsgTimestampEpoch` with the timestamp, as seconds
-    /// from epoch, of the latest message garbage-collected due to TTL
-    /// expiration, and the specified `configuredTtlValue` with the TTL
-    /// value (in seconds) with which this storage instance is configured.
-    int gcExpiredMessages(bsls::Types::Uint64* latestMsgTimestampEpoch,
-                          bsls::Types::Int64*  configuredTtlValue,
-                          bsls::Types::Uint64  secondsFromEpoch)
-        BSLS_KEYWORD_OVERRIDE;
+    /// Attempt to garbage-collect messages for which TTL has expired.
+    /// @param currentTimeUtc The current time.
+    /// @param secondsFromEpoch The time in seconds from the epoch start.
+    /// @param limit The maximum number of messages to expire, negative value
+    /// means "no limit".
+    /// @return The number of expired messages.
+    int gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
+                          bsls::Types::Uint64   secondsFromEpoch,
+                          int limit = -1) BSLS_KEYWORD_OVERRIDE;
 
     /// Garbage collect a batch of expired messages from the deduplication
     /// history, using the specified `now` as the current timestamp.
-    /// Return rc == 0, if no messages were GCed.
-    /// Return rc > 0, if all the needed messages were GCed and there is
-    ///                nothing more to do now.
-    /// Return rc < 0, if the maximum batch of elements was GCed, but there
-    ///                are more messages to GC.
-    int gcHistory(bsls::Types::Int64 now) BSLS_KEYWORD_OVERRIDE;
+    void gcHistory(bsls::Types::Int64 now) BSLS_KEYWORD_OVERRIDE;
 
     int
     addVirtualStorage(bsl::ostream&           errorDescription,

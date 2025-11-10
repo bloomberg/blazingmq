@@ -54,9 +54,10 @@ namespace mqbs {
 
 namespace {
 
-const int k_GC_MESSAGES_BATCH_SIZE = 1000;  // how many to process in one run
-
+/// The number of messages to remove from history on idle.
+const int k_GC_HISTORY_BATCH_SIZE = 1000;
 }
+
 // -----------------------
 // class FileBackedStorage
 // -----------------------
@@ -729,23 +730,18 @@ void FileBackedStorage::flushStorage()
     d_store_p->flushStorage();
 }
 
-int FileBackedStorage::gcExpiredMessages(
-    bsls::Types::Uint64* latestMsgTimestampEpoch,
-    bsls::Types::Int64*  configuredTtlValue,
-    bsls::Types::Uint64  secondsFromEpoch)
+int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
+                                         bsls::Types::Uint64 secondsFromEpoch,
+                                         int                 limit)
 {
     // Executed by QUEUE dispatcher thread
     BSLS_ASSERT_SAFE(d_store_p);
-    BSLS_ASSERT_SAFE(latestMsgTimestampEpoch);
-    BSLS_ASSERT_SAFE(configuredTtlValue);
 
-    *configuredTtlValue      = d_ttlSeconds;
-    *latestMsgTimestampEpoch = 0;
+    bsls::Types::Uint64 latestMsgTimestampEpoch = 0;
 
     int                numMsgsDeleted     = 0;
     int                numMsgsUnreceipted = 0;
-    bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
-    int                limit = k_GC_MESSAGES_BATCH_SIZE;
+    bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
     bsls::Types::Int64 deduplicationTimeNs = 0;
     if (queue() && queue()->domain()) {
         deduplicationTimeNs =
@@ -754,7 +750,11 @@ int FileBackedStorage::gcExpiredMessages(
     }
 
     for (RecordHandleMapIter next = d_handles.begin(), cit;
-         next != d_handles.end() && --limit;) {
+         next != d_handles.end();) {
+        if (0 == limit--) {
+            // Will never be triggered if provided `limit` is negative
+            break;  // BREAK
+        }
         cit = next++;
 
         const RecordHandlesArray& handles = cit->second.d_array;
@@ -763,7 +763,7 @@ int FileBackedStorage::gcExpiredMessages(
         const DataStoreRecordHandle& handle       = handles[0];
         DeletionRecordFlag::Enum     deletionFlag = DeletionRecordFlag::e_NONE;
 
-        *latestMsgTimestampEpoch = handle.timestamp();
+        latestMsgTimestampEpoch = handle.timestamp();
         if ((secondsFromEpoch - handle.timestamp()) <=
             static_cast<bsls::Types::Uint64>(d_ttlSeconds)) {
             // Current message hasn't expired and subsequent messages are only
@@ -844,6 +844,22 @@ int FileBackedStorage::gcExpiredMessages(
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_handles.historySize());
+
+        BALL_LOG_INFO << d_store_p->description() << "For storage for queue ["
+                      << queueUri() << "] and queueKey [" << queueKey()
+                      << "] configured with TTL value of [" << d_ttlSeconds
+                      << "] seconds, garbage-collected [" << numMsgsDeleted
+                      << "] messages due to TTL expiration. "
+                      << "Timestamp (UTC) of the latest encountered message: "
+                      << bdlt::EpochUtil::convertFromTimeT64(
+                             latestMsgTimestampEpoch)
+                      << " (Epoch: " << latestMsgTimestampEpoch
+                      << "). Current time (UTC): " << currentTimeUtc
+                      << " (Epoch: " << secondsFromEpoch << ")."
+                      << " Num messages remaining in the storage: "
+                      << numMessages(mqbu::StorageKey::k_NULL_KEY)
+                      << ". Storage type: "
+                      << (isPersistent() ? "persistent." : "in-memory.");
     }
 
     if (d_handles.empty()) {
@@ -853,15 +869,14 @@ int FileBackedStorage::gcExpiredMessages(
     return numMsgsDeleted;
 }
 
-int FileBackedStorage::gcHistory(bsls::Types::Int64 now)
+void FileBackedStorage::gcHistory(bsls::Types::Int64 now)
 {
-    const int rc = d_handles.gc(now, k_GC_MESSAGES_BATCH_SIZE);
+    const int rc = d_handles.gc(now, k_GC_HISTORY_BATCH_SIZE);
     if (0 != rc) {
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_handles.historySize());
     }
-    return rc;
 }
 
 void FileBackedStorage::processMessageRecord(

@@ -170,7 +170,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
     // Mark self as stopping.
     d_isStopping = true;
 
-    d_queueHelper.requestToStopPushing();
+    d_queueHelper.requestToStopQueues();
     // 'checkUnconfirmedV2' serves as synchronization.
     // It makes sure stopPushing() gets executed before the return.
     bsls::TimeInterval whenToStop(

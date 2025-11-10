@@ -73,6 +73,7 @@ QueueState::QueueState(mqbi::Queue*                 queue,
 , d_handleCatalog(queue, allocator)
 , d_context(queue->schemaLearner(), allocator)
 , d_subStreams(allocator)
+, d_isStopping(false)
 {
     setKey(key);
 

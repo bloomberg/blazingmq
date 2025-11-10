@@ -76,7 +76,8 @@ struct TestStorage {
     , d_cluster(d_allocator_p)
     , d_domain(&d_cluster,
                d_allocator_p)  // Use domain only to hold mqbstat::StatContext
-    , d_storage(bmqt::Uri("uri", d_allocator_p),
+    , d_storage(0,             // No FileStore
+                bmqt::Uri("uri", d_allocator_p),
                 d_storageKey,
                 &d_domain,
                 1,

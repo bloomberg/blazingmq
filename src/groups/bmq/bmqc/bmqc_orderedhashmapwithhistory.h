@@ -55,6 +55,19 @@
 namespace BloombergLP {
 namespace bmqc {
 
+// ===========================================
+// struct OrderedHashMapWithHistory_ImpDetails
+// ===========================================
+
+/// PRIVATE CLASS.
+// For use only by `bmqc::OrderedHashMapWithHistory` implementation.
+struct OrderedHashMapWithHistory_ImpDetails {
+    // PRIVATE CLASS DATA
+    /// How many messages to GC when GC required in
+    /// `bmqc::OrderedHashMapWithHistory::insert`
+    static const int k_INSERT_GC_MESSAGES_BATCH_SIZE;
+};
+
 // ========================================
 // class OrderedHashMapWithHistory_Iterator
 // ========================================
@@ -219,7 +232,27 @@ class OrderedHashMapWithHistory {
 
     size_t d_historySize;  // how many historical (!d_isLive) items
 
-    gc_iterator d_gcIt;  // where to start 'gc'
+    /// Whether this container has more elements to `gc`.  This flag might be
+    /// set or unset during every `gc` call according to this container's
+    /// needs.
+    bool d_requireGC;
+
+    /// The `now` time of the last GC.  We assume that the current actual time
+    /// is no less than this timestamp.
+    TimeType d_lastGCTime;
+
+    /// The iterator pointing to the element where garbage collection should
+    /// continue once `gc` is called.  According to contract, this iterator
+    /// only goes forward.  All the elements passed by this iterator are either
+    /// removed or marked for removal, depending on what happened first:
+    /// - If the element was not erased by the user before, but its timeout
+    /// happened in this container, it is marked for deletion in `gc` and
+    /// iterator goes forward.  Next, it is the user's responsibility to call
+    /// `erase` on this element to fully remove it.
+    /// - If the user removes the element before its timeout happened, the
+    /// element becomes `not alive`, but still lives in the history.
+    /// Eventually `gc` reaches this element and fully removes it.
+    gc_iterator d_gcIt;
 
     // PRIVATE CLASS METHODS
     static const KEY& get_key(const bsl::pair<const KEY, VALUE>& value)
@@ -492,6 +525,8 @@ inline OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::
 , d_first(d_impl.end())
 , d_last(d_impl.end())
 , d_historySize(0)
+, d_requireGC(false)
+, d_lastGCTime(0)
 , d_gcIt(endGc())
 {
     // NOTHING
@@ -521,6 +556,8 @@ inline void OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::clear()
 
     d_first = d_last = end();
     d_gcIt           = endGc();
+    d_requireGC      = false;
+    d_lastGCTime     = 0;
     d_historySize    = 0;
 }
 
@@ -623,8 +660,15 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::insert(
     const SOURCE_TYPE& value,
     TimeType           timePoint)
 {
-    TimeType                     time = d_timeout ? timePoint + d_timeout : 0;
+    TimeType time = d_timeout ? timePoint + d_timeout : 0;
+    if (d_requireGC) {
+        gc(bsl::max(timePoint, d_lastGCTime),
+           OrderedHashMapWithHistory_ImpDetails::
+               k_INSERT_GC_MESSAGES_BATCH_SIZE);
+    }
+
     bsl::pair<gc_iterator, bool> result = d_impl.insert(Value(value, time));
+
     // No need to keep track of element's timePoint if the map is not
     // maintaining any history (i.e., if d_timeout == 0).
 
@@ -668,7 +712,9 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
     // Try to advance to either a young item, or to the end of the batch, or to
     // the end of collection.
 
-    if (d_gcIt == endGc()) {
+    d_lastGCTime = now;
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_gcIt == endGc())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         d_gcIt = beginGc();
     }
     const int initialHistorySize = d_historySize;
@@ -681,12 +727,15 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
         }
         gc_iterator it = d_gcIt++;
         if (it->d_isLive) {
-            // This is an old item.  It should be removed by 'erase'.
-            // No need to return to this item.  No need to check time again.
-            // Indicate that it needs to be removed by setting its time to 0.
+            // This item was not erased by the user yet, but its timeout in
+            // this container happened.  Mark it for deletion by setting
+            // `d_time` to 0, so the next time user calls `erase` on it, it
+            // will be fully removed.
             it->d_time = 0;
         }
         else {
+            // This item was erased by the user before, and we can fully remove
+            // it right here.
             d_impl.erase(it);
             --d_historySize;
         }
@@ -694,13 +743,14 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
 
         if (--batchSize == 0) {
             // Remember where we have stopped and resume from there next time
-
+            d_requireGC             = true;
             const int historyChange = initialHistorySize - d_historySize;
             // Note that we return either a negative value or 0 here:
             return -historyChange;  // RETURN
         }
     }
 
+    d_requireGC             = false;
     const int historyChange = initialHistorySize - d_historySize;
     // Note that we return either a positive value or 0 here:
     return historyChange;

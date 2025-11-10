@@ -927,7 +927,7 @@ bsls::Types::Int64 Queue::countUnconfirmed() const
     return d_state.handleCatalog().countUnconfirmed();  // RETURN
 }
 
-void Queue::stopPushing()
+void Queue::setStopping()
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -940,6 +940,7 @@ void Queue::stopPushing()
 
         flush();
     }
+    d_state.setStopping();
     queueEngine()->resetState(true);  // isShuttingDown
 }
 
