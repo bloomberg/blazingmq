@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'integration/**'
+      - rollover-filesize-increase
   pull_request:
     branches:
       - main

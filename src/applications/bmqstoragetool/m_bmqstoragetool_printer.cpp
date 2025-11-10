@@ -224,9 +224,10 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
                 }
                 p << epochValue;
 
-                p << syncPt.sequenceNum() << syncPt.primaryNodeId()
-                  << syncPt.primaryLeaseId() << syncPt.dataFileOffsetDwords()
-                  << syncPt.qlistFileOffsetWords();
+                // TODO: implement for other types of journal records
+                p << syncPt.syncPointData().sequenceNum() << syncPt.syncPointData().primaryNodeId()
+                  << syncPt.syncPointData().primaryLeaseId() << syncPt.syncPointData().dataFileOffsetDwords()
+                  << syncPt.syncPointData().qlistFileOffsetWords();
             }
         }
         printer << s.str();

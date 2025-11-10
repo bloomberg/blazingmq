@@ -537,11 +537,11 @@ void StorageInspector::processCommand(
                     printer << datetime;
                 }
                 printer << epochValue;
-
-                printer << syncPt.sequenceNum() << syncPt.primaryNodeId()
-                        << syncPt.primaryLeaseId()
-                        << syncPt.dataFileOffsetDwords()
-                        << syncPt.qlistFileOffsetWords();
+                // TODO: implement for other types of journal records
+                printer << syncPt.syncPointData().sequenceNum() << syncPt.syncPointData().primaryNodeId()
+                        << syncPt.syncPointData().primaryLeaseId()
+                        << syncPt.syncPointData().dataFileOffsetDwords()
+                        << syncPt.syncPointData().qlistFileOffsetWords();
             }
         }
     }

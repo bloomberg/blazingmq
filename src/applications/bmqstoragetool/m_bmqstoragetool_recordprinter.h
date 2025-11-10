@@ -276,10 +276,11 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
     d_fields.push_back("PrimaryNodeId");
     d_fields.push_back("DataFileOffsetDwords");
 
+    // TODO: implement for other types of journal records
     *d_printer_mp << rec.d_record.type() << rec.d_record.syncPointType()
-                  << rec.d_record.primaryLeaseId()
-                  << rec.d_record.sequenceNum() << rec.d_record.primaryNodeId()
-                  << rec.d_record.dataFileOffsetDwords();
+                  << rec.d_record.syncPointData().primaryLeaseId()
+                  << rec.d_record.syncPointData().sequenceNum() << rec.d_record.syncPointData().primaryNodeId()
+                  << rec.d_record.syncPointData().dataFileOffsetDwords();
 }
 
 }  // close namespace RecordPrinter
