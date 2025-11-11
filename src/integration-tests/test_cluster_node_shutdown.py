@@ -238,7 +238,9 @@ class TestClusterNodeShutdown:
 
         # Having a new client to open that queue a second time should succeed
         self.producer3 = self.proxy2.create_client("producer3")
-        self.producer3.open(du.uri_priority_2, flags=["write", "ack"], block=True)
+        self.producer3.open(
+            du.uri_priority_2, flags=["write", "ack"], block=True, timeout=30
+        )
 
     def test_open_queue_while_cluster_KEKW_TODO(
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
