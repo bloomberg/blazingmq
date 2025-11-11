@@ -129,8 +129,6 @@ void printJournalFileHeader(bsl::ostream&                     stream,
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
 
-    //TODO: if (mqbs::JournalOpType::e_SYNCPOINT == joRec->type()) {
-
     fields.push_back("First SyncPointRecord offset words");
     fields.push_back("First SyncPointRecord type");
     fields.push_back("First SyncPointRecord primaryNodeId");
@@ -161,13 +159,11 @@ void printJournalFileHeader(bsl::ostream&                     stream,
             journalFd.block(),
             offsetW * bmqp::Protocol::k_WORD_SIZE);
 
-        if (mqbs::JournalOpType::e_SYNCPOINT == joRec->type()) {
-            printer << joRec->syncPointType() << joRec->syncPointData().primaryNodeId()
-                    << joRec->syncPointData().primaryLeaseId() << joRec->syncPointData().sequenceNum()
-                    << joRec->syncPointData().dataFileOffsetDwords();
-        } else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == joRec->type()) {
-            // TODO: implement
-        }
+        const mqbs::JournalOpRecord::SyncPointData& spd = joRec->syncPointData();
+
+        printer << joRec->syncPointType() << spd.primaryNodeId()
+                << spd.primaryLeaseId() << spd.sequenceNum()
+                << spd.dataFileOffsetDwords();
 
         bsls::Types::Uint64 epochValue = joRec->header().timestamp();
         bdlt::Datetime      datetime;

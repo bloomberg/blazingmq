@@ -421,11 +421,18 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     fields.push_back("Timestamp");
     fields.push_back("Epoch");
     fields.push_back("JournalOpType");
-    fields.push_back("SyncPointType");
-    fields.push_back("SyncPtPrimaryLeaseId");
-    fields.push_back("SyncPtSequenceNumber");
-    fields.push_back("PrimaryNodeId");
-    fields.push_back("DataFileOffsetDwords");
+    if (mqbs::JournalOpType::e_SYNCPOINT == rec.type()) {
+        fields.push_back("SyncPointType");
+        fields.push_back("SyncPtPrimaryLeaseId");
+        fields.push_back("SyncPtSequenceNumber");
+        fields.push_back("PrimaryNodeId");
+        fields.push_back("DataFileOffsetDwords");
+    }
+    else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == rec.type()) {
+        fields.push_back("MaxJournalFileSize");
+        fields.push_back("MaxDataFileSize");
+        fields.push_back("MaxQlistFileSize");
+    }
 
     bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
@@ -439,11 +446,17 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     else {
         printer << datetime;
     }
-
-    printer << epochValue << rec.type() << rec.syncPointType()
-            << rec.syncPointData().primaryLeaseId() << rec.syncPointData().sequenceNum() << rec.syncPointData().primaryNodeId()
-            << rec.syncPointData().dataFileOffsetDwords();
-    // TODO: add if else for other JournalOpTypes
+    printer << epochValue << rec.type();
+    if (mqbs::JournalOpType::e_SYNCPOINT == rec.type()) {
+        const mqbs::JournalOpRecord::SyncPointData& spd = rec.syncPointData();
+        printer << rec.syncPointType()
+            << spd.primaryLeaseId() << spd.sequenceNum() << spd.primaryNodeId()
+            << spd.dataFileOffsetDwords();
+    } else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == rec.type()) {
+        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd = rec.updateStorageSizeData();
+        printer << ussd.maxJournalFileSize()
+            << ussd.maxDataFileSize() << ussd.maxQlistFileSize();
+    }
 
     stream << "\n";
 }

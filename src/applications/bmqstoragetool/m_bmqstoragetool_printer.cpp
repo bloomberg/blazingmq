@@ -224,10 +224,10 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
                 }
                 p << epochValue;
 
-                // TODO: implement for other types of journal records
-                p << syncPt.syncPointData().sequenceNum() << syncPt.syncPointData().primaryNodeId()
-                  << syncPt.syncPointData().primaryLeaseId() << syncPt.syncPointData().dataFileOffsetDwords()
-                  << syncPt.syncPointData().qlistFileOffsetWords();
+                const mqbs::JournalOpRecord::SyncPointData& spd = syncPt.syncPointData();
+                p << spd.sequenceNum() << spd.primaryNodeId()
+                  << spd.primaryLeaseId() << spd.dataFileOffsetDwords()
+                  << spd.qlistFileOffsetWords();
             }
         }
         printer << s.str();
