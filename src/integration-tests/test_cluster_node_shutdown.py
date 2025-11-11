@@ -211,16 +211,33 @@ class TestClusterNodeShutdown:
         # Kill the nodes which is neither primary nor replica to lose quorum
         nodes_to_kill = [n for n in cluster.nodes() if n not in (primary, replica)]
 
+        # primary.set_quorum(1)
+
         for node in nodes_to_kill:
             node.check_exit_code = False
-            node.kill()
-        primary.outputs_regex("LEADER lost quorum")
+            node.suspend()
+        # TODO Check for race
+
+        # replica.set_quorum(4)
 
         # Producer tries to open a new queue; will not succeed
         self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        for node in nodes_to_kill:
+            node.check_exit_code = False
+            node.kill()
+        # TODO As new test, also kill the last replica and the client. Then, restore all of `nodes_to_kill`, then create a new client to open that queue. We predict this to fail on main but succeed on Vincent's branch.
+
+        # sleep(2)
+
+        assert primary.outputs_regex("LEADER lost quorum")
 
         # Restart one of the killed nodes to restore quorum
         nodes_to_kill[0].start()
 
         # Now the replica should receive an openQueueReponse
-        replica.outputs_regex(f"OpenQueueResponse.*{du.uri_priority_2}")
+        assert replica.outputs_regex(
+            f"OpenQueueResponse.*{du.uri_priority_2}", timeout=5
+        )
+
+        # TODO Open the queue second time
