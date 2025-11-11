@@ -131,9 +131,9 @@ class Authenticator : public mqbnet::Authenticator {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Handle an incoming `AuthenticationRequest` message by authenticating
-    /// using the specified `AuthenticationMessage` and `context`.  On success,
-    /// create an `AuthenticationContext` and stores it in `context`.  The
+    /// Handle an incoming AuthenticationRequest message by authenticating
+    /// using the specified `authenticationMsg` and `context`.  On success,
+    /// create an AuthenticationContext and stores it in `context`.  The
     /// behavior of this function is undefined unless `authenticationMsg` is an
     /// `AuthenticationRequest` and this is an incoming connection.
     /// Return 0 on success; otherwise, return a non-zero error code and
@@ -143,57 +143,48 @@ class Authenticator : public mqbnet::Authenticator {
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
         const InitialConnectionContextSp&          context);
 
-    /// Handle an incoming `AuthenticationResponse` message by authenticating
-    /// using the specified `AuthenticationMessage` and `context`.  On success,
-    /// create an `AuthenticationContext` and stores it in `context`. The
+    /// Handle an incoming AuthenticationResponse message by authenticating
+    /// using the specified `authenticationMsg` and `context`.  On success,
+    /// create an AuthenticationContext and stores it in `context`. The
     /// behavior of this function is undefined unless `authenticationMsg` is an
-    /// `AuthenticationResponse`.
-    /// Return 0 on success; otherwise, return a non-zero error code and
-    /// populate `errorDescription` with details of the failure.
+    /// `AuthenticationResponse`.  Return 0 on success; otherwise, return a
+    /// non-zero error code and populate `errorDescription` with details of the
+    /// failure.
     int onAuthenticationResponse(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
         const InitialConnectionContextSp&          context);
 
-    /// Send the specified `message` to the peer associated with the
-    /// specified `context` and return 0 on success, or return a non-zero
-    /// code on error and populate the specified `errorDescription` with a
-    /// description of the error.
+    /// Send out outbound authentication message with the specified `message`
+    /// on the specified `channel` using the specified
+    /// `authenticationEncodingType`.  Return 0 on success, or a non-zero error
+    /// code and populate the specified `errorDescription` with a description
+    /// of the error otherwise.
     int sendAuthenticationMessage(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& message,
         const bsl::shared_ptr<bmqio::Channel>&     channel,
         bmqp::EncodingType::Enum                   authenticationEncodingType);
 
-    /// Schedule an authentication job in the thread pool using the
-    /// specified `context`.  Return 0 on success, or a
-    /// non-zero error code and populate the specified `errorDescription`
-    /// with a description of the error otherwise.
-    int authenticateAsync(bsl::ostream&                     errorDescription,
-                          const InitialConnectionContextSp& context);
-
-    /// Authenticate the connection using the `AuthenticationMessage` stored in
-    /// `context`.  If authentication fails, invoke
-    /// `initialConnectionCompleteCb` to close the `channel`.  Also, update the
-    /// state of `context` as appropriate.  `isDefaultAuthn` indicates if this
-    /// is default authentication.  Return 0 on success, or a non-zero error
-    /// code otherwise.
-    void authenticate(const InitialConnectionContextSp&      context,
+    // Authenticate the specified `context`.  Send an authentication
+    // response back to the client via the specified `channel` if the specified
+    // `isDefaultAuthn` is false.  If `isReauthn` is true, this is for
+    // reauthentication, otherwise this is for initial authentication.  On
+    // completion, trigger the initial connection state machine with either
+    // success or error event.
+    void authenticate(const AuthenticationContextSp&         context,
                       const bsl::shared_ptr<bmqio::Channel>& channel,
-                      bool                                   isDefaultAuthn);
+                      bool                                   isDefaultAuthn,
+                      bool                                   isReauthn);
 
-    /// Reauthenticate the connection using the `AuthenticationMessage`
-    /// stored in `context`.  If reauthentication fails, invoke
-    /// `initialConnectionCompleteCb` to close the `channel`. Also, update the
-    /// state of `context` as appropriate.
-    void reauthenticate(const AuthenticationContextSp&         context,
-                        const bsl::shared_ptr<bmqio::Channel>& channel);
-
-    /// Process the authentication request in `request` and store the
-    /// result in `response`.  Return 0 on success, or a non-zero error
-    /// code and populate `errorDescription` with a description of the error
-    /// otherwise.
-    int processAuthentication(
+    /// Perform the authentication based on the specified `request` and
+    /// build the corresponding `response`.  Use the specified `channel` and
+    /// `authenticationContext` during the authentication process.
+    /// Return 0 if the response is built successfully, regardless of a
+    /// successful or failed authentication, or a non-zero code on error and
+    /// populate the specified `errorDescription` with a description of the
+    /// error.
+    int authenticateAndBuildResponse(
         bsl::ostream&                              errorDescription,
         bmqp_ctrlmsg::AuthenticationResponse*      response,
         const bmqp_ctrlmsg::AuthenticationRequest& request,
@@ -231,29 +222,33 @@ class Authenticator : public mqbnet::Authenticator {
     void stop() BSLS_KEYWORD_OVERRIDE;
 
     /// Authenticate the connection based on the type of AuthenticationMessage
-    /// `authenticationMsg`.  Create an
-    /// AuthenticationContext and store into `context`.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
+    /// `authenticationMsg`.  Create an AuthenticationContext and store into
+    /// `context`.  Return 0 on success, or a non-zero error code and populate
+    /// the specified `errorDescription` with a description of the error
+    /// otherwise.
     int handleAuthentication(bsl::ostream& errorDescription,
                              const InitialConnectionContextSp& context,
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 
-    /// Send out outbound authentication message with the specified `context`.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
+    /// Send out an outbound authentication message with the specified
+    /// `context`.  Return 0 on success, or a non-zero error code and populate
+    /// the specified `errorDescription` with a description of the error
+    /// otherwise.
     int authenticationOutbound(const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Schedule a reauthentication job in the thread pool using the
-    /// specified `context` and `channel`.  Return 0 on success, or a
-    /// non-zero error code and populate the specified `errorDescription`
-    /// with a description of the error otherwise.
-    int reauthenticateAsync(bsl::ostream&                  errorDescription,
-                            const AuthenticationContextSp& context,
-                            const bsl::shared_ptr<bmqio::Channel>& channel)
-        BSLS_KEYWORD_OVERRIDE;
+    /// Schedule an authentication job in the thread pool using the
+    /// specified `context` and `channel`.  The specified `isAnonAuthn` is set
+    /// to true when this is for anonymous authentication.  The specified
+    /// `isReauthn` is set to true when this is for re-authentication.  Return
+    /// 0 on success, or a non-zero error code and populate the specified
+    /// `errorDescription` with a description of the error otherwise.
+    int authenticateAsync(bsl::ostream&                  errorDescription,
+                          const AuthenticationContextSp& context,
+                          const bsl::shared_ptr<bmqio::Channel>& channel,
+                          bool                                   isAnonAuthn,
+                          bool isReauthn) BSLS_KEYWORD_OVERRIDE;
 
     /// ACCESSORS
 

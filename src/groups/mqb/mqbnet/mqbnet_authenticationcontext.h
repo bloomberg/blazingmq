@@ -21,7 +21,7 @@
 ///
 /// @brief Provide the context for authenticating connections.
 ///
-/// An instance is created per connection being authenticated. It tracks
+/// An instance is created per connection being authenticated.  It tracks
 /// the authentication state, the resulting principal, and (for the
 /// initial pass) the associated InitialConnectionContext.
 
@@ -71,8 +71,7 @@ struct AuthenticationState {
     // CLASS METHODS
 
     /// Write the string representation of the specified enumeration
-    /// `value`
-    /// to the specified output `stream`, and return a reference to
+    /// `value` to the specified output `stream`, and return a reference to
     /// `stream`.  Optionally specify an initial indentation `level`, whose
     /// absolute value is incremented recursively for nested objects.  If
     /// `level` is specified, optionally specify `spacesPerLevel`, whose
@@ -127,35 +126,37 @@ class AuthenticationContext {
   private:
     // DATA
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
     /// Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<AuthenticationContext> d_self;
 
+    /// Mutex to protect the state and timeoutHandle of this object.
     bslmt::Mutex d_mutex;
 
-    /// The authentication result to be used for authorization. It is first set
-    /// during the initial authentication, and can be updated later
-    /// during reauthentication.
+    /// The authentication result to be used for authorization.  It is first
+    /// set during the initial authentication, and can be updated later during
+    /// reauthentication.
     bsl::shared_ptr<mqbplug::AuthenticationResult> d_authenticationResultSp;
 
     /// Handle to the reauthentication timer event, if any.
     EventHandle d_timeoutHandle;
 
+    /// Authentication State.
     State d_state;
 
     /// The initial connection context associated with this authentication
-    /// context.
-    /// It is set during the initial authentication, and is null for
+    /// context.  It is set during the initial authentication, and is null for
     /// reauthentication.
     InitialConnectionContext* d_initialConnectionContext_p;
 
+    /// The authentication message received.
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
 
-    /// The encoding type used for sending a message. It should match with the
+    /// The encoding type used for sending a message.  It should match with the
     /// encoding type of the received message.
-    bmqp::EncodingType::Enum d_authenticationEncodingType;
-
-    /// Allocator to use.
-    bslma::Allocator* d_allocator_p;
+    bmqp::EncodingType::Enum d_encodingType;
 
   private:
     // NOT IMPLEMENTED
@@ -180,28 +181,29 @@ class AuthenticationContext {
     // MANIPULATORS
     void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
-    void setInitialConnectionContext(InitialConnectionContext* value);
-    void
-    setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
-    void setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
     void setConnectionType(ConnectionType::Enum value);
 
     /// Schedule a reauthentication timer using the specified `scheduler_p`
-    /// with the specified `lifetimeMs`.
-    int scheduleReauthn(bsl::ostream&             errorDescription,
-                        bdlmt::EventScheduler*    scheduler_p,
-                        const bsl::optional<int>& lifetimeMs,
-                        const bsl::shared_ptr<bmqio::Channel>& channel);
+    /// with the specified `lifetimeMs`.  The specified `channel` is used to
+    /// close the connection in case of reauthentication timeout or error.
+    /// Return 0 on success, and a non-zero value populating the specified
+    /// `errorDescription` with details on failure.
+    int setAuthenticatedAndScheduleReauthn(
+        bsl::ostream&                          errorDescription,
+        bdlmt::EventScheduler*                 scheduler_p,
+        const bsl::optional<int>&              lifetimeMs,
+        const bsl::shared_ptr<bmqio::Channel>& channel);
 
-    /// Close the specified `channel` with an `errorCode` and `errorName`
-    /// indicating the reauthentication error or authentication timeout for
-    /// the current context.
+    /// Close the specified `channel` with `errorCode`, `errorName`, and
+    /// `errorDescription`, indicating a reauthentication error or
+    /// authentication timeout for the current context.
     void onReauthenticateErrorOrTimeout(
         const int                              errorCode,
         const bsl::string&                     errorName,
+        const bsl::string&                     errorDescription,
         const bsl::shared_ptr<bmqio::Channel>& channel);
 
-    /// Called when a channel is closing. Cancel any outstanding
+    /// Called when a channel is closing.  Cancel any outstanding
     /// reauthentication timer using the specified `scheduler_p`.
     void onClose(bdlmt::EventScheduler* scheduler_p);
 
@@ -213,13 +215,12 @@ class AuthenticationContext {
     bool tryStartReauthentication();
 
     // ACCESSORS
-
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&
-                              authenticationResult() const;
-    InitialConnectionContext* initialConnectionContext() const;
+                                               authenticationResult() const;
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
-    bmqp::EncodingType::Enum authenticationEncodingType() const;
-    ConnectionType::Enum     connectionType() const;
+    bmqp::EncodingType::Enum                   encodingType() const;
+
+    InitialConnectionContext* initialConnectionContext();
 };
 
 }  // close package namespace

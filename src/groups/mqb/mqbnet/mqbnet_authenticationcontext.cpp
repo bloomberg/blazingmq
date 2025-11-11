@@ -24,6 +24,7 @@
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
 #include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -103,15 +104,15 @@ AuthenticationContext::AuthenticationContext(
     bmqp::EncodingType::Enum                   authenticationEncodingType,
     State                                      state,
     bslma::Allocator*                          allocator)
-: d_self(this)  // use default allocator
+: d_allocator_p(allocator)
+, d_self(this)  // use default allocator
 , d_mutex()
 , d_authenticationResultSp()
 , d_timeoutHandle()
 , d_state(state)
 , d_initialConnectionContext_p(initialConnectionContext)
 , d_authenticationMessage(authenticationMessage)
-, d_authenticationEncodingType(authenticationEncodingType)
-, d_allocator_p(allocator)
+, d_encodingType(authenticationEncodingType)
 {
     // NOTHING
 }
@@ -122,25 +123,7 @@ void AuthenticationContext::setAuthenticationResult(
     d_authenticationResultSp = value;
 }
 
-void AuthenticationContext::setInitialConnectionContext(
-    InitialConnectionContext* value)
-{
-    d_initialConnectionContext_p = value;
-}
-
-void AuthenticationContext::setAuthenticationMessage(
-    const bmqp_ctrlmsg::AuthenticationMessage& value)
-{
-    d_authenticationMessage = value;
-}
-
-void AuthenticationContext::setAuthenticationEncodingType(
-    bmqp::EncodingType::Enum value)
-{
-    d_authenticationEncodingType = value;
-}
-
-int AuthenticationContext::scheduleReauthn(
+int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
     bsl::ostream&                          errorDescription,
     bdlmt::EventScheduler*                 scheduler_p,
     const bsl::optional<int>&              lifetimeMs,
@@ -175,6 +158,9 @@ int AuthenticationContext::scheduleReauthn(
             lifetime = 0;
         }
 
+        bmqu::MemOutStream errorStream;
+        errorStream << "Authentication timeout after " << lifetime << " ms";
+
         scheduler_p->scheduleEvent(
             &d_timeoutHandle,
             bsls::TimeInterval(bmqsys::Time::nowMonotonicClock())
@@ -185,6 +171,7 @@ int AuthenticationContext::scheduleReauthn(
                     d_self.acquireWeak()),
                 -1,                       // errorCode
                 "authenticationTimeout",  // errorName
+                errorStream.str(),        // errorDescription
                 channel                   // channel
                 ));
     }
@@ -195,6 +182,7 @@ int AuthenticationContext::scheduleReauthn(
 void AuthenticationContext::onReauthenticateErrorOrTimeout(
     int                                    errorCode,
     const bsl::string&                     errorName,
+    const bsl::string&                     errorDescription,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // PRECONDITIONS
@@ -209,7 +197,7 @@ void AuthenticationContext::onReauthenticateErrorOrTimeout(
     }  // UNLOCK
 
     BALL_LOG_ERROR << "Reauthentication error or timeout for '"
-                   << channel->peerUri() << "' [error: " << errorName
+                   << channel->peerUri() << "' [error: " << errorDescription
                    << ", code: " << errorCode << "]";
 
     bmqio::Status status(bmqio::StatusCategory::e_CANCELED,
@@ -253,22 +241,20 @@ AuthenticationContext::authenticationResult() const
     return d_authenticationResultSp;
 }
 
-InitialConnectionContext*
-AuthenticationContext::initialConnectionContext() const
-{
-    return d_initialConnectionContext_p;
-}
-
 const bmqp_ctrlmsg::AuthenticationMessage&
 AuthenticationContext::authenticationMessage() const
 {
     return d_authenticationMessage;
 }
 
-bmqp::EncodingType::Enum
-AuthenticationContext::authenticationEncodingType() const
+bmqp::EncodingType::Enum AuthenticationContext::encodingType() const
 {
-    return d_authenticationEncodingType;
+    return d_encodingType;
+}
+
+InitialConnectionContext* AuthenticationContext::initialConnectionContext()
+{
+    return d_initialConnectionContext_p;
 }
 
 }  // namespace mqbnet
