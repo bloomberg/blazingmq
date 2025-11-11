@@ -1,4 +1,4 @@
-// Copyright 2025 Bloomberg Finance L.P.
+// Copyright 2022-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,22 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_initialconnectionhandler.cpp                           -*-C++-*-
-#include <mqbnet_initialconnectionhandler.h>
+// mqbnet_connectiontype.cpp                                    -*-C++-*-
+#include <mqbnet_connectiontype.h>
 
 #include <mqbscm_version.h>
-
-namespace BloombergLP {
-namespace mqbnet {
-
-// ------------------------------
-// class InitialConnectionHandler
-// ------------------------------
-
-InitialConnectionHandler::~InitialConnectionHandler()
-{
-    // NOTHING: Pure interface
-}
-
-}  // close package namespace
-}  // close enterprise namespace
