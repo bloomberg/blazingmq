@@ -200,44 +200,82 @@ class TestClusterNodeShutdown:
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         """
-        Test that if a cluster temporarily loses quorum, clients can still open
+        Test that if a cluster temporarily loses quorum, clients can still
+        open queues and operate normally once quorum is restored.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        active_replica = cluster.process(self.proxy2.get_active_node())
+
+        # Suspend the other replicas to lose quorum
+        other_replicas = [
+            n for n in cluster.nodes() if n not in (primary, active_replica)
+        ]
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.suspend()
+        sleep(0.5)
+
+        # Producer tries to open a new queue; will not succeed
+        self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.kill()
+
+        assert primary.outputs_regex("LEADER lost quorum")
+
+        # Restart the killed nodes to restore quorum
+        other_replicas[0].start()
+        other_replicas[1].start()
+
+        # Now the replica should receive an openQueueReponse
+        assert active_replica.outputs_regex(
+            f"OpenQueueResponse.*{du.uri_priority_2}", timeout=5
+        )
+
+        # Having a new client to open that queue a second time should succeed
+        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3.open(du.uri_priority_2, flags=["write", "ack"], block=True)
+
+    def test_open_queue_while_cluster_KEKW_TODO(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        TODO Test that if a cluster temporarily loses quorum, clients can still open
         queues and operate normally once quorum is restored.
         """
         du = domain_urls
         cluster = multi_node
         primary = cluster.last_known_leader
-        replica = cluster.process(self.proxy2.get_active_node())
+        active_replica = cluster.process(self.proxy2.get_active_node())
 
-        # Kill the nodes which is neither primary nor replica to lose quorum
-        nodes_to_kill = [n for n in cluster.nodes() if n not in (primary, replica)]
+        # Suspend the other replicas to lose quorum
+        other_replicas = [
+            n for n in cluster.nodes() if n not in (primary, active_replica)
+        ]
 
-        # primary.set_quorum(1)
-
-        for node in nodes_to_kill:
+        for node in other_replicas:
             node.check_exit_code = False
             node.suspend()
-        # TODO Check for race
-
-        # replica.set_quorum(4)
+        sleep(0.5)
 
         # Producer tries to open a new queue; will not succeed
         self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
 
-        for node in nodes_to_kill:
+        for node in [active_replica, other_replicas]:
             node.check_exit_code = False
             node.kill()
-        # TODO As new test, also kill the last replica and the client. Then, restore all of `nodes_to_kill`, then create a new client to open that queue. We predict this to fail on main but succeed on Vincent's branch.
-
-        # sleep(2)
+        self.producer2.kill()
 
         assert primary.outputs_regex("LEADER lost quorum")
 
-        # Restart one of the killed nodes to restore quorum
-        nodes_to_kill[0].start()
+        # Restart the killed nodes to restore quorum
+        other_replicas[0].start()
+        other_replicas[1].start()
 
-        # Now the replica should receive an openQueueReponse
-        assert replica.outputs_regex(
-            f"OpenQueueResponse.*{du.uri_priority_2}", timeout=5
-        )
-
-        # TODO Open the queue second time
+        # Having a new client to open that queue a second time should succeed
+        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3.open(du.uri_priority_2, flags=["write", "ack"], block=True)
