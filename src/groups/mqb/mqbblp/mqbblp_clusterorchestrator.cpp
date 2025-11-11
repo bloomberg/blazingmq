@@ -510,10 +510,18 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
             d_clusterData_p->electorInfo().electorState() ||
         mqbc::ElectorInfoLeaderStatus::e_PASSIVE ==
             d_clusterData_p->electorInfo().leaderStatus() ||
-        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-            d_clusterData_p->membership().selfNodeStatus()) {
+        (!d_clusterConfig.clusterAttributes().isFSMWorkflow() &&
+         bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+             d_clusterData_p->membership().selfNodeStatus())) {
         // Nothing to do if self is not active leader, or if self is active
         // leader but is stopping.
+
+        // In FSM mode, it is incorrect to check whether self is AVAILABLE,
+        // because self could be healing while another node becomes
+        // unavailable, and in that case self should still be able to reassign
+        // primaries.  In legacy mode, self sets status to AVAILABLE
+        // nonchalantly, and it works out by preventing us from returning
+        // early.
 
         return;  // RETURN
     }
