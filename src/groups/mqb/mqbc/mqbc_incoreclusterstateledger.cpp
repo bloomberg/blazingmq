@@ -698,7 +698,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
                              commitAdvisory.sequenceNumberCommitted());
 
-            BALL_LOG_INFO << description() << "Quorum of " << ackQuorum
+            BALL_LOG_INFO << description() << " Quorum of " << ackQuorum
                           << " acks is achieved for advisory of seqNum "
                           << ack.sequenceNumberAcked()
                           << ", creating and applying commit advisory: "
