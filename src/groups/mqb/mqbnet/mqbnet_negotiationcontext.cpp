@@ -32,8 +32,8 @@ NegotiationContext::NegotiationContext(
 , d_clusterName(allocator)
 , d_connectionType(mqbnet::ConnectionType::e_UNKNOWN)
 , d_maxMissedHeartbeats(0)
-, d_eventProcessor_p(bsl::nullptr_t())
-, d_cluster_p(bsl::nullptr_t())
+, d_eventProcessor_p(0)
+, d_cluster_p(0)
 {
     // NOTHING
 }

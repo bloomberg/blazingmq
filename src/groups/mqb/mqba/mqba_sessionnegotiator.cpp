@@ -55,6 +55,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_dummysession.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbu_sdkversionutil.h>

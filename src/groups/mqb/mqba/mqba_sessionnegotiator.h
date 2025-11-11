@@ -34,7 +34,6 @@
 
 // MQB
 #include <mqbconfm_messages.h>
-#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
