@@ -988,7 +988,8 @@ ClusterProxy::ClusterProxy(
                 statContexts,
                 allocator)
 , d_state(this,
-          0,  // Partition count.  Proxy has no notion of partition.
+          0,      // Partition count.  Proxy has no notion of partition.
+          false,  // isTemporary
           allocator)
 , d_activeNodeManager(d_clusterData.membership().netCluster()->nodes(),
                       description(),

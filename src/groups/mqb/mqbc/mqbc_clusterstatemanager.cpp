@@ -150,6 +150,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
     ClusterState                 tempState(
         d_cluster_p,
         d_cluster_p->clusterConfig()->partitionConfig().numPartitions(),
+        true,  // isTemporary
         d_allocator_p);
 
     const bool selfHighestLSN =
@@ -1086,6 +1087,7 @@ int ClusterStateManager::loadClusterStateSnapshot(
     ClusterState tempState(
         d_cluster_p,
         d_cluster_p->clusterConfig()->partitionConfig().numPartitions(),
+        true,  // isTemporary
         d_allocator_p);
 
     BALL_LOG_INFO << "#TEMP_STATE "

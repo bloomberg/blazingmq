@@ -1820,6 +1820,7 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
     // Compare contents of cluster state and CSL contents on disk
     ClusterState tempState(cluster,
                            clusterState.partitions().size(),
+                           true,  // isTemporary
                            allocator);
 
     int rc =
