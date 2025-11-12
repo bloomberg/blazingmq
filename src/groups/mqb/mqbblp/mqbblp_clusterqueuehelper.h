@@ -168,19 +168,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// State of the upstream.
         Enum d_state;
 
-        bsl::vector<PendingClose> d_pendingCloseRequests;
-
         /// The Reopening logic blocks all new Open requests and waits for
         /// all pending Open responses before sending Reopen request.
         int d_numOpenRequestsInFlight;
+
+        bsl::vector<PendingClose> d_pendingCloseRequests;
 
         SubQueueContext(
             const bmqt::Uri&                                         uri,
             const bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>& info,
             bslma::Allocator*                                        a)
         : d_state(k_OPEN)
-        , d_pendingCloseRequests(a)
         , d_numOpenRequestsInFlight(0)
+        , d_pendingCloseRequests(a)
         {
             d_parameters.uri()       = uri.asString();
             d_parameters.subIdInfo() = info;
@@ -244,8 +244,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // doesn't contain the requests which have been sent and are awaiting
         // an answer (those contexts are stored through binding in the response
         // callback).
-        // Note that this value is modified from `OpenQueueContext` possibly
-        // from different threads.
         int d_inFlight;
 
         /// Number of requests that have been send to reopen the queues after
@@ -459,10 +457,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     QueueContextByIdMap d_queuesById;
 
     /// Number of requests that have been send to reopen the queues after
-    /// active node switch or primary switch .  This variable is incremented
-    /// when an ReopenQueue request is sent, and decremented either upon
-    /// configure queue response if Reopen request succeeds or Reopen response
-    /// otherwise.
+    /// active node switch or primary switch.  This variable is incremented
+    /// when a ReopenQueue request is sent.  If the Reopen request succeeds, it
+    /// is decremented upon consequent configure queue response.  If the Reopen
+    /// request fails, this variable is decremented immediately upon Reopen
+    /// (failed) response.
     int d_numPendingReopenQueueRequests;
 
     // Whether the alarm for primary and leader nodes being different has been
@@ -527,9 +526,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// been assigned; to resume the operation on any pending contexts.
     void onQueueContextAssigned(const QueueContextSp& queueContext);
 
-    /// Process pending Close requests for the specified `queueContext` and the
-    /// specified `sqit`, if any upon Reopen response.  If there are no more
-    /// pending Reopen queue requests, process all pending Open queue requests.
+    /// Upon Reopen response, process pending Close requests (if any) for the
+    /// specified `queueContext` and the specified `sqit`.  If there are no
+    /// more pending Reopen queue requests, process all pending Open queue
+    /// requests.
     void finishReopening(QueueContext*        queueContext,
                          StreamsMap::iterator sqit);
 
@@ -559,15 +559,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is called from the Cluster's dispatcher thread.
     bmqt::GenericResult::Enum
-    sendReopenQueueRequest(SubQueueContext*     subQueueContext,
-                           QueueContext*        queueContext,
+    sendReopenQueueRequest(QueueContext*        queueContext,
+                           SubQueueContext*     subQueueContext,
                            mqbnet::ClusterNode* activeNode,
                            bsls::Types::Uint64  generationCount,
                            int                  numAttempts);
 
-    bmqt::GenericResult::Enum
-    sendReopenQueueRequest(SubQueueContext* subQueueContext,
-                           QueueContext*    queueContext);
+    void tryReopenQueueRequest(QueueContext*    queueContext,
+                               SubQueueContext* subQueueContext);
 
     /// Assign the upstream subQueueId in the specified `context`.  If the
     /// queue has already been opened with the appId in the `context`,
