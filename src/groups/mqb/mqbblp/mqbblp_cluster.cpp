@@ -2408,7 +2408,10 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                 statContexts.find("clusters")->second,
                 statContexts,
                 allocator)
-, d_state(this, clusterConfig.partitionConfig().numPartitions(), allocator)
+, d_state(this,
+          clusterConfig.partitionConfig().numPartitions(),
+          false,  // isTemporary
+          allocator)
 , d_storageManager_mp()
 , d_clusterOrchestrator(d_clusterData.clusterConfig(),
                         this,

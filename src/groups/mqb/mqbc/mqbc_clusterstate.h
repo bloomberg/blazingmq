@@ -540,6 +540,9 @@ class ClusterState {
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
+    /// Whether this cluster state is created merely for temporary use.
+    const bool d_isTemporary;
+
     /// Associated cluster.
     mqbi::Cluster* d_cluster_p;
 
@@ -569,6 +572,11 @@ class ClusterState {
     /// reference to the previously inserted or found `DomainState`.
     DomainState& getDomainState(const bsl::string& domain);
 
+    // PRIVATE ACCESSORS
+
+    /// Return the cluster name with temporary suffix if applicable.
+    const bsl::string clusterNameWithTempSuffix() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterState, bslma::UsesBslmaAllocator)
@@ -576,10 +584,12 @@ class ClusterState {
     // CREATORS
 
     /// Create a @bbref{mqbc::ClusterState} with the specified `cluster` and
-    /// `partitionsCount`.  Use the specified `allocator` for any memory
-    /// allocation.
+    /// `partitionsCount`.  `isTemporary` indicates whether this cluster state
+    /// is created merely for temporary use.  Use the specified `allocator` for
+    /// any memory allocation.
     explicit ClusterState(mqbi::Cluster*    cluster,
                           int               partitionsCount,
+                          bool              isTemporary,
                           bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -685,13 +695,12 @@ class ClusterState {
     void iterateDoubleAssignments(int partitionId, AssignmentVisitor& visitor);
 
     // ACCESSORS
+    /// Return the value of the corresponding member of this object.
     const mqbi::Cluster*  cluster() const;
     const PartitionsInfo& partitionsInfo() const;
     const DomainStates&   domainStates() const;
     const QueueKeys&      queueKeys() const;
-
-    /// Return the value of the corresponding member of this object.
-    const ObserversSet& observers() const;
+    const ObserversSet&   observers() const;
 
     // Partition-related
     // -----------------
@@ -985,11 +994,20 @@ ClusterStateQueueInfo::isEquivalent(const ClusterStateQueueInfo& rhs) const
 // class ClusterState
 // ------------------
 
+// PRIVATE ACCESSORS
+
+inline const bsl::string ClusterState::clusterNameWithTempSuffix() const
+{
+    return d_isTemporary ? d_cluster_p->name() + "_TEMP" : d_cluster_p->name();
+}
+
 // CREATORS
 inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
                                   int               partitionsCount,
+                                  bool              isTemporary,
                                   bslma::Allocator* allocator)
 : d_allocator_p(allocator)
+, d_isTemporary(isTemporary)
 , d_cluster_p(cluster)
 , d_partitionsInfo(allocator)
 , d_domainStates(allocator)

@@ -236,7 +236,8 @@ Cluster::Cluster(bslma::Allocator*        allocator,
 , d_clusterData_mp(0)
 , d_isClusterMember(isClusterMember)
 , d_state(this,
-          4,  // partitionsCount
+          4,      // partitionsCount
+          false,  // isTemporary
           allocator)
 , d_statContexts(allocator)
 , d_statContext_sp(
