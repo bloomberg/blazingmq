@@ -347,9 +347,12 @@ void TCPSessionFactory::handleInitialConnection(
                   << d_nbActiveChannels << " active channels]";
 
     // Create a unique InitialConnectionContext for the channel, from
-    // the OperationContext.  This shared_ptr is bound to the
-    // 'initialConnectionComplete' callback below, which is what scopes its
-    // lifetime.
+    // the OperationContext.  When we start reading incoming messages, this
+    // shared_ptr will be bound to the callback function of the ntc reader.
+    // Since `handleEvent()` is always called as a result of reading, and
+    // `InitialConnectionCompleteCb` is always triggered at the end of
+    // `handleEvent()`, its lifetime ends when `InitialConnectionCompleteCb`
+    // finishes.
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext =
         bsl::allocate_shared<InitialConnectionContext>(
             d_allocator_p,
@@ -371,11 +374,14 @@ void TCPSessionFactory::handleInitialConnection(
                 context));
 
     // Register as observer of the channel to get the 'onClose'
+    bsl::weak_ptr<InitialConnectionContext> context_wp =
+        initialConnectionContext;
     channel->onClose(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &TCPSessionFactory::onClose,
                               this,
-                              initialConnectionContext,
+                              context_wp,
+                              channel,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
@@ -762,15 +768,15 @@ void TCPSessionFactory::channelStateCallback(
 }
 
 void TCPSessionFactory::onClose(
-    const bsl::shared_ptr<InitialConnectionContext>& initialConnectionContext,
-    const bmqio::Status&                             status)
+    const bsl::weak_ptr<InitialConnectionContext>& context_wp,
+    const bsl::shared_ptr<bmqio::Channel>&         channel,
+    const bmqio::Status&                           status)
 {
     // Executed by one of the IO threads.
 
-    --d_nbActiveChannels;
+    bsl::shared_ptr<InitialConnectionContext> context = context_wp.lock();
 
-    const bsl::shared_ptr<bmqio::Channel>& channel =
-        initialConnectionContext->channel();
+    --d_nbActiveChannels;
 
     int port;
     channel->properties().load(
@@ -784,7 +790,9 @@ void TCPSessionFactory::onClose(
 
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'negotiationComplete'.
-        initialConnectionContext->onClose();
+        if (context) {
+            context->onClose();
+        }
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
         if (it != d_channels.end()) {
