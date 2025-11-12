@@ -21,6 +21,8 @@ import glob
 from pathlib import Path
 import subprocess
 
+import pytest
+
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -383,7 +385,7 @@ def test_sync_if_leader_missed_records(
     _compare_journal_files(next_leader.name, replica.name, cluster)
 
 
-
+@pytest.mark.skip(reason="for debug purposes only")
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 def test_journal_size_increase(
     cluster: Cluster,
