@@ -216,9 +216,6 @@ class InitialConnectionContext
         const InitialConnectionContext*        initialConnectionContext)>
         InitialConnectionCompleteCb;
 
-    typedef mqbnet::InitialConnectionState::Enum State;
-    typedef mqbnet::InitialConnectionEvent::Enum Event;
-
   private:
     // DATA
 
@@ -289,7 +286,7 @@ class InitialConnectionContext
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
     /// The state of the initial connection.
-    State d_state;
+    InitialConnectionState::Enum d_state;
 
     /// True if the session being negotiated originates from a remote peer
     /// (i.e., a 'listen'); false if it originates from us (i.e., a 'connect').
@@ -328,7 +325,7 @@ class InitialConnectionContext
 
   private:
     // PRIVATE MANIPULATORS
-    void setState(State value);
+    void setState(InitialConnectionState::Enum value);
 
     int readBlob(bsl::ostream& errorDescription,
                  bdlbb::Blob*  outPacket,
@@ -391,9 +388,9 @@ class InitialConnectionContext
     /// `errorDescription` and drive the authentication/negotiation state
     /// machine.  The `message` optionally contains any associated
     /// authentication/negotiation message data.
-    void handleEvent(int                statusCode,
-                     const bsl::string& errorDescription,
-                     Event              input,
+    void handleEvent(int                          statusCode,
+                     const bsl::string&           errorDescription,
+                     InitialConnectionEvent::Enum input,
                      const bsl::variant<bsl::monostate,
                                         bmqp_ctrlmsg::AuthenticationMessage,
                                         bmqp_ctrlmsg::NegotiationMessage>&
@@ -411,7 +408,7 @@ class InitialConnectionContext
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     bool                                       isClosed() const;
-    State                                      state() const;
+    InitialConnectionState::Enum               state() const;
 
     /// Invoke the `initialConnectionCompleteCb` callback with the specified
     /// return code `rc`, `error` description, and `session` (negotiated

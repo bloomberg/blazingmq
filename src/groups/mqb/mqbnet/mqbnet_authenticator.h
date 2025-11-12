@@ -79,6 +79,7 @@ class Authenticator {
     /// the specified `errorDescription` with a description of the error
     /// otherwise.
     virtual int authenticationOutbound(
+        bsl::ostream&                                 errorDescription,
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
 
     /// Schedule an authentication job in the thread pool using the

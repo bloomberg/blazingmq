@@ -120,7 +120,6 @@ class AuthenticationContext {
 
   public:
     // TYPES
-    typedef AuthenticationState::Enum          State;
     typedef bdlmt::EventScheduler::EventHandle EventHandle;
 
   private:
@@ -144,7 +143,7 @@ class AuthenticationContext {
     EventHandle d_timeoutHandle;
 
     /// Authentication State.
-    State d_state;
+    AuthenticationState::Enum d_state;
 
     /// The initial connection context associated with this authentication
     /// context.  It is set during the initial authentication, and is null for
@@ -175,7 +174,7 @@ class AuthenticationContext {
         InitialConnectionContext*                  initialConnectionContext,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
         bmqp::EncodingType::Enum                   authenticationEncodingType,
-        State                                      state,
+        AuthenticationState::Enum                  state,
         bslma::Allocator*                          allocator = 0);
 
     // MANIPULATORS

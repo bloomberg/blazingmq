@@ -87,8 +87,6 @@ class Authenticator : public mqbnet::Authenticator {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
-    typedef mqbnet::AuthenticationContext::State State;
-
   private:
     typedef bsl::shared_ptr<mqbnet::AuthenticationContext>
         AuthenticationContextSp;
@@ -111,6 +109,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// Thread pool to run authentication and reauthentication tasks.
     bdlmt::ThreadPool d_threadPool;
 
+    /// Pool of shared pointers to blobs.  Held, not owned.
     BlobSpPool* d_blobSpPool_p;
 
     /// Used to track the duration of a valid authenticated connection.
@@ -199,7 +198,8 @@ class Authenticator : public mqbnet::Authenticator {
     // CREATORS
 
     /// Create a new `Authenticator` using the specified `authnController` and
-    /// `blobSpPool`. Use the specified `allocator` for all memory allocations.
+    /// `blobSpPool`.  Use the specified `allocator` for all memory
+    /// allocations.
     Authenticator(mqbauthn::AuthenticationController* authnController,
                   BlobSpPool*                         blobSpPool,
                   bdlmt::EventScheduler*              scheduler,
@@ -235,7 +235,8 @@ class Authenticator : public mqbnet::Authenticator {
     /// `context`.  Return 0 on success, or a non-zero error code and populate
     /// the specified `errorDescription` with a description of the error
     /// otherwise.
-    int authenticationOutbound(const AuthenticationContextSp& context)
+    int authenticationOutbound(bsl::ostream&                  errorDescription,
+                               const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Schedule an authentication job in the thread pool using the

@@ -102,7 +102,7 @@ AuthenticationContext::AuthenticationContext(
     InitialConnectionContext*                  initialConnectionContext,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
     bmqp::EncodingType::Enum                   authenticationEncodingType,
-    State                                      state,
+    AuthenticationState::Enum                  state,
     bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
 , d_self(this)  // use default allocator
@@ -136,12 +136,12 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    if (d_state != State::e_AUTHENTICATING) {
+    if (d_state != AuthenticationState::e_AUTHENTICATING) {
         errorDescription << "State not AUTHENTICATING (was " << d_state << ")";
         return -1;
     }
 
-    d_state = State::e_AUTHENTICATED;
+    d_state = AuthenticationState::e_AUTHENTICATED;
 
     if (d_timeoutHandle) {
         scheduler_p->cancelEventAndWait(&d_timeoutHandle);
@@ -191,7 +191,7 @@ void AuthenticationContext::onReauthenticateErrorOrTimeout(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-        if (d_state == State::e_CLOSED) {
+        if (d_state == AuthenticationState::e_CLOSED) {
             return;
         }
     }  // UNLOCK
@@ -213,10 +213,10 @@ void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    if (d_state == State::e_CLOSED) {
+    if (d_state == AuthenticationState::e_CLOSED) {
         return;  // idempotent
     }
-    d_state = State::e_CLOSED;
+    d_state = AuthenticationState::e_CLOSED;
 
     if (d_timeoutHandle) {
         scheduler_p->cancelEventAndWait(&d_timeoutHandle);
@@ -227,8 +227,8 @@ bool AuthenticationContext::tryStartReauthentication()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    if (d_state == State::e_AUTHENTICATED) {
-        d_state = State::e_AUTHENTICATING;
+    if (d_state == AuthenticationState::e_AUTHENTICATED) {
+        d_state = AuthenticationState::e_AUTHENTICATING;
         return true;
     }
 

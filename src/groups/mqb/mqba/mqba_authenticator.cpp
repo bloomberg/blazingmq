@@ -96,7 +96,7 @@ int Authenticator::onAuthenticationRequest(
             authenticationMsg,  // authenticationMessage
             context
                 ->authenticationEncodingType(),  // authenticationEncodingType
-            State::e_AUTHENTICATING              // state
+            mqbnet::AuthenticationState::e_AUTHENTICATING  // state
         );
 
     context->setAuthenticationContext(authenticationContext);
@@ -106,8 +106,7 @@ int Authenticator::onAuthenticationRequest(
         errorDescription,
         authenticationContext,
         context->channel(),
-        context->state() ==
-            mqbnet::InitialConnectionState::e_ANON_AUTHENTICATING,
+        context->state() == InitialConnectionState::e_ANON_AUTHENTICATING,
         false);
 
     return rc;
@@ -483,6 +482,7 @@ int Authenticator::handleAuthentication(
 }
 
 int Authenticator::authenticationOutbound(
+    BSLA_UNUSED bsl::ostream&                  errorDescription,
     BSLA_UNUSED const AuthenticationContextSp& context)
 {
     BALL_LOG_ERROR << "Not Implemented";
