@@ -147,6 +147,7 @@ struct Tester {
 
         const bsl::string uri("my.domain/myqueue", d_allocator_p);
         d_storage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+                              0,  // No FileStore
                               bmqt::Uri(uri, d_allocator_p),
                               k_QUEUE_KEY,
                               &d_domain,

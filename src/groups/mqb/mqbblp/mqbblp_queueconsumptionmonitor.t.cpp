@@ -279,9 +279,9 @@ Test::Test()
                                  this,
                                  bdlf::PlaceHolders::_1,   // appId
                                  bdlf::PlaceHolders::_2),  // oldestMsgIt
-
             d_allocator_p)
-, d_storage(d_queue.uri(),
+, d_storage(0,  // No FileStore
+            d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
             &d_domain,
             mqbs::DataStore::k_INVALID_PARTITION_ID,

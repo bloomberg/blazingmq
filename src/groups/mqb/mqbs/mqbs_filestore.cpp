@@ -5348,7 +5348,8 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
     bslma::Allocator* storageAlloc = d_storageAllocatorStore.baseAllocator();
     if (storageCfg.isInMemoryValue()) {
         storageSp->reset(new (*storageAlloc)
-                             InMemoryStorage(queueUri,
+                             InMemoryStorage(this,
+                                             queueUri,
                                              queueKey,
                                              domain,
                                              config().partitionId(),
@@ -6976,14 +6977,19 @@ void FileStore::notifyQueuesOnReplicatedBatch()
     }
 }
 
-bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
+void FileStore::gcExpiredMessages()
 {
     if (!d_isOpen) {
-        return false;  // RETURN
+        return;  // RETURN
     }
 
     if (!d_isPrimary) {
-        return false;  // RETURN
+        return;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -6991,56 +6997,25 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
     BSLS_ASSERT_SAFE(activeFileSet);
 
     if (!activeFileSet->d_journalFileAvailable) {
-        return false;  // RETURN
+        return;  // RETURN
     }
 
     // Go over each file-backed storage registered with this partition and
     // indicate it to GC any applicable messages.
 
+    const bdlt::Datetime      currentTimeUtc = bdlt::CurrentTime::utc();
     const bsls::Types::Uint64 currentSecondsFromEpoch =
         static_cast<bsls::Types::Uint64>(
             bdlt::EpochUtil::convertToTimeT64(currentTimeUtc));
-    bool haveMore    = false;
-    bool needToFlush = false;
 
+    bool needToFlush = false;
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
-        ReplicatedStorage*  rs                        = it->second;
-        bsls::Types::Uint64 latestMsgTimestamp        = 0;
-        bsls::Types::Int64  configuredTtlValueSeconds = 0;
-        int numMsgsGc = rs->gcExpiredMessages(&latestMsgTimestamp,
-                                              &configuredTtlValueSeconds,
-                                              currentSecondsFromEpoch);
-        if (numMsgsGc <= 0) {
-            // No messages GC'd or error.
-
-            continue;  // CONTINUE
-        }
-        else {
+        ReplicatedStorage* rs        = it->second;
+        const int          numMsgsGc = rs->gcExpiredMessages(currentTimeUtc,
+                                                    currentSecondsFromEpoch);
+        if (numMsgsGc > 0) {
             needToFlush = true;
-        }
-
-        BALL_LOG_INFO << partitionDesc() << "For storage for queue ["
-                      << rs->queueUri() << "] and queueKey [" << it->first
-                      << "] configured with TTL value of ["
-                      << configuredTtlValueSeconds
-                      << "] seconds, garbage-collected [" << numMsgsGc
-                      << "] messages due to TTL expiration. "
-                      << "Timestamp (UTC) of the latest encountered message: "
-                      << bdlt::EpochUtil::convertFromTimeT64(
-                             latestMsgTimestamp)
-                      << " (Epoch: " << latestMsgTimestamp
-                      << "). Current time (UTC): " << currentTimeUtc
-                      << " (Epoch: " << currentSecondsFromEpoch << ")."
-                      << " Num messages remaining in the storage: "
-                      << rs->numMessages(mqbu::StorageKey::k_NULL_KEY)
-                      << ". Storage type: "
-                      << (rs->isPersistent() ? "persistent." : "in-memory.");
-
-        if (!rs->isEmpty() &&
-            (latestMsgTimestamp + configuredTtlValueSeconds) <=
-                currentSecondsFromEpoch) {
-            haveMore = true;
         }
     }
 
@@ -7052,25 +7027,27 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
 
         flushStorage();
     }
-
-    return haveMore;
 }
 
-bool FileStore::gcHistory()
+void FileStore::gcHistory()
 {
     if (!d_isOpen) {
-        return false;  // RETURN
+        return;  // RETURN
     }
-    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
 
-    bool haveMore = false;
+    // We try to remove at most k_GC_MESSAGES_BATCH_SIZE items in history.
+    // If there are more items ready to remove, the container's state changes,
+    // so any additional `insert` operation to the container will cause
+    // additional GC, until all old items are removed.
+    // If we don't balance adding new elements to the history with GC history,
+    // we might lose a lot of time on allocations of new items to the history,
+    // as well as get OOM due to uncontrollable history size increase.
+
+    const bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
-        if (it->second->gcHistory(now) < 0) {
-            haveMore = true;
-        }
+        it->second->gcHistory(now);
     }
-    return haveMore;
 }
 
 void FileStore::applyForEachQueue(const QueueFunctor& functor) const
@@ -7225,24 +7202,9 @@ void FileStore::flush()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
-    }
-
-    // Iterate over messages for TTL on primary only
-    const bool haveMore = gcExpiredMessages(bdlt::CurrentTime::utc());
-
-    if (haveMore) {
-        // Explicitly schedule 'flush()'
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
-                              this,
-                              mqbi::DispatcherEventType::e_CALLBACK);
-    }
 }
 
-void FileStore::gcStorage()
+void FileStore::scheduledCleanupStorages()
 {
     // executed by the *DISPATCHER* thread
     // This is scheduled for execution every k_GC_MESSAGES_INTERVAL_SECONDS
@@ -7256,16 +7218,8 @@ void FileStore::gcStorage()
         return;  // RETURN
     }
 
-    const bool haveMore        = gcExpiredMessages(bdlt::CurrentTime::utc());
-    const bool haveMoreHistory = gcHistory();
-
-    if (haveMore || haveMoreHistory) {
-        // Explicitly schedule 'gcStorage()'
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::gcStorage,
-                                                   this),
-                              this,
-                              mqbi::DispatcherEventType::e_CALLBACK);
-    }
+    gcExpiredMessages();
+    gcHistory();
 }
 
 void FileStore::setReplicationFactor(int value)
