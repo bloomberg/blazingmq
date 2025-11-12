@@ -360,8 +360,8 @@ void TCPSessionFactory::handleInitialConnection(
         bsl::allocate_shared<InitialConnectionContext>(
             d_allocator_p,
             context->d_isIncoming,
-            bsl::nullptr_t(),
-            bsl::nullptr_t(),
+            static_cast<mqbnet::Authenticator*>(0),
+            static_cast<mqbnet::Negotiator*>(0),
             context->d_negotiationUserData_sp.get(),
             context->d_resultState_p,
             channel,
