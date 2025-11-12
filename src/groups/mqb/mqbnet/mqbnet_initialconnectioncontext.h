@@ -28,15 +28,17 @@
 /// Responsibilities:
 /// - Hold caller‐supplied opaque pointers (user data / result state) so they
 ///   can flow between transport and application layers.
-/// - Drive the read loop: schedule reads, accumulate bytes, decode control
-///   messages (Authentication / Negotiation), and dispatch them.
-/// - Track handshake state and invoke the completion callback exactly once
-///   with either a fully constructed Session or an error.
-/// - Bridge to AuthenticationContext / NegotiationContext once those phases
-///   are established.
+/// - Drive the read loop: schedule reads, accumulate bytes, decode initial
+///   connection messages (Authentication / Negotiation), and dispatch them
+///   as events to the FSM.
+/// - Track the initial connection state via a finite state machine (FSM) that
+///   handles authentication and negotiation transitions.
+/// - Invoke the completion callback exactly once with either a fully
+///   constructed Session or an error.
 ///
 /// A single instance is created per inbound or outbound connection attempt
-/// and is discarded once the channel is closed.
+/// and is discarded once the session is fully negotiated or the attempt
+/// fails.
 
 // MQB
 #include <mqbnet_authenticator.h>
@@ -93,8 +95,7 @@ struct InitialConnectionState {
     // CLASS METHODS
 
     /// Write the string representation of the specified enumeration
-    /// `value`
-    /// to the specified output `stream`, and return a reference to
+    /// `value` to the specified output `stream`, and return a reference to
     /// `stream`.  Optionally specify an initial indentation `level`, whose
     /// absolute value is incremented recursively for nested objects.  If
     /// `level` is specified, optionally specify `spacesPerLevel`, whose
@@ -153,8 +154,7 @@ struct InitialConnectionEvent {
     // CLASS METHODS
 
     /// Write the string representation of the specified enumeration
-    /// `value`
-    /// to the specified output `stream`, and return a reference to
+    /// `value` to the specified output `stream`, and return a reference to
     /// `stream`.  Optionally specify an initial indentation `level`, whose
     /// absolute value is incremented recursively for nested objects.  If
     /// `level` is specified, optionally specify `spacesPerLevel`, whose
@@ -327,12 +327,22 @@ class InitialConnectionContext
     // PRIVATE MANIPULATORS
     void setState(InitialConnectionState::Enum value);
 
+    /// Read from the channel into the specified `outPacket`.  On success,
+    /// return 0, set `isFullBlob` to indicate whether a full message has been
+    /// read, and set `numNeeded` to the number of additional bytes needed for
+    /// a full message (0 if `isFullBlob` is true).  On error, return a
+    /// non-zero code and populate the specified `errorDescription` with a
+    /// description of the error.
     int readBlob(bsl::ostream& errorDescription,
                  bdlbb::Blob*  outPacket,
                  bool*         isFullBlob,
                  int*          numNeeded,
                  bdlbb::Blob*  blob);
 
+    /// Decode the specified `blob` received from the channel and handle it
+    /// based on the type of the message received.  On success, return 0.  On
+    /// error, return a non-zero code and populate the specified
+    /// `errorDescription` with a description of the error.
     int processBlob(bsl::ostream& errorDescription, const bdlbb::Blob& blob);
 
     /// Decode the initial connection messages received in the specified

@@ -353,6 +353,9 @@ void TCPSessionFactory::handleInitialConnection(
     // `InitialConnectionCompleteCb` is always triggered at the end of
     // `handleEvent()`, its lifetime ends when `InitialConnectionCompleteCb`
     // finishes.
+
+    // Notice that AuthenticationHandler and NegotiationHandler will be passed
+    // in once we deprecate InitialConnectionHandler
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext =
         bsl::allocate_shared<InitialConnectionContext>(
             d_allocator_p,
