@@ -81,10 +81,10 @@ class NegotiationContext;
 struct InitialConnectionState {
     // TYPES
     enum Enum {
-        e_INITIAL              = 0,  // Initial state.
-        e_AUTHENTICATING       = 1,  // First message is Auth Request.
-        e_AUTHENTICATED        = 2,  // Authentication success.
-        e_ANON_AUTHENTICATING  = 3,  // First message is Negotiation
+        e_INITIAL             = 0,  // Initial state.
+        e_AUTHENTICATING      = 1,  // First message is authentication Request.
+        e_AUTHENTICATED       = 2,  // Authentication success.
+        e_ANON_AUTHENTICATING = 3,  // First message is Negotiation Request.
         e_NEGOTIATING_OUTBOUND = 4,  // Outbound negotiation.
         e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
         e_FAILED               = 6   // Final state.
@@ -144,8 +144,8 @@ struct InitialConnectionEvent {
     enum Enum {
         e_NONE                = 0,
         e_OUTBOUND_NEGOTATION = 1,
-        e_AUTH_REQUEST        = 2,  // handleAuthentication
-        e_NEGOTIATION_MESSAGE = 3,  // handleNegotiationMessage
+        e_AUTHN_REQUEST       = 2,
+        e_NEGOTIATION_MESSAGE = 3,
         e_AUTHN_SUCCESS       = 4,
         e_ERROR               = 5
     };
@@ -221,6 +221,11 @@ class InitialConnectionContext
 
   private:
     // DATA
+
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+    /// Mutex to protect the context state.
     mutable bslmt::Mutex d_mutex;
 
     /// Authenticator to use for authenticating a connection.
@@ -266,6 +271,13 @@ class InitialConnectionContext
     /// The channel to use for the initial connection.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
 
+    /// The AuthenticationContext updated upon receiving an
+    /// authentication message.
+    bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
+
+    /// The NegotiationContext updated upon receiving a negotiation message.
+    bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
+
     /// The callback to invoke to notify of the status of the initial
     /// connection.
     InitialConnectionCompleteCb d_initialConnectionCompleteCb;
@@ -276,26 +288,15 @@ class InitialConnectionContext
     /// the AuthenticationContext later.
     bmqp::EncodingType::Enum d_authenticationEncodingType;
 
-    /// The AuthenticationContext updated upon receiving an
-    /// authentication message.
-    bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
-
-    /// The NegotiationContext updated upon receiving a negotiation message.
-    bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
-
     /// The state of the initial connection.
     State d_state;
 
-    /// True if the session being negotiated originates
-    /// from a remote peer (i.e., a 'listen'); false if
-    /// it originates from us (i.e., a 'connect).
+    /// True if the session being negotiated originates from a remote peer
+    /// (i.e., a 'listen'); false if it originates from us (i.e., a 'connect').
     bool d_isIncoming;
 
     /// True if the associated channel is closed (with `onClose`).
     bool d_isClosed;
-
-    /// Allocator to use.
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -386,10 +387,10 @@ class InitialConnectionContext
     /// Entrance to the initial connection process.
     void handleInitialConnection();
 
-    /// Process a handshake event with the given `statusCode` and
-    /// `errorDescription`. The `input` specifies the event type, and
-    /// `message` contains any associated control message data.
-    /// This drives the authentication/negotiation state machine.
+    /// Process an InitialConnectionEvent event with the given `statusCode` and
+    /// `errorDescription` and drive the authentication/negotiation state
+    /// machine.  The `message` optionally contains any associated
+    /// authentication/negotiation message data.
     void handleEvent(int                statusCode,
                      const bsl::string& errorDescription,
                      Event              input,
@@ -410,9 +411,11 @@ class InitialConnectionContext
                                                authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     bool                                       isClosed() const;
+    State                                      state() const;
 
-    State state() const;
-
+    /// Invoke the `initialConnectionCompleteCb` callback with the specified
+    /// return code `rc`, `error` description, and `session` (negotiated
+    /// session or empty if there's any failure).
     void complete(int                                     rc,
                   const bsl::string&                      error,
                   const bsl::shared_ptr<mqbnet::Session>& session) const;

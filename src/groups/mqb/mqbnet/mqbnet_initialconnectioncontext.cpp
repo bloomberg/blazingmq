@@ -156,7 +156,7 @@ const char* InitialConnectionEvent::toAscii(InitialConnectionEvent::Enum value)
     switch (value) {
         CASE(NONE)
         CASE(OUTBOUND_NEGOTATION)
-        CASE(AUTH_REQUEST)
+        CASE(AUTHN_REQUEST)
         CASE(NEGOTIATION_MESSAGE)
         CASE(AUTHN_SUCCESS)
         CASE(ERROR)
@@ -180,7 +180,7 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
 
     CHECKVALUE(NONE)
     CHECKVALUE(OUTBOUND_NEGOTATION)
-    CHECKVALUE(AUTH_REQUEST)
+    CHECKVALUE(AUTHN_REQUEST)
     CHECKVALUE(NEGOTIATION_MESSAGE)
     CHECKVALUE(AUTHN_SUCCESS)
     CHECKVALUE(ERROR)
@@ -204,20 +204,21 @@ InitialConnectionContext::InitialConnectionContext(
     const bsl::shared_ptr<bmqio::Channel>& channel,
     const InitialConnectionCompleteCb&     initialConnectionCompleteCb,
     bslma::Allocator*                      allocator)
-: d_mutex()
+: d_allocator_p(allocator)
+, d_mutex()
 , d_authenticator_p(authenticator)
 , d_negotiator_p(negotiator)
 , d_resultState_p(resultState)
 , d_userData_p(userData)
 , d_channelSp(channel)
-, d_initialConnectionCompleteCb(initialConnectionCompleteCb)
-, d_authenticationEncodingType(bmqp::EncodingType::e_BER)
 , d_authenticationCtxSp()
 , d_negotiationCtxSp()
+, d_initialConnectionCompleteCb(initialConnectionCompleteCb)
+, d_authenticationEncodingType(bmqp::EncodingType::e_BER)
 , d_state(InitialConnectionState::e_INITIAL)
 , d_isIncoming(isIncoming)
 , d_isClosed(false)
-, d_allocator_p(allocator)
+
 {
     // NOTHING
 }
@@ -290,7 +291,7 @@ int InitialConnectionContext::processBlob(bsl::ostream&      errorDescription,
     }
     else if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
                  message)) {
-        handleEvent(rc, bsl::string(), Event::e_AUTH_REQUEST, message);
+        handleEvent(rc, bsl::string(), Event::e_AUTHN_REQUEST, message);
     }
     else {
         handleEvent(rc, bsl::string(), Event::e_NEGOTIATION_MESSAGE, message);
@@ -590,11 +591,11 @@ void InitialConnectionContext::handleEvent(
         }
         break;
     }
-    case Event::e_AUTH_REQUEST: {
+    case Event::e_AUTHN_REQUEST: {
         if (!bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
                 message)) {
-            errStream
-                << "Expecting AuthenticationMessage for event AUTH_REQUEST.";
+            errStream << "Expecting AuthenticationMessage for event " << input
+                      << ".";
             break;
         }
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg =
@@ -616,8 +617,8 @@ void InitialConnectionContext::handleEvent(
     case Event::e_NEGOTIATION_MESSAGE: {
         if (!bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
                 message)) {
-            errStream << "Expecting NegotiationMessage for event "
-                         "e_NEGOTIATION_MESSAGE.";
+            errStream << "Expecting NegotiationMessage for event " << input
+                      << ".";
             break;
         }
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMsg =
@@ -643,7 +644,6 @@ void InitialConnectionContext::handleEvent(
         }
         else if (oldState == State::e_NEGOTIATING_OUTBOUND &&
                  negotiationMsg.isBrokerResponseValue()) {
-            // Received a BrokerResponse
             setState(State::e_NEGOTIATED);
 
             BSLS_ASSERT_SAFE(negotiationContext());
@@ -687,7 +687,7 @@ void InitialConnectionContext::handleEvent(
     } break;
     case Event::e_NONE: {
         // NOT IMPLEMENTED
-        BSLS_ASSERT_SAFE(!"Unexpected event received: e_NONE");
+        BSLS_ASSERT_SAFE(!"Unexpected event received: " + input);
         break;
     }
     default:
