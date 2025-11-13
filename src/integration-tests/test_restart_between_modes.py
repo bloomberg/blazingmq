@@ -489,9 +489,19 @@ def test_restart_between_Legacy_and_FSM(
 ):
     """
     This test verifies that we can safely switch clusters between Legacy and
-    FSM modes.  First, we start the cluster in Legacy mode and post/confirm
-    some messages.  Then, we restart the cluster in FSM mode and post/confirm
-    more messages.  Finally, we restart the cluster back in Legacy mode and
+    FSM modes.
+
+    First, we start the cluster and post/confirm some messages.
+
+    Then, we restart the cluster to another mode provided by switch fixture
+    and post/confirm more messages.
+    Applied one of the switches:
+        - to Legacy
+        - to FSM
+        - to FSM single node with quorum 1
+        - to FSM single node with quorum 1, then start other nodes
+
+    Finally, we restart the cluster back to the corresponding backup mode and
     verify those messages.
     """
     # cluster = switch_fsm_cluster
@@ -557,7 +567,7 @@ def test_restart_between_Legacy_and_FSM(
 
 
 @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
-def xtest_restart_between_Legacy_and_FSM_unassign_queue(
+def test_restart_between_Legacy_and_FSM_unassign_queue(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     """
@@ -720,8 +730,10 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         - remove "bar"
     2. SWITCH:
         Apply one of the switches:
-        - Legacy to FSM
-        - FSM to Legacy
+        - to Legacy
+        - to FSM
+        - to FSM single node with quorum 1
+        - to FSM single node with quorum 1, then start other nodes
     3. VERIFY:
         - priority consumer gets the second message
         - "foo" gets 2 messages
@@ -731,7 +743,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
 
     4. POST MORE MESSAGES
     5. SWITCH BACK
-        Switch back to the original mode
+        Switch back to the corresponding backup mode
     6. VERIFY AGAIN
     """
 
@@ -827,8 +839,10 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         - remove "bar"
     2. SWITCH:
         Apply one of the switches:
-        - Legacy to FSM
-        - FSM to Legacy
+        - to Legacy
+        - to FSM
+        - to FSM single node with quorum 1
+        - to FSM single node with quorum 1, then start other nodes
     3. VERIFY:
         - priority consumer gets the third message
         - "foo" gets 3 messages
@@ -838,7 +852,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     4. POST MORE MESSAGES
     5. SWITCH BACK
-        Switch back to the original mode
+        Switch back to the corresponding backup mode
     6. VERIFY AGAIN
     """
 
