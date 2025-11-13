@@ -242,16 +242,14 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     BSLS_ASSERT_SAFE(p.d_offset);
 
     bmqu::BlobPosition position;
-    int                rc = bmqu::BlobUtil::findOffsetSafe(&position,
-                                            d_blob.object(),
-                                            p.d_offset);
+    int rc = bmqu::BlobUtil::findOffsetSafe(&position, *d_blob_p, p.d_offset);
     BSLS_ASSERT_SAFE(rc == 0);
 
     switch (p.d_type) {
     case bmqt::PropertyType::e_BOOL: {
         char value;
         rc = bmqu::BlobUtil::readNBytes(&value,
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         sizeof(value));
 
@@ -261,7 +259,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_CHAR: {
         char value;
         rc = bmqu::BlobUtil::readNBytes(&value,
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         sizeof(value));
 
@@ -271,7 +269,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_SHORT: {
         bdlb::BigEndianInt16 nboValue;
         rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(&nboValue),
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         sizeof(nboValue));
 
@@ -281,7 +279,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_INT32: {
         bdlb::BigEndianInt32 nboValue;
         rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(&nboValue),
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         sizeof(nboValue));
 
@@ -291,7 +289,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_INT64: {
         bdlb::BigEndianInt64 nboValue;
         rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(&nboValue),
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         sizeof(nboValue));
 
@@ -302,7 +300,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_STRING: {
         bsl::string value(p.d_length, ' ');
         rc = bmqu::BlobUtil::readNBytes(&value[0],
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         p.d_length);
 
@@ -312,7 +310,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_BINARY: {
         bsl::vector<char> value(p.d_length);
         rc = bmqu::BlobUtil::readNBytes(&value[0],
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         position,
                                         p.d_length);
 
@@ -336,6 +334,7 @@ MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
 , d_totalSize(0)
 , d_originalSize(0)
 , d_blob()
+, d_blob_p(d_blob.address())
 , d_isBlobConstructed(false)
 , d_isDirty(true)  // by default, this should be true
 , d_mphSize(0)
@@ -344,6 +343,7 @@ MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
 , d_dataOffset(0)
 , d_schema()
 , d_originalNumProps(0)
+, d_doDeepCopy(true)
 {
 }
 
@@ -354,6 +354,7 @@ MessageProperties::MessageProperties(const MessageProperties& other,
 , d_totalSize(other.d_totalSize)
 , d_originalSize(other.d_originalSize)
 , d_blob()
+, d_blob_p(d_blob.address())
 , d_isBlobConstructed(false)
 , d_isDirty(other.d_isDirty)
 , d_mphSize(other.d_mphSize)
@@ -362,6 +363,7 @@ MessageProperties::MessageProperties(const MessageProperties& other,
 , d_dataOffset(other.d_dataOffset)
 , d_schema(other.d_schema)
 , d_originalNumProps(other.d_originalNumProps)
+, d_doDeepCopy(other.d_doDeepCopy)
 {
     if (other.d_isBlobConstructed) {
         new (d_blob.buffer())
@@ -394,6 +396,7 @@ MessageProperties& MessageProperties::operator=(const MessageProperties& rhs)
 
     if (rhs.d_isBlobConstructed) {
         new (d_blob.buffer()) bdlbb::Blob(rhs.d_blob.object(), d_allocator_p);
+        d_blob_p            = d_blob.address();
         d_isBlobConstructed = true;
     }
 
@@ -547,9 +550,15 @@ int MessageProperties::streamInHeader(const bdlbb::Blob& blob)
         return rc_INCORRECT_LENGTH;  // RETURN
     }
 
-    new (d_blob.buffer()) bdlbb::Blob(d_allocator_p);
-    bdlbb::BlobUtil::append(d_blob.address(), blob, 0, d_totalSize);
-    d_isBlobConstructed = true;
+    if (d_doDeepCopy) {
+        new (d_blob.buffer()) bdlbb::Blob(d_allocator_p);
+        bdlbb::BlobUtil::append(d_blob.address(), blob, 0, d_totalSize);
+        d_blob_p            = d_blob.address();
+        d_isBlobConstructed = true;
+    }
+    else {
+        d_blob_p = &blob;
+    }
     d_originalSize      = d_totalSize;
     d_originalNumProps  = d_numProps;
 
@@ -567,17 +576,16 @@ int MessageProperties::streamInPropertyHeader(Property*    property,
     BSLS_ASSERT_SAFE(property);
     BSLS_ASSERT_SAFE(totalLength);
     BSLS_ASSERT_SAFE(d_dataOffset && start);
-    BSLS_ASSERT_SAFE(d_isBlobConstructed);
 
     bmqu::BlobPosition position;
 
-    if (bmqu::BlobUtil::findOffsetSafe(&position, d_blob.object(), start)) {
+    if (bmqu::BlobUtil::findOffsetSafe(&position, *d_blob_p, start)) {
         // Failed to advance blob to next 'MessagePropertyHeader' location.
         return rc_NO_MSG_PROPERTY_HEADER;  // RETURN
     }
 
     bmqu::BlobObjectProxy<MessagePropertyHeader> mpHeader(
-        &d_blob.object(),
+        d_blob_p,
         position,
         d_mphSize,
         true,    // read flag
@@ -693,14 +701,14 @@ int MessageProperties::streamInPropertyHeader(Property*    property,
         name->assign(nameLen, ' ');
         bmqu::BlobPosition namePosition;
         int                rc = bmqu::BlobUtil::findOffsetSafe(&namePosition,
-                                                d_blob.object(),
+                                                *d_blob_p,
                                                 offset);
         if (rc) {
             return rc_MISSING_PROPERTY_AREA;  // RETURN
         }
 
         rc = bmqu::BlobUtil::readNBytes(name->begin(),
-                                        d_blob.object(),
+                                        *d_blob_p,
                                         namePosition,
                                         nameLen);
         if (rc) {
@@ -885,6 +893,8 @@ MessageProperties::streamOut(bdlbb::BlobBufferFactory*          bufferFactory,
     }
 
     new (d_blob.buffer()) bdlbb::Blob(bufferFactory, d_allocator_p);
+
+    d_blob_p            = d_blob.address();
     d_isBlobConstructed = true;
 
     if (0 == numProperties()) {
@@ -1006,7 +1016,7 @@ MessageProperties::streamOut(bdlbb::BlobBufferFactory*          bufferFactory,
     msgPropsHdr.reset();
     d_isDirty = false;
 
-    return d_blob.object();
+    return *d_blob_p;
 }
 
 bsl::ostream& MessageProperties::print(bsl::ostream& stream,

@@ -967,6 +967,7 @@ void RootQueueEngine::configureHandle(
 
     affectedApp->routing().reset(new (*d_allocator_p) Routers::AppContext(
                                      d_queueState_p->routingContext(),
+                                     affectedApp->upstreamSubQueueId(),
                                      d_allocator_p),
                                  d_allocator_p);
 
@@ -1190,6 +1191,7 @@ void RootQueueEngine::releaseHandle(
                     bsl::shared_ptr<Routers::AppContext> replacement(
                         new (*d_allocator_p) Routers::AppContext(
                             d_queueState_p->routingContext(),
+                            app->upstreamSubQueueId(),
                             d_allocator_p),
                         d_allocator_p);
 
@@ -1681,12 +1683,15 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     mqbblp::Routers::QueueRoutingContext& routingContext =
         appState->routing()->d_queue;
     mqbcmd::Routing routing;
-    routingContext.loadInternals(&routing);
+
+    static const size_t k_EXPR_NUM_LIMIT = 10;
+
+    routingContext.loadInternals(&routing, k_EXPR_NUM_LIMIT);
     const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
         routing.subscriptionGroups();
     if (!subscrGroups.empty()) {
         // Limit to log only k_EXPR_NUM_LIMIT expressions
-        static const size_t k_EXPR_NUM_LIMIT = 50;
+
         if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
             stream << "First " << k_EXPR_NUM_LIMIT
                    << " of consumer subscription expressions: \n";
@@ -1738,8 +1743,8 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
             }
             else {
                 BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
-                              << rc;
-                stream << "Message Properties: Failed to acquire [rc: " << rc
+                              << ret;
+                stream << "Message Properties: Failed to acquire [rc: " << ret
                        << "]\n";
             }
         }
@@ -2066,7 +2071,7 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAppSubscriptions(
 
     // 'setPropertiesReader' is done in 'QueueRoutingContext' ctor
 
-    queue.d_preader->next(appData, mpi);
+    queue.d_preader->start(appData, mpi);
 
     bdlb::ScopeExitAny guard(
         bdlf::BindUtil::bind(&Routers::MessagePropertiesReader::clear,
@@ -2077,7 +2082,7 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAppSubscriptions(
 
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         AppStateSp& app = it->second;
-        if (!app->evaluateAppSubcription()) {
+        if (!app->evaluateAppSubcription(queue.d_preader->numRuns())) {
             result = d_queueState_p->storage()->autoConfirm(app->appKey(),
                                                             timestamp);
 
@@ -2121,7 +2126,8 @@ unsigned int RootQueueEngine::messageReferenceCount() const
     return refCount - numNegative;
 }
 
-void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
+void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out,
+                                    unsigned int         max) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -2162,7 +2168,8 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     }
 
     d_queueState_p->routingContext().loadInternals(
-        &fanoutQueueEngine.routing());
+        &fanoutQueueEngine.routing(),
+        max);
 }
 
 bool RootQueueEngine::hasHandle(const bsl::string& appId,

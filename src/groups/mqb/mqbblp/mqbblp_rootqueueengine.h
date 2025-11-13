@@ -440,7 +440,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// this queue engine and associated queue handles.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
+    void loadInternals(mqbcmd::QueueEngine* out,
+                       unsigned int         max) const BSLS_KEYWORD_OVERRIDE;
 
     /// Log application subscription info for the specified `appId` into the
     /// specified `stream`.

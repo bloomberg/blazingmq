@@ -220,7 +220,8 @@ class QueueEngine : public mqbi::QueueEngine {
 
     /// Load into the specified `out` object the internal information about
     /// this queue engine and associated queue handles.
-    void loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
+    void loadInternals(mqbcmd::QueueEngine* out,
+                       unsigned int         max) const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

@@ -393,7 +393,7 @@ Flattener::packMesage(const Protocol::SubQueueInfosArray& subQInfo)
 
             if (mps.streamIn(d_appData, input.isExtended()) == 0) {
                 // Learn new schema.
-                schema   = mps.makeSchema(d_allocator_p);
+                schema   = mps.getSchema(d_allocator_p);
                 schema_p = &schema;
             }
         }

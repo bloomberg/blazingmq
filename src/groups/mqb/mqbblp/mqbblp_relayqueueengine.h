@@ -203,7 +203,8 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
         void reset();
 
-        void initializeRouting(Routers::QueueRoutingContext& queueContext);
+        void initializeRouting(Routers::QueueRoutingContext& queueContext,
+                               unsigned int upstreamSubQueueId);
     };
 
   private:
@@ -554,7 +555,8 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// Load into the specified `out` object the internal information about
     /// this queue engine and associated queue handles.
-    void loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
+    void loadInternals(mqbcmd::QueueEngine* out,
+                       unsigned int         max) const BSLS_KEYWORD_OVERRIDE;
 
     /// Load upstream subQueue id into the specified `subQueueId` given the
     /// specified upstream `subscriptionId`.
@@ -659,10 +661,13 @@ inline void RelayQueueEngine::ConfigureContext::resetCallback()
 }
 
 inline void RelayQueueEngine::ConfigureContext::initializeRouting(
-    Routers::QueueRoutingContext& queueContext)
+    Routers::QueueRoutingContext& queueContext,
+    unsigned int                  upstreamSubQueueId)
 {
     d_routing_sp.reset(new (*d_allocator_p)
-                           Routers::AppContext(queueContext, d_allocator_p),
+                           Routers::AppContext(queueContext,
+                                               upstreamSubQueueId,
+                                               d_allocator_p),
                        d_allocator_p);
 }
 

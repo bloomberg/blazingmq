@@ -244,7 +244,8 @@ class QueueEngine {
 
     /// Load into the specified `out` object the internal information about
     /// this queue engine and associated queue handles.
-    virtual void loadInternals(mqbcmd::QueueEngine* out) const = 0;
+    virtual void loadInternals(mqbcmd::QueueEngine* out,
+                               unsigned int         max) const = 0;
 
     /// Log appllication subscription info for the specified `appId` into the
     /// specified `stream`.

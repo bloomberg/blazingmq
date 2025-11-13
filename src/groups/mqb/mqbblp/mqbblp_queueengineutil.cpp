@@ -860,8 +860,10 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     const bsl::string&            appId,
     const mqbu::StorageKey&       appKey,
     bslma::Allocator*             allocator)
-: d_routing_sp(new(*allocator) Routers::AppContext(queueContext, allocator),
-               allocator)
+: d_routing_sp(
+      new(*allocator)
+          Routers::AppContext(queueContext, upstreamSubQueueId, allocator),
+      allocator)
 , d_redeliveryList(allocator)
 , d_putAsideList(allocator)
 , d_priorityCount(0)
@@ -1374,6 +1376,14 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
                           << currentMessage->guid();
         }
     }
+    else if (result == Routers::e_SUCCESS &&
+             d_routing_sp->d_queue.d_preader->numRuns() % 10000 == 0) {
+        BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queue_p->description()
+                      << "', appId = '" << appId() << "' cache hits "
+                      << d_routing_sp->root().hits() << " iterations "
+                      << d_routing_sp->root().iterations() << " runs "
+                      << d_routing_sp->d_queue.d_preader->numRuns();
+    }
 
     return result;
 }
@@ -1397,9 +1407,9 @@ int QueueEngineUtil_AppState::setSubscription(
     return 0;
 }
 
-bool QueueEngineUtil_AppState::evaluateAppSubcription()
+bool QueueEngineUtil_AppState::evaluateAppSubcription(unsigned int run)
 {
-    return d_appSubscription.evaluate();
+    return d_appSubscription.evaluate(run);
 }
 
 void QueueEngineUtil_AppState::authorize(const mqbu::StorageKey& appKey,

@@ -148,7 +148,8 @@ unsigned int QueueEngine::messageReferenceCount() const
     return 0;
 }
 
-void QueueEngine::loadInternals(BSLA_UNUSED mqbcmd::QueueEngine* out) const
+void QueueEngine::loadInternals(BSLA_UNUSED mqbcmd::QueueEngine* out,
+                                BSLA_UNUSED unsigned int         max) const
 {
     // NOTHING
 }
