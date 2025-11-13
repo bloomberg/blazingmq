@@ -363,6 +363,9 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     typedef bsl::unordered_map<int, int> QueueRetransmissionTimeoutMap;
 
+    typedef bsl::unordered_map<bmqt::MessageGUID, bslma::ManagedPtr<void> >
+        MessageGUIDToSpanMap;
+
     class SessionFsm {
       private:
         BrokerSession& d_session;
@@ -787,6 +790,13 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     MessageCorrelationIdContainer d_messageCorrelationIdContainer;
     // Message correlationId container
+
+    MessageGUIDToSpanMap d_consumerSpans;
+    // Map from MessageGUID to DTSpan for
+    // consumer-side distributed tracing.
+    // Stores spans created when PUSH
+    // messages are received, removed when
+    // CONFIRM messages are sent.
 
     bslmt::ThreadUtil::Handle d_fsmThread;
     // FSM thread handle
@@ -1483,6 +1493,15 @@ class BrokerSession BSLS_CPP11_FINAL {
     createDTSpan(bsl::string_view              operation,
                  const bmqpi::DTSpan::Baggage& baggage =
                      bmqpi::DTSpan::Baggage()) const;
+
+    /// Restore the DTContext from the properties of the given `iterator` and
+    /// create a child span based on the current span. Return a managed pointer
+    /// to the current span which might be NULL.
+    bslma::ManagedPtr<void> restoreDTPropertyAndActivateChildSpan(
+        const bmqp::PushMessageIterator& iterator,
+        const bsl::string_view&          operation,
+        const bmqpi::DTSpan::Baggage&    baggage =
+            bmqpi::DTSpan::Baggage()) const;
 
     /// True if the session is started.
     bool isStarted() const;
