@@ -424,6 +424,16 @@ class DataStoreConfig {
 
     bsls::Types::Uint64 d_maxQlistFileSize;
 
+    bsls::Types::Uint64 d_dataFileGrowLimit;
+
+    bsls::Types::Uint64 d_journalFileGrowLimit;
+
+    bsls::Types::Uint64 d_qlistFileGrowLimit;
+
+    unsigned int d_growStepPercent;
+
+    unsigned int d_minAvailSpacePercent;
+
     QueueCreationCb d_queueCreationCb;
 
     RecoveredQueuesCb d_recoveredQueuesCb;
@@ -447,6 +457,11 @@ class DataStoreConfig {
     DataStoreConfig& setMaxDataFileSize(bsls::Types::Uint64 value);
     DataStoreConfig& setMaxJournalFileSize(bsls::Types::Uint64 value);
     DataStoreConfig& setMaxQlistFileSize(bsls::Types::Uint64 value);
+    DataStoreConfig& setDataFileGrowLimit(bsls::Types::Uint64 value);
+    DataStoreConfig& setJournalFileGrowLimit(bsls::Types::Uint64 value);
+    DataStoreConfig& setQlistFileGrowLimit(bsls::Types::Uint64 value);
+    DataStoreConfig& setGrowStepPercent(unsigned int value);
+    DataStoreConfig& setMinAvailSpacePercent(unsigned int value);
     DataStoreConfig& setQueueCreationCb(const QueueCreationCb& value);
     DataStoreConfig& setRecoveredQueuesCb(const RecoveredQueuesCb& value);
 
@@ -467,6 +482,11 @@ class DataStoreConfig {
     bsls::Types::Uint64       maxDataFileSize() const;
     bsls::Types::Uint64       maxJournalFileSize() const;
     bsls::Types::Uint64       maxQlistFileSize() const;
+    bsls::Types::Uint64       dataFileGrowLimit() const;
+    bsls::Types::Uint64       journalFileGrowLimit() const;
+    bsls::Types::Uint64       qlistFileGrowLimit() const;
+    unsigned int              growStepPercent() const;
+    unsigned int              minAvailSpacePercent() const;
     const QueueCreationCb&    queueCreationCb() const;
     const RecoveredQueuesCb&  recoveredQueuesCb() const;
 
@@ -1027,6 +1047,41 @@ DataStoreConfig::setMaxQlistFileSize(bsls::Types::Uint64 value)
 }
 
 inline DataStoreConfig&
+DataStoreConfig::setDataFileGrowLimit(bsls::Types::Uint64 value)
+{
+    d_dataFileGrowLimit = value;
+    return *this;
+}
+
+inline DataStoreConfig&
+DataStoreConfig::setJournalFileGrowLimit(bsls::Types::Uint64 value)
+{
+    d_journalFileGrowLimit = value;
+    return *this;
+}
+
+inline DataStoreConfig&
+DataStoreConfig::setQlistFileGrowLimit(bsls::Types::Uint64 value)
+{
+    d_qlistFileGrowLimit = value;
+    return *this;
+}
+
+inline DataStoreConfig&
+DataStoreConfig::setGrowStepPercent(unsigned int value)
+{
+    d_growStepPercent = value;
+    return *this;
+}
+
+inline DataStoreConfig&
+DataStoreConfig::setMinAvailSpacePercent(unsigned int value)
+{
+    d_minAvailSpacePercent = value;
+    return *this;
+}
+
+inline DataStoreConfig&
 DataStoreConfig::setQueueCreationCb(const QueueCreationCb& value)
 {
     d_queueCreationCb = value;
@@ -1105,6 +1160,31 @@ inline bsls::Types::Uint64 DataStoreConfig::maxJournalFileSize() const
 inline bsls::Types::Uint64 DataStoreConfig::maxQlistFileSize() const
 {
     return d_maxQlistFileSize;
+}
+
+inline bsls::Types::Uint64 DataStoreConfig::dataFileGrowLimit() const
+{
+    return d_dataFileGrowLimit;
+}
+
+inline bsls::Types::Uint64 DataStoreConfig::journalFileGrowLimit() const
+{
+    return d_journalFileGrowLimit;
+}
+
+inline bsls::Types::Uint64 DataStoreConfig::qlistFileGrowLimit() const
+{
+    return d_qlistFileGrowLimit;
+}
+
+inline unsigned int DataStoreConfig::growStepPercent() const
+{
+    return d_growStepPercent;
+}
+
+inline unsigned int DataStoreConfig::minAvailSpacePercent() const
+{
+    return d_minAvailSpacePercent;
 }
 
 inline const DataStoreConfig::QueueCreationCb&

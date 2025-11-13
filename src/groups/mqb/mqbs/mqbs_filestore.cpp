@@ -3040,9 +3040,6 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         return rc_SUCCESS;  // RETURN
     }
 
-    // TBD: make the ratio configurable
-    static const bsls::Types::Uint64 k_MIN_AVAILABLE_SPACE_PERCENT = 20;
-
     // Rollover is needed.  If JOURNAL file requested rollover, mark it as
     // unavailable.  This is needed in the scenario when this routine fails,
     // we want to disable this partition, and we use 'd_journalFileAvailable'
@@ -3063,7 +3060,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
         << " and DATA files satisfy "
         << "rollover criteria. Minimum required available space in each file: "
-        << "[" << k_MIN_AVAILABLE_SPACE_PERCENT << "%]. "
+        << "[" << d_config.minAvailSpacePercent() << "%]. "
         << "Requested record length: " << requestedSpace
         << ". Outstanding bytes in each file:" << "\nJOURNAL: "
         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
@@ -3100,7 +3097,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             activeFileSet->d_journalFile.fileSize();
     }
 
-    if (availableSpacePercentJournal < k_MIN_AVAILABLE_SPACE_PERCENT) {
+    if (availableSpacePercentJournal < d_config.minAvailSpacePercent()) {
         // JOURNAL file can't be rolled over.
 
         canRollover            = false;
@@ -3121,7 +3118,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             d_config.maxDataFileSize();
     }
 
-    if (availableSpacePercentData < k_MIN_AVAILABLE_SPACE_PERCENT) {
+    if (availableSpacePercentData < d_config.minAvailSpacePercent()) {
         // DATA file can't be rolled over.
 
         canRollover            = false;
@@ -3143,7 +3140,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
                 d_config.maxQlistFileSize();
         }
 
-        if (availableSpacePercentQlist < k_MIN_AVAILABLE_SPACE_PERCENT) {
+        if (availableSpacePercentQlist < d_config.minAvailSpacePercent()) {
             // QLIST file can't be rolled over.  Alarm only if we have
             // encountered this for the first time.
 
@@ -3179,7 +3176,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             << "rolled over because rolled over [" << cannotRolloverFileType
             << "] file will have [" << availableSpacePercent
             << "%] available space which is lower than the configured value "
-            << "of [" << k_MIN_AVAILABLE_SPACE_PERCENT << "%]. "
+            << "of [" << d_config.minAvailSpacePercent() << "%]. "
             << "Outstading bytes of each file:";
         bdlb::Print::newlineAndIndent(out, 1, 4);
         printSpaceInUse(

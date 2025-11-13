@@ -888,7 +888,12 @@ struct TestHelper {
             .setMaxDataFileSize(partitionCfg.maxDataFileSize())
             .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
             .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
-            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
+            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets())
+            .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
+            .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
+            .setQlistFileGrowLimit(partitionCfg.qlistFileGrowLimit())
+            .setGrowStepPercent(partitionCfg.growStepPercent())
+            .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
 
         bdlmt::FixedThreadPool threadPool(1,
                                           100,
