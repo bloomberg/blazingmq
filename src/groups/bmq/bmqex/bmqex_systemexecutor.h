@@ -79,8 +79,6 @@
 //  // use the executor ...
 //..
 
-#include <bmqsys_threadutil.h>
-
 // BDE
 #include <bdlma_concurrentpoolallocator.h>
 #include <bsl_memory.h>
@@ -555,8 +553,7 @@ inline void SystemExecutor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
 {
     SystemExecutor_Context::singleton().executeAsync(
         BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f),
-        d_threadAttributes ? *d_threadAttributes
-                           : bmqsys::ThreadUtil::defaultAttributes());
+        d_threadAttributes ? *d_threadAttributes : bslmt::ThreadAttributes());
 }
 
 template <class FUNCTION>

@@ -23,7 +23,6 @@
 #include <bmqp_schemaeventbuilder.h>
 
 #include <bmqio_status.h>
-#include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 
 // BDE
@@ -1055,8 +1054,8 @@ void ElectorStateMachine::applyNodeStatusEventToCandidate(
         // This node voted for this instance. Remove the node from the list of
         // supporters.
         BALL_LOG_INFO
-            << "Elector:CANDIDATE received NODE_UNAVAILABLE from node"
-            << " [" << sourceNodeId << "] which voted for this "
+            << "Elector:CANDIDATE received NODE_UNAVAILABLE from node" << " ["
+            << sourceNodeId << "] which voted for this "
             << "CANDIDATE. Removing node from list of voters.";
         d_supporters.erase(nodeIter);
     }
@@ -1267,8 +1266,8 @@ void ElectorStateMachine::applyScoutingRequestEvent(
         // Support the notion of sticky leader: if self sees a healthy leader,
         // notify sender that self won't support it.
 
-        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from "
-                      << "node [" << sourceNodeId << "] with term [" << term
+        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from " << "node ["
+                      << sourceNodeId << "] with term [" << term
                       << "]. But self perceives node [" << d_leaderNodeId
                       << "] as a valid leader, with term [" << d_term
                       << "]. Not supporting the scouting node.";
@@ -2108,8 +2107,8 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
         // Unicast to the specified 'destinationNodeId'.
         NodesMapIter it = d_nodes.find(output.destination());
         if (d_nodes.end() == it) {
-            BALL_LOG_ERROR << "#ELECTOR_INVALID_NODEID "
-                           << "Invalid nodeId [" << output.destination()
+            BALL_LOG_ERROR << "#ELECTOR_INVALID_NODEID " << "Invalid nodeId ["
+                           << output.destination()
                            << "] specified while trying to emit event ["
                            << output.io() << "].";
             return;  // RETURN
@@ -2246,7 +2245,7 @@ Elector::Elector(mqbcfg::ElectorConfig&      config,
 
     d_scheduler.scheduleEvent(
         bsls::TimeInterval(0, 0),  // now
-        bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
+        bdlf::BindUtil::bind(&bslmt::ThreadUtil::setThreadName,
                              "bmqSchedElec"));
 }
 
