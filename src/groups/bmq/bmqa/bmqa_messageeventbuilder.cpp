@@ -43,8 +43,6 @@ namespace bmqa {
 // CLASS-SCOPE CATEGORY
 BALL_LOG_SET_CLASS_CATEGORY("BMQA.MESSAGEEVENTBUILDER");
 
-const char k_tracePropertyName[] = "bmq.traceparent";
-
 namespace {
 // Compile time sanity checks
 BSLMF_ASSERT(sizeof(Message) == sizeof(MessageImpl));
@@ -316,7 +314,9 @@ void MessageEventBuilder::copyPropertiesAndInjectDT(
     // Inject the serialized trace span as a reserved binary property
     bsl::vector<char> traceSpanData(serializedSpan.begin(),
                                     serializedSpan.end());
-    rc = propsCopy->setPropertyAsBinary(k_tracePropertyName, traceSpanData);
+    rc = propsCopy->setPropertyAsBinary(
+        bmqp::MessageProperties::k_TRACE_PROPERTY_NAME,
+        traceSpanData);
     if (rc != 0) {
         BALL_LOG_WARN << "Failed to inject trace span into "
                       << "message properties, rc: " << rc;

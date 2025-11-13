@@ -349,6 +349,9 @@ class MessageProperties {
     // there is only one property and property's name has maximum allowable
     // length, and also takes into consideration the protocol overhead.
 
+    /// Reserved property name for distributed trace injection.
+    static const char k_TRACE_PROPERTY_NAME[];
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(MessageProperties,

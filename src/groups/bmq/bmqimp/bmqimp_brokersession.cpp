@@ -123,8 +123,6 @@ const int k_NON_BUFFERED_REQUEST_GROUP_ID = 0;
 const char k_ENQUEUE_ERROR_TEXT[] = "Failed to process the operation, the"
                                     " session is already being destroyed";
 
-const char k_TRACE_PROPERTY_NAME[] = "bmq.traceparent";
-
 /// Create an `Event` object at the specified `address` using the supplied
 /// `allocator`.  This is used by the ObjectPool.
 void poolCreateEvent(void*                     address,
@@ -3605,9 +3603,14 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
         const bmqt::MessageGUID& guid = msgIterator.header().messageGUID();
 
         // Create ONE span per message and store it by GUID
+        bmqpi::DTSpan::Baggage baggage;
+        bsl::stringstream      ss;
+        bmqt::QueueFlagsUtil::prettyPrint(ss, msgIterator.header().flags());
+        baggage.put("bmq.queue.flags", ss.str());
         bslma::ManagedPtr<void> span = restoreDTPropertyAndActivateChildSpan(
             msgIterator,
-            "bmq.message.push");
+            "bmq.message.push",
+            baggage);
         d_consumerSpans[guid] = span;
     }
 
@@ -7119,14 +7122,15 @@ bslma::ManagedPtr<void> BrokerSession::restoreDTPropertyAndActivateChildSpan(
     bsl::shared_ptr<bmqpi::DTSpan> childSpan;
     bsl::vector<unsigned char>     vecUnsignedChar;
 
-    if (!properties.hasProperty(k_TRACE_PROPERTY_NAME)) {
+    if (!properties.hasProperty(
+            bmqp::MessageProperties::k_TRACE_PROPERTY_NAME)) {
         BALL_LOG_INFO
             << "Not restoring distributed trace from message properties. No "
                "distributed trace in message properties.";
     }
     else {
         const bsl::vector<char>& vecChar = properties.getPropertyAsBinary(
-            k_TRACE_PROPERTY_NAME);
+            bmqp::MessageProperties::k_TRACE_PROPERTY_NAME);
 
         vecUnsignedChar.resize(vecChar.size());
         bsl::copy(vecChar.begin(), vecChar.end(), vecUnsignedChar.begin());
