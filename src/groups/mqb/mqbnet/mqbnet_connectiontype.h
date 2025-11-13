@@ -13,22 +13,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_initialconnectionhandler.cpp                           -*-C++-*-
-#include <mqbnet_initialconnectionhandler.h>
-
-#include <mqbscm_version.h>
+// mqbnet_connectiontype.h                                  -*-C++-*-
+#ifndef INCLUDED_MQBNET_CONNECTIONTYPE
+#define INCLUDED_MQBNET_CONNECTIONTYPE
 
 namespace BloombergLP {
 namespace mqbnet {
 
-// ------------------------------
-// class InitialConnectionHandler
-// ------------------------------
+// =====================
+// struct ConnectionType
+// =====================
 
-InitialConnectionHandler::~InitialConnectionHandler()
-{
-    // NOTHING: Pure interface
-}
+struct ConnectionType {
+    // Enum representing the type of session being negotiated, from that
+    // side of the connection's point of view.
+    enum Enum {
+        e_UNKNOWN,
+        e_CLUSTER_PROXY,   // Proxy (me) -> broker (outgoing)
+        e_CLUSTER_MEMBER,  // Cluster node -> cluster node (both)
+        e_CLIENT,          // Client or proxy -> me (incoming)
+        e_ADMIN            // Admin client -> me (incoming)
+    };
+};
 
 }  // close package namespace
 }  // close enterprise namespace
+
+#endif

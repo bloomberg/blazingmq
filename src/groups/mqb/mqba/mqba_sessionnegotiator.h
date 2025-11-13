@@ -29,7 +29,8 @@
 ///
 /// Thread Safety                              {#mqba_sessionnegotiator_thread}
 /// =============
-/// TODO
+/// This component is owned by `InitialConnectionHandler`, and its functions
+/// are called only from there.  It is not thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>
@@ -44,7 +45,6 @@
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -92,6 +92,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
   private:
     // PRIVATE TYPES
     typedef bsl::shared_ptr<mqbnet::NegotiationContext> NegotiationContextSp;
+    typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
+        InitialConnectionContextSp;
 
   private:
     // DATA
@@ -141,16 +143,16 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// or return a null pointer and populate the specified
     /// `errorDescription` with a description of the error on failure.
     bsl::shared_ptr<mqbnet::Session>
-    onClientIdentityMessage(bsl::ostream&               errorDescription,
-                            const NegotiationContextSp& context);
+    onClientIdentityMessage(bsl::ostream&                     errorDescription,
+                            mqbnet::InitialConnectionContext* context);
 
     /// Invoked when received a `BrokerResponse` negotiation message with
     /// the specified `context`.  Creates and return a Session on success,
     /// or return a null pointer and populate the specified
     /// `errorDescription` with a description of the error on failure.
     bsl::shared_ptr<mqbnet::Session>
-    onBrokerResponseMessage(bsl::ostream&               errorDescription,
-                            const NegotiationContextSp& context);
+    onBrokerResponseMessage(bsl::ostream&                     errorDescription,
+                            mqbnet::InitialConnectionContext* context);
 
     /// Send the specified `message` to the peer associated with the
     /// specified `context` and return 0 on success, or return a non-zero
@@ -160,19 +162,19 @@ class SessionNegotiator : public mqbnet::Negotiator {
                                const bmqp_ctrlmsg::NegotiationMessage& message,
                                const NegotiationContextSp& context);
 
-    /// Populate some other fields in `context` given the specified
-    /// ConnectionType and NegotiationMessage.  Return 0 on success, or
-    /// return a non-zero code on error and populate the specified
+    /// Populate some other fields into NegotiationContext in the specified
+    /// `context` given connection type and negotiation message.  Return 0 on
+    /// success, or return a non-zero code on error and populate the specified
     /// `errorDescription` with a description of the error.
     int populateNegotiationContext(bsl::ostream& errorDescription,
-                                   const NegotiationContextSp& context);
+                                   mqbnet::InitialConnectionContext* context);
 
     /// Load into the specified `out` a new session created using the
     /// specified `context` and `description`; or leave `out` untouched and
     /// populate the specified `errorDescription` with a description of the
     /// error in case of failure.
     void createSession(bsl::shared_ptr<mqbnet::Session>* out,
-                       const NegotiationContextSp&       context,
+                       mqbnet::InitialConnectionContext* context,
                        const bsl::string&                description);
 
     /// Return true if the negotiation message in the specified `context` is
@@ -232,21 +234,19 @@ class SessionNegotiator : public mqbnet::Negotiator {
     //   (virtual: mqbnet::Negotiator)
 
     /// Create a `session` based on the type of initial connection message in
-    /// the specified `context`.  Set `isContinueRead` to true if we want to
-    /// continue reading instead of creating a session just yet.
-    /// Return 0 on success, or a non-zero error code and populate the
-    /// specified `errorDescription` with a description of the error otherwise.
+    /// the specified `context`.  Return 0 on success, or a non-zero error code
+    /// and populate the specified `errorDescription` with a description of the
+    /// error otherwise.
     int createSessionOnMsgType(bsl::ostream& errorDescription,
                                bsl::shared_ptr<mqbnet::Session>* session,
-                               bool*                       isContinueRead,
-                               const NegotiationContextSp& context)
+                               mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send out outbound negotiation message with the specified `context`.
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
-    int negotiateOutbound(bsl::ostream&               errorDescription,
-                          const NegotiationContextSp& context)
+    int negotiateOutbound(bsl::ostream&                     errorDescription,
+                          const InitialConnectionContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
 };
 
