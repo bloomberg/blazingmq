@@ -285,7 +285,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Dispatcher client data associated
     // with this instance.
 
-    bsl::shared_ptr<mqbstat::PartitionStats> d_partitionStats_p;
+    bsl::shared_ptr<mqbstat::PartitionStats> d_partitionStats_sp;
     // Stat object associated to the
     // Partition this FileStore belongs to,
     // used to report partition level
