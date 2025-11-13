@@ -778,7 +778,11 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
             bdlf::PlaceHolders::_1,   // status
             bdlf::PlaceHolders::_2);  // handle
 
-        d_mockQueue_sp->getHandle(clientContext,
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie;
+        confirmationCookie.createInplace(d_allocator_p);
+
+        d_mockQueue_sp->getHandle(confirmationCookie,
+                                  clientContext,
                                   handleParams,
                                   upstreamSubQueueId,
                                   callback);
@@ -789,15 +793,21 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
                         d_clientContexts.end());
 
         // Client data
+
         ClientContextSp clientContext(
             new (*d_allocator_p)
                 mqbi::QueueHandleRequesterContext(d_allocator_p),
             d_allocator_p);
+
         clientContext->setClient(d_mockDispatcherClient_mp.get())
             .setDescription("test.tsk:1")
             .setIsClusterMember(true)
             .setRequesterId(mqbi::QueueHandleRequesterContext ::
-                                generateUniqueRequesterId());
+                                generateUniqueRequesterId())
+            .setStatContext(
+                mqbstat::QueueStatsUtil::initializeStatContextClients(
+                    10,
+                    d_allocator_p));
 
         mqbi::QueueHandle::GetHandleCallback callback = bdlf::BindUtil::bindS(
             d_allocator_p,
@@ -807,7 +817,11 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
             bdlf::PlaceHolders::_1,
             bdlf::PlaceHolders::_2);
 
-        d_mockQueue_sp->getHandle(clientContext,
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie;
+        confirmationCookie.createInplace(d_allocator_p);
+
+        d_mockQueue_sp->getHandle(confirmationCookie,
+                                  clientContext,
                                   handleParams,
                                   upstreamSubQueueId,
                                   callback);
