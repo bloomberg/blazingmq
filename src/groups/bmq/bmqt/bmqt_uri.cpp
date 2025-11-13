@@ -24,7 +24,6 @@
 #include <bdlb_print.h>
 #include <bdlb_stringrefutil.h>
 #include <bdlma_localsequentialallocator.h>
-#include <bdlpcre_regex.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstring.h>  // for 'strncmp'
 #include <bsl_iostream.h>
@@ -32,6 +31,7 @@
 #include <bsl_ostream.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
+#include <bsla_annotations.h>
 #include <bslma_default.h>
 #include <bslmt_once.h>
 #include <bslmt_qlock.h>
@@ -43,37 +43,393 @@ namespace BloombergLP {
 namespace bmqt {
 
 namespace {
-const char k_SCHEME[]        = "bmq";
-const char k_TIER_PREFIX[]   = ".~";
-const char k_QUERY_ID[]      = "id";
-const int  k_QUERY_ID_LENGTH = sizeof(k_QUERY_ID) - 1;
+const bsl::string_view k_SCHEME           = "bmq";
+const bsl::string_view k_SCHEME_SEPARATED = "bmq://";
+const bsl::string_view k_QUERY_ID         = "id";
+const bsl::string_view k_TIER_PREFIX      = ".~";
 
-bsls::ObjectBuffer<bdlpcre::RegEx> s_regex;
-// Regular expression to validate and
-// extract components of the URI.  Use an
-// object buffer so we can allocate in the
-// 'initialize' method, and destroy in the
-// 'shutdown' instead of relying on
-// 'random' ordering for creation of static
-// objects by the compiler.
+#define BMQT_RETURN_WITH_ERROR(RC, ERROR_VAR, ERROR_DESC)                     \
+    if (ERROR_VAR) {                                                          \
+        bdlma::LocalSequentialAllocator<256> local;                           \
+        bmqu::MemOutStream                   os(&local);                      \
+        os << ERROR_DESC;                                                     \
+        (ERROR_VAR)->assign(os.str().data(), os.str().length());              \
+    }                                                                         \
+    return RC;
 
-bsls::Types::Int64 s_initialized = 0;
-// Integer to keep track of the number of
-// calls to 'initialize' for the
-// 'UriParser'.  If the value is non-zero,
-// then it has already been initialized,
-// otherwise it can be initialized.  Each
-// call to 'initialize' increments the
-// value of this integer by one.  Each call
-// to 'shutdown' decrements the value of
-// this integer by one.  If the decremented
-// value is zero, then the 'UriParser' is
-// destroyed.
+#define BMQT_VALIDATE_AND_RETURN(LENGTH, ERROR_RC, ERROR_VAR, ERROR_DESC)     \
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 == (LENGTH))) {               \
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;                                   \
+        BMQT_RETURN_WITH_ERROR(ERROR_RC, ERROR_VAR, ERROR_DESC);              \
+    }                                                                         \
+    return UriParser::UriParseResult::e_SUCCESS;
 
-bslmt::QLock s_initLock = BSLMT_QLOCK_INITIALIZER;
-// Lock used to provide thread-safe
-// protection for accessing the
-// 's_initialized' counter.
+struct UriParsingContext {
+    const bslstl::StringRef d_uri;
+    bool                    d_hasTier;
+    bool                    d_hasQuery;
+
+    struct QueryType {
+        enum Enum { e_ID = 0 };
+    };
+
+    /// @brief Check if the provided char is alphanumeric.
+    /// @param c input char.
+    /// @return true if the provided char is alphamumeric, false otherwiese.
+    /// NOTE: this is a fast inline equivalent of `bsl::isalnum`.
+    static inline bool isalnum_fast(char c)
+    {
+        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+               ('0' <= c && c <= '9');
+    }
+
+    explicit UriParsingContext(bslstl::StringRef uriString)
+    : d_uri(uriString)
+    , d_hasTier(false)
+    , d_hasQuery(false)
+    {
+        // NOTHING
+    }
+
+    inline bool hasTier() const { return d_hasTier; }
+
+    inline bool hasQuery() const { return d_hasQuery; }
+
+    /// @brief Check if the stored uri has the supported schema.
+    /// @param errorDescription optional output for error description.
+    /// @return 0 return code on success, non-zero return code on failure.
+    inline int validateScheme(bsl::string* errorDescription) const
+    {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                !d_uri.starts_with(k_SCHEME_SEPARATED))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_INVALID_SCHEME,
+                                   errorDescription,
+                                   "Invalid scheme: uri must start with \""
+                                       << k_SCHEME_SEPARATED
+                                       << "\"");  // RETURN
+        }
+        return UriParser::UriParseResult::e_SUCCESS;
+    }
+
+    /// @brief Parse the domain part of the stored uri.
+    /// @param errorDescription optional output for error description.
+    /// @param length output domain length after parsing, if rc == 0.
+    /// @param start domain parse start position.
+    /// @return 0 return code on success, non-zero return code on failure.
+    /// NOTE: domain might be followed by optional tier, and we set `d_hasTier`
+    ///       flag if we encounter it for later parsing.
+    inline int
+    parseDomain(bsl::string* errorDescription, size_t* length, size_t start)
+    {
+        // bmq://my-domain.~dv/queue?id=foo
+        //       ^        ^
+        //       start    (start + (*length))
+        // Allowed characters: [-a-zA-Z0-9\\._]
+        for (size_t pos = start; pos < d_uri.length(); ++pos) {
+            if (isalnum_fast(d_uri[pos])) {
+                continue;
+            }
+
+            switch (d_uri[pos]) {
+            case '-': BSLA_FALLTHROUGH;
+            case '_': {
+                continue;
+            }
+            case '.': {
+                if (pos + 1 < d_uri.length() && d_uri[pos + 1] == '~') {
+                    d_hasTier = true;
+                    *length   = pos - start;
+                    BMQT_VALIDATE_AND_RETURN(
+                        *length,
+                        UriParser::UriParseResult::e_MISSING_DOMAIN,
+                        errorDescription,
+                        "Missing domain");  // RETURN
+                }
+                continue;
+            }
+            case '/': {
+                // The end of the domain with no tier specified
+                *length = pos - start;
+                BMQT_VALIDATE_AND_RETURN(
+                    *length,
+                    UriParser::UriParseResult::e_MISSING_DOMAIN,
+                    errorDescription,
+                    "Missing domain");  // RETURN
+            }
+            default: {
+                BMQT_RETURN_WITH_ERROR(
+                    UriParser::UriParseResult::e_UNSUPPORTED_CHAR,
+                    errorDescription,
+                    "Domain parsing failed: unsupported char (int)"
+                        << static_cast<int>(d_uri[pos]));  // RETURN
+            }
+            }
+        }
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            // We tried to parse the domain from the position out of `d_uri`
+            // length.  Nothing to parse: empty domain.
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_DOMAIN,
+                                   errorDescription,
+                                   "Missing domain");  // RETURN
+        }
+
+        // If we are here, we have fully iterated over `d_uri` in the loop.
+        // We are sure that there is no tier or queue path after this,
+        // and we can fast-forward the error.
+        BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
+                               errorDescription,
+                               "Missing queue");  // RETURN
+    }
+
+    /// @brief Parse the tier part of the stored uri.
+    /// @param errorDescription optional output for error description.
+    /// @param length output tier length after parsing, if rc == 0.
+    /// @param start tier parse start position.
+    /// @return 0 return code on success, non-zero return code on failure.
+    inline int
+    parseTier(bsl::string* errorDescription, size_t* length, size_t start)
+    {
+        // bmq://my-domain.~development/queue?id=foo
+        //                  ^          ^
+        //                  start      (start + (*length))
+        // Allowed characters: [-a-zA-Z0-9]
+        for (size_t pos = start; pos < d_uri.length(); ++pos) {
+            if (isalnum_fast(d_uri[pos])) {
+                continue;
+            }
+
+            switch (d_uri[pos]) {
+            case '-': {
+                continue;
+            }
+            case '/': {
+                // The end of the tier
+                *length = pos - start;
+                BMQT_VALIDATE_AND_RETURN(
+                    *length,
+                    UriParser::UriParseResult::e_EMPTY_TIER,
+                    errorDescription,
+                    "Empty tier");  // RETURN
+            }
+            default: {
+                BMQT_RETURN_WITH_ERROR(
+                    UriParser::UriParseResult::e_UNSUPPORTED_CHAR,
+                    errorDescription,
+                    "Tier parsing failed: unsupported char (int)"
+                        << static_cast<int>(d_uri[pos]));  // RETURN
+            }
+            }
+        }
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            // We tried to parse the tier from the position out of `d_uri`
+            // length.  Nothing to parse: empty tier.
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_EMPTY_TIER,
+                                   errorDescription,
+                                   "Empty tier");  // RETURN
+        }
+
+        // If we are here, we have fully iterated over `d_uri` in the loop.
+        // We are sure that there is no queue path after this,
+        // and we can fast-forward the error.
+        BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
+                               errorDescription,
+                               "Missing queue");  // RETURN
+    }
+
+    /// @brief Parse the path part of the stored uri.
+    /// @param errorDescription optional output for error description.
+    /// @param length output path length after parsing, if rc == 0.
+    /// @param start path parse start position.
+    /// @return 0 return code on success, non-zero return code on failure.
+    /// NOTE: path might be followed by optional query, and we set `d_hasQuery`
+    ///       flag if we encounter it for later parsing.
+    inline int
+    parsePath(bsl::string* errorDescription, size_t* length, size_t start)
+    {
+        // bmq://my-domain.~dv/queue_abcdef?id=foo
+        //                     ^           ^
+        //                     start       (start + (*length))
+        // Allowed characters: [-a-zA-Z0-9_\\.]
+        for (size_t pos = start; pos < d_uri.length(); ++pos) {
+            if (isalnum_fast(d_uri[pos])) {
+                continue;
+            }
+
+            switch (d_uri[pos]) {
+            case '-': BSLA_FALLTHROUGH;
+            case '_': BSLA_FALLTHROUGH;
+            case '.': {
+                continue;
+            }
+            case '?': {
+                // The end of the path, and start of a query
+                d_hasQuery = true;
+                *length    = pos - start;
+                BMQT_VALIDATE_AND_RETURN(
+                    *length,
+                    UriParser::UriParseResult::e_MISSING_QUEUE,
+                    errorDescription,
+                    "Missing queue");  // RETURN
+            }
+            default: {
+                BMQT_RETURN_WITH_ERROR(
+                    UriParser::UriParseResult::e_UNSUPPORTED_CHAR,
+                    errorDescription,
+                    "Path parsing failed: unsupported char (int)"
+                        << static_cast<int>(d_uri[pos]));  // RETURN
+            }
+            }
+        }
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            // We tried to parse the path from the position out of `d_uri`
+            // length.  Nothing to parse: empty path.
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
+                                   errorDescription,
+                                   "Missing queue");  // RETURN
+        }
+
+        // If we are here, `d_uri` already ended.
+        // This is a valid scenario if there is no query.
+        *length = d_uri.length() - start;
+        return UriParser::UriParseResult::e_SUCCESS;
+    }
+
+    /// @brief Parse the query part of the stored uri.
+    /// @param errorDescription optional output for error description.
+    /// @param qtype output query type, if rc == 0.
+    /// @param value_start output query value start, if rc == 0.
+    /// @param value_length output query value length, if rc == 0.
+    /// @param start query parse start position.
+    /// @return 0 return code on success, non-zero return code on failure.
+    /// NOTE: currently we don't support multiple queries.
+    // Allowed characters:
+    //     key       = any
+    //     separator = [=]
+    //     value     = [-a-zA-Z0-9_\\.]
+    inline int parseQuery(bsl::string*     errorDescription,
+                          QueryType::Enum* qtype,
+                          size_t*          value_start,
+                          size_t*          value_length,
+                          size_t           start)
+    {
+        // bmq://my-domain.~dv/queue_abcdef?id=foo
+        //                                  ^     ^
+        //                                  start (start + (*length))
+
+        // Might re-set this flag if another query encountered during parsing
+        d_hasQuery = false;
+
+        // 1. Find query separator
+        size_t separatorPos = start;
+        for (; separatorPos < d_uri.length(); ++separatorPos) {
+            if (d_uri[separatorPos] == '=')
+                break;
+        }
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <=
+                                                  separatorPos + 1)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            if (d_uri.length() == separatorPos + 1) {
+                BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_BAD_QUERY,
+                                       errorDescription,
+                                       "Query parsing failed: missing value "
+                                       "after \"=\"");  // RETURN
+            }
+            else {
+                BMQT_RETURN_WITH_ERROR(
+                    UriParser::UriParseResult::e_BAD_QUERY,
+                    errorDescription,
+                    "Query parsing failed: no separator found");  // RETURN
+            }
+        }
+
+        // Currently we only support one query type "id".
+        // The following code can be generalized to check a known set of
+        // queries:
+        const bsl::string_view query = d_uri.substr(start,
+                                                    separatorPos - start);
+        if (query != k_QUERY_ID) {
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_BAD_QUERY,
+                                   errorDescription,
+                                   "Query parsing failed: unsupported query \""
+                                       << query << "\"");  // RETURN
+        }
+
+        for (size_t pos = separatorPos + 1; pos < d_uri.length(); ++pos) {
+            if (isalnum_fast(d_uri[pos])) {
+                continue;
+            }
+
+            // The following code can be generalized to support multiple
+            // queries by handling case '&' (set d_hasQuery = true)
+            switch (d_uri[pos]) {
+            case '-': BSLA_FALLTHROUGH;
+            case '_': BSLA_FALLTHROUGH;
+            case '.': {
+                continue;
+            }
+            default: {
+                BMQT_RETURN_WITH_ERROR(
+                    UriParser::UriParseResult::e_UNSUPPORTED_CHAR,
+                    errorDescription,
+                    "Query parsing failed: unsupported char (int)"
+                        << static_cast<int>(d_uri[pos]));  // RETURN
+            }
+            }
+        }
+
+        // If we are here, `d_uri` already ended.
+        // This is the only supported scenario now for a single query.
+        *qtype        = QueryType::e_ID;
+        *value_start  = separatorPos + 1;
+        *value_length = d_uri.length() - (*value_start);
+        return UriParser::UriParseResult::e_SUCCESS;
+    }
+
+    inline int validateResult(bsl::string*     errorDescription,
+                              const bmqt::Uri& result)
+    {
+        if (result.domain().isEmpty() || result.authority().isEmpty()) {
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_DOMAIN,
+                                   errorDescription,
+                                   "Missing domain");  // RETURN
+        }
+
+        if (hasTier() && result.tier().isEmpty()) {
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_EMPTY_TIER,
+                                   errorDescription,
+                                   "Empty tier");  // RETURN
+        }
+
+        if (result.path().isEmpty()) {
+            BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
+                                   errorDescription,
+                                   "Missing queue");  // RETURN
+        }
+
+        if (Uri::k_QUEUENAME_MAX_LENGTH < result.path().length()) {
+            BMQT_RETURN_WITH_ERROR(
+                UriParser::UriParseResult::e_QUEUE_NAME_TOO_LONG,
+                errorDescription,
+                "Queue name exceeds " << Uri::k_QUEUENAME_MAX_LENGTH
+                                      << " characters");  // RETURN
+        }
+
+        return UriParser::UriParseResult::e_SUCCESS;
+    }
+};
+
+#undef BMQT_VALIDATE_AND_RETURN
+#undef BMQT_RETURN_WITH_ERROR
+
 }  // close unnamed namespace
 
 // ---------
@@ -82,50 +438,37 @@ bslmt::QLock s_initLock = BSLMT_QLOCK_INITIALIZER;
 
 Uri::Uri(bslma::Allocator* allocator)
 : d_uri(allocator)
-, d_wasParserInitialized(false)
 {
     // NOTHING
 }
 
 Uri::Uri(const Uri& original, bslma::Allocator* allocator)
 : d_uri(allocator)
-, d_wasParserInitialized(false)
 {
     copyImpl(original);
 }
 
 Uri::Uri(const bslstl::StringRef& uri, bslma::Allocator* allocator)
 : d_uri(allocator)
-, d_wasParserInitialized(false)
 {
-    UriParser::initialize();
-    d_wasParserInitialized = true;
     UriParser::parse(this, 0, uri);
 }
 
 Uri::Uri(const char* uri, bslma::Allocator* allocator)
 : d_uri(allocator)
-, d_wasParserInitialized(false)
 {
-    UriParser::initialize();
-    d_wasParserInitialized = true;
     UriParser::parse(this, 0, uri);
 }
 
 Uri::Uri(const bsl::string& uri, bslma::Allocator* allocator)
 : d_uri(allocator)
-, d_wasParserInitialized(false)
 {
-    UriParser::initialize();
-    d_wasParserInitialized = true;
     UriParser::parse(this, 0, uri);
 }
 
 Uri::~Uri()
 {
-    if (d_wasParserInitialized) {
-        UriParser::shutdown();
-    }
+    // NOTHING
 }
 
 void Uri::reset()
@@ -186,214 +529,136 @@ Uri::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct UriParser
 // ----------------
 
-void UriParser::initialize(bslma::Allocator* allocator)
+void UriParser::initialize(BSLA_UNUSED bslma::Allocator* allocator)
 {
-    bslmt::QLockGuard qlockGuard(&s_initLock);
-
-    // NOTE: We pre-increment here instead of post-incrementing inside the
-    //       conditional check below because the post-increment of an int does
-    //       not work correctly with versions of IBM xlc12 released following
-    //       the 'Dec 2015 PTF'.
-    BSLS_ASSERT(s_initialized <
-                bsl::numeric_limits<bsls::Types::Int64>::max());
-    ++s_initialized;
-    if (s_initialized > 1) {
-        return;  // RETURN
-    }
-
-    const char k_PATTERN[] = "^bmq:\\/\\/"
-                             "(?P<authority>"
-                             "(?P<domain>[-a-zA-Z0-9\\._]*)"
-                             "(?P<tier>\\.~[-a-zA-Z0-9]*)?"
-                             ")/"
-                             "(?P<path>[-a-zA-Z0-9_\\.]*)"
-                             "(?P<q1>\\?(id=)[-a-zA-Z0-9_\\.]+)?$";
-    // NOTE: '~' in the authority is a reserved character, used by domain
-    //       resolver to insert the optional resolved tier (if the last segment
-    //       of a 'domain' starts by '~', this means it represents the tier and
-    //       was automatically added by the domain resolver).
-    // NOTE: we use '*' and not '+' for the authority and path parts so that
-    //       when parsing the URI, we can return more detailed error
-    //       (i.e. empty 'authority', instead of a generic regular expression
-    //       mismatch).
-
-    bsl::string error;
-    size_t      errorOffset;
-
-    new (s_regex.buffer())
-        bdlpcre::RegEx(bslma::Default::globalAllocator(allocator));
-    // Enable JIT compilation, unless running under MemorySanitizer.
-    // Low-level assembler instructions used by sljit causes sanitizer issues.
-    // See the internal ticket 177953779.
-    int regexOptions = bdlpcre::RegEx::k_FLAG_JIT;
-#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
-#if __has_feature(memory_sanitizer)
-    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
-#endif
-#elif defined(__SANITIZE_MEMORY__)  // GCC-supported macros for checking MSAN.
-    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
-#endif
-
-    int rc = s_regex.object().prepare(&error,
-                                      &errorOffset,
-                                      k_PATTERN,
-                                      regexOptions);
-    if (rc != 0) {
-        BALL_LOG_ERROR << "#URI_REGEXP "
-                       << "Failed to compile URI regular expression [error: '"
-                       << error << "', offset: " << errorOffset << "]";
-    }
-    BSLS_ASSERT_OPT(rc == 0 && "Failed to compile URI regular expression");
+    // NOTHING
 }
 
 void UriParser::shutdown()
 {
-    bslmt::QLockGuard qlockGuard(&s_initLock);
-
-    BSLS_ASSERT(s_initialized > 0);
-    if (--s_initialized != 0) {
-        return;  // RETURN
-    }
-
-    s_regex.object().~RegEx();
+    // NOTHING
 }
 
 int UriParser::parse(Uri*                     result,
                      bsl::string*             errorDescription,
                      const bslstl::StringRef& uriString)
 {
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS             = 0,
-        rc_INVALID_FORMAT      = -1,
-        rc_BAD_QUERY           = -2,
-        rc_MISSING_DOMAIN      = -3,
-        rc_MISSING_QUEUE       = -4,
-        rc_MISSING_TIER        = -5,
-        rc_QUEUE_NAME_TOO_LONG = -6
-    };
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
 
-    enum {
-        // Enum representing the index of the matching parts of the URI regexp
-        k_AUTHORITY_IDX = 1,
-        k_DOMAIN_IDX,
-        k_TIER_IDX,
-        k_PATH_IDX,
-        k_Q1_IDX
-    };
+#define BMQT_RETURN_ON_BAD_RC(RC, RES)                                        \
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(                                \
+            UriParser::UriParseResult::e_SUCCESS != (RC))) {                  \
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;                                   \
+        (RES)->reset();                                                       \
+        return (RC);                                                          \
+    }
 
-    BSLS_ASSERT_SAFE(s_regex.object().isPrepared() &&
-                     "'initialize' was not called");
-
-    bdlma::LocalSequentialAllocator<2048> localAllocator(
-        bslma::Default::allocator());
+    UriParsingContext ctx(uriString);
 
     result->reset();
     result->d_uri.assign(uriString.data(), uriString.length());
 
-    // RegExp matching
-    // ---------------
-    bsl::vector<bsl::pair<size_t, size_t> > matches(&localAllocator);
-
-    int rc = s_regex.object().match(&matches,
-                                    result->d_uri.data(),
-                                    result->d_uri.length());
-    if (rc != 0) {
-        if (errorDescription) {
-            bmqu::MemOutStream os(&localAllocator);
-            os << "invalid format (" << rc << ")";
-            errorDescription->assign(os.str().data(), os.str().length());
-        }
-        result->reset();
-        return rc_INVALID_FORMAT;  // RETURN
-    }
+    // Step 1: verify BlazingMQ uri scheme
+    // bmq://my-domain.~dv/queue_abcdef?id=foo
+    //[bmq]    - scheme
+    //[bmq://] - scheme with separator
+    int rc = ctx.validateScheme(errorDescription);
+    BMQT_RETURN_ON_BAD_RC(rc, result);
 
     result->d_scheme.assign(k_SCHEME);
 
-    // Populate from captured groups
-    // -----------------------------
-    typedef bsl::pair<size_t, size_t> RegExpCapture;
+    // Step 2: parse domain
+    // bmq://my-domain.~dv/queue_abcdef?id=foo
+    //       ^
+    //       domainStart = k_SCHEME_SEPARATED.length()
+    // The current parse position: skip the scheme we just verified.
+    const size_t domainStart  = k_SCHEME_SEPARATED.length();
+    size_t       domainLength = 0;
+    rc = ctx.parseDomain(errorDescription, &domainLength, domainStart);
+    BMQT_RETURN_ON_BAD_RC(rc, result);
 
-    // Authority
-    const RegExpCapture& capturedAuthority = matches[k_AUTHORITY_IDX];
-    result->d_authority.assign(result->d_uri.data() + capturedAuthority.first,
-                               capturedAuthority.second);
+    result->d_domain.assign(result->d_uri.data() + domainStart, domainLength);
 
-    // Domain
-    const RegExpCapture& capturedDomain = matches[k_DOMAIN_IDX];
-    result->d_domain.assign(result->d_uri.data() + capturedDomain.first,
-                            capturedDomain.second);
+    // Step 3: parse tier (optional)
+    // bmq://my-domain.~dv/queue_abcdef?id=foo
+    //                 [dv] - tier
+    if (ctx.hasTier()) {
+        // Do not include ".~" in tier (+2):
+        const size_t tierStart  = domainStart + domainLength + 2;
+        size_t       tierLength = 0;
+        rc = ctx.parseTier(errorDescription, &tierLength, tierStart);
+        BMQT_RETURN_ON_BAD_RC(rc, result);
 
-    // Tier
-    const RegExpCapture& capturedTier = matches[k_TIER_IDX];
-    if (capturedTier.second != 0) {
-        // Dropping the .~ prefix from the tier
-        result->d_tier.assign(result->d_uri.data() + capturedTier.first + 2,
-                              capturedTier.second - 2);
+        result->d_tier.assign(result->d_uri.data() + tierStart, tierLength);
     }
 
-    // Path
-    const RegExpCapture& capturedPath = matches[k_PATH_IDX];
-    result->d_path.assign(result->d_uri.data() + capturedPath.first,
-                          capturedPath.second);
+    // Step 4: set up authority
+    // bmq://my-domain.~dv/queue_abcdef?id=foo
+    //      [my-domain.~dv] - authority
+    // Note that we include both domain and optional tier continuously:
+    // tier separator ".~" is also included (+2).
+    const size_t authorityLength =
+        domainLength + (ctx.hasTier() ? (2 + result->d_tier.length()) : 0);
+    result->d_authority.assign(result->d_uri.data() + domainStart,
+                               authorityLength);
 
-    // Query
-    const RegExpCapture& query1 = matches[k_Q1_IDX];
-    if (query1.second > 0) {
-        // Query1 is present
-        bslstl::StringRef q1(result->d_uri.data() + query1.first + 1,
-                             query1.second - 1);  // + -1 to skip '?'
+    // Step 5: parse path
+    // bmq://my-domain.~dv/queue_abcdef?id=foo
+    //                    [queue_abcdef] - path
+    // Skip "/" separator (+1) between authority and path:
+    const size_t pathStart  = domainStart + authorityLength + 1;
+    size_t       pathLength = 0;
+    rc = ctx.parsePath(errorDescription, &pathLength, pathStart);
+    BMQT_RETURN_ON_BAD_RC(rc, result);
 
-        if (0 == bsl::strncmp(q1.data(), k_QUERY_ID, k_QUERY_ID_LENGTH)) {
-            result->d_query_id.assign(q1.data() + k_QUERY_ID_LENGTH + 1,
-                                      q1.length() - k_QUERY_ID_LENGTH - 1);
-            // +1 -1 to skip '='
+    result->d_path.assign(result->d_uri.data() + pathStart, pathLength);
+
+    // Step 6: parse optional queries
+    // bmq://my-domain.~dv/queue_abcdef?id=foo
+    //                                 [id=foo] - query
+    //                                 [id]     - query key
+    //                                    [foo] - query value
+    size_t pos = pathStart + pathLength + 1;
+    while (ctx.hasQuery()) {
+        UriParsingContext::QueryType::Enum qtype =
+            UriParsingContext::QueryType::e_ID;
+        size_t value_start  = 0;
+        size_t value_length = 0;
+
+        rc = ctx.parseQuery(errorDescription,
+                            &qtype,
+                            &value_start,
+                            &value_length,
+                            pos);
+        BMQT_RETURN_ON_BAD_RC(rc, result);
+
+        switch (qtype) {
+        case UriParsingContext::QueryType::e_ID: {
+            result->d_query_id.assign(result->d_uri.data() + value_start,
+                                      value_length);
+        } break;
+
+        default: {
+            BSLS_ASSERT_OPT(false && "Unsupported value");
+        } break;
         }
-        else {
-            if (errorDescription) {
-                *errorDescription = "bad query";
-            }
-            result->reset();
-            return rc_BAD_QUERY;  // RETURN
-        }
+
+        // Skip next query separator '&' (+1):
+        pos = value_start + value_length + 1;
+
+        // Currently we guarantee that there is at most one query.
+        // The following check might be removed if we support multiple.
+        BSLS_ASSERT_SAFE(uriString.length() <= pos);
     }
 
-    // Validate mandatory fields
-    // -------------------------
-    if (result->d_authority.isEmpty()) {
-        if (errorDescription) {
-            *errorDescription = "missing domain";
-        }
-        result->reset();
-        return rc_MISSING_DOMAIN;  // RETURN
-    }
+    // Step 7: validate mandatory fields
+    rc = ctx.validateResult(errorDescription, *result);
+    BMQT_RETURN_ON_BAD_RC(rc, result);
 
-    if (capturedTier.second > 0 && result->d_tier.isEmpty()) {
-        if (errorDescription) {
-            *errorDescription = "missing tier";
-        }
-        result->reset();
-        return rc_MISSING_TIER;  // RETURN
-    }
+#undef BMQT_RETURN_ON_BAD_RC
 
-    if (result->d_path.isEmpty()) {
-        if (errorDescription) {
-            *errorDescription = "missing queue";
-        }
-        result->reset();
-        return rc_MISSING_QUEUE;  // RETURN
-    }
-
-    if (result->d_path.length() > Uri::k_QUEUENAME_MAX_LENGTH) {
-        if (errorDescription) {
-            *errorDescription = "queue name exceeds 64 characters";
-        }
-        result->reset();
-        return rc_QUEUE_NAME_TOO_LONG;
-    }
-
-    // Success
-    return rc_SUCCESS;
+    return bmqt::UriParser::UriParseResult::e_SUCCESS;
 }
 
 // ----------------
