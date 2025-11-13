@@ -809,6 +809,7 @@ void ClusterState::DomainState::adjustQueueCount(int by)
 
 void ClusterState::DomainState::adjustOpenedQueueCount(int by)
 {
+    // Executed by the CLUSTER dispatcher thread
     d_numOpenedQueues += by;
 
     if (d_domain_p != 0) {
