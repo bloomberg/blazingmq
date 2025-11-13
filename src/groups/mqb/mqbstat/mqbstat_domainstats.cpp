@@ -79,6 +79,9 @@ bsls::Types::Int64 DomainStats::getValue(const bmqst::StatContext& context,
     case Stat::e_QUEUE_COUNT: {
         return STAT_RANGE(rangeMax, DomainStatsIndex::e_STAT_QUEUE_COUNT);
     }
+    case Stat::e_QUEUE_COUNT_OPEN: {
+        return STAT_RANGE(rangeMax, DomainStatsIndex::e_STAT_QUEUE_COUNT_OPEN);
+    }
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown Stat");
     }
@@ -151,7 +154,8 @@ DomainStatsUtil::initializeStatContext(int               historySize,
         .storeExpiredSubcontextValues(true)
         .value("cfg_msgs")
         .value("cfg_bytes")
-        .value("queue_count");
+        .value("queue_count")
+        .value("queue_count_open");
 
     return bsl::shared_ptr<bmqst::StatContext>(
         new (*allocator) bmqst::StatContext(config, allocator),

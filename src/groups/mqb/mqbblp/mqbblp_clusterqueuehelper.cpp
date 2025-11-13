@@ -46,6 +46,7 @@
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
 #include <mqbnet_cluster.h>
+#include <mqbstat_domainstats.h>
 #include <mqbu_exit.h>
 
 // BMQ
@@ -1031,10 +1032,16 @@ void ClusterQueueHelper::processOpenQueueRequest(
             openQueueResp.originalRequest().handleParameters().qId() =
                 bmqp::QueueId::k_PRIMARY_QUEUE_ID;
 
-            createQueue(context,
-                        openQueueResp,
-                        0);  // upstream == self == null
-                             // We ignore rc of 'createQueue'.
+            bool rc = createQueue(context,
+                                  openQueueResp,
+                                  0);  // upstream == self == null
+
+            if (rc) {
+                mqbc::ClusterState::DomainState& domState =
+                    d_clusterState_p->getDomainState(
+                        context->d_domain_p->name());
+                domState.adjustOpenedQueueCount(1);
+            }
         }
         else {
             // We are a replica for the queue, make sure it has a unique
@@ -4066,6 +4073,11 @@ void ClusterQueueHelper::removeQueue(const QueueContextMapIter& it)
     BSLS_ASSERT_SAFE(0 ==
                      queueContextSp->d_liveQInfo.d_queueExpirationTimestampMs);
 
+    mqbc::ClusterState::DomainState& domState =
+        d_clusterState_p->getDomainState(
+            queueContextSp->d_liveQInfo.d_queue_sp->domain()->name());
+    domState.adjustOpenedQueueCount(-1);
+
     if (!d_cluster_p->isStopping()) {
         if (!queueContextSp->d_liveQInfo.d_pending.empty() ||
             (0 < queueContextSp->d_liveQInfo.d_inFlight)) {
@@ -4472,9 +4484,9 @@ void ClusterQueueHelper::onQueueUpdated(
     QueueContextMapIter qiter = d_queues.find(uri);
     BSLS_ASSERT_SAFE(qiter != d_queues.end());
 
-    QueueContext&  queueContext = *qiter->second;
-    mqbi::Queue*   queue        = queueContext.d_liveQInfo.d_queue_sp.get();
-    const int      partitionId  = queueContext.partitionId();
+    QueueContext& queueContext = *qiter->second;
+    mqbi::Queue*  queue        = queueContext.d_liveQInfo.d_queue_sp.get();
+    const int     partitionId  = queueContext.partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
 
     if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {

@@ -445,6 +445,7 @@ class ClusterState {
       private:
         // DATA
         int               d_numAssignedQueues;
+        int               d_numOpenedQueues;
         mqbi::Domain*     d_domain_p;
         UriToQueueInfoMap d_queuesInfo;
 
@@ -473,8 +474,13 @@ class ClusterState {
         /// context.
         void adjustQueueCount(int by);
 
+        /// Adjust number of opened queues, and update domain stat
+        /// context.
+        void adjustOpenedQueueCount(int by);
+
         // ACCESSORS
         int                 numAssignedQueues() const;
+        int                 numOpenedQueues() const;
         const mqbi::Domain* domain() const;
 
         /// Return the value of the corresponding member of this object.
@@ -561,14 +567,6 @@ class ClusterState {
     /// TODO (FSM); remove after switching to FSM
     Assignments d_doubleAssignments;
 
-    // PRIVATE MANIPULATORS
-
-    /// Look for the specified `domain` in the internal `DomainStates` object.
-    /// If it's not found, create a `DomainState` object for the specified
-    /// `domain` and insert it to the internal container. Return a modifiable
-    /// reference to the previously inserted or found `DomainState`.
-    DomainState& getDomainState(const bsl::string& domain);
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterState, bslma::UsesBslmaAllocator)
@@ -589,6 +587,12 @@ class ClusterState {
 
     /// Get a modifiable reference to this object's domain states.
     DomainStates& domainStates();
+
+    /// Look for the specified `domain` in the internal `DomainStates` object.
+    /// If it's not found, create a `DomainState` object for the specified
+    /// `domain` and insert it to the internal container. Return a modifiable
+    /// reference to the previously inserted or found `DomainState`.
+    DomainState& getDomainState(const bsl::string& domain);
 
     /// Get a modifiable reference to this object's queue keys.
     QueueKeys& queueKeys();
@@ -1203,6 +1207,7 @@ ClusterState::getAssignedOrUnassigning(const bmqt::Uri& uri) const
 // CREATORS
 inline ClusterState::DomainState::DomainState(bslma::Allocator* allocator)
 : d_numAssignedQueues(0)
+, d_numOpenedQueues(0)
 , d_domain_p(0)
 , d_queuesInfo(allocator)
 {
@@ -1229,6 +1234,11 @@ inline void ClusterState::DomainState::setDomain(mqbi::Domain* domain)
 inline int ClusterState::DomainState::numAssignedQueues() const
 {
     return d_numAssignedQueues;
+}
+
+inline int ClusterState::DomainState::numOpenedQueues() const
+{
+    return d_numOpenedQueues;
 }
 
 inline const mqbi::Domain* ClusterState::DomainState::domain() const

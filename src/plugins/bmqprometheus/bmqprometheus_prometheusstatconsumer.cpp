@@ -807,6 +807,7 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
             {"domain_cfg_msgs", Stat::e_CFG_MSGS},
             {"domain_cfg_bytes", Stat::e_CFG_BYTES},
             {"domain_queue_count", Stat::e_QUEUE_COUNT},
+            {"domain_queue_count_open", Stat::e_QUEUE_COUNT_OPEN},
         };
 
         for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
