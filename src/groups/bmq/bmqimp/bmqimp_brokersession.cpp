@@ -3611,7 +3611,9 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
             msgIterator,
             "bmq.message.push",
             baggage);
-        d_consumerSpans[guid] = span;
+        if (span) {
+            d_consumerSpans[guid] = span;
+        }
     }
 
     // Update event stats
@@ -5623,7 +5625,7 @@ BrokerSession::BrokerSession(
 , d_usingSessionEventHandler(eventHandlerCb)  // UnspecifiedBool operator ...
 , d_messageCorrelationIdContainer(
       d_allocators.get("messageCorrelationIdContainer"))
-, d_consumerSpans(d_allocators.get("consumerSpans"))
+, d_consumerSpans(allocator)
 , d_fsmThread(bslmt::ThreadUtil::invalidHandle())
 , d_fsmThreadChecker()
 , d_fsmEventQueue(k_FSMQUEUE_INITIAL_CAPACITY,
@@ -7108,25 +7110,19 @@ bslma::ManagedPtr<void> BrokerSession::restoreDTPropertyAndActivateChildSpan(
         return bslma::ManagedPtr<void>();  // RETURN
     }
 
-    bmqp::MessageProperties properties;
-    int                     rc = iterator.loadMessageProperties(&properties);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << id()
-                       << "Unable to load message properties, rc: " << rc
-                       << "";
-        return bslma::ManagedPtr<void>();  // RETURN
-    }
-
     // If we fail at any step, create a span without parent
     bsl::shared_ptr<bmqpi::DTSpan> childSpan;
     bsl::vector<unsigned char>     vecUnsignedChar;
 
-    if (!properties.hasProperty(
-            bmqp::MessageProperties::k_TRACE_PROPERTY_NAME)) {
-        BALL_LOG_INFO
-            << "Not restoring distributed trace from message properties. No "
-               "distributed trace in message properties.";
+    bmqp::MessageProperties properties;
+    const int               rc = iterator.loadMessageProperties(&properties);
+    if (rc != 0 || !properties.hasProperty(
+                       bmqp::MessageProperties::k_TRACE_PROPERTY_NAME)) {
+        // If we fail to load message properties or the property
+        // is not present, create a span without parent
+        childSpan = tracer->createChildSpan(bsl::shared_ptr<bmqpi::DTSpan>(),
+                                            operation,
+                                            baggage);
     }
     else {
         const bsl::vector<char>& vecChar = properties.getPropertyAsBinary(
@@ -7134,12 +7130,12 @@ bslma::ManagedPtr<void> BrokerSession::restoreDTPropertyAndActivateChildSpan(
 
         vecUnsignedChar.resize(vecChar.size());
         bsl::copy(vecChar.begin(), vecChar.end(), vecUnsignedChar.begin());
-    }
 
-    tracer->deserializeAndCreateChildSpan(&childSpan,
-                                          vecUnsignedChar,
-                                          operation,
-                                          baggage);
+        tracer->deserializeAndCreateChildSpan(&childSpan,
+                                              vecUnsignedChar,
+                                              operation,
+                                              baggage);
+    }
 
     // scope on the childSpan if we can successfully create one
     return context->scope(childSpan);

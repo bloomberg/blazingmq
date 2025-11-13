@@ -256,10 +256,9 @@
 
 #include <bmqa_message.h>
 #include <bmqa_messageevent.h>
-#include <bmqp_puteventbuilder.h>
+#include <bmqp_messageproperties.h>
 #include <bmqpi_dtcontext.h>
 #include <bmqpi_dttracer.h>
-#include <bmqt_resultcode.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -272,6 +271,8 @@ class QueueId;
 }
 namespace bmqp {
 class MessageGUIDGenerator;
+class PutEventBuilder;
+class MessageProperties;
 }
 
 namespace bmqa {
@@ -316,6 +317,7 @@ struct MessageEventBuilderImpl {
     /// Distributed tracing tracer object.
     bsl::shared_ptr<bmqpi::DTTracer> d_dtTracer_sp;
 
+    /// Distributed tracing context object.
     bsl::shared_ptr<bmqpi::DTContext> d_dtContext_sp;
 };
 
@@ -390,7 +392,7 @@ class MessageEventBuilder {
   private:
     // ACCESSORS
 
-    /// Create a distributed tracing span and inject it into message
+    /// Create a child distributed tracing span and inject it into the message
     /// properties.  Load into the specified `properties` a copy of the
     /// message properties from the specified `builder` with the trace
     /// context injected, and load into the specified `span` the created

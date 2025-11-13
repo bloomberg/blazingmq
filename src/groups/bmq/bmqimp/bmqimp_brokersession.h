@@ -1495,8 +1495,8 @@ class BrokerSession BSLS_CPP11_FINAL {
                      bmqpi::DTSpan::Baggage()) const;
 
     /// Restore the DTContext from the properties of the given `iterator` and
-    /// create a child span based on the current span. Return a managed pointer
-    /// to the current span which might be NULL.
+    /// create a child span based on the current span.  Return a managed
+    /// pointer to the current span which might be NULL.
     bslma::ManagedPtr<void> restoreDTPropertyAndActivateChildSpan(
         const bmqp::PushMessageIterator& iterator,
         const bsl::string_view&          operation,

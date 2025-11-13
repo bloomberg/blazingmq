@@ -33,9 +33,7 @@
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
-#include <bsls_nullptr.h>
 #include <bsls_performancehint.h>
-#include <bslstl_sharedptr.h>
 
 namespace BloombergLP {
 namespace bmqa {
@@ -154,9 +152,9 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
     // If distributed tracing is enabled, create a span and inject trace
     // span into message properties
     bsl::shared_ptr<bmqp::MessageProperties> propsWithDT;
-    bsl::shared_ptr<bmqpi::DTSpan>           span;
+    bsl::shared_ptr<bmqpi::DTSpan>           childSpan;
     if (d_impl.d_dtTracer_sp && d_impl.d_dtContext_sp) {
-        copyPropertiesAndInjectDT(&propsWithDT, &span, builder, queueId);
+        copyPropertiesAndInjectDT(&propsWithDT, &childSpan, builder, queueId);
     }
 
     if (queueSpRef->isOldStyle()) {
@@ -182,7 +180,10 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
         }
 
         // Add message related info into the event on success.
-        msgImplRef.d_event_p->addMessageInfo(queueSpRef, guid, corrId, span);
+        msgImplRef.d_event_p->addMessageInfo(queueSpRef,
+                                             guid,
+                                             corrId,
+                                             childSpan);
     }
 
     return rc;
@@ -305,9 +306,8 @@ void MessageEventBuilder::copyPropertiesAndInjectDT(
     bsl::vector<unsigned char> serializedSpan;
     int rc = d_impl.d_dtTracer_sp->serializeSpan(&serializedSpan, childSpan);
     if (rc != 0) {
-        BALL_LOG_WARN << "Failed to serialize span for trace context "
-                      << "injection, rc: " << rc;
-        childSpan->finish();
+        BALL_LOG_WARN
+            << "Failed to serialize span for trace span injection, rc: " << rc;
         return;  // RETURN
     }
 
@@ -318,9 +318,9 @@ void MessageEventBuilder::copyPropertiesAndInjectDT(
         bmqp::MessageProperties::k_TRACE_PROPERTY_NAME,
         traceSpanData);
     if (rc != 0) {
-        BALL_LOG_WARN << "Failed to inject trace span into "
-                      << "message properties, rc: " << rc;
-        childSpan->finish();
+        BALL_LOG_WARN
+            << "Failed to inject trace span into message properties, rc: "
+            << rc;
         return;  // RETURN
     }
 
