@@ -175,6 +175,69 @@ class ClusterStats {
     };
 
   private:
+    // FRIENDS
+    friend class PartitionStats;
+
+    // PRIVATE TYPES
+
+    /// Namespace for the constants of stat values that applies to the
+    /// partition.
+    struct ClusterStatsIndex {
+        enum Enum {
+            // Cluster stats
+
+            /// Value: Health status of cluster, 1 implies healthy and 2
+            ///        implies un-healthy.
+            e_CLUSTER_STATUS = 0,
+            /// Value: Leader status of cluster, non-zero (1) implies leader
+            ///        and 0 implies follower.
+            e_LEADER_STATUS,
+            /// Value: Time in nanoseconds it took for replication of a new
+            ///        entry in CSL file.
+            e_CSL_REPLICATION_TIME_NS,
+            /// Value: Last observed offset bytes in the newest log of the CSL.
+            e_CSL_LOG_OFFSET_BYTES,
+            /// Value: Bytes written to the CSL file.
+            e_CSL_WRITE_BYTES,
+            /// Value: Configured maximum size of the CSL file.
+            e_CSL_CFG_BYTES,
+            /// Value: Configured size of partitions' data file.
+            e_PARTITION_CFG_DATA_BYTES,
+            /// Value: Configured size of partitions' journal file.
+            e_PARTITION_CFG_JOURNAL_BYTES,
+
+            // Per partition stats
+
+            /// Value: The primary status of the partition, from the
+            ///        'PrimaryStatus::Enum' values.
+            e_PRIMARY_STATUS,
+            /// Value: Nanoseconds time it took for rolling over the partition.
+            e_PARTITION_ROLLOVER_TIME,
+            /// Value: Outstanding bytes in the data file of the partition.
+            e_PARTITION_DATA_BYTES,
+            /// Value: Outstanding bytes in the journal file of the partition.
+            e_PARTITION_JOURNAL_BYTES,
+            /// Value: Offset bytes in the data file of the partition.
+            e_PARTITION_DATA_OFFSET_BYTES,
+            /// Value: Offset bytes in the journal file of the partition.
+            e_PARTITION_JOURNAL_OFFSET_BYTES,
+            /// Value: The latest sequence number observed for the partition.
+            e_PARTITION_SEQUENCE_NUMBER,
+            /// Value: Time in nanoseconds it took for replication of a new
+            /// entry in journal file.
+            e_PARTITION_REPLICATION_TIME_NS
+        };
+    };
+
+    /// Namespace for the constants of stat values that applies to the queues
+    /// from the clients
+    struct ClusterStatus {
+        enum Enum {
+            e_CLUSTER_STATUS_HEALTHY   = 1,
+            e_CLUSTER_STATUS_UNHEALTHY = 2
+        };
+    };
+
     // DATA
 
     /// StatContext for the cluster
@@ -471,6 +534,38 @@ struct ClusterStatsUtil {
 // class ClusterStats
 // ------------------
 
+inline void ClusterStats::setHealthStatus(bool value)
+{
+    d_statContext_mp->setValue(
+        ClusterStatsIndex::e_CLUSTER_STATUS,
+        value ? ClusterStatus::e_CLUSTER_STATUS_HEALTHY
+              : ClusterStatus::e_CLUSTER_STATUS_UNHEALTHY);
+}
+
+inline void ClusterStats::setIsLeader(LeaderStatus::Enum value)
+{
+    d_statContext_mp->setValue(ClusterStatsIndex::e_LEADER_STATUS, value);
+}
+
+inline void ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
+{
+    d_statContext_mp->reportValue(ClusterStatsIndex::e_CSL_REPLICATION_TIME_NS,
+                                  value);
+}
+
+inline void ClusterStats::setCslOffsetBytes(bsls::Types::Int64 value)
+{
+    d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_LOG_OFFSET_BYTES,
+                               value);
+}
+
+inline void ClusterStats::addCslOffsetBytes(bsls::Types::Int64 delta)
+{
+    d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_WRITE_BYTES, delta);
+    d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_LOG_OFFSET_BYTES,
+                                  delta);
+}
+
 inline bmqst::StatContext* ClusterStats::statContext()
 {
     return d_statContext_mp.get();
@@ -479,6 +574,51 @@ inline bmqst::StatContext* ClusterStats::statContext()
 // --------------------
 // class PartitionStats
 // --------------------
+
+inline void PartitionStats::setRoloverTime(bsls::Types::Int64 value)
+{
+    d_statContext_sp->reportValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_ROLLOVER_TIME,
+        value);
+}
+
+inline void PartitionStats::setReplicationTime(bsls::Types::Int64 value)
+{
+    d_statContext_sp->reportValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_REPLICATION_TIME_NS,
+        value);
+}
+
+inline void PartitionStats::setNodeRole(PrimaryStatus::Enum value)
+{
+    d_statContext_sp->setValue(
+        ClusterStats::ClusterStatsIndex::e_PRIMARY_STATUS,
+        value);
+}
+
+inline void
+PartitionStats::setPartitionBytes(bsls::Types::Uint64 outstandingDataBytes,
+                                  bsls::Types::Uint64 outstandingJournalBytes,
+                                  bsls::Types::Uint64 offsetDataBytes,
+                                  bsls::Types::Uint64 offsetJournalBytes,
+                                  bsls::Types::Uint64 sequenceNumber)
+{
+    d_statContext_sp->reportValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_DATA_BYTES,
+        static_cast<bsls::Types::Int64>(outstandingDataBytes));
+    d_statContext_sp->reportValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_JOURNAL_BYTES,
+        static_cast<bsls::Types::Int64>(outstandingJournalBytes));
+    d_statContext_sp->setValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_DATA_OFFSET_BYTES,
+        static_cast<bsls::Types::Int64>(offsetDataBytes));
+    d_statContext_sp->setValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_JOURNAL_OFFSET_BYTES,
+        static_cast<bsls::Types::Int64>(offsetJournalBytes));
+    d_statContext_sp->setValue(
+        ClusterStats::ClusterStatsIndex::e_PARTITION_SEQUENCE_NUMBER,
+        static_cast<bsls::Types::Int64>(sequenceNumber));
+}
 
 inline bmqst::StatContext* PartitionStats::statContext()
 {
