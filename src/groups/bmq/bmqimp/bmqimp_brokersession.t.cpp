@@ -10211,7 +10211,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqsys::Time::initialize();
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
@@ -10293,12 +10292,9 @@ int main(int argc, char* argv[])
     }
 
     bmqsys::Time::shutdown();
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // Global:  The global allocator is used to initialize the
-    //          bmqt::URIParser RegEx.
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
     //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
     //          generates a unique name using an ostringstream, hence the

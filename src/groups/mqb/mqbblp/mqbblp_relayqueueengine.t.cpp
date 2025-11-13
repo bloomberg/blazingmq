@@ -1915,7 +1915,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
-        bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
@@ -1956,7 +1955,6 @@ int main(int argc, char* argv[])
         }
 
         bmqp::ProtocolUtil::shutdown();
-        bmqt::UriParser::shutdown();
     }
 
     // Default allocator check is disabled for all UTs:
