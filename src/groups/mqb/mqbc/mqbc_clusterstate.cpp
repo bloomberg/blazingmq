@@ -798,6 +798,7 @@ void ClusterState::iterateDoubleAssignments(
 
 void ClusterState::DomainState::adjustQueueCount(int by)
 {
+    // executed by the cluster *DISPATCHER* thread
     d_numAssignedQueues += by;
 
     if (d_domain_p != 0) {
@@ -809,7 +810,7 @@ void ClusterState::DomainState::adjustQueueCount(int by)
 
 void ClusterState::DomainState::adjustOpenedQueueCount(int by)
 {
-    // Executed by the CLUSTER dispatcher thread
+    // executed by the cluster *DISPATCHER* thread
     d_numOpenedQueues += by;
 
     if (d_domain_p != 0) {
