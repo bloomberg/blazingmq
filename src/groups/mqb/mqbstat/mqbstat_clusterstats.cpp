@@ -289,7 +289,7 @@ bsl::shared_ptr<PartitionStats>
 ClusterStats::getPartitionStats(int partitionId) const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(partitionId >= 0 &&
+    BSLS_ASSERT_OPT(0 <= partitionId &&
                     partitionId < static_cast<int>(d_partitionsStats.size()));
     const bsl::shared_ptr<PartitionStats>& partitionStats_sp =
         d_partitionsStats[partitionId];
