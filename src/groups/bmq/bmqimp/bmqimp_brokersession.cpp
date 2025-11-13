@@ -123,6 +123,8 @@ const int k_NON_BUFFERED_REQUEST_GROUP_ID = 0;
 const char k_ENQUEUE_ERROR_TEXT[] = "Failed to process the operation, the"
                                     " session is already being destroyed";
 
+const char k_TRACE_PROPERTY_NAME[] = "bmq.traceparent";
+
 /// Create an `Event` object at the specified `address` using the supplied
 /// `allocator`.  This is used by the ObjectPool.
 void poolCreateEvent(void*                     address,
@@ -3461,6 +3463,10 @@ void BrokerSession::processConfirmEvent(const bmqp::Event& event)
     int msgCount = 0;
     while ((rc = confirmIter.next()) == 1) {
         ++msgCount;
+
+        // Remove and finish the span for the message
+        const bmqt::MessageGUID& guid = confirmIter.message().messageGUID();
+        d_consumerSpans.erase(guid);
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
@@ -3592,6 +3598,17 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
             // Add to event queue
             d_eventQueue.pushBack(queueEvent);
         }
+    }
+
+    // Add Distributed Trace spans for the messages in the event
+    while (msgIterator.next()) {
+        const bmqt::MessageGUID& guid = msgIterator.header().messageGUID();
+
+        // Create ONE span per message and store it by GUID
+        bslma::ManagedPtr<void> span = restoreDTPropertyAndActivateChildSpan(
+            msgIterator,
+            "bmq.message.push");
+        d_consumerSpans[guid] = span;
     }
 
     // Update event stats
@@ -5603,6 +5620,7 @@ BrokerSession::BrokerSession(
 , d_usingSessionEventHandler(eventHandlerCb)  // UnspecifiedBool operator ...
 , d_messageCorrelationIdContainer(
       d_allocators.get("messageCorrelationIdContainer"))
+, d_consumerSpans(d_allocators.get("consumerSpans"))
 , d_fsmThread(bslmt::ThreadUtil::invalidHandle())
 , d_fsmThreadChecker()
 , d_fsmEventQueue(k_FSMQUEUE_INITIAL_CAPACITY,
@@ -7067,6 +7085,60 @@ BrokerSession::createDTSpan(bsl::string_view              operation,
         result = tracer->createChildSpan(parent, operation, baggage);
     }
     return result;
+}
+
+bslma::ManagedPtr<void> BrokerSession::restoreDTPropertyAndActivateChildSpan(
+    const bmqp::PushMessageIterator& iterator,
+    const bsl::string_view&          operation,
+    const bmqpi::DTSpan::Baggage&    baggage) const
+{
+    // If we pass all the checks and create a GUTS child span, return a
+    // managed pointer that points to a span scope which will be released upon
+    // the message confirm, otherwise return an empty managed pointer which
+    // just to satisfy the type and doesn't do anything.
+
+    const bsl::shared_ptr<bmqpi::DTTracer>& tracer = d_sessionOptions.tracer();
+    const bsl::shared_ptr<bmqpi::DTContext>& context =
+        d_sessionOptions.traceContext();
+
+    if (!tracer || !context) {
+        return bslma::ManagedPtr<void>();  // RETURN
+    }
+
+    bmqp::MessageProperties properties;
+    int                     rc = iterator.loadMessageProperties(&properties);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR << id()
+                       << "Unable to load message properties, rc: " << rc
+                       << "";
+        return bslma::ManagedPtr<void>();  // RETURN
+    }
+
+    // If we fail at any step, create a span without parent
+    bsl::shared_ptr<bmqpi::DTSpan> childSpan;
+    bsl::vector<unsigned char>     vecUnsignedChar;
+
+    if (!properties.hasProperty(k_TRACE_PROPERTY_NAME)) {
+        BALL_LOG_INFO
+            << "Not restoring distributed trace from message properties. No "
+               "distributed trace in message properties.";
+    }
+    else {
+        const bsl::vector<char>& vecChar = properties.getPropertyAsBinary(
+            k_TRACE_PROPERTY_NAME);
+
+        vecUnsignedChar.resize(vecChar.size());
+        bsl::copy(vecChar.begin(), vecChar.end(), vecUnsignedChar.begin());
+    }
+
+    tracer->deserializeAndCreateChildSpan(&childSpan,
+                                          vecUnsignedChar,
+                                          operation,
+                                          baggage);
+
+    // scope on the childSpan if we can successfully create one
+    return context->scope(childSpan);
 }
 
 int BrokerSession::post(const bdlbb::Blob&        eventBlob,
