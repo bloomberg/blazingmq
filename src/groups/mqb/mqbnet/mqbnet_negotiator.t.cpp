@@ -56,20 +56,19 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    int createSessionOnMsgType(
-        bsl::ostream&                                      errorDescription,
-        bsl::shared_ptr<mqbnet::Session>*                  session,
-        bool*                                              isContinueRead,
-        const bsl::shared_ptr<mqbnet::NegotiationContext>& context)
+    int createSessionOnMsgType(bsl::ostream& errorDescription,
+                               bsl::shared_ptr<mqbnet::Session>* session,
+                               mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
         return 0;
     }
 
-    int negotiateOutbound(bsl::ostream& errorDescription,
-                          const bsl::shared_ptr<mqbnet::NegotiationContext>&
-                              negotiationContext) BSLS_KEYWORD_OVERRIDE
+    int negotiateOutbound(
+        bsl::ostream& errorDescription,
+        const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context)
+        BSLS_KEYWORD_OVERRIDE
     {
         markDone();
         return 0;
@@ -138,21 +137,20 @@ static void test1_Negotiator()
     {
         PV("Verify that methods are public and virtual");
 
-        bsl::shared_ptr<mqbnet::NegotiationContext> dummyNegotiationContextSp;
-        bsl::shared_ptr<mqbnet::Session>            dummySessionSp;
-        bmqu::MemOutStream                          errStream;
-        bool                                        isContinueRead = false;
+        bsl::shared_ptr<mqbnet::InitialConnectionContext>
+                                         dummyInitialConnectionContextSp;
+        bsl::shared_ptr<mqbnet::Session> dummySessionSp;
+        bmqu::MemOutStream               errStream;
 
-        BSLS_PROTOCOLTEST_ASSERT(testObj,
-                                 negotiateOutbound(errStream,
-                                                   dummyNegotiationContextSp));
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            negotiateOutbound(errStream, dummyInitialConnectionContextSp));
 
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             createSessionOnMsgType(errStream,
                                    &dummySessionSp,
-                                   &isContinueRead,
-                                   dummyNegotiationContextSp));
+                                   dummyInitialConnectionContextSp.get()));
     }
 }
 
