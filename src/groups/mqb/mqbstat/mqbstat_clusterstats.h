@@ -230,39 +230,39 @@ class ClusterStats {
 
     /// Update the `cluster_status` field of the StatContext being referred
     /// to by this object to be the specified `value`.
-    ClusterStats& setHealthStatus(bool value);
+    void setHealthStatus(bool value);
 
     /// Update the `cluster_role` field of the StatContext being referred
     /// to by this object to be the specified `value`.
-    ClusterStats& setIsMember(bool value);
+    void setIsMember(bool value);
 
     /// Update the `upstream` field of the StatContext being referred
     /// to by this object to be the specified `value`.
-    ClusterStats& setUpstream(const bsl::string& value);
+    void setUpstream(const bsl::string& value);
 
     /// Update the `cluster_leader` field of the StatContext being referred
     /// to by this object to be the specified `value`.
-    ClusterStats& setIsLeader(LeaderStatus::Enum value);
+    void setIsLeader(LeaderStatus::Enum value);
 
     /// Update the `partition.cfg_data_bytes` field to the specified
     /// `dataBytes`, the `partition.cfg_journal_bytes` field to the specified
     /// `journalBytes` and the `cluster_csl_cfg_bytes` field to the specified
     /// `cslBytes` in the StatContext being referred to by this object.
-    ClusterStats& setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
-                                       bsls::Types::Int64 journalBytes,
-                                       bsls::Types::Int64 cslBytes);
+    void setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
+                              bsls::Types::Int64 journalBytes,
+                              bsls::Types::Int64 cslBytes);
 
     /// Set the csl replication time of the StatContext being referred
     /// to by this object to be the specified `value`.
-    ClusterStats& setCslReplicationTime(bsls::Types::Int64 value);
+    void setCslReplicationTime(bsls::Types::Int64 value);
 
     /// Set the csl offset bytes of the StatContext being referred to by this
     /// object to be the specified `value`.
-    ClusterStats& setCslOffsetBytes(bsls::Types::Int64 value);
+    void setCslOffsetBytes(bsls::Types::Int64 value);
 
     /// Adjust the csl offset bytes of the StatContext being referred to by
     /// this object by the specified `delta`.
-    ClusterStats& addCslOffsetBytes(bsls::Types::Int64 delta);
+    void addCslOffsetBytes(bsls::Types::Int64 delta);
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
@@ -307,25 +307,24 @@ class PartitionStats {
 
     /// Set the time in nanoseconds it took for the rollover operation to the
     /// specified `value`.
-    PartitionStats& setRoloverTime(bsls::Types::Int64 value);
+    void setRoloverTime(bsls::Types::Int64 value);
 
     /// Set the time in nanoseconds it took for the replication of a new entry
     /// in journal file to the specified `value`.
-    PartitionStats& setReplicationTime(bsls::Types::Int64 value);
+    void setReplicationTime(bsls::Types::Int64 value);
 
     /// Set the primary status of the partition to the specified `value`.
-    PartitionStats& setNodeRole(PrimaryStatus::Enum value);
+    void setNodeRole(PrimaryStatus::Enum value);
 
     /// Set the partition outstanding bytes of the partition data and journal
     /// files to the corresponding specified `outstandingDataBytes`,
     /// `outstandingJournalBytes`, `offsetDataBytes`, `offsetJournalBytes` and
     /// `sequenceNumber` values.
-    PartitionStats&
-    setPartitionBytes(bsls::Types::Uint64 outstandingDataBytes,
-                      bsls::Types::Uint64 outstandingJournalBytes,
-                      bsls::Types::Uint64 offsetDataBytes,
-                      bsls::Types::Uint64 offsetJournalBytes,
-                      bsls::Types::Uint64 sequenceNumber);
+    void setPartitionBytes(bsls::Types::Uint64 outstandingDataBytes,
+                           bsls::Types::Uint64 outstandingJournalBytes,
+                           bsls::Types::Uint64 offsetDataBytes,
+                           bsls::Types::Uint64 offsetJournalBytes,
+                           bsls::Types::Uint64 sequenceNumber);
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();

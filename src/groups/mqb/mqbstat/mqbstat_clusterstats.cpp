@@ -117,9 +117,9 @@ struct ClusterStatsIndex {
     };
 };
 
-//-------------------------
-// struct ClusterStatsIndex
-//-------------------------
+//---------------------
+// struct ClusterStatus
+//---------------------
 
 /// Namespace for the constants of stat values that applies to the queues
 /// from the clients
@@ -347,16 +347,15 @@ void ClusterStats::initialize(const bsl::string&  name,
     }
 }
 
-ClusterStats& ClusterStats::setHealthStatus(bool value)
+void ClusterStats::setHealthStatus(bool value)
 {
     d_statContext_mp->setValue(
         ClusterStatsIndex::e_CLUSTER_STATUS,
         value ? ClusterStatus::e_CLUSTER_STATUS_HEALTHY
               : ClusterStatus::e_CLUSTER_STATUS_UNHEALTHY);
-    return *this;
 }
 
-ClusterStats& ClusterStats::setIsMember(bool value)
+void ClusterStats::setIsMember(bool value)
 {
     bslma::ManagedPtr<bdld::ManagedDatum> datum = d_statContext_mp->datum();
     bslma::Allocator*     alloc = d_statContext_mp->datumAllocator();
@@ -373,11 +372,9 @@ ClusterStats& ClusterStats::setIsMember(bool value)
                          alloc));
 
     datum->adopt(builder.commit());
-
-    return *this;
 }
 
-ClusterStats& ClusterStats::setUpstream(const bsl::string& value)
+void ClusterStats::setUpstream(const bsl::string& value)
 {
     bslma::ManagedPtr<bdld::ManagedDatum> datum = d_statContext_mp->datum();
     bslma::Allocator*     alloc = d_statContext_mp->datumAllocator();
@@ -391,42 +388,35 @@ ClusterStats& ClusterStats::setUpstream(const bsl::string& value)
                          (*datum)->theMap().find("role")->theInteger()));
 
     datum->adopt(builder.commit());
-
-    return *this;
 }
 
-ClusterStats& ClusterStats::setIsLeader(LeaderStatus::Enum value)
+void ClusterStats::setIsLeader(LeaderStatus::Enum value)
 {
     d_statContext_mp->setValue(ClusterStatsIndex::e_LEADER_STATUS, value);
-    return *this;
 }
 
-ClusterStats& ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
+void ClusterStats::setCslReplicationTime(bsls::Types::Int64 value)
 {
     d_statContext_mp->reportValue(ClusterStatsIndex::e_CSL_REPLICATION_TIME_NS,
                                   value);
-    return *this;
 }
 
-ClusterStats& ClusterStats::setCslOffsetBytes(bsls::Types::Int64 value)
+void ClusterStats::setCslOffsetBytes(bsls::Types::Int64 value)
 {
     d_statContext_mp->setValue(ClusterStatsIndex::e_CSL_LOG_OFFSET_BYTES,
                                value);
-    return *this;
 }
 
-ClusterStats& ClusterStats::addCslOffsetBytes(bsls::Types::Int64 delta)
+void ClusterStats::addCslOffsetBytes(bsls::Types::Int64 delta)
 {
     d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_WRITE_BYTES, delta);
     d_statContext_mp->adjustValue(ClusterStatsIndex::e_CSL_LOG_OFFSET_BYTES,
                                   delta);
-    return *this;
 }
 
-ClusterStats&
-ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
-                                   bsls::Types::Int64 journalBytes,
-                                   bsls::Types::Int64 cslBytes)
+void ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
+                                        bsls::Types::Int64 journalBytes,
+                                        bsls::Types::Int64 cslBytes)
 {
     d_statContext_mp->setValue(ClusterStatsIndex::e_PARTITION_CFG_DATA_BYTES,
                                dataBytes);
@@ -444,7 +434,6 @@ ClusterStats::setPartitionCfgBytes(bsls::Types::Int64 dataBytes,
             ClusterStatsIndex::e_PARTITION_CFG_JOURNAL_BYTES,
             journalBytes);
     }
-    return *this;
 }
 
 // --------------------
@@ -458,33 +447,30 @@ PartitionStats::PartitionStats(
     // NOTHING
 }
 
-PartitionStats& PartitionStats::setRoloverTime(bsls::Types::Int64 value)
+void PartitionStats::setRoloverTime(bsls::Types::Int64 value)
 {
     d_statContext_sp->reportValue(ClusterStatsIndex::e_PARTITION_ROLLOVER_TIME,
                                   value);
-    return *this;
 }
 
-PartitionStats& PartitionStats::setReplicationTime(bsls::Types::Int64 value)
+void PartitionStats::setReplicationTime(bsls::Types::Int64 value)
 {
     d_statContext_sp->reportValue(
         ClusterStatsIndex::e_PARTITION_REPLICATION_TIME_NS,
         value);
-    return *this;
 }
 
-PartitionStats& PartitionStats::setNodeRole(PrimaryStatus::Enum value)
+void PartitionStats::setNodeRole(PrimaryStatus::Enum value)
 {
     d_statContext_sp->setValue(ClusterStatsIndex::e_PRIMARY_STATUS, value);
-    return *this;
 }
 
-PartitionStats&
-PartitionStats::setPartitionBytes(bsls::Types::Uint64 outstandingDataBytes,
-                                  bsls::Types::Uint64 outstandingJournalBytes,
-                                  bsls::Types::Uint64 offsetDataBytes,
-                                  bsls::Types::Uint64 offsetJournalBytes,
-                                  bsls::Types::Uint64 sequenceNumber)
+void PartitionStats::setPartitionBytes(
+    bsls::Types::Uint64 outstandingDataBytes,
+    bsls::Types::Uint64 outstandingJournalBytes,
+    bsls::Types::Uint64 offsetDataBytes,
+    bsls::Types::Uint64 offsetJournalBytes,
+    bsls::Types::Uint64 sequenceNumber)
 {
     d_statContext_sp->reportValue(
         ClusterStatsIndex::e_PARTITION_DATA_BYTES,
@@ -501,7 +487,6 @@ PartitionStats::setPartitionBytes(bsls::Types::Uint64 outstandingDataBytes,
     d_statContext_sp->setValue(
         ClusterStatsIndex::e_PARTITION_SEQUENCE_NUMBER,
         static_cast<bsls::Types::Int64>(sequenceNumber));
-    return *this;
 }
 
 // -------------------------

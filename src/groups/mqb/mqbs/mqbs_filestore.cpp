@@ -2989,7 +2989,7 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
         statRecorder.print(BALL_LOG_OUTPUT_STREAM, "ROLLOVER COMPLETE");
     }
 
-    d_partitionStats_p->setRoloverTime(statRecorder.totalElapsed());
+    d_partitionStats_sp->setRoloverTime(statRecorder.totalElapsed());
 
     return 0;
 }
@@ -4000,7 +4000,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                     immediateFlush);
 
     // Report cluster's partition stats
-    d_partitionStats_p->setPartitionBytes(fs->d_outstandingBytesData,
+    d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
                                           fs->d_outstandingBytesJournal,
                                           fs->d_dataFilePosition,
                                           fs->d_journalFilePosition,
@@ -4080,7 +4080,7 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
             const bsls::Types::Int64 timeDelta =
                 bmqsys::Time::highResolutionTimer() -
                 from->second.d_handle->second.d_arrivalTimepoint;
-            d_partitionStats_p->setReplicationTime(timeDelta);
+            d_partitionStats_sp->setReplicationTime(timeDelta);
 
             // notify the queue
             const mqbu::StorageKey& queueKey  = from->second.d_queueKey;
@@ -5118,7 +5118,7 @@ FileStore::FileStore(
 , d_config(config)
 , d_partitionDescription(allocator)
 , d_dispatcherClientData()
-, d_partitionStats_p(partitionStats)
+, d_partitionStats_sp(partitionStats)
 , d_blobSpPool_p(blobSpPool)
 , d_statePool_p(statePool)
 , d_aliasedBufferDeleterSpPool(1024, d_allocators.get("AliasedBufferDeleters"))
@@ -5242,7 +5242,7 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
 
     // Report cluster's partition stats
     const FileSet* fs = d_fileSets[0].get();
-    d_partitionStats_p->setPartitionBytes(fs->d_outstandingBytesData,
+    d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
                                           fs->d_outstandingBytesJournal,
                                           fs->d_dataFilePosition,
                                           fs->d_journalFilePosition,
@@ -6627,7 +6627,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
 
     if (primaryNode->nodeId() != d_config.nodeId()) {
         d_isPrimary = false;
-        d_partitionStats_p->setNodeRole(
+        d_partitionStats_sp->setNodeRole(
             mqbstat::PartitionStats::PrimaryStatus::e_REPLICA);
         d_config.scheduler()->cancelEvent(&d_syncPointEventHandle);
         d_config.scheduler()->cancelEvent(
@@ -6650,7 +6650,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     }
 
     d_isPrimary = true;
-    d_partitionStats_p->setNodeRole(
+    d_partitionStats_sp->setNodeRole(
         mqbstat::PartitionStats::PrimaryStatus::e_PRIMARY);
 
     for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
@@ -7233,7 +7233,7 @@ void FileStore::setReplicationFactor(int value)
             const bsls::Types::Int64 timeDelta =
                 bmqsys::Time::highResolutionTimer() -
                 it->second.d_handle->second.d_arrivalTimepoint;
-            d_partitionStats_p->setReplicationTime(timeDelta);
+            d_partitionStats_sp->setReplicationTime(timeDelta);
 
             // notify the queue.
             const mqbu::StorageKey& queueKey  = it->second.d_queueKey;
