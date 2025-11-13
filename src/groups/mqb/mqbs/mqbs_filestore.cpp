@@ -4001,10 +4001,10 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
 
     // Report cluster's partition stats
     d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
-                                          fs->d_outstandingBytesJournal,
-                                          fs->d_dataFilePosition,
-                                          fs->d_journalFilePosition,
-                                          d_sequenceNum);
+                                           fs->d_outstandingBytesJournal,
+                                           fs->d_dataFilePosition,
+                                           fs->d_journalFilePosition,
+                                           d_sequenceNum);
 
     return rc_SUCCESS;
 }
@@ -5243,10 +5243,10 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
     // Report cluster's partition stats
     const FileSet* fs = d_fileSets[0].get();
     d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
-                                          fs->d_outstandingBytesJournal,
-                                          fs->d_dataFilePosition,
-                                          fs->d_journalFilePosition,
-                                          d_sequenceNum);
+                                           fs->d_outstandingBytesJournal,
+                                           fs->d_dataFilePosition,
+                                           fs->d_journalFilePosition,
+                                           d_sequenceNum);
 
     return rc_SUCCESS;
 }
