@@ -219,16 +219,6 @@ class MessageProperties {
     mutable BlobObjectBuffer d_blob;  // Wire representation.
     mutable const bdlbb::Blob* d_blob_p;  // Wire representation.
 
-    mutable bool d_isBlobConstructed;
-    // Flag indicating if an instance of
-    // the blob has been constructed in
-    // 'd_blob'.
-
-    mutable bool d_isDirty;
-    // Flag indicating if this instance has
-    // been updated since the previous
-    // invocation of 'streamOut()'.
-
     int d_mphSize;
     // Size of MessagePropertyHeader
     int d_mphOffset;
@@ -245,6 +235,16 @@ class MessageProperties {
     // _before_ any property can change.
     // Incremental reading needs it to
     // recognize last property.
+
+    mutable bool d_isBlobConstructed;
+    // Flag indicating if an instance of
+    // the blob has been constructed in
+    // 'd_blob'.
+
+    mutable bool d_isDirty;
+    // Flag indicating if this instance has
+    // been updated since the previous
+    // invocation of 'streamOut()'.
 
     bool d_doDeepCopy;
 
