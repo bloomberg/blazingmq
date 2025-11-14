@@ -82,6 +82,7 @@
 #include <bmqp_puteventbuilder.h>
 #include <bmqp_putmessageiterator.h>
 #include <bmqp_queueid.h>
+#include <bmqpi_dtspan.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_sessioneventtype.h>
@@ -512,13 +513,14 @@ class Event {
                     const bmqp::MessageProperties::SchemaPtr& schema =
                         bmqp::MessageProperties::SchemaPtr());
 
-    /// Insert the specified `queue` to the queues and the specified
-    /// `corrId` to the list of correlationIds associated with this event.
-    /// If the `corrId` is not empty associate it with the specified `guid`
-    /// in the correlationId container.
+    /// Insert the specified `queue` to the queues and the specified `corrId`
+    /// with the specified `dtSpan` to the list of correlationIds associated
+    /// with this event.  If the `corrId` is not empty, associate it with the
+    /// specified `guid` in the correlationId container.
     void addMessageInfo(const bsl::shared_ptr<bmqimp::Queue>& queue,
                         const bmqt::MessageGUID&              guid,
-                        const bmqt::CorrelationId&            corrId);
+                        const bmqt::CorrelationId&            corrId,
+                        const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan);
 
     // - - - - - - - - -
     // Utility functions
