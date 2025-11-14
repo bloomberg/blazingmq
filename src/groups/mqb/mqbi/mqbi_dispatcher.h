@@ -154,18 +154,14 @@ class QueueHandle;
 struct DispatcherClientType {
     // TYPES
     enum Enum {
-        e_UNDEFINED = -1  // type has not been specified
-        ,
-        e_SESSION = 0  // client is assimilated to a session
-        ,
-        e_QUEUE = 1  // client is assimilated to a queue
-        ,
-        e_CLUSTER = 2  // client is assimilated to a cluster
-        ,
-        e_ALL = 3  // represents all of the possible types (see below)
+        /// Unspecified client type
+        e_UNDEFINED = -1,
+
+        /// Specified client types
+        e_SESSION = 0,
+        e_QUEUE   = 1,
+        e_CLUSTER = 2
     };
-    // NOTE: the 'e_ALL' type is used by certain Dispatcher methods to indicate
-    //        they should be applied to all types of clients.
 
     // CONSTANTS
     static const int k_COUNT = 3;  // Total number of different ClientTypes.
@@ -416,9 +412,10 @@ class Dispatcher {
     /// clients of the specified `type`, and invoke the specified
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
-    virtual void execute(const VoidFunctor&         functor,
-                         DispatcherClientType::Enum type,
-                         const VoidFunctor& doneCallback = VoidFunctor()) = 0;
+    virtual void
+    executeOnAllQueues(const VoidFunctor&         functor,
+                       DispatcherClientType::Enum type,
+                       const VoidFunctor& doneCallback = VoidFunctor()) = 0;
 
     /// Enqueue an event to the processor associated to the specified
     /// `client` or pair of the specified `type` and `handle` and block
@@ -451,7 +448,7 @@ class Dispatcher {
     /// Return an executor object suitable for executing function objects on
     /// the processor in charge of the specified `client`.  The behavior is
     /// undefined unless the specified `client` is registered on this
-    /// dispatcher and the client type is not `e_UNDEFINED` or `e_ALL`.
+    /// dispatcher and the client type is not `e_UNDEFINED`.
     ///
     /// Note that the returned executor can be used to submit work even
     /// after the specified `client` has been unregistered from this
@@ -462,7 +459,7 @@ class Dispatcher {
     /// the specified `client` on the processor in charge of that client.
     /// The behavior is undefined unless the specified `client` is
     /// registered on this dispatcher and the client type is not
-    /// `e_UNDEFINED` or `e_ALL`.
+    /// `e_UNDEFINED`.
     ///
     /// Note that submitting work on the returned executor is undefined
     /// behavior if the specified `client` was unregistered from this

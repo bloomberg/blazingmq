@@ -95,7 +95,7 @@ namespace mqbi {
 class Domain;
 }
 namespace mqbstat {
-class ClusterStats;
+class PartitionStats;
 }
 
 namespace mqbs {
@@ -285,9 +285,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Dispatcher client data associated
     // with this instance.
 
-    mqbstat::ClusterStats* d_clusterStats_p;
+    bsl::shared_ptr<mqbstat::PartitionStats> d_partitionStats_sp;
     // Stat object associated to the
-    // Cluster this FileStore belongs to,
+    // Partition this FileStore belongs to,
     // used to report partition level
     // metrics.
 
@@ -708,13 +708,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `dispatcher`, `cluster`, `clusterStats`, `blobSpPool`,
     /// `miscWorkThreadPool`, `isCSLModeEnabled`, `isFSMWorkflow` and
     /// `allocator`.
-    FileStore(const DataStoreConfig&  config,
-              int                     processorId,
-              mqbi::Dispatcher*       dispatcher,
-              mqbnet::Cluster*        cluster,
-              mqbstat::ClusterStats*  clusterStats,
-              BlobSpPool*             blobSpPool,
-              StateSpPool*            statePool,
+    FileStore(const DataStoreConfig&                          config,
+              int                                             processorId,
+              mqbi::Dispatcher*                               dispatcher,
+              mqbnet::Cluster*                                cluster,
+              const bsl::shared_ptr<mqbstat::PartitionStats>& partitionStats,
+              BlobSpPool*                                     blobSpPool,
+              StateSpPool*                                    statePool,
               bdlmt::FixedThreadPool* miscWorkThreadPool,
               bool                    isCSLModeEnabled,
               bool                    isFSMWorkflow,
