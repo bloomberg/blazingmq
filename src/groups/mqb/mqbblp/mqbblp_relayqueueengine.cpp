@@ -1385,7 +1385,7 @@ void RelayQueueEngine::releaseHandleImpl(
     }
     else {
         // Send a close queue request upstream.
-        d_queueState_p->domain()->cluster()->configureQueue(
+        d_queueState_p->domain()->cluster()->closeQueue(
             d_queueState_p->queue(),
             effectiveHandleParam,
             upstreamSubQueueId,
