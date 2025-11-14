@@ -186,9 +186,9 @@ class Dispatcher : public mqbi::Dispatcher {
     /// clients of the specified `type`, and invoke the specified
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
-    void execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                 mqbi::DispatcherClientType::Enum     type,
-                 const mqbi::Dispatcher::VoidFunctor& doneCallback)
+    void executeOnAllQueues(const mqbi::Dispatcher::VoidFunctor& functor,
+                            mqbi::DispatcherClientType::Enum     type,
+                            const mqbi::Dispatcher::VoidFunctor& doneCallback)
         BSLS_KEYWORD_OVERRIDE;
 
     void synchronize(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
