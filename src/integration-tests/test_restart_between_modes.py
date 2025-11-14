@@ -742,7 +742,11 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         - "baz" gets 3 messages
         - "quux" gets the third message
 
-    4. POST MORE MESSAGES
+    4. Add/Remove more appIds
+        Add "corge" appId
+        Post to fanout queue
+        Remove "foo" appId
+        Post more messages to priority and fanout queues
     5. SWITCH BACK
         Switch back to the corresponding backup mode
     6. VERIFY AGAIN
@@ -794,18 +798,26 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     assert re.match(r"msg3", quux_messages[0].payload)
 
     # 4. POST MORE MESSAGES
+    current_app_ids.append("corge")
+    cluster.set_app_ids(current_app_ids, du)
+    post_few_messages(producer, fanout_queue, ["msg4"])
+
+    current_app_ids.remove("foo")
+    cluster.set_app_ids(current_app_ids, du)
+
     for queue in [priority_queue, fanout_queue]:
-        post_few_messages(producer, queue, ["msg4"])
+        post_few_messages(producer, queue, ["msg5"])
 
     # 5. SWITCH BACK
     switch_cluster_mode[1](cluster, producer)
 
     # 6. VERIFY AGAIN
     check_if_queue_has_n_messages(consumer, priority_queue, 1 + 1)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 0)
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3 + 1)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1 + 1)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3 + 2)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1 + 2)
+    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=corge", 0 + 2)
 
 
 def test_restart_between_legacy_and_fsm_purge_queue_app(
