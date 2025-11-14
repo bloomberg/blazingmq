@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Mon Nov 10 18:42:03 2025
 // Command line: sim_cpp11_features.pl bmqex_future.cpp
 
 #define INCLUDED_BMQEX_FUTURE_CPP03  // Disable inclusion
@@ -28,4 +28,5 @@
 
 // No C++03 Expansion
 
-#endif  // defined(COMPILING_BMQEX_FUTURE_CPP)
+#endif // defined(COMPILING_BMQEX_FUTURE_CPP)
+

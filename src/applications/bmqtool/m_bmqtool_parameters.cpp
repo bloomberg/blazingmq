@@ -253,16 +253,37 @@ bool ParametersLatency::isValid(const bsl::string* str, bsl::ostream& stream)
 // ================
 
 Parameters::Parameters(bslma::Allocator* allocator)
-: d_broker(allocator)
+: d_mode(ParametersMode::Value::e_CLI)
+, d_broker(allocator)
 , d_queueUri(allocator)
 , d_qlistFilePath(allocator)
 , d_journalFilePath(allocator)
 , d_dataFilePath(allocator)
+, d_sequentialMessagePattern(allocator)
+, d_queueFlags(0)
+, d_latency(ParametersLatency::Value::e_NONE)
 , d_latencyReportPath(allocator)
 , d_logFilePath(allocator)
+, d_dumpMsg(false)
+, d_confirmMsg(false)
+, d_eventSize(0)
+, d_msgSize(0)
+, d_postRate(0)
+, d_postInterval(0)
+, d_eventsCount(0)
+, d_maxUnconfirmedMsgs(0)
+, d_maxUnconfirmedBytes(0)
+, d_verbosity(ParametersVerbosity::Value::e_INFO)
+, d_logFormat(allocator)
+, d_numProcessingThreads(0)
+, d_shutdownGrace(0)
+, d_noSessionEventHandler(false)
+, d_memoryDebug(false)
 , d_messageProperties(allocator)
 , d_subscriptions(allocator)
 , d_autoIncrementedField(allocator)
+, d_tlsAuthority(allocator)
+, d_tlsVersions(allocator)
 {
     CommandLineParameters params(allocator);
     const bool            rc = from(bsl::cerr, params);
@@ -309,6 +330,8 @@ Parameters::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("messageProperties", d_messageProperties);
     printer.printAttribute("subscriptions", d_subscriptions);
     printer.printAttribute("timeout", d_timeout);
+    printer.printAttribute("tlsAuthority", d_tlsAuthority);
+    printer.printAttribute("tlsVersions", d_tlsVersions);
     printer.end();
 
     return stream;
@@ -419,6 +442,8 @@ bool Parameters::from(bsl::ostream&                stream,
     setSubscriptions(params.subscriptions());
     setAutoPubSubModulo(params.autoPubSubModulo());
     setTimeout(timeout);
+    setTlsAuthority(params.tlsAuthority());
+    setTlsVersions(params.tlsVersions());
 
     return true;
 }
