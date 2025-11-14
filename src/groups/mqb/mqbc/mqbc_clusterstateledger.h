@@ -56,7 +56,9 @@
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bslma_managedptr.h>
+#include <bslmf_referencewrapper.h>
 
 namespace BloombergLP {
 
@@ -248,6 +250,10 @@ class ClusterStateLedger : public ElectorInfoObserver {
                                ClusterStateLedgerCommitStatus::Enum status)>
         CommitCb;
 
+    typedef bsl::vector<
+        bsl::reference_wrapper<const bmqp_ctrlmsg::ClusterMessage> >
+        ClusterMessageCRefList;
+
   public:
     // CREATORS
 
@@ -326,6 +332,12 @@ class ClusterStateLedger : public ElectorInfoObserver {
     ///         dispatcher thread.
     virtual bslma::ManagedPtr<ClusterStateLedgerIterator>
     getIterator() const = 0;
+
+    /// Load into `out` the list of uncommitted advisories as const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const = 0;
 };
 
 }  // close package namespace

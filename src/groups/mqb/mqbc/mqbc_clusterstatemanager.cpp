@@ -1542,6 +1542,7 @@ void ClusterStateManager::sendClusterState(
                                         *d_state_p,
                                         sendPartitionPrimaryInfo,
                                         sendQueuesInfo,
+                                        d_allocator_p,
                                         node,
                                         partitions);
 }

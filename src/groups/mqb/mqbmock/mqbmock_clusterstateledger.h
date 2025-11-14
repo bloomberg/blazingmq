@@ -221,13 +221,12 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
 
-    // ACCESSORS
-
-    /// Return the list of uncommitted advisories.
+    /// Load into `out` the list of uncommitted advisories as const references.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
-    const Advisories& _uncommittedAdvisories() const;
+    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -285,9 +284,8 @@ inline bool ClusterStateLedger::isOpen() const
     return d_isOpen;
 }
 
-// ACCESSORS
-inline const ClusterStateLedger::Advisories&
-ClusterStateLedger::_uncommittedAdvisories() const
+inline void
+ClusterStateLedger::uncommittedAdvisories(ClusterMessageCRefList* out) const
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -295,8 +293,10 @@ ClusterStateLedger::_uncommittedAdvisories() const
     BSLS_ASSERT_SAFE(
         d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
             &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(out);
 
-    return d_uncommittedAdvisories;
+    out->assign(d_uncommittedAdvisories.begin(),
+                d_uncommittedAdvisories.end());
 }
 
 }  // close package namespace
