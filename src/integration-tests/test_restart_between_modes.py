@@ -660,13 +660,13 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 
 @pytest.fixture(
     params=[
-        # (restart_as_fsm_mode, restart_as_legacy_mode),
-        # (restart_as_legacy_mode, restart_as_fsm_mode),
+        (restart_as_fsm_mode, restart_as_legacy_mode),
+        (restart_as_legacy_mode, restart_as_fsm_mode),
         (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode),
-        # (
-        #     restart_to_fsm_single_node_with_quorum_one_and_start_others,
-        #     restart_as_legacy_mode,
-        # ),
+        (
+            restart_to_fsm_single_node_with_quorum_one_and_start_others,
+            restart_as_legacy_mode,
+        ),
     ]
 )
 def switch_cluster_mode(request):
@@ -690,7 +690,7 @@ def without_rollover(
 @pytest.fixture(
     params=[
         without_rollover,
-        # simulate_csl_rollover
+        # simulate_journal_rollover
     ]
 )
 def optional_rollover(request):
