@@ -34,7 +34,8 @@ def ensure_message_at_storage_layer(
 ):
     """
     Assert that in the `partitionId` of the `cluster`, there are exactly
-    `numMessages` messages in the storage of the `queueUri`.
+    `expected_count` messages in the storage of the `queueUri`.
+    Param 'alive': if True, check only alive nodes in the cluster.
     """
 
     # Before restarting the cluster, ensure that all nodes in the cluster

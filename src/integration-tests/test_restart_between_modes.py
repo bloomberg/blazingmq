@@ -53,7 +53,7 @@ timeout = 20
 DEFAULT_APP_IDS = tc.TEST_APPIDS[:]
 
 
-def postFewMessages(producer: Client, queue: str, messages: List[str]):
+def post_few_messages(producer: Client, queue: str, messages: List[str]):
     """
     Instruct the `producer` to post many `messages` on the `queue`.
     """
@@ -66,23 +66,29 @@ def postFewMessages(producer: Client, queue: str, messages: List[str]):
     )
 
 
-def confirmOnlyOneMessage(
+def confirm_only_one_message(
     consumerMap: Dict[str, Client], queue: str, app_id: Optional[str] = None
 ):
     """
-    Instruct the `client` to confirm one message on the `queue`
+    Find the corresponding `consumer` from the `consumerMap`, and
+    instruct the `consumer` to confirm one message on the `queue` with the optional `app_id`
     """
+
     queue_with_appid = queue if app_id is None else queue + "?id=" + app_id
 
+    assert queue_with_appid in consumerMap, (
+        f"Queue with app_id '{queue_with_appid}' not found in consumerMap"
+    )
     consumer = consumerMap[queue_with_appid]
     consumer.wait_push_event()
     consumer.confirm(queue_with_appid, "+1", succeed=True)
 
 
-def confirmOneMessage(consumer: Client, queue: str, app_id: Optional[str] = None):
+def confirm_one_message(consumer: Client, queue: str, app_id: Optional[str] = None):
     """
-    Instruct the `client` to confirm one message on the `queue`
+    Instruct the `consumer` to confirm one message on the `queue` with the optional `app_id`
     """
+
     queue_with_appid = queue if app_id is None else queue + "?id=" + app_id
 
     consumer.open(
@@ -252,14 +258,15 @@ def check_exited_nodes_and_restart(cluster: Cluster):
     cluster.wait_status(wait_leader=True, wait_ready=True)
 
 
-def verifyMessages(
+def verify_messages(
     consumerMap: Dict[str, Client],
     queue: str,
     appId: Optional[str],
     expected_count: int,
 ):
     """
-    Instruct the `consumer` to verify that the `queue` with the optional
+    Find the corresponding `consumer` from the `consumerMap`, and
+    instruct the `consumer` to verify that the `queue` with the optional
     `appId` has `expected_count` unconfirmed messages.
     """
     queue_with_appid = queue if not appId else queue + f"?id={appId}"
@@ -333,7 +340,7 @@ def post_new_queues_and_verify(
         queues.append((new_queue, partition_id))
 
         producer.open(new_queue, flags=["write", "ack"], succeed=True)
-        postFewMessages(producer, new_queue, ["msg0"])
+        post_few_messages(producer, new_queue, ["msg0"])
         ensure_message_at_storage_layer(cluster, partition_id, new_queue, 1, alive=True)
 
         for app_id in consuming_app_ids:
@@ -357,9 +364,9 @@ def post_new_queues_and_verify(
     QUEUE_ELEMENT_IDX = 0
     new_fanout_queue = existing_fanout_queues[-1][QUEUE_ELEMENT_IDX]
 
-    verifyMessages(consumerMap, new_fanout_queue, "foo", 1)
+    verify_messages(consumerMap, new_fanout_queue, "foo", 1)
 
-    confirmOnlyOneMessage(consumerMap, new_fanout_queue, "foo")
+    confirm_only_one_message(consumerMap, new_fanout_queue, "foo")
 
     # Postconditions
     assert len(existing_priority_queues) == len(existing_fanout_queues)
@@ -376,7 +383,7 @@ def post_existing_queues_and_verify(
     On the `cluster`, instruct the `producer` to post one message to
     each of the `existing_priority_queues` and `existing_fanout_queues`.
     Verify that the messages are posted successfully and that the `consumers`
-    list of priority, foo, and bar consumers have the expecpy:430ted number of
+    list of priority, foo, and bar consumers have the expected number of
     messages in their respective queues.
     """
     # Preconditions
@@ -396,7 +403,7 @@ def post_existing_queues_and_verify(
         NUM_MESSAGES_IN_QUEUE = n - i
 
         for queues in [existing_priority_queues, existing_fanout_queues]:
-            postFewMessages(
+            post_few_messages(
                 producer, queues[i][QUEUE_ELEMENT_IDX], [f"msg{NUM_MESSAGES_IN_QUEUE}"]
             )
             ensure_message_at_storage_layer(
@@ -409,19 +416,19 @@ def post_existing_queues_and_verify(
 
         NUM_MESSAGES_IN_QUEUE += 1  # Increment by 1 for the new message posted
 
-        verifyMessages(
+        verify_messages(
             consumerMap,
             existing_priority_queues[i][QUEUE_ELEMENT_IDX],
             None,
             NUM_MESSAGES_IN_QUEUE,
         )
-        verifyMessages(
+        verify_messages(
             consumerMap,
             existing_fanout_queues[i][QUEUE_ELEMENT_IDX],
             "foo",
             NUM_MESSAGES_IN_QUEUE - 1,  # Already confirmed one message on `foo`
         )
-        verifyMessages(
+        verify_messages(
             consumerMap,
             existing_fanout_queues[i][QUEUE_ELEMENT_IDX],
             "bar",
@@ -504,7 +511,6 @@ def test_restart_between_Legacy_and_FSM(
     Finally, we restart the cluster back to the corresponding backup mode and
     verify those messages.
     """
-    # cluster = switch_fsm_cluster
     du = domain_urls
 
     # Start a producer.
@@ -583,7 +589,6 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 
     where  `--->` indicates a switch in cluster mode
     """
-    # cluster = switch_fsm_cluster
     cluster.lower_leader_startup_wait()
     du = domain_urls
     leader = cluster.last_known_leader
@@ -667,7 +672,13 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
             restart_to_fsm_single_node_with_quorum_one_and_start_others,
             restart_as_legacy_mode,
         ),
-    ]
+    ],
+    ids=[
+        "to_fsm/from_legacy",
+        "to_legacy/from_fsm",
+        "to_fsm_quorum_1/from_legacy",
+        "to_fsm_quorum_1_then_start_all/from_legacy",
+    ],
 )
 def switch_cluster_mode(request):
     """
@@ -762,16 +773,16 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         producer.open(queue, flags=["write,ack"], succeed=True)
 
     for queue in [priority_queue, fanout_queue]:
-        postFewMessages(producer, queue, ["msg1", "msg2"])
+        post_few_messages(producer, queue, ["msg1", "msg2"])
 
     consumer = proxy.create_client("consumer")
-    confirmOneMessage(consumer, priority_queue)
-    confirmOneMessage(consumer, fanout_queue, "foo")
+    confirm_one_message(consumer, priority_queue)
+    confirm_one_message(consumer, fanout_queue, "foo")
 
     current_app_ids = DEFAULT_APP_IDS + ["quux"]
     cluster.set_app_ids(current_app_ids, du)
 
-    postFewMessages(producer, fanout_queue, ["msg3"])
+    post_few_messages(producer, fanout_queue, ["msg3"])
 
     current_app_ids.remove("bar")
     cluster.set_app_ids(current_app_ids, du)
@@ -794,7 +805,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
 
     # 4. POST MORE MESSAGES
     for queue in [priority_queue, fanout_queue]:
-        postFewMessages(producer, queue, ["msg4"])
+        post_few_messages(producer, queue, ["msg4"])
 
     # 5. SWITCH BACK
     switch_cluster_mode[1](cluster, producer, [consumer])
@@ -871,7 +882,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         producer.open(queue, flags=["write,ack"], succeed=True)
 
     for queue in [priority_queue, fanout_queue]:
-        postFewMessages(producer, queue, ["msg0"])
+        post_few_messages(producer, queue, ["msg0"])
 
     # Purge priority queue
     cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
@@ -880,16 +891,16 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     # Post two messages
     for queue in [priority_queue, fanout_queue]:
-        postFewMessages(producer, queue, ["msg1", "msg2"])
+        post_few_messages(producer, queue, ["msg1", "msg2"])
 
     consumer = proxy.create_client("consumer")
-    confirmOneMessage(consumer, priority_queue)
-    confirmOneMessage(consumer, fanout_queue, "foo")
+    confirm_one_message(consumer, priority_queue)
+    confirm_one_message(consumer, fanout_queue, "foo")
 
     current_app_ids = DEFAULT_APP_IDS + ["quux"]
     cluster.set_app_ids(current_app_ids, du)
 
-    postFewMessages(producer, fanout_queue, ["msg3"])
+    post_few_messages(producer, fanout_queue, ["msg3"])
 
     current_app_ids.remove("bar")
     cluster.set_app_ids(current_app_ids, du)
@@ -912,7 +923,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     # 4. POST MORE MESSAGES
     for queue in [priority_queue, fanout_queue]:
-        postFewMessages(producer, queue, ["msg4"])
+        post_few_messages(producer, queue, ["msg4"])
 
     # 5. SWITCH BACK
     switch_cluster_mode[1](cluster, producer, [consumer])
