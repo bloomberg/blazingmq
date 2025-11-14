@@ -17,6 +17,7 @@
 #include <mqbnet_elector.h>
 
 // MQB
+#include <mqbcfg_clusterquorummanager.h>
 #include <mqbnet_cluster.h>
 
 #include <bmqsys_mocktime.h>
@@ -203,8 +204,10 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(false, sm.isEnabled());
     ELECTOR_VALIDATE(exState, sm);
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Enable the state machine
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(true, sm.isEnabled());
 
     exState.bumpAge()
@@ -213,7 +216,7 @@ static void test1_breathingTest()
     ELECTOR_VALIDATE(exState, sm);
 
     // Re-enable.. should be no-op.
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(true, sm.isEnabled());
     ELECTOR_VALIDATE(exState, sm);
 
@@ -232,7 +235,7 @@ static void test1_breathingTest()
     ELECTOR_VALIDATE(exState, sm);
 
     // Enable
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(true, sm.isEnabled());
 
     exState.bumpAge()
@@ -269,8 +272,10 @@ static void test2()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -427,8 +432,10 @@ static void test3()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -574,8 +581,10 @@ static void test4()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -894,8 +903,10 @@ static void test5()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -906,7 +917,8 @@ static void test5()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -939,9 +951,8 @@ static void test5()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply 2nd scouting response.  Quorum will be achieved, and elector will
-    // transition to candidate.
-    // Follower -F2-> Candidate
+    // Apply 2nd scouting response.  Quorum will be achieved, and elector
+    // will transition to candidate. Follower -F2-> Candidate
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
@@ -1049,8 +1060,10 @@ static void test6()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1061,7 +1074,8 @@ static void test6()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -1094,9 +1108,8 @@ static void test6()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply 2nd scouting response.  Quorum will be achieved, and elector will
-    // transition to candidate.
-    // Follower -F2-> Candidate
+    // Apply 2nd scouting response.  Quorum will be achieved, and elector
+    // will transition to candidate. Follower -F2-> Candidate
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
@@ -1240,8 +1253,10 @@ static void test7()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1252,7 +1267,8 @@ static void test7()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -1285,9 +1301,8 @@ static void test7()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply 2nd scouting response.  Quorum will be achieved, and elector will
-    // transition to candidate.
-    // Follower -F2-> Candidate
+    // Apply 2nd scouting response.  Quorum will be achieved, and elector
+    // will transition to candidate. Follower -F2-> Candidate
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
@@ -1343,9 +1358,8 @@ static void test7()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // One of the supporting node becomes unavailable.  Leader loses majority
-    // and goes back to being a follower.
-    // Leader -L3-> Follower
+    // One of the supporting node becomes unavailable.  Leader loses
+    // majority and goes back to being a follower. Leader -L3-> Follower
     sm.applyAvailability(&output,
                          ElectorIOEventType::e_NODE_UNAVAILABLE,
                          k_SELFID + 2);  // A supporting nodeId
@@ -1398,8 +1412,10 @@ static void test8()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1410,7 +1426,8 @@ static void test8()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -1443,9 +1460,8 @@ static void test8()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply 2nd scouting response.  Quorum will be achieved, and elector will
-    // transition to candidate.
-    // Follower -F2-> Candidate
+    // Apply 2nd scouting response.  Quorum will be achieved, and elector
+    // will transition to candidate. Follower -F2-> Candidate
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
@@ -1501,9 +1517,8 @@ static void test8()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // Leader receives a stale heartbeat response from a follower, and reverts
-    // back to being a follower.
-    // Leader -L4-> Follower
+    // Leader receives a stale heartbeat response from a follower, and
+    // reverts back to being a follower. Leader -L4-> Follower
     sm.applyIOEvent(&output,
                     ElectorIOEventType::e_HEARTBEAT_RESPONSE,
                     ++term,  // Stale heartbeat response having higher term
@@ -1553,8 +1568,10 @@ static void test9()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1583,9 +1600,8 @@ static void test9()
     BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // After election result timer fires, elector will see that it has quorum
-    // and will transition to leader.
-    // Candidate -C5-> Leader
+    // After election result timer fires, elector will see that it has
+    // quorum and will transition to leader. Candidate -C5-> Leader
     sm.applyTimer(&output, ElectorTimerEventType::e_ELECTION_RESULT_TIMER);
 
     BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
@@ -1630,8 +1646,10 @@ static void test10()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1720,8 +1738,10 @@ static void test11()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1741,7 +1761,8 @@ static void test11()
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    BMQTST_ASSERT_EQ(3, sm.tentativeLeaderNodeId());  // new tentative leader
+    BMQTST_ASSERT_EQ(3,
+                     sm.tentativeLeaderNodeId());  // new tentative leader
     BMQTST_ASSERT_EQ(term, sm.term());
     BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
     BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
@@ -1826,7 +1847,7 @@ static void test11()
     sm.applyIOEvent(&output,
                     ElectorIOEventType::e_LEADER_HEARTBEAT,
                     term,
-                    3);                           // leader node Id
+                    3);                                  // leader node Id
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());  // No state change
     BMQTST_ASSERT_EQ(3, sm.leaderNodeId());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
@@ -1887,8 +1908,10 @@ static void test12()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -1945,8 +1968,10 @@ static void test13()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2023,8 +2048,10 @@ static void test14()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2032,8 +2059,8 @@ static void test14()
     BMQTST_ASSERT_EQ(0ULL, sm.term());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // Apply leaader heartbeat event with a higher term.  Follower should start
-    // following the leader node.
+    // Apply leaader heartbeat event with a higher term.  Follower should
+    // start following the leader node.
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       leaderTerm   = 10;
     int                       leaderNodeId = 123;
@@ -2138,8 +2165,10 @@ static void test15()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2147,7 +2176,8 @@ static void test15()
     BMQTST_ASSERT_EQ(term, sm.term());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -2228,8 +2258,10 @@ static void test16()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2237,7 +2269,8 @@ static void test16()
     BMQTST_ASSERT_EQ(term, sm.term());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -2268,8 +2301,9 @@ static void test16()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply election proposal from a node with higher term.  Elector should
-    // remain follower and support this node (i.e., emit election response).
+    // Apply election proposal from a node with higher term.  Elector
+    // should remain follower and support this node (i.e., emit election
+    // response).
     ++term;
     sm.applyIOEvent(&output,
                     ElectorIOEventType::e_ELECTION_PROPOSAL,
@@ -2335,8 +2369,10 @@ static void test17()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2344,7 +2380,8 @@ static void test17()
     BMQTST_ASSERT_EQ(term, sm.term());
     BMQTST_ASSERT_EQ(++age, sm.age());
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -2375,7 +2412,8 @@ static void test17()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply 2nd scouting response, but a negative one.  No change expected.
+    // Apply 2nd scouting response, but a negative one.  No change
+    // expected.
     sm.applyScout(&output,
                   false,          // Won't vote
                   sm.term() + 1,  // Scouting happens with a higher term
@@ -2392,8 +2430,8 @@ static void test17()
     BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 3rd scouting response, but a negative one.  Elector should not
-    // transition to candidate or propose election.  It should emit random wait
-    // timer though.
+    // transition to candidate or propose election.  It should emit random
+    // wait timer though.
     sm.applyScout(&output,
                   false,          // Won't vote
                   sm.term() + 1,  // Scouting happens with a higher term
@@ -2440,8 +2478,10 @@ static void test18()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2537,8 +2577,10 @@ static void test19()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2615,8 +2657,10 @@ static void test20()
 
     BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
+    mqbcfg::ClusterQuorumManager quorumManager(k_QUORUM, k_TOTAL_NODES);
+
     // Dormant -D1-> Follower
-    sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
+    sm.enable(k_SELFID, &quorumManager, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
     BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
     BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
@@ -2627,7 +2671,8 @@ static void test20()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
-    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
+    // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting
+    // request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
     BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
     BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
@@ -2660,9 +2705,8 @@ static void test20()
     BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
     BMQTST_ASSERT_EQ(age, sm.age());
 
-    // Apply 2nd scouting response.  Quorum will be achieved, and elector will
-    // transition to candidate.
-    // Follower -F2-> Candidate
+    // Apply 2nd scouting response.  Quorum will be achieved, and elector
+    // will transition to candidate. Follower -F2-> Candidate
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term

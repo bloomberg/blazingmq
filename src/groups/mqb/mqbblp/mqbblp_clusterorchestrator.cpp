@@ -485,11 +485,11 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
 
     BALL_LOG_INFO_BLOCK
     {
-        BALL_LOG_OUTPUT_STREAM
-            << d_clusterData_p->identity().description() << ": "
-            << node->nodeDescription() << " has gone down. "
-            << "Node was primary for " << ns->primaryPartitions().size()
-            << " partition(s): [";
+        BALL_LOG_OUTPUT_STREAM << d_clusterData_p->identity().description()
+                               << ": " << node->nodeDescription()
+                               << " has gone down. " << "Node was primary for "
+                               << ns->primaryPartitions().size()
+                               << " partition(s): [";
         for (unsigned int i = 0; i < ns->primaryPartitions().size(); ++i) {
             BALL_LOG_OUTPUT_STREAM << ns->primaryPartitions()[i];
             if (i + 1 < ns->primaryPartitions().size()) {
@@ -582,7 +582,6 @@ ClusterOrchestrator::ClusterOrchestrator(
                             mqbc::IncoreClusterStateLedger>(
                             d_allocators.get("ClusterStateLedger"),
                             clusterConfig,
-                            mqbc::ClusterStateLedgerConsistency::e_STRONG,
                             d_clusterData_p,
                             clusterState,
                             &d_clusterData_p->blobSpPool())),
@@ -599,7 +598,6 @@ ClusterOrchestrator::ClusterOrchestrator(
                             mqbc::IncoreClusterStateLedger>(
                             d_allocators.get("ClusterStateLedger"),
                             clusterConfig,
-                            mqbc::ClusterStateLedgerConsistency::e_STRONG,
                             d_clusterData_p,
                             clusterState,
                             &d_clusterData_p->blobSpPool())),
@@ -685,6 +683,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         new (*d_allocator_p) mqbnet::Elector(
             d_clusterConfig.elector(),
             &d_clusterData_p->cluster(),
+            &d_clusterData_p->quorumManager(),
             bdlf::BindUtil::bind(&ClusterOrchestrator::onElectorStateChange,
                                  this,
                                  _1,   // ElectorState
@@ -1897,6 +1896,7 @@ int ClusterOrchestrator::processCommand(
         mqbcmd::ElectorResult electorResult;
         int                   rc = d_elector_mp->processCommand(&electorResult,
                                               command.elector());
+
         if (electorResult.isErrorValue()) {
             result->makeError(electorResult.error());
         }

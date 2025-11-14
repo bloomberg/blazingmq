@@ -95,7 +95,7 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     bsls::Types::Uint64 d_timestampNs;
 
     /// Number of ACKs received for this `ClusterMessage`.
-    int d_ackCount;
+    unsigned int d_ackCount;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(IncoreClusterStateLedger_ClusterMessageInfo,
@@ -183,13 +183,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     /// Cluster's state.
     const ClusterState* d_clusterState_p;
-
-    /// Desired consistency level (eventual vs. strong), configured by the
-    /// user.
-    ClusterStateLedgerConsistency::Enum d_consistencyLevel;
-
-    /// Number of nodes required to achieve consistency level.
-    int d_ackQuorum;
 
     /// Ledger configuration.
     mqbsi::LedgerConfig d_ledgerConfig;
@@ -282,6 +275,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bool isSelfLeader() const;
 
+    // Return the acknowledgment quorum required for this ledger.
+    unsigned int getAckQuorum() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(IncoreClusterStateLedger,
@@ -290,16 +286,15 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     // CREATORS
 
     /// Create a new @bbref{mqbc::IncoreClusterStateLedger} with the specified
-    /// `clusterDefinition`, `consistencyLevel`, `clusterData` and
+    /// `clusterDefinition`, `clusterData` and
     /// `clusterState`, and using the specified `bufferFactory` and `allocator`
     /// to supply memory.
     IncoreClusterStateLedger(
-        const mqbcfg::ClusterDefinition&    clusterDefinition,
-        ClusterStateLedgerConsistency::Enum consistencyLevel,
-        ClusterData*                        clusterData,
-        ClusterState*                       clusterState,
-        BlobSpPool*                         blobSpPool_p,
-        bslma::Allocator*                   allocator);
+        const mqbcfg::ClusterDefinition& clusterDefinition,
+        ClusterData*                     clusterData,
+        ClusterState*                    clusterState,
+        BlobSpPool*                      blobSpPool_p,
+        bslma::Allocator*                allocator);
 
     /// Destructor.
     ~IncoreClusterStateLedger() BSLS_KEYWORD_OVERRIDE;
@@ -454,6 +449,11 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
             &d_clusterData_p->cluster()));
 
     return d_clusterData_p->electorInfo().isSelfLeader();
+}
+
+inline unsigned int IncoreClusterStateLedger::getAckQuorum() const
+{
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 // MANIPULATORS

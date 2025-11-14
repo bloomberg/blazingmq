@@ -1,0 +1,47 @@
+name: Check alphabetical order in .mem files
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+
+jobs:
+  check-sorting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check alphabetical order in .mem files
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          echo "Checking all .mem files in src/ for sorted order..."
+
+          # Find all .mem files recursively under src/
+          files=$(find src -type f -name "*.mem")
+
+          # Track whether we find any unsorted files
+          unsorted=0
+
+          for f in $files; do
+            # Compare file with its sorted version
+            if ! diff -q <(sort "$f") "$f" > /dev/null; then
+              echo "❌ File not sorted alphabetically: $f"
+              echo "   To fix, run: sort -o $f $f"
+              unsorted=1
+            fi
+          done
+
+          if [ "$unsorted" -eq 1 ]; then
+            echo
+            echo "Some .mem files are not sorted alphabetically."
+            exit 1
+          fi
+
+          echo "✅ All .mem files are sorted."

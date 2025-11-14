@@ -533,12 +533,6 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                           << "' to all cluster nodes";
         }
 
-        // A follower does not reply Ack under eventual consistency
-        if (!isSelfLeader() &&
-            d_consistencyLevel == ClusterStateLedgerConsistency::e_EVENTUAL) {
-            return rc_SUCCESS;  // RETURN
-        }
-
         bmqp_ctrlmsg::ClusterMessage ackMessage;
         ackMessage.choice().makeLeaderAdvisoryAck().sequenceNumberAcked() =
             sequenceNumber;
@@ -688,7 +682,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         }
 
         iter->second.d_ackCount += 1;
-        if (iter->second.d_ackCount == d_ackQuorum) {
+
+        const unsigned int ackQuorum = getAckQuorum();
+
+        if (iter->second.d_ackCount == ackQuorum) {
             // Consistency level reached. Apply a commit message for the
             // advisory, broadcast it, and invoke the 'CommitCb'.
             bmqp_ctrlmsg::ClusterMessage        commitMessage;
@@ -701,7 +698,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
                              commitAdvisory.sequenceNumberCommitted());
 
-            BALL_LOG_INFO << description() << "Quorum of " << d_ackQuorum
+            BALL_LOG_INFO << description() << "Quorum of " << ackQuorum
                           << " acks is achieved for advisory of seqNum "
                           << ack.sequenceNumberAcked()
                           << ", creating and applying commit advisory: "
@@ -1157,12 +1154,11 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
 // CREATORS
 IncoreClusterStateLedger::IncoreClusterStateLedger(
-    const mqbcfg::ClusterDefinition&    clusterDefinition,
-    ClusterStateLedgerConsistency::Enum consistencyLevel,
-    ClusterData*                        clusterData,
-    ClusterState*                       clusterState,
-    BlobSpPool*                         blobSpPool_p,
-    bslma::Allocator*                   allocator)
+    const mqbcfg::ClusterDefinition& clusterDefinition,
+    ClusterData*                     clusterData,
+    ClusterState*                    clusterState,
+    BlobSpPool*                      blobSpPool_p,
+    bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_isOpen(false)
 , d_blobSpPool_p(blobSpPool_p)
@@ -1170,10 +1166,6 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_commitCb()
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
-, d_consistencyLevel(consistencyLevel)
-, d_ackQuorum(consistencyLevel == ClusterStateLedgerConsistency::e_STRONG
-                  ? (clusterDefinition.nodes().size() / 2) + 1
-                  : 1)
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
