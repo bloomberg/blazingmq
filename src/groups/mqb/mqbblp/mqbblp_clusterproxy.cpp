@@ -1153,7 +1153,7 @@ void ClusterProxy::configureQueue(
                                  callback);
 }
 
-void ClusterProxy::configureQueue(
+void ClusterProxy::closeQueue(
     mqbi::Queue*                                 queue,
     const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
     unsigned int                                 upstreamSubQueueId,
@@ -1164,10 +1164,10 @@ void ClusterProxy::configureQueue(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(queue));
 
-    d_queueHelper.configureQueue(queue,
-                                 handleParameters,
-                                 upstreamSubQueueId,
-                                 callback);
+    d_queueHelper.closeQueue(queue,
+                             handleParameters,
+                             upstreamSubQueueId,
+                             callback);
 }
 
 void ClusterProxy::onQueueHandleCreated(mqbi::Queue*     queue,

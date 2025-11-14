@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,10 +196,6 @@ class Uri {
     /// Optional application id, part of the URI query if present.
     bslstl::StringRef d_query_id;
 
-    /// Flag indicating whether the URI parser was initialized (and whether
-    /// shutdown should be called on it at destruction)
-    bool d_wasParserInitialized;
-
   private:
     // PRIVATE MANIPULATORS
 
@@ -315,6 +311,20 @@ bsl::ostream& operator<<(bsl::ostream& stream, const Uri& rhs);
 
 /// Utility namespace of methods for parsing URI strings into `Uri` objects.
 struct UriParser {
+    // PUBLIC TYPES
+    struct UriParseResult {
+        enum Enum {
+            e_SUCCESS             = 0,
+            e_INVALID_SCHEME      = -1,
+            e_UNSUPPORTED_CHAR    = -2,
+            e_BAD_QUERY           = -3,
+            e_MISSING_DOMAIN      = -4,
+            e_MISSING_QUEUE       = -5,
+            e_EMPTY_TIER          = -6,
+            e_QUEUE_NAME_TOO_LONG = -7
+        };
+    };
+
     // CLASS METHODS
 
     /// Initialize the `UriParser`.  Note that this will compile the regular

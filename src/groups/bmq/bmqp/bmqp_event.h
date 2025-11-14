@@ -412,19 +412,28 @@ inline Event::Event(bslmf::MovableRef<Event> src, bslma::Allocator* allocator)
 
 inline Event& Event::operator=(const Event& rhs)
 {
-    if (this != &rhs) {
-        d_clonedBlob_sp = rhs.d_clonedBlob_sp;  // src could be a clone
-        initialize(rhs.d_blob_p, false);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(this == &rhs)) {
+        // Return early on self-assignment.
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return *this;
     }
+
+    d_clonedBlob_sp = rhs.d_clonedBlob_sp;  // src could be a clone
+    initialize(rhs.d_blob_p, false);
     return *this;
 }
 
 inline Event& Event::operator=(bslmf::MovableRef<Event> rhs)
 {
-    if (this != &bslmf::MovableRefUtil::access(rhs)) {
-        d_clonedBlob_sp = bslmf::MovableRefUtil::access(rhs).d_clonedBlob_sp;
-        initialize(bslmf::MovableRefUtil::access(rhs).d_blob_p, false);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            this == &bslmf::MovableRefUtil::access(rhs))) {
+        // Return early on self-assignment.
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return *this;
     }
+
+    d_clonedBlob_sp = bslmf::MovableRefUtil::access(rhs).d_clonedBlob_sp;
+    initialize(bslmf::MovableRefUtil::access(rhs).d_blob_p, false);
     return *this;
 }
 

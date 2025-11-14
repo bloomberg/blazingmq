@@ -752,7 +752,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // processed.  We do so by enqueuing an event to all queues dispatchers
     // with the 'tearDownAllQueuesDone' finalize callback having the 'handle'
     // bound to it (so that the session is not yet destroyed).
-    dispatcher()->execute(
+    dispatcher()->executeOnAllQueues(
         mqbi::Dispatcher::VoidFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(&ClientSession::tearDownAllQueuesDone,
@@ -1012,7 +1012,7 @@ void ClientSession::processDisconnectAllQueues(
     // drained.  Note, this must be using an 'e_DISPATCHER' dispatcher event
     // type, refer to top level documention for explanation (paragraph about
     // the bmqu::SharedResource).
-    dispatcher()->execute(
+    dispatcher()->executeOnAllQueues(
         mqbi::Dispatcher::VoidFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(

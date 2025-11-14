@@ -107,9 +107,10 @@ void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     _execute(functor);
 }
 
-void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
-                         BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
-                         const mqbi::Dispatcher::VoidFunctor& doneCallback)
+void Dispatcher::executeOnAllQueues(
+    const mqbi::Dispatcher::VoidFunctor& functor,
+    BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
+    const mqbi::Dispatcher::VoidFunctor&         doneCallback)
 {
     if (functor) {
         _execute(functor);

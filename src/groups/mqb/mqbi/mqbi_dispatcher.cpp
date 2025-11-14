@@ -61,7 +61,6 @@ const char* DispatcherClientType::toAscii(DispatcherClientType::Enum value)
         CASE(SESSION)
         CASE(QUEUE)
         CASE(CLUSTER)
-        CASE(ALL)
     default: return "(* UNKNOWN *)";
     }
 
@@ -82,7 +81,6 @@ bool DispatcherClientType::fromAscii(DispatcherClientType::Enum* out,
     CHECKVALUE(SESSION)
     CHECKVALUE(QUEUE)
     CHECKVALUE(CLUSTER)
-    CHECKVALUE(ALL)
 
     // Invalid string
     return false;
