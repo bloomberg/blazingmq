@@ -318,13 +318,12 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     case bmqt::PropertyType::e_STRING: {
         // Try to avoid copying the string.  'd_blop' already keeps a copy.
         bmqu::BlobPosition end;
-        int                ret =
+        const int          ret =
             bmqu::BlobUtil::findOffset(&end, *d_blob_p, position, p.d_length);
         bool doCopy = true;
         if (ret == 0) {
             // Do not align
-            if (position.buffer() == end.buffer() ||
-                (position.buffer() + 1 == end.buffer() && end.byte() == 0)) {
+            if (bmqu::BlobUtil::isDataContinuous(position, end)) {
                 // Section is good
                 char* start = d_blob_p->buffer(position.buffer()).data() +
                               position.byte();
@@ -372,14 +371,14 @@ MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
 , d_originalSize(0)
 , d_blob()
 , d_blob_p(d_blob.address())
-, d_isBlobConstructed(false)
-, d_isDirty(true)  // by default, this should be true
 , d_mphSize(0)
 , d_mphOffset(0)
 , d_numProps(0)
 , d_dataOffset(0)
 , d_schema()
 , d_originalNumProps(0)
+, d_isBlobConstructed(false)
+, d_isDirty(true)  // by default, this should be true
 , d_doDeepCopy(true)
 {
 }
@@ -392,14 +391,14 @@ MessageProperties::MessageProperties(const MessageProperties& other,
 , d_originalSize(other.d_originalSize)
 , d_blob()
 , d_blob_p(d_blob.address())
-, d_isBlobConstructed(false)
-, d_isDirty(other.d_isDirty)
 , d_mphSize(other.d_mphSize)
 , d_mphOffset(other.d_mphOffset)
 , d_numProps(other.d_numProps)
 , d_dataOffset(other.d_dataOffset)
 , d_schema(other.d_schema)
 , d_originalNumProps(other.d_originalNumProps)
+, d_isBlobConstructed(false)
+, d_isDirty(other.d_isDirty)
 , d_doDeepCopy(other.d_doDeepCopy)
 {
     if (other.d_isBlobConstructed) {
