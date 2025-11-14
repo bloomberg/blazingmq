@@ -117,7 +117,6 @@ def configure_cluster(cluster: Cluster, is_fsm: bool):
 def restart_as_fsm_mode(
     cluster: Cluster,
     producer: Client,
-    consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
     Restart the `cluster` as FSM mode.
@@ -139,7 +138,6 @@ def restart_as_fsm_mode(
 def restart_to_fsm_single_node_with_quorum_one(
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
-    consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
     Restart the `cluster` to FSM mode.
@@ -172,7 +170,6 @@ def restart_to_fsm_single_node_with_quorum_one(
 def restart_to_fsm_single_node_with_quorum_one_and_start_others(
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
-    consumers: List[Client],  # pylint: disable=unused-argument
 ):
     """
     Restart the `cluster` to FSM mode.
@@ -205,7 +202,6 @@ def restart_to_fsm_single_node_with_quorum_one_and_start_others(
 def restart_as_legacy_mode(
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
-    consumers: List[Client],
 ):
     """
     Restart the `cluster` as Legacy mode.
@@ -226,10 +222,6 @@ def restart_as_legacy_mode(
     cluster.lower_leader_startup_wait()
     if cluster.is_single_node:
         cluster.start_nodes(wait_leader=True, wait_ready=True)
-        # For a standard cluster, states have already been restored as part of
-        # leader re-election.
-        for consumer in consumers:
-            consumer.wait_state_restored()
     else:
         # Switching to Legacy mode could introduce start-up failure,
         # which auto-resolve upon a second restart.
@@ -521,8 +513,6 @@ def test_restart_between_Legacy_and_FSM(
     existing_priority_queues = []
     existing_fanout_queues = []
 
-    default_consumer = proxy.create_client("consumer")
-
     consumerMap = {}
 
     # Phase 1: From Legacy Mode to FSM Mode
@@ -537,7 +527,7 @@ def test_restart_between_Legacy_and_FSM(
     )
 
     # SWITCH
-    switch_cluster_mode[0](cluster, producer, [default_consumer])
+    switch_cluster_mode[0](cluster, producer)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -560,7 +550,7 @@ def test_restart_between_Legacy_and_FSM(
     )
 
     # SWITCH
-    switch_cluster_mode[1](cluster, producer, [default_consumer])
+    switch_cluster_mode[1](cluster, producer)
 
     # EPILOGUE
     post_existing_queues_and_verify(
@@ -791,7 +781,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     # 2.1 Optional rollover
     optional_rollover(du, cluster.last_known_leader, producer)
     # 2.2 Switch cluster mode
-    switch_cluster_mode[0](cluster, producer, [consumer])
+    switch_cluster_mode[0](cluster, producer)
 
     # 3. VERIFY
     check_if_queue_has_n_messages(consumer, priority_queue, 1)
@@ -808,7 +798,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
         post_few_messages(producer, queue, ["msg4"])
 
     # 5. SWITCH BACK
-    switch_cluster_mode[1](cluster, producer, [consumer])
+    switch_cluster_mode[1](cluster, producer)
 
     # 6. VERIFY AGAIN
     check_if_queue_has_n_messages(consumer, priority_queue, 1 + 1)
@@ -909,7 +899,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     # 2.1 Optional rollover
     optional_rollover(du, cluster.last_known_leader, producer)
     # 2.2 Switch cluster mode
-    switch_cluster_mode[0](cluster, producer, [consumer])
+    switch_cluster_mode[0](cluster, producer)
 
     # 3. VERIFY
     check_if_queue_has_n_messages(consumer, priority_queue, 1)
@@ -926,7 +916,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
         post_few_messages(producer, queue, ["msg4"])
 
     # 5. SWITCH BACK
-    switch_cluster_mode[1](cluster, producer, [consumer])
+    switch_cluster_mode[1](cluster, producer)
 
     # 6. VERIFY AGAIN
     check_if_queue_has_n_messages(consumer, priority_queue, 1 + 1)
