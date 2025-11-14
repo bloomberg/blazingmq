@@ -1921,7 +1921,6 @@ int main(int argc, char** argv)
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1940,11 +1939,7 @@ int main(int argc, char** argv)
     } break;
     }
 
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // For an unidentified reason, 'e_CHECK_DEF_GBL_ALLOC' fails as a
-    // result of initializing 'bmqsys::Time' in the constructor of
-    // 'Tester'.
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
