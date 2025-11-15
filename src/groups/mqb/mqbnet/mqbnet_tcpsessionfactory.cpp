@@ -347,31 +347,44 @@ void TCPSessionFactory::handleInitialConnection(
                   << d_nbActiveChannels << " active channels]";
 
     // Create a unique InitialConnectionContext for the channel, from
-    // the OperationContext.  This shared_ptr is bound to the
-    // 'negotiationComplete' callback below, which is what scopes its lifetime.
-    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext;
-    initialConnectionContext.createInplace(d_allocator_p,
-                                           context->d_isIncoming);
-    (*initialConnectionContext)
-        .setUserData(context->d_negotiationUserData_sp.get())
-        .setResultState(context->d_resultState_p)
-        .setChannel(channel)
-        .setCompleteCb(bdlf::BindUtil::bind(
-            &TCPSessionFactory::negotiationComplete,
-            this,
-            bdlf::PlaceHolders::_1,  // status
-            bdlf::PlaceHolders::_2,  // errorDescription
-            bdlf::PlaceHolders::_3,  // session
-            bdlf::PlaceHolders::_4,  // channel
-            bdlf::PlaceHolders::_5,  // initialConnectionContext
-            context));
+    // the OperationContext.  When we start reading incoming messages, this
+    // shared_ptr will be bound to the callback function of the ntc reader.
+    // Since `handleEvent()` is always called as a result of reading, and
+    // `InitialConnectionCompleteCb` is always triggered at the end of
+    // `handleEvent()`, its lifetime ends when `InitialConnectionCompleteCb`
+    // finishes.
+
+    // Notice that AuthenticationHandler and NegotiationHandler will be passed
+    // in once we deprecate InitialConnectionHandler
+    bsl::shared_ptr<InitialConnectionContext> initialConnectionContext =
+        bsl::allocate_shared<InitialConnectionContext>(
+            d_allocator_p,
+            context->d_isIncoming,
+            static_cast<mqbnet::Authenticator*>(0),
+            static_cast<mqbnet::Negotiator*>(0),
+            context->d_negotiationUserData_sp.get(),
+            context->d_resultState_p,
+            channel,
+            bdlf::BindUtil::bindS(
+                d_allocator_p,
+                &TCPSessionFactory::negotiationComplete,
+                this,
+                bdlf::PlaceHolders::_1,  // status
+                bdlf::PlaceHolders::_2,  // errorDescription
+                bdlf::PlaceHolders::_3,  // session
+                bdlf::PlaceHolders::_4,  // channel
+                bdlf::PlaceHolders::_5,  // initialConnectionContext
+                context));
 
     // Register as observer of the channel to get the 'onClose'
+    bsl::weak_ptr<InitialConnectionContext> context_wp =
+        initialConnectionContext;
     channel->onClose(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &TCPSessionFactory::onClose,
                               this,
-                              initialConnectionContext,
+                              context_wp,
+                              channel,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
     // NOTE: we must ensure the 'initialConnectionCompleteCb' can be invoked
@@ -758,15 +771,15 @@ void TCPSessionFactory::channelStateCallback(
 }
 
 void TCPSessionFactory::onClose(
-    const bsl::shared_ptr<InitialConnectionContext>& initialConnectionContext,
-    const bmqio::Status&                             status)
+    const bsl::weak_ptr<InitialConnectionContext>& context_wp,
+    const bsl::shared_ptr<bmqio::Channel>&         channel,
+    const bmqio::Status&                           status)
 {
     // Executed by one of the IO threads.
 
-    --d_nbActiveChannels;
+    bsl::shared_ptr<InitialConnectionContext> context = context_wp.lock();
 
-    const bsl::shared_ptr<bmqio::Channel>& channel =
-        initialConnectionContext->channel();
+    --d_nbActiveChannels;
 
     int port;
     channel->properties().load(
@@ -780,7 +793,9 @@ void TCPSessionFactory::onClose(
 
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'negotiationComplete'.
-        initialConnectionContext->onClose();
+        if (context) {
+            context->onClose();
+        }
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
         if (it != d_channels.end()) {
