@@ -211,11 +211,11 @@ struct Tester {
             .setMaxDataFileSize(d_partitionCfg.maxDataFileSize())
             .setMaxJournalFileSize(d_partitionCfg.maxJournalFileSize())
             .setMaxQlistFileSize(d_partitionCfg.maxQlistFileSize())
-            .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
-            .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-            .setQlistFileGrowLimit(partitionCfg.qlistFileGrowLimit())
-            .setGrowStepPercent(partitionCfg.growStepPercent())
-            .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent())
+            .setDataFileGrowLimit(d_partitionCfg.dataFileGrowLimit())
+            .setJournalFileGrowLimit(d_partitionCfg.journalFileGrowLimit())
+            .setQlistFileGrowLimit(d_partitionCfg.qlistFileGrowLimit())
+            .setGrowStepPercent(d_partitionCfg.growStepPercent())
+            .setMinAvailSpacePercent(d_partitionCfg.minAvailSpacePercent())
             .setRecoveredQueuesCb(bdlf::BindUtil::bind(
                 &recoveredQueuesCb,
                 bdlf::PlaceHolders::_1,    // partitionId
