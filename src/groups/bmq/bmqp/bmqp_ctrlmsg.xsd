@@ -904,7 +904,7 @@
     <sequence>
       <element name='dataFileSize' type='unsignedLong'/>
       <element name='journalFileSize' type='unsignedLong'/>
-      <element name='qlistFileSize' type='unsignedLong'/>
+      <element name='qListFileSize' type='unsignedLong'/>
     </sequence>
   </complexType>
 

@@ -2231,9 +2231,9 @@ const bdlat_AttributeInfo PartitionMaxFileSizes::ATTRIBUTE_INFO_ARRAY[] = {
         bdlat_FormattingMode::e_DEC
     },
     {
-        ATTRIBUTE_ID_QLIST_FILE_SIZE,
-        "qlistFileSize",
-        sizeof("qlistFileSize") - 1,
+        ATTRIBUTE_ID_Q_LIST_FILE_SIZE,
+        "qListFileSize",
+        sizeof("qListFileSize") - 1,
         "",
         bdlat_FormattingMode::e_DEC
     }
@@ -2266,8 +2266,8 @@ const bdlat_AttributeInfo *PartitionMaxFileSizes::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_SIZE];
       case ATTRIBUTE_ID_JOURNAL_FILE_SIZE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE];
-      case ATTRIBUTE_ID_QLIST_FILE_SIZE:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_SIZE];
+      case ATTRIBUTE_ID_Q_LIST_FILE_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE];
       default:
         return 0;
     }
@@ -2278,7 +2278,7 @@ const bdlat_AttributeInfo *PartitionMaxFileSizes::lookupAttributeInfo(int id)
 PartitionMaxFileSizes::PartitionMaxFileSizes()
 : d_dataFileSize()
 , d_journalFileSize()
-, d_qlistFileSize()
+, d_qListFileSize()
 {
 }
 
@@ -2288,7 +2288,7 @@ void PartitionMaxFileSizes::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_dataFileSize);
     bdlat_ValueTypeFunctions::reset(&d_journalFileSize);
-    bdlat_ValueTypeFunctions::reset(&d_qlistFileSize);
+    bdlat_ValueTypeFunctions::reset(&d_qListFileSize);
 }
 
 // ACCESSORS
@@ -2301,7 +2301,7 @@ bsl::ostream& PartitionMaxFileSizes::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("dataFileSize", this->dataFileSize());
     printer.printAttribute("journalFileSize", this->journalFileSize());
-    printer.printAttribute("qlistFileSize", this->qlistFileSize());
+    printer.printAttribute("qListFileSize", this->qListFileSize());
     printer.end();
     return stream;
 }

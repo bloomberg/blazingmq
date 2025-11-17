@@ -1553,7 +1553,7 @@ int RecoveryManager::recoverSeqNum(
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     int                rc          = rc_UNKNOWN;
 
-    // Retrieve first sync point after rolllover sequence number.
+    // Retrieve first sync point after rollover sequence number.
     if (firstSyncPointAfterRolllover) {
         *seqNum = recoveryCtx.d_firstSyncPointAfterRolloverSeqNum;
         return rc_SUCCESS;  // RETURN
@@ -1597,6 +1597,33 @@ int RecoveryManager::recoverSeqNum(
     }
 
     return rc_SUCCESS;
+}
+
+bmqp_ctrlmsg::PartitionMaxFileSizes RecoveryManager::recoverPartitionMaxFileSizes(int partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+
+    RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
+
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
+    if (d_qListAware) {
+        BSLS_ASSERT_SAFE(recoveryCtx.d_mappedQlistFd.isValid());
+    }
+
+    // Get partition max file sizes from the file headers
+    bmqp_ctrlmsg::PartitionMaxFileSizes result; 
+    result.journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedJournalFd).maxFileSize();
+    result.dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedDataFd).maxFileSize();
+    if (d_qListAware) {
+        result.qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedQlistFd).maxFileSize();
+    }
+    return result;
 }
 
 void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,

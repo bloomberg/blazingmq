@@ -720,6 +720,10 @@ class StorageManager BSLS_KEYWORD_FINAL
     const bmqp_ctrlmsg::PartitionSequenceNumber
     getSelfFirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
 
+    /// Return own max file sizes for the specified `partitionId`.
+    const bmqp_ctrlmsg::PartitionMaxFileSizes
+    getSelfPartitionMaxFileSizes(int partitionId) const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(StorageManager, bslma::UsesBslmaAllocator)

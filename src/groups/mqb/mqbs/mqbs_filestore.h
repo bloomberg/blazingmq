@@ -412,6 +412,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // `firstSyncPointOffsetWords`. It is used to determine if cluster node
     // missed rollover.
 
+    bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
+    // Max file sizes for journal, data and qlist files for this partition.    
+
   private:
     // NOT IMPLEMENTED
     FileStore(const FileStore&) BSLS_CPP11_DELETED;
@@ -1045,6 +1048,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
+
+    /// Return the max file sizes for this partition.
+    const bmqp_ctrlmsg::PartitionMaxFileSizes&
+    partitionMaxFileSizes() const;
+
 };
 
 // =======================
@@ -1315,6 +1323,12 @@ inline const bmqp_ctrlmsg::PartitionSequenceNumber&
 FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
+}
+
+inline const bmqp_ctrlmsg::PartitionMaxFileSizes&
+FileStore::partitionMaxFileSizes() const
+{
+    return d_partitionMaxFileSizes;
 }
 
 // -----------------------

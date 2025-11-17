@@ -444,6 +444,16 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return 100 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
+    // Get partition max file sizes from the file headers
+    d_partitionMaxFileSizes.journalFileSize() = FileStoreProtocolUtil::bmqHeader(journalFd).maxFileSize();
+    d_partitionMaxFileSizes.dataFileSize() = FileStoreProtocolUtil::bmqHeader(dataFd).maxFileSize();
+    if (d_qListAware) {
+        d_partitionMaxFileSizes.qListFileSize() = FileStoreProtocolUtil::bmqHeader(qlistFd).maxFileSize();
+    }
+    BALL_LOG_INFO << partitionDesc()
+                    << "Partition max file sizes: "
+                    << d_partitionMaxFileSizes;
+
     // Get first sync point after rollover.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
         const RecordHeader& recHeader =
@@ -2668,6 +2678,12 @@ int FileStore::create(FileSetSp* fileSetSp)
     //               << " bytes, before: " << d_config.maxJournalFileSize();
 
     // d_config.setMaxJournalFileSize(newSize);
+
+    // Initialize from config
+    // TODO: me: in case of rollover it shoulsd be passed via args!!!
+    d_partitionMaxFileSizes.dataFileSize() = d_config.maxDataFileSize();
+    d_partitionMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
+    d_partitionMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
 
     bmqu::MemOutStream errorDesc;
     return FileStoreUtil::create(errorDesc,
@@ -5168,6 +5184,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
                         d_blobSpPool_p,
                         allocator)
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_partitionMaxFileSizes()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -5188,6 +5205,11 @@ FileStore::FileStore(const DataStoreConfig&  config,
 
     d_alarmSoftLimiter.initialize(1, 15 * bdlt::TimeUnitRatio::k_NS_PER_M);
     // Throttling of one maximum alarm per 15 minutes
+
+    // Initialize from config
+    d_partitionMaxFileSizes.dataFileSize() = d_config.maxDataFileSize();
+    d_partitionMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
+    d_partitionMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
 }
 
 FileStore::~FileStore()

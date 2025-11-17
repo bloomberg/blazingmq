@@ -4558,7 +4558,7 @@ class PartitionMaxFileSizes {
     // INSTANCE DATA
     bsls::Types::Uint64  d_dataFileSize;
     bsls::Types::Uint64  d_journalFileSize;
-    bsls::Types::Uint64  d_qlistFileSize;
+    bsls::Types::Uint64  d_qListFileSize;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -4569,7 +4569,7 @@ class PartitionMaxFileSizes {
     enum {
         ATTRIBUTE_ID_DATA_FILE_SIZE    = 0
       , ATTRIBUTE_ID_JOURNAL_FILE_SIZE = 1
-      , ATTRIBUTE_ID_QLIST_FILE_SIZE   = 2
+      , ATTRIBUTE_ID_Q_LIST_FILE_SIZE  = 2
     };
 
     enum {
@@ -4579,7 +4579,7 @@ class PartitionMaxFileSizes {
     enum {
         ATTRIBUTE_INDEX_DATA_FILE_SIZE    = 0
       , ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE = 1
-      , ATTRIBUTE_INDEX_QLIST_FILE_SIZE   = 2
+      , ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE  = 2
     };
 
     // CONSTANTS
@@ -4648,8 +4648,8 @@ class PartitionMaxFileSizes {
         // Return a reference to the modifiable "JournalFileSize" attribute of
         // this object.
 
-    bsls::Types::Uint64& qlistFileSize();
-        // Return a reference to the modifiable "QlistFileSize" attribute of
+    bsls::Types::Uint64& qListFileSize();
+        // Return a reference to the modifiable "QListFileSize" attribute of
         // this object.
 
     // ACCESSORS
@@ -4702,8 +4702,8 @@ class PartitionMaxFileSizes {
     bsls::Types::Uint64 journalFileSize() const;
         // Return the value of the "JournalFileSize" attribute of this object.
 
-    bsls::Types::Uint64 qlistFileSize() const;
-        // Return the value of the "QlistFileSize" attribute of this object.
+    bsls::Types::Uint64 qListFileSize() const;
+        // Return the value of the "QListFileSize" attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const PartitionMaxFileSizes& lhs,
@@ -4714,7 +4714,7 @@ class PartitionMaxFileSizes {
     {
         return lhs.dataFileSize() == rhs.dataFileSize() &&
                lhs.journalFileSize() == rhs.journalFileSize() &&
-               lhs.qlistFileSize() == rhs.qlistFileSize();
+               lhs.qListFileSize() == rhs.qListFileSize();
     }
 
     friend bool operator!=(const PartitionMaxFileSizes& lhs,
@@ -25838,7 +25838,7 @@ void PartitionMaxFileSizes::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) cons
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->dataFileSize());
     hashAppend(hashAlgorithm, this->journalFileSize());
-    hashAppend(hashAlgorithm, this->qlistFileSize());
+    hashAppend(hashAlgorithm, this->qListFileSize());
 }
 
 // CLASS METHODS
@@ -25858,7 +25858,7 @@ int PartitionMaxFileSizes::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_qlistFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_SIZE]);
+    ret = manipulator(&d_qListFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
     if (ret) {
         return ret;
     }
@@ -25878,8 +25878,8 @@ int PartitionMaxFileSizes::manipulateAttribute(t_MANIPULATOR& manipulator, int i
       case ATTRIBUTE_ID_JOURNAL_FILE_SIZE: {
         return manipulator(&d_journalFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE]);
       }
-      case ATTRIBUTE_ID_QLIST_FILE_SIZE: {
-        return manipulator(&d_qlistFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_SIZE]);
+      case ATTRIBUTE_ID_Q_LIST_FILE_SIZE: {
+        return manipulator(&d_qListFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
       }
       default:
         return NOT_FOUND;
@@ -25916,9 +25916,9 @@ bsls::Types::Uint64& PartitionMaxFileSizes::journalFileSize()
 }
 
 inline
-bsls::Types::Uint64& PartitionMaxFileSizes::qlistFileSize()
+bsls::Types::Uint64& PartitionMaxFileSizes::qListFileSize()
 {
-    return d_qlistFileSize;
+    return d_qListFileSize;
 }
 
 // ACCESSORS
@@ -25937,7 +25937,7 @@ int PartitionMaxFileSizes::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_qlistFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_SIZE]);
+    ret = accessor(d_qListFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
     if (ret) {
         return ret;
     }
@@ -25957,8 +25957,8 @@ int PartitionMaxFileSizes::accessAttribute(t_ACCESSOR& accessor, int id) const
       case ATTRIBUTE_ID_JOURNAL_FILE_SIZE: {
         return accessor(d_journalFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_SIZE]);
       }
-      case ATTRIBUTE_ID_QLIST_FILE_SIZE: {
-        return accessor(d_qlistFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_SIZE]);
+      case ATTRIBUTE_ID_Q_LIST_FILE_SIZE: {
+        return accessor(d_qListFileSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_SIZE]);
       }
       default:
         return NOT_FOUND;
@@ -25995,9 +25995,9 @@ bsls::Types::Uint64 PartitionMaxFileSizes::journalFileSize() const
 }
 
 inline
-bsls::Types::Uint64 PartitionMaxFileSizes::qlistFileSize() const
+bsls::Types::Uint64 PartitionMaxFileSizes::qListFileSize() const
 {
-    return d_qlistFileSize;
+    return d_qListFileSize;
 }
 
 
