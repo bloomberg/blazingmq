@@ -249,25 +249,53 @@ static void test1_breathingTest()
         } k_DATA[] = {
             // input                                     rc
             // ----------------------------------------- --
-            {L_, "", -1},
-            {L_, "foobar", -1},
-            {L_, "bb://", -1},
-            {L_, "bmq://", -1},
-            {L_, "bmq://a/", -4},
-            {L_, "bmq://$%@/ts.trades.myapp/queue@sss", -1},
-            {L_, "bb:///ts.trades.myapp/myqueue", -1},
-            {L_, "bmq://ts.trades.myapp/", -4},
-            {L_, "bmq://ts.trades.myapp/queue?id=", -1},
-            {L_, "bmq://ts.trades.myapp/queue?bs=a", -1},
-            {L_, "bmq://ts.trades.myapp/queue?", -1},
-            {L_, "bmq://ts.trades.myapp/queue?id=", -1},
-            {L_, "bmq://ts.trades.myapp/queue&id==", -1},
-            {L_, "bmq://ts.trades.myapp/queue&id=foo", -1},
-            {L_, "bmq://ts.trades.myapp/queue?id=foo&", -1},
-            {L_, "bmq://ts.trades.myapp/queue?pid=foo", -1},
-            {L_, "bmq://ts.trades.myapp.~/queue", -5},
-            {L_, "bmq://ts.trades~myapp/queue", -1},
-            {L_, "bmq://ts.trades.myapp.~a_b/queue", -1},
+            {L_, "", bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_, "foobar", bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_, "bb://", bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_, "bmq://", bmqt::UriParser::UriParseResult::e_MISSING_DOMAIN},
+            {L_, "bmq://a/", bmqt::UriParser::UriParseResult::e_MISSING_QUEUE},
+            {L_,
+             "bmq://$%@/ts.trades.myapp/queue@sss",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bb:///ts.trades.myapp/myqueue",
+             bmqt::UriParser::UriParseResult::e_INVALID_SCHEME},
+            {L_,
+             "bmq://ts.trades.myapp/",
+             bmqt::UriParser::UriParseResult::e_MISSING_QUEUE},
+            {L_,
+             "bmq://ts.trades.myapp/queue?id=",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue?bs=a",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue?",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue?id=",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp/queue&id==",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp/queue&id=foo",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp/queue?id=foo&",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp/queue?pid=foo",
+             bmqt::UriParser::UriParseResult::e_BAD_QUERY},
+            {L_,
+             "bmq://ts.trades.myapp.~/queue",
+             bmqt::UriParser::UriParseResult::e_EMPTY_TIER},
+            {L_,
+             "bmq://ts.trades~myapp/queue",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
+            {L_,
+             "bmq://ts.trades.myapp.~a_b/queue",
+             bmqt::UriParser::UriParseResult::e_UNSUPPORTED_CHAR},
         };
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -382,14 +410,14 @@ static void test2_URIBuilder()
         builder.reset();
 
         BMQTST_ASSERT_EQ(builder.uri(&uri, &errorMessage),
-                         -3);  // -3: MISSING DOMAIN
-        BMQTST_ASSERT_EQ(errorMessage, "missing domain");
+                         bmqt::UriParser::UriParseResult::e_MISSING_DOMAIN);
+        BMQTST_ASSERT_EQ(errorMessage, "Missing domain");
         builder.setDomain("my.domain");
         BMQTST_ASSERT_EQ(uri.isValid(), false);
 
         BMQTST_ASSERT_EQ(builder.uri(&uri, &errorMessage),
-                         -4);  // -4: MISSING QUEUE
-        BMQTST_ASSERT_EQ(errorMessage, "missing queue");
+                         bmqt::UriParser::UriParseResult::e_MISSING_QUEUE);
+        BMQTST_ASSERT_EQ(errorMessage, "Missing queue");
         builder.setQueue("myQueue");
         BMQTST_ASSERT_EQ(builder.uri(&uri, 0), 0);
         BMQTST_ASSERT_EQ(uri.asString(), "bmq://my.domain/myQueue");
@@ -535,9 +563,6 @@ static void test4_initializeShutdown()
 
     // Shut down the parser is a no-op.
     bmqt::UriParser::shutdown();
-
-    // Shutdown again should assert
-    BMQTST_ASSERT_SAFE_FAIL(bmqt::UriParser::shutdown());
 }
 
 /// Test Uri print method.

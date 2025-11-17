@@ -704,15 +704,15 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
                  clusterIt->subcontextIterator();
              partitionIt;
              ++partitionIt) {
-            mqbstat::ClusterStats::PrimaryStatus::Enum primaryStatus =
-                static_cast<mqbstat::ClusterStats::PrimaryStatus::Enum>(
+            mqbstat::PartitionStats::PrimaryStatus::Enum primaryStatus =
+                static_cast<mqbstat::PartitionStats::PrimaryStatus::Enum>(
                     mqbstat::ClusterStats::getValue(
                         *partitionIt,
                         d_snapshotId,
                         mqbstat::ClusterStats::Stat::
                             e_PARTITION_PRIMARY_STATUS));
             if (primaryStatus !=
-                mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY) {
+                mqbstat::PartitionStats::PrimaryStatus::e_PRIMARY) {
                 // Only report partition stats from the primary node
                 continue;  // CONTINUE
             }
@@ -807,6 +807,7 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
             {"domain_cfg_msgs", Stat::e_CFG_MSGS},
             {"domain_cfg_bytes", Stat::e_CFG_BYTES},
             {"domain_queue_count", Stat::e_QUEUE_COUNT},
+            {"domain_queue_count_open", Stat::e_QUEUE_COUNT_OPEN},
         };
 
         for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);

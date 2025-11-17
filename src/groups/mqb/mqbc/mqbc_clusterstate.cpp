@@ -798,12 +798,25 @@ void ClusterState::iterateDoubleAssignments(
 
 void ClusterState::DomainState::adjustQueueCount(int by)
 {
+    // executed by the cluster *DISPATCHER* thread
     d_numAssignedQueues += by;
 
     if (d_domain_p != 0) {
         d_domain_p->domainStats()
             ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT>(
                 d_numAssignedQueues);
+    }
+}
+
+void ClusterState::DomainState::adjustOpenedQueueCount(int by)
+{
+    // executed by the cluster *DISPATCHER* thread
+    d_numOpenedQueues += by;
+
+    if (d_domain_p != 0) {
+        d_domain_p->domainStats()
+            ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT_OPEN>(
+                d_numOpenedQueues);
     }
 }
 
