@@ -1770,12 +1770,16 @@ void StorageManager::do_logFailurePrimaryStateResponse(
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary() == sourceNode);
 
+    const mqbnet::ClusterNode* currentPrimary =
+        d_partitionInfoVec[partitionId].primary();
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Received failure PrimaryStateResponse from node "
-                  << sourceNode->nodeDescription() << ".";
+                  << sourceNode->nodeDescription() << ", current primary is: "
+                  << (currentPrimary ? currentPrimary->nodeDescription()
+                                     : "** null **")
+                  << ".";
 }
 
 void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
