@@ -215,6 +215,9 @@ struct BlobUtil {
     static bool isValidSection(const bdlbb::Blob& blob,
                                const BlobSection& section);
 
+    static bool isDataContinuous(const bmqu::BlobPosition& start,
+                                 const bmqu::BlobPosition& end);
+
     /// Find the distance from the specified `section`s `start()` to the
     /// `section`s `end()` in the specified `blob` and return it in the
     /// specified `size`.  Return `0` on success or a negative value if the
@@ -637,6 +640,13 @@ TYPE* BlobUtil::getAlignedObject(TYPE*               storage,
                           sizeof(TYPE),
                           bsls::AlignmentFromType<TYPE>::VALUE,
                           copyFromBlob));
+}
+
+inline bool BlobUtil::isDataContinuous(const bmqu::BlobPosition& start,
+                                       const bmqu::BlobPosition& end)
+{
+    return (start.buffer() == end.buffer() ||
+            (start.buffer() + 1 == end.buffer() && end.byte() == 0));
 }
 
 }  // close package namespace
