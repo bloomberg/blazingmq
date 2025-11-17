@@ -3490,7 +3490,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
     // Update stats
     bdlma::LocalSequentialAllocator<1024> iteratorLsa(d_allocator_p);
     bmqp::PushMessageIterator msgIterator(d_bufferFactory_p, &iteratorLsa);
-    event.loadPushMessageIterator(&msgIterator);
+    event.loadPushMessageIterator(&msgIterator, true);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!msgIterator.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << id() << "Unable to process PUSH event "
