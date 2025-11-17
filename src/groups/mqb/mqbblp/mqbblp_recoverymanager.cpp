@@ -489,6 +489,9 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
             << k_STARTUP_WAIT_RETRIES << " times.";
     }
     else {
+        // The sync points always come from the primary, who is more
+        // trustworthy than any other available peer.  Therefore, wait as much
+        // as possible for sync points from the primary.
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": Partition [" << partitionId
                       << "], extending the wait for sync points.";
