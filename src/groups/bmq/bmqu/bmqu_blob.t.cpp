@@ -473,8 +473,8 @@ static void test7_findOffset()
             {L_, 8, 0, bmqu::BlobPosition(3, 2)},
             {L_, 9, 0, bmqu::BlobPosition(4, 0)},
             // Invalid offsets
-            {L_, 10, -3, bmqu::BlobPosition(0, 0)},
-            {L_, 11, -3, bmqu::BlobPosition(0, 0)},
+            {L_, 10, -2, bmqu::BlobPosition(0, 0)},
+            {L_, 11, -2, bmqu::BlobPosition(0, 0)},
         };
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -529,8 +529,8 @@ static void test7_findOffset()
             {L_, bmqu::BlobPosition(0, 1), 6, 0, bmqu::BlobPosition(3, 1)},
             {L_, bmqu::BlobPosition(0, 1), 7, 0, bmqu::BlobPosition(3, 2)},
             {L_, bmqu::BlobPosition(0, 1), 8, 0, bmqu::BlobPosition(4, 0)},
-            {L_, bmqu::BlobPosition(0, 1), 9, -3, bmqu::BlobPosition(0, 0)},
-            {L_, bmqu::BlobPosition(0, 1), 10, -3, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(0, 1), 9, -2, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(0, 1), 10, -2, bmqu::BlobPosition(0, 0)},
             // Start at (1,0)
             {L_, bmqu::BlobPosition(1, 0), 0, 0, bmqu::BlobPosition(1, 0)},
             {L_, bmqu::BlobPosition(1, 0), 1, 0, bmqu::BlobPosition(1, 1)},
@@ -540,8 +540,8 @@ static void test7_findOffset()
             {L_, bmqu::BlobPosition(1, 0), 5, 0, bmqu::BlobPosition(3, 1)},
             {L_, bmqu::BlobPosition(1, 0), 6, 0, bmqu::BlobPosition(3, 2)},
             {L_, bmqu::BlobPosition(1, 0), 7, 0, bmqu::BlobPosition(4, 0)},
-            {L_, bmqu::BlobPosition(1, 0), 8, -3, bmqu::BlobPosition(0, 0)},
-            {L_, bmqu::BlobPosition(1, 0), 9, -3, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(1, 0), 8, -2, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(1, 0), 9, -2, bmqu::BlobPosition(0, 0)},
             // Start at (1, 2)
             {L_, bmqu::BlobPosition(1, 2), 0, 0, bmqu::BlobPosition(1, 2)},
             {L_, bmqu::BlobPosition(1, 2), 1, 0, bmqu::BlobPosition(2, 0)},
@@ -549,13 +549,13 @@ static void test7_findOffset()
             {L_, bmqu::BlobPosition(1, 2), 3, 0, bmqu::BlobPosition(3, 1)},
             {L_, bmqu::BlobPosition(1, 2), 4, 0, bmqu::BlobPosition(3, 2)},
             {L_, bmqu::BlobPosition(1, 2), 5, 0, bmqu::BlobPosition(4, 0)},
-            {L_, bmqu::BlobPosition(1, 2), 6, -3, bmqu::BlobPosition(0, 0)},
-            {L_, bmqu::BlobPosition(1, 2), 7, -3, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(1, 2), 6, -2, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(1, 2), 7, -2, bmqu::BlobPosition(0, 0)},
             // Start at (3, 2)
             {L_, bmqu::BlobPosition(3, 2), 0, 0, bmqu::BlobPosition(3, 2)},
             {L_, bmqu::BlobPosition(3, 2), 1, 0, bmqu::BlobPosition(4, 0)},
-            {L_, bmqu::BlobPosition(3, 2), 2, -3, bmqu::BlobPosition(0, 0)},
-            {L_, bmqu::BlobPosition(3, 2), 3, -3, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(3, 2), 2, -2, bmqu::BlobPosition(0, 0)},
+            {L_, bmqu::BlobPosition(3, 2), 3, -2, bmqu::BlobPosition(0, 0)},
             // Start at (4, 0) (i.e. one past the end)
             {L_, bmqu::BlobPosition(4, 0), 0, 0, bmqu::BlobPosition(4, 0)},
             {L_, bmqu::BlobPosition(4, 0), 1, -2, bmqu::BlobPosition(0, 0)},
@@ -715,19 +715,19 @@ static void test9_writeBytes()
         {L_, "ab|cde", BlobPosition(0, 0), "123", "123de", 0},
         {L_, "ab|cde", BlobPosition(0, 0), "1234", "1234e", 0},
         {L_, "ab|cde", BlobPosition(0, 0), "12345", "12345", 0},
-        {L_, "ab|cde", BlobPosition(0, 0), "123456", "abcde", -31},
+        {L_, "ab|cde", BlobPosition(0, 0), "123456", "abcde", -21},
         {L_, "ab|cde", BlobPosition(0, 1), "1", "a1cde", 0},
         {L_, "ab|cde", BlobPosition(0, 1), "12", "a12de", 0},
         {L_, "ab|cde", BlobPosition(0, 1), "123", "a123e", 0},
         {L_, "ab|cde", BlobPosition(0, 1), "1234", "a1234", 0},
-        {L_, "ab|cde", BlobPosition(0, 1), "12345", "abcde", -31},
+        {L_, "ab|cde", BlobPosition(0, 1), "12345", "abcde", -21},
         {L_, "ab|cde", BlobPosition(1, 0), "1", "ab1de", 0},
         {L_, "ab|cde", BlobPosition(1, 0), "12", "ab12e", 0},
         {L_, "ab|cde", BlobPosition(1, 0), "123", "ab123", 0},
-        {L_, "ab|cde", BlobPosition(1, 0), "1234", "abcde", -31},
+        {L_, "ab|cde", BlobPosition(1, 0), "1234", "abcde", -21},
         {L_, "ab|cde", BlobPosition(1, 1), "1", "abc1e", 0},
         {L_, "ab|cde", BlobPosition(1, 1), "12", "abc12", 0},
-        {L_, "ab|cde", BlobPosition(1, 1), "123", "abcde", -31},
+        {L_, "ab|cde", BlobPosition(1, 1), "123", "abcde", -21},
         {L_, "ab|cde|fg|h|ij", BlobPosition(1, 1), "123456", "abc123456j", 0}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -1090,7 +1090,7 @@ static void test14_readUpToNBytes()
         {L_, bmqu::BlobPosition(3, 0), 3, 3, "ghi"},
         {L_, bmqu::BlobPosition(3, 0), 12, 3, "ghi"},
         {L_, bmqu::BlobPosition(4, 0), 0, 0, ""},
-        {L_, bmqu::BlobPosition(4, 0), 1, -2, ""},  // invalid length
+        {L_, bmqu::BlobPosition(4, 0), 1, 0, ""},
         {L_, bmqu::BlobPosition(5, 1), 0, -1, ""},  // invalid start
     };
 
@@ -1105,18 +1105,18 @@ static void test14_readUpToNBytes()
 
         char buffer[32];
 
-        int rc = bmqu::BlobUtil::readUpToNBytes(buffer,
-                                                blob,
-                                                test.d_start,
-                                                test.d_length);
+        int numRead = bmqu::BlobUtil::readUpToNBytes(buffer,
+                                                     blob,
+                                                     test.d_start,
+                                                     test.d_length);
 
-        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, numRead, test.d_expectedRc);
 
         if (test.d_expectedRc == 0) {
             BMQTST_ASSERT_EQ_D(
                 "line " << test.d_line,
                 bsl::string(buffer,
-                            test.d_length,
+                            numRead,
                             bmqtst::TestHelperUtil::allocator()),
                 bsl::string(test.d_expected,
                             bmqtst::TestHelperUtil::allocator()));
@@ -1177,8 +1177,7 @@ static void test15_readNBytes()
         {L_, bmqu::BlobPosition(3, 0), 3, 0, "ghi"},
         {L_, bmqu::BlobPosition(3, 0), 12, -2, "ghi"},
         {L_, bmqu::BlobPosition(4, 0), 0, 0, ""},
-        {L_, bmqu::BlobPosition(4, 0), 1, -21, ""},
-        // invalid length
+        {L_, bmqu::BlobPosition(4, 0), 1, -2, ""},
         {L_, bmqu::BlobPosition(5, 1), 0, -11, ""},
         // invalid start
     };
@@ -1251,7 +1250,7 @@ static void test16_appendToBlob()
         } k_DATA[] = {
             {L_, "ab|cdXX", "ef|ghXX", 1, 2, 1, -1, "ab|cdXX"},
             // invalid start
-            {L_, "ab|cdXX", "ef|ghXX", 1, 1, 4, -32, "ab|cdXX"},
+            {L_, "ab|cdXX", "ef|ghXX", 1, 1, 4, -22, "ab|cdXX"},
             // invalid length
             {L_, "ab|cdXX", "ef|ghXX", 0, 1, 0, 0, "ab|cd"},
             {L_, "ab|cdXX", "ef|ghXX", 0, 1, 1, 0, "ab|cd|f"},
