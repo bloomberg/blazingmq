@@ -156,10 +156,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// ledger leader sequence number.
     NodeToLSNMap d_nodeToLedgerLSNMap;
 
-    /// Number of LSN views gathered from cluster nodes (including self)
-    /// required to achieve a quorum.
-    unsigned int d_lsnQuorum;
-
     /// Underlying cluster state ledger.
     ClusterStateLedgerMp d_clusterStateLedger_mp;
 
@@ -629,6 +625,9 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///
     /// @note Used for testing purposes only.
     const NodeToLSNMap& nodeToLSNMap() const;
+
+    /// Get the quorum value.
+    unsigned int getLsnQuorum() const;
 };
 
 // ============================================================================
@@ -674,6 +673,11 @@ inline const ClusterStateManager::NodeToLSNMap&
 ClusterStateManager::nodeToLSNMap() const
 {
     return d_nodeToLedgerLSNMap;
+}
+
+inline unsigned int ClusterStateManager::getLsnQuorum() const
+{
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 }  // close package namespace

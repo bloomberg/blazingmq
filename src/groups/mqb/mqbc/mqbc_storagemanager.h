@@ -348,10 +348,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
 
-    /// Quorum config to use for Sequence numbers being collected by self if
-    /// primary while getting the latest view of the partitions owned by self
-    const unsigned int d_seqNumQuorum;
-
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
     ///
@@ -715,6 +711,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
     bool allPartitionsAvailable() const;
+
+    /// Return the sequence number quorum to be used for this cluster.
+    unsigned int getSeqNumQuorum() const;
 
     /// Return own the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber
@@ -1186,6 +1185,11 @@ inline const StorageManager::NodeToSeqNumCtxMap&
 StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 {
     return d_nodeToSeqNumCtxMapVec[partitionId];
+}
+
+inline unsigned int StorageManager::getSeqNumQuorum() const
+{
+    return d_clusterData_p->quorumManager().quorum();
 }
 
 // =======================================
