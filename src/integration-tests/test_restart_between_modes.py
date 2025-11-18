@@ -238,6 +238,7 @@ def check_exited_nodes_and_restart(cluster: Cluster):
     NODE_START_UP_FAILURE_WAIT_TIME_SEC = 12.5
     time.sleep(NODE_START_UP_FAILURE_WAIT_TIME_SEC)
     test_logger.info("Checking if any nodes have exited")
+
     for node in cluster.nodes():
         if not node.is_alive():
             test_logger.info(
@@ -655,12 +656,13 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 
 @pytest.fixture(
     params=[
-        (restart_as_fsm_mode, restart_as_legacy_mode),
-        (restart_as_legacy_mode, restart_as_fsm_mode),
-        (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode),
+        (restart_as_fsm_mode, restart_as_legacy_mode, False),
+        (restart_as_legacy_mode, restart_as_fsm_mode, False),
+        (restart_to_fsm_single_node_with_quorum_one, restart_as_legacy_mode, True),
         (
             restart_to_fsm_single_node_with_quorum_one_and_start_others,
             restart_as_legacy_mode,
+            False,
         ),
     ],
     ids=[
@@ -673,6 +675,11 @@ def test_restart_between_Legacy_and_FSM_unassign_queue(
 def switch_cluster_mode(request):
     """
     Fixture to switch between cluster modes
+
+    Every fixture parameter is a tuple of three elements:
+    - function to switch to another mode
+    - function to switch back to the backup mode
+    - boolean indicating whether only the leader needs to be reconfigured
     """
 
     return request.param
@@ -798,12 +805,14 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     assert re.match(r"msg3", quux_messages[0].payload)
 
     # 4. POST MORE MESSAGES
+    reconfigure_leader_only = switch_cluster_mode[2]
+
     current_app_ids.append("corge")
-    cluster.set_app_ids(current_app_ids, du)
+    cluster.set_app_ids(current_app_ids, du, leader_only=reconfigure_leader_only)
     post_few_messages(producer, fanout_queue, ["msg4"])
 
     current_app_ids.remove("foo")
-    cluster.set_app_ids(current_app_ids, du)
+    cluster.set_app_ids(current_app_ids, du, leader_only=reconfigure_leader_only)
 
     for queue in [priority_queue, fanout_queue]:
         post_few_messages(producer, queue, ["msg5"])
@@ -930,12 +939,14 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     assert re.match(r"msg3", quux_messages[0].payload)
 
     # 4. POST MORE MESSAGES
+    reconfigure_leader_only = switch_cluster_mode[2]
+
     current_app_ids.append("corge")
-    cluster.set_app_ids(current_app_ids, du)
+    cluster.set_app_ids(current_app_ids, du, leader_only=reconfigure_leader_only)
     post_few_messages(producer, fanout_queue, ["msg4"])
 
     current_app_ids.remove("foo")
-    cluster.set_app_ids(current_app_ids, du)
+    cluster.set_app_ids(current_app_ids, du, leader_only=reconfigure_leader_only)
 
     for queue in [priority_queue, fanout_queue]:
         post_few_messages(producer, queue, ["msg5"])
