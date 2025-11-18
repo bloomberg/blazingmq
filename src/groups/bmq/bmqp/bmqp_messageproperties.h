@@ -696,7 +696,7 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
 
     p.d_length  = newPropValueLen;
     p.d_value   = value;
-    // This cannot have bsl::string_view' type.
+    // This cannot have `bsl::string_view` type.
     p.d_type    = static_cast<bmqt::PropertyType::Enum>(p.d_value.typeIndex());
     p.d_isValid = true;
     d_isDirty   = true;
