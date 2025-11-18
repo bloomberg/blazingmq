@@ -3599,7 +3599,6 @@ void StorageManager::do_unsupportedPrimaryDowngrade(
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
     BSLS_ASSERT_SAFE(eventWithData.first ==
                      PartitionFSM::Event::e_DETECT_SELF_REPLICA);
 

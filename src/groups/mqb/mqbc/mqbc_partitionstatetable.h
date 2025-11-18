@@ -444,7 +444,7 @@ class PartitionStateTable
         PST_CFG(UNKNOWN, STOP_NODE, none, STOPPED);
         PST_CFG(PRIMARY_HEALING_STG1,
                 DETECT_SELF_REPLICA,
-                cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
+                unsupportedPrimaryDowngrade,
                 UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG1,
                 REPLICA_STATE_RQST,
@@ -491,7 +491,7 @@ class PartitionStateTable
                 UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG2,
                 DETECT_SELF_REPLICA,
-                cleanupMetadata_clearPartitionInfo_stopWatchDog_reapplyEvent,
+                unsupportedPrimaryDowngrade,
                 UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG2,
                 FAIL_REPLICA_DATA_RSPN_PULL,
