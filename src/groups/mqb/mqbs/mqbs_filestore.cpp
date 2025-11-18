@@ -2681,9 +2681,9 @@ int FileStore::create(FileSetSp* fileSetSp)
 
     // Initialize from config
     // TODO: me: in case of rollover it shoulsd be passed via args!!!
-    d_partitionMaxFileSizes.dataFileSize() = d_config.maxDataFileSize();
-    d_partitionMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
-    d_partitionMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
+    // d_partitionMaxFileSizes.dataFileSize() = d_config.maxDataFileSize();
+    // d_partitionMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
+    // d_partitionMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
 
     bmqu::MemOutStream errorDesc;
     return FileStoreUtil::create(errorDesc,

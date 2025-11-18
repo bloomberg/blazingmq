@@ -76,6 +76,15 @@ static void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
 
 const int Cluster::k_LEADER_NODE_ID = 1;
 
+const bsls::Types::Uint64 Cluster::k_MAX_DATA_FILE_SIZE = 5 * k_GiB;
+const bsls::Types::Uint64 Cluster::k_MAX_JOURNAL_FILE_SIZE = 256 * k_MiB;
+const bsls::Types::Uint64 Cluster::k_MAX_QLIST_FILE_SIZE = 16 * k_KiB;
+const bsls::Types::Uint64 Cluster::k_MAX_CSL_FILE_SIZE = 16 * k_KiB;
+
+const bsls::Types::Uint64 Cluster::k_DATA_FILE_GROW_LIMIT = Cluster::k_MAX_DATA_FILE_SIZE * 2;
+const bsls::Types::Uint64 Cluster::k_JOURNAL_FILE_GROW_LIMIT = Cluster::k_MAX_JOURNAL_FILE_SIZE * 2;
+const bsls::Types::Uint64 Cluster::k_QLIST_FILE_GROW_LIMIT = Cluster::k_MAX_QLIST_FILE_SIZE * 2;
+
 // PRIVATE MANIPULATORS
 void Cluster::_initializeClusterDefinition(
     const bslstl::StringRef&                name,
@@ -106,10 +115,13 @@ void Cluster::_initializeClusterDefinition(
     partitionCfg.numPartitions()       = 4;
     partitionCfg.location()            = bsl::string(location, d_allocator_p);
     partitionCfg.archiveLocation()     = bsl::string(archive, d_allocator_p);
-    partitionCfg.maxDataFileSize()     = 5 * k_GiB;
-    partitionCfg.maxJournalFileSize()  = 256 * k_MiB;
-    partitionCfg.maxQlistFileSize()    = 16 * k_KiB;
-    partitionCfg.maxCSLFileSize()      = 16 * k_KiB;
+    partitionCfg.maxDataFileSize()     = k_MAX_DATA_FILE_SIZE;
+    partitionCfg.maxJournalFileSize()  = k_MAX_JOURNAL_FILE_SIZE;
+    partitionCfg.maxQlistFileSize()    = k_MAX_QLIST_FILE_SIZE;
+    partitionCfg.maxCSLFileSize()      = k_MAX_CSL_FILE_SIZE;
+    partitionCfg.dataFileGrowLimit()   = k_DATA_FILE_GROW_LIMIT;
+    partitionCfg.journalFileGrowLimit()= k_JOURNAL_FILE_GROW_LIMIT;
+    partitionCfg.qlistFileGrowLimit()  = k_QLIST_FILE_GROW_LIMIT;
     partitionCfg.preallocate()         = false;
     partitionCfg.maxArchivedFileSets() = 0;
     partitionCfg.prefaultPages()       = true;
