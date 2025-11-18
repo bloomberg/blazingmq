@@ -197,6 +197,8 @@ def restart_to_fsm_single_node_with_quorum_one_and_start_others(
         if node != leader:
             node.start()
             node.wait_until_started()
+            # Need to wait until the node synchronizes it's partitions with the primary
+            node.wait_status(wait_leader=False, wait_ready=True)
 
 
 def restart_as_legacy_mode(
@@ -484,7 +486,7 @@ def assignUnassignExistingQueues(
             consumer.open(queue, flags=["read"], succeed=True)
 
 
-def test_restart_between_Legacy_and_FSM(
+def test_restart_between_Legacy_and_FSM_basic(
     cluster: Cluster, domain_urls: tc.DomainUrls, switch_cluster_mode
 ):
     """
