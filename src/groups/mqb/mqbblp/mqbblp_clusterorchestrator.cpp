@@ -1771,13 +1771,13 @@ void ClusterOrchestrator::processLeaderPassiveNotification(
     BSLS_ASSERT_SAFE(notifier);
 
     if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
-        BALL_LOG_INFO
+        BALL_LOG_ERROR
             << d_clusterData_p->identity().description()
-            << ": In FSM mode, *always ignoring* leader passive notification: "
-            << notification << ", from peer node '"
+            << ": In FSM mode, ignoring **deprecated** leader passive "
+            << "notification: " << notification << ", from peer node '"
             << notifier->nodeDescription()
-            << ".  This is because when a node transitions to healed "
-            << "follower, it must already set leader status as ACTIVE.";
+            << ".  This is deprecated because when a node transitions to "
+            << "healed follower, it must already set leader status as ACTIVE.";
         return;  // RETURN
     }
 

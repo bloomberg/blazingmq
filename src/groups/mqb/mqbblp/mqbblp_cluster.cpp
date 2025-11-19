@@ -3373,6 +3373,12 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
 
 void Cluster::onLeaderPassiveThreshold()
 {
+    if (isFSMWorkflow()) {
+        // In FSM mode, the passive leader transition is handled by the FSM
+        // itself.
+        return;  // RETURN
+    }
+
     if (d_clusterData.electorInfo().isSelfLeader()) {
         // Self is the passive leader, so there is nothing to be done here
         // (self should eventually transition to active upon completion of
