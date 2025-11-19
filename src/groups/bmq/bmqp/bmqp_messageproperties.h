@@ -349,6 +349,10 @@ class MessageProperties {
     // there is only one property and property's name has maximum allowable
     // length, and also takes into consideration the protocol overhead.
 
+    /// Reserved property name prefix. Property names starting with this
+    /// prefix are reserved for internal use and cannot be set by users.
+    static const char k_RESERVED_PROPERTY_PREFIX[];
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(MessageProperties,
@@ -621,6 +625,13 @@ inline bool MessageProperties::isValidPropertyName(const bsl::string& name)
     }
 
     if (k_MAX_PROPERTY_NAME_LENGTH < name.length()) {
+        return false;  // RETURN
+    }
+
+    // Check if the name starts with the reserved prefix
+    const size_t reservedPrefixLen = bsl::strlen(k_RESERVED_PROPERTY_PREFIX);
+    if (name.length() >= reservedPrefixLen &&
+        name.compare(0, reservedPrefixLen, k_RESERVED_PROPERTY_PREFIX) == 0) {
         return false;  // RETURN
     }
 

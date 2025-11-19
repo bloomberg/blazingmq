@@ -363,6 +363,9 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
     return rc == 0;
 }
 
+// PUBLIC CONSTANTS
+const char MessageProperties::k_RESERVED_PROPERTY_PREFIX[] = "bmq.";
+
 // CREATORS
 MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))

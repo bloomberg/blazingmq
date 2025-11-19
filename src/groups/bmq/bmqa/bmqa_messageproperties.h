@@ -42,6 +42,9 @@
 ///
 ///   - First character of the property name must be alpha-numeric.
 ///
+///   - Property names starting with the prefix "bmq." are reserved for
+///     internal use and cannot be set by users.
+///
 /// Restrictions on Property Values {#bmqa_messageproperties_valuerestrictions}
 /// ===============================
 ///
