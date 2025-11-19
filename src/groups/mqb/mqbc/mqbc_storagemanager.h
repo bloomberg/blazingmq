@@ -203,6 +203,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
     typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
 
+    typedef bsl::unordered_map<mqbnet::ClusterNode*, bmqp_ctrlmsg::PartitionMaxFileSizes>
+                                               NodeToPartitionMaxFileSizesMap;
+    typedef NodeToPartitionMaxFileSizesMap::iterator       NodeToPartitionMaxFileSizesMapIter;
+    typedef NodeToPartitionMaxFileSizesMap::const_iterator NodeToPartitionMaxFileSizesMapCIter;
+    typedef bsl::vector<NodeToPartitionMaxFileSizesMap>    NodeToPartitionMaxFileSizesMapVec;
+
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 
@@ -348,9 +354,20 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
 
+    /// Vector of `NodeToSeqNumCtxMap` indexed by partitionId.
+    ///
+    /// THREAD: Except during the ctor, the i-th index of this data member
+    ///         **must** be accessed in the associated Queue dispatcher thread
+    ///         for the i-th partitionId.
+    NodeToPartitionMaxFileSizesMapVec d_nodeToPartitionMaxFileSizesMapVec;
+
     /// Quorum config to use for Sequence numbers being collected by self if
     /// primary while getting the latest view of the partitions owned by self
     const unsigned int d_seqNumQuorum;
+
+    /// Quorum config to use for partition max file sizes being collected by self if
+    /// primary while getting the latest view of the partitions owned by self
+    const unsigned int d_partitionMaxFileSizesQuorum;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
@@ -589,6 +606,14 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_storeReplicaSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
+    void do_storeSelfPartitionMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_storePrimaryPartitionMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_storeReplicaPartitionMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
     void do_storePartitionInfo(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -692,6 +717,12 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void
     do_findHighestSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_checkQuorumSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
+    void
+    do_findHighestSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;

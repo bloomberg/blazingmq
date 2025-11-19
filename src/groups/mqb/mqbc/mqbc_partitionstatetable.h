@@ -211,6 +211,12 @@ class PartitionStateTableActions {
 
     virtual void do_storeReplicaSeq(const ARGS& args) = 0;
 
+    virtual void do_storeSelfPartitionMaxFileSizes(const ARGS& args) = 0;
+
+    virtual void do_storePrimaryPartitionMaxFileSizes(const ARGS& args) = 0;
+
+    virtual void do_storeReplicaPartitionMaxFileSizes(const ARGS& args) = 0;
+
     virtual void do_storePartitionInfo(const ARGS& args) = 0;
 
     virtual void do_clearPartitionInfo(const ARGS& args) = 0;
@@ -281,6 +287,10 @@ class PartitionStateTableActions {
     virtual void do_checkQuorumSeq(const ARGS& args) = 0;
 
     virtual void do_findHighestSeq(const ARGS& args) = 0;
+
+    virtual void do_checkQuorumSizes(const ARGS& args) = 0;
+
+    virtual void do_findHighestSizes(const ARGS& args) = 0;
 
     virtual void do_flagFailedReplicaSeq(const ARGS& args) = 0;
 
