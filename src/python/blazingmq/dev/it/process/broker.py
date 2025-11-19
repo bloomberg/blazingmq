@@ -133,6 +133,14 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         Send the specified 'string' to the broker.
         """
+
+        # Ensure the broker is running (i.e. "bmqbrkr.ctl" exists).
+        # Otherwise, we might inadvertently create "bmqbrkr.ctl",
+        # which would prevent the broker from restarting later.
+        assert self.is_alive(), (
+            f"Failed to send command: broker {self.name} is not running"
+        )
+
         self._logger.info(f"send {string}")
         with open(str(self._cwd / "bmqbrkr.ctl"), "w", opener=open_non_blocking) as fhw:
             fhw.write(string + "\n")
