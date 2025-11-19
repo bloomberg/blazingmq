@@ -1464,7 +1464,6 @@ void ClusterUtil::sendClusterState(
                 clusterData->clusterConfig().partitionConfig().numPartitions(),
                 true,  // isTemporary
                 allocator);
-            apply(&tempState, clusterMessage, *clusterData);
             const int rc = load(&tempState,
                                 ledger->getIterator().get(),
                                 *clusterData,
