@@ -17,20 +17,48 @@
 #ifndef INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 #define INCLUDED_MQBNET_INITIALCONNECTIONCONTEXT
 
-//@PURPOSE: Provide a context for an initial connection handler.
-//
-//@CLASSES:
-//  mqbnet::InitialConnectionContext: VST for the context associated to
-//  an initial connection
-//
-//@DESCRIPTION: 'InitialConnectionContext' provides the context
-// associated to an initial connection being established
-//
+/// @file mqbnet_initialconnectioncontext.h
+/// @brief Context for authenticating and negotiating a new session.
+///
+/// InitialConnectionContext owns the transient state needed while a
+/// connection is performing the initial handshake (authentication followed
+/// by negotiation, or direct negotiation with implicit/anonymous
+/// authentication).
+///
+/// Responsibilities:
+/// - Hold caller‐supplied opaque pointers (user data / result state) so they
+///   can flow between transport and application layers.
+/// - Drive the read loop: schedule reads, accumulate bytes, decode initial
+///   connection messages (Authentication / Negotiation), and dispatch them
+///   as events to the FSM.
+/// - Track the initial connection state via a finite state machine (FSM) that
+///   handles authentication and negotiation transitions.
+/// - Invoke the completion callback exactly once with either a fully
+///   constructed Session or an error.
+///
+/// A single instance is created per inbound or outbound connection attempt
+/// and is discarded once the session is fully negotiated or the attempt
+/// fails.
+
+// MQB
+#include <mqbnet_authenticator.h>
+#include <mqbnet_connectiontype.h>
+#include <mqbnet_negotiator.h>
+#include <mqbplug_authenticator.h>
+
+// BMQ
+#include <bmqio_status.h>
+#include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocol.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsl_variant.h>
+#include <bslmt_mutex.h>
 
 namespace BloombergLP {
 
@@ -45,20 +73,141 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 class Session;
+class AuthenticationContext;
 class NegotiationContext;
+
+// =============================
+// struct InitialConnectionState
+// =============================
+
+struct InitialConnectionState {
+    // TYPES
+    enum Enum {
+        e_INITIAL             = 0,  // Initial state.
+        e_AUTHENTICATING      = 1,  // First message is authentication Request.
+        e_AUTHENTICATED       = 2,  // Authentication success.
+        e_ANON_AUTHENTICATING = 3,  // First message is Negotiation Request.
+        e_NEGOTIATING_OUTBOUND = 4,  // Outbound negotiation.
+        e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
+        e_FAILED               = 6   // Final state.
+    };
+
+    // CLASS METHODS
+
+    /// Write the string representation of the specified enumeration
+    /// `value` to the specified output `stream`, and return a reference to
+    /// `stream`.  Optionally specify an initial indentation `level`, whose
+    /// absolute value is incremented recursively for nested objects.  If
+    /// `level` is specified, optionally specify `spacesPerLevel`, whose
+    /// absolute value indicates the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative, format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  See `toAscii`
+    /// for what constitutes the string representation of a
+    /// @bbref{InitialConnectionState::Enum} value.
+    static bsl::ostream& print(bsl::ostream&                stream,
+                               InitialConnectionState::Enum value,
+                               int                          level = 0,
+                               int spacesPerLevel                 = 4);
+
+    /// Return the non-modifiable string representation corresponding to
+    /// the specified enumeration `value`, if it exists, and a unique
+    /// (error) string otherwise.  The string representation of `value`
+    /// matches its corresponding enumerator name with the `e_` prefix
+    /// elided.  Note that specifying a `value` that does not match any of
+    /// the enumerators will result in a string representation that is
+    /// distinct from any of those corresponding to the enumerators, but is
+    /// otherwise unspecified.
+    static const char* toAscii(InitialConnectionState::Enum value);
+
+    /// Return true and fills the specified `out` with the enum value
+    /// corresponding to the specified `str`, if valid, or return false and
+    /// leave `out` untouched if `str` doesn't correspond to any value of
+    /// the enum.
+    static bool fromAscii(InitialConnectionState::Enum* out,
+                          const bslstl::StringRef&      str);
+};
+
+// FREE OPERATORS
+
+/// Format the specified `value` to the specified output `stream` and return
+/// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream&                stream,
+                         InitialConnectionState::Enum value);
+
+// =============================
+// struct InitialConnectionEvent
+// =============================
+
+struct InitialConnectionEvent {
+    // TYPES
+    enum Enum {
+        e_NONE                = 0,
+        e_OUTBOUND_NEGOTATION = 1,
+        e_AUTHN_REQUEST       = 2,
+        e_NEGOTIATION_MESSAGE = 3,
+        e_AUTHN_SUCCESS       = 4,
+        e_ERROR               = 5
+    };
+
+    // CLASS METHODS
+
+    /// Write the string representation of the specified enumeration
+    /// `value` to the specified output `stream`, and return a reference to
+    /// `stream`.  Optionally specify an initial indentation `level`, whose
+    /// absolute value is incremented recursively for nested objects.  If
+    /// `level` is specified, optionally specify `spacesPerLevel`, whose
+    /// absolute value indicates the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative, format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  See `toAscii`
+    /// for what constitutes the string representation of a
+    /// @bbref{InitialConnectionEvent::Enum} value.
+    static bsl::ostream& print(bsl::ostream&                stream,
+                               InitialConnectionEvent::Enum value,
+                               int                          level = 0,
+                               int spacesPerLevel                 = 4);
+
+    /// Return the non-modifiable string representation corresponding to
+    /// the specified enumeration `value`, if it exists, and a unique
+    /// (error) string otherwise.  The string representation of `value`
+    /// matches its corresponding enumerator name with the `e_` prefix
+    /// elided.  Note that specifying a `value` that does not match any of
+    /// the enumerators will result in a string representation that is
+    /// distinct from any of those corresponding to the enumerators, but is
+    /// otherwise unspecified.
+    static const char* toAscii(InitialConnectionEvent::Enum value);
+
+    /// Return true and fills the specified `out` with the enum value
+    /// corresponding to the specified `str`, if valid, or return false and
+    /// leave `out` untouched if `str` doesn't correspond to any value of
+    /// the enum.
+    static bool fromAscii(InitialConnectionEvent::Enum* out,
+                          const bslstl::StringRef&      str);
+};
+
+// FREE OPERATORS
+
+/// Format the specified `value` to the specified output `stream` and return
+/// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream&                stream,
+                         InitialConnectionEvent::Enum value);
 
 // ==============================
 // class InitialConnectionContext
 // ==============================
 
-/// VST for the context associated to a session being negotiated.  Each
-/// session being negotiated get its own context; and the
-/// InitialConnectionHandler concrete implementation can modify some of the
-/// members during the handleInitialConnection() (i.e., between the
-/// `handleInitialConnection()` method and the invocation of the
-/// `InitialConnectionCompleteCb` method.
-class InitialConnectionContext {
+/// Each session being authenticated and negotiated get its own context.
+class InitialConnectionContext
+: public bsl::enable_shared_from_this<InitialConnectionContext> {
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBNET.INITIALCONNECTIONCONTEXT");
+
   public:
+    // TYPES
     typedef bsl::function<void(
         int                                    status,
         const bsl::string&                     errorDescription,
@@ -70,12 +219,24 @@ class InitialConnectionContext {
   private:
     // DATA
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+    /// Mutex to protect the context state.
+    mutable bslmt::Mutex d_mutex;
+
+    /// Authenticator to use for authenticating a connection.
+    mqbnet::Authenticator* d_authenticator_p;
+
+    /// Negotiator to use for converting a Channel to a Session.
+    mqbnet::Negotiator* d_negotiator_p;
+
     /// Raw pointer, held not owned, to some user data
     /// the session factory will pass back to the
     /// 'resultCb' method (used to inform of the
     /// success/failure of a session negotiation).  This
-    /// may or may not be set by the caller, before
-    /// invoking 'InitialConnectionHandler::handleInitialConnection()';
+    /// may or may not be set by the caller, during
+    /// 'TcpSessionFactory::handleInitialConnection()';
     /// and may or may not be changed by the negotiator concrete
     /// implementation before invoking the
     /// 'InitialConnectionCompleteCb'.  This is used to bind low level
@@ -89,10 +250,10 @@ class InitialConnectionContext {
     void* d_resultState_p;
 
     /// Raw pointer, held not owned, to some user data
-    /// the InitialConnectionHandler concrete implementation can use
+    /// the InitialConnectionContext can use
     /// while negotiating the session.  This may or may
-    /// not be set by the caller, before invoking
-    /// 'InitialConnectionHandler::handleInitialConnection()';
+    /// not be set by the caller, during
+    /// 'TcpSessionFactory::handleInitialConnection()';
     /// and should not be changed during negotiation (this data is not
     /// used by the session factory, so changing it will
     /// have no effect).  This is used to bind high
@@ -107,61 +268,192 @@ class InitialConnectionContext {
     /// The channel to use for the initial connection.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
 
-    /// The callback to invoke to notify of the status of the initial
-    /// connection.
-    InitialConnectionCompleteCb d_initialConnectionCompleteCb;
+    /// The AuthenticationContext updated upon receiving an
+    /// authentication message.
+    bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
 
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
 
-    /// True if the session being negotiated originates
-    /// from a remote peer (i.e., a 'listen'); false if
-    /// it originates from us (i.e., a 'connect).
+    /// The callback to invoke to notify of the status of the initial
+    /// connection.
+    InitialConnectionCompleteCb d_initialConnectionCompleteCb;
+
+    /// Encoding for authentication messages.  Defaults to BER until the first
+    /// inbound authentication message is decoded, then set to that message's
+    /// encoding and reused for outbound replies.  Temporary field; copied into
+    /// the AuthenticationContext later.
+    bmqp::EncodingType::Enum d_authenticationEncodingType;
+
+    /// The state of the initial connection.
+    InitialConnectionState::Enum d_state;
+
+    /// True if the session being negotiated originates from a remote peer
+    /// (i.e., a 'listen'); false if it originates from us (i.e., a 'connect').
     bool d_isIncoming;
 
     /// True if the associated channel is closed (with `onClose`).
     bool d_isClosed;
 
+  private:
+    // NOT IMPLEMENTED
+
+    /// Copy constructor and assignment operator are not implemented.
+    InitialConnectionContext(const InitialConnectionContext&);  // = delete;
+    InitialConnectionContext&
+    operator=(const InitialConnectionContext&);  // = delete;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(InitialConnectionContext,
+                                   bslma::UsesBslmaAllocator)
+
     // CREATORS
 
     /// Create a new object having the specified `isIncoming` value.
-    explicit InitialConnectionContext(bool isIncoming);
+    InitialConnectionContext(
+        bool                                   isIncoming,
+        mqbnet::Authenticator*                 authenticator,
+        mqbnet::Negotiator*                    negotiator,
+        void*                                  userData,
+        void*                                  resultState,
+        const bsl::shared_ptr<bmqio::Channel>& channel,
+        const InitialConnectionCompleteCb&     initialConnectionCompleteCb,
+        bslma::Allocator*                      allocator = 0);
 
     ~InitialConnectionContext();
 
+  private:
+    // PRIVATE MANIPULATORS
+    void setState(InitialConnectionState::Enum value);
+
+    /// Read from the channel into the specified `outPacket`.  On success,
+    /// return 0, set `isFullBlob` to indicate whether a full message has been
+    /// read, and set `numNeeded` to the number of additional bytes needed for
+    /// a full message (0 if `isFullBlob` is true).  On error, return a
+    /// non-zero code and populate the specified `errorDescription` with a
+    /// description of the error.
+    int readBlob(bsl::ostream& errorDescription,
+                 bdlbb::Blob*  outPacket,
+                 bool*         isFullBlob,
+                 int*          numNeeded,
+                 bdlbb::Blob*  blob);
+
+    /// Decode the specified `blob` received from the channel and handle it
+    /// based on the type of the message received.  On success, return 0.  On
+    /// error, return a non-zero code and populate the specified
+    /// `errorDescription` with a description of the error.
+    int processBlob(bsl::ostream& errorDescription, const bdlbb::Blob& blob);
+
+    /// Decode the initial connection messages received in the specified
+    /// `blob` and store it, on success, in the specified `message`, returning
+    /// 0.  Return a non-zero code on error and populate the specified
+    /// `errorDescription` with a description of the error.
+    int decodeInitialConnectionMessage(
+        bsl::ostream&                                   errorDescription,
+        bsl::variant<bsl::monostate,
+                     bmqp_ctrlmsg::AuthenticationMessage,
+                     bmqp_ctrlmsg::NegotiationMessage>* message,
+        const bdlbb::Blob&                              blob);
+
+    /// Create and initialize a `NegotiationContext`.
+    void createNegotiationContext();
+
+    /// Perform anonymous authentication using the anonymous credential for the
+    /// current context.  Return a non-zero code on error and
+    /// populate the specified `errorDescription` with a description of the
+    /// error.
+    int handleAnonAuthentication(bsl::ostream& errorDescription);
+
+  public:
     // MANIPULATORS
 
-    /// Set the corresponding field to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    InitialConnectionContext& setUserData(void* value);
-    InitialConnectionContext& setResultState(void* value);
-    InitialConnectionContext&
-    setChannel(const bsl::shared_ptr<bmqio::Channel>& value);
-    InitialConnectionContext&
-    setCompleteCb(const InitialConnectionCompleteCb& value);
-    InitialConnectionContext&
+    /// Set the corresponding field to the specified `value`.
+    void setResultState(void* value);
+    void setAuthenticationContext(
+        const bsl::shared_ptr<AuthenticationContext>& value);
+    void
     setNegotiationContext(const bsl::shared_ptr<NegotiationContext>& value);
 
-    /// Called by the IO upon `onCLose` signal
+    /// Called by the IO upon `onClose` signal
     void onClose();
+
+    /// Read callback invoked when data is available on the channel.
+    /// Process the received `blob` if `status` indicates success.
+    /// Set `numNeeded` to request additional bytes if needed for a
+    /// full message.
+    void readCallback(const bmqio::Status& status,
+                      int*                 numNeeded,
+                      bdlbb::Blob*         blob);
+
+    /// Schedule the next read operation on the channel.
+    /// Return 0 on success, or a non-zero error code and populate
+    /// `errorDescription` with details on failure.
+    int scheduleRead(bsl::ostream& errorDescription);
+
+    /// Entrance to the initial connection process.
+    void handleInitialConnection();
+
+    /// Process an InitialConnectionEvent event with the given `statusCode` and
+    /// `errorDescription` and drive the authentication/negotiation state
+    /// machine.  The `message` optionally contains any associated
+    /// authentication/negotiation message data.
+    void handleEvent(int                          statusCode,
+                     const bsl::string&           errorDescription,
+                     InitialConnectionEvent::Enum input,
+                     const bsl::variant<bsl::monostate,
+                                        bmqp_ctrlmsg::AuthenticationMessage,
+                                        bmqp_ctrlmsg::NegotiationMessage>&
+                         message = bsl::monostate());
 
     // ACCESSORS
 
     /// Return the value of the corresponding field.
-    bool                                       isIncoming() const;
-    void*                                      userData() const;
-    void*                                      resultState() const;
-    const bsl::shared_ptr<bmqio::Channel>&     channel() const;
+    bool                                   isIncoming() const;
+    void*                                  userData() const;
+    void*                                  resultState() const;
+    const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    bmqp::EncodingType::Enum               authenticationEncodingType() const;
+    const bsl::shared_ptr<AuthenticationContext>&
+                                               authenticationContext() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     bool                                       isClosed() const;
+    InitialConnectionState::Enum               state() const;
 
+    /// Invoke the `initialConnectionCompleteCb` callback with the specified
+    /// return code `rc`, `error` description, and `session` (negotiated
+    /// session or empty if there's any failure).
     void complete(int                                     rc,
                   const bsl::string&                      error,
                   const bsl::shared_ptr<mqbnet::Session>& session) const;
 };
 
 }  // close package namespace
+
+// -----------------------------
+// struct InitialConnectionState
+// -----------------------------
+
+// FREE OPERATORS
+inline bsl::ostream&
+mqbnet::operator<<(bsl::ostream&                        stream,
+                   mqbnet::InitialConnectionState::Enum value)
+{
+    return InitialConnectionState::print(stream, value, 0, -1);
+}
+
+// -----------------------------
+// struct InitialConnectionEvent
+// -----------------------------
+
+// FREE OPERATORS
+inline bsl::ostream&
+mqbnet::operator<<(bsl::ostream&                        stream,
+                   mqbnet::InitialConnectionEvent::Enum value)
+{
+    return InitialConnectionEvent::print(stream, value, 0, -1);
+}
+
 }  // close enterprise namespace
 
 #endif

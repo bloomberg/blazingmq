@@ -317,6 +317,7 @@ void AdminSession::processEvent(const bmqp::Event& event,
 {
     // executed by the *IO* thread
 
+    // PRECONDITIONS
     if (!event.isControlEvent()) {
         BALL_LOG_ERROR << "#ADMCLIENT_UNEXPECTED_EVENT " << description()
                        << ": Unexpected event type: " << event;
