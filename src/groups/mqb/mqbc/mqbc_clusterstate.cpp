@@ -279,7 +279,7 @@ ClusterState& ClusterState::registerObserver(ClusterStateObserver* observer)
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
+    BALL_LOG_INFO << "Cluster [" << name()
                   << "]: " << "Registered 1 new state observer.";
 
     d_observers.insert(observer);
@@ -293,7 +293,7 @@ ClusterState& ClusterState::unregisterObserver(ClusterStateObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
 
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
+    BALL_LOG_INFO << "Cluster [" << name()
                   << "]: " << "Unregistered 1 state observer.";
 
     d_observers.erase(observer);
@@ -347,7 +347,7 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
     }
     pinfo.setPrimaryStatus(primaryStatus);
 
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
+    BALL_LOG_INFO << "Cluster [" << name()
                   << "]: " << "Setting primary of Partition [" << partitionId
                   << "] to " << "["
                   << (node ? node->nodeDescription() : "** NULL **")
@@ -383,7 +383,7 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
 
     ClusterStatePartitionInfo& pinfo = d_partitionsInfo[partitionId];
     if (0 == pinfo.primaryNode()) {
-        BALL_LOG_ERROR << "Cluster [" << clusterNameWithTempSuffix() << "]: "
+        BALL_LOG_ERROR << "Cluster [" << name() << "]: "
                        << "Failed to set the primary status of Partition ["
                        << partitionId << "] to [" << value
                        << "], reason: primary node is ** NULL **.";
@@ -397,7 +397,7 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     bmqp_ctrlmsg::PrimaryStatus::Value oldStatus = pinfo.primaryStatus();
     pinfo.setPrimaryStatus(value);
 
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
+    BALL_LOG_INFO << "Cluster [" << name()
                   << "]: " << "Setting status of primary ["
                   << pinfo.primaryNode()->nodeDescription()
                   << "] of Partition [" << partitionId << "] to [" << value
@@ -543,8 +543,8 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
 
     bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer(
         &advisory.appIds());
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
-                  << "]: Assigning queue [" << uri << "], queueKey: ["
+    BALL_LOG_INFO << "Cluster [" << name() << "]: Assigning queue [" << uri
+                  << "], queueKey: ["
                   << mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                       advisory.key().data())
                   << "] to Partition [" << partitionId
@@ -584,9 +584,9 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
     const int               partitionId = cit->second->partitionId();
     updatePartitionQueueMapped(partitionId, -1);
 
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
-                  << "]: " << "Unassigning queue [" << uri << "], queueKey: ["
-                  << key << "] from Partition [" << partitionId << "].";
+    BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Unassigning queue ["
+                  << uri << "], queueKey: [" << key << "] from Partition ["
+                  << partitionId << "].";
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
          ++it) {
@@ -616,9 +616,8 @@ void ClusterState::clearQueues()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
 
-    BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
-                  << "]: " << "Clearing all " << d_domainStates.size()
-                  << " domain states from state.";
+    BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Clearing all "
+                  << d_domainStates.size() << " domain states from state.";
 
     for (DomainStatesCIter domCit = d_domainStates.cbegin();
          domCit != d_domainStates.cend();
@@ -705,10 +704,9 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
             &update.addedAppIds());
         bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer2(
             &update.removedAppIds());
-        BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
-                      << "]: " << "Updating queue [" << uri << "], queueKey: ["
-                      << iter->second->key() << "], partitionId: ["
-                      << iter->second->partitionId()
+        BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Updating queue ["
+                      << uri << "], queueKey: [" << iter->second->key()
+                      << "], partitionId: [" << iter->second->partitionId()
                       << "], addedAppIds: " << printer1
                       << ", removedAppIds: " << printer2 << ".";
     }
@@ -719,9 +717,8 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
             &update.addedAppIds());
         bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer2(
             &update.removedAppIds());
-        BALL_LOG_INFO << "Cluster [" << clusterNameWithTempSuffix()
-                      << "]: " << "Updating domain: [" << domain
-                      << "], addedAppIds: " << printer1
+        BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Updating domain: ["
+                      << domain << "], addedAppIds: " << printer1
                       << ", removedAppIds: " << printer2 << ".";
     }
 
@@ -783,7 +780,7 @@ void ClusterState::iterateDoubleAssignments(
         const bmqt::Uri& problematicUri   = *cit;
         const int        wrongPartitionId = partitionAssignments->first;
 
-        BALL_LOG_WARN << "Cluster [" << clusterNameWithTempSuffix()
+        BALL_LOG_WARN << "Cluster [" << name()
                       << "]: attempting to repair double assignment of queue '"
                       << problematicUri
                       << "' by unregistering it from the partition ["

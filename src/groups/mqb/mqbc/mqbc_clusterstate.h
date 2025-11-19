@@ -573,7 +573,7 @@ class ClusterState {
     // PRIVATE ACCESSORS
 
     /// Return the cluster name with temporary suffix if applicable.
-    const bsl::string clusterNameWithTempSuffix() const;
+    const bsl::string name() const;
 
   public:
     // TRAITS
@@ -1000,7 +1000,7 @@ ClusterStateQueueInfo::isEquivalent(const ClusterStateQueueInfo& rhs) const
 
 // PRIVATE ACCESSORS
 
-inline const bsl::string ClusterState::clusterNameWithTempSuffix() const
+inline const bsl::string ClusterState::name() const
 {
     return d_isTemporary ? d_cluster_p->name() + "_TEMP" : d_cluster_p->name();
 }
