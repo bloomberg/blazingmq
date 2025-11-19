@@ -18,11 +18,12 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqba_authenticator.h>
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
-#include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
+#include <mqbauthn_authenticationcontroller.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_relayqueueengine.h>
 #include <mqbcfg_brokerconfig.h>
@@ -170,6 +171,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 , d_allocatorsStatContext_p(allocatorsStatContext)
 , d_pluginManager_mp()
 , d_statController_mp()
+, d_authenticationController_mp()
 , d_configProvider_mp()
 , d_dispatcher_mp()
 , d_transportManager_mp()
@@ -257,7 +259,8 @@ int Application::start(bsl::ostream& errorDescription)
         rc_DOMAINMANAGER                     = -8,
         rc_TRANSPORTMANAGER_LISTEN           = -9,
         rc_ADMIN_POOL_START_FAILURE          = -10,
-        rc_PLUGINMANAGER                     = -11
+        rc_PLUGINMANAGER                     = -11,
+        rc_AUTHENTICATIONCONTROLLER          = -12,
     };
 
     int rc = rc_SUCCESS;
@@ -299,6 +302,17 @@ int Application::start(bsl::ostream& errorDescription)
         return (rc * 100) + rc_STATCONTROLLER;  // RETURN
     }
 
+    // Start the AuthenticationController
+    d_authenticationController_mp.load(
+        new (*d_allocator_p) mqbauthn::AuthenticationController(
+            d_pluginManager_mp.get(),
+            d_allocators.get("AuthenticationController")),
+        d_allocator_p);
+    rc = d_authenticationController_mp->start(errorDescription);
+    if (rc != 0) {
+        return (rc * 100) + rc_AUTHENTICATIONCONTROLLER;  // RETURN
+    }
+
     // Start the config provider
     d_configProvider_mp.load(new (*d_allocator_p) ConfigProvider(
                                  d_allocators.get("ConfigProvider")),
@@ -320,6 +334,13 @@ int Application::start(bsl::ostream& errorDescription)
     }
 
     // Start the transport manager
+    bslma::ManagedPtr<mqbnet::Authenticator> authenticatorMp(
+        new (*d_allocator_p) Authenticator(d_authenticationController_mp.get(),
+                                           &d_blobSpPool,
+                                           d_scheduler_p,
+                                           d_allocators.get("Authenticator")),
+        d_allocator_p);
+
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
         SessionNegotiator(&d_bufferFactory,
                           d_dispatcher_mp.get(),
@@ -340,17 +361,11 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
 
-    bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
-        initialConnectionHandlerMp(
-            new (*d_allocator_p) InitialConnectionHandler(
-                negotiatorMp,
-                d_allocators.get("InitialConnectionHandler")),
-            d_allocator_p);
-
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
-                                   initialConnectionHandlerMp,
+                                   authenticatorMp,
+                                   negotiatorMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
                                d_allocator_p);
@@ -521,6 +536,7 @@ void Application::stop()
     STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
+    STOP_OBJ(d_authenticationController_mp, "AuthenticationController");
     STOP_OBJ(d_statController_mp, "StatController");
     STOP_OBJ(d_pluginManager_mp, "PluginManager");
 
@@ -530,6 +546,7 @@ void Application::stop()
     DESTROY_OBJ(d_transportManager_mp, "TransportManager");
     DESTROY_OBJ(d_dispatcher_mp, "Dispatcher");
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
+    DESTROY_OBJ(d_authenticationController_mp, "AuthenticationController");
     DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
 
