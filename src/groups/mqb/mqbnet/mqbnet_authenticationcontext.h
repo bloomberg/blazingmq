@@ -26,7 +26,6 @@
 /// initial pass) the associated InitialConnectionContext.
 
 // MQB
-#include <mqbnet_connectiontype.h>
 #include <mqbplug_authenticator.h>
 
 // BMQ
@@ -180,7 +179,14 @@ class AuthenticationContext {
     // MANIPULATORS
     void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
-    void setConnectionType(ConnectionType::Enum value);
+
+    // NOTE: AuthenticationMessage and encodingType are set only when
+    // AuthenticationState is e_AUTHENTICATED.  authenticationMessage() and
+    // encodingType() are called only when AuthenticationState is
+    // e_AUTHENTICATING.  Hence, no need for mutex protection.
+    void
+    setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
+    void setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
 
     /// Schedule a reauthentication timer using the specified `scheduler_p`
     /// with the specified `lifetimeMs`.  The specified `channel` is used to
@@ -188,10 +194,10 @@ class AuthenticationContext {
     /// Return 0 on success, and a non-zero value populating the specified
     /// `errorDescription` with details on failure.
     int setAuthenticatedAndScheduleReauthn(
-        bsl::ostream&                          errorDescription,
-        bdlmt::EventScheduler*                 scheduler_p,
-        const bsl::optional<int>&              lifetimeMs,
-        const bsl::shared_ptr<bmqio::Channel>& channel);
+        bsl::ostream&                            errorDescription,
+        bdlmt::EventScheduler*                   scheduler_p,
+        const bsl::optional<bsls::Types::Int64>& lifetimeMs,
+        const bsl::shared_ptr<bmqio::Channel>&   channel);
 
     /// Close the specified `channel` with `errorCode`, `errorName`, and
     /// `errorDescription`, indicating a reauthentication error or
