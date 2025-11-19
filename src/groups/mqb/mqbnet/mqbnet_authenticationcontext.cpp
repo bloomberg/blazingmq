@@ -33,6 +33,7 @@
 #include <bdlb_string.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbnet {
@@ -123,11 +124,29 @@ void AuthenticationContext::setAuthenticationResult(
     d_authenticationResultSp = value;
 }
 
+void AuthenticationContext::setAuthenticationMessage(
+    const bmqp_ctrlmsg::AuthenticationMessage& value)
+{
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATED);
+
+    d_authenticationMessage = value;
+}
+
+void AuthenticationContext::setAuthenticationEncodingType(
+    bmqp::EncodingType::Enum value)
+{
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATED);
+
+    d_encodingType = value;
+}
+
 int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
-    bsl::ostream&                          errorDescription,
-    bdlmt::EventScheduler*                 scheduler_p,
-    const bsl::optional<int>&              lifetimeMs,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+    bsl::ostream&                            errorDescription,
+    bdlmt::EventScheduler*                   scheduler_p,
+    const bsl::optional<bsls::Types::Int64>& lifetimeMs,
+    const bsl::shared_ptr<bmqio::Channel>&   channel)
 {
     // executed by an *AUTHENTICATION* thread
 
@@ -136,8 +155,11 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
+    // d_state might be e_CLOSED if the connection is closed and
+    // AuthenticationContext::onClose() is called before the authentication is
+    // completed.
     if (d_state != AuthenticationState::e_AUTHENTICATING) {
-        errorDescription << "State not AUTHENTICATING (was " << d_state << ")";
+        errorDescription << "State not AUTHENTICATING (is " << d_state << ")";
         return -1;
     }
 
@@ -148,7 +170,7 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
     }
 
     if (lifetimeMs.has_value()) {
-        int lifetime = lifetimeMs.value();
+        bsls::Types::Int64 lifetime = lifetimeMs.value();
 
         if (lifetime < 0) {
             BALL_LOG_WARN
@@ -244,11 +266,17 @@ AuthenticationContext::authenticationResult() const
 const bmqp_ctrlmsg::AuthenticationMessage&
 AuthenticationContext::authenticationMessage() const
 {
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATING);
+
     return d_authenticationMessage;
 }
 
 bmqp::EncodingType::Enum AuthenticationContext::encodingType() const
 {
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATING);
+
     return d_encodingType;
 }
 

@@ -34,6 +34,7 @@
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
 #include <mqbnet_cluster.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 
@@ -386,13 +387,11 @@ void TCPSessionFactory::handleInitialConnection(
         initialConnectionContext;
 
     // Register as observer of the channel to get the 'onClose'
-    bsl::weak_ptr<InitialConnectionContext> context_wp =
-        initialConnectionContext;
     channel->onClose(
         bdlf::BindUtil::bindS(d_allocator_p,
                               &TCPSessionFactory::onClose,
                               this,
-                              context_wp,
+                              initialConnectionContext.get(),
                               channel,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
@@ -406,14 +405,10 @@ void TCPSessionFactory::handleInitialConnection(
             mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTATION);
     }
     else {
-        bmqu::MemOutStream errStream;
-        const int rc = initialConnectionContext->scheduleRead(errStream);
-        if (rc != 0) {
-            initialConnectionContext->handleEvent(
-                rc,
-                errStream.str(),
-                mqbnet::InitialConnectionEvent::e_ERROR);
-        }
+        initialConnectionContext->handleEvent(
+            rc_SUCCESS,
+            bsl::string(),
+            mqbnet::InitialConnectionEvent::e_INCOMING);
     }
 }
 
@@ -565,12 +560,10 @@ void TCPSessionFactory::initialConnectionComplete(
         return;  // RETURN
     }
 
-    // Remove the cached InitialConnectionContext
     BSLS_ASSERT_SAFE(
         d_initialConnectionContextCache.contains(initialConnectionContext_p));
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp =
         d_initialConnectionContextCache.at(initialConnectionContext_p);
-    d_initialConnectionContextCache.erase(initialConnectionContext_p);
 
     // Successful negotiation
     BSLS_ASSERT_SAFE(initialConnectionContext_p->negotiationContext());
@@ -609,6 +602,9 @@ void TCPSessionFactory::initialConnectionComplete(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
+        // Remove the cached InitialConnectionContext under lock
+        d_initialConnectionContextCache.erase(initialConnectionContext_p);
+
         ++d_nbSessions;
 
         if (isClientOrProxy(session.get())) {
@@ -616,8 +612,7 @@ void TCPSessionFactory::initialConnectionComplete(
         }
 
         // check if the channel is not closed (we can be in authentication
-        // thread)
-
+        // thread while the channel is closed in IO thread)
         if (initialConnectionContext_p->isClosed()) {
             BALL_LOG_WARN
                 << "#TCP_UNEXPECTED_STATE TCPSessionFactory '"
@@ -644,8 +639,6 @@ void TCPSessionFactory::initialConnectionComplete(
                                                            info);
         inserted = d_channels.insert(toInsert);
         info     = inserted.first->second;
-
-        ++d_nbActiveChannels;
 
         if (info->d_monitor.isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
@@ -778,6 +771,9 @@ void TCPSessionFactory::channelStateCallback(
                     bmqsys::Time::highResolutionTimer();
             }  // close mutex lock guard // UNLOCK
 
+            // Keep track of active channels, for logging purposes
+            ++d_nbActiveChannels;
+
             handleInitialConnection(channel, context);
         }
     } break;
@@ -802,14 +798,11 @@ void TCPSessionFactory::channelStateCallback(
     }
 }
 
-void TCPSessionFactory::onClose(
-    const bsl::weak_ptr<InitialConnectionContext>& context_wp,
-    const bsl::shared_ptr<bmqio::Channel>&         channel,
-    const bmqio::Status&                           status)
+void TCPSessionFactory::onClose(const InitialConnectionContext* context_p,
+                                const bsl::shared_ptr<bmqio::Channel>& channel,
+                                const bmqio::Status&                   status)
 {
-    // Executed from *ANY* thread
-
-    bsl::shared_ptr<InitialConnectionContext> context = context_wp.lock();
+    // Executed by *ANY* thread
 
     --d_nbActiveChannels;
 
@@ -825,16 +818,17 @@ void TCPSessionFactory::onClose(
 
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'negotiationComplete'.
-        if (context) {
-            context->onClose();
+        bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
+        if (d_initialConnectionContextCache.contains(context_p)) {
+            initialConnectionContext_sp = d_initialConnectionContextCache.at(
+                context_p);
+            initialConnectionContext_sp->onClose();
         }
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
         if (it != d_channels.end()) {
             channelInfo = it->second;
             d_channels.erase(it);
-
-            --d_nbActiveChannels;
 
             // Synchronously remove from heartbeat monitored channels
             if (channelInfo->d_monitor.isHearbeatEnabled() &&
