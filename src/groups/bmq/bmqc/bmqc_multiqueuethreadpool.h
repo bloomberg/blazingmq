@@ -339,14 +339,7 @@ class MultiQueueThreadPoolConfig {
     typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
         CreatorFn;
 
-    struct QueueItem {
-        // PUBLIC DATA
-        bool d_monitorEvent;  // this is a monitor event
-
-        Event* d_event_p;  // Pointer to event
-    };
-
-    typedef MonitoredQueue<bdlcc::SingleConsumerQueue<QueueItem> > Queue;
+    typedef MonitoredQueue<bdlcc::SingleConsumerQueue<Event*> > Queue;
 
     typedef MultiQueueThreadPool_QueueCreatorRet QueueCreatorRet;
 
@@ -466,7 +459,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     typedef MultiQueueThreadPool<TYPE>       ThisClass;
     typedef MultiQueueThreadPoolConfig<TYPE> Config;
     typedef MultiQueueThreadPoolEvent<TYPE>  Event;
-    typedef typename Config::QueueItem       QueueItem;
     typedef typename Config::Queue           Queue;
     typedef typename Config::CreatorFn       CreatorFn;
     typedef typename Config::QueueCreatorRet QueueCreatorRet;
@@ -494,20 +486,31 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     struct QueueInfo {
         // PUBLIC DATA
+        /// Pointer to the queue
         Queue* d_queue_p;
-        // Pointer to the queue
 
+        /// Pointer to context passed at time of the queue creation
         bsl::shared_ptr<void> d_context_p;
-        // Pointer to context passed at
-        // time of the queue creation
 
+        /// Name of the queue
         bsl::string d_name;
-        // Name of the queue
-
-        // TODO: Change this to semaphore to avoid busy-waiting in 'stop'?
-        bsls::AtomicBool d_processedZero;
 
         bsls::AtomicInt d_monitorState;
+
+        /// A thread-safe reference counter for the queue processing loop.
+        /// The loop will continue processing as long as this counter is
+        /// greater than 0.  The rules for updating it are the following:
+        /// (1) Always start with ref count = 1.
+        /// (2) Increment when monitor event is enqueued to the queue.
+        /// (3) Decrement when monitor event is processed by the queue.
+        /// (4) Decrement when `stop()` is called, this gets rid of the
+        ///     initial reference 1 from case (1).
+        /// These rules allow to keep the queue processing loop working
+        /// as long as there are any monitor events awaiting in the queue OR
+        /// as long as `stop()` was not called.
+        bsls::AtomicInt d_processQueueRefCount;
+
+        bslmt::Semaphore d_finished;
 
         bslmt::ThreadUtil::Handle d_exclusiveThreadHandle;
 
@@ -515,23 +518,27 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         BSLMF_NESTED_TRAIT_DECLARATION(QueueInfo, bslma::UsesBslmaAllocator)
 
         // CREATORS
-        QueueInfo(bslma::Allocator* basicAllocator = 0)
+        explicit QueueInfo(bslma::Allocator* basicAllocator = 0)
         : d_queue_p(0)
         , d_context_p()
         , d_name(basicAllocator)
-        , d_processedZero(false)
         , d_monitorState(e_MONITOR_PROCESSED)
+        , d_processQueueRefCount(1)
+        , d_finished(0)
         , d_exclusiveThreadHandle(bslmt::ThreadUtil::invalidHandle())
         {
             // NOTHING
         }
 
-        QueueInfo(const QueueInfo& other, bslma::Allocator* basicAllocator = 0)
+        explicit QueueInfo(const QueueInfo&  other,
+                           bslma::Allocator* basicAllocator = 0)
         : d_queue_p(other.d_queue_p)
         , d_context_p(other.d_context_p)
         , d_name(other.d_name, basicAllocator)
-        , d_processedZero(other.d_processedZero.load())
         , d_monitorState(static_cast<int>(other.d_monitorState))
+        , d_processQueueRefCount(
+              static_cast<int>(other.d_processQueueRefCount))
+        , d_finished(other.d_finished.getValue())
         , d_exclusiveThreadHandle(other.d_exclusiveThreadHandle)
         {
             // NOTHING
@@ -551,7 +558,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQC.MULTIQUEUETHREADPOOL");
 
-  private:
     // DATA
     Config d_config;
 
@@ -895,11 +901,11 @@ inline void MultiQueueThreadPool<TYPE>::processMonitorEvents()
                                                    e_MONITOR_STUCK);
         }
         else if (prevState == e_MONITOR_PROCESSED) {
-            // Enqueue next event
-            QueueItem newItem = {true  // isMonitorEvent
-                                 ,
-                                 0};  // Pointer to event
-            const int ret     = d_queues[i].d_queue_p->tryPushBack(newItem);
+            // Enqueue next monitor event
+
+            d_queues[i].d_processQueueRefCount.addRelaxed(1);
+            const int ret = d_queues[i].d_queue_p->tryPushBack(
+                NULL /* monitor event */);
             if (ret != 0) {
                 BALL_LOG_ERROR << d_config.d_monitorAlarmString
                                << " Couldn't enqueue monitor event on queue '"
@@ -907,6 +913,9 @@ inline void MultiQueueThreadPool<TYPE>::processMonitorEvents()
 
                 // Ensure that we try to enqueue again on next pass
                 d_queues[i].d_monitorState = e_MONITOR_PROCESSED;
+
+                // Event push failed, update the ref count:
+                d_queues[i].d_processQueueRefCount.subtractRelaxed(1);
             }
         }
 
@@ -930,25 +939,37 @@ template <typename TYPE>
 inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
 {
     QueueInfo& info = d_queues[queue];
-    QueueItem  item;
+    Event*     event = NULL;
 
     // Store the thread id of the thread being exclusively used
     info.d_exclusiveThreadHandle = bslmt::ThreadUtil::self();
 
     while (true) {
-        const int popRet = info.d_queue_p->tryPopFront(&item);
+        const int popRet = info.d_queue_p->tryPopFront(&event);
         if (popRet != 0) {
             // Queue is empty
             d_config.d_eventCallbackFn(queue,
                                        info.d_context_p.get(),
                                        &d_queueEmptyEvent);
 
-            info.d_queue_p->popFront(&item);
+            info.d_queue_p->popFront(&event);
         }
 
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(item.d_monitorEvent)) {
-            // Process monitor event
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 == event)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+            // Process monitor event
+            if (0 == info.d_processQueueRefCount.subtractRelaxed(1)) {
+                // 0 ref count means that:
+                // - `stop()` was called: it released the initial reference.
+                // - It is the last monitor event enqueued to the queue.
+                // No need to process this event, it is time to return.
+                // Note: it is possible that another monitor event will be
+                //       enqueued right after the check is done, but it's okay.
+                //       We will skip it with any remainder events on `stop()`.
+                info.d_finished.post();
+                return;  // RETURN
+            }
 
             const MonitorEventState prevState = static_cast<MonitorEventState>(
                 info.d_monitorState.swap(e_MONITOR_PROCESSED));
@@ -958,13 +979,6 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
                               << "work";
             }
             continue;  // CONTINUE
-        }
-
-        Event* event = item.d_event_p;
-        if (event == 0) {
-            // We've been told to return
-            info.d_processedZero = true;
-            return;  // RETURN
         }
 
         d_config.d_eventCallbackFn(queue, info.d_context_p.get(), event);
@@ -1020,13 +1034,10 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventImp(Event* event, int queue)
     // Enqueue on each selected queue
     int ret = rc_SUCCESS;
     for (int queueIdx = startQueue; queueIdx < endQueue; ++queueIdx) {
-        QueueInfo& info    = d_queues[queueIdx];
-        QueueItem  newItem = {false  // isMonitorEvent
-                              ,
-                              event};  // pointer to event
+        QueueInfo& info = d_queues[queueIdx];
 
         // [try to] Push back item
-        const int pushRet = info.d_queue_p->pushBack(newItem);
+        const int pushRet = info.d_queue_p->pushBack(event);
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(pushRet != 0)) {
             // [try to] Push back failed
@@ -1113,8 +1124,6 @@ inline int MultiQueueThreadPool<TYPE>::start()
         else {
             d_queues[i].d_name = ret.name();
         }
-
-        d_queues[i].d_processedZero = false;
     }
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
@@ -1161,20 +1170,26 @@ inline void MultiQueueThreadPool<TYPE>::stop()
     for (size_t i = 0; i < d_queues.size(); ++i) {
         QueueInfo& info = d_queues[i];
 
-        QueueItem item = {false  // isMonitorEvent
-                          ,
-                          0};  // pointer to event
-        info.d_queue_p->pushBack(item);
+        // The following operations (1) and (2) can be removed from the code
+        // because they balance each other (+1 -1 = 0), but we keep them
+        // for better visibility.
+
+        // (1) Since we enqueue the next monitor event to the queue:
+        info.d_processQueueRefCount.addRelaxed(1);
+
+        // (2) Since we are getting rid of the initial reference:
+        info.d_processQueueRefCount.subtractRelaxed(1);
+
+        info.d_queue_p->pushBack(NULL /* monitor event */);
+        // It is possible that something is enqueued to the queue between the
+        // last monitor event and `disablePushBack()` call, this is expected.
         info.d_queue_p->disablePushBack();
 
-        // TODO: Change 'd_processedZero' to semaphore instead to avoid busy
-        //       waiting?
-        while (!info.d_processedZero) {
-            bslmt::ThreadUtil::yield();
-        }
+        info.d_finished.wait();
 
-        while (!info.d_queue_p->tryPopFront(&item)) {
-            d_pool.releaseObject(item.d_event_p);
+        Event* event = NULL;
+        while (!info.d_queue_p->tryPopFront(&event)) {
+            d_pool.releaseObject(event);
         }
 
         d_allocator_p->deleteObject(info.d_queue_p);
