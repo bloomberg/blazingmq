@@ -183,18 +183,13 @@ void StorageManager::onWatchDogDispatched(int partitionId)
         << d_watchDogTimeoutInterval.totalSeconds() << " seconds."
         << BMQTSK_ALARMLOG_END;
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
     EventData eventDataVec;
     eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
                               -1,  // placeholder requestId
                               partitionId,
                               1);
 
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_WATCH_DOG,
-                             eventDataVec);
+    dispatchEventToPartition(PartitionFSM::Event::e_WATCH_DOG, eventDataVec);
 }
 
 void StorageManager::onPartitionDoneSendDataChunksCb(
@@ -218,22 +213,17 @@ void StorageManager::onPartitionDoneSendDataChunksCb(
     EventData eventDataVec;
     eventDataVec.emplace_back(destination, requestId, partitionId, 1, range);
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
     // Note that currently the two FSM events below are no-op if we are the
     // primary.  As replica, we will send either success or failure
     // ReplicaDataResponsePull depending on 'status'.  In the future, it might
     // no longer be no-op for primary.
     if (status != 0) {
         dispatchEventToPartition(
-            fs,
             PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
             eventDataVec);
     }
     else {
         dispatchEventToPartition(
-            fs,
             PartitionFSM::Event::e_DONE_SENDING_DATA_CHUNKS,
             eventDataVec);
     }
@@ -295,19 +285,19 @@ void StorageManager::onPartitionRecovery(int partitionId)
     }
 }
 
-void StorageManager::dispatchEventToPartition(mqbs::FileStore*          fs,
-                                              PartitionFSM::Event::Enum event,
+void StorageManager::dispatchEventToPartition(PartitionFSM::Event::Enum event,
                                               const EventData& eventDataVec)
 {
-    // executed by the cluster *DISPATCHER* thread
+    // executed by the cluster *DISPATCHER* or *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     // NOTE: it is assumed that all elements in 'eventDataVec' have the same
     // 'partitionId'.
     const int partitionId = eventDataVec[0].partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -326,9 +316,16 @@ void StorageManager::dispatchEventToPartition(mqbs::FileStore*          fs,
     // actions as documented in the state transition table for PartitionFSM.
     queueSp->emplace(event, eventDataVec);
 
-    fs->execute(bdlf::BindUtil::bind(&PartitionFSM::popEventAndProcess,
-                                     d_partitionFSMVec[partitionId].get(),
-                                     queueSp));
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    if (fs->inDispatcherThread()) {
+        d_partitionFSMVec[partitionId]->popEventAndProcess(queueSp);
+    }
+    else {
+        fs->execute(bdlf::BindUtil::bind(&PartitionFSM::popEventAndProcess,
+                                         d_partitionFSMVec[partitionId].get(),
+                                         queueSp));
+    }
 }
 
 void StorageManager::setPrimaryStatusForPartitionDispatched(
@@ -424,11 +421,7 @@ void StorageManager::processPrimaryDetect(int                  partitionId,
                               primaryNode,
                               primaryLeaseId);
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
+    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_PRIMARY,
                              eventDataVec);
 }
 
@@ -465,11 +458,7 @@ void StorageManager::processReplicaDetect(int                  partitionId,
                               primaryNode,
                               primaryLeaseId);
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_DETECT_SELF_REPLICA,
+    dispatchEventToPartition(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                              eventDataVec);
 }
 
@@ -528,11 +517,7 @@ void StorageManager::processReplicaDataRequestPull(
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL,
+    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL,
                              eventDataVec);
 }
 
@@ -599,11 +584,7 @@ void StorageManager::processReplicaDataRequestPush(
         PartitionSeqNumDataRange(replicaDataRequest.beginSequenceNumber(),
                                  replicaDataRequest.endSequenceNumber()));
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_REPLICA_DATA_RQST_PUSH,
+    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RQST_PUSH,
                              eventDataVec);
 }
 
@@ -663,11 +644,7 @@ void StorageManager::processReplicaDataRequestDrop(
                               partitionId,
                               1);
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_REPLICA_DATA_RQST_DROP,
+    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RQST_DROP,
                              eventDataVec);
 }
 
@@ -713,9 +690,6 @@ void StorageManager::processPrimaryStateResponseDispatched(
         return;  // RETURN
     }
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
     if (context->result() != bmqt::GenericResult::e_SUCCESS) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": received FAIL_PrmryStateRspn event "
@@ -726,7 +700,6 @@ void StorageManager::processPrimaryStateResponseDispatched(
         eventDataVec.emplace_back(responder, responseId, partitionId, 1);
 
         dispatchEventToPartition(
-            fs,
             PartitionFSM::Event::e_FAIL_PRIMARY_STATE_RSPN,
             eventDataVec);
         return;  // RETURN
@@ -769,8 +742,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
         response.latestSequenceNumber(),
         response.firstSyncPointAfterRolloverSequenceNumber());
 
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
+    dispatchEventToPartition(PartitionFSM::Event::e_PRIMARY_STATE_RSPN,
                              eventDataVec);
 }
 
@@ -902,16 +874,14 @@ void StorageManager::processReplicaStateResponseDispatched(
         BSLS_ASSERT_SAFE(requestPartitionId == response.partitionId());
     }
 
-    mqbs::FileStore* fs = d_fileStores[requestPartitionId].get();
     if (eventDataVec.size() > 0) {
-        dispatchEventToPartition(fs,
-                                 PartitionFSM::Event::e_REPLICA_STATE_RSPN,
+        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_STATE_RSPN,
                                  eventDataVec);
     }
 
     if (failedEventDataVec.size() > 0) {
         dispatchEventToPartition(
-            fs,
+
             PartitionFSM::Event::e_FAIL_REPLICA_STATE_RSPN,
             failedEventDataVec);
     }
@@ -976,9 +946,6 @@ void StorageManager::processReplicaDataResponseDispatched(
         return;  // RETURN
     }
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
     if (context->result() != bmqt::GenericResult::e_SUCCESS) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": received FAIL_ReplicaDataResponse event "
@@ -991,19 +958,16 @@ void StorageManager::processReplicaDataResponseDispatched(
         switch (dataType) {
         case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
             dispatchEventToPartition(
-                fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PULL,
                 eventDataVec);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
             dispatchEventToPartition(
-                fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_PUSH,
                 eventDataVec);
         } break;
         case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
             dispatchEventToPartition(
-                fs,
                 PartitionFSM::Event::e_FAIL_REPLICA_DATA_RSPN_DROP,
                 eventDataVec);
         } break;
@@ -1071,18 +1035,15 @@ void StorageManager::processReplicaDataResponseDispatched(
 
     switch (dataType) {
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
-        dispatchEventToPartition(fs,
-                                 PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
+        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PUSH: {
-        dispatchEventToPartition(fs,
-                                 PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
+        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RSPN_PUSH,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
-        dispatchEventToPartition(fs,
-                                 PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
+        dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_DATA_RSPN_DROP,
                                  eventDataVec);
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
@@ -3921,8 +3882,7 @@ void StorageManager::stop()
                                   pid,
                                   1);
 
-        dispatchEventToPartition(d_fileStores[pid].get(),
-                                 PartitionFSM::Event::e_STOP_NODE,
+        dispatchEventToPartition(PartitionFSM::Event::e_STOP_NODE,
                                  eventDataVec);
     }
 
@@ -4319,11 +4279,7 @@ void StorageManager::processPrimaryStateRequest(
         primaryStateRequest.latestSequenceNumber(),
         primaryStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_PRIMARY_STATE_RQST,
+    dispatchEventToPartition(PartitionFSM::Event::e_PRIMARY_STATE_RQST,
                              eventDataVec);
 }
 
@@ -4379,11 +4335,7 @@ void StorageManager::processReplicaStateRequest(
         replicaStateRequest.latestSequenceNumber(),
         replicaStateRequest.firstSyncPointAfterRolloverSequenceNumber());
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    dispatchEventToPartition(fs,
-                             PartitionFSM::Event::e_REPLICA_STATE_RQST,
+    dispatchEventToPartition(PartitionFSM::Event::e_REPLICA_STATE_RQST,
                              eventDataVec);
 }
 
@@ -4508,17 +4460,12 @@ void StorageManager::processStorageEvent(
     EventData eventDataVec;
     eventDataVec.emplace_back(event.clusterNode(), pid, 1, event.blob());
 
-    mqbs::FileStore* fs = d_fileStores[pid].get();
-    BSLS_ASSERT_SAFE(fs);
-
     if (rawEvent.isStorageEvent()) {
-        dispatchEventToPartition(fs,
-                                 PartitionFSM::Event::e_LIVE_DATA,
+        dispatchEventToPartition(PartitionFSM::Event::e_LIVE_DATA,
                                  eventDataVec);
     }
     else {
-        dispatchEventToPartition(fs,
-                                 PartitionFSM::Event::e_RECOVERY_DATA,
+        dispatchEventToPartition(PartitionFSM::Event::e_RECOVERY_DATA,
                                  eventDataVec);
     }
 }

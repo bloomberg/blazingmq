@@ -457,9 +457,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Dispatch the event to *QUEUE DISPATCHER* thread associated with
     /// the partitionId as per the specified `eventDataVec` with the
-    /// specified `event` using the specified `fs`.
-    void dispatchEventToPartition(mqbs::FileStore*          fs,
-                                  PartitionFSM::Event::Enum event,
+    /// specified `event`.  If we are already in *QUEUE DISPATCHER* thread,
+    /// then execute the event in place.
+    void dispatchEventToPartition(PartitionFSM::Event::Enum event,
                                   const EventData&          eventDataVec);
 
     /// Set the primary status of the specified `partitionId` to the specified
