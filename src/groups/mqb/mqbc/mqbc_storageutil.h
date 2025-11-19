@@ -523,18 +523,16 @@ struct StorageUtil {
         const bdlb::NullableValue<QueueCreationCb>& queueCreationCb =
             bdlb::NullableValue<QueueCreationCb>());
 
-    /// Clear the specified `primary` of the specified `partitionId` from
-    /// the specified `fs` and `partitionInfo`, using the specified
-    /// `clusterDescription`.  Behavior is undefined unless the specified
-    /// `partitionId` is in range and the specified `primary` is not null.
+    /// Clear the primary of the specified `partitionId` from the specified
+    /// `fs` and `partitionInfo`, using the specified clusterDescription`.
+    /// Behavior is undefined unless the specified `partitionId` is in range.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with
     ///         'partitionId'.
     static void clearPrimaryForPartition(mqbs::FileStore*   fs,
                                          PartitionInfo*     partitionInfo,
                                          const bsl::string& clusterDescription,
-                                         int                partitionId,
-                                         mqbnet::ClusterNode* primary);
+                                         int                partitionId);
 
     /// Find the minimum required disk space using the specified `config`.
     static bsls::Types::Uint64

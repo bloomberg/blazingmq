@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbblp_storagemanager.cpp                                          -*-C++-*-
+#include <ball_log.h>
 #include <mqbblp_storagemanager.h>
 
 #include <mqbscm_version.h>
@@ -606,12 +607,22 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     mqbs::FileStore* fs    = d_fileStores[partitionId].get();
     PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
 
+    if (primary != pinfo.primary()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Failed to clear primary as specified primary: "
+                      << (primary ? primary->nodeDescription() : "**null**")
+                      << " is different from current perceived primary: "
+                      << (pinfo.primary() ? pinfo.primary()->nodeDescription()
+                                          : "** null **");
+        return;  // RETURN
+    }
+
     mqbc::StorageUtil::clearPrimaryForPartition(
         fs,
         &pinfo,
         d_clusterData_p->identity().description(),
-        partitionId,
-        primary);
+        partitionId);
 }
 
 void StorageManager::processStorageEventDispatched(
