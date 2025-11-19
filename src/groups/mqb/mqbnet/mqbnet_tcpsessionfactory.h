@@ -473,11 +473,11 @@ class TCPSessionFactory {
 
     /// Method invoked by the channel factory to notify that the specified
     /// `channel` went down, with the specified `status` corresponding to
-    /// the channel's status. The specified `context_wp` is used to track
+    /// the channel's status. The specified `context_p` is used to track
     /// whether the channel is closed.
-    void onClose(const bsl::weak_ptr<InitialConnectionContext>& context_wp,
-                 const bsl::shared_ptr<bmqio::Channel>&         channel,
-                 const bmqio::Status&                           status);
+    void onClose(const InitialConnectionContext*        context_p,
+                 const bsl::shared_ptr<bmqio::Channel>& channel,
+                 const bmqio::Status&                   status);
 
     /// Reccuring scheduler event to check for all `heartbeat-enabled`
     /// channels : this will send a heartbeat if no data has been received

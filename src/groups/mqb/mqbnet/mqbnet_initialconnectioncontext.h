@@ -145,10 +145,11 @@ struct InitialConnectionEvent {
     enum Enum {
         e_NONE                = 0,
         e_OUTBOUND_NEGOTATION = 1,
-        e_AUTHN_REQUEST       = 2,
-        e_NEGOTIATION_MESSAGE = 3,
-        e_AUTHN_SUCCESS       = 4,
-        e_ERROR               = 5
+        e_INCOMING            = 2,
+        e_AUTHN_REQUEST       = 3,
+        e_NEGOTIATION_MESSAGE = 4,
+        e_AUTHN_SUCCESS       = 5,
+        e_ERROR               = 6
     };
 
     // CLASS METHODS
@@ -327,6 +328,11 @@ class InitialConnectionContext
     // PRIVATE MANIPULATORS
     void setState(InitialConnectionState::Enum value);
 
+    /// Schedule the next read operation on the channel.
+    /// Return 0 on success, or a non-zero error code and populate
+    /// `errorDescription` with details on failure.
+    int scheduleRead(bsl::ostream& errorDescription);
+
     /// Read from the channel into the specified `outPacket`.  On success,
     /// return 0, set `isFullBlob` to indicate whether a full message has been
     /// read, and set `numNeeded` to the number of additional bytes needed for
@@ -385,11 +391,6 @@ class InitialConnectionContext
     void readCallback(const bmqio::Status& status,
                       int*                 numNeeded,
                       bdlbb::Blob*         blob);
-
-    /// Schedule the next read operation on the channel.
-    /// Return 0 on success, or a non-zero error code and populate
-    /// `errorDescription` with details on failure.
-    int scheduleRead(bsl::ostream& errorDescription);
 
     /// Entrance to the initial connection process.
     void handleInitialConnection();

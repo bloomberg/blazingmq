@@ -56,15 +56,6 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace mqbblp {
-class ClusterCatalog;
-}
-namespace mqbi {
-class Dispatcher;
-}
-
 namespace mqba {
 
 // ===================
@@ -154,16 +145,18 @@ class Authenticator : public mqbnet::Authenticator {
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
         const InitialConnectionContextSp&          context);
 
-    /// Send out outbound authentication message with the specified `message`
-    /// on the specified `channel` using the specified
-    /// `authenticationEncodingType`.  Return 0 on success, or a non-zero error
-    /// code and populate the specified `errorDescription` with a description
-    /// of the error otherwise.
-    int sendAuthenticationMessage(
-        bsl::ostream&                              errorDescription,
-        const bmqp_ctrlmsg::AuthenticationMessage& message,
-        const bsl::shared_ptr<bmqio::Channel>&     channel,
-        bmqp::EncodingType::Enum                   authenticationEncodingType);
+    /// Send an authentication response message with the specified `authnRc`,
+    /// `errorMsg`, and `lifetimeMs` via the specified `channel`, using the
+    /// specified `authenticationEncodingType`.  Return 0 on success;
+    /// otherwise, return a non-zero error code and populate `errorDescription`
+    /// with details of the failure.
+    int sendAuthenticationResponse(
+        bsl::ostream&                            errorDescription,
+        int                                      authnRc,
+        bsl::string_view                         errorMsg,
+        const bsl::optional<bsls::Types::Int64>& lifetimeMs,
+        const bsl::shared_ptr<bmqio::Channel>&   channel,
+        bmqp::EncodingType::Enum                 authenticationEncodingType);
 
     // Authenticate the specified `context`.  Send an authentication
     // response back to the client via the specified `channel` if the specified
@@ -175,20 +168,6 @@ class Authenticator : public mqbnet::Authenticator {
                       const bsl::shared_ptr<bmqio::Channel>& channel,
                       bool                                   isDefaultAuthn,
                       bool                                   isReauthn);
-
-    /// Perform the authentication based on the specified `request` and
-    /// build the corresponding `response`.  Use the specified `channel` and
-    /// `authenticationContext` during the authentication process.
-    /// Return 0 if the response is built successfully, regardless of a
-    /// successful or failed authentication, or a non-zero code on error and
-    /// populate the specified `errorDescription` with a description of the
-    /// error.
-    int authenticateAndBuildResponse(
-        bsl::ostream&                              errorDescription,
-        bmqp_ctrlmsg::AuthenticationResponse*      response,
-        const bmqp_ctrlmsg::AuthenticationRequest& request,
-        const bsl::shared_ptr<bmqio::Channel>&     channel,
-        const AuthenticationContextSp&             authenticationContext);
 
   public:
     // TRAITS

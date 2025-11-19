@@ -156,6 +156,7 @@ const char* InitialConnectionEvent::toAscii(InitialConnectionEvent::Enum value)
     switch (value) {
         CASE(NONE)
         CASE(OUTBOUND_NEGOTATION)
+        CASE(INCOMING)
         CASE(AUTHN_REQUEST)
         CASE(NEGOTIATION_MESSAGE)
         CASE(AUTHN_SUCCESS)
@@ -180,6 +181,7 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
 
     CHECKVALUE(NONE)
     CHECKVALUE(OUTBOUND_NEGOTATION)
+    CHECKVALUE(INCOMING)
     CHECKVALUE(AUTHN_REQUEST)
     CHECKVALUE(NEGOTIATION_MESSAGE)
     CHECKVALUE(AUTHN_SUCCESS)
@@ -195,6 +197,7 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
 // class InitialConnectionContext
 // ------------------------------
 
+// CREATORS
 InitialConnectionContext::InitialConnectionContext(
     bool                                   isIncoming,
     mqbnet::Authenticator*                 authenticator,
@@ -226,6 +229,41 @@ InitialConnectionContext::InitialConnectionContext(
 InitialConnectionContext::~InitialConnectionContext()
 {
     // NOTHING
+}
+
+// PRIVATE MANIPULATORS
+void InitialConnectionContext::setState(InitialConnectionState::Enum value)
+{
+    d_state = value;
+}
+
+int InitialConnectionContext::scheduleRead(bsl::ostream& errorDescription)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS    = 0,
+        rc_READ_ERROR = -1
+    };
+
+    bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
+
+    // Schedule a TimedRead
+    bmqio::Status status;
+    channel()->read(&status,
+                    bmqp::Protocol::k_PACKET_MIN_SIZE,
+                    bdlf::BindUtil::bind(&readCallbackTrampoline,
+                                         self,
+                                         bdlf::PlaceHolders::_1,   // status
+                                         bdlf::PlaceHolders::_2,   // numNeeded
+                                         bdlf::PlaceHolders::_3),  // blob
+                    bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
+
+    if (!status) {
+        errorDescription << "Read failed while negotiating: " << status;
+        return rc_READ_ERROR;  // RETURN
+    }
+
+    return rc_SUCCESS;
 }
 
 int InitialConnectionContext::readBlob(bsl::ostream& errorDescription,
@@ -424,6 +462,7 @@ int InitialConnectionContext::handleAnonAuthentication(
     return rc;
 }
 
+// MANIPULATORS
 void InitialConnectionContext::setResultState(void* value)
 {
     d_resultState_p = value;
@@ -439,11 +478,6 @@ void InitialConnectionContext::setNegotiationContext(
     const bsl::shared_ptr<NegotiationContext>& value)
 {
     d_negotiationCtxSp = value;
-}
-
-void InitialConnectionContext::setState(InitialConnectionState::Enum value)
-{
-    d_state = value;
 }
 
 void InitialConnectionContext::onClose()
@@ -499,35 +533,6 @@ void InitialConnectionContext::readCallback(const bmqio::Status& status,
                     InitialConnectionEvent::e_ERROR);
         return;  // RETURN
     }
-}
-
-int InitialConnectionContext::scheduleRead(bsl::ostream& errorDescription)
-{
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS    = 0,
-        rc_READ_ERROR = -1
-    };
-
-    bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
-
-    // Schedule a TimedRead
-    bmqio::Status status;
-    channel()->read(&status,
-                    bmqp::Protocol::k_PACKET_MIN_SIZE,
-                    bdlf::BindUtil::bind(&readCallbackTrampoline,
-                                         self,
-                                         bdlf::PlaceHolders::_1,   // status
-                                         bdlf::PlaceHolders::_2,   // numNeeded
-                                         bdlf::PlaceHolders::_3),  // blob
-                    bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
-
-    if (!status) {
-        errorDescription << "Read failed while negotiating: " << status;
-        return rc_READ_ERROR;  // RETURN
-    }
-
-    return rc_SUCCESS;
 }
 
 void InitialConnectionContext::handleInitialConnection()
@@ -594,16 +599,28 @@ void InitialConnectionContext::handleEvent(
         else {
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input;
+            BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                           << " [peer: " << channel()->peerUri() << "]";
+        }
+        break;
+    }
+    case InitialConnectionEvent::e_INCOMING: {
+        if (oldState == InitialConnectionState::e_INITIAL) {
+            // For incoming connections, start reading the first message
+            rc = scheduleRead(errStream);
+        }
+        else {
+            errStream << "Unexpected event received: " << oldState << " -> "
+                      << input;
+            BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                           << " [peer: " << channel()->peerUri() << "]";
         }
         break;
     }
     case InitialConnectionEvent::e_AUTHN_REQUEST: {
-        if (!bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
-                message)) {
-            errStream << "Expecting AuthenticationMessage for event " << input
-                      << ".";
-            break;
-        }
+        BSLS_ASSERT_SAFE(
+            bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+                message));
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg =
             bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message);
 
@@ -617,16 +634,14 @@ void InitialConnectionContext::handleEvent(
         else {
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input;
+            BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                           << " [peer: " << channel()->peerUri() << "]";
         }
         break;
     }
     case InitialConnectionEvent::e_NEGOTIATION_MESSAGE: {
-        if (!bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(
-                message)) {
-            errStream << "Expecting NegotiationMessage for event " << input
-                      << ".";
-            break;
-        }
+        BSLS_ASSERT_SAFE(
+            bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(message));
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMsg =
             bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message);
 
@@ -661,6 +676,8 @@ void InitialConnectionContext::handleEvent(
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input << " [ negotiationMsg: " << negotiationMsg
                       << " ]";
+            BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                           << " [peer: " << channel()->peerUri() << "]";
         }
         break;
     }
@@ -684,6 +701,8 @@ void InitialConnectionContext::handleEvent(
         else {
             errStream << "Unexpected event received: " << oldState << " -> "
                       << input;
+            BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                           << " [peer: " << channel()->peerUri() << "]";
         }
         break;
     }
@@ -692,13 +711,16 @@ void InitialConnectionContext::handleEvent(
         errStream << errorDescription;
     } break;
     case InitialConnectionEvent::e_NONE: {
-        // NOT IMPLEMENTED
-        BSLS_ASSERT_SAFE(!"Unexpected event received: " + input);
+        errStream << "InitialConnectionContext: received e_NONE event";
+        BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                       << " [peer: " << channel()->peerUri() << "]";
         break;
     }
     default:
         errStream << "InitialConnectionContext: "
                   << "unexpected event received: " << input;
+        BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                       << " [peer: " << channel()->peerUri() << "]";
     }
 
     BALL_LOG_INFO << "In initial connection state transition: " << oldState
@@ -711,6 +733,10 @@ void InitialConnectionContext::handleEvent(
         BALL_LOG_INFO << "Created a session with " << channel()->peerUri();
     }
 
+    if (rc != rc_SUCCESS) {
+        setState(InitialConnectionState::e_FAILED);
+    }
+
     if (rc != rc_SUCCESS || d_state == InitialConnectionState::e_NEGOTIATED) {
         BALL_LOG_INFO << "Finished initial connection with rc = " << rc
                       << ", error = '" << errStream.str() << "'";
@@ -719,6 +745,7 @@ void InitialConnectionContext::handleEvent(
     }
 }
 
+// ACCESSORS
 bool InitialConnectionContext::isIncoming() const
 {
     return d_isIncoming;
