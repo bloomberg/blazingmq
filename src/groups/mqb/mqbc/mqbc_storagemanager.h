@@ -471,14 +471,31 @@ class StorageManager BSLS_KEYWORD_FINAL
         int                                partitionId,
         bmqp_ctrlmsg::PrimaryStatus::Value value);
 
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void setPrimaryForPartitionDispatched(int                  partitionId,
+                                          mqbnet::ClusterNode* primaryNode,
+                                          unsigned int         primaryLeaseId);
+
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void clearPrimaryForPartitionDispatched(int                  partitionId,
+                                            mqbnet::ClusterNode* primary);
+
     /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
     /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
     void processPrimaryDetect(int                  partitionId,
                               mqbnet::ClusterNode* primaryNode,
                               unsigned int         primaryLeaseId);
 
     /// Apply DETECT_SelfReplica event to StorageFSM using the specified
     /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
     void processReplicaDetect(int                  partitionId,
                               mqbnet::ClusterNode* primaryNode,
                               unsigned int         primaryLeaseId);
@@ -584,12 +601,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void
     do_storeReplicaSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_storePartitionInfo(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_clearPartitionInfo(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
 
     void do_replicaStateRequest(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
