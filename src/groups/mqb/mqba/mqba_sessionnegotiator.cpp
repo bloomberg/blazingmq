@@ -276,6 +276,10 @@ int SessionNegotiator::createSessionOnMsgType(
         // - a proxy connecting to us (implying we are a cluster member)
         // - a cluster peer connecting to us (implying we are a cluster member)
         // - an admin client connecting to us
+
+        // Authentication needs to be done before we can create a session.
+        BSLS_ASSERT(context->authenticationContext());
+
         if (negotiationContext->negotiationMessage()
                 .clientIdentity()
                 .clientType() == bmqp_ctrlmsg::ClientType::E_TCPADMIN) {
