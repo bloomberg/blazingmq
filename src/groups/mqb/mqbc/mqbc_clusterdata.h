@@ -28,6 +28,7 @@
 #include <mqbc_clustermembership.h>
 #include <mqbc_controlmessagetransmitter.h>
 #include <mqbc_electorinfo.h>
+#include <mqbcfg_clusterquorummanager.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
@@ -171,6 +172,9 @@ class ClusterData {
     /// Elector information.
     ElectorInfo d_electorInfo;
 
+    /// Quorum manager.
+    mqbcfg::ClusterQuorumManager d_quorumManager;
+
     /// The membership information of the cluster.
     ClusterMembership d_membership;
 
@@ -261,6 +265,9 @@ class ClusterData {
 
     /// Get a modifiable reference to this object's cluster.
     mqbi::Cluster& cluster();
+
+    /// Get a modifiable reference to this object's quorum manager.
+    mqbcfg::ClusterQuorumManager& quorumManager();
 
     /// Get a modifiable reference to this object's messageTransmitter.
     ControlMessageTransmitter& messageTransmitter();
@@ -389,6 +396,11 @@ inline ClusterMembership& ClusterData::membership()
 inline mqbi::Cluster& ClusterData::cluster()
 {
     return *d_cluster_p;
+}
+
+inline mqbcfg::ClusterQuorumManager& ClusterData::quorumManager()
+{
+    return d_quorumManager;
 }
 
 inline ControlMessageTransmitter& ClusterData::messageTransmitter()

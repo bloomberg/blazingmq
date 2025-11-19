@@ -26,6 +26,9 @@
 #include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 
+// MQB
+#include <mqbcfg_clusterquorummanager.h>
+
 // BDE
 #include <bdlb_print.h>
 #include <bdlb_string.h>
@@ -834,9 +837,9 @@ void ElectorStateMachine::applyElectionResponseEventToCandidate(
                   << "], current term [" << d_term
                   << "]. New quorum: " << d_supporters.size();
 
-    if (static_cast<int>(d_supporters.size()) == d_quorum) {
+    if (d_supporters.size() == getQuorum()) {
         // Achieved quorum. Become leader.
-        BALL_LOG_INFO << "Elector:CANDIDATE achieved quorum of " << d_quorum
+        BALL_LOG_INFO << "Elector:CANDIDATE achieved quorum of " << getQuorum()
                       << ". Transitioning to LEADER.";
 
         d_leaderNodeId          = d_selfId;
@@ -1055,8 +1058,8 @@ void ElectorStateMachine::applyNodeStatusEventToCandidate(
         // This node voted for this instance. Remove the node from the list of
         // supporters.
         BALL_LOG_INFO
-            << "Elector:CANDIDATE received NODE_UNAVAILABLE from node"
-            << " [" << sourceNodeId << "] which voted for this "
+            << "Elector:CANDIDATE received NODE_UNAVAILABLE from node" << " ["
+            << sourceNodeId << "] which voted for this "
             << "CANDIDATE. Removing node from list of voters.";
         d_supporters.erase(nodeIter);
     }
@@ -1108,14 +1111,14 @@ void ElectorStateMachine::applyNodeStatusEventToLeader(
                       << "Updated quorum: " << d_supporters.size();
     }
 
-    if (static_cast<int>(d_supporters.size()) >= d_quorum) {
+    if (d_supporters.size() >= getQuorum()) {
         // Still have quorum. Nothing to do.
         return;  // RETURN
     }
 
     // Lost quorum.
     BALL_LOG_INFO << "Elector:LEADER lost quorum due to node [" << sourceNodeId
-                  << "] unavailability. Expected quorum [" << d_quorum
+                  << "] unavailability. Expected quorum [" << getQuorum()
                   << "], new quorum [" << d_supporters.size()
                   << "]. Will wait random time before proposing election";
 
@@ -1267,8 +1270,8 @@ void ElectorStateMachine::applyScoutingRequestEvent(
         // Support the notion of sticky leader: if self sees a healthy leader,
         // notify sender that self won't support it.
 
-        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from "
-                      << "node [" << sourceNodeId << "] with term [" << term
+        BALL_LOG_INFO << "Elector received SCOUTING_REQUEST from " << "node ["
+                      << sourceNodeId << "] with term [" << term
                       << "]. But self perceives node [" << d_leaderNodeId
                       << "] as a valid leader, with term [" << d_term
                       << "]. Not supporting the scouting node.";
@@ -1321,12 +1324,12 @@ void ElectorStateMachine::applyScoutingResponseEvent(
 
     d_scoutingInfo.addNodeResponse(sourceNodeId, willVote);
 
-    if (d_scoutingInfo.numSupportingNodes() >= static_cast<size_t>(d_quorum)) {
+    if (d_scoutingInfo.numSupportingNodes() >= getQuorum()) {
         // Majority of the nodes will support an election with the specified
         // 'term'.  Transition to candidate.
 
         BALL_LOG_INFO << "Elector:FOLLOWER received pre-election scouting "
-                      << "support from " << d_quorum
+                      << "support from " << getQuorum()
                       << " peer nodes. Transitioning to candidate and "
                       << "proposing an election with term ["
                       << d_scoutingInfo.term() << "].";
@@ -1353,8 +1356,7 @@ void ElectorStateMachine::applyScoutingResponseEvent(
         return;  // RETURN
     }
 
-    if (d_scoutingInfo.numResponses() ==
-        static_cast<size_t>(d_numTotalPeers)) {
+    if (d_scoutingInfo.numResponses() == d_numTotalPeers) {
         // All nodes have responded, but as per previous 'if' check, majority
         // of the nodes did not express support.  This means that this round of
         // scouting request failed.  Elector needs to wait random time before
@@ -1386,9 +1388,9 @@ void ElectorStateMachine::applyElectionResultTimerEvent(
 
     // In the case where quorum == 1, the node only realizes that it has
     // achieved quorum upon election timeout.
-    if (static_cast<int>(d_supporters.size()) >= d_quorum) {
+    if (d_supporters.size() >= getQuorum()) {
         // Achieved quorum. Become leader.
-        BALL_LOG_INFO << "Elector:CANDIDATE achieved quorum of " << d_quorum
+        BALL_LOG_INFO << "Elector:CANDIDATE achieved quorum of " << getQuorum()
                       << ". Transitioning to LEADER.";
 
         d_leaderNodeId          = d_selfId;
@@ -1410,7 +1412,7 @@ void ElectorStateMachine::applyElectionResultTimerEvent(
 
     BALL_LOG_INFO << "Elector:CANDIDATE couldn't achieve quorum. Achieved "
                   << "number [" << d_supporters.size() << "], expected ["
-                  << d_quorum << "]";
+                  << getQuorum() << "]";
 
     d_state  = ElectorState::e_FOLLOWER;
     d_reason = ElectorTransitionReason::e_QUORUM_NOT_ACHIEVED;
@@ -1516,9 +1518,9 @@ void ElectorStateMachine::applyRandomWaitTimerEvent(
 
     // In case quorum is 1, self node can directly propose an election and
     // transition to candidate.
-    if (d_scoutingInfo.numSupportingNodes() >= static_cast<size_t>(d_quorum)) {
+    if (d_scoutingInfo.numSupportingNodes() >= getQuorum()) {
         BALL_LOG_INFO << "Elector:FOLLOWER achieved pre-election scouting "
-                      << "support from " << d_quorum
+                      << "support from " << getQuorum()
                       << " peer nodes. Transitioning to candidate and "
                       << "proposing an election with term [" << d_term + 1
                       << "].";
@@ -1589,7 +1591,7 @@ void ElectorStateMachine::applyScoutingResultTimerEvent(
     }
 
     BALL_LOG_INFO << "Elector:FOLLOWER didn't get scouting support from at "
-                  << "least " << d_quorum << " nodes for term ["
+                  << "least " << getQuorum() << " nodes for term ["
                   << d_scoutingInfo.term() << "].";
 
     d_scoutingInfo.reset();
@@ -1599,15 +1601,13 @@ void ElectorStateMachine::applyScoutingResultTimerEvent(
 }
 
 // MANIPULATORS
-void ElectorStateMachine::enable(int selfId,
-                                 int quorum,
-                                 int numTotalPeers,
+void ElectorStateMachine::enable(int                           selfId,
+                                 mqbcfg::ClusterQuorumManager* quorumManager,
+                                 size_t                        numTotalPeers,
                                  int leaderInactivityIntervalMs)
 {
-    BSLS_ASSERT_SAFE(0 < quorum);
     BSLS_ASSERT_SAFE(k_INVALID_NODE_ID != selfId);
     BSLS_ASSERT_SAFE(0 < leaderInactivityIntervalMs);
-    BSLS_ASSERT_SAFE(quorum <= numTotalPeers);
 
     if (isEnabled()) {
         return;  // RETURN
@@ -1617,7 +1617,7 @@ void ElectorStateMachine::enable(int selfId,
     // non-zero initial term.
     d_state                    = ElectorState::e_FOLLOWER;
     d_reason                   = ElectorTransitionReason::e_STARTED;
-    d_quorum                   = quorum;
+    d_quorumManager_p          = quorumManager;
     d_numTotalPeers            = numTotalPeers;
     d_selfId                   = selfId;
     d_leaderNodeId             = k_INVALID_NODE_ID;
@@ -1638,7 +1638,7 @@ void ElectorStateMachine::disable()
     d_state                    = ElectorState::e_DORMANT;
     d_reason                   = ElectorTransitionReason::e_NONE;
     d_term                     = k_INVALID_TERM;
-    d_quorum                   = 0;
+    d_quorumManager_p          = 0;
     d_numTotalPeers            = 0;
     d_selfId                   = k_INVALID_NODE_ID;
     d_leaderNodeId             = k_INVALID_NODE_ID;
@@ -2108,8 +2108,8 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
         // Unicast to the specified 'destinationNodeId'.
         NodesMapIter it = d_nodes.find(output.destination());
         if (d_nodes.end() == it) {
-            BALL_LOG_ERROR << "#ELECTOR_INVALID_NODEID "
-                           << "Invalid nodeId [" << output.destination()
+            BALL_LOG_ERROR << "#ELECTOR_INVALID_NODEID " << "Invalid nodeId ["
+                           << output.destination()
                            << "] specified while trying to emit event ["
                            << output.io() << "].";
             return;  // RETURN
@@ -2206,15 +2206,17 @@ void Elector::scoutingResultTimeoutCb()
 }
 
 // CREATORS
-Elector::Elector(mqbcfg::ElectorConfig&      config,
-                 mqbi::Cluster*              cluster,
-                 const ElectorStateCallback& callback,
-                 bsls::Types::Uint64         initialTerm,
-                 BlobSpPool*                 blobSpPool_p,
-                 bslma::Allocator*           allocator)
+Elector::Elector(mqbcfg::ElectorConfig&        config,
+                 mqbi::Cluster*                cluster,
+                 mqbcfg::ClusterQuorumManager* quorumManager,
+                 const ElectorStateCallback&   callback,
+                 bsls::Types::Uint64           initialTerm,
+                 BlobSpPool*                   blobSpPool_p,
+                 bslma::Allocator*             allocator)
 : d_allocator_p(allocator)
 , d_blobSpPool_p(blobSpPool_p)
 , d_cluster_p(cluster)
+, d_quorumManager_p(quorumManager)
 , d_netCluster_p(0)
 , d_config(config)
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
@@ -2301,19 +2303,6 @@ int Elector::start()
         }
     }
 
-    if (0 == d_config.quorum()) {
-        d_config.quorum() = static_cast<int>(d_nodes.size()) / 2 + 1;
-    }
-    else {
-        if (1 > d_config.quorum()) {
-            return rc_QUORUM_TOO_SMALL;  // RETURN
-        }
-
-        if (d_config.quorum() > static_cast<int>(d_nodes.size())) {
-            return rc_QUORUM_TOO_LARGE;  // RETURN
-        }
-    }
-
     int rc = d_scheduler.start();
     if (0 != rc) {
         return rc_MISC_FAILURE + 10 * rc;  // RETURN
@@ -2333,7 +2322,7 @@ int Elector::start()
     // Enable the state machine.
 
     d_state.enable(d_cluster_p->netCluster().selfNodeId(),
-                   d_config.quorum(),
+                   d_quorumManager_p,
                    d_nodes.size(),
                    (d_config.heartbeatMissCount() *
                     d_config.heartbeatBroadcastPeriodMs()));
@@ -2464,8 +2453,9 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
     if (command.isSetTunableValue()) {
         const mqbcmd::SetTunable& tunable = command.setTunable();
         if (bdlb::StringRefUtil::areEqualCaseless(tunable.name(), "QUORUM")) {
-            if (!tunable.value().isTheIntegerValue() ||
-                tunable.value().theInteger() < 0) {
+            const bsls::Types::Int64 quorum = tunable.value().theInteger();
+
+            if (!tunable.value().isTheIntegerValue() || quorum < 0) {
                 bmqu::MemOutStream output;
                 output << "The QUORUM tunable must be a non-negative integer, "
                           "but instead the following was specified: "
@@ -2481,10 +2471,13 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
                 electorResult->makeTunableConfirmation();
             tunableConfirmation.name() = "Quorum";
             tunableConfirmation.oldValue().makeTheInteger(d_config.quorum());
-            tunableConfirmation.newValue().makeTheInteger(
-                tunable.value().theInteger());
-            d_config.quorum() = tunable.value().theInteger();
-            d_state.setQuorum(tunable.value().theInteger());
+            tunableConfirmation.newValue().makeTheInteger(quorum);
+
+            BSLS_ASSERT_SAFE(d_quorumManager_p);
+            d_quorumManager_p->setQuorum(
+                static_cast<unsigned int>(quorum),
+                static_cast<unsigned int>(d_nodes.size()));
+
             return 0;  // RETURN
         }
 

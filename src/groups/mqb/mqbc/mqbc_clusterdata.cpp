@@ -105,6 +105,8 @@ ClusterData::ClusterData(
 , d_resources(resources)
 , d_dispatcherClientData()
 , d_clusterConfig(clusterConfig)
+, d_quorumManager(clusterConfig.elector().quorum(),
+                  static_cast<unsigned int>(clusterConfig.nodes().size()))
 , d_clusterProxyConfig(clusterProxyConfig)
 , d_electorInfo(cluster)
 , d_membership(netCluster, allocator)

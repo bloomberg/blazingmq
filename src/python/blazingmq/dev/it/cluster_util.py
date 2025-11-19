@@ -26,11 +26,16 @@ from blazingmq.dev.it.util import wait_until
 
 
 def ensure_message_at_storage_layer(
-    cluster: Cluster, partition_id: int, queue_uri: str, num_messages: int
+    cluster: Cluster,
+    partition_id: int,
+    queue_uri: str,
+    expected_count: int,
+    alive=False,
 ):
     """
     Assert that in the `partitionId` of the `cluster`, there are exactly
-    `numMessages` messages in the storage of the `queueUri`.
+    `expected_count` messages in the storage of the `queueUri`.
+    Param 'alive': if True, check only alive nodes in the cluster.
     """
 
     # Before restarting the cluster, ensure that all nodes in the cluster
@@ -38,15 +43,20 @@ def ensure_message_at_storage_layer(
     # in the absence of stronger consistency in storage replication in
     # BMQ.  Presence of message in the storage at each node is checked by
     # sending 'STORAGE SUMMARY' command and grepping its output.
-    for node in cluster.nodes():
+
+    nodes = cluster.nodes(alive=alive)
+
+    for node in nodes:
         node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
 
     time.sleep(2)
-    for node in cluster.nodes():
+    for node in nodes:
         assert node.outputs_regex(
-            r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, num_messages)
+            r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, expected_count)
             + re.escape(queue_uri),
             timeout=20,
+        ), (
+            f"Node {node.name} does not have {expected_count} messages for queue {queue_uri} in partition {partition_id} at storage layer"
         )
         # Above regex is to match line:
         # C1E2A44527    0      1      68  B      bmq://bmq.test.mmap.priority.~tst/qqq
@@ -83,20 +93,28 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
 
 
-def check_if_queue_has_n_messages(consumer: Client, queue: str, n: int):
+def check_if_queue_has_n_messages(consumer: Client, queue: str, expected_count: int):
     """
     Use the `consumer` to check if `queue` has exactly `n` messages.
     """
 
-    test_logger.info(f"Check if queue {queue} still has {n} messages")
+    test_logger.info(f"Check if queue {queue} still has {expected_count} messages")
     consumer.open(
         queue,
         flags=["read"],
+        block=True,
         succeed=True,
     )
-    msgs = consumer.list(queue, block=True)
+    msgs = []
+
+    def check():
+        nonlocal msgs
+        msgs = consumer.list(queue, block=True)
+        return len(msgs) == expected_count
+
     assert wait_until(
-        lambda: len(msgs) == n,
+        check,
         timeout=3,
-    )
+    ), f"Queue {queue} does not have {expected_count} messages, has {len(msgs)} instead"
+    consumer.close(queue, succeed=True)
     return msgs

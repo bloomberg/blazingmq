@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -86,7 +86,7 @@ bool BlobUtil::isValidPos(const bdlbb::Blob& blob, const BlobPosition& pos)
         return pos.byte() == 0;  // RETURN
     }
 
-    return pos.byte() >= 0 && pos.byte() < bufferSize(blob, pos.buffer());
+    return 0 <= pos.byte() && pos.byte() < bufferSize(blob, pos.buffer());
 }
 
 int BlobUtil::findOffset(BlobPosition*       pos,
@@ -123,9 +123,7 @@ int BlobUtil::findOffset(BlobPosition*       pos,
         }
     }
 
-    // Looking past the end of the blob (return -3 since the 'safe' version
-    // already uses -1 for invalid 'start' and -2 for invalid 'offset').
-    return -3;
+    return -2;
 }
 
 bool BlobUtil::isValidSection(const bdlbb::Blob& blob,
@@ -492,12 +490,6 @@ int BlobUtil::readUpToNBytes(char*               buf,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValidPos(blob, start))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return -1;  // RETURN
-    }
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            start.buffer() == blob.numDataBuffers() && length > 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return -2;  // RETURN
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(length == 0)) {

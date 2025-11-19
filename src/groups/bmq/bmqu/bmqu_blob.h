@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -214,6 +214,15 @@ struct BlobUtil {
     /// are valid positions in the blob.
     static bool isValidSection(const bdlbb::Blob& blob,
                                const BlobSection& section);
+
+    /// @brief Check if the data segment defined by `start` and `end`
+    ///        positions is continous (placed in the same blob buffer).
+    /// @param start the start position in a blob
+    /// @param end the end position in a blob
+    /// @return true if the segment is continuous, false otherwise.
+    /// NOTE: this function doesn't check if blob positions are valid.
+    static bool isDataContinuous(const bmqu::BlobPosition& start,
+                                 const bmqu::BlobPosition& end);
 
     /// Find the distance from the specified `section`s `start()` to the
     /// `section`s `end()` in the specified `blob` and return it in the
@@ -575,14 +584,6 @@ inline int BlobUtil::findOffsetSafe(BlobPosition*       pos,
         return -1;  // RETURN
     }
 
-    // Check if 'offset' has a proper value if 'start' position points to
-    // the buffer past the last one of the blob.
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            start.buffer() == blob.numDataBuffers() && offset > 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return -2;  // RETURN
-    }
-
     return findOffset(pos, blob, start, offset);
 }
 
@@ -637,6 +638,13 @@ TYPE* BlobUtil::getAlignedObject(TYPE*               storage,
                           sizeof(TYPE),
                           bsls::AlignmentFromType<TYPE>::VALUE,
                           copyFromBlob));
+}
+
+inline bool BlobUtil::isDataContinuous(const bmqu::BlobPosition& start,
+                                       const bmqu::BlobPosition& end)
+{
+    return (start.buffer() == end.buffer() ||
+            (start.buffer() + 1 == end.buffer() && end.byte() == 0));
 }
 
 }  // close package namespace

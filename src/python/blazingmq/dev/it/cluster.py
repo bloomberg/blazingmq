@@ -868,23 +868,34 @@ class Cluster(contextlib.AbstractContextManager):
 
         with internal_use(self):
             if not self.last_known_leader.reconfigure_domain(domain_name, succeed):
+                self._logger.warning(
+                    f"Failed to reconfigure domain {domain_name} on leader {self.last_known_leader.name}"
+                )
                 return False
 
             if not leader_only:
                 for node in self.nodes():
                     if node is not self.last_known_leader:
                         if not node.reconfigure_domain(domain_name, succeed):
+                            self._logger.warning(
+                                f"Failed to reconfigure domain {domain_name} on node {node.name}"
+                            )
                             return False
 
+        self._logger.info(
+            f"Successfully reconfigured domain {domain_name} on all nodes"
+        )
         return True
 
-    def set_app_ids(self, app_ids: List[str], du: tc.DomainUrls):  # noqa: F811
+    def set_app_ids(
+        self, app_ids: List[str], du: tc.DomainUrls, leader_only: bool = False
+    ):  # noqa: F811
         """
         Set the app ids for the fanout domain to the specified list of app ids."""
         self.config.domains[
             du.domain_fanout
         ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
-        self.reconfigure_domain(du.domain_fanout, succeed=True)
+        self.reconfigure_domain(du.domain_fanout, leader_only=leader_only, succeed=True)
 
     ###########################################################################
     # Internals

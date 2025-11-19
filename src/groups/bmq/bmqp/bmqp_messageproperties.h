@@ -124,13 +124,14 @@ class MessageProperties {
     /// `bmqt::PropertyType::Enum`.  If it is desired to change one of the
     /// orders, property type must be explicitly maintained as a separate
     /// field in the `d_properties`.
-    typedef bdlb::Variant7<bool,
+    typedef bdlb::Variant8<bool,
                            char,
                            short,
                            int,
                            bsls::Types::Int64,
                            bsl::string,
-                           bsl::vector<char> >
+                           bsl::vector<char>,
+                           bsl::string_view>
         PropertyVariant;
 
     struct Property {
@@ -216,16 +217,7 @@ class MessageProperties {
     // use when reading incrementally.
 
     mutable BlobObjectBuffer d_blob;  // Wire representation.
-
-    mutable bool d_isBlobConstructed;
-    // Flag indicating if an instance of
-    // the blob has been constructed in
-    // 'd_blob'.
-
-    mutable bool d_isDirty;
-    // Flag indicating if this instance has
-    // been updated since the previous
-    // invocation of 'streamOut()'.
+    mutable const bdlbb::Blob* d_blob_p;  // Wire representation.
 
     int d_mphSize;
     // Size of MessagePropertyHeader
@@ -243,6 +235,18 @@ class MessageProperties {
     // _before_ any property can change.
     // Incremental reading needs it to
     // recognize last property.
+
+    mutable bool d_isBlobConstructed;
+    // Flag indicating if an instance of
+    // the blob has been constructed in
+    // 'd_blob'.
+
+    mutable bool d_isDirty;
+    // Flag indicating if this instance has
+    // been updated since the previous
+    // invocation of 'streamOut()'.
+
+    bool d_doDeepCopy;
 
   private:
     // PRIVATE CLASS METHODS
@@ -274,6 +278,9 @@ class MessageProperties {
 
     /// Return the value of the specified `property`.
     const PropertyVariant& getPropertyValue(const Property& property) const;
+
+    const PropertyVariant&
+    getPropertyValueAsString(const Property& property) const;
 
     /// Return the value of the property with the specified `name`.
     /// Behavior is undefined unless a property with `name` exists and the
@@ -313,6 +320,8 @@ class MessageProperties {
                                bool         isNewStyleProperties,
                                int          offset,
                                int          index) const;
+    template <class TYPE>
+    bool isCCompatible(const PropertyVariant& value) const;
 
   public:
     // PUBLIC CONSTANTS
@@ -408,6 +417,8 @@ class MessageProperties {
     int streamIn(const bdlbb::Blob&           blob,
                  const MessagePropertiesInfo& info,
                  const SchemaPtr&             schema);
+
+    void setDeepCopy(bool value);
 
     /// Parse and load all previously unparsed properties headers using the
     /// specified `isNewStyleProperties` as an indicator of encoding style.
@@ -643,10 +654,11 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
     int delta = newPropValueLen;
 
     PropertyMapIter it = findProperty(name);
-    if (it != d_properties.end()) {
-        Property& existing = it->second;
+    if (it != d_properties.cend()) {
+        const Property&        existing = it->second;
+        const PropertyVariant& v        = getPropertyValue(existing);
 
-        if (!getPropertyValue(existing).is<TYPE>()) {
+        if (!isCCompatible<TYPE>(v)) {
             return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
         }
 
@@ -684,6 +696,7 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
 
     p.d_length  = newPropValueLen;
     p.d_value   = value;
+    // This cannot have `bsl::string_view` type.
     p.d_type    = static_cast<bmqt::PropertyType::Enum>(p.d_value.typeIndex());
     p.d_isValid = true;
     d_isDirty   = true;
@@ -731,10 +744,10 @@ template <class TYPE>
 inline const TYPE&
 MessageProperties::getProperty(const bsl::string& name) const
 {
-    PropertyMapConstIter cit = findProperty(name);
-    BSLS_ASSERT((cit != d_properties.end()) && "Property does not exist");
+    PropertyMapIter it = findProperty(name);
+    BSLS_ASSERT((it != d_properties.end()) && "Property does not exist");
 
-    const PropertyVariant& value = getPropertyValue(cit->second);
+    const PropertyVariant& value = getPropertyValue(it->second);
 
     BSLS_ASSERT(value.is<TYPE>() && "Property data type mismatch");
 
@@ -875,7 +888,26 @@ MessageProperties::setPropertyAsBinary(const bsl::string&       name,
     return setProperty(name, value);
 }
 
+inline void MessageProperties::setDeepCopy(bool value)
+{
+    d_doDeepCopy = value;
+}
+
 // ACCESSORS
+
+template <class TYPE>
+inline bool
+MessageProperties::isCCompatible(const PropertyVariant& value) const
+{
+    return value.is<TYPE>();
+}
+
+template <>
+inline bool MessageProperties::isCCompatible<bsl::string>(
+    const PropertyVariant& value) const
+{
+    return value.is<bsl::string>() || value.is<bsl::string_view>();
+}
 
 inline MessageProperties::SchemaPtr
 MessageProperties::makeSchema(bslma::Allocator* allocator)
@@ -918,7 +950,14 @@ MessageProperties::getPropertyAsInt64(const bsl::string& name) const
 inline const bsl::string&
 MessageProperties::getPropertyAsString(const bsl::string& name) const
 {
-    return getProperty<bsl::string>(name);
+    PropertyMapIter it = findProperty(name);
+    BSLS_ASSERT((it != d_properties.end()) && "Property does not exist");
+
+    const PropertyVariant& value = getPropertyValueAsString(it->second);
+
+    BSLS_ASSERT(value.is<bsl::string>() && "Property data type mismatch");
+
+    return value.the<bsl::string>();
 }
 
 inline const bsl::vector<char>&
@@ -1081,7 +1120,7 @@ inline const bsl::string& MessagePropertiesIterator::getAsString() const
     BSLS_ASSERT(d_properties_p);
     BSLS_ASSERT(d_iterator != d_properties_p->d_properties.end());
 
-    return d_properties_p->getPropertyValue(d_iterator->second)
+    return d_properties_p->getPropertyValueAsString(d_iterator->second)
         .the<bsl::string>();
 }
 
