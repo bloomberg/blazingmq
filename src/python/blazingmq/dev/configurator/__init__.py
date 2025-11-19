@@ -422,6 +422,10 @@ class Proto:
                     min_cpp_sdk_version=11207,
                     min_java_sdk_version=10,
                 ),
+                authentication=mqbcfg.AuthenticatorConfig(
+                    authenticators=[],
+                    anonymous_credential=None,
+                ),
             ),
         )
     )
