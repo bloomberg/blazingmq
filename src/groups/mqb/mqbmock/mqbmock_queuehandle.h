@@ -463,6 +463,11 @@ class QueueHandle : public mqbi::QueueHandle {
     /// cluster member, false otherwise.
     bool isClientClusterMember() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a pointer offering non-modifiable access to the client
+    /// context associated with this object.
+    const mqbi::QueueHandleRequesterContext*
+    clientContext() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return true if the queueHandle can send a message to the client
     /// which has subscribed to the specified `downstreamSubscriptionId`,
     /// and false otherwise.  Note the queueHandle may or may not be able to
