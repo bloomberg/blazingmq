@@ -298,6 +298,11 @@ class QueueHandle : public mqbi::QueueHandle {
     /// cluster member, false otherwise.
     bool isClientClusterMember() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a pointer offering non-modifiable access to the client
+    /// context associated with this object.
+    const mqbi::QueueHandleRequesterContext*
+    clientContext() const BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual: mqbi::QueueHandle)
 
@@ -617,6 +622,12 @@ inline const mqbi::QueueHandle::SubStreams& QueueHandle::subStreamInfos() const
 inline bool QueueHandle::isClientClusterMember() const
 {
     return d_isClientClusterMember;
+}
+
+inline const mqbi::QueueHandleRequesterContext*
+QueueHandle::clientContext() const
+{
+    return d_clientContext_sp.get();
 }
 
 inline mqbi::QueueHandle* QueueHandle::setIsClientClusterMember(bool value)
