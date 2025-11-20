@@ -1243,6 +1243,48 @@ static void test10_empty()
     BMQTST_ASSERT(!p.hasProperty("z"));
 }
 
+static void test11_reservedPropertyNames()
+// ------------------------------------------------------------------------
+// RESERVED PROPERTY NAMES
+//
+// Concerns:
+//   Verify that property names starting with the reserved prefix
+//   "bmq." cannot be set by users.
+//
+// Testing:
+//   - Setting properties with reserved prefix should fail
+//   - Setting properties without reserved prefix should succeed
+//   - Specifically test "bmq.traceparent" as it's reserved for
+//     distributed tracing
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("RESERVED PROPERTY NAMES");
+
+    bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
+
+    // Test setting property with reserved prefix should fail
+    BMQTST_ASSERT_NE(0, obj.setPropertyAsString("bmq.traceparent", "test"));
+    BMQTST_ASSERT_NE(0, obj.setPropertyAsString("bmq.test", "value"));
+    BMQTST_ASSERT_NE(0, obj.setPropertyAsInt32("bmq.count", 42));
+
+    // Verify that no properties were added
+    BMQTST_ASSERT_EQ(0, obj.numProperties());
+    BMQTST_ASSERT(!obj.hasProperty("bmq.traceparent"));
+    BMQTST_ASSERT(!obj.hasProperty("bmq.test"));
+    BMQTST_ASSERT(!obj.hasProperty("bmq.count"));
+
+    // Test that properties without reserved prefix work normally
+    BMQTST_ASSERT_EQ(0, obj.setPropertyAsString("traceparent", "test"));
+    BMQTST_ASSERT_EQ(0, obj.setPropertyAsString("myProperty", "value"));
+    BMQTST_ASSERT_EQ(0, obj.setPropertyAsInt32("count", 42));
+
+    // Verify properties were added successfully
+    BMQTST_ASSERT_EQ(3, obj.numProperties());
+    BMQTST_ASSERT(obj.hasProperty("traceparent"));
+    BMQTST_ASSERT(obj.hasProperty("myProperty"));
+    BMQTST_ASSERT(obj.hasProperty("count"));
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1255,6 +1297,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 11: test11_reservedPropertyNames(); break;
     case 10: test10_empty(); break;
     case 9: test9_copyAssignTest(); break;
     case 8: test8_printTest(); break;
