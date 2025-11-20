@@ -547,6 +547,12 @@ void TCPSessionFactory::initialConnectionComplete(
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
+        // Remove from cache before closing channel
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+            d_initialConnectionContextCache.erase(initialConnectionContext_p);
+        }
+
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "initialconnectionError",
                              statusCode,
