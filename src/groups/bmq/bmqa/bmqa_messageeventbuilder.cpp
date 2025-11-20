@@ -18,6 +18,7 @@
 
 #include <bmqscm_version.h>
 // BMQ
+#include <bmqa_messageproperties.h>
 #include <bmqa_queueid.h>
 #include <bmqimp_event.h>
 #include <bmqimp_queue.h>
@@ -27,6 +28,7 @@
 #include <bmqt_queueflags.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_memory.h>
 #include <bslma_managedptr.h>
 #include <bslmf_assert.h>
@@ -35,6 +37,9 @@
 
 namespace BloombergLP {
 namespace bmqa {
+
+// CLASS-SCOPE CATEGORY
+BALL_LOG_SET_CLASS_CATEGORY("BMQA.MESSAGEEVENTBUILDER");
 
 namespace {
 // Compile time sanity checks
@@ -144,6 +149,14 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
     d_impl.d_guidGenerator_sp->generateGUID(&guid);
     builder->setMessageGUID(guid);
 
+    // If distributed tracing is enabled, create a span and inject trace
+    // span into message properties
+    bsl::shared_ptr<bmqp::MessageProperties> propsWithDT;
+    bsl::shared_ptr<bmqpi::DTSpan>           childSpan;
+    if (d_impl.d_dtTracer_sp && d_impl.d_dtContext_sp) {
+        copyPropertiesAndInjectDT(&propsWithDT, &childSpan, builder, queueId);
+    }
+
     if (queueSpRef->isOldStyle()) {
         // Temporary; shall remove after 2nd roll out of "new style" brokers.
         rc = builder->packMessageInOldStyle(queueSpRef->id());
@@ -167,7 +180,10 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
         }
 
         // Add message related info into the event on success.
-        msgImplRef.d_event_p->addMessageInfo(queueSpRef, guid, corrId);
+        msgImplRef.d_event_p->addMessageInfo(queueSpRef,
+                                             guid,
+                                             corrId,
+                                             childSpan);
     }
 
     return rc;
@@ -258,6 +274,64 @@ int MessageEventBuilder::messageEventSize() const
     }
 
     return eventSpRef->putEventBuilder()->eventSize();
+}
+
+void MessageEventBuilder::copyPropertiesAndInjectDT(
+    bsl::shared_ptr<bmqp::MessageProperties>* properties,
+    bsl::shared_ptr<bmqpi::DTSpan>*           span,
+    bmqp::PutEventBuilder*                    builder,
+    const bmqa::QueueId&                      queueId) const
+{
+    // Get message properties
+    const bmqp::MessageProperties* props = builder->messageProperties();
+    bsl::shared_ptr<bmqp::MessageProperties> propsCopy =
+        bsl::make_shared<bmqp::MessageProperties>(
+            props ? *props : bmqp::MessageProperties());
+
+    // Create a child span of the current span for the PUT operation
+    bmqpi::DTSpan::Baggage baggage;
+    bsl::stringstream      ss;
+    bmqt::QueueFlagsUtil::prettyPrint(ss, queueId.flags());
+    baggage.put("bmq.queue.flags", ss.str());
+    baggage.put("bmq.queue.uri", queueId.uri().asString());
+    bsl::shared_ptr<bmqpi::DTSpan> childSpan =
+        d_impl.d_dtTracer_sp->createChildSpan(d_impl.d_dtContext_sp->span(),
+                                              "bmq.message.put",
+                                              baggage);
+    if (!childSpan) {
+        return;
+    }
+
+    // Serialize the span to inject into message properties
+    bsl::vector<unsigned char> serializedSpan;
+    int rc = d_impl.d_dtTracer_sp->serializeSpan(&serializedSpan, childSpan);
+    if (rc != 0) {
+        BALL_LOG_WARN
+            << "Failed to serialize span for trace span injection, rc: " << rc;
+        return;  // RETURN
+    }
+
+    // Inject the serialized trace span as a reserved binary property
+    bsl::vector<char> traceSpanData(serializedSpan.begin(),
+                                    serializedSpan.end());
+    rc = propsCopy->setPropertyAsBinary(
+        bmqp::MessageProperties::k_TRACE_PROPERTY_NAME,
+        traceSpanData);
+    if (rc != 0) {
+        BALL_LOG_WARN
+            << "Failed to inject trace span into message properties, rc: "
+            << rc;
+        return;  // RETURN
+    }
+
+    // Set the modified properties back to the builder
+    builder->setMessageProperties(propsCopy.get());
+
+    // Return the created span and the properties with injected trace span for
+    // later use.  Span will be stored in correlationId.  Properties need to
+    // be kept alive until it's compressed in PutEventBuilder::packMessage()
+    *span       = childSpan;
+    *properties = propsCopy;
 }
 
 }  // close package namespace
