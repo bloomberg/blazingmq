@@ -251,7 +251,6 @@ void Authenticator::authenticate(
         scopeGuard.emplace(bdlf::BindUtil::bind(
             &mqbnet::InitialConnectionContext::handleEvent,
             context->initialConnectionContext(),
-            bsl::ref(rc),
             bsl::ref(error),
             bsl::ref(event.value()),
             bsl::monostate()));
@@ -285,7 +284,6 @@ void Authenticator::authenticate(
         BSLS_ASSERT(!isReauthn);
 
         if (authnRc != 0) {
-            rc    = (authnRc * 10) + rc_AUTHENTICATION_FAILED;
             error = authnErrStream.str();
         }
         else {
