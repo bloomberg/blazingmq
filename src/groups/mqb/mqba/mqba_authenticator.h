@@ -158,6 +158,18 @@ class Authenticator : public mqbnet::Authenticator {
         const bsl::shared_ptr<bmqio::Channel>&   channel,
         bmqp::EncodingType::Enum                 authenticationEncodingType);
 
+    /// Schedule an authentication job in the thread pool using the
+    /// specified `context` and `channel`.  The specified `isAnonAuthn` is set
+    /// to true when this is for anonymous authentication.  The specified
+    /// `isReauthn` is set to true when this is for re-authentication.  Return
+    /// 0 on success, or a non-zero error code and populate the specified
+    /// `errorDescription` with a description of the error otherwise.
+    int authenticateAsync(bsl::ostream&                  errorDescription,
+                          const AuthenticationContextSp& context,
+                          const bsl::shared_ptr<bmqio::Channel>& channel,
+                          bool                                   isAnonAuthn,
+                          bool                                   isReauthn);
+
     // Authenticate the specified `context`.  Send an authentication
     // response back to the client via the specified `channel` if the specified
     // `isDefaultAuthn` is false.  If `isReauthn` is true, this is for
@@ -210,6 +222,15 @@ class Authenticator : public mqbnet::Authenticator {
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 
+    /// Handle reauthentication for the specified `context` using the
+    /// specified `channel`.  Return 0 on success, or a non-zero error code and
+    /// populate the specified `errorDescription` with a description of the
+    /// error otherwise.
+    int handleReauthentication(bsl::ostream&                  errorDescription,
+                               const AuthenticationContextSp& context,
+                               const bsl::shared_ptr<bmqio::Channel>& channel)
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Send out an outbound authentication message with the specified
     /// `context`.  Return 0 on success, or a non-zero error code and populate
     /// the specified `errorDescription` with a description of the error
@@ -217,18 +238,6 @@ class Authenticator : public mqbnet::Authenticator {
     int authenticationOutbound(bsl::ostream&                  errorDescription,
                                const AuthenticationContextSp& context)
         BSLS_KEYWORD_OVERRIDE;
-
-    /// Schedule an authentication job in the thread pool using the
-    /// specified `context` and `channel`.  The specified `isAnonAuthn` is set
-    /// to true when this is for anonymous authentication.  The specified
-    /// `isReauthn` is set to true when this is for re-authentication.  Return
-    /// 0 on success, or a non-zero error code and populate the specified
-    /// `errorDescription` with a description of the error otherwise.
-    int authenticateAsync(bsl::ostream&                  errorDescription,
-                          const AuthenticationContextSp& context,
-                          const bsl::shared_ptr<bmqio::Channel>& channel,
-                          bool                                   isAnonAuthn,
-                          bool isReauthn) BSLS_KEYWORD_OVERRIDE;
 
     /// ACCESSORS
 

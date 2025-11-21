@@ -72,19 +72,17 @@ struct MockAuthenticator : public mqbnet::Authenticator {
     {
         return 0;
     }
+    int handleReauthentication(
+        bsl::ostream&,
+        const bsl::shared_ptr<mqbnet::AuthenticationContext>&,
+        const bsl::shared_ptr<bmqio::Channel>&) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
     int authenticationOutbound(
         bsl::ostream&,
         const bsl::shared_ptr<mqbnet::AuthenticationContext>&)
         BSLS_KEYWORD_OVERRIDE
-    {
-        return 0;
-    }
-    int
-    authenticateAsync(bsl::ostream&,
-                      const bsl::shared_ptr<mqbnet::AuthenticationContext>&,
-                      const bsl::shared_ptr<bmqio::Channel>&,
-                      bool,
-                      bool) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }

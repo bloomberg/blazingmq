@@ -460,17 +460,15 @@ int AuthenticationController::authenticate(
         bmqu::MemOutStream errorStream(d_allocator_p);
         const int rc = authenticator->authenticate(errorStream, result, input);
         if (rc != rc_SUCCESS) {
-            errorDescription << "AuthenticationController: failed to "
-                                "authenticate with mechanism '"
+            errorDescription << "Failed to authenticate with mechanism '"
                              << normMech << "'. (rc = " << rc
                              << "). Detailed error: " << errorStream.str();
             return (rc * 10 + rc_AUTHENTICATION_FAILED);
         }
     }
     else {
-        errorDescription
-            << "AuthenticationController: authentication mechanism '"
-            << normMech << "' not supported.";
+        errorDescription << "Authentication mechanism '" << normMech
+                         << "' not supported.";
         return rc_MECHANISM_NOT_SUPPORTED;
     }
 
