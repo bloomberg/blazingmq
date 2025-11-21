@@ -195,3 +195,95 @@ class TestClusterNodeShutdown:
             check_both_received_one_of("msg1", "msg2")
         else:
             check_both_received_one_of("msg2")
+
+    def test_open_queue_while_cluster_blips_quorum(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        Test that if a cluster temporarily loses quorum, clients can still
+        open queues and operate normally once quorum is restored.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        active_replica = cluster.process(self.proxy2.get_active_node())
+
+        # Suspend the other replicas to lose quorum
+        other_replicas = [
+            n for n in cluster.nodes() if n not in (primary, active_replica)
+        ]
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.suspend()
+        sleep(0.5)
+
+        # Producer tries to open a new queue; will not succeed
+        self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.kill()
+
+        assert primary.outputs_regex("LEADER lost quorum")
+
+        # Restart the killed nodes to restore quorum
+        for node in other_replicas:
+            node.start()
+
+        # Now the replica should receive an openQueueReponse
+        assert active_replica.outputs_regex(
+            f"OpenQueueResponse.*{du.uri_priority_2}", timeout=10
+        ), (
+            f"Replica did not receive OpenQueueResponse for {du.uri_priority_2} after quorum restored"
+        )
+
+        # Having a new client to open that queue a second time should succeed
+        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3.open(
+            du.uri_priority_2, flags=["write", "ack"], block=True, timeout=30
+        )
+
+    def test_open_queue_while_cluster_blips_quorum_and_kill_all_non_leader(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        Test that if a cluster temporarily loses quorum, and subsequently all replicas and the client crash, clients can still open
+        queues and operate normally once quorum is restored.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        active_replica = cluster.process(self.proxy2.get_active_node())
+
+        # Suspend the other replicas to lose quorum
+        other_replicas = [
+            n for n in cluster.nodes() if n not in (primary, active_replica)
+        ]
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.suspend()
+        sleep(0.5)
+
+        # Producer tries to open a new queue; will not succeed
+        self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        # Killing *all* replica nodes and the producer on the new queue.  Now,
+        # no one except the leader should have any idea about this new queue.
+        all_replicas = [active_replica] + other_replicas
+        for task in all_replicas + [self.producer2]:
+            task.check_exit_code = False
+            task.kill()
+
+        assert primary.outputs_regex("LEADER lost quorum")
+
+        # Restart the killed nodes to restore quorum
+        for node in all_replicas:
+            node.start()
+        for node in all_replicas:
+            node.wait_status(wait_leader=True, wait_ready=True)
+
+        # Having a new client to open that queue a second time should succeed
+        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3.open(du.uri_priority_2, flags=["write", "ack"], block=True)

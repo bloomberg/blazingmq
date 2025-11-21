@@ -3878,8 +3878,8 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
     // If a specific partitionId is specified, check if partition is assigned
     // to a primary node, and if that primary is ACTIVE.
-    bool                             isSelfPrimary = false;
-    const ClusterStatePartitionInfo* pinfo         = 0;
+    bool                             isSelfPrimaryAndLeader = false;
+    const ClusterStatePartitionInfo* pinfo                  = 0;
 
     if (!allPartitions) {
         pinfo = &(d_clusterState_p->partition(partitionId));
@@ -3898,14 +3898,17 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         }
 
         // Primary for this partitionId is ACTIVE.  Check if self is the
-        // primary.
+        // primary and leader.  If self is primary but not leader, this is
+        // primary-leader divergence and we should not proceed with state
+        // restore.
 
-        isSelfPrimary = pinfo->primaryNode() ==
-                        d_clusterData_p->membership().selfNode();
+        isSelfPrimaryAndLeader =
+            pinfo->primaryNode() == d_clusterData_p->membership().selfNode() &&
+            d_clusterData_p->electorInfo().isSelfLeader();
     }
 
     /// TODO (FSM); remove after switching to FSM
-    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimary) {
+    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimaryAndLeader) {
         // Note that this fails if there are data
         mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
             bdlf::BindUtil::bindS(d_allocator_p,
@@ -3967,7 +3970,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
             // Verify the CSL if needed by comparing it with the Domain config
             if (liveQInfo.d_queue_sp) {
-                if (isSelfPrimary) {
+                if (isSelfPrimaryAndLeader) {
                     // We are assuming that it is not possible for a node to be
                     // primary, lose primary-ship and regain primary-ship;
                     // unless eventually the node went down in which case it

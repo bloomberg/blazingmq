@@ -2408,7 +2408,10 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                 statContexts.find("clusters")->second,
                 statContexts,
                 allocator)
-, d_state(this, clusterConfig.partitionConfig().numPartitions(), allocator)
+, d_state(this,
+          clusterConfig.partitionConfig().numPartitions(),
+          false,  // isTemporary
+          allocator)
 , d_storageManager_mp()
 , d_clusterOrchestrator(d_clusterData.clusterConfig(),
                         this,
@@ -3359,6 +3362,8 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
                     << "Encountered leader-primary divergence: this node is "
                        "still the primary but the leadership has gone to "
                     << (node ? node->hostName() : "UNDEFINED");
+                d_clusterData.membership().setSelfNodeStatus(
+                    bmqp_ctrlmsg::NodeStatus::E_STOPPING);
                 mqbu::ExitUtil::shutdown(
                     mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
             }
@@ -3368,6 +3373,12 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
 
 void Cluster::onLeaderPassiveThreshold()
 {
+    if (isFSMWorkflow()) {
+        // In FSM mode, the passive leader transition is handled by the FSM
+        // itself.
+        return;  // RETURN
+    }
+
     if (d_clusterData.electorInfo().isSelfLeader()) {
         // Self is the passive leader, so there is nothing to be done here
         // (self should eventually transition to active upon completion of

@@ -110,8 +110,14 @@ static void test1_validateState()
 
     // We need to generate two different states and make sure we have the
     // expected outputs
-    mqbc::ClusterState original(tester.cluster(), 5, tester.allocator());
-    mqbc::ClusterState reference(tester.cluster(), 5, tester.allocator());
+    mqbc::ClusterState original(tester.cluster(),
+                                5,
+                                false,  // isTemporary
+                                tester.allocator());
+    mqbc::ClusterState reference(tester.cluster(),
+                                 5,
+                                 false,  // isTemporary
+                                 tester.allocator());
 
     // 0. Generate different and same primary lease Id
     original.setPartitionPrimary(0, 10, 0);
