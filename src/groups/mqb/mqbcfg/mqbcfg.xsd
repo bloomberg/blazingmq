@@ -322,11 +322,17 @@
             uses the provided credential with a matching plugin from `authenticators`.
             When omitted, the broker defaults to AnonAuthenticator and always passes for
             anonymous authentication.
+        minThreads..............:
+            Minimum number of threads in the authentication thread pool.
+        maxThreads..............:
+            Maximum number of threads in the authentication thread pool.
       </documentation>
     </annotation>
     <sequence>
       <element name='authenticators'      type='tns:AuthenticatorPluginConfig' minOccurs="0" maxOccurs='unbounded'/>
       <element name='anonymousCredential' type='tns:AnonymousCredential' minOccurs='0'/>
+      <element name='minThreads' type='int' default='1'/>
+      <element name='maxThreads' type='int' default='3'/>
      </sequence>
   </complexType>
 
