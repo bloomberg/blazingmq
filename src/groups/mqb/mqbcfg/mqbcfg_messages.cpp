@@ -6025,6 +6025,10 @@ TaskConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
 const char AuthenticatorConfig::CLASS_NAME[] = "AuthenticatorConfig";
 
+const int AuthenticatorConfig::DEFAULT_INITIALIZER_MIN_THREADS = 1;
+
+const int AuthenticatorConfig::DEFAULT_INITIALIZER_MAX_THREADS = 3;
+
 const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_AUTHENTICATORS,
      "authenticators",
@@ -6035,14 +6039,24 @@ const bdlat_AttributeInfo AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "anonymousCredential",
      sizeof("anonymousCredential") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_MIN_THREADS,
+     "minThreads",
+     sizeof("minThreads") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_MAX_THREADS,
+     "maxThreads",
+     sizeof("maxThreads") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 AuthenticatorConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AuthenticatorConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6062,6 +6076,10 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATORS];
     case ATTRIBUTE_ID_ANONYMOUS_CREDENTIAL:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ANONYMOUS_CREDENTIAL];
+    case ATTRIBUTE_ID_MIN_THREADS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_THREADS];
+    case ATTRIBUTE_ID_MAX_THREADS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_THREADS];
     default: return 0;
     }
 }
@@ -6071,6 +6089,8 @@ const bdlat_AttributeInfo* AuthenticatorConfig::lookupAttributeInfo(int id)
 AuthenticatorConfig::AuthenticatorConfig(bslma::Allocator* basicAllocator)
 : d_authenticators(basicAllocator)
 , d_anonymousCredential(basicAllocator)
+, d_minThreads(DEFAULT_INITIALIZER_MIN_THREADS)
+, d_maxThreads(DEFAULT_INITIALIZER_MAX_THREADS)
 {
 }
 
@@ -6078,14 +6098,19 @@ AuthenticatorConfig::AuthenticatorConfig(const AuthenticatorConfig& original,
                                          bslma::Allocator* basicAllocator)
 : d_authenticators(original.d_authenticators, basicAllocator)
 , d_anonymousCredential(original.d_anonymousCredential, basicAllocator)
+, d_minThreads(original.d_minThreads)
+, d_maxThreads(original.d_maxThreads)
 {
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original)
-    noexcept : d_authenticators(bsl::move(original.d_authenticators)),
-               d_anonymousCredential(bsl::move(original.d_anonymousCredential))
+AuthenticatorConfig::AuthenticatorConfig(
+    AuthenticatorConfig&& original) noexcept
+: d_authenticators(bsl::move(original.d_authenticators)),
+  d_anonymousCredential(bsl::move(original.d_anonymousCredential)),
+  d_minThreads(bsl::move(original.d_minThreads)),
+  d_maxThreads(bsl::move(original.d_maxThreads))
 {
 }
 
@@ -6094,6 +6119,8 @@ AuthenticatorConfig::AuthenticatorConfig(AuthenticatorConfig&& original,
 : d_authenticators(bsl::move(original.d_authenticators), basicAllocator)
 , d_anonymousCredential(bsl::move(original.d_anonymousCredential),
                         basicAllocator)
+, d_minThreads(bsl::move(original.d_minThreads))
+, d_maxThreads(bsl::move(original.d_maxThreads))
 {
 }
 #endif
@@ -6110,6 +6137,8 @@ AuthenticatorConfig::operator=(const AuthenticatorConfig& rhs)
     if (this != &rhs) {
         d_authenticators      = rhs.d_authenticators;
         d_anonymousCredential = rhs.d_anonymousCredential;
+        d_minThreads          = rhs.d_minThreads;
+        d_maxThreads          = rhs.d_maxThreads;
     }
 
     return *this;
@@ -6122,6 +6151,8 @@ AuthenticatorConfig& AuthenticatorConfig::operator=(AuthenticatorConfig&& rhs)
     if (this != &rhs) {
         d_authenticators      = bsl::move(rhs.d_authenticators);
         d_anonymousCredential = bsl::move(rhs.d_anonymousCredential);
+        d_minThreads          = bsl::move(rhs.d_minThreads);
+        d_maxThreads          = bsl::move(rhs.d_maxThreads);
     }
 
     return *this;
@@ -6132,6 +6163,8 @@ void AuthenticatorConfig::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_authenticators);
     bdlat_ValueTypeFunctions::reset(&d_anonymousCredential);
+    d_minThreads = DEFAULT_INITIALIZER_MIN_THREADS;
+    d_maxThreads = DEFAULT_INITIALIZER_MAX_THREADS;
 }
 
 // ACCESSORS
@@ -6144,6 +6177,8 @@ bsl::ostream& AuthenticatorConfig::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("authenticators", this->authenticators());
     printer.printAttribute("anonymousCredential", this->anonymousCredential());
+    printer.printAttribute("minThreads", this->minThreads());
+    printer.printAttribute("maxThreads", this->maxThreads());
     printer.end();
     return stream;
 }

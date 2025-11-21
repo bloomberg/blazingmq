@@ -62,13 +62,6 @@
 namespace BloombergLP {
 namespace mqba {
 
-namespace {
-
-const int k_MIN_THREADS = 1;  // Minimum number of threads in the thread pool
-const int k_MAX_THREADS = 3;  // Maximum number of threads in the thread pool
-
-}
-
 // -------------------
 // class Authenticator
 // -------------------
@@ -342,8 +335,8 @@ Authenticator::Authenticator(
 : d_allocator_p(allocator)
 , d_authnController_p(authnController)
 , d_threadPool(bmqsys::ThreadUtil::defaultAttributes(),
-               k_MIN_THREADS,                                // min threads
-               k_MAX_THREADS,                                // max threads
+               mqbcfg::BrokerConfig::get().authentication().minThreads(),
+               mqbcfg::BrokerConfig::get().authentication().maxThreads(),
                bsls::TimeInterval(120).totalMilliseconds(),  // idle time
                allocator)
 , d_blobSpPool_p(blobSpPool)
