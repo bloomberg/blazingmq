@@ -2022,7 +2022,6 @@ int main(int argc, char* argv[])
 
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -2047,7 +2046,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
     bmqsys::Time::shutdown();
 

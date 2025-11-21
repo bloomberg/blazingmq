@@ -434,9 +434,6 @@ int main(int argc, const char* argv[])
     // Make TimeUtil thread-safe by calling initialize
     bsls::TimeUtil::initialize();
 
-    // Prepare the UriParser regexp
-    bmqt::UriParser::initialize();
-
     // Test allocator
     balst::StackTraceTestAllocator stta;
     stta.setFailureHandler(&stta.failNoop);

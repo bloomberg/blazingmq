@@ -298,8 +298,6 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     {
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
         bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
@@ -321,8 +319,6 @@ int main(int argc, char* argv[])
         bmqsys::Time::shutdown();
         bmqp::ProtocolUtil::shutdown();
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.

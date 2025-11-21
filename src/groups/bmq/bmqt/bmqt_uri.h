@@ -73,20 +73,9 @@
 /// Usage Example 1                                             {#bmqt_uri_ex1}
 /// ===============
 ///
-/// First, call the `initialize` method of the @bbref{bmqt::UriParser}.  This
-/// call is only needed one time; you can call it when your task starts.
-///
-/// Note that the `bmq` library takes care of that, so users of `bmq` don't
-/// have to explicitly do it themselves.
-///
-/// ```
-/// bmqt::UriParser::initialize();
-/// ```
-///
-/// Then, parse a URI string created on the stack to populate a
-/// @bbref{bmqt::Uri} object.  The parse function takes an optional error
-/// string which is populated with a short error message if the URI is not
-/// formatted correctly.
+/// Parse a URI string created on the stack to populate a @bbref{bmqt::Uri}
+/// object.  The parse function takes an optional error string which is
+/// populated with a short error message if the URI is not formatted correctly.
 ///
 /// ```
 /// bsl::string input = "bmq://my.domain/queue";
@@ -122,17 +111,13 @@
 ///
 ///   - @bbref{bmqt::UriBuilder} is NOT thread safe.
 ///
-///   - @bbref{bmqt::UriParser} should be thread safe: the component depends on
-///     `bdepcre_regex` that is a wrapper around "pcre.h".  See
-///     http://www.pcre.org/pcre.txt.
-
-// BMQ
+///   - @bbref{bmqt::UriParser} is thread safe.
 
 // BDE
 #include <ball_log.h>
 #include <bsl_cstddef.h>
-#include <bsl_iosfwd.h>
 #include <bsl_string.h>
+#include <bsla_maybeunused.h>
 #include <bslh_hash.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -327,35 +312,26 @@ struct UriParser {
 
     // CLASS METHODS
 
-    /// Initialize the `UriParser`.  Note that this will compile the regular
-    /// expression used by `parseUri`.  This method only needs to be called
-    /// once before any other method, but can be called multiple times
-    /// provided that for each call to `initialize` there is a corresponding
-    /// call to `shutdown`.  Use the optionally specified `allocator` for
-    /// any memory allocation, or the `global` allocator if none is
-    /// provided.  Note that specifying the allocator is provided for test
-    /// drivers only, and therefore users should let it default to the
-    /// global allocator.
-    static void initialize(bslma::Allocator* allocator = 0);
+    /// DEPRECATED: Not needed anymore (no-op).  This method will be marked
+    ///             as `BSLA_DEPRECATED` in future release of libbmq.
+    static void initialize(BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    {
+        // NOTHING
+    }
 
-    /// Pendant operation of the `initialize` one.  Note that behaviour
-    /// after calling the `.parse()` method of the `UriParser` after
-    /// `shutdown` has been called is undefined.  The number of calls to
-    /// `shutdown` must equal the number of calls to `initialize`, without
-    /// corresponding `shutdown` calls, to fully destroy the parser.  It is
-    /// safe to call `initialize` after calling `shutdown`.  Behaviour is
-    /// undefined if `shutdown` is called without `initialize` first being
-    /// called.
-    static void shutdown();
+    /// DEPRECATED: Not needed anymore (no-op).  This method will be marked
+    ///             as `BSLA_DEPRECATED` in future release of libbmq.
+    static void shutdown()
+    {
+        // NOTHING
+    }
 
     /// Parse the specified `uriString` into the specified `result` object
     /// if `uriString` is a valid URI, otherwise load the specified
     /// `errorDescription` with a description of the syntax error present in
     /// `uriString`.  Return 0 on success and non-zero if `uriString` does
     /// not have a valid syntax.  Note that `errorDescription` may be null
-    /// if the caller does not care about getting error messages.  The
-    /// behavior is undefined unless `initialize` has been called
-    /// previously.
+    /// if the caller does not care about getting error messages.
     static int parse(Uri*                     result,
                      bsl::string*             errorDescription,
                      const bslstl::StringRef& uriString);

@@ -543,7 +543,6 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
     mqbcfg::BrokerConfig::set(brokerConfig);
@@ -560,7 +559,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);

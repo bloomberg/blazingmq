@@ -790,8 +790,6 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     ball::LoggerManager::singleton().setDefaultThresholdLevels(
         ball::Severity::e_OFF,
         ball::Severity::e_INFO,
@@ -808,8 +806,6 @@ int main(int argc, char* argv[])
 
         bmqtst::runTest(_testCase);
     }
-
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
