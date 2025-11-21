@@ -395,13 +395,12 @@ class InitialConnectionContext
     /// Entrance to the initial connection process.
     void handleInitialConnection();
 
-    /// Process an InitialConnectionEvent event with the given `statusCode` and
-    /// `errorDescription` and drive the authentication/negotiation state
-    /// machine.  The `message` optionally contains any associated
+    /// Process an InitialConnectionEvent `event` with the given
+    /// `errorDescription` and drive the authentication/negotiation
+    /// state machine.  The `message` optionally contains any associated
     /// authentication/negotiation message data.
-    void handleEvent(int                          statusCode,
-                     const bsl::string&           errorDescription,
-                     InitialConnectionEvent::Enum input,
+    void handleEvent(const bsl::string&           errorDescription,
+                     InitialConnectionEvent::Enum event,
                      const bsl::variant<bsl::monostate,
                                         bmqp_ctrlmsg::AuthenticationMessage,
                                         bmqp_ctrlmsg::NegotiationMessage>&
