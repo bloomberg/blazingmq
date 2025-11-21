@@ -5581,6 +5581,9 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
     BSLS_ASSERT_SAFE(!queueKey.isNull());
     BSLS_ASSERT_SAFE(d_fileSets.size() > 0);
 
+    BALL_LOG_ERROR << "xxm0 " << queueUri << " " << queueKey << " "
+                   << appIdKeyPairs.size() << " " << isNewQueue;
+
     enum {
         rc_SUCCESS          = 0,
         rc_STOPPING         = -1,
