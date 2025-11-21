@@ -701,7 +701,7 @@ class ClusterState {
     // ACCESSORS
     /// Return the value of the corresponding member of this object.
     const mqbi::Cluster*  cluster() const;
-    const PartitionsInfo& partitionsInfo() const;
+    const PartitionsInfo& partitionsInfo() const;  // TODO why diff name?!
     const DomainStates&   domainStates() const;
     const QueueKeys&      queueKeys() const;
     const ObserversSet&   observers() const;
@@ -737,7 +737,7 @@ class ClusterState {
     bool hasActivePrimary(int partitionId) const;
 
     /// Return a reference to the partitions info.
-    const PartitionsInfo& partitions() const;
+    const PartitionsInfo& partitions() const;  // TODO why diff name?!
 
     /// Return a reference to the PartitionInfo corresponding to the
     /// specified `partitionId`.  This method is the same as

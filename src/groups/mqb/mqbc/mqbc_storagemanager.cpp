@@ -413,6 +413,13 @@ void StorageManager::setPrimaryForPartitionDispatched(
     pinfo.setPrimaryLeaseId(primaryLeaseId);
     pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
 
+    if (!d_isQueueKeyInfoMapVecInitialized) {
+        // We must wait until queue key info map is initialized before
+        // processing primary detection in the Partition FSM.
+
+        // RETURN
+    }
+
     if (primaryNode->nodeId() ==
         d_clusterData_p->membership().selfNode()->nodeId()) {
         processPrimaryDetect(partitionId, primaryNode, primaryLeaseId);
@@ -472,6 +479,7 @@ void StorageManager::processPrimaryDetect(int                  partitionId,
     BSLS_ASSERT_SAFE(primaryNode->nodeId() ==
                      d_clusterData_p->membership().selfNode()->nodeId());
 
+    BALL_LOG_ERROR << "xxm";
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
@@ -479,6 +487,13 @@ void StorageManager::processPrimaryDetect(int                  partitionId,
                       << "Primary to the Partition FSM.";
         return;  // RETURN
     }
+
+    BALL_LOG_ERROR << "xxm";
+    // The fact that we are processing primary detection retraoactively implies
+    // that queue key info map must have been initialized.  We cannot set this
+    // flag earlier, or else there could be race condition. TODO Explain
+    // further.
+    d_isQueueKeyInfoMapVecInitialized = true;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -509,6 +524,7 @@ void StorageManager::processReplicaDetect(int                  partitionId,
     BSLS_ASSERT_SAFE(primaryNode->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
 
+    BALL_LOG_ERROR << "xxm";
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
@@ -516,6 +532,13 @@ void StorageManager::processReplicaDetect(int                  partitionId,
                       << "Replica to the Partition FSM.";
         return;  // RETURN
     }
+
+    BALL_LOG_ERROR << "xxm";
+    // The fact that we are processing primary detection retraoactively implies
+    // that queue key info map must have been initialized.  We cannot set this
+    // flag earlier, or else there could be race condition. TODO Explain
+    // further.
+    d_isQueueKeyInfoMapVecInitialized = true;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -3933,13 +3956,7 @@ void StorageManager::initializeQueueKeyInfoMap(
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
     if (d_isQueueKeyInfoMapVecInitialized) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Queue key info map should only be initialized "
-                      << "once, but the initalization method is called more "
-                      << "than once.  This can happen if the node goes "
-                      << "back-and-forth between healing and healed FSM "
-                      << "states.  Please check.";
-
+        // Queue key info map should only be initialized once at startup.
         return;  // RETURN
     }
 
@@ -3949,6 +3966,7 @@ void StorageManager::initializeQueueKeyInfoMap(
                     bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty)));
 
     // Populate 'd_queueKeyInfoMapVec' from cluster state
+    BALL_LOG_ERROR << "xxm";
     for (DomainStatesCIter dscit = clusterState.domainStates().cbegin();
          dscit != clusterState.domainStates().cend();
          ++dscit) {
@@ -3972,7 +3990,41 @@ void StorageManager::initializeQueueKeyInfoMap(
         }
     }
 
-    d_isQueueKeyInfoMapVecInitialized = true;
+    // TODO We don't set 'd_isQueueKeyInfoMapVecInitialized' to true here
+    // because TODO
+
+    // Loop for each partition in cluster state
+
+    BALL_LOG_ERROR << "xxm";
+    for (size_t pid = 0; pid < d_partitionInfoVec.size(); ++pid) {
+        mqbs::FileStore* fs = d_fileStores.at(pid).get();
+        BSLS_ASSERT_SAFE(fs);
+        if (d_partitionInfoVec.at(pid).primary()->nodeId() ==
+            d_clusterData_p->membership().selfNode()->nodeId()) {
+            BALL_LOG_ERROR << "xxm";
+            BALL_LOG_ERROR << d_partitionInfoVec.at(pid).primary();
+            BALL_LOG_ERROR << "xxm";
+            BALL_LOG_ERROR << d_partitionInfoVec.at(pid).primaryLeaseId();
+            fs->execute(bdlf::BindUtil::bind(
+                &StorageManager::processPrimaryDetect,
+                this,
+                pid,
+                d_partitionInfoVec.at(pid).primary(),
+                d_partitionInfoVec.at(pid).primaryLeaseId()));
+        }
+        else {
+            BALL_LOG_ERROR << "xxm";
+            BALL_LOG_ERROR << d_partitionInfoVec.at(pid).primary();
+            BALL_LOG_ERROR << "xxm";
+            BALL_LOG_ERROR << d_partitionInfoVec.at(pid).primaryLeaseId();
+            fs->execute(bdlf::BindUtil::bind(
+                &StorageManager::processReplicaDetect,
+                this,
+                pid,
+                d_partitionInfoVec.at(pid).primary(),
+                d_partitionInfoVec.at(pid).primaryLeaseId()));
+        }
+    }
 }
 
 void StorageManager::registerQueue(const bmqt::Uri&        uri,
