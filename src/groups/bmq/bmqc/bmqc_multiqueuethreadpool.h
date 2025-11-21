@@ -175,6 +175,7 @@
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bslmt_threadutil.h>
+#include <bslmt_timedsemaphore.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_keyword.h>
@@ -510,7 +511,10 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         /// as long as `stop()` was not called.
         bsls::AtomicInt d_processQueueRefCount;
 
-        bslmt::Semaphore d_finished;
+        /// A semaphore used to verify that a queue has stopped.
+        /// Note: shared_ptr is used because copy/move are not defined for
+        ///       `TimedSemaphore` and we still need to copy `QueueInfo`.
+        bsl::shared_ptr<bslmt::TimedSemaphore> d_finished_sp;
 
         bslmt::ThreadUtil::Handle d_exclusiveThreadHandle;
 
@@ -524,7 +528,10 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         , d_name(basicAllocator)
         , d_monitorState(e_MONITOR_PROCESSED)
         , d_processQueueRefCount(1)
-        , d_finished(0)
+        , d_finished_sp(bsl::allocate_shared<bslmt::TimedSemaphore>(
+              basicAllocator,
+              0,
+              bsls::SystemClockType::e_MONOTONIC))
         , d_exclusiveThreadHandle(bslmt::ThreadUtil::invalidHandle())
         {
             // NOTHING
@@ -538,7 +545,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         , d_monitorState(static_cast<int>(other.d_monitorState))
         , d_processQueueRefCount(
               static_cast<int>(other.d_processQueueRefCount))
-        , d_finished(other.d_finished.getValue())
+        , d_finished_sp(other.d_finished_sp)
         , d_exclusiveThreadHandle(other.d_exclusiveThreadHandle)
         {
             // NOTHING
@@ -557,6 +564,10 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQC.MULTIQUEUETHREADPOOL");
+
+    // CLASS DATA
+    /// The timeout for `timedWait` when stopping the queues
+    static const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 300;
 
     // DATA
     Config d_config;
@@ -967,7 +978,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
                 // Note: it is possible that another monitor event will be
                 //       enqueued right after the check is done, but it's okay.
                 //       We will skip it with any remainder events on `stop()`.
-                info.d_finished.post();
+                info.d_finished_sp->post();
                 return;  // RETURN
             }
 
@@ -1170,22 +1181,33 @@ inline void MultiQueueThreadPool<TYPE>::stop()
     for (size_t i = 0; i < d_queues.size(); ++i) {
         QueueInfo& info = d_queues[i];
 
-        // The following operations (1) and (2) can be removed from the code
-        // because they balance each other (+1 -1 = 0), but we keep them
-        // for better visibility.
-
+        // According to `d_processQueueRefCount` usage contract,
+        // we have to apply the following updates here:
         // (1) Since we enqueue the next monitor event to the queue:
-        info.d_processQueueRefCount.addRelaxed(1);
-
+        //     `info.d_processQueueRefCount.addRelaxed(1);`
         // (2) Since we are getting rid of the initial reference:
-        info.d_processQueueRefCount.subtractRelaxed(1);
+        //     `info.d_processQueueRefCount.subtractRelaxed(1);`
+        //
+        // These two updates balance each other (+1 -1 = 0), so we can keep
+        // the current value of `info.d_processQueueRefCount` unchanged.
 
         info.d_queue_p->pushBack(NULL /* monitor event */);
         // It is possible that something is enqueued to the queue between the
         // last monitor event and `disablePushBack()` call, this is expected.
         info.d_queue_p->disablePushBack();
 
-        info.d_finished.wait();
+        const bsls::TimeInterval timeout =
+            bsls::SystemTime::nowMonotonicClock().addSeconds(
+                k_MAX_WAIT_SECONDS_AT_SHUTDOWN);
+        const int rc = info.d_finished_sp->timedWait(timeout);
+        if (0 != rc) {
+            BALL_LOG_ERROR << "#MQTP_STOP_FAILURE MQTP failed to stop in "
+                           << k_MAX_WAIT_SECONDS_AT_SHUTDOWN
+                           << " seconds while shutting down the queue (" << i
+                           << ", " << info.d_name << ", " << info.d_queue_p
+                           << "), rc:  " << rc;
+            BSLS_ASSERT_OPT(false && "#EXIT Failed to stop MQTP, exiting...");
+        }
 
         Event* event = NULL;
         while (!info.d_queue_p->tryPopFront(&event)) {
