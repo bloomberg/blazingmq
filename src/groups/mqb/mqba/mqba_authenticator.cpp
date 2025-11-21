@@ -85,8 +85,7 @@ int Authenticator::onAuthenticationRequest(
     BSLS_ASSERT_SAFE(context->isIncoming());
 
     BALL_LOG_DEBUG << "Received authentication message from '"
-                   << context->channel()->peerUri()
-                   << "': " << authenticationMsg;
+                   << context->channel()->peerUri();
 
     // Create an AuthenticationContext for that connection
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
@@ -232,12 +231,12 @@ void Authenticator::authenticate(
     int         rc = rc_SUCCESS;
     bsl::string error;
 
-    // Setup error handler based on whether this is initial authn or reauthn
-    bsl::optional<mqbnet::InitialConnectionEvent::Enum> input;
+    // Set up error handler based on whether this is initial authn or reauthn
+    bsl::optional<mqbnet::InitialConnectionEvent::Enum> event;
     bsl::optional<bdlb::ScopeExitAny>                   scopeGuard;
 
     if (isReauthn) {
-        // For reauthentication: setup error guard to handle failures
+        // For reauthentication: set up error guard to handle failures
         scopeGuard.emplace(bdlf::BindUtil::bind(
             &mqbnet::AuthenticationContext::onReauthenticateErrorOrTimeout,
             context.get(),
@@ -247,14 +246,14 @@ void Authenticator::authenticate(
             channel));
     }
     else {
-        // For initial authentication: setup state machine transition
-        input.emplace(InitialConnectionEvent::e_ERROR);
+        // For initial authentication: set up state machine transition
+        event.emplace(InitialConnectionEvent::e_ERROR);
         scopeGuard.emplace(bdlf::BindUtil::bind(
             &mqbnet::InitialConnectionContext::handleEvent,
             context->initialConnectionContext(),
             bsl::ref(rc),
             bsl::ref(error),
-            bsl::ref(input.value()),
+            bsl::ref(event.value()),
             bsl::monostate()));
     }
 
@@ -269,11 +268,12 @@ void Authenticator::authenticate(
     // Authenticate
     bmqu::MemOutStream                             authnErrStream;
     bsl::shared_ptr<mqbplug::AuthenticationResult> result;
-    const bsl::vector<char>&    data = authenticationRequest.data().isNull()
-                                           ? bsl::vector<char>()
-                                           : authenticationRequest.data().value();
-    mqbplug::AuthenticationData authenticationData(data, channel->peerUri());
-    const int                   authnRc = d_authnController_p->authenticate(
+    mqbplug::AuthenticationData                    authenticationData(
+        authenticationRequest.data().isNull()
+            ? bsl::vector<char>()
+            : authenticationRequest.data().value(),
+        channel->peerUri());
+    const int authnRc = d_authnController_p->authenticate(
         authnErrStream,
         &result,
         authenticationRequest.mechanism(),
@@ -289,7 +289,7 @@ void Authenticator::authenticate(
             error = authnErrStream.str();
         }
         else {
-            input.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
+            event.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
         }
         return;  // RETURN
     }
@@ -332,7 +332,7 @@ void Authenticator::authenticate(
     }
 
     // Transition to the next state
-    input.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
+    event.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
 }
 
 // CREATORS
@@ -440,6 +440,29 @@ int Authenticator::handleAuthentication(
 
     if (rc != rc_SUCCESS) {
         rc = (rc * 10) + rc_HANDLE_MESSAGE_FAIL;
+    }
+
+    return rc;
+}
+
+int Authenticator::handleReauthentication(
+    bsl::ostream&                          errorDescription,
+    const AuthenticationContextSp&         context,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    // executed by one of the *IO* threads
+
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                 = 0,
+        rc_REAUTHENTICATION_FAILED = -1,
+    };
+
+    int rc =
+        authenticateAsync(errorDescription, context, channel, false, true);
+
+    if (rc != 0) {
+        rc = (rc * 10) + rc_REAUTHENTICATION_FAILED;
     }
 
     return rc;

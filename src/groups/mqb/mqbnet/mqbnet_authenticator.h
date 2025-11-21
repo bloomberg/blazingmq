@@ -74,26 +74,19 @@ class Authenticator {
         const bsl::shared_ptr<InitialConnectionContext>& context,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 
+    virtual int handleReauthentication(
+        bsl::ostream&                                 errorDescription,
+        const bsl::shared_ptr<AuthenticationContext>& context,
+        const bsl::shared_ptr<bmqio::Channel>&        channel) = 0;
+
     /// Produce and send outbound authentication message with the specified
     /// `context`.  Return 0 on success, or a non-zero error code and populate
     /// the specified `errorDescription` with a description of the error
     /// otherwise.
+    /// TODO: Rethink the need for this method in the interface.
     virtual int authenticationOutbound(
         bsl::ostream&                                 errorDescription,
         const bsl::shared_ptr<AuthenticationContext>& context) = 0;
-
-    /// Schedule an authentication job in the thread pool using the
-    /// specified `context` and `channel`.  The specified `isAnonAuthn` is set
-    /// to true when this is for anonymous authentication.  The specified
-    /// `isReauthn` is set to true when this is for re-authentication.  Return
-    /// 0 on success, or a non-zero error code and populate the specified
-    /// `errorDescription` with a description of the error otherwise.
-    virtual int
-    authenticateAsync(bsl::ostream& errorDescription,
-                      const bsl::shared_ptr<AuthenticationContext>& context,
-                      const bsl::shared_ptr<bmqio::Channel>&        channel,
-                      bool isDefaultAuthn,
-                      bool isReauthn) = 0;
 
     // ACCESSORS
 

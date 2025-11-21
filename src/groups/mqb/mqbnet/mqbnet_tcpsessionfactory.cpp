@@ -538,6 +538,12 @@ void TCPSessionFactory::initialConnectionComplete(
 {
     // executed by one of the *IO* threads or an *AUTHENTICATION* thread
 
+    // Reset any authentication message stored in the authentication context
+    if (initialConnectionContext_p->authenticationContext()) {
+        initialConnectionContext_p->authenticationContext()
+            ->resetAuthenticationMessage();
+    }
+
     if (statusCode != 0) {
         // Failed to negotiate
         BALL_LOG_WARN << "#INITIAL_CONNECTION TCPSessionFactory '"
@@ -1029,8 +1035,7 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << description << ": Received authentication message: "
-                  << authenticationMessage;
+    BALL_LOG_INFO << description << ": Received an authentication message";
 
     context->setAuthenticationMessage(authenticationMessage);
     context->setAuthenticationEncodingType(
@@ -1038,11 +1043,9 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
 
     bmqu::MemOutStream errorStream;
 
-    rc = d_authenticator_p->authenticateAsync(errorStream,
-                                              context,
-                                              channelInfo->d_channel_sp,
-                                              false,
-                                              true);
+    rc = d_authenticator_p->handleReauthentication(errorStream,
+                                                   context,
+                                                   channelInfo->d_channel_sp);
     if (rc != 0) {
         BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description
                        << ": Authentication failed [reason: '"

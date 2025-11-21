@@ -149,11 +149,14 @@ class AuthenticationContext {
     /// reauthentication.
     InitialConnectionContext* d_initialConnectionContext_p;
 
-    /// The authentication message received.
+    /// The authentication message received during authentication.  This is
+    /// held temporarily and cleared after authentication completes.
     bmqp_ctrlmsg::AuthenticationMessage d_authenticationMessage;
 
-    /// The encoding type used for sending a message.  It should match with the
-    /// encoding type of the received message.
+    /// The encoding type used for sending authentication responses.  The value
+    /// matches the encoding type set by the client during authentication and
+    /// reauthentication and ensures that the response is sent using the same
+    /// encoding.
     bmqp::EncodingType::Enum d_encodingType;
 
   private:
@@ -180,13 +183,16 @@ class AuthenticationContext {
     void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
 
-    // NOTE: AuthenticationMessage and encodingType are set only when
-    // AuthenticationState is e_AUTHENTICATED.  authenticationMessage() and
-    // encodingType() are called only when AuthenticationState is
-    // e_AUTHENTICATING.  Hence, no need for mutex protection.
+    // NOTE: AuthenticationMessage and encodingType are set only during
+    // reauthentication when AuthenticationState is e_AUTHENTICATED.
+    // authenticationMessage() and encodingType() are called only when
+    // AuthenticationState is e_AUTHENTICATING.  Hence, no need for mutex
+    // protection.
     void
     setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
     void setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
+
+    void resetAuthenticationMessage();
 
     /// Schedule a reauthentication timer using the specified `scheduler_p`
     /// with the specified `lifetimeMs`.  The specified `channel` is used to
