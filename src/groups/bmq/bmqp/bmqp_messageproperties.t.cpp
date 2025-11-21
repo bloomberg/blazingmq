@@ -43,6 +43,15 @@
 #include <bsl_cstring.h>
 #include <bsl_ostream.h>
 
+#ifdef BMQTST_BENCHMARK_ENABLED
+#include <bslmt_barrier.h>
+#include <bslmt_latch.h>
+#include <bslmt_threadgroup.h>
+
+// BENCHMARKING LIBRARY
+#include <benchmark/benchmark.h>
+#endif
+
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace bsl;
@@ -1243,6 +1252,173 @@ static void test10_empty()
     BMQTST_ASSERT(!p.hasProperty("z"));
 }
 
+#ifdef BMQTST_BENCHMARK_ENABLED
+
+struct MessagePropertiesBenchmark_getPropertyRef {
+    static void bench(bslmt::Latch*   initLatch_p,
+                      bslmt::Barrier* startBarrier_p,
+                      bslmt::Latch*   finishLatch_p)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(initLatch_p);
+        BSLS_ASSERT_OPT(startBarrier_p);
+        BSLS_ASSERT_OPT(finishLatch_p);
+
+        bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+        const size_t k_NUM_ITERATIONS = 1000000;
+
+        bdlbb::PooledBlobBufferFactory bufferFactory(1024, alloc);
+        bmqp::MessageProperties        obj(alloc);
+        bdlbb::Blob                    wireRep(&bufferFactory, alloc);
+        PropertyMap                    pmap(alloc);
+        bmqp::MessagePropertiesInfo    logic =
+            bmqp::MessagePropertiesInfo::makeNoSchema();
+
+        const size_t numProps =
+            bmqp::MessagePropertiesHeader::k_MAX_NUM_PROPERTIES;
+
+        // Populate with various properties.
+
+        // Note that `dummyP` is used only because `populateProperties`
+        // requires one.
+        bmqp::MessageProperties dummyP(alloc);
+
+        populateProperties(&dummyP, &pmap, numProps);
+
+        // Init vector once to allow faster iteration in benchmark
+        bsl::vector<bsl::string> propertyNames(alloc);
+        for (auto iter = pmap.cbegin(); iter != pmap.cend(); iter++) {
+            propertyNames.push_back(iter->first);
+        }
+
+        BMQTST_ASSERT_EQ(numProps, pmap.size());
+
+        encode(&wireRep, pmap);
+
+        BMQTST_ASSERT_EQ(0, obj.streamIn(wireRep, logic.isExtended()));
+
+        initLatch_p->arrive();
+        startBarrier_p->wait();
+
+        for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+            bmqp::MessageProperties props;
+            props.setDeepCopy(false);
+            props.streamIn(wireRep, true);
+
+            for (size_t j = 0; j < propertyNames.size(); j++) {
+                // Don't use slow `bmqtst::TestHelperUtil::allocator`:
+                (void)props.getPropertyRef(propertyNames[j], 0);
+            }
+        }
+
+        finishLatch_p->arrive();
+    }
+};
+
+struct MessagePropertiesBenchmark_streamIn {
+    static void bench(bslmt::Latch*   initLatch_p,
+                      bslmt::Barrier* startBarrier_p,
+                      bslmt::Latch*   finishLatch_p)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(initLatch_p);
+        BSLS_ASSERT_OPT(startBarrier_p);
+        BSLS_ASSERT_OPT(finishLatch_p);
+
+        bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+        const size_t k_NUM_ITERATIONS = 10000000;
+
+        bdlbb::PooledBlobBufferFactory bufferFactory(1024, alloc);
+        bmqp::MessageProperties        obj(alloc);
+        bdlbb::Blob                    wireRep(&bufferFactory, alloc);
+        PropertyMap                    pmap(alloc);
+        bmqp::MessagePropertiesInfo    logic =
+            bmqp::MessagePropertiesInfo::makeNoSchema();
+
+        const size_t numProps =
+            bmqp::MessagePropertiesHeader::k_MAX_NUM_PROPERTIES;
+
+        // Populate with various properties.
+
+        // Note that `dummyP` is used only because `populateProperties`
+        // requires one.
+        bmqp::MessageProperties dummyP(alloc);
+
+        populateProperties(&dummyP, &pmap, numProps);
+
+        BMQTST_ASSERT_EQ(numProps, pmap.size());
+
+        encode(&wireRep, pmap);
+
+        BMQTST_ASSERT_EQ(0, obj.streamIn(wireRep, logic.isExtended()));
+
+        initLatch_p->arrive();
+        startBarrier_p->wait();
+
+        for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+            bmqp::MessageProperties props;
+            props.setDeepCopy(false);
+            props.streamIn(wireRep, true);
+        }
+
+        finishLatch_p->arrive();
+    }
+};
+
+template <size_t NUM_THREADS, typename BENCHMARK>
+static void testN1_benchmark(benchmark::State& state)
+// ------------------------------------------------------------------------
+// MESSAGE PROPERTIES PERFORMANCE TEST
+//
+// Plan: spawn NUM_THREADS and measure the time taken for BENCHMARK::bench
+//
+// Testing:
+//  Performance
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("MESSAGE PROPERTIES PERFORMANCE TEST");
+
+    bslmt::Latch   initThreadLatch(NUM_THREADS);
+    bslmt::Barrier startBenchmarkBarrier(NUM_THREADS + 1);
+    bslmt::Latch   finishBenchmarkLatch(NUM_THREADS);
+
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
+    for (size_t i = 0; i < NUM_THREADS; ++i) {
+        const int rc = threadGroup.addThread(
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &(BENCHMARK::bench),
+                                  &initThreadLatch,
+                                  &startBenchmarkBarrier,
+                                  &finishBenchmarkLatch));
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
+    }
+
+    initThreadLatch.wait();
+
+    size_t iter = 0;
+    for (auto _ : state) {
+        // Benchmark time start
+
+        // We don't support running multi-iteration benchmarks because we
+        // prepare and start complex tasks in separate threads.
+        // Once these tasks are finished, we cannot simply re-run them without
+        // reinitialization, and it goes against benchmark library design.
+        // Make sure we run this only once.
+        BSLS_ASSERT_OPT(0 == iter++ && "Must be run only once");
+
+        startBenchmarkBarrier.wait();
+        finishBenchmarkLatch.wait();
+
+        // Benchmark time end
+    }
+
+    threadGroup.joinAll();
+}
+
+#endif  // BMQTST_BENCHMARK_ENABLED
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1265,6 +1441,30 @@ int main(int argc, char* argv[])
     case 3: test3_binaryPropertyTest(); break;
     case 2: test2_setPropertyTest(); break;
     case 1: test1_breathingTest(); break;
+    case -1: {
+#ifdef BMQTST_BENCHMARK_ENABLED
+        // Not necessary to check performance in multiple threads
+        BENCHMARK(testN1_benchmark<1, MessagePropertiesBenchmark_streamIn>)
+            ->Name("bmqp::MessageProperties::streamIn")
+            ->Iterations(1)
+            ->Repetitions(10)
+            ->Unit(benchmark::kMillisecond);
+
+        BENCHMARK(
+            testN1_benchmark<1, MessagePropertiesBenchmark_getPropertyRef>)
+            ->Name("bmqp::MessageProperties::getPropertyRef")
+            ->Iterations(1)
+            ->Repetitions(10)
+            ->Unit(benchmark::kMillisecond);
+
+        benchmark::Initialize(&argc, argv);
+        benchmark::RunSpecifiedBenchmarks();
+#else
+        cerr << "WARNING: BENCHMARK '" << _testCase
+             << "' IS NOT SUPPORTED ON THIS PLATFORM." << endl;
+        bmqtst::TestHelperUtil::testStatus() = -1;
+#endif  // BMQTST_BENCHMARK_ENABLED
+    } break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
