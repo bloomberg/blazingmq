@@ -400,13 +400,11 @@ void TCPSessionFactory::handleInitialConnection(
         // call `authenticationOutbound` here instead before calling
         // `negotiateOutbound`.
         initialConnectionContext->handleEvent(
-            rc_SUCCESS,
             bsl::string(),
             mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTATION);
     }
     else {
         initialConnectionContext->handleEvent(
-            rc_SUCCESS,
             bsl::string(),
             mqbnet::InitialConnectionEvent::e_INCOMING);
     }
