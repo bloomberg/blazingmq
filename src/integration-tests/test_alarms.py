@@ -51,7 +51,7 @@ def test_no_alarms_if_disabled(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait some time and check no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    assert not leader.alarms("QUEUE_STUCK", timeout=2)
 
 
 @tweak.domain.max_idle_time(1)
@@ -70,7 +70,7 @@ def test_broadcast_no_alarms(cluster: Cluster, domain_urls: tc.DomainUrls):  # p
     producer.post(tc.URI_BROADCAST, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait more than max idle time and check no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    assert not leader.alarms("QUEUE_STUCK", timeout=2)
 
 
 # ---------------------------------------
@@ -112,7 +112,7 @@ def test_priority_no_alarms_for_a_slow_queue(
     consumer.wait_push_event()
 
     # Test that no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 1)
+    assert not leader.alarms("QUEUE_STUCK", timeout=1)
 
 
 @tweak.domain.max_idle_time(1)
@@ -139,13 +139,13 @@ def test_priority_transition_active_alarm_active(
     producer.post(uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait more than max idle time and check no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    assert not leader.alarms("QUEUE_STUCK", timeout=2)
 
     # Post "msg2", it is not delivered to consumer due to max_unconfirmed_messages=1
     producer.post(uri_priority, ["msg2"], succeed=True, wait_ack=True)
 
     # Wait more than max idle and check that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: __default")
     leader.drain()
 
@@ -182,7 +182,7 @@ def test_priority_alarm_when_consumer_dropped(
     consumer.stop_session(block=True)
 
     # Wait more than max idle and check that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: __default")
     assert leader.capture(r"Redelivery list size: 1")
 
@@ -207,7 +207,7 @@ def test_priority_enable_disable_alarm(cluster: Cluster, domain_urls: tc.DomainU
     producer.post(du.uri_priority, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait more than max idle and check that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: __default")
     leader.drain()
 
@@ -227,7 +227,7 @@ def test_priority_enable_disable_alarm(cluster: Cluster, domain_urls: tc.DomainU
     producer.post(du.uri_priority, ["msg2"], succeed=True, wait_ack=True)
 
     # Test that alarm is not triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    assert not leader.alarms("QUEUE_STUCK", timeout=2)
 
 
 @tweak.domain.max_idle_time(3)
@@ -258,7 +258,7 @@ def test_priority_reconfigure_max_idle_time(
     cluster.reconfigure_domain(du.domain_priority, succeed=True)
 
     # Within 2 sec (more than new max idle time 1 sec but less than old one 3 sec) check that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: __default")
     leader.drain()
 
@@ -276,11 +276,11 @@ def test_priority_reconfigure_max_idle_time(
     cluster.config.domains[du.domain_priority].definition.parameters.max_idle_time = 3
     cluster.reconfigure_domain(du.domain_priority, succeed=True)
 
-    # Within 2 secs (more than old max idle time 1 sec) check no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    # Within 1 secs (more than old max idle time 1 sec since msg3) check no alarm is triggered
+    assert not leader.alarms("QUEUE_STUCK", timeout=1)
 
     # Wait 2 seconds more (more than new max idle time 3 sec) and check that alarm is triggered
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: __default")
 
 
@@ -315,7 +315,7 @@ def test_priority_alarms_subscription_mismatch(
         messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}],
     )
 
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: __default")
     assert leader.capture(r"Put aside list size: 1")
     assert leader.capture(r"Redelivery list size: 0")
@@ -375,7 +375,7 @@ def test_fanout_no_alarms_for_a_slow_queue(
         consumers[app_id].wait_push_event()
 
     # Test that no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    assert not leader.alarms("QUEUE_STUCK", timeout=2)
 
 
 @tweak.domain.max_idle_time(1)
@@ -410,7 +410,7 @@ def test_fanout_transition_active_alarm_active(
     producer.post(uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
     # Wait more than max idle time and check no alarm is triggered
-    assert not leader.alarms("QUEUE_STUCK", 2)
+    assert not leader.alarms("QUEUE_STUCK", timeout=2)
 
     # Post "msg2" message, it is not delivered to consumers due to max_unconfirmed_messages=1
     producer.post(uri_fanout, ["msg2"], succeed=True, wait_ack=True)
@@ -422,7 +422,7 @@ def test_fanout_transition_active_alarm_active(
             consumers[app_id].wait_push_event()
 
     # Wait more than max idle time and test that alarm is triggered for 'foo' consumer
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: foo")
     leader.drain()
 
@@ -474,7 +474,7 @@ def test_fanout_alarms_subscription_mismatch(
     )
 
     # Wait more than max idle time and check for alarms
-    assert leader.alarms("QUEUE_STUCK", 2)
+    assert leader.alarms("QUEUE_STUCK", timeout=2)
     assert leader.capture(r"For appId: foo", 1)
     assert leader.capture(r"Put aside list size: 1")
     assert leader.capture(r"Redelivery list size: 0")
@@ -528,7 +528,7 @@ def test_capacity_alarm_subscription_mismatch(
         messageProperties=[{"name": "y", "value": "0", "type": "E_INT"}],
     )
 
-    assert leader.alarms("CAPACITY_STATE_FULL", 1)
+    assert leader.alarms("CAPACITY_STATE_FULL", timeout=1)
     assert leader.capture(r"Put aside list size: 1")
     assert leader.capture(r"Redelivery list size: 0")
     assert leader.capture(r"Consumer subscription expressions:")
