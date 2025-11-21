@@ -142,6 +142,13 @@ void AuthenticationContext::setAuthenticationEncodingType(
     d_encodingType = value;
 }
 
+void AuthenticationContext::resetAuthenticationMessage()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    d_authenticationMessage.reset();
+}
+
 int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
     bsl::ostream&                            errorDescription,
     bdlmt::EventScheduler*                   scheduler_p,
@@ -180,8 +187,11 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
             lifetime = 0;
         }
 
+        // Prepare error description for timeout event
         bmqu::MemOutStream errorStream;
-        errorStream << "Authentication timeout after " << lifetime << " ms";
+        errorStream << "Reauthentication not received within authenticated "
+                       "lifetime of "
+                    << lifetime << " ms";
 
         scheduler_p->scheduleEvent(
             &d_timeoutHandle,

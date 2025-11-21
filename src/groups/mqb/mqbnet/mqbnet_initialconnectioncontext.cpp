@@ -471,6 +471,9 @@ void InitialConnectionContext::setResultState(void* value)
 void InitialConnectionContext::setAuthenticationContext(
     const bsl::shared_ptr<AuthenticationContext>& value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!d_authenticationCtxSp);
+
     d_authenticationCtxSp = value;
 }
 
@@ -737,7 +740,7 @@ void InitialConnectionContext::handleEvent(
         setState(InitialConnectionState::e_FAILED);
     }
 
-    if (rc != rc_SUCCESS || d_state == InitialConnectionState::e_NEGOTIATED) {
+    if (hasFinalState()) {
         BALL_LOG_INFO << "Finished initial connection with rc = " << rc
                       << ", error = '" << errStream.str() << "'";
         guard.release()->unlock();
@@ -788,6 +791,12 @@ InitialConnectionContext::negotiationContext() const
 InitialConnectionState::Enum InitialConnectionContext::state() const
 {
     return d_state;
+}
+
+bool InitialConnectionContext::hasFinalState() const
+{
+    return d_state == InitialConnectionState::e_FAILED ||
+           d_state == InitialConnectionState::e_NEGOTIATED;
 }
 
 void InitialConnectionContext::complete(
