@@ -16,11 +16,15 @@
 // bmqio_ntcchannelfactory.t.cpp                                      -*-C++-*-
 #include <bmqio_ntcchannelfactory.h>
 
-#include <bmqu_blob.h>
-
+// NTC
+#include <ntca_upgradeevent.h>
+#include <ntca_upgradeoptions.h>
 #include <ntcf_system.h>
-#include <ntsf_system.h>
+#include <ntci_interface.h>
+#include <ntci_upgradable.h>
+#include <ntsa_distinguishedname.h>
 
+// BDE
 #include <ball_filteringobserver.h>
 #include <ball_loggermanager.h>
 #include <ball_testobserver.h>
@@ -32,13 +36,18 @@
 #include <bdlf_bind.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
+#include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslma_allocator.h>
 #include <bslmt_latch.h>
 #include <bslmt_threadutil.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
+// BMQ
 #include <bmqtst_testhelper.h>
+#include <bmqu_blob.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 
@@ -81,6 +90,110 @@ static bool ballFilter(const bsl::string&  messageSubstring,
     return !bdlb::StringRefUtil::strstr(record.fixedFields().messageRef(),
                                         messageSubstring)
                 .isEmpty();
+}
+
+namespace {
+
+// ==========================
+// class Tester_UpgradeCbInfo
+// ==========================
+
+/// Arguments used in a call to a `NtcChannelFactory::onUpgrade` handler.
+struct UpgradeCbInfo {
+    // DATA
+    bsl::shared_ptr<ntci::Upgradable> d_upgradable;
+    ntca::UpgradeEvent                d_event;
+
+    typedef bsl::allocator<> allocator_type;
+
+    // CREATORS
+    UpgradeCbInfo(allocator_type allocator)
+    : d_upgradable()
+    , d_event(bslma::AllocatorUtil::adapt(allocator))
+    {
+        // NOTHING
+    }
+
+    UpgradeCbInfo(BSLA_MAYBE_UNUSED const UpgradeCbInfo& original,
+                  allocator_type                         allocator)
+    : d_upgradable()
+    , d_event(bslma::AllocatorUtil::adapt(allocator))
+    {
+        // NOTHING
+    }
+};
+
+///
+class ChannelUpgradeHandler {
+  public:
+    typedef bsl::map<int, UpgradeCbInfo> ChannelMap;
+    typedef bsl::allocator<>             allocator_type;
+
+  private:
+    mutable bslmt::Mutex d_mutex;
+    ChannelMap           d_channelMap;
+
+  public:
+    explicit ChannelUpgradeHandler(allocator_type allocator)
+    : d_mutex()
+    , d_channelMap(allocator)
+    {
+    }
+
+    /// Record the upgrade event and associate it with a channel based on its
+    /// ID.
+    void onUpgrade(const bsl::shared_ptr<bmqio::NtcChannel>& channel,
+                   const bsl::shared_ptr<ntci::Upgradable>&  upgradable,
+                   const ntca::UpgradeEvent&                 event)
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+
+        BMQTST_ASSERT_D("Channel was attempted to upgrade multiple times",
+                        !d_channelMap.contains(channel->channelId()));
+
+        UpgradeCbInfo& upgradeInfo = d_channelMap[channel->channelId()];
+        upgradeInfo.d_upgradable   = upgradable;
+        upgradeInfo.d_event        = event;
+    }
+
+    /// Check that each upgrade was successful. Otherwise, fail the test.
+    void checkAll() const
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+
+        bsl::for_each(d_channelMap.cbegin(),
+                      d_channelMap.cend(),
+                      ChannelUpgradeHandler::checkChannelMapEntry);
+    }
+
+    /// Return the number of upgrade events
+    bsl::size_t upgradeCounts() const { return d_channelMap.size(); }
+
+    /// Create a callback function that references this handler
+    bsl::function<void(const bsl::shared_ptr<bmqio::NtcChannel>&,
+                       const bsl::shared_ptr<ntci::Upgradable>&,
+                       const ntca::UpgradeEvent&)>
+    makeOnUpgradeCb()
+    {
+        return bdlf::BindUtil::bindS(
+            bslma::AllocatorUtil::adapt(d_channelMap.get_allocator()),
+            &ChannelUpgradeHandler::onUpgrade,
+            this,
+            bdlf::PlaceHolders::_1,
+            bdlf::PlaceHolders::_2,
+            bdlf::PlaceHolders::_3);
+    }
+
+  private:
+    /// Check if the upgrade event contained in `value` was completed,
+    /// otherwise fail the test.
+    static void checkChannelMapEntry(const ChannelMap::value_type& value)
+    {
+        BMQTST_ASSERT_D("Channel upgrade failed",
+                        value.second.d_event.isComplete());
+    }
+};
+
 }
 
 // CONSTANTS
@@ -196,6 +309,7 @@ struct Tester_HandleInfo {
     bsl::shared_ptr<ChannelFactory::OpHandle> d_handle;
     bsl::deque<Tester_ResultCbInfo>           d_resultCbCalls;
     int                                       d_listenPort;
+    bsl::deque<UpgradeCbInfo>                 d_upgradeCbCalls;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Tester_HandleInfo,
@@ -206,6 +320,7 @@ struct Tester_HandleInfo {
     : d_handle()
     , d_resultCbCalls(basicAllocator)
     , d_listenPort(-1)
+    , d_upgradeCbCalls(basicAllocator)
     {
         // NOTHING
     }
@@ -215,6 +330,7 @@ struct Tester_HandleInfo {
     : d_handle(original.d_handle)
     , d_resultCbCalls(original.d_resultCbCalls, basicAllocator)
     , d_listenPort(original.d_listenPort)
+    , d_upgradeCbCalls(original.d_upgradeCbCalls, basicAllocator)
     {
         // NOTHING
     }
@@ -259,16 +375,25 @@ class Tester {
     typedef bsl::shared_ptr<NtcChannel>        NtcChannelPtr;
     typedef bsl::deque<NtcChannelPtr>          PreCreateCbCallList;
 
+  private:
     // DATA
-    bslma::Allocator*                    d_allocator_p;
-    bdlbb::PooledBlobBufferFactory       d_blobBufferFactory;
-    bsl::shared_ptr<ball::TestObserver>  d_ballObserver;
-    ChannelMap                           d_channelMap;
-    HandleMap                            d_handleMap;
-    PreCreateCbCallList                  d_preCreateCbCalls;
-    bool                                 d_setPreCreateCb;
-    bslma::ManagedPtr<NtcChannelFactory> d_object;
-    bslmt::Mutex                         d_mutex;
+    bslma::Allocator*                            d_allocator_p;
+    bdlbb::PooledBlobBufferFactory               d_blobBufferFactory;
+    bsl::shared_ptr<ball::TestObserver>          d_ballObserver;
+    ChannelMap                                   d_channelMap;
+    HandleMap                                    d_handleMap;
+    PreCreateCbCallList                          d_preCreateCbCalls;
+    bool                                         d_setPreCreateCb;
+    bool                                         d_setEncryptionServer;
+    bool                                         d_setEncryptionClient;
+    bslma::ManagedPtr<NtcChannelFactory>         d_object;
+    bslmt::Mutex                                 d_mutex;
+    bsl::shared_ptr<ntci::Interface>             d_interface;
+    bsl::shared_ptr<ntci::EncryptionCertificate> d_authorityCertificate;
+    bsl::shared_ptr<ntci::EncryptionKey>         d_authorityPrivateKey;
+    bsl::shared_ptr<ntci::EncryptionCertificate> d_serverCertificate;
+    bsl::shared_ptr<ntci::EncryptionKey>         d_serverPrivateKey;
+    bsl::shared_ptr<ntci::EncryptionClient>      d_encryptionClient;
 
     // PRIVATE MANIPULATORS
 
@@ -277,6 +402,11 @@ class Tester {
                   ChannelFactoryEvent::Enum       event,
                   const Status&                   status,
                   const bsl::shared_ptr<Channel>& channel);
+
+    /// Push an upgrade event onto the list of observed upgrade events
+    void recordUpgrade(const bsl::shared_ptr<bmqio::NtcChannel>& channel,
+                       const bsl::shared_ptr<ntci::Upgradable>&  upgradable,
+                       const ntca::UpgradeEvent&                 event);
 
     /// `channelPreCreationCb` passed to the NtcChannelFactory, if we're
     /// asked to pass one
@@ -304,6 +434,17 @@ class Tester {
     /// Destroy the object being tested and reset all supporting objects.
     void destroy();
 
+    /// Initialize the root authority certificate for the server and client.
+    void initEncryptionAuthority();
+
+    /// Initialize the server certificate and private key and configure the
+    /// channel factory to use it for upgrading listeners.
+    void initEncryptionServer();
+
+    /// Initialize the client encryption settings and configure the
+    /// channel factory to use it for upgrading connections.
+    void initEncryptionClient();
+
     // NOT IMPLEMENTED
     Tester(const Tester&);
     Tester& operator=(const Tester&);
@@ -322,6 +463,16 @@ class Tester {
     /// the next time `init` is called to the specified `value`.  By default
     /// this is `false`.
     void setPreCreateCb(bool value);
+
+    /// Set whether an `encryptionServer` will be set on the
+    /// `NtcChannelFactory` the next time `init` is called to the specified
+    /// `value`.  By default this is `false`.
+    void setEncryptionServer(bool value);
+
+    /// Set whether an `encryptionClient` will be set on the
+    /// `NtcChannelFactory` the next time `init` is called to the specified
+    /// `value`.  By default this is `false`.
+    void setEncryptionClient(bool value);
 
     /// Find and return a free port by opening and dropping a handle.
     /// Note that the found port might become occupied in an unlikely event of
@@ -546,6 +697,12 @@ void Tester::channelWatermarkCb(const bsl::string&         channelName,
 
 void Tester::destroy()
 {
+    d_serverPrivateKey.reset();
+    d_serverCertificate.reset();
+    d_authorityPrivateKey.reset();
+    d_authorityCertificate.reset();
+
+    d_interface.reset();
     d_preCreateCbCalls.clear();
 
     if (d_object) {
@@ -565,12 +722,20 @@ void Tester::destroy()
 Tester::Tester(bslma::Allocator* basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_blobBufferFactory(0xFFFF, basicAllocator)
+, d_ballObserver()
 , d_channelMap(basicAllocator)
 , d_handleMap(basicAllocator)
 , d_preCreateCbCalls(basicAllocator)
 , d_setPreCreateCb(false)
+, d_setEncryptionServer(false)
+, d_setEncryptionClient(false)
 , d_object()
 , d_mutex()
+, d_interface()
+, d_authorityCertificate()
+, d_authorityPrivateKey()
+, d_serverCertificate()
+, d_serverPrivateKey()
 {
 }
 
@@ -583,6 +748,16 @@ Tester::~Tester()
 void Tester::setPreCreateCb(bool value)
 {
     d_setPreCreateCb = value;
+}
+
+void Tester::setEncryptionServer(bool value)
+{
+    d_setEncryptionServer = value;
+}
+
+void Tester::setEncryptionClient(bool value)
+{
+    d_setEncryptionClient = value;
 }
 
 int Tester::findFreeEphemeralPort()
@@ -603,6 +778,138 @@ int Tester::findFreeEphemeralPort()
     return port;
 }
 
+void Tester::initEncryptionAuthority()
+{
+    if (d_authorityCertificate && d_authorityPrivateKey) {
+        // Authority root has already been initialized, no need to set it again
+        return;
+    }
+
+    bsl::shared_ptr<ntci::EncryptionCertificate> authorityCertificate;
+    bsl::shared_ptr<ntci::EncryptionKey>         authorityPrivateKey;
+
+    // Generate the certificate and private key of a trusted authority.
+
+    ntsa::DistinguishedName authorityIdentity(d_allocator_p);
+    authorityIdentity["CN"] = "Authority";
+    authorityIdentity["O"]  = "Bloomberg LP";
+
+    ntsa::Error error = d_interface->generateKey(&authorityPrivateKey,
+                                                 ntca::EncryptionKeyOptions(),
+                                                 d_allocator_p);
+    BMQTST_ASSERT(!error);
+
+    ntca::EncryptionCertificateOptions authorityCertificateOptions;
+    authorityCertificateOptions.setAuthority(true);
+
+    error = d_interface->generateCertificate(&authorityCertificate,
+                                             authorityIdentity,
+                                             authorityPrivateKey,
+                                             authorityCertificateOptions,
+                                             d_allocator_p);
+    BMQTST_ASSERT(!error);
+
+    d_authorityCertificate.swap(authorityCertificate);
+    d_authorityPrivateKey.swap(authorityPrivateKey);
+}
+
+void Tester::initEncryptionServer()
+{
+    if (d_serverCertificate && d_serverPrivateKey) {
+        // Authority root has already been initialized, no need to set it again
+        return;
+    }
+
+    // Ensure the authority is initialized as its our root of trust
+    initEncryptionAuthority();
+
+    // Create an encryption server and configure the encryption server to
+    // accept upgrades to TLS 1.3 and higher, to cryptographically identify
+    // itself using the server certificate previously generated, to encrypt
+    // data using the server private key previously generated, and to not
+    // require identification from the client.
+    bsl::shared_ptr<ntci::EncryptionCertificate> serverCertificate;
+    bsl::shared_ptr<ntci::EncryptionKey>         serverPrivateKey;
+
+    // Generate the certificate and private key of the server, signed
+    // by the trusted authority.
+
+    ntsa::DistinguishedName serverIdentity(d_allocator_p);
+    serverIdentity["CN"] = "Server";
+    serverIdentity["O"]  = "Bloomberg LP";
+
+    ntsa::Error error = d_interface->generateKey(&serverPrivateKey,
+                                                 ntca::EncryptionKeyOptions(),
+                                                 d_allocator_p);
+    BMQTST_ASSERT(!error);
+
+    error = d_interface->generateCertificate(
+        &serverCertificate,
+        serverIdentity,
+        serverPrivateKey,
+        d_authorityCertificate,
+        d_authorityPrivateKey,
+        ntca::EncryptionCertificateOptions(),
+        d_allocator_p);
+    BMQTST_ASSERT(!error);
+
+    ntca::EncryptionServerOptions encryptionServerOptions;
+    encryptionServerOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionServerOptions.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
+    encryptionServerOptions.setAuthentication(
+        ntca::EncryptionAuthentication::e_NONE);
+
+    {
+        bsl::vector<char> identityData(d_allocator_p);
+        serverCertificate->encode(&identityData);
+        encryptionServerOptions.setIdentityData(identityData);
+    }
+
+    {
+        bsl::vector<char> privateKeyData(d_allocator_p);
+        serverPrivateKey->encode(&privateKeyData);
+        encryptionServerOptions.setPrivateKeyData(privateKeyData);
+    }
+
+    // Let the channel factory use the certificate for upgrading incoming
+    // connections
+    error = object().configureEncryptionServer(encryptionServerOptions);
+
+    d_serverCertificate.swap(serverCertificate);
+    d_serverPrivateKey.swap(serverPrivateKey);
+
+    BMQTST_ASSERT(!error);
+}
+
+void Tester::initEncryptionClient()
+{
+    ntsa::Error error;
+
+    initEncryptionAuthority();
+
+    // Create an encryption client and configure the encryption client to
+    // request upgrades using TLS 1.2 require identification from the
+    // server, and to trust the certificate authority previously generated
+    // to verify the authenticity of the server.
+    ntca::EncryptionClientOptions encryptionClientOptions;
+    encryptionClientOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionClientOptions.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
+    encryptionClientOptions.setAuthentication(
+        ntca::EncryptionAuthentication::e_VERIFY);
+
+    {
+        bsl::vector<char> authorityData(d_allocator_p);
+        d_authorityCertificate->encode(&authorityData);
+        encryptionClientOptions.addAuthorityData(authorityData);
+    }
+
+    // Let the channel factory use the certificate for upgrading outgoing
+    // connections
+    error = object().configureEncryptionClient(encryptionClientOptions);
+
+    BMQTST_ASSERT(!error);
+}
+
 void Tester::init(int line)
 {
     destroy();
@@ -610,9 +917,17 @@ void Tester::init(int line)
     ntca::InterfaceConfig interfaceConfig;
     interfaceConfig.setThreadName("test");
 
-    d_object.load(new (*d_allocator_p) NtcChannelFactory(interfaceConfig,
-                                                         &d_blobBufferFactory,
-                                                         d_allocator_p),
+    bsl::shared_ptr<bdlbb::BlobBufferFactory> blobBufferFactory_sp(
+        &d_blobBufferFactory,
+        bslstl::SharedPtrNilDeleter(),
+        d_allocator_p);
+
+    d_interface = ntcf::System::createInterface(interfaceConfig,
+                                                blobBufferFactory_sp,
+                                                d_allocator_p);
+
+    d_object.load(new (*d_allocator_p)
+                      NtcChannelFactory(d_interface, d_allocator_p),
                   d_allocator_p);
 
     if (d_setPreCreateCb) {
@@ -620,6 +935,12 @@ void Tester::init(int line)
                                                 this,
                                                 bdlf::PlaceHolders::_1,
                                                 bdlf::PlaceHolders::_2));
+    }
+    if (d_setEncryptionServer) {
+        initEncryptionServer();
+    }
+    if (d_setEncryptionClient) {
+        initEncryptionClient();
     }
 
     int ret = d_object->start();
@@ -1076,6 +1397,106 @@ NtcChannelFactory& Tester::object()
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
+
+static void test9_tlsClientFailsOnPlaintextServer()
+// ------------------------------------------------------------------------
+// PRE CREATION CB TEST
+//
+// Concerns:
+//  a) An attempt to connect to a plaintext server with a TLS channel will fail
+//  b) An attempt to connect to a TLS server with a plaintext channel will fail
+//  c) A failed attempt to connect from a plaintext client doesn't cause a TLS
+//  listener to close
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("Upgrade Channel Cb Test");
+
+    Tester t(bmqtst::TestHelperUtil::allocator());
+
+    // Use TLS for both connections and listeners
+    t.setEncryptionServer(true);
+
+    // Concern 'a'
+    t.init(L_);
+
+    {
+        ChannelUpgradeHandler upgradeCounter(
+            bmqtst::TestHelperUtil::allocator());
+
+        // Register a way to record upgrade events
+        t.object().onUpgrade(upgradeCounter.makeOnUpgradeCb());
+
+        // Shorten the timeout interval
+        ntca::UpgradeOptions upgradeOptions;
+        bsls::TimeInterval   deadline = bdlt::CurrentTime::now();
+        // 5ms doesn't seem to interfere with the success test case, so this
+        // should be sufficient enough
+        deadline.addMilliseconds(5);
+        upgradeOptions.setDeadline(deadline);
+        t.object().setUpgradeOptions(upgradeOptions);
+
+        BMQTST_ASSERT_EQ(0, t.object().start());
+    }
+
+    t.listen(L_, "listenHandle0", "127.0.0.1:5001", StatusCategory::e_SUCCESS);
+    t.connect(L_,
+              "connectHandle0",
+              "listenHandle0",
+              StatusCategory::e_SUCCESS);
+
+    t.checkResultCallback(L_,
+                          "listenHandle0",
+                          ChannelFactoryEvent::e_CONNECT_FAILED,
+                          StatusCategory::e_GENERIC_ERROR);
+    t.checkNoResultCallback(L_, "channelHandle0");
+}
+
+static void test8_upgradeChannelTest()
+// ------------------------------------------------------------------------
+// PRE CREATION CB TEST
+//
+// Concerns:
+//  a) 'upgradeChannelCb' is called for every channel upgraded
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("Upgrade Channel Cb Test");
+
+    Tester t(bmqtst::TestHelperUtil::allocator());
+
+    // Use TLS for both connections and listeners
+    t.setEncryptionServer(true);
+    t.setEncryptionClient(true);
+
+    // Concern 'a'
+    t.init(L_);
+
+    ChannelUpgradeHandler upgradeCounter(bmqtst::TestHelperUtil::allocator());
+
+    // Register a way to record upgrade events
+    t.object().onUpgrade(upgradeCounter.makeOnUpgradeCb());
+
+    // Create a TLS channel
+    t.listen(L_, "listenHandle", "127.0.0.1:5001", StatusCategory::e_SUCCESS);
+    t.connect(L_, "connectHandle", "listenHandle", StatusCategory::e_SUCCESS);
+    t.connect(L_, "connectHandle2", "listenHandle", StatusCategory::e_SUCCESS);
+
+    // Confirm the channel was successfully created
+    t.checkResultCallback(L_, "listenHandle", "listenChannel");
+    t.checkResultCallback(L_, "connectHandle", "connectChannel");
+    t.checkResultCallback(L_, "connectHandle2", "connectChannel2");
+
+    // We expect each connect/listen pair to have received a successful
+    // upgrade event
+    upgradeCounter.checkAll();
+    BMQTST_ASSERT_EQ_D("Unexpected number of channel upgrades",
+                       4UL,
+                       upgradeCounter.upgradeCounts());
+
+    // Confirm the upgrade didn't mess up the received message
+    t.writeChannel(L_, "listenChannel", "abcdef");
+    t.readChannel(L_, "connectChannel", "abcdef");
+}
+
 static void test7_checkMultithreadListen()
 {
     bmqtst::TestHelper::printTestName("Check Multithread Listen Test");
@@ -1371,7 +1792,7 @@ static void test1_breathingTest()
     t.init(L_);
 
     // Listen and connect work
-    t.listen(L_, "listenHandle", "127.0.0.1:0");
+    t.listen(L_, "listenHandle", "127.0.0.1:5001");
     t.connect(L_, "connectHandle", "listenHandle");
 
     t.checkResultCallback(L_, "listenHandle", "listenChannel");
@@ -1406,9 +1827,10 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
+    bmqtst::TestHelperUtil::verbosityLevel() = 1;
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    // ntcf::System::initialize();
+    ntcf::SystemGuard systemGuard(ntscfg::Signal::e_PIPE);
 
     switch (_testCase) {
     case 0:
@@ -1419,13 +1841,13 @@ int main(int argc, char* argv[])
     case 5: test5_visitChannelsTest(); break;
     case 6: test6_preCreationCbTest(); break;
     case 7: test7_checkMultithreadListen(); break;
+    case 8: test8_upgradeChannelTest(); break;
+    case 9: test9_tlsClientFailsOnPlaintextServer(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
-
-    // ntcf::System::exit();
 
     TEST_EPILOG(0);
 }
