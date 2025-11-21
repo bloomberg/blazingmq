@@ -420,6 +420,7 @@ class InitialConnectionContext
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     bool                                       isClosed() const;
     InitialConnectionState::Enum               state() const;
+    bool                                       hasFinalState() const;
 
     /// Invoke the `initialConnectionCompleteCb` callback with the specified
     /// return code `rc`, `error` description, and `session` (negotiated

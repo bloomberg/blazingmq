@@ -173,6 +173,7 @@ def test_reauthenticate_success(single_node: Cluster) -> None:
     # Initial authentication
     auth_resp = client.send_authentication_request("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
+    assert auth_resp["authenticationResponse"]["lifetimeMs"] == 600000
 
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
@@ -208,6 +209,7 @@ def test_reauthenticate_failure(single_node: Cluster) -> None:
     # Initial authentication succeeds
     auth_resp = client.send_authentication_request("Basic", "user1:password1")
     assert auth_resp["authenticationResponse"]["status"]["code"] == 0
+    assert auth_resp["authenticationResponse"]["lifetimeMs"] == 600000
 
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
