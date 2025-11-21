@@ -438,3 +438,36 @@ def test_journal_size_increase(
         make_rollover()
 
     assert False, "Not implemented yet"
+
+
+@pytest.mark.skip(reason="for debug purposes only")
+def test_debug(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    # Create producer and consumer
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    replicas = cluster.nodes(exclude=leader)
+    replica = replicas[0]
+
+    # Put 2 messages with confirms
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
+
+    assert False, "Just to capture debug logs"

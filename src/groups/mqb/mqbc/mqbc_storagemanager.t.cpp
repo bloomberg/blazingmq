@@ -240,6 +240,7 @@ struct TestHelper {
 
         replicaStateRequest.partitionMaxFileSizes().dataFileSize() = mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;            
         replicaStateRequest.partitionMaxFileSizes().journalFileSize() = mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+        replicaStateRequest.partitionMaxFileSizes().qListFileSize() = 0;
                     
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -656,6 +657,7 @@ struct TestHelper {
         primaryStateRequest.latestSequenceNumber() = seqNum;
         primaryStateRequest.partitionMaxFileSizes().dataFileSize() = mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;            
         primaryStateRequest.partitionMaxFileSizes().journalFileSize() = mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+        primaryStateRequest.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -696,6 +698,7 @@ struct TestHelper {
         replicaStateResponse.latestSequenceNumber() = seqNum;
         replicaStateResponse.partitionMaxFileSizes().dataFileSize() = mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;            
         replicaStateResponse.partitionMaxFileSizes().journalFileSize() = mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+        replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();

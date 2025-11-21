@@ -598,13 +598,13 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_storeReplicaSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
-    void do_storeSelfPartitionMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_storeSelfMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_storePrimaryPartitionMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_storePrimaryMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_storeReplicaPartitionMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_storeReplicaMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void do_storePartitionInfo(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
@@ -705,16 +705,13 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_reapplyEvent(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_checkQuorumSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_checkQuorumMaxFileSizesAndSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
     do_findHighestSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void
-    do_checkQuorumSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_findHighestSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    do_findHighestFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     void do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
@@ -741,6 +738,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Return the sequence number quorum to be used for this cluster.
     unsigned int getSeqNumQuorum() const;
+
+    /// Return the maximum file sizes quorum to be used for this cluster.
+    unsigned int getMaxFileSizesQuorum() const;
 
     /// Return own the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber
@@ -1219,6 +1219,11 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 }
 
 inline unsigned int StorageManager::getSeqNumQuorum() const
+{
+    return d_clusterData_p->quorumManager().quorum();
+}
+
+inline unsigned int StorageManager::getMaxFileSizesQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }
