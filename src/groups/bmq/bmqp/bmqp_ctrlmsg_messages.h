@@ -1218,6 +1218,9 @@ class AuthenticationRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AuthenticationRequest)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AuthenticationRequest>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -7755,12 +7758,15 @@ class ClientIdentity {
     // sdkLanguage.......: language of the SDK used by this client.
     // guidInfo..........: data provided by bmqp::MessageGUIDGenerator.
     // Contains clientId, current timer tick and number of seconds from epoch.
+    // userAgent.........: a string identifying the agent the client is using
+    // to connect.  Should include the SDK name/language and version.
 
     // INSTANCE DATA
     bsl::string           d_processName;
     bsl::string           d_hostName;
     bsl::string           d_features;
     bsl::string           d_clusterName;
+    bsl::string           d_userAgent;
     GuidInfo              d_guidInfo;
     int                   d_protocolVersion;
     int                   d_sdkVersion;
@@ -7790,10 +7796,11 @@ class ClientIdentity {
         ATTRIBUTE_ID_CLUSTER_NAME     = 8,
         ATTRIBUTE_ID_CLUSTER_NODE_ID  = 9,
         ATTRIBUTE_ID_SDK_LANGUAGE     = 10,
-        ATTRIBUTE_ID_GUID_INFO        = 11
+        ATTRIBUTE_ID_GUID_INFO        = 11,
+        ATTRIBUTE_ID_USER_AGENT       = 12
     };
 
-    enum { NUM_ATTRIBUTES = 12 };
+    enum { NUM_ATTRIBUTES = 13 };
 
     enum {
         ATTRIBUTE_INDEX_PROTOCOL_VERSION = 0,
@@ -7807,7 +7814,8 @@ class ClientIdentity {
         ATTRIBUTE_INDEX_CLUSTER_NAME     = 8,
         ATTRIBUTE_INDEX_CLUSTER_NODE_ID  = 9,
         ATTRIBUTE_INDEX_SDK_LANGUAGE     = 10,
-        ATTRIBUTE_INDEX_GUID_INFO        = 11
+        ATTRIBUTE_INDEX_GUID_INFO        = 11,
+        ATTRIBUTE_INDEX_USER_AGENT       = 12
     };
 
     // CONSTANTS
@@ -7830,6 +7838,8 @@ class ClientIdentity {
     static const int DEFAULT_INITIALIZER_CLUSTER_NODE_ID;
 
     static const ClientLanguage::Value DEFAULT_INITIALIZER_SDK_LANGUAGE;
+
+    static const char DEFAULT_INITIALIZER_USER_AGENT[];
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -7971,6 +7981,10 @@ class ClientIdentity {
     // Return a reference to the modifiable "GuidInfo" attribute of this
     // object.
 
+    bsl::string& userAgent();
+    // Return a reference to the modifiable "UserAgent" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -8053,6 +8067,10 @@ class ClientIdentity {
 
     const GuidInfo& guidInfo() const;
     // Return a reference offering non-modifiable access to the "GuidInfo"
+    // attribute of this object.
+
+    const bsl::string& userAgent() const;
+    // Return a reference offering non-modifiable access to the "UserAgent"
     // attribute of this object.
 
     // HIDDEN FRIENDS
@@ -10090,8 +10108,9 @@ class PrimaryStateRequest {
     // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Replica's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of replica's first sync point  after rollover for corresponding
+    // partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
@@ -10304,8 +10323,9 @@ class PrimaryStateResponse {
     // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Primary's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of primary's first sync point after rollover for corresponding
+    // partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
@@ -12461,8 +12481,9 @@ class ReplicaStateRequest {
     // numbers as part of this request.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Primary's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Primary's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of primary's first sync point after rollover for corresponding
+    // partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
@@ -12675,8 +12696,9 @@ class ReplicaStateResponse {
     // with its sequence numbers.
     // partitionId:    partition id for corresponding partition.
     // latestSequenceNumber: Replica's latest sequence number for corresponding
-    // partition.  firstSyncPointAfterRolloverSequenceNumber: Replica's first
-    // sync point after rollover sequence number for corresponding partition.
+    // partition.  firstSyncPointAfterRolloverSequenceNumber: Sequence number
+    // of replica's first sync point after rollover for corresponding
+    // partition.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_latestSequenceNumber;
@@ -13962,6 +13984,9 @@ class AuthenticationResponse {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::AuthenticationResponse)
+template <>
+struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AuthenticationResponse>
+: bsl::true_type {};
 
 namespace bmqp_ctrlmsg {
 
@@ -27173,6 +27198,7 @@ void ClientIdentity::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->clusterNodeId());
     hashAppend(hashAlgorithm, this->sdkLanguage());
     hashAppend(hashAlgorithm, this->guidInfo());
+    hashAppend(hashAlgorithm, this->userAgent());
 }
 
 inline bool ClientIdentity::isEqualTo(const ClientIdentity& rhs) const
@@ -27187,7 +27213,8 @@ inline bool ClientIdentity::isEqualTo(const ClientIdentity& rhs) const
            this->clusterName() == rhs.clusterName() &&
            this->clusterNodeId() == rhs.clusterNodeId() &&
            this->sdkLanguage() == rhs.sdkLanguage() &&
-           this->guidInfo() == rhs.guidInfo();
+           this->guidInfo() == rhs.guidInfo() &&
+           this->userAgent() == rhs.userAgent();
 }
 
 // CLASS METHODS
@@ -27268,6 +27295,12 @@ int ClientIdentity::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_userAgent,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USER_AGENT]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -27325,6 +27358,10 @@ int ClientIdentity::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_GUID_INFO: {
         return manipulator(&d_guidInfo,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GUID_INFO]);
+    }
+    case ATTRIBUTE_ID_USER_AGENT: {
+        return manipulator(&d_userAgent,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USER_AGENT]);
     }
     default: return NOT_FOUND;
     }
@@ -27406,6 +27443,11 @@ inline GuidInfo& ClientIdentity::guidInfo()
     return d_guidInfo;
 }
 
+inline bsl::string& ClientIdentity::userAgent()
+{
+    return d_userAgent;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ClientIdentity::accessAttributes(t_ACCESSOR& accessor) const
@@ -27482,6 +27524,12 @@ int ClientIdentity::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_userAgent,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USER_AGENT]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -27538,6 +27586,10 @@ int ClientIdentity::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_GUID_INFO: {
         return accessor(d_guidInfo,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GUID_INFO]);
+    }
+    case ATTRIBUTE_ID_USER_AGENT: {
+        return accessor(d_userAgent,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USER_AGENT]);
     }
     default: return NOT_FOUND;
     }
@@ -27617,6 +27669,11 @@ inline ClientLanguage::Value ClientIdentity::sdkLanguage() const
 inline const GuidInfo& ClientIdentity::guidInfo() const
 {
     return d_guidInfo;
+}
+
+inline const bsl::string& ClientIdentity::userAgent() const
+{
+    return d_userAgent;
 }
 
 // ------------------
@@ -38664,6 +38721,6 @@ inline const ControlMessageChoice& ControlMessage::choice() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.11.13
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd
