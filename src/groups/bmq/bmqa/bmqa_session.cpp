@@ -279,8 +279,13 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
         }
     }
     ci.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
-    ci.userAgent()   = bsl::string("libbmq:", sessionImpl->d_allocator_p) +
-                     bmqscm::Version::s_versionDotString;
+
+    bsl::string userAgent;
+    if (!sessionImpl->d_sessionOptions.userAgentPrefix().empty()) {
+        userAgent = sessionImpl->d_sessionOptions.userAgentPrefix() + " ";
+    }
+    userAgent += bsl::string("libbmq:") + bmqscm::Version::s_versionDotString;
+    ci.userAgent() = userAgent;
 
     // Create the GUID generator
     sessionImpl->d_guidGenerator_sp.createInplace(sessionImpl->d_allocator_p,
