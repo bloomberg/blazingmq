@@ -181,7 +181,10 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             return self.last_known_active
 
     def wait_status(
-        self, wait_leader: bool, wait_ready: bool, cluster: str = "itCluster"
+        self,
+        wait_leader: bool,
+        wait_ready: bool,
+        cluster: str = "itCluster",
     ):
         """
         Wait until this node has an active leader if 'wait_leader' is True, and
@@ -229,6 +232,19 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             error = f"[broker {self.name}]: cluster not ready"
             self._logger.error(error)
             raise RuntimeError(error)
+
+    def wait_rollover_complete(self):
+        """
+        Wait until rollover is complete on this broker.
+        """
+
+        self._logger.info(f"Waiting for rollover to complete on broker {self.name}...")
+
+        with internal_use(self):
+            if not self.outputs_substr("ROLLOVER COMPLETE", timeout=BLOCK_TIMEOUT):
+                raise RuntimeError(
+                    f"Rollover did not complete on broker {self.name} within {BLOCK_TIMEOUT}s"
+                )
 
     def dump_queue_internals(self, domain, queue):
         """
