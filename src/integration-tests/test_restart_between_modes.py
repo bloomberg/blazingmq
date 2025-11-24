@@ -47,6 +47,7 @@ from blazingmq.dev.it.cluster_util import (
     # simulate_csl_rollover,
 )
 
+MAX_JOURNAL_FILE_SIZE = 4567
 pytestmark = order(2)
 timeout = 20
 
@@ -688,21 +689,47 @@ def switch_cluster_mode(request):
 
 
 def without_rollover(
-    du: tc.DomainUrls,  # pylint: disable=unused-argument
-    leader: Broker,  # pylint: disable=unused-argument
+    queue_uri: str,  # pylint: disable=unused-argument
+    cluster: Cluster,  # pylint: disable=unused-argument
     producer: Client,  # pylint: disable=unused-argument
+    consumer: Client,  # pylint: disable=unused-argument
 ):
     """
     Simulate fixture scenario without rollover. Just do nothing.
     """
 
 
-@pytest.fixture(
-    params=[
-        without_rollover,
-        # simulate_journal_rollover
-    ]
-)
+def with_rollover(queue_uri: str, cluster: Cluster, producer: Client, consumer: Client):
+    """
+    Simulate fixture scenario with rollover
+    """
+
+    consumer.open(
+        queue_uri,
+        flags=["read"],
+        succeed=True,
+    )
+
+    leader = cluster.last_known_leader
+
+    i = 0
+    while not leader.outputs_substr("Initiating rollover", 0.01):
+        i += 1
+        assert i < 9999, "Failed to trigger Rollover"
+        producer.post(queue_uri, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(queue_uri, "*", succeed=True)
+
+    # log that rollover was detected
+    test_logger.info("Rollover detected on queue %s after %d messages", queue_uri, i)
+
+    for node in cluster.nodes():
+        node.wait_rollover_complete()
+
+    consumer.close(queue_uri, succeed=True)
+
+
+@pytest.fixture(params=[without_rollover, with_rollover])
 def optional_rollover(request):
     """
     Fixture to optionally simulate rollover of CSL file.
@@ -711,6 +738,10 @@ def optional_rollover(request):
     return request.param
 
 
+# Set number of partitions to 1 to keep all queues on the same partition
+# to actually test rollover on the partition with actual data
+@tweak.cluster.partition_config.num_partitions(1)
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 def test_restart_between_legacy_and_fsm_add_remove_app(
     cluster: Cluster,
     domain_urls: tc.DomainUrls,
@@ -770,9 +801,10 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     # 1. PROLOGUE
     priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
     fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
+    rollover_queue = f"bmq://{du.domain_priority}/rollover_test_queue"
 
     # post two messages
-    for queue in [priority_queue, fanout_queue]:
+    for queue in [priority_queue, fanout_queue, rollover_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
 
     for queue in [priority_queue, fanout_queue]:
@@ -792,7 +824,7 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
 
     # 2. SWITCH
     # 2.1 Optional rollover
-    optional_rollover(du, cluster.last_known_leader, producer)
+    optional_rollover(rollover_queue, cluster, producer, consumer)
     # 2.2 Switch cluster mode
     switch_cluster_mode[0](cluster, producer)
 
@@ -831,6 +863,10 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     check_if_queue_has_n_messages(consumer, fanout_queue + "?id=corge", 0 + 2)
 
 
+# Set number of partitions to 1 to keep all queues on the same partition
+# to actually test rollover on the partition with actual data
+@tweak.cluster.partition_config.num_partitions(1)
+@tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 def test_restart_between_legacy_and_fsm_purge_queue_app(
     cluster: Cluster,
     domain_urls: tc.DomainUrls,
@@ -895,9 +931,10 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     # 1. PROLOGUE
     priority_queue = f"bmq://{du.domain_priority}/{test_queue}"
     fanout_queue = f"bmq://{du.domain_fanout}/{test_queue}"
+    rollover_queue = f"bmq://{du.domain_priority}/rollover_test_queue"
 
     # Post one message
-    for queue in [priority_queue, fanout_queue]:
+    for queue in [priority_queue, fanout_queue, rollover_queue]:
         producer.open(queue, flags=["write,ack"], succeed=True)
 
     for queue in [priority_queue, fanout_queue]:
@@ -926,7 +963,7 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
 
     # 2. SWITCH
     # 2.1 Optional rollover
-    optional_rollover(du, cluster.last_known_leader, producer)
+    optional_rollover(rollover_queue, cluster, producer, consumer)
     # 2.2 Switch cluster mode
     switch_cluster_mode[0](cluster, producer)
 
