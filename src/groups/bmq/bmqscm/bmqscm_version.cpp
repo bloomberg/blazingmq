@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,10 +26,15 @@ namespace BloombergLP {
     "BLP_LIB_BMQ_" STRINGIFY(BMQ_VERSION_MAJOR) "." STRINGIFY(                \
         BMQ_VERSION_MINOR) "." STRINGIFY(BMQ_VERSION_PATCH)
 
+#define BMQSCM_VERSION_DOT_STRING                                             \
+    STRINGIFY(BMQ_VERSION_MAJOR)                                              \
+    "." STRINGIFY(BMQ_VERSION_MINOR) "." STRINGIFY(BMQ_VERSION_PATCH)
+
 const char* bmqscm::Version::s_ident = "$Id: " BMQSCM_VERSION_STRING " $";
 const char* bmqscm::Version::s_what  = "@(#)" BMQSCM_VERSION_STRING;
 
 const char* bmqscm::Version::BMQSCM_S_VERSION    = BMQSCM_VERSION_STRING;
+const char* bmqscm::Version::s_versionDotString  = BMQSCM_VERSION_DOT_STRING;
 const char* bmqscm::Version::s_dependencies      = "";
 const char* bmqscm::Version::s_buildInfo         = "";
 const char* bmqscm::Version::s_timestamp         = "";
