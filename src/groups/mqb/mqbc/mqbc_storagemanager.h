@@ -356,7 +356,8 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     bsl::vector<unsigned int> d_numReplicaDataResponsesReceivedVec;
 
-    /// Whether `d_queueKeyInfoMapVec` has been initialized.
+    /// Whether `d_queueKeyInfoMapVec` has been initialized.  This data
+    /// structure only needs to be initialized once at startup, and no more.
     bsls::AtomicBool d_isQueueKeyInfoMapVecInitialized;
 
     /// Mapping from queue key to queue info indexed by partitionId, populated
@@ -457,9 +458,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Dispatch the event to *QUEUE DISPATCHER* thread associated with
     /// the partitionId as per the specified `eventDataVec` with the
-    /// specified `event` using the specified `fs`.
-    void dispatchEventToPartition(mqbs::FileStore*          fs,
-                                  PartitionFSM::Event::Enum event,
+    /// specified `event`.  If we are already in *QUEUE DISPATCHER* thread,
+    /// then execute the event in place.
+    void dispatchEventToPartition(PartitionFSM::Event::Enum event,
                                   const EventData&          eventDataVec);
 
     /// Set the primary status of the specified `partitionId` to the specified
@@ -471,14 +472,31 @@ class StorageManager BSLS_KEYWORD_FINAL
         int                                partitionId,
         bmqp_ctrlmsg::PrimaryStatus::Value value);
 
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void setPrimaryForPartitionDispatched(int                  partitionId,
+                                          mqbnet::ClusterNode* primaryNode,
+                                          unsigned int         primaryLeaseId);
+
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
+    void clearPrimaryForPartitionDispatched(int                  partitionId,
+                                            mqbnet::ClusterNode* primary);
+
     /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
     /// `partitionId`, `primaryNode`, `primaryLeaseId`.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
     void processPrimaryDetect(int                  partitionId,
                               mqbnet::ClusterNode* primaryNode,
                               unsigned int         primaryLeaseId);
 
     /// Apply DETECT_SelfReplica event to StorageFSM using the specified
     /// `partitionId`, `primaryNode` and `primaryLeaseId`.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified `partitionId`.
     void processReplicaDetect(int                  partitionId,
                               mqbnet::ClusterNode* primaryNode,
                               unsigned int         primaryLeaseId);
@@ -584,12 +602,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void
     do_storeReplicaSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
-
-    void do_storePartitionInfo(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
-    void do_clearPartitionInfo(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
 
     void do_replicaStateRequest(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
