@@ -66,7 +66,7 @@ void Dispatcher::unregisterClient(BSLA_UNUSED mqbi::DispatcherClient* client)
     // NOTHING
 }
 
-mqbi::DispatcherEvent*
+mqbi::Dispatcher::DispatcherEventSp
 Dispatcher::getEvent(const mqbi::DispatcherClient* client)
 {
     EventMap::iterator iter = d_eventsForClients.find(client);
@@ -74,20 +74,20 @@ Dispatcher::getEvent(const mqbi::DispatcherClient* client)
     return iter->second;
 }
 
-mqbi::DispatcherEvent*
+mqbi::Dispatcher::DispatcherEventSp
 Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
 {
-    return 0;
+    return mqbi::Dispatcher::DispatcherEventSp();
 }
 
-void Dispatcher::dispatchEvent(mqbi::DispatcherEvent*  event,
+void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
                                mqbi::DispatcherClient* destination)
 {
     destination->onDispatcherEvent(*event);
 }
 
 void Dispatcher::dispatchEvent(
-    BSLA_UNUSED mqbi::DispatcherEvent* event,
+    BSLA_UNUSED mqbi::Dispatcher::DispatcherEventRef event,
     BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
     BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
@@ -226,9 +226,9 @@ class Dispatcher::InnerEventGuard {
 
     /// Create an `InnerEventGuard` object by using the specified
     /// `dispatcher`, `client` and `event`.
-    InnerEventGuard(Dispatcher*                   dispatcher,
-                    const mqbi::DispatcherClient* client,
-                    mqbi::DispatcherEvent*        event)
+    InnerEventGuard(Dispatcher*                         dispatcher,
+                    const mqbi::DispatcherClient*       client,
+                    mqbi::Dispatcher::DispatcherEventSp event)
     : d_dispatcher(dispatcher)
     , d_client(client)
     {
@@ -240,8 +240,8 @@ class Dispatcher::InnerEventGuard {
 };
 
 Dispatcher::EventGuard
-Dispatcher::_withEvent(const mqbi::DispatcherClient* client,
-                       mqbi::DispatcherEvent*        event)
+Dispatcher::_withEvent(const mqbi::DispatcherClient*       client,
+                       mqbi::Dispatcher::DispatcherEventSp event)
 {
     EventGuard eventGuard;
     eventGuard.createInplace(d_allocator_p, this, client, event);

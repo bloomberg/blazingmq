@@ -65,7 +65,7 @@ class Dispatcher : public mqbi::Dispatcher {
   private:
     // TYPES
     typedef bsl::unordered_map<const mqbi::DispatcherClient*,
-                               mqbi::DispatcherEvent*>
+                               mqbi::Dispatcher::DispatcherEventSp>
         EventMap;
     // A map from clients to events.
   private:
@@ -142,30 +142,30 @@ class Dispatcher : public mqbi::Dispatcher {
     /// Retrieve an event from the event pool to send to the specified
     /// `client`.  Once populated, the returned event *must* be enqueued for
     /// processing by calling `dispatchEvent` otherwise it will be leaked.
-    mqbi::DispatcherEvent*
+    mqbi::Dispatcher::DispatcherEventSp
     getEvent(const mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
     /// Retrieve an event from the event pool to send to a client of the
     /// specified `type`.  Once populated, the returned event *must* be
     /// enqueued for processing by calling `dispatchEvent` otherwise it will
     /// be leaked.
-    mqbi::DispatcherEvent*
+    mqbi::Dispatcher::DispatcherEventSp
     getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the specified `destination`.  The
     /// behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a type matching the one of `destination`.
     void
-    dispatchEvent(mqbi::DispatcherEvent*  event,
+    dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
                   mqbi::DispatcherClient* destination) BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the processor in charge of clients
     /// of the specified `type` and associated with the specified `handle`.
     /// The behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a matching `type`..
-    void dispatchEvent(mqbi::DispatcherEvent*            event,
-                       mqbi::DispatcherClientType::Enum  type,
-                       mqbi::Dispatcher::ProcessorHandle handle)
+    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
+                       mqbi::DispatcherClientType::Enum     type,
+                       mqbi::Dispatcher::ProcessorHandle    handle)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor`, using the optionally specified
@@ -250,8 +250,8 @@ class Dispatcher : public mqbi::Dispatcher {
 
     /// Associates a specified `event` with a specified `client` while the
     /// returned `EventGuard` doesn't go out of scope.
-    EventGuard _withEvent(const mqbi::DispatcherClient* client,
-                          mqbi::DispatcherEvent*        event);
+    EventGuard _withEvent(const mqbi::DispatcherClient*       client,
+                          mqbi::Dispatcher::DispatcherEventSp event);
 
     bslmt::Mutex& mutex();
 

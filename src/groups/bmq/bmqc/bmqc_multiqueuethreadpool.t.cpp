@@ -94,11 +94,13 @@ queueCreator(MQTP::QueueCreatorRet*            ret,
     return new (*allocator) MQTP::Queue(fixedQueueSize, allocator);
 }
 
-static void eventCb(BSLA_UNUSED int queueId, void* context, MQTP::Event* event)
+static void
+eventCb(BSLA_UNUSED int queueId, void* context, const MQTP::EventSp& event)
 {
-    if (event->type() == MQTP::Event::BMQC_USER) {
+    if (event) {
+        // Non-empty event pointer means user event
         bsl::vector<int>* vec = reinterpret_cast<bsl::vector<int>*>(context);
-        vec->push_back(event->object().value());
+        vec->push_back(event->value());
     }
 }
 
@@ -209,21 +211,26 @@ static void test1_breathingTest()
     BMQTST_ASSERT_NE(mfqtp.start(), 0);  // MQTP has already been started
     BMQTST_ASSERT_EQ(mfqtp.isStarted(), true);
 
-    MQTP::Event* event = mfqtp.getUnmanagedEvent();
-    event->object().value() = 0;
-    mfqtp.enqueueEvent(event, 0);
-
-    event           = mfqtp.getUnmanagedEvent();
-    event->object().value() = 1;
-    mfqtp.enqueueEvent(event, 1);
-
-    event           = mfqtp.getUnmanagedEvent();
-    event->object().value() = 2;
-    mfqtp.enqueueEvent(event, 2);
-
-    event           = mfqtp.getUnmanagedEvent();
-    event->object().value() = 3;
-    mfqtp.enqueueEventOnAllQueues(event);
+    {
+        MQTP::EventSp event = mfqtp.getEvent();
+        event->value()      = 0;
+        mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
+    }
+    {
+        MQTP::EventSp event = mfqtp.getEvent();
+        event->value()      = 1;
+        mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 1);
+    }
+    {
+        MQTP::EventSp event = mfqtp.getEvent();
+        event->value()      = 2;
+        mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 2);
+    }
+    {
+        MQTP::EventSp event = mfqtp.getEvent();
+        event->value()      = 3;
+        mfqtp.enqueueEventOnAllQueues(bslmf::MovableRefUtil::move(event));
+    }
 
     mfqtp.stop();
     BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
@@ -300,9 +307,9 @@ static void testN1_performance()
     bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
     PRINT("Enqueuing " << k_NUM_ITERATIONS << " items.");
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-        MQTP::Event* event = mfqtp.getUnmanagedEvent();
-        event->object().value() = 0;
-        mfqtp.enqueueEvent(event, 0);
+        MQTP::EventSp event = mfqtp.getEvent();
+        event->value()      = 0;
+        mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
 
@@ -315,9 +322,9 @@ static void testN1_performance()
     PRINT("Enqueuing " << k_NUM_ITERATIONS << " items ...");
     startTime = bsls::TimeUtil::getTimer();
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-        MQTP::Event* event = mfqtp.getUnmanagedEvent();
-        event->object().value() = 0;
-        mfqtp.enqueueEvent(event, 0);
+        MQTP::EventSp event = mfqtp.getEvent();
+        event->value()      = 0;
+        mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
 
@@ -446,9 +453,9 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
     PRINT("Enqueuing " << k_NUM_ITERATIONS << " items.");
     for (auto _ : state) {
         for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-            MQTP::Event* event = mfqtp.getUnmanagedEvent();
-            event->object().value() = 0;
-            mfqtp.enqueueEvent(event, 0);
+            MQTP::EventSp event = mfqtp.getEvent();
+            event->value()      = 0;
+            mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
         }
         PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
 

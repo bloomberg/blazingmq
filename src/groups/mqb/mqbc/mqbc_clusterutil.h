@@ -394,7 +394,7 @@ ClusterUtil::generateNack(bmqt::AckResult::Enum               status,
                                 putHeader.messageGUID(),
                                 putHeader.queueId());
 
-    mqbi::DispatcherEvent* ev = dispatcher->getEvent(source);
+    mqbi::Dispatcher::DispatcherEventSp ev = dispatcher->getEvent(source);
     (*ev).setType(mqbi::DispatcherEventType::e_ACK).setAckMessage(ackMessage);
 
     if (appData) {
@@ -405,7 +405,7 @@ ClusterUtil::generateNack(bmqt::AckResult::Enum               status,
         BSLS_ASSERT_SAFE(!options);
     }
 
-    dispatcher->dispatchEvent(ev, source);
+    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(ev), source);
 }
 
 inline bool ClusterUtil::isValid(const bmqp_ctrlmsg::SyncPoint& syncPoint)
