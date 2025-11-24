@@ -68,7 +68,7 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
         }
         identity.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
         identity.userAgent()   = bsl::string("bmqbrkr:", allocator) +
-                               mqbscm::Version::version();
+                               mqbscm::Version::s_versionDotString;
     }
 
     // Create and set description
