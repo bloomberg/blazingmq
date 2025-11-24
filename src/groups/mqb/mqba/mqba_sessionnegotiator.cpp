@@ -156,7 +156,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     }
     identity->sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
     identity->userAgent()   = bsl::string("bmqbrkr:") +
-                            mqbscm::Version::version();
+                            mqbscm::Version::s_versionDotString;
 }
 
 void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
