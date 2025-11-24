@@ -357,7 +357,7 @@ class PartitionStateTableActions {
     void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
 
     void
-    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_storeSelfMaxFileSizes_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void do_stopWatchDog_transitionToActivePrimary(const ARGS& args);
@@ -548,7 +548,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_DATA_RSPN_PULL,
-            resetReceiveDataCtx_closeRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            resetReceiveDataCtx_storeSelfMaxFileSizes_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_DATA_RSPN_PUSH,
@@ -921,13 +921,13 @@ void PartitionStateTableActions<
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfMaxFileSizes_storeSelfSeq_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_storeSelfMaxFileSizes_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
     do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
     do_storeSelfMaxFileSizes(args);
     do_storeSelfSeq(args);
+    do_closeRecoveryFileSet(args);
     do_attemptOpenStorage(args);
     do_replicaDataRequestPush(args);
     do_replicaDataRequestDrop(args);
