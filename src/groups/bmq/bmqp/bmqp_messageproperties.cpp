@@ -29,7 +29,6 @@
 // BDE
 #include <bdlb_bigendian.h>
 #include <bdlb_print.h>
-#include <bdlb_scopeexit.h>
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
@@ -802,8 +801,28 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
 {
     clear();
 
-    bdlb::ScopeExitAny cleaner(
-        bdlf::BindUtil::bind(&MessageProperties::clear, this));
+    // Use stack-constructed object for scoped cleanup if there are any errors.
+    // Avoid using `bdlb::ScopeExitAny` because it requires constructing and
+    // destructing a `bsl::function` and it harms performance.
+    class MessageProperties_Cleaner {
+        MessageProperties* d_properties_p;
+
+      public:
+        explicit MessageProperties_Cleaner(MessageProperties* properties)
+        : d_properties_p(properties)
+        {
+            // NOTHING
+        }
+
+        ~MessageProperties_Cleaner()
+        {
+            if (d_properties_p) {
+                d_properties_p->clear();
+            }
+        }
+
+        inline void release() { d_properties_p = NULL; }
+    } cleanOnFailure(this);
 
     int rc = streamInHeader(blob);
 
@@ -823,7 +842,7 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
         return rc;  // RETURN
     }
 
-    cleaner.release();
+    cleanOnFailure.release();
 
     return rc_SUCCESS;
 }
