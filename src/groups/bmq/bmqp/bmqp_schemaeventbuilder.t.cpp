@@ -1,4 +1,4 @@
-// Copyright 2015-2023 Bloomberg Finance L.P.
+// Copyright 2015-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -347,6 +347,7 @@ static void testN1_decodeFromFile()
             ci.protocolVersion() = bmqp::Protocol::k_VERSION;
             ci.sdkVersion()      = bmqscm::Version::versionAsInt();
             ci.sdkLanguage()     = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+            ci.userAgent()       = "user_agent";
             ci.clientType()      = bmqp_ctrlmsg::ClientType::E_TCPCLIENT;
             ci.pid()             = 9999;
             ci.sessionId()       = 123;
@@ -373,6 +374,7 @@ static void testN1_decodeFromFile()
             BMQTST_ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
             BMQTST_ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
             BMQTST_ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
+            BMQTST_ASSERT_EQ(ci.userAgent(), dci.userAgent());
             BMQTST_ASSERT_EQ(ci.clientType(), dci.clientType());
             BMQTST_ASSERT_EQ(ci.pid(), dci.pid());
             BMQTST_ASSERT_EQ(ci.sessionId(), dci.sessionId());
@@ -397,6 +399,7 @@ static void testN1_decodeFromFile()
             ci.protocolVersion() = bmqp::Protocol::k_VERSION;
             ci.sdkVersion()      = bmqscm::Version::versionAsInt();
             ci.sdkLanguage()     = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+            ci.userAgent()       = "user_agent";
             ci.clientType()      = bmqp_ctrlmsg::ClientType::E_TCPCLIENT;
             ci.pid()             = 9999;
             ci.sessionId()       = 123;
@@ -422,6 +425,7 @@ static void testN1_decodeFromFile()
             BMQTST_ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
             BMQTST_ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
             BMQTST_ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
+            BMQTST_ASSERT_EQ(ci.userAgent(), dci.userAgent());
             BMQTST_ASSERT_EQ(ci.clientType(), dci.clientType());
             BMQTST_ASSERT_EQ(ci.pid(), dci.pid());
             BMQTST_ASSERT_EQ(ci.sessionId(), dci.sessionId());
@@ -454,6 +458,7 @@ static void testN1_decodeFromFile()
             ci.protocolVersion()             = bmqp::Protocol::k_VERSION;
             ci.sdkVersion()                  = bmqscm::Version::versionAsInt();
             ci.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+            ci.userAgent()   = "user_agent";
             ci.clientType()  = bmqp_ctrlmsg::ClientType::E_TCPCLIENT;
             ci.pid()         = 9999;
             ci.sessionId()   = 123;
@@ -482,6 +487,7 @@ static void testN1_decodeFromFile()
             BMQTST_ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
             BMQTST_ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
             BMQTST_ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
+            BMQTST_ASSERT_EQ(ci.userAgent(), dci.userAgent());
             BMQTST_ASSERT_EQ(ci.clientType(), dci.clientType());
             BMQTST_ASSERT_EQ(ci.pid(), dci.pid());
             BMQTST_ASSERT_EQ(ci.sessionId(), dci.sessionId());
