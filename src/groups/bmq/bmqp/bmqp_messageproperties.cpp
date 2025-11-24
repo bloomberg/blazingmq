@@ -184,6 +184,7 @@ MessageProperties_Schema::MessageProperties_Schema(
 {
     bmqp::MessagePropertiesIterator it(&mps);
 
+    d_indices.reserve(mps.numProperties());
     for (int index = 0; it.hasNext(); ++index) {  // starts with '0'
         d_indices.emplace(it.name(), index);
     }
