@@ -280,7 +280,7 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
     }
     ci.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
     ci.userAgent()   = bsl::string("libbmq:", sessionImpl->d_allocator_p) +
-                     bmqscm::Version::version();
+                     bmqscm::Version::s_versionDotString;
 
     // Create the GUID generator
     sessionImpl->d_guidGenerator_sp.createInplace(sessionImpl->d_allocator_p,
