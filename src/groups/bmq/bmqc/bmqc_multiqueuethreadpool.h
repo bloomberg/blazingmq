@@ -27,10 +27,10 @@
 //
 //@DESCRIPTION: This component defines a mechanism,
 // 'bmqc::MultiQueueThreadPool', which encapsulates the common pattern of
-// creating a number of Queues processed by a dedicated thread, using an
-// ObjectPool to create the queue items for performance.  Aside from this
-// common use case, the 'bmqc::MultiQueueThreadPool' offers additional options
-// for its operation:
+// creating a number of Queues processed by a dedicated thread, using a
+// SharedObjectPool to create the queue items for performance.
+// Aside from this common use case, the 'bmqc::MultiQueueThreadPool'
+// offers additional options for its operation:
 // - Creating it with a 'bdlmt::EventScheduler' allows the
 //   'bmqc::MultiQueueThreadPool' to enqueue items on the appropriate queue at
 //   the requested time.
@@ -73,20 +73,21 @@
 // Now, our event handler can simply push the integers it receives into its
 // context vector.
 //..
-//  void eventCb(int queueId, void *context, MQTP::Event *event)
+//  void eventCb(int queueId, void *context, const MQTP::EventSp &event)
 //  {
-//      if (event->type() == MQTP::Event::BMQC_USER) {
+//      if (event) {
+//          // Non-empty `event` means user event
 //          bsl::vector<int> *vec = reinterpret_cast<bsl::vector<int> *>(
 //                                                                    context);
 //          vec->push_back(event->object());
+//      } else {
+//          // Empty `event` means empty queue event
 //      }
 //  }
 //..
-// Notice that the handler first checks the type of event.  'BMQC_USER'
-// indicates that the event was enqueued by the user, and that
-// 'event->object()' is a valid object.  The MQTP can call the callback with
-// several other types of events that are beyond the scope of this simple
-// example.
+// Notice that an empty `event` shared pointer passed to the callback is a
+// a valid case and it means "queue is empty" event.  Non-empty `event` always
+// means a user event.
 //
 // Now, we're ready to create a thread pool and the MQTP using it to process
 // our messages.
@@ -507,10 +508,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// until a `0` event is popped off.
     void processQueue(int queue);
 
-    /// Enqueue the specified `event` on the specified `queue`, or all
-    /// queues if `queue == -1`, if we're not stopped.
-    int enqueueEventImp(bslmf::MovableRef<EventSp> event, int queue);
-
   private:
     // NOT IMPLEMENTED
     MultiQueueThreadPool(const MultiQueueThreadPool&) BSLS_KEYWORD_DELETED;
@@ -552,21 +549,20 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// an EventScheduler in its configuration upon construction.
     int setMonitorAlarmTimeout(const bsls::TimeInterval& timeout);
 
-    /// Get an event that can be enqueued with `enqueueEvent`. The event
-    /// must be passed to one of the `enqueueEvent` methods, or it should be
-    /// released with a call to `releaseUnmanagedEvent`, otherwise it will
-    /// be leaked.
+    /// Get an event that can be enqueued with `enqueueEvent`.
     EventSp getEvent();
 
-    /// Enqueue the specified `event` on the queue with the specified
-    /// `queueId` and return `0` if this `MultiQueueThreadPool` is started,
-    /// and return `-1` otherwise'.  Note that if the requested queue is
-    /// full, this will block.
+    /// @brief Enqueue an event to the specified queue.
+    /// @param event Event to enqueue.
+    /// @param queueId Queue id of the destination queue for the event.
+    /// @return 0 on success, non-zero on failure.
+    /// NOTE: if the requested queue is full, this will block.
     int enqueueEvent(bslmf::MovableRef<EventSp> event, int queueId);
 
-    /// Enqueue the specified `event` on all queues and return `0` if this
-    /// `MultiQueueThreadPool` is started, and return `-1` otherwise'.  Note
-    /// that if any queue is full, this will block.
+    /// @brief Enqueue an event to all queues.
+    /// @param event Event to enqueue.
+    /// @return 0 on success, non-zero on failure.
+    /// NOTE: if the requested queue is full, this will block.
     int enqueueEventOnAllQueues(bslmf::MovableRef<EventSp> event);
 
     /// Block until all queues are empty.  Note that calling this only makes
@@ -801,49 +797,6 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
     }
 }
 
-template <typename TYPE>
-inline int
-MultiQueueThreadPool<TYPE>::enqueueEventImp(bslmf::MovableRef<EventSp> event,
-                                            int                        queue)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(event);
-    BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
-
-    /// Value for the various RC error categories
-    enum RcEnum {
-        /// No error
-        rc_SUCCESS = 0,
-
-        /// An error was encountered while pushing back (queue is disabled)
-        rc_PUSH_BACK_ERROR = -1
-    };
-
-    // Determine start and end queues for which to enqueue
-    int startQueue = queue;
-    int endQueue   = queue + 1;
-    if (queue == -1) {
-        startQueue = 0;
-        endQueue   = static_cast<int>(d_queues.size());
-    }
-
-    // Enqueue on each selected queue
-    int ret = rc_SUCCESS;
-    for (int queueIdx = startQueue; queueIdx < endQueue; ++queueIdx) {
-        QueueInfo& info = d_queues[queueIdx];
-
-        // [try to] Push back item
-        const int pushRet = info.d_queue_p->pushBack(event);
-
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(pushRet != 0)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            ret = 10 * pushRet + rc_PUSH_BACK_ERROR;
-        }
-    }
-
-    return ret;
-}
-
 // CREATORS
 template <typename TYPE>
 inline MultiQueueThreadPool<TYPE>::MultiQueueThreadPool(
@@ -1047,10 +1000,9 @@ MultiQueueThreadPool<TYPE>::enqueueEvent(bslmf::MovableRef<EventSp> event,
     BSLS_ASSERT(0 <= queueId && queueId < numQueues());
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
-    const int ret = enqueueEventImp(bslmf::MovableRefUtil::move(event),
-                                    queueId);
-
-    return ret;
+    // [try to] Push back item
+    return d_queues[queueId].d_queue_p->pushBack(
+        bslmf::MovableRefUtil::move(event));
 }
 
 template <typename TYPE>
@@ -1058,11 +1010,26 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventOnAllQueues(
     bslmf::MovableRef<EventSp> event)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(event);
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
-    const int ret = enqueueEventImp(bslmf::MovableRefUtil::move(event), -1);
+    EventSp eventObj(bslmf::MovableRefUtil::move(event));
 
-    return ret;
+    // Enqueue on each selected queue
+    int lastError = 0;
+    for (size_t queueIdx = 0; queueIdx < d_queues.size(); ++queueIdx) {
+        QueueInfo& info = d_queues[queueIdx];
+
+        // [try to] Push back item
+        const int pushRet = info.d_queue_p->pushBack(eventObj);
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 != pushRet)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            lastError = pushRet;
+        }
+    }
+
+    return lastError;
 }
 
 template <typename TYPE>
