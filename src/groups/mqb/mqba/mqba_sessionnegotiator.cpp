@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -155,6 +155,8 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
         identity->processName() = "*unknown*";
     }
     identity->sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+    identity->userAgent()   = bsl::string("bmqbrkr:") +
+                            mqbscm::Version::version();
 }
 
 void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
@@ -390,6 +392,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     const int clientVersion = clientIdentity.sdkVersion();
     const bmqp_ctrlmsg::ClientLanguage::Value& sdkLanguage =
         clientIdentity.sdkLanguage();
+    const bsl::string&       userAgent = clientIdentity.userAgent();
     const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
 
     if (checkIsUnsupportedSdkVersion(*negotiationContext)) {
