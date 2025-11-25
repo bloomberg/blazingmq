@@ -730,30 +730,22 @@ def with_rollover(queue_uri: str, cluster: Cluster, producer: Client, consumer: 
 
 
 def with_rollover_admin_cmd(
-    queue_uri: str, cluster: Cluster, producer: Client, consumer: Client
+    queue_uri: str,
+    cluster: Cluster,
+    producer: Client,  # pylint: disable=unused-argument
+    consumer: Client,  # pylint: disable=unused-argument
 ):
     """
-    Simulate fixture scenario with rollover
+    Trigger rollover via admin command
     """
-
-    consumer.open(
-        queue_uri,
-        flags=["read"],
-        succeed=True,
-    )
 
     leader = cluster.last_known_leader
 
     for partitionId in range(cluster.config.definition.partition_config.num_partitions):
         leader.trigger_rollover(partitionId, cluster, succeed=True)
 
-    # log that rollover was detected
-    test_logger.info("Rollover detected on queue %s after %d messages", queue_uri, i)
-
     for node in cluster.nodes():
         node.wait_rollover_complete()
-
-    consumer.close(queue_uri, succeed=True)
 
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
