@@ -868,6 +868,10 @@ int parseStoragePartition(StoragePartition* partition,
         command.makeSummary();
         return expectEnd(error, next);  // RETURN
     }
+    else if (equalCaseless(subcommand, "ROLLOVER")) {
+        command.makeRollover();
+        return expectEnd(error, next);  // RETURN
+    }
 
     *error = "Invalid subcommand after CLUSTERS CLUSTER <name> STORAGE "
              "PARTITION <partitionId>: " +
@@ -1140,9 +1144,8 @@ int ParseUtil::parse(Command*                 command,
         int rc = decoder.decode(&jsonStreamBuf, command, options);
         if (rc != 0) {
             bmqu::MemOutStream err;
-            err << "Error decoding JSON command "
-                << "[rc: " << rc << ", error: '" << decoder.loggedMessages()
-                << "']";
+            err << "Error decoding JSON command " << "[rc: " << rc
+                << ", error: '" << decoder.loggedMessages() << "']";
             error->assign(err.str().data(), err.str().length());
             return -1;  // RETURN
         }
