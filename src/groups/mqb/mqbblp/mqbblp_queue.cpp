@@ -761,7 +761,8 @@ void Queue::onPushMessage(
     //       LocalQueue dispatcherEvent method to event warn on that invalid
     //       usage.
 
-    mqbi::DispatcherEvent* dispEvent = dispatcher()->getEvent(this);
+    mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
+        this);
 
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_PUSH)
@@ -773,7 +774,7 @@ void Queue::onPushMessage(
         .setCompressionAlgorithmType(compressionAlgorithmType)
         .setOutOfOrderPush(isOutOfOrder);
 
-    dispatcher()->dispatchEvent(dispEvent, this);
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent), this);
 }
 
 void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
@@ -835,13 +836,14 @@ void Queue::onAckMessage(const bmqp::AckMessage& ackMessage)
     //       LocalQueue dispatcherEvent method to event warn on that invalid
     //       usage.
 
-    mqbi::DispatcherEvent* dispEvent = dispatcher()->getEvent(this);
+    mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
+        this);
 
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_ACK)
         .setAckMessage(ackMessage);
 
-    dispatcher()->dispatchEvent(dispEvent, this);
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent), this);
 }
 
 int Queue::processCommand(mqbcmd::QueueResult*        result,

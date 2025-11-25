@@ -1037,8 +1037,8 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent =
+        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1053,7 +1053,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
                                  bsl::cref(d_partitionInfoVec[partitionId]),
                                  uri));
 
-    fs->dispatchEvent(queueEvent);
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
 }
 
 int StorageManager::updateQueuePrimary(const bmqt::Uri& uri,
@@ -1093,8 +1093,8 @@ void StorageManager::registerQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent =
+        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1110,7 +1110,8 @@ void StorageManager::registerQueueReplica(int                     partitionId,
             appIdKeyPairs,
             domain));
 
-    d_fileStores[partitionId]->dispatchEvent(queueEvent);
+    d_fileStores[partitionId]->dispatchEvent(
+        bslmf::MovableRefUtil::move(queueEvent));
 }
 
 void StorageManager::unregisterQueueReplica(int              partitionId,
@@ -1128,8 +1129,8 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent =
+        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1143,7 +1144,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             queueKey,
             appKey));
 
-    fs->dispatchEvent(queueEvent);
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
 }
 
 void StorageManager::updateQueueReplica(int                     partitionId,
@@ -1162,8 +1163,8 @@ void StorageManager::updateQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent =
+        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1179,7 +1180,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
             appIdKeyPairs,
             domain));
 
-    fs->dispatchEvent(queueEvent);
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
 }
 
 void StorageManager::resetQueue(const bmqt::Uri& uri,
@@ -1196,8 +1197,8 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::DispatcherEvent* queueEvent = fs->dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_QUEUE);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent =
+        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1209,7 +1210,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
                                   uri,
                                   queue_sp));
 
-    fs->dispatchEvent(queueEvent);
+    fs->dispatchEvent(bslmf::MovableRefUtil::move(queueEvent));
 }
 
 int StorageManager::start(bsl::ostream& errorDescription)

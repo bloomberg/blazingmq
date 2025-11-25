@@ -2658,12 +2658,14 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Dispatch the event
-        mqbi::DispatcherEvent*       dispEvent = dispatcher()->getEvent(this);
+        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
+            this);
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_state.d_blobSpPool_p->getObject();
         *blobSp = *(event.blob());
         (*dispEvent).setType(eventType).setSource(this).setBlob(blobSp);
-        dispatcher()->dispatchEvent(dispEvent, this);
+        dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
+                                    this);
     }
 }
 

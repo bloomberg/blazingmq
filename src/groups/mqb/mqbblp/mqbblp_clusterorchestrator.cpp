@@ -1276,7 +1276,7 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // too, otherwise, depending upon thread scheduling, a new node may get
     // certain events "out of order" (some cases were found out while testing).
 
-    mqbi::DispatcherEvent* clusterEvent = dispatcher()->getEvent(
+    mqbi::Dispatcher::DispatcherEventSp clusterEvent = dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_CLUSTER);
 
     (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
@@ -1288,7 +1288,8 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
             bslmf::MovableRefUtil::move(clonedEvent),
             source);
 
-    dispatcher()->dispatchEvent(clusterEvent, d_cluster_p);
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(clusterEvent),
+                                d_cluster_p);
 }
 
 void ClusterOrchestrator::processLeaderSyncStateQuery(

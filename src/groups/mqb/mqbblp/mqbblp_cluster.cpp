@@ -3039,7 +3039,8 @@ void Cluster::processEvent(const bmqp::Event&   event,
     // set to the value specified in 'R'.
 #define DISPATCH_EVENT(T, R)                                                  \
     {                                                                         \
-        mqbi::DispatcherEvent*       _evt = dispatcher()->getEvent(this);     \
+        mqbi::Dispatcher::DispatcherEventSp _evt = dispatcher()->getEvent(    \
+            this);                                                            \
         bsl::shared_ptr<bdlbb::Blob> _blobSp =                                \
             d_clusterData.blobSpPool().getObject();                           \
         *_blobSp = *(event.blob());                                           \
@@ -3049,7 +3050,7 @@ void Cluster::processEvent(const bmqp::Event&   event,
             .setSource(this)                                                  \
             .setBlob(_blobSp)                                                 \
             .setClusterNode(source);                                          \
-        dispatcher()->dispatchEvent(_evt, this);                              \
+        dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(_evt), this); \
     }                                                                         \
     while (0)
 
