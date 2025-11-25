@@ -1,4 +1,4 @@
-// Copyright 2025 Bloomberg Finance L.P.
+// Copyright 2015-2023 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // mqbcfg_messages.cpp            *DO NOT EDIT*            @generated -*-C++-*-
 
 #include <mqbcfg_messages.h>
@@ -194,17 +195,17 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
      "isCSLModeEnabled",
      sizeof("isCSLModeEnabled") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_IS_F_S_M_WORKFLOW,
      "isFSMWorkflow",
      sizeof("isFSMWorkflow") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T,
      "doesFSMwriteQLIST",
      sizeof("doesFSMwriteQLIST") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -300,42 +301,42 @@ const bdlat_AttributeInfo ClusterMonitorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxTimeLeader",
      sizeof("maxTimeLeader") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_MASTER,
      "maxTimeMaster",
      sizeof("maxTimeMaster") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_NODE,
      "maxTimeNode",
      sizeof("maxTimeNode") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_FAILOVER,
      "maxTimeFailover",
      sizeof("maxTimeFailover") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_LEADER,
      "thresholdLeader",
      sizeof("thresholdLeader") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_MASTER,
      "thresholdMaster",
      sizeof("thresholdMaster") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_NODE,
      "thresholdNode",
      sizeof("thresholdNode") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_FAILOVER,
      "thresholdFailover",
      sizeof("thresholdFailover") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -721,47 +722,47 @@ const bdlat_AttributeInfo ElectorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "initialWaitTimeoutMs",
      sizeof("initialWaitTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_RANDOM_WAIT_TIMEOUT_MS,
      "maxRandomWaitTimeoutMs",
      sizeof("maxRandomWaitTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SCOUTING_RESULT_TIMEOUT_MS,
      "scoutingResultTimeoutMs",
      sizeof("scoutingResultTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ELECTION_RESULT_TIMEOUT_MS,
      "electionResultTimeoutMs",
      sizeof("electionResultTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_BROADCAST_PERIOD_MS,
      "heartbeatBroadcastPeriodMs",
      sizeof("heartbeatBroadcastPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_CHECK_PERIOD_MS,
      "heartbeatCheckPeriodMs",
      sizeof("heartbeatCheckPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_MISS_COUNT,
      "heartbeatMissCount",
      sizeof("heartbeatMissCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUORUM,
      "quorum",
      sizeof("quorum") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LEADER_SYNC_DELAY_MS,
      "leaderSyncDelayMs",
      sizeof("leaderSyncDelayMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -948,22 +949,22 @@ const bdlat_AttributeInfo Heartbeat::ATTRIBUTE_INFO_ARRAY[] = {
      "client",
      sizeof("client") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DOWNSTREAM_BROKER,
      "downstreamBroker",
      sizeof("downstreamBroker") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_UPSTREAM_BROKER,
      "upstreamBroker",
      sizeof("upstreamBroker") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLUSTER_PEER,
      "clusterPeer",
      sizeof("clusterPeer") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1052,17 +1053,17 @@ const bdlat_AttributeInfo LogDumpConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "recordBufferSize",
      sizeof("recordBufferSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_RECORDING_LEVEL,
      "recordingLevel",
      sizeof("recordingLevel") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_TRIGGER_LEVEL,
      "triggerLevel",
      sizeof("triggerLevel") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1272,17 +1273,17 @@ const bdlat_AttributeInfo MessagePropertiesV2::ATTRIBUTE_INFO_ARRAY[] = {
      "advertiseV2Support",
      sizeof("advertiseV2Support") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MIN_CPP_SDK_VERSION,
      "minCppSdkVersion",
      sizeof("minCppSdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MIN_JAVA_SDK_VERSION,
      "minJavaSdkVersion",
      sizeof("minJavaSdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1373,22 +1374,22 @@ const bdlat_AttributeInfo MessageThrottleConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "lowThreshold",
      sizeof("lowThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HIGH_THRESHOLD,
      "highThreshold",
      sizeof("highThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOW_INTERVAL,
      "lowInterval",
      sizeof("lowInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HIGH_INTERVAL,
      "highInterval",
      sizeof("highInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2120,62 +2121,62 @@ const bdlat_AttributeInfo QueueOperationsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "openTimeoutMs",
      sizeof("openTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONFIGURE_TIMEOUT_MS,
      "configureTimeoutMs",
      sizeof("configureTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLOSE_TIMEOUT_MS,
      "closeTimeoutMs",
      sizeof("closeTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_TIMEOUT_MS,
      "reopenTimeoutMs",
      sizeof("reopenTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_RETRY_INTERVAL_MS,
      "reopenRetryIntervalMs",
      sizeof("reopenRetryIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_MAX_ATTEMPTS,
      "reopenMaxAttempts",
      sizeof("reopenMaxAttempts") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ASSIGNMENT_TIMEOUT_MS,
      "assignmentTimeoutMs",
      sizeof("assignmentTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_KEEPALIVE_DURATION_MS,
      "keepaliveDurationMs",
      sizeof("keepaliveDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMPTION_MONITOR_PERIOD_MS,
      "consumptionMonitorPeriodMs",
      sizeof("consumptionMonitorPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STOP_TIMEOUT_MS,
      "stopTimeoutMs",
      sizeof("stopTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SHUTDOWN_TIMEOUT_MS,
      "shutdownTimeoutMs",
      sizeof("shutdownTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ACK_WINDOW_SIZE,
      "ackWindowSize",
      sizeof("ackWindowSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2439,7 +2440,7 @@ const bdlat_AttributeInfo StatsPrinterConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "printInterval",
      sizeof("printInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FILE,
      "file",
      sizeof("file") - 1,
@@ -2454,12 +2455,12 @@ const bdlat_AttributeInfo StatsPrinterConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "rotateBytes",
      sizeof("rotateBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ROTATE_DAYS,
      "rotateDays",
      sizeof("rotateDays") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2640,47 +2641,47 @@ const bdlat_AttributeInfo StorageSyncConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "startupRecoveryMaxDurationMs",
      sizeof("startupRecoveryMaxDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_ATTEMPTS_STORAGE_SYNC,
      "maxAttemptsStorageSync",
      sizeof("maxAttemptsStorageSync") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STORAGE_SYNC_REQ_TIMEOUT_MS,
      "storageSyncReqTimeoutMs",
      sizeof("storageSyncReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MASTER_SYNC_MAX_DURATION_MS,
      "masterSyncMaxDurationMs",
      sizeof("masterSyncMaxDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_STATE_REQ_TIMEOUT_MS,
      "partitionSyncStateReqTimeoutMs",
      sizeof("partitionSyncStateReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_DATA_REQ_TIMEOUT_MS,
      "partitionSyncDataReqTimeoutMs",
      sizeof("partitionSyncDataReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STARTUP_WAIT_DURATION_MS,
      "startupWaitDurationMs",
      sizeof("startupWaitDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FILE_CHUNK_SIZE,
      "fileChunkSize",
      sizeof("fileChunkSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_EVENT_SIZE,
      "partitionSyncEventSize",
      sizeof("partitionSyncEventSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2814,7 +2815,7 @@ const bdlat_AttributeInfo SyslogConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "enabled",
      sizeof("enabled") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_APP_NAME,
      "appName",
      sizeof("appName") - 1,
@@ -3088,6 +3089,8 @@ bsl::ostream& TcpClusterNodeConnection::print(bsl::ostream& stream,
 
 const char TcpInterfaceListener::CLASS_NAME[] = "TcpInterfaceListener";
 
+const bool TcpInterfaceListener::DEFAULT_INITIALIZER_TLS = false;
+
 const bdlat_AttributeInfo TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_NAME,
      "name",
@@ -3098,14 +3101,19 @@ const bdlat_AttributeInfo TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[] = {
      "port",
      sizeof("port") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_TLS,
+     "tls",
+     sizeof("tls") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 TcpInterfaceListener::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -3123,6 +3131,7 @@ const bdlat_AttributeInfo* TcpInterfaceListener::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
     case ATTRIBUTE_ID_PORT: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT];
+    case ATTRIBUTE_ID_TLS: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS];
     default: return 0;
     }
 }
@@ -3132,6 +3141,7 @@ const bdlat_AttributeInfo* TcpInterfaceListener::lookupAttributeInfo(int id)
 TcpInterfaceListener::TcpInterfaceListener(bslma::Allocator* basicAllocator)
 : d_name(basicAllocator)
 , d_port()
+, d_tls(DEFAULT_INITIALIZER_TLS)
 {
 }
 
@@ -3140,6 +3150,7 @@ TcpInterfaceListener::TcpInterfaceListener(
     bslma::Allocator*           basicAllocator)
 : d_name(original.d_name, basicAllocator)
 , d_port(original.d_port)
+, d_tls(original.d_tls)
 {
 }
 
@@ -3147,7 +3158,8 @@ TcpInterfaceListener::TcpInterfaceListener(
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original)
     noexcept : d_name(bsl::move(original.d_name)),
-               d_port(bsl::move(original.d_port))
+               d_port(bsl::move(original.d_port)),
+               d_tls(bsl::move(original.d_tls))
 {
 }
 
@@ -3155,6 +3167,7 @@ TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original,
                                            bslma::Allocator* basicAllocator)
 : d_name(bsl::move(original.d_name), basicAllocator)
 , d_port(bsl::move(original.d_port))
+, d_tls(bsl::move(original.d_tls))
 {
 }
 #endif
@@ -3171,6 +3184,7 @@ TcpInterfaceListener::operator=(const TcpInterfaceListener& rhs)
     if (this != &rhs) {
         d_name = rhs.d_name;
         d_port = rhs.d_port;
+        d_tls  = rhs.d_tls;
     }
 
     return *this;
@@ -3184,6 +3198,7 @@ TcpInterfaceListener::operator=(TcpInterfaceListener&& rhs)
     if (this != &rhs) {
         d_name = bsl::move(rhs.d_name);
         d_port = bsl::move(rhs.d_port);
+        d_tls  = bsl::move(rhs.d_tls);
     }
 
     return *this;
@@ -3194,6 +3209,7 @@ void TcpInterfaceListener::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_name);
     bdlat_ValueTypeFunctions::reset(&d_port);
+    d_tls = DEFAULT_INITIALIZER_TLS;
 }
 
 // ACCESSORS
@@ -3206,6 +3222,165 @@ bsl::ostream& TcpInterfaceListener::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("name", this->name());
     printer.printAttribute("port", this->port());
+    printer.printAttribute("tls", this->tls());
+    printer.end();
+    return stream;
+}
+
+// ---------------
+// class TlsConfig
+// ---------------
+
+// CONSTANTS
+
+const char TlsConfig::CLASS_NAME[] = "TlsConfig";
+
+const bdlat_AttributeInfo TlsConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_CERTIFICATE_AUTHORITY,
+     "certificateAuthority",
+     sizeof("certificateAuthority") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_CERTIFICATE,
+     "certificate",
+     sizeof("certificate") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_KEY,
+     "key",
+     sizeof("key") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_VERSIONS,
+     "versions",
+     sizeof("versions") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* TlsConfig::lookupAttributeInfo(const char* name,
+                                                          int nameLength)
+{
+    for (int i = 0; i < 4; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            TlsConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* TlsConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_CERTIFICATE_AUTHORITY:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY];
+    case ATTRIBUTE_ID_CERTIFICATE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE];
+    case ATTRIBUTE_ID_KEY: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY];
+    case ATTRIBUTE_ID_VERSIONS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSIONS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+TlsConfig::TlsConfig(bslma::Allocator* basicAllocator)
+: d_certificateAuthority(basicAllocator)
+, d_certificate(basicAllocator)
+, d_key(basicAllocator)
+, d_versions(basicAllocator)
+{
+}
+
+TlsConfig::TlsConfig(const TlsConfig&  original,
+                     bslma::Allocator* basicAllocator)
+: d_certificateAuthority(original.d_certificateAuthority, basicAllocator)
+, d_certificate(original.d_certificate, basicAllocator)
+, d_key(original.d_key, basicAllocator)
+, d_versions(original.d_versions, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+TlsConfig::TlsConfig(TlsConfig&& original) noexcept
+: d_certificateAuthority(bsl::move(original.d_certificateAuthority)),
+  d_certificate(bsl::move(original.d_certificate)),
+  d_key(bsl::move(original.d_key)),
+  d_versions(bsl::move(original.d_versions))
+{
+}
+
+TlsConfig::TlsConfig(TlsConfig&& original, bslma::Allocator* basicAllocator)
+: d_certificateAuthority(bsl::move(original.d_certificateAuthority),
+                         basicAllocator)
+, d_certificate(bsl::move(original.d_certificate), basicAllocator)
+, d_key(bsl::move(original.d_key), basicAllocator)
+, d_versions(bsl::move(original.d_versions), basicAllocator)
+{
+}
+#endif
+
+TlsConfig::~TlsConfig()
+{
+}
+
+// MANIPULATORS
+
+TlsConfig& TlsConfig::operator=(const TlsConfig& rhs)
+{
+    if (this != &rhs) {
+        d_certificateAuthority = rhs.d_certificateAuthority;
+        d_certificate          = rhs.d_certificate;
+        d_key                  = rhs.d_key;
+        d_versions             = rhs.d_versions;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+TlsConfig& TlsConfig::operator=(TlsConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_certificateAuthority = bsl::move(rhs.d_certificateAuthority);
+        d_certificate          = bsl::move(rhs.d_certificate);
+        d_key                  = bsl::move(rhs.d_key);
+        d_versions             = bsl::move(rhs.d_versions);
+    }
+
+    return *this;
+}
+#endif
+
+void TlsConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_certificateAuthority);
+    bdlat_ValueTypeFunctions::reset(&d_certificate);
+    bdlat_ValueTypeFunctions::reset(&d_key);
+    bdlat_ValueTypeFunctions::reset(&d_versions);
+}
+
+// ACCESSORS
+
+bsl::ostream&
+TlsConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("certificateAuthority",
+                           this->certificateAuthority());
+    printer.printAttribute("certificate", this->certificate());
+    printer.printAttribute("key", this->key());
+    printer.printAttribute("versions", this->versions());
     printer.end();
     return stream;
 }
@@ -4038,7 +4213,7 @@ const bdlat_AttributeInfo LogController::ATTRIBUTE_INFO_ARRAY[] = {
      "bslsLogSeverityThreshold",
      sizeof("bslsLogSeverityThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSOLE_SEVERITY_THRESHOLD,
      "consoleSeverityThreshold",
      sizeof("consoleSeverityThreshold") - 1,
@@ -4320,12 +4495,12 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxCSLFileSize",
      sizeof("maxCSLFileSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PREALLOCATE,
      "preallocate",
      sizeof("preallocate") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS,
      "maxArchivedFileSets",
      sizeof("maxArchivedFileSets") - 1,
@@ -4335,12 +4510,12 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "prefaultPages",
      sizeof("prefaultPages") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN,
      "flushAtShutdown",
      sizeof("flushAtShutdown") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SYNC_CONFIG,
      "syncConfig",
      sizeof("syncConfig") - 1,
@@ -4709,17 +4884,17 @@ const bdlat_AttributeInfo StatPluginConfigPrometheus::ATTRIBUTE_INFO_ARRAY[] =
       "mode",
       sizeof("mode") - 1,
       "",
-      bdlat_FormattingMode::e_DEFAULT},
+      bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
      {ATTRIBUTE_ID_HOST,
       "host",
       sizeof("host") - 1,
       "",
-      bdlat_FormattingMode::e_TEXT},
+      bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
      {ATTRIBUTE_ID_PORT,
       "port",
       sizeof("port") - 1,
       "",
-      bdlat_FormattingMode::e_DEC}};
+      bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -4883,7 +5058,7 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxConnections",
      sizeof("maxConnections") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOW_WATERMARK,
      "lowWatermark",
      sizeof("lowWatermark") - 1,
@@ -4898,17 +5073,17 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "nodeLowWatermark",
      sizeof("nodeLowWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NODE_HIGH_WATERMARK,
      "nodeHighWatermark",
      sizeof("nodeHighWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS,
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LISTENERS,
      "listeners",
      sizeof("listeners") - 1,
@@ -5637,32 +5812,32 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "name",
      sizeof("name") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_SIZE,
      "queueSize",
      sizeof("queueSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK,
      "queueHighWatermark",
      sizeof("queueHighWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_LOW_WATERMARK,
      "queueLowWatermark",
      sizeof("queueLowWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PUBLISH_INTERVAL,
      "publishInterval",
      sizeof("publishInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NAMESPACE_PREFIX,
      "namespacePrefix",
      sizeof("namespacePrefix") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HOSTS,
      "hosts",
      sizeof("hosts") - 1,
@@ -5672,7 +5847,7 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "instanceId",
      sizeof("instanceId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PROMETHEUS_SPECIFIC,
      "prometheusSpecific",
      sizeof("prometheusSpecific") - 1,
@@ -6562,7 +6737,7 @@ const bdlat_AttributeInfo StatsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "snapshotInterval",
      sizeof("snapshotInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PLUGINS,
      "plugins",
      sizeof("plugins") - 1,
@@ -6754,7 +6929,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "latencyMonitorDomain",
      sizeof("latencyMonitorDomain") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DISPATCHER_CONFIG,
      "dispatcherConfig",
      sizeof("dispatcherConfig") - 1,
@@ -6789,20 +6964,25 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "configureStream",
      sizeof("configureStream") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS,
      "advertiseSubscriptions",
      sizeof("advertiseSubscriptions") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS,
      "routeCommandTimeoutMs",
      sizeof("routeCommandTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_AUTHENTICATION,
      "authentication",
      sizeof("authentication") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_TLS_CONFIG,
+     "tlsConfig",
+     sizeof("tlsConfig") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -6811,7 +6991,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 19; ++i) {
+    for (int i = 0; i < 20; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6865,6 +7045,8 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS];
     case ATTRIBUTE_ID_AUTHENTICATION:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION];
+    case ATTRIBUTE_ID_TLS_CONFIG:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG];
     default: return 0;
     }
 }
@@ -6879,6 +7061,7 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_hostDataCenter(basicAllocator)
 , d_latencyMonitorDomain(DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN,
                          basicAllocator)
+, d_tlsConfig(basicAllocator)
 , d_stats(basicAllocator)
 , d_plugins(basicAllocator)
 , d_networkInterfaces(basicAllocator)
@@ -6903,6 +7086,7 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_hostTags(original.d_hostTags, basicAllocator)
 , d_hostDataCenter(original.d_hostDataCenter, basicAllocator)
 , d_latencyMonitorDomain(original.d_latencyMonitorDomain, basicAllocator)
+, d_tlsConfig(original.d_tlsConfig, basicAllocator)
 , d_stats(original.d_stats, basicAllocator)
 , d_plugins(original.d_plugins, basicAllocator)
 , d_networkInterfaces(original.d_networkInterfaces, basicAllocator)
@@ -6928,6 +7112,7 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_hostTags(bsl::move(original.d_hostTags)),
   d_hostDataCenter(bsl::move(original.d_hostDataCenter)),
   d_latencyMonitorDomain(bsl::move(original.d_latencyMonitorDomain)),
+  d_tlsConfig(bsl::move(original.d_tlsConfig)),
   d_stats(bsl::move(original.d_stats)),
   d_plugins(bsl::move(original.d_plugins)),
   d_networkInterfaces(bsl::move(original.d_networkInterfaces)),
@@ -6953,6 +7138,7 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_hostDataCenter(bsl::move(original.d_hostDataCenter), basicAllocator)
 , d_latencyMonitorDomain(bsl::move(original.d_latencyMonitorDomain),
                          basicAllocator)
+, d_tlsConfig(bsl::move(original.d_tlsConfig), basicAllocator)
 , d_stats(bsl::move(original.d_stats), basicAllocator)
 , d_plugins(bsl::move(original.d_plugins), basicAllocator)
 , d_networkInterfaces(bsl::move(original.d_networkInterfaces), basicAllocator)
@@ -6998,6 +7184,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_advertiseSubscriptions = rhs.d_advertiseSubscriptions;
         d_routeCommandTimeoutMs  = rhs.d_routeCommandTimeoutMs;
         d_authentication         = rhs.d_authentication;
+        d_tlsConfig              = rhs.d_tlsConfig;
     }
 
     return *this;
@@ -7027,6 +7214,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_advertiseSubscriptions = bsl::move(rhs.d_advertiseSubscriptions);
         d_routeCommandTimeoutMs  = bsl::move(rhs.d_routeCommandTimeoutMs);
         d_authentication         = bsl::move(rhs.d_authentication);
+        d_tlsConfig              = bsl::move(rhs.d_tlsConfig);
     }
 
     return *this;
@@ -7054,6 +7242,7 @@ void AppConfig::reset()
     d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
     d_routeCommandTimeoutMs  = DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS;
     bdlat_ValueTypeFunctions::reset(&d_authentication);
+    bdlat_ValueTypeFunctions::reset(&d_tlsConfig);
 }
 
 // ACCESSORS
@@ -7085,6 +7274,7 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("routeCommandTimeoutMs",
                            this->routeCommandTimeoutMs());
     printer.printAttribute("authentication", this->authentication());
+    printer.printAttribute("tlsConfig", this->tlsConfig());
     printer.end();
     return stream;
 }
@@ -7365,6 +7555,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.10.23
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

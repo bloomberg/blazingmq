@@ -41,4 +41,4 @@ settings.json
 src/applications/bmqbrkr/etc/etc
 
 # 'sim_cpp11_features.pl' backups
-*.bak
+*.bak 
