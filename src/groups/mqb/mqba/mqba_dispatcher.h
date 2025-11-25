@@ -414,15 +414,15 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
     /// Dispatch the specified `event` to the specified `destination`.
     void
-    dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
+    dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                   mqbi::DispatcherClient* destination) BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the queue associated with the
     /// specified `type` and `handle`.  The behavior is undefined unless the
     /// `event` was obtained by a call to `getEvent`.
-    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
-                       mqbi::DispatcherClientType::Enum     type,
-                       mqbi::Dispatcher::ProcessorHandle    handle)
+    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                       mqbi::DispatcherClientType::Enum       type,
+                       mqbi::Dispatcher::ProcessorHandle      handle)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor` in the processors in charge of
@@ -536,8 +536,8 @@ Dispatcher::getEvent(const mqbi::DispatcherClient* client)
 }
 
 inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
-                          mqbi::DispatcherClient*              destination)
+Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                          mqbi::DispatcherClient*                destination)
 {
     BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
                    << "': " << *event;
@@ -550,9 +550,9 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
 }
 
 inline void
-Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
-                          mqbi::DispatcherClientType::Enum     type,
-                          mqbi::Dispatcher::ProcessorHandle    handle)
+Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                          mqbi::DispatcherClientType::Enum       type,
+                          mqbi::Dispatcher::ProcessorHandle      handle)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);

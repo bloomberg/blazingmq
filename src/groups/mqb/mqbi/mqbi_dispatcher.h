@@ -320,7 +320,7 @@ class Dispatcher {
     // TYPES
 
     typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
-    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRef;
+    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRvRef;
 
     /// Type representing a handle to a processor in the dispatcher.
     typedef int ProcessorHandle;
@@ -382,14 +382,14 @@ class Dispatcher {
     /// Dispatch the specified `event` to the specified `destination`.  The
     /// behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a type matching the one of `destination`.
-    virtual void dispatchEvent(DispatcherEventRef event,
-                               DispatcherClient*  destination) = 0;
+    virtual void dispatchEvent(DispatcherEventRvRef event,
+                               DispatcherClient*    destination) = 0;
 
     /// Dispatch the specified `event` to the processor in charge of clients
     /// of the specified `type` and associated with the specified `handle`.
     /// The behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a matching `type`..
-    virtual void dispatchEvent(DispatcherEventRef         event,
+    virtual void dispatchEvent(DispatcherEventRvRef       event,
                                DispatcherClientType::Enum type,
                                ProcessorHandle            handle) = 0;
 
@@ -1623,7 +1623,7 @@ inline void DispatcherEvent::reset()
         !d_finalizeCallback.empty()) {
         // We only set finalizeCallback on e_DISPATCHER events
 
-        // TODO: make a special event type that handles this case
+        // TODO(678098): make a special event type that handles this case
         d_finalizeCallback();
     }
 

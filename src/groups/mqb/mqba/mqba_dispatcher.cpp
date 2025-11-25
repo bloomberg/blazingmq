@@ -390,7 +390,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
 {
     if (event) {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
-                       << " of " << type << " dispatcher: " << event;
+                       << " of " << type << " dispatcher: " << *event;
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbi::DispatcherDispatcherEvent* realEvent =
                 event->asDispatcherEvent();

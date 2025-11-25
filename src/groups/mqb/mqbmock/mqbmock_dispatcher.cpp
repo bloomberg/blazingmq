@@ -80,14 +80,14 @@ Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
     return mqbi::Dispatcher::DispatcherEventSp();
 }
 
-void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
+void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                                mqbi::DispatcherClient* destination)
 {
     destination->onDispatcherEvent(*event);
 }
 
 void Dispatcher::dispatchEvent(
-    BSLA_UNUSED mqbi::Dispatcher::DispatcherEventRef event,
+    BSLA_UNUSED mqbi::Dispatcher::DispatcherEventRvRef event,
     BSLA_UNUSED mqbi::DispatcherClientType::Enum type,
     BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {

@@ -748,7 +748,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
 
-    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event);
+    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event);
 
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
@@ -1204,7 +1204,7 @@ inline bool FileStore::needRollover(const MappedFileDescriptor& file,
 }
 
 inline void
-FileStore::dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event)
+FileStore::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event)
 {
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event), this);
 }

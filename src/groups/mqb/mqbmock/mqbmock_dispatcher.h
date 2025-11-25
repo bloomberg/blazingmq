@@ -156,16 +156,16 @@ class Dispatcher : public mqbi::Dispatcher {
     /// behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a type matching the one of `destination`.
     void
-    dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
+    dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                   mqbi::DispatcherClient* destination) BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the processor in charge of clients
     /// of the specified `type` and associated with the specified `handle`.
     /// The behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a matching `type`..
-    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRef event,
-                       mqbi::DispatcherClientType::Enum     type,
-                       mqbi::Dispatcher::ProcessorHandle    handle)
+    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                       mqbi::DispatcherClientType::Enum       type,
+                       mqbi::Dispatcher::ProcessorHandle      handle)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor`, using the optionally specified
