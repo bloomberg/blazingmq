@@ -85,8 +85,8 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT(d_processorPool_p->isStarted());
 
     // create an event containing the function to be invoked on the processor
-    bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_processorPool_p->getEvent();
+    bsl::shared_ptr<mqbi::DispatcherEvent> event = d_processorPool_p->getEvent(
+        d_processorHandle);
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -178,7 +178,8 @@ void Dispatcher_ClientExecutor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT(processorPool()->isStarted());
 
     // create an event containing the function to be invoked on the processor
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = processorPool()->getEvent();
+    bsl::shared_ptr<mqbi::DispatcherEvent> event = processorPool()->getEvent(
+        processorHandle());
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_CALLBACK)
@@ -590,7 +591,7 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
         // before any event is being dispatched to this client (since that
         // would cause it to be added to the flush list).
         bsl::shared_ptr<mqbi::DispatcherEvent> event =
-            context.d_processorPool_mp->getEvent();
+            context.d_processorPool_mp->getEvent(handle);
         (*event)
             .setType(mqbi::DispatcherEventType::e_DISPATCHER)
             .setDestination(client);  // TODO: not needed?
@@ -666,7 +667,7 @@ void Dispatcher::executeOnAllQueues(
                    << "queues [hasFinalizeCallback: "
                    << (doneCallback ? "yes" : "no") << "]";
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent = processorPool->getEvent();
+    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent = processorPool->getEvent(0);
     qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
     qEvent->callback().set(functor);
     qEvent->finalizeCallback().set(doneCallback);
@@ -691,7 +692,7 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
     typedef void (bslmt::Semaphore::*PostFn)();
 
     bslmt::Semaphore       semaphore;
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(type);
+    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(0);  // TODO
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(

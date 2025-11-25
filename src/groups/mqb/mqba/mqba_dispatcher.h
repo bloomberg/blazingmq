@@ -400,12 +400,6 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve an event from the pool to send to a client of the specified
-    /// `type`.  This event *must* be enqueued by calling `dispatchEvent`;
-    /// otherwise it will be leaked.
-    bsl::shared_ptr<mqbi::DispatcherEvent>
-    getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
-
     /// Retrieve an event from the pool to send to the specified `client`.
     /// This event *must* be enqueued by calling `dispatchEvent`; otherwise it
     /// will be leaked.
@@ -521,18 +515,14 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
 // MANIPULATORS
 inline bsl::shared_ptr<mqbi::DispatcherEvent>
-Dispatcher::getEvent(mqbi::DispatcherClientType::Enum type)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(type != mqbi::DispatcherClientType::e_UNDEFINED);
-
-    return d_contexts[type]->d_processorPool_mp->getEvent();
-}
-
-inline bsl::shared_ptr<mqbi::DispatcherEvent>
 Dispatcher::getEvent(const mqbi::DispatcherClient* client)
 {
-    return getEvent(client->dispatcherClientData().clientType());
+    const mqbi::DispatcherClientData& data = client->dispatcherClientData();
+    // TODO(678098):
+    // - cache SharedObjectPool in dispatcherClientData
+    // - implement `DispatcherClientData::getEvent`
+    return d_contexts[data.clientType()]->d_processorPool_mp->getEvent(
+        data.processorHandle());
 }
 
 inline void
@@ -598,8 +588,7 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(functor);
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(
-        client.clientType());
+    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(0);  // TODO
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)

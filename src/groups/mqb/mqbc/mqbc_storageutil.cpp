@@ -2403,7 +2403,7 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
             // the addition/removal of those pairs.
 
             mqbi::Dispatcher::DispatcherEventSp queueEvent =
-                dispatcher->getEvent(fs);
+                dispatcher->getEvent(cluster);
 
             (*queueEvent)
                 .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -2440,7 +2440,8 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
     // Dispatch the registration of storage with the partition in appropriate
     // thread.
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent = dispatcher->getEvent(fs);
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = dispatcher->getEvent(
+        cluster);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)

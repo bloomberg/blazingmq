@@ -74,12 +74,6 @@ Dispatcher::getEvent(const mqbi::DispatcherClient* client)
     return iter->second;
 }
 
-mqbi::Dispatcher::DispatcherEventSp
-Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
-{
-    return mqbi::Dispatcher::DispatcherEventSp();
-}
-
 void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                                mqbi::DispatcherClient* destination)
 {

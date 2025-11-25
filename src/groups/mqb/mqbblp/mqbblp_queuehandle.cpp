@@ -550,7 +550,7 @@ void QueueHandle::deliverMessageImpl(
     // Create an event to dispatch delivery of the message to the client
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
     mqbi::Dispatcher::DispatcherEventSp event = client->dispatcher()->getEvent(
-        client);
+        d_queue_sp.get());
     (*event)
         .setType(mqbi::DispatcherEventType::e_PUSH)
         .setSource(d_queue_sp.get())
@@ -811,8 +811,7 @@ void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
     mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        d_queue_sp->dispatcher()->getEvent(
-            mqbi::DispatcherClientType::e_QUEUE);
+        d_queue_sp->dispatcher()->getEvent(d_queue_sp.get());
 
     (*queueEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
 
@@ -1232,7 +1231,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     // known downstream.
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
     mqbi::Dispatcher::DispatcherEventSp event = client->dispatcher()->getEvent(
-        client);
+        d_queue_sp.get());
     (*event)
         .setType(mqbi::DispatcherEventType::e_ACK)
         .setSource(d_queue_sp.get())

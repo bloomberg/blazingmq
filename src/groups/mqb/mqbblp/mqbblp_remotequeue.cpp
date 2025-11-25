@@ -1146,7 +1146,7 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
 
         mqbi::Dispatcher*      dispatcher = queue->dispatcher();
         mqbi::Dispatcher::DispatcherEventSp dispEvent  = dispatcher->getEvent(
-            cluster);
+            d_state_p->queue());
         (*dispEvent)
             .setType(mqbi::DispatcherEventType::e_REJECT)
             .setSource(queue)
@@ -1189,7 +1189,7 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
 
     mqbi::Dispatcher*      dispatcher = queue->dispatcher();
     mqbi::Dispatcher::DispatcherEventSp dispEvent  = dispatcher->getEvent(
-        cluster);
+        d_state_p->queue());
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_CONFIRM)
         .setSource(queue)
