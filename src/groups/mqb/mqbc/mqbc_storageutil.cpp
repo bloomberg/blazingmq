@@ -576,6 +576,23 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
     }
 }
 
+void StorageUtil::forceRollover(mqbcmd::StorageResult* result,
+                                FileStores*            fileStores,
+                                int                    partitionId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+    BSLS_ASSERT_SAFE(fileStores);
+
+    mqbs::FileStore* fs = fileStores->at(partitionId).get();
+    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs->isOpen());
+
+    fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::forceRollover, fs));
+}
+
 void StorageUtil::loadPartitionStorageSummary(
     mqbcmd::StorageResult*   result,
     FileStores*              fileStores,
@@ -1446,8 +1463,8 @@ void StorageUtil::recoveredQueuesCb(
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
     BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
-                  << "]: "
-                  << "Recovered [" << queueKeyInfoMap.size() << "] queues";
+                  << "]: " << "Recovered [" << queueKeyInfoMap.size()
+                  << "] queues";
 
     if (domainFactory == 0) {
         BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
@@ -3551,6 +3568,11 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                         fileStores,
                                         partitionId,
                                         partitionLocation);
+            return 0;  // RETURN
+        }
+
+        if (command.partition().command().isRolloverValue()) {
+            forceRollover(result, fileStores, partitionId);
             return 0;  // RETURN
         }
 
