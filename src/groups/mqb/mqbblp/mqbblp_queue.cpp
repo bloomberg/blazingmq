@@ -762,7 +762,7 @@ void Queue::onPushMessage(
     //       usage.
 
     mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-        this);
+        domain()->cluster());
 
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_PUSH)
@@ -837,7 +837,7 @@ void Queue::onAckMessage(const bmqp::AckMessage& ackMessage)
     //       usage.
 
     mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-        this);
+        domain()->cluster());
 
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_ACK)

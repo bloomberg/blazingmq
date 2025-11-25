@@ -113,19 +113,19 @@
 // we'll enqueue the integers '0', '1', and '2' on the corresponding queue, and
 // then the integer '3' on all the queues.
 //..
-//  MQTP::EventSp event = mfqtp.getEvent();
+//  MQTP::EventSp event = mfqtp.getEvent(0);
 //  event->value() = 0;
 //  mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
 //
-//  event = mfqtp.getEvent();
+//  event = mfqtp.getEvent(0);
 //  event->value() = 1;
 //  mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 1);
 //
-//  event = mfqtp.getEvent();
+//  event = mfqtp.getEvent(0);
 //  event->value() = 2;
 //  mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 2);
 //
-//  event = mfqtp.getEvent();
+//  event = mfqtp.getEvent(0);
 //  event->value() = 3;
 //  mfqtp.enqueueEventOnAllQueues(bslmf::MovableRefUtil::move(event));
 //..
@@ -247,11 +247,6 @@ class MultiQueueThreadPoolConfig {
     typedef TYPE                   Event;
     typedef bsl::shared_ptr<Event> EventSp;
 
-    /// `CreatorFn` is an alias for a functor creating an object of `TYPE`
-    /// in the specified `arena` using the specified `allocator`.
-    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
-        CreatorFn;
-
     typedef MonitoredQueue<bdlcc::SingleConsumerQueue<EventSp> > Queue;
 
     typedef MultiQueueThreadPool_QueueCreatorRet QueueCreatorRet;
@@ -364,21 +359,25 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     // PUBLIC TYPES
     typedef MultiQueueThreadPool<TYPE>       ThisClass;
     typedef MultiQueueThreadPoolConfig<TYPE> Config;
+
     typedef TYPE                             Event;
     typedef bsl::shared_ptr<Event>           EventSp;
+    /// `CreatorFn` is an alias for a functor creating an object of `TYPE`
+    /// in the specified `arena` using the specified `allocator`.
+    typedef bsl::function<void(void* arena, bslma::Allocator* allocator)>
+        CreatorFn;
+    typedef bdlcc::SharedObjectPool<Event,
+                                    CreatorFn,
+                                    bdlcc::ObjectPoolFunctors::Reset<Event> >
+        EventPool;
+
     typedef typename Config::Queue           Queue;
-    typedef typename Config::CreatorFn       CreatorFn;
     typedef typename Config::QueueCreatorRet QueueCreatorRet;
     typedef typename Config::QueueCreatorFn  QueueCreatorFn;
     typedef typename Config::EventFn         EventFn;
 
   private:
     // PRIVATE TYPES
-    typedef bdlcc::SharedObjectPool<Event,
-                                    CreatorFn,
-                                    bdlcc::ObjectPoolFunctors::Reset<Event> >
-        EventPool;
-
     enum MonitorEventState {
         e_MONITOR_PENDING  // an event has been enqueued on the queue but the
                            // next 'processMonitorEvents' hasn't been called
@@ -399,6 +398,13 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
         /// Pointer to context passed at time of the queue creation
         bsl::shared_ptr<void> d_context_p;
+
+        /// Dedicated pool for events used by this queue's thread.
+        /// With the current SharedObjectPool implementation getting
+        /// an object is possibly a slow operation due to mutex lock.
+        /// Releasing an item back to a pool is relatively cheap because
+        /// there is no mutex lock on this path.
+        bsl::shared_ptr<EventPool> d_pool_sp;
 
         /// Name of the queue
         bsl::string d_name;
@@ -432,6 +438,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         explicit QueueInfo(bslma::Allocator* basicAllocator = 0)
         : d_queue_p(0)
         , d_context_p()
+        , d_pool_sp(0, basicAllocator)
         , d_name(basicAllocator)
         , d_monitorState(e_MONITOR_PROCESSED)
         , d_processQueueRefCount(1)
@@ -448,6 +455,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
                            bslma::Allocator* basicAllocator = 0)
         : d_queue_p(other.d_queue_p)
         , d_context_p(other.d_context_p)
+        , d_pool_sp(0, basicAllocator)
         , d_name(other.d_name, basicAllocator)
         , d_monitorState(static_cast<int>(other.d_monitorState))
         , d_processQueueRefCount(
@@ -478,8 +486,6 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     // DATA
     Config d_config;
-
-    EventPool d_pool;
 
     EventSp d_queueEmptyEvent_sp;
 
@@ -550,7 +556,13 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     int setMonitorAlarmTimeout(const bsls::TimeInterval& timeout);
 
     /// Get an event that can be enqueued with `enqueueEvent`.
-    EventSp getEvent();
+    EventSp getEvent(int queueId);
+
+    /// @brief Get a shared pointer to a shared object pool dedicated for the
+    ///        given queue.
+    /// @param queueId Queue id the pool belongs to.
+    /// @return A shared pointer to the shared object pool.
+    bsl::shared_ptr<EventPool> getEventPool(int queueId);
 
     /// @brief Enqueue an event to the specified queue.
     /// @param event Event to enqueue.
@@ -803,11 +815,6 @@ inline MultiQueueThreadPool<TYPE>::MultiQueueThreadPool(
     const Config&     config,
     bslma::Allocator* basicAllocator)
 : d_config(config, basicAllocator)
-, d_pool(bdlf::BindUtil::bind(&MultiQueueThreadPool<TYPE>::eventCreator,
-                              bdlf::PlaceHolders::_1,   // arena
-                              bdlf::PlaceHolders::_2),  // allocator
-         config.d_growBy,
-         basicAllocator)
 , d_queueEmptyEvent_sp(0, basicAllocator)
 , d_queues(config.d_numQueues, QueueInfo(), basicAllocator)
 , d_started(false)
@@ -856,6 +863,13 @@ inline int MultiQueueThreadPool<TYPE>::start()
                                                           static_cast<int>(i),
                                                           d_allocator_p);
         d_queues[i].d_context_p = ret.context();
+        d_queues[i].d_pool_sp   = bsl::allocate_shared<EventPool>(
+            d_allocator_p,
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &MultiQueueThreadPool<TYPE>::eventCreator,
+                                  bdlf::PlaceHolders::_1,   // arena
+                                  bdlf::PlaceHolders::_2),  // allocator
+            d_config.d_growBy);
         if (ret.name().empty()) {
             // Generate a name for the queue
             bsl::ostringstream ss;
@@ -985,9 +999,19 @@ inline int MultiQueueThreadPool<TYPE>::setMonitorAlarmTimeout(
 
 template <typename TYPE>
 inline typename MultiQueueThreadPool<TYPE>::EventSp
-MultiQueueThreadPool<TYPE>::getEvent()
+MultiQueueThreadPool<TYPE>::getEvent(int queueId)
 {
-    return d_pool.getObject();
+    return getEventPool(queueId)->getObject();
+}
+
+template <typename TYPE>
+inline bsl::shared_ptr<typename MultiQueueThreadPool<TYPE>::EventPool>
+MultiQueueThreadPool<TYPE>::getEventPool(int queueId)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= queueId && queueId < numQueues());
+    BSLS_ASSERT_SAFE(d_queues[queueId].d_pool_sp);
+    return d_queues[queueId].d_pool_sp;
 }
 
 template <typename TYPE>
@@ -997,7 +1021,7 @@ MultiQueueThreadPool<TYPE>::enqueueEvent(bslmf::MovableRef<EventSp> event,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event);
-    BSLS_ASSERT(0 <= queueId && queueId < numQueues());
+    BSLS_ASSERT_SAFE(0 <= queueId && queueId < numQueues());
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
     // [try to] Push back item
@@ -1039,15 +1063,18 @@ inline void MultiQueueThreadPool<TYPE>::waitUntilEmpty()
     while (!fullPass) {
         fullPass = true;
         for (size_t i = 0; i < d_queues.size(); ++i) {
-            while (!d_queues[i].d_queue_p->isEmpty()) {
+            QueueInfo& qinfo = d_queues[i];
+
+            while (!qinfo.d_queue_p->isEmpty()) {
                 bslmt::ThreadUtil::yield();
                 fullPass = false;
             }
-        }
 
-        if (d_pool.numObjects() != d_pool.numAvailableObjects()) {
-            bslmt::ThreadUtil::yield();
-            fullPass = false;
+            if (qinfo.d_pool_sp->numObjects() !=
+                qinfo.d_pool_sp->numAvailableObjects()) {
+                bslmt::ThreadUtil::yield();
+                fullPass = false;
+            }
         }
     }
 }

@@ -368,16 +368,9 @@ class Dispatcher {
     /// `client` is not associated with any processor.
     virtual void unregisterClient(DispatcherClient* client) = 0;
 
-    /// Retrieve an event from the event pool to send to the specified
-    /// `client`.  Once populated, the returned event *must* be enqueued for
-    /// processing by calling `dispatchEvent` otherwise it will be leaked.
+    /// Retrieve an event from the event pool dedicated for the specified
+    /// `client`.
     virtual DispatcherEventSp getEvent(const DispatcherClient* client) = 0;
-
-    /// Retrieve an event from the event pool to send to a client of the
-    /// specified `type`.  Once populated, the returned event *must* be
-    /// enqueued for processing by calling `dispatchEvent` otherwise it will
-    /// be leaked.
-    virtual DispatcherEventSp getEvent(DispatcherClientType::Enum type) = 0;
 
     /// Dispatch the specified `event` to the specified `destination`.  The
     /// behavior is undefined unless `event` was obtained by a call to

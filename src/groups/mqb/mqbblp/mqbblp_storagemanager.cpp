@@ -1038,7 +1038,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
     mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
+        fs->dispatcher()->getEvent(d_cluster_p);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1094,7 +1094,7 @@ void StorageManager::registerQueueReplica(int                     partitionId,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
     mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
+        fs->dispatcher()->getEvent(d_cluster_p);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1130,7 +1130,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
     mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
+        fs->dispatcher()->getEvent(d_cluster_p);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1164,7 +1164,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
     mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
+        fs->dispatcher()->getEvent(d_cluster_p);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -1198,7 +1198,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
     mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
+        fs->dispatcher()->getEvent(d_cluster_p);
 
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)

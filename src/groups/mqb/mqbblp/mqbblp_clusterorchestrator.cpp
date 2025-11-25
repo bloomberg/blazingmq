@@ -1277,7 +1277,7 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // certain events "out of order" (some cases were found out while testing).
 
     mqbi::Dispatcher::DispatcherEventSp clusterEvent = dispatcher()->getEvent(
-        mqbi::DispatcherClientType::e_CLUSTER);
+        d_cluster_p);
 
     (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
 

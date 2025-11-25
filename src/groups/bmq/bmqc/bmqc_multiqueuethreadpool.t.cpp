@@ -212,22 +212,22 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(mfqtp.isStarted(), true);
 
     {
-        MQTP::EventSp event = mfqtp.getEvent();
+        MQTP::EventSp event = mfqtp.getEvent(0);
         event->value()      = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
     {
-        MQTP::EventSp event = mfqtp.getEvent();
+        MQTP::EventSp event = mfqtp.getEvent(0);
         event->value()      = 1;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 1);
     }
     {
-        MQTP::EventSp event = mfqtp.getEvent();
+        MQTP::EventSp event = mfqtp.getEvent(0);
         event->value()      = 2;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 2);
     }
     {
-        MQTP::EventSp event = mfqtp.getEvent();
+        MQTP::EventSp event = mfqtp.getEvent(0);
         event->value()      = 3;
         mfqtp.enqueueEventOnAllQueues(bslmf::MovableRefUtil::move(event));
     }
@@ -307,7 +307,7 @@ static void testN1_performance()
     bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
     PRINT("Enqueuing " << k_NUM_ITERATIONS << " items.");
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-        MQTP::EventSp event = mfqtp.getEvent();
+        MQTP::EventSp event = mfqtp.getEvent(0);
         event->value()      = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
@@ -322,7 +322,7 @@ static void testN1_performance()
     PRINT("Enqueuing " << k_NUM_ITERATIONS << " items ...");
     startTime = bsls::TimeUtil::getTimer();
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-        MQTP::EventSp event = mfqtp.getEvent();
+        MQTP::EventSp event = mfqtp.getEvent(0);
         event->value()      = 0;
         mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
     }
@@ -453,7 +453,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
     PRINT("Enqueuing " << k_NUM_ITERATIONS << " items.");
     for (auto _ : state) {
         for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-            MQTP::EventSp event = mfqtp.getEvent();
+            MQTP::EventSp event = mfqtp.getEvent(0);
             event->value()      = 0;
             mfqtp.enqueueEvent(bslmf::MovableRefUtil::move(event), 0);
         }

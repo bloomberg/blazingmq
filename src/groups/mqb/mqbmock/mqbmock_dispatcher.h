@@ -145,13 +145,6 @@ class Dispatcher : public mqbi::Dispatcher {
     mqbi::Dispatcher::DispatcherEventSp
     getEvent(const mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve an event from the event pool to send to a client of the
-    /// specified `type`.  Once populated, the returned event *must* be
-    /// enqueued for processing by calling `dispatchEvent` otherwise it will
-    /// be leaked.
-    mqbi::Dispatcher::DispatcherEventSp
-    getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
-
     /// Dispatch the specified `event` to the specified `destination`.  The
     /// behavior is undefined unless `event` was obtained by a call to
     /// `getEvent` with a type matching the one of `destination`.
