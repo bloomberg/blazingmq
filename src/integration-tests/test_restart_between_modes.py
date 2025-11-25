@@ -729,7 +729,34 @@ def with_rollover(queue_uri: str, cluster: Cluster, producer: Client, consumer: 
     consumer.close(queue_uri, succeed=True)
 
 
-@pytest.fixture(params=[without_rollover, with_rollover])
+def with_rollover_admin_cmd(
+    queue_uri: str, cluster: Cluster, producer: Client, consumer: Client
+):
+    """
+    Simulate fixture scenario with rollover
+    """
+
+    consumer.open(
+        queue_uri,
+        flags=["read"],
+        succeed=True,
+    )
+
+    leader = cluster.last_known_leader
+
+    for partitionId in range(cluster.config.definition.partition_config.num_partitions):
+        leader.trigger_rollover(partitionId, cluster, succeed=True)
+
+    # log that rollover was detected
+    test_logger.info("Rollover detected on queue %s after %d messages", queue_uri, i)
+
+    for node in cluster.nodes():
+        node.wait_rollover_complete()
+
+    consumer.close(queue_uri, succeed=True)
+
+
+@pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
 def optional_rollover(request):
     """
     Fixture to optionally simulate rollover of CSL file.
