@@ -27,11 +27,9 @@
 /// @todo Add commandHandler.
 /// @todo Add statistics.
 
-// MQB
-#include <mqbconfm_messages.h>
-
 // BDE
 #include <ball_log.h>
+#include <bdlb_transparentstringhash.h>
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
@@ -91,15 +89,34 @@ class ConfigProvider {
 
     /// Struct to represent a configuration response entry in the cache.
     struct CacheEntry {
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(CacheEntry, bslma::UsesBslmaAllocator)
+
+        // CREATORS
+
+        /// Create a new object, using the specified `allocator`.  If
+        /// `allocator` is 0, the currently installed default allocator is
+        /// used.
+        explicit CacheEntry(bslma::Allocator* allocator = 0);
+
+        /// Create a copy of the specified `rhs` object.  Use the optionally
+        /// specified `allocator` to supply memory.  If `allocator` is 0, the
+        /// currently installed default allocator is used.
+        CacheEntry(const CacheEntry& rhs, bslma::Allocator* allocator = 0);
+
         // PUBLIC DATA
 
         /// Data to cache.
-        mqbconfm::Response d_data;
+        bsl::string d_data;
         /// Time after which this entry is no longer valid.
         bsls::TimeInterval d_expireTime;
     };
 
-    typedef bsl::unordered_map<bsl::string, CacheEntry> CacheMap;
+    typedef bsl::unordered_map<bsl::string,
+                               CacheEntry,
+                               bdlb::TransparentStringHash,
+                               bsl::equal_to<> >
+        CacheMap;
 
   private:
     // DATA
@@ -120,26 +137,18 @@ class ConfigProvider {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Invoke the script to generate the configuration for the specified
-    /// `domainName` and store the result in the specified `output` on
-    /// success, returning 0; or return a non-zero result code and populate
-    /// `output` with the error on failure.
-    int generateConfig(bsl::string*             output,
-                       const bslstl::StringRef& domainName);
+    /// Lookup entry with the specified `key` in the cache and fill the data in
+    /// the specified `config` if found and expiry time has not yet been
+    /// reached; otherwise return false and leave `config` untouched.  The
+    /// behavior of this function is undefined unless `config` points to a
+    /// valid string object.  Note that if the entry is found but has expired,
+    /// this will erase it from the cache.
+    bool cacheLookup(bsl::string* config, bsl::string_view key);
 
-    /// Lookup entry with the specified `key` in the cache and fill the data
-    /// in the specified `response` if found and expiry time has not yet
-    /// been reached; otherwise return false and leave `response`
-    /// untouched.  Note that if the entry is found but has expired, this
-    /// will erase it from the cache.
-    bool cacheLookup(mqbconfm::Response*      response,
-                     const bslstl::StringRef& key);
-
-    /// Callback when the configuration for the domain has been retrieved,
-    /// in the specified `response` and which should be forwarded to the
-    /// specified `callback`.
-    void onDomainConfigResponseCb(const mqbconfm::Response response,
-                                  const GetDomainConfigCb& callback);
+    /// Add entry with the specified `key` and with the specified `config` as
+    /// data to the cache, resetting its expiry time.  Note that this will
+    /// overwrite any existing entry with the specified `key` in the cache.
+    void cacheAdd(bsl::string_view key, const bsl::string& config);
 
   private:
     // NOT IMPLEMENTED
@@ -173,18 +182,40 @@ class ConfigProvider {
 
     /// Asynchronously get the configuration for the specified `domainName`
     /// and invoke the specified `callback` with the result.
-    void getDomainConfig(const bslstl::StringRef& domainName,
+    void getDomainConfig(bsl::string_view         domainName,
                          const GetDomainConfigCb& callback);
 
     /// Clear all cache if the optionally specified `domainName` is not
     /// provided, else clear only the entry related to `domainName`.
-    void clearCache(const bslstl::StringRef& domainName = "");
+    void clearCache(bsl::string_view domainName = "");
 
     /// Process the specified `command` and write an error message into the
     /// error object if applicable.
     int processCommand(const mqbcmd::ConfigProviderCommand& command,
                        mqbcmd::Error*                       error);
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// ---------------------------------
+// struct ConfigProvider::CacheEntry
+// ---------------------------------
+
+inline ConfigProvider::CacheEntry::CacheEntry(bslma::Allocator* allocator)
+: d_data(allocator)
+, d_expireTime()
+{
+}
+
+inline ConfigProvider::CacheEntry::CacheEntry(
+    const ConfigProvider::CacheEntry& rhs,
+    bslma::Allocator*                 allocator)
+: d_data(rhs.d_data, allocator)
+, d_expireTime(rhs.d_expireTime)
+{
+}
 
 }  // close package namespace
 }  // close enterprise namespace
