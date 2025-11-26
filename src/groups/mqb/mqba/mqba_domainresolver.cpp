@@ -86,12 +86,15 @@ void DomainResolver::updateTimestamps()
     d_timestampsValidUntil = now + k_DIR_CHECK_TTL;
 }
 
-bool DomainResolver::cacheLookup(bsl::string*             resolvedDomainName,
-                                 bsl::string*             clusterName,
-                                 const bslstl::StringRef& domainName)
+bool DomainResolver::cacheLookup(bsl::string*     resolvedDomainName,
+                                 bsl::string*     clusterName,
+                                 bsl::string_view domainName)
 {
     // executed by the thread that holds the 'd_mutex'
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(resolvedDomainName);
+    BSLS_ASSERT_SAFE(clusterName);
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
     CacheMap::const_iterator it = d_cache.find(domainName);
@@ -118,12 +121,14 @@ bool DomainResolver::cacheLookup(bsl::string*             resolvedDomainName,
     return true;
 }
 
-int DomainResolver::getOrRead(bsl::ostream&            errorDescription,
-                              bsl::string*             resolvedDomainName,
-                              bsl::string*             clusterName,
-                              const bslstl::StringRef& domainName)
+int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
+                              bsl::string*     resolvedDomainName,
+                              bsl::string*     clusterName,
+                              bsl::string_view domainName)
 {
     // executed by *ANY* thread
+    BSLS_ASSERT_SAFE(resolvedDomainName);
+    BSLS_ASSERT_SAFE(clusterName);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
@@ -150,7 +155,7 @@ int DomainResolver::getOrRead(bsl::ostream&            errorDescription,
     bsl::string content;
     int         redirection = 0;
 
-    bsl::string redirectedDomainName = domainName;
+    bsl::string redirectedDomainName(domainName, d_allocator_p);
 
     for (; redirection < 2; ++redirection) {
         // 1. read config
@@ -204,7 +209,7 @@ int DomainResolver::getOrRead(bsl::ostream&            errorDescription,
 
             size_t eol = content.find("\n");
             if (eol != bsl::string::npos) {
-                errorDescription << bslstl::StringRef(content.c_str(), eol);
+                errorDescription << bsl::string_view(content.c_str(), eol);
             }
             else {
                 errorDescription << content;
@@ -301,11 +306,15 @@ void DomainResolver::stop()
 }
 
 bmqp_ctrlmsg::Status
-DomainResolver::getOrReadDomain(bsl::string*             resolvedDomainName,
-                                bsl::string*             clusterName,
-                                const bslstl::StringRef& domainName)
+DomainResolver::getOrReadDomain(bsl::string*     resolvedDomainName,
+                                bsl::string*     clusterName,
+                                bsl::string_view domainName)
 {
     // executed by *ANY* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(resolvedDomainName);
+    BSLS_ASSERT_SAFE(clusterName);
 
     bmqu::MemOutStream errorDescription;
 
@@ -325,7 +334,7 @@ DomainResolver::getOrReadDomain(bsl::string*             resolvedDomainName,
 }
 
 void DomainResolver::qualifyDomain(
-    const bslstl::StringRef&                      domainName,
+    bsl::string_view                              domainName,
     const mqbi::DomainFactory::QualifiedDomainCb& callback)
 {
     // executed by *ANY* thread
@@ -339,8 +348,8 @@ void DomainResolver::qualifyDomain(
     callback(status, resolvedDomainName);
 }
 
-void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
-                                  const LocateDomainCb&    callback)
+void DomainResolver::locateDomain(bsl::string_view      domainName,
+                                  const LocateDomainCb& callback)
 {
     // executed by *ANY* thread
 
@@ -353,7 +362,7 @@ void DomainResolver::locateDomain(const bslstl::StringRef& domainName,
     callback(status, clusterName);
 }
 
-void DomainResolver::clearCache(const bslstl::StringRef& domainName)
+void DomainResolver::clearCache(bsl::string_view domainName)
 {
     // executed by *ANY* thread
 
@@ -368,7 +377,8 @@ void DomainResolver::clearCache(const bslstl::StringRef& domainName)
         BALL_LOG_INFO << "Clearing up domain resolver cache for '"
                       << domainName << "'";
 
-        d_cache.erase(domainName);
+        CacheMap::iterator it = d_cache.find(domainName);
+        d_cache.erase(it);
     }
 }
 

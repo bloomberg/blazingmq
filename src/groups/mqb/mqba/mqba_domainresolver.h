@@ -61,6 +61,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
+#include <bdlb_transparentstringhash.h>
 #include <bdlt_datetime.h>
 #include <bsl_functional.h>
 #include <bsl_ostream.h>
@@ -108,6 +109,21 @@ class DomainResolver {
     /// Structure representing the result of resolving a domain in the cache
     /// map.
     struct CacheEntry {
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(CacheEntry, bslma::UsesBslmaAllocator)
+
+        // CREATORS
+
+        /// Create a new object, using the specified `allocator`.  If
+        /// `allocator` is 0, the currently installed default allocator is
+        /// used.
+        explicit CacheEntry(bslma::Allocator* allocator = 0);
+
+        /// Create a copy of the specified `rhs` object.  Use the optionally
+        /// specified `allocator` to supply memory.  If `allocator` is 0, the
+        /// currently installed default allocator is used.
+        CacheEntry(const CacheEntry& rhs, bslma::Allocator* allocator = 0);
+
         // PUBLIC DATA
 
         /// Cached resolved domain name.
@@ -122,7 +138,11 @@ class DomainResolver {
     };
 
     /// Map of domain name to cache entry.
-    typedef bsl::unordered_map<bsl::string, CacheEntry> CacheMap;
+    typedef bsl::unordered_map<bsl::string,
+                               CacheEntry,
+                               bdlb::TransparentStringHash,
+                               bsl::equal_to<> >
+        CacheMap;
 
   private:
     // DATA
@@ -150,38 +170,44 @@ class DomainResolver {
     /// than the TTL time ago.
     void updateTimestamps();
 
-    /// Lookup entry for the specified `domainName` in the cache, and fill
-    /// the data in the specified `resolvedDomainName` and `clusterName` if
-    /// found and not stale; otherwise return false and leave
-    /// `resolvedDomainName` and `clusterName` untouched.  Note that if the
+    /// Lookup entry for the specified `domainName` in the cache, and fill the
+    /// data in the specified `resolvedDomainName` and `clusterName` if found
+    /// and not stale; otherwise return false and leave `resolvedDomainName`
+    /// and `clusterName` untouched.  The behavior of this function is
+    /// undefined unless `resolvedDomainName` points to a valid string object
+    /// and `clusterName` points to a valid string object.  Note that if the
     /// entry is found but has expired, this will erase it from the cache.
     ///
     /// @attention `d_mutex` *MUST* be locked prior to calling this function.
     ///
     /// @attention The caller must call `updateScriptTimestamp()` to update the
     ///            timestamps prior to calling this method.
-    bool cacheLookup(bsl::string*             resolvedDomainName,
-                     bsl::string*             clusterName,
-                     const bslstl::StringRef& domainName);
+    bool cacheLookup(bsl::string*     resolvedDomainName,
+                     bsl::string*     clusterName,
+                     bsl::string_view domainName);
 
     /// Get the data corresponding to the specified `domainName` from the
     /// cache, or query it from the script storing the result in the cache.
     /// Return 0 on success, populating the specified `resolvedDomainName` and
     /// `clusterName` with the result, or return a non-zero value otherwise,
     /// populating the specified `errorDescription` with a description of the
-    /// error otherwise.
-    int getOrRead(bsl::ostream&            errorDescription,
-                  bsl::string*             resolvedDomainName,
-                  bsl::string*             clusterName,
-                  const bslstl::StringRef& domainName);
+    /// error otherwise.  The behavior of this function is undefined unless
+    /// `resolvedDomainName` points to a valid string object and `clusterName`
+    /// points to a valid string object.
+    int getOrRead(bsl::ostream&    errorDescription,
+                  bsl::string*     resolvedDomainName,
+                  bsl::string*     clusterName,
+                  bsl::string_view domainName);
 
     /// Uses `getOrQuery()` to retrieve data corresponding to the specified
     /// `domainName`.  Fills in the specified `resolvedDomainName` and
     /// `clusterName` with the result.  Returns `E_SUCCESS` on success or
-    /// `E_UNKNOWN` otherwise.
-    bmqp_ctrlmsg::Status getOrReadDomain(bsl::string* resolvedDomainName,
-                                         bsl::string* clusterName,
-                                         const bslstl::StringRef& domainName);
+    /// `E_UNKNOWN` otherwise.  The behavior of this function is undefined
+    /// unless `resolvedDomainName` points to a valid string object and
+    /// `clusterName` points to a valid string object.
+    bmqp_ctrlmsg::Status getOrReadDomain(bsl::string*     resolvedDomainName,
+                                         bsl::string*     clusterName,
+                                         bsl::string_view domainName);
 
   private:
     // NOT IMPLEMENTED
@@ -215,17 +241,17 @@ class DomainResolver {
 
     /// Qualify the specified `domainName` and invoke the specified
     /// `callback` with the result.
-    void qualifyDomain(const bslstl::StringRef& domainName,
+    void qualifyDomain(bsl::string_view domainName,
                        const mqbi::DomainFactory::QualifiedDomainCb& callback);
 
     /// Resolve the location of the specified `domainName` and invoke the
     /// specified `callback` with the result.
-    void locateDomain(const bslstl::StringRef& domainName,
-                      const LocateDomainCb&    callback);
+    void locateDomain(bsl::string_view      domainName,
+                      const LocateDomainCb& callback);
 
     /// Clear all cache if the optionally specified `domainName` is not
     /// provided, else clear only the entry related to `domainName`.
-    void clearCache(const bslstl::StringRef& domainName = "");
+    void clearCache(bsl::string_view domainName = "");
 
     /// Process the specified `command`, and write an error message into the
     /// error object if applicable. Return zero on success or a nonzero
@@ -233,6 +259,30 @@ class DomainResolver {
     int processCommand(const mqbcmd::DomainResolverCommand& command,
                        mqbcmd::Error*                       error);
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// ---------------------------------
+// struct DomainResolver::CacheEntry
+// ---------------------------------
+
+inline DomainResolver::CacheEntry::CacheEntry(bslma::Allocator* allocator)
+: d_name(allocator)
+, d_cluster(allocator)
+, d_cfgDirTimestamp()
+{
+}
+
+inline DomainResolver::CacheEntry::CacheEntry(
+    const DomainResolver::CacheEntry& rhs,
+    bslma::Allocator*                 allocator)
+: d_name(rhs.d_name, allocator)
+, d_cluster(rhs.d_cluster, allocator)
+, d_cfgDirTimestamp(rhs.d_cfgDirTimestamp)
+{
+}
 
 }  // close package namespace
 }  // close enterprise namespace
