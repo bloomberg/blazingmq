@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2024-2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,6 +98,7 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
         "clusterName": "",
         "clusterNodeId": -1,
         "sdkLanguage": "E_CPP",
+        "userAgent": "",
         "guidInfo": {"clientId": "fuzztest", "nanoSecondsFromEpoch": 0},
     }
 }
