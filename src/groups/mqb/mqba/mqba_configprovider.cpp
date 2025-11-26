@@ -51,9 +51,10 @@ namespace mqba {
 // class ConfigProvider
 // --------------------
 
-bool ConfigProvider::cacheLookup(bsl::string*             config,
-                                 const bslstl::StringRef& key)
+bool ConfigProvider::cacheLookup(bsl::string* config, bsl::string_view key)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(config);
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
     CacheMap::const_iterator it = d_cache.find(key);
@@ -75,18 +76,18 @@ bool ConfigProvider::cacheLookup(bsl::string*             config,
     return true;
 }
 
-void ConfigProvider::cacheAdd(const bslstl::StringRef& key,
-                              const bsl::string&       config)
+void ConfigProvider::cacheAdd(bsl::string_view key, const bsl::string& config)
 {
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
-    CacheEntry cacheEntry;
+    CacheEntry cacheEntry(d_allocator_p);
     cacheEntry.d_data = config;
     cacheEntry.d_expireTime =
         bmqsys::Time::nowMonotonicClock() +
         bsls::TimeInterval(
             mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
-    d_cache[key] = cacheEntry;
+    d_cache.insert(
+        bsl::make_pair(bsl::string(key, d_allocator_p), cacheEntry));
 }
 
 ConfigProvider::ConfigProvider(bslma::Allocator* allocator)
@@ -114,7 +115,7 @@ void ConfigProvider::stop()
     // NOTHING
 }
 
-void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
+void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
                                      const GetDomainConfigCb& callback)
 {
     enum {
@@ -126,15 +127,15 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     // First, check in the cache
-    bsl::string config;
-    if (cacheLookup(&config, domainName) == true) {
+    bsl::string config(d_allocator_p);
+    if (cacheLookup(&config, domainName)) {
+        // Update the expiration time in the cache.
+        cacheAdd(domainName, config);
+        guard.release()->unlock();  // UNLOCK
+
         BALL_LOG_INFO << "Retrieved config for domain '" << domainName
                       << "' from cache: '" << config << "'";
 
-        // Update the expiration time in the cache.
-        cacheAdd(domainName, config);
-
-        guard.release()->unlock();  // UNLOCK
         callback(e_SUCCESS, config);
         return;  // RETURN
     }
@@ -145,11 +146,11 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
                            domainName + ".json";
 
     if (!bdls::FilesystemUtil::exists(filePath)) {
+        guard.release()->unlock();  // UNLOCK
+
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Domain file '" << filePath << "' doesn't exist";
-
-        guard.release()->unlock();  // UNLOCK
 
         BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
                       << "' from file '" << filePath << "': " << os.str();
@@ -159,11 +160,11 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
 
     bsl::ifstream fileStream(filePath.c_str(), bsl::ios::in);
     if (!fileStream) {
+        guard.release()->unlock();  // UNLOCK
+
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Unable to open domain file '" << filePath << "'";
-
-        guard.release()->unlock();  // UNLOCK
 
         BALL_LOG_INFO << "Failed to retrieve config for domain '" << domainName
                       << "' from file '" << filePath << "': " << os.str();
@@ -177,17 +178,18 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
     fileStream.read(config.data(), config.size());
     fileStream.close();
 
-    BALL_LOG_INFO << "Retrieved config for domain '" << domainName
-                  << "' from file '" << filePath << "': '" << config << "'";
-
     // Insert the newly-found configuration into the cache.
     cacheAdd(domainName, config);
 
     guard.release()->unlock();  // UNLOCK
+
+    BALL_LOG_INFO << "Retrieved config for domain '" << domainName
+                  << "' from file '" << filePath << "': '" << config << "'";
+
     callback(e_SUCCESS, config);
 }
 
-void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
+void ConfigProvider::clearCache(bsl::string_view domainName)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
@@ -197,7 +199,8 @@ void ConfigProvider::clearCache(const bslstl::StringRef& domainName)
     }
     else {
         BALL_LOG_INFO << "Clearing up conf cache for '" << domainName << "'";
-        d_cache.erase(domainName);
+        CacheMap::iterator it = d_cache.find(domainName);
+        d_cache.erase(it);
     }
 }
 
