@@ -272,6 +272,16 @@ struct StorageUtil {
                               FileStores*            fileStores,
                               int                    partitionId);
 
+    /// Initiate the rollover of the partition out of the specified
+    /// `fileStores` having the specified `partitionId`
+    /// and arrive on the specified `latch` upon
+    /// completion.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `partitionId`.
+    static void forceRolloverDispatched(bslmt::Latch*    latch,
+                                        mqbs::FileStore* fs);
+
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
     ///
