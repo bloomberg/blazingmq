@@ -3012,9 +3012,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         rc_JOURNAL_ROLLOVER_POLICY_FAILURE = -1,
         rc_DATA_ROLLOVER_POLICY_FAILURE    = -2,
         rc_QLIST_ROLLOVER_POLICY_FAILURE   = -3,
-        rc_SYNC_POINT_FAILURE              = -4,
-        rc_ROLLOVER_FAILURE                = -5,
-        rc_SYNC_POINT_FORCE_ISSUE_FAILURE  = -6
+        rc_ROLLOVER_FAILURE                = -4
     };
 
     // Note: QList file will be deprecated in FSM workflow.
@@ -3215,6 +3213,37 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     BALL_LOG_INFO << partitionDesc() << "Rollover criteria met. Initiating "
                   << "rollover.";
+
+    activeFileSet->d_journalFileAvailable = true;
+    // Set the availability flag back to true.
+
+    rc = doRollover();
+    if (0 != rc) {
+        return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStore::doRollover()
+{
+    enum {
+        rc_SUCCESS                        = 0,
+        rc_SYNC_POINT_FAILURE             = -1,
+        rc_ROLLOVER_FAILURE               = -2,
+        rc_SYNC_POINT_FORCE_ISSUE_FAILURE = -3
+    };
+
+    int rc = rc_SUCCESS;
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
+    // If JOURNAL is full, it must be marked so, and this routine should
+    // not be invoked.
+
+    BALL_LOG_INFO << partitionDesc() << "Start rollover.";
 
     activeFileSet->d_journalFileAvailable = true;
     // Set the availability flag back to true.

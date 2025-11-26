@@ -921,6 +921,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Initiate a forced rollover of this partition.
     void forceRollover();
 
+    /// Perform complete rollover of this partition and issue necessary sync
+    /// points.
+    int doRollover();
+
     void registerStorage(ReplicatedStorage* storage);
 
     void unregisterStorage(const ReplicatedStorage* storage);

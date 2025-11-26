@@ -578,19 +578,39 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
 
 void StorageUtil::forceRollover(mqbcmd::StorageResult* result,
                                 FileStores*            fileStores,
-                                int                    partitionId)
+                                int                    partitionId
+
+)
 {
     // executed by cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
-    BSLS_ASSERT_SAFE(fileStores);
+
+    bslmt::Latch latch(1);
 
     mqbs::FileStore* fs = fileStores->at(partitionId).get();
+    fs->execute(bdlf::BindUtil::bind(&forceRolloverDispatched, &latch, fs));
+
+    // Wait
+    latch.wait();
+
+    result->makeSuccess();
+}
+
+void StorageUtil::forceRolloverDispatched(bslmt::Latch*    latch,
+                                          mqbs::FileStore* fs)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(latch);
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(fs->isOpen());
 
-    fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::forceRollover, fs));
+    fs->doRollover();
+
+    latch->arrive();
 }
 
 void StorageUtil::loadPartitionStorageSummary(

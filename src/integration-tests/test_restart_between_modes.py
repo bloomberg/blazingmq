@@ -730,7 +730,7 @@ def with_rollover(queue_uri: str, cluster: Cluster, producer: Client, consumer: 
 
 
 def with_rollover_admin_cmd(
-    queue_uri: str,
+    queue_uri: str,  # pylint: disable=unused-argument
     cluster: Cluster,
     producer: Client,  # pylint: disable=unused-argument
     consumer: Client,  # pylint: disable=unused-argument
@@ -742,10 +742,11 @@ def with_rollover_admin_cmd(
     leader = cluster.last_known_leader
 
     for partitionId in range(cluster.config.definition.partition_config.num_partitions):
-        leader.trigger_rollover(partitionId, cluster, succeed=True)
+        test_logger.info("Triggering rollover for partition %d", partitionId)
 
-    for node in cluster.nodes():
-        node.wait_rollover_complete()
+        leader.trigger_rollover(partitionId, succeed=True)
+        # We don't have to wait for rollover to complete message log here,
+        # because we wait for admin command success above.
 
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
