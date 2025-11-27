@@ -131,8 +131,8 @@ class TestBench {
     mqbmock::Dispatcher                 d_dispatcher;
     mqbmock::Cluster                    d_cluster;
     mqbmock::Domain                     d_domain;
-    mqbi::DispatcherEvent               d_event;
-    mqbmock::Dispatcher::EventGuard     d_event_sp;
+    mqbi::Dispatcher::DispatcherEventSp d_event_sp;
+    mqbmock::Dispatcher::EventGuard     d_eventGuard;
     bmqp_ctrlmsg::QueueHandleParameters d_params;
     bmqt::AckResult::Enum               d_status;
     bsl::queue<PutEvent>                d_puts;
@@ -163,8 +163,8 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 : d_dispatcher(allocator_p)
 , d_cluster(allocator_p)
 , d_domain(&d_cluster, allocator_p)
-, d_event(allocator_p)
-, d_event_sp(d_dispatcher._withEvent(&d_cluster, &d_event))
+, d_event_sp(bsl::allocate_shared<mqbi::DispatcherEvent>(allocator_p))
+, d_eventGuard(d_dispatcher._withEvent(&d_cluster, d_event_sp))
 , d_params(allocator_p)
 , d_status(bmqt::AckResult::e_UNKNOWN)
 , d_puts(allocator_p)
@@ -197,7 +197,8 @@ TestBench::~TestBench()
 
     d_cluster.stop();
 
-    d_event.reset();
+    // Reset the event, not the pointer
+    d_event_sp->reset();
 
     bmqsys::Time::shutdown();
 }

@@ -826,8 +826,10 @@ class TestBench {
             guid,
             queueId);
 
-        mqbi::DispatcherEvent event(d_allocator_p);
-        event.setType(mqbi::DispatcherEventType::e_ACK)
+        mqbi::Dispatcher::DispatcherEventSp event =
+            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
+        (*event)
+            .setType(mqbi::DispatcherEventType::e_ACK)
             .setAckMessage(ackMessage);
 
         dispatch(event);
@@ -870,8 +872,10 @@ class TestBench {
                                       &d_bufferFactory,
                                       cat);
 
-        mqbi::DispatcherEvent event(d_allocator_p);
-        event.setType(mqbi::DispatcherEventType::e_PUT)
+        mqbi::Dispatcher::DispatcherEventSp event =
+            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
+        (*event)
+            .setType(mqbi::DispatcherEventType::e_PUT)
             .setIsRelay(true)  // Relay message
             .setSource(&d_cs)  // DispatcherClient *value
             .setPutHeader(putHeader)
@@ -911,9 +915,11 @@ class TestBench {
     {
         PVV("Sending PUSH with queueId=" << queueId << ", guid=" << msgGUID);
 
-        mqbi::DispatcherEvent event(d_allocator_p);
+        mqbi::Dispatcher::DispatcherEventSp event =
+            bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
 
-        event.setType(mqbi::DispatcherEventType::e_PUSH)
+        (*event)
+            .setType(mqbi::DispatcherEventType::e_PUSH)
             .setSource(&d_cs)  // DispatcherClient *value
             .setQueueId(queueId)
             .setBlob(blob)
@@ -1007,11 +1013,11 @@ class TestBench {
 
     /// A method that prepares and calls ClientSession's `dispatch()`
     /// using the specified `event`.
-    void dispatch(mqbi::DispatcherEvent& event)
+    void dispatch(mqbi::Dispatcher::DispatcherEventSp event)
     {
-        EventGuard guard(d_mockDispatcher._withEvent(&d_cs, &event));
+        EventGuard guard(d_mockDispatcher._withEvent(&d_cs, event));
 
-        d_cs.onDispatcherEvent(event);
+        d_cs.onDispatcherEvent(*event);
     }
 
     void verifyPush(bmqp::MessageProperties* properties,
@@ -1934,7 +1940,9 @@ static void test9_newStylePush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
+    mqbi::Dispatcher::DispatcherEventSp putEvent =
+        bsl::allocate_shared<mqbi::DispatcherEvent>(
+            bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
@@ -1946,7 +1954,8 @@ static void test9_newStylePush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    putEvent.setType(mqbi::DispatcherEventType::e_PUT)
+    (*putEvent)
+        .setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .setPutHeader(putIt.header())
@@ -2046,7 +2055,9 @@ static void test10_newStyleCompressedPush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
+    mqbi::Dispatcher::DispatcherEventSp putEvent =
+        bsl::allocate_shared<mqbi::DispatcherEvent>(
+            bmqtst::TestHelperUtil::allocator());
     bmqp::Event           rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
@@ -2058,7 +2069,8 @@ static void test10_newStyleCompressedPush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    putEvent.setType(mqbi::DispatcherEventType::e_PUT)
+    (*putEvent)
+        .setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .setPutHeader(putIt.header())

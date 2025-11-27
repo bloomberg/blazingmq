@@ -448,7 +448,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
-                  << "]: primary node (self) successfully synced the "
+                  << "]: primary node (self) successfully synced the"
                   << " partition. Current leaseId: " << pinfo.primaryLeaseId();
 
     // Update primary status via cluster state manager which will also notify
@@ -510,10 +510,18 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
             d_clusterData_p->electorInfo().electorState() ||
         mqbc::ElectorInfoLeaderStatus::e_PASSIVE ==
             d_clusterData_p->electorInfo().leaderStatus() ||
-        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-            d_clusterData_p->membership().selfNodeStatus()) {
+        (!d_clusterConfig.clusterAttributes().isFSMWorkflow() &&
+         bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+             d_clusterData_p->membership().selfNodeStatus())) {
         // Nothing to do if self is not active leader, or if self is active
         // leader but is stopping.
+
+        // In FSM mode, it is incorrect to check whether self is AVAILABLE,
+        // because self could be healing while another node becomes
+        // unavailable, and in that case self should still be able to reassign
+        // primaries.  In legacy mode, self sets status to AVAILABLE
+        // nonchalantly, and it works out by preventing us from returning
+        // early.
 
         return;  // RETURN
     }
@@ -1072,22 +1080,23 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                 d_clusterData_p->electorInfo().electorState() &&
             mqbc::ElectorInfoLeaderStatus::e_ACTIVE ==
                 d_clusterData_p->electorInfo().leaderStatus()) {
-            // Self is ACTIVE leader.  Although self has sent leader advisory
-            // to 'source' when 'source' came up (see
-            // 'processNodeStateChange'), it sends the advisory again, in case
-            // 'source' ignored the previous advisory due to not recognizing
-            // self as leader.  Although self does send a leader heartbeat to
-            // 'source', but due to race related to thread scheduling, 'source'
-            // may see that heartbeat after the first advisory.
+            // In FSM mode, the Cluster FSM will take care of keeping the
+            // follower up-to-date.
+            if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+                // Self is ACTIVE leader.  Although self has sent leader
+                // advisory to 'source' when 'source' came up (see
+                // 'processNodeStateChange'), it sends the advisory again, in
+                // case 'source' ignored the previous advisory due to not
+                // recognizing self as leader.  Although self does send a
+                // leader heartbeat to 'source', but due to race related to
+                // thread scheduling, 'source' may see that heartbeat after the
+                // first advisory.
 
-            bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
-            mqbc::ClusterUtil::loadPartitionsInfo(&partitions,
-                                                  *clusterState());
-            d_stateManager_mp->sendClusterState(
-                true,  // sendPartitionPrimaryInfo
-                true,  // sendQueuesInfo
-                source,
-                partitions);
+                d_stateManager_mp->sendClusterState(
+                    true,  // sendPartitionPrimaryInfo
+                    true,  // sendQueuesInfo
+                    source);
+            }
         }
         else if (d_clusterConfig.clusterAttributes().isFSMWorkflow() &&
                  source->nodeId() ==
@@ -1188,19 +1197,19 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         }
 
         if (d_clusterData_p->electorInfo().isSelfActiveLeader()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": leader (self) is ACTIVE; will send leader"
-                          << " advisory to new node: "
-                          << node->nodeDescription();
+            // In FSM mode, the Cluster FSM will take care of keeping the
+            // follower up-to-date.
+            if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+                BALL_LOG_INFO
+                    << d_clusterData_p->identity().description()
+                    << ": leader (self) is ACTIVE; will send leader"
+                    << " advisory to new node: " << node->nodeDescription();
 
-            bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
-            mqbc::ClusterUtil::loadPartitionsInfo(&partitions,
-                                                  *clusterState());
-            d_stateManager_mp->sendClusterState(
-                true,  // sendPartitionPrimaryInfo
-                true,  // sendQueuesInfo
-                node,
-                partitions);
+                d_stateManager_mp->sendClusterState(
+                    true,  // sendPartitionPrimaryInfo
+                    true,  // sendQueuesInfo
+                    node);
+            }
         }
 
         // For each partition for which self is primary, notify the storageMgr
@@ -1267,7 +1276,7 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // too, otherwise, depending upon thread scheduling, a new node may get
     // certain events "out of order" (some cases were found out while testing).
 
-    mqbi::DispatcherEvent* clusterEvent = dispatcher()->getEvent(
+    mqbi::Dispatcher::DispatcherEventSp clusterEvent = dispatcher()->getEvent(
         mqbi::DispatcherClientType::e_CLUSTER);
 
     (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
@@ -1279,7 +1288,8 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
             bslmf::MovableRefUtil::move(clonedEvent),
             source);
 
-    dispatcher()->dispatchEvent(clusterEvent, d_cluster_p);
+    dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(clusterEvent),
+                                d_cluster_p);
 }
 
 void ClusterOrchestrator::processLeaderSyncStateQuery(
@@ -1761,6 +1771,17 @@ void ClusterOrchestrator::processLeaderPassiveNotification(
     BSLS_ASSERT_SAFE(notification.choice().isLeaderPassiveValue());
     BSLS_ASSERT_SAFE(notifier);
 
+    if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description()
+            << ": In FSM mode, ignoring **deprecated** leader passive "
+            << "notification: " << notification << ", from peer node '"
+            << notifier->nodeDescription()
+            << ".  This is deprecated because when a node transitions to "
+            << "healed follower, it must already set leader status as ACTIVE.";
+        return;  // RETURN
+    }
+
     if (d_clusterData_p->electorInfo().electorState() !=
         mqbnet::ElectorState::e_LEADER) {
         // This node may have gone from leader to non-leader.
@@ -1808,12 +1829,9 @@ void ClusterOrchestrator::processLeaderPassiveNotification(
     }
 
     // Self is an ACTIVE leader - broadcast 'LeaaderAdvisory'
-    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions;
-    mqbc::ClusterUtil::loadPartitionsInfo(&partitions, *clusterState());
     d_stateManager_mp->sendClusterState(true,  // sendPartitionPrimaryInfo
                                         true,  // sendQueuesInfo
-                                        0,
-                                        partitions);
+                                        0);
 }
 
 void ClusterOrchestrator::onRecoverySuccess()

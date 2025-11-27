@@ -20,6 +20,7 @@ go to the relevant section in the README.md, in this directory.
 """
 
 import queue
+import re
 from time import sleep
 from typing import List
 
@@ -29,6 +30,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     order,
     multi_node,
 )
+from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
@@ -195,3 +197,179 @@ class TestClusterNodeShutdown:
             check_both_received_one_of("msg1", "msg2")
         else:
             check_both_received_one_of("msg2")
+
+    def test_open_queue_while_cluster_blips_quorum(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        Test that if a cluster temporarily loses quorum, clients can still
+        open queues and operate normally once quorum is restored.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        active_replica = cluster.process(self.proxy2.get_active_node())
+
+        # Suspend the other replicas to lose quorum
+        other_replicas = [
+            n for n in cluster.nodes() if n not in (primary, active_replica)
+        ]
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.suspend()
+        sleep(0.5)
+
+        # Producer tries to open a new queue; will not succeed
+        self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.kill()
+
+        assert primary.outputs_regex("LEADER lost quorum")
+
+        # Restart the killed nodes to restore quorum
+        for node in other_replicas:
+            node.start()
+
+        # Now the replica should receive an openQueueReponse
+        assert active_replica.outputs_regex(
+            f"OpenQueueResponse.*{du.uri_priority_2}", timeout=10
+        ), (
+            f"Replica did not receive OpenQueueResponse for {du.uri_priority_2} after quorum restored"
+        )
+
+        # Having a new client to open that queue a second time should succeed
+        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3.open(
+            du.uri_priority_2, flags=["write", "ack"], block=True, timeout=30
+        )
+
+    def test_open_queue_while_cluster_blips_quorum_and_kill_all_non_leader(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        Test that if a cluster temporarily loses quorum, and subsequently all replicas and the client crash, clients can still open
+        queues and operate normally once quorum is restored.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        active_replica = cluster.process(self.proxy2.get_active_node())
+
+        # Suspend the other replicas to lose quorum
+        other_replicas = [
+            n for n in cluster.nodes() if n not in (primary, active_replica)
+        ]
+
+        for node in other_replicas:
+            node.check_exit_code = False
+            node.suspend()
+        sleep(0.5)
+
+        # Producer tries to open a new queue; will not succeed
+        self.producer2.open(du.uri_priority_2, flags=["write", "ack"], block=False)
+
+        # Killing *all* replica nodes and the producer on the new queue.  Now,
+        # no one except the leader should have any idea about this new queue.
+        all_replicas = [active_replica] + other_replicas
+        for task in all_replicas + [self.producer2]:
+            task.check_exit_code = False
+            task.kill()
+
+        assert primary.outputs_regex("LEADER lost quorum")
+
+        # Restart the killed nodes to restore quorum
+        for node in all_replicas:
+            node.start()
+        for node in all_replicas:
+            node.wait_status(wait_leader=True, wait_ready=True)
+
+        # Having a new client to open that queue a second time should succeed
+        self.producer3 = self.proxy2.create_client("producer3")
+        self.producer3.open(du.uri_priority_2, flags=["write", "ack"], block=True)
+
+    def test_open_queue_after_quorum_bump_up(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        """
+        Test that if we bump up elector quorum with admin command so that it becomes higher than the number of nodes,
+        open queue request and the corresponding csl advisory, will get stuck. If we set quorum back, clients still
+        can't open queues.
+        """
+        du = domain_urls
+        cluster = multi_node
+        primary = cluster.last_known_leader
+        proxy = next(cluster.proxy_cycle())
+        active_replica = cluster.process(self.proxy2.get_active_node())
+
+        # Set quorum to unreachable number more than the number of nodes
+        for n in cluster.nodes():
+            n.set_quorum(5, cluster.config.name, True)
+
+        res = self.producer1.open(
+            du.uri_priority_2,
+            flags=["write", "ack"],
+            block=True,
+            timeout=10,
+            no_except=True,
+        )
+        # 10 seconds is enough. The request has got stuck
+        assert res != Client.e_SUCCESS
+
+        # Check that the cluster is still in healthy state
+        admin = AdminClient()
+        admin.connect(primary.config.host, int(primary.config.port))
+        res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.config.name} STATUS")
+        healthy = False
+        for line in res.splitlines():
+            mm = re.search(r"Is Healthy.*\s+(\w+)", line)
+            if mm:
+                if mm.group(1) == "Yes":
+                    healthy = True
+                break
+        assert healthy
+
+        # Set quorum back to its default value (nodes_count/2 + 1)
+        for n in cluster.nodes():
+            n.set_quorum(3, cluster.config.name, True)
+
+        # The advisory is still stuck. It doesn't "know" that the quorum is already less than the number of ACKS it has
+        res = self.producer2.open(
+            du.uri_priority_2,
+            flags=["write", "ack"],
+            block=True,
+            timeout=10,
+            no_except=True,
+        )
+        # 10 seconds is enough. The request has got stuck
+        assert res != Client.e_SUCCESS
+
+        # Restart a node. This must finally trigger the stuck advisory to complete
+        for n in cluster.nodes():
+            if n not in [primary, active_replica]:
+                n.exit_gracefully()
+                rc = n.wait()
+                assert rc == 0
+                n.start()
+                n.wait_until_started()
+                break
+
+        # Now the replica should receive an openQueueReponse
+        assert active_replica.outputs_regex(
+            f"OpenQueueResponse.*{du.uri_priority_2}", timeout=10
+        ), (
+            f"Replica did not receive OpenQueueResponse for {du.uri_priority_2} after quorum restored"
+        )
+
+        # Having a new client to open that queue again should succeed
+        self.producer3 = cluster.create_client("producer3", proxy)
+        res = self.producer3.open(
+            du.uri_priority_2,
+            flags=["write", "ack"],
+            block=True,
+            timeout=10,
+            no_except=True,
+        )
+        assert res == Client.e_SUCCESS

@@ -1145,7 +1145,8 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
             .setMessageGUID(msgGUID);
 
         mqbi::Dispatcher*      dispatcher = queue->dispatcher();
-        mqbi::DispatcherEvent* dispEvent  = dispatcher->getEvent(cluster);
+        mqbi::Dispatcher::DispatcherEventSp dispEvent  = dispatcher->getEvent(
+            cluster);
         (*dispEvent)
             .setType(mqbi::DispatcherEventType::e_REJECT)
             .setSource(queue)
@@ -1153,7 +1154,8 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
             .setPartitionId(d_state_p->partitionId())
             .setIsRelay(true);  // Relay message
                                 // partitionId is needed only by replica
-        dispatcher->dispatchEvent(dispEvent, cluster);
+        dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
+                                  cluster);
     } break;
     default: {
         BSLS_ASSERT(false && "Unknown SubStreamContext state.");
@@ -1186,7 +1188,8 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
         .setMessageGUID(msgGUID);
 
     mqbi::Dispatcher*      dispatcher = queue->dispatcher();
-    mqbi::DispatcherEvent* dispEvent  = dispatcher->getEvent(cluster);
+    mqbi::Dispatcher::DispatcherEventSp dispEvent  = dispatcher->getEvent(
+        cluster);
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_CONFIRM)
         .setSource(queue)
@@ -1194,7 +1197,7 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
         .setPartitionId(d_state_p->partitionId())
         .setIsRelay(true);  // Relay message
                             // partitionId is needed only by replica
-    dispatcher->dispatchEvent(dispEvent, cluster);
+    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent), cluster);
 }
 
 void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
@@ -1584,7 +1587,8 @@ void RemoteQueue::sendPutMessage(
     ph.setQueueId(d_state_p->id());
 
     mqbi::Dispatcher*      dispatcher = d_state_p->queue()->dispatcher();
-    mqbi::DispatcherEvent* dispEvent  = dispatcher->getEvent(cluster);
+    mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher->getEvent(
+        cluster);
     (*dispEvent)
         .setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)  // Relay message
@@ -1595,7 +1599,7 @@ void RemoteQueue::sendPutMessage(
         .setOptions(options)
         .setGenCount(genCount)
         .setState(state);
-    dispatcher->dispatchEvent(dispEvent, cluster);
+    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent), cluster);
 }
 
 void RemoteQueue::onOpenFailure(unsigned int upstreamSubQueueId)

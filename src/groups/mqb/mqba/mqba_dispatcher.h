@@ -345,7 +345,7 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     void queueEventCb(mqbi::DispatcherClientType::Enum type,
                       int                              processorId,
                       void*                            context,
-                      const ProcessorPool::Event*      event);
+                      const ProcessorPool::EventSp&    event);
 
     /// Flush clients of the specified `type` for the specified
     /// `processorId`.
@@ -403,26 +403,26 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// Retrieve an event from the pool to send to a client of the specified
     /// `type`.  This event *must* be enqueued by calling `dispatchEvent`;
     /// otherwise it will be leaked.
-    mqbi::DispatcherEvent*
+    bsl::shared_ptr<mqbi::DispatcherEvent>
     getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
     /// Retrieve an event from the pool to send to the specified `client`.
     /// This event *must* be enqueued by calling `dispatchEvent`; otherwise it
     /// will be leaked.
-    mqbi::DispatcherEvent*
+    bsl::shared_ptr<mqbi::DispatcherEvent>
     getEvent(const mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the specified `destination`.
     void
-    dispatchEvent(mqbi::DispatcherEvent*  event,
+    dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                   mqbi::DispatcherClient* destination) BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the queue associated with the
     /// specified `type` and `handle`.  The behavior is undefined unless the
     /// `event` was obtained by a call to `getEvent`.
-    void dispatchEvent(mqbi::DispatcherEvent*            event,
-                       mqbi::DispatcherClientType::Enum  type,
-                       mqbi::Dispatcher::ProcessorHandle handle)
+    void dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                       mqbi::DispatcherClientType::Enum       type,
+                       mqbi::Dispatcher::ProcessorHandle      handle)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `functor` in the processors in charge of
@@ -520,39 +520,39 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 // ----------------
 
 // MANIPULATORS
-inline mqbi::DispatcherEvent*
+inline bsl::shared_ptr<mqbi::DispatcherEvent>
 Dispatcher::getEvent(mqbi::DispatcherClientType::Enum type)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type != mqbi::DispatcherClientType::e_UNDEFINED);
 
-    return &d_contexts[type]
-                ->d_processorPool_mp->getUnmanagedEvent()
-                ->object();
+    return d_contexts[type]->d_processorPool_mp->getEvent();
 }
 
-inline mqbi::DispatcherEvent*
+inline bsl::shared_ptr<mqbi::DispatcherEvent>
 Dispatcher::getEvent(const mqbi::DispatcherClient* client)
 {
     return getEvent(client->dispatcherClientData().clientType());
 }
 
-inline void Dispatcher::dispatchEvent(mqbi::DispatcherEvent*  event,
-                                      mqbi::DispatcherClient* destination)
+inline void
+Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                          mqbi::DispatcherClient*                destination)
 {
     BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
                    << "': " << *event;
 
     event->setDestination(destination);
 
-    dispatchEvent(event,
+    dispatchEvent(bslmf::MovableRefUtil::move(event),
                   destination->dispatcherClientData().clientType(),
                   destination->dispatcherClientData().processorHandle());
 }
 
-inline void Dispatcher::dispatchEvent(mqbi::DispatcherEvent*            event,
-                                      mqbi::DispatcherClientType::Enum  type,
-                                      mqbi::Dispatcher::ProcessorHandle handle)
+inline void
+Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
+                          mqbi::DispatcherClientType::Enum       type,
+                          mqbi::Dispatcher::ProcessorHandle      handle)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
@@ -564,7 +564,9 @@ inline void Dispatcher::dispatchEvent(mqbi::DispatcherEvent*            event,
     case mqbi::DispatcherClientType::e_SESSION:
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
-        d_contexts[type]->d_processorPool_mp->enqueueEvent(event, handle);
+        d_contexts[type]->d_processorPool_mp->enqueueEvent(
+            bslmf::MovableRefUtil::move(event),
+            handle);
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
     default: {
@@ -583,11 +585,11 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
                      type == mqbi::DispatcherEventType::e_DISPATCHER);
     BSLS_ASSERT_SAFE(functor);
 
-    mqbi::DispatcherEvent* event = getEvent(client);
+    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(client);
 
     (*event).setType(type).callback().set(functor);
 
-    dispatchEvent(event, client);
+    dispatchEvent(bslmf::MovableRefUtil::move(event), client);
 }
 
 inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
@@ -596,14 +598,17 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(functor);
 
-    mqbi::DispatcherEvent* event = getEvent(client.clientType());
+    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(
+        client.clientType());
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
         .set(functor);
 
-    dispatchEvent(event, client.clientType(), client.processorHandle());
+    dispatchEvent(bslmf::MovableRefUtil::move(event),
+                  client.clientType(),
+                  client.processorHandle());
 }
 
 // ACCESSORS

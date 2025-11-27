@@ -701,7 +701,8 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description() << "REJECT";
     } break;
     case bmqp::EventType::e_PUSH: {
-        mqbi::DispatcherEvent*       dispEvent = dispatcher()->getEvent(this);
+        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
+            this);
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -709,10 +710,12 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
             .setType(mqbi::DispatcherEventType::e_PUSH)
             .setSource(this)
             .setBlob(blobSp);
-        dispatcher()->dispatchEvent(dispEvent, this);
+        dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
+                                    this);
     } break;
     case bmqp::EventType::e_ACK: {
-        mqbi::DispatcherEvent*       dispEvent = dispatcher()->getEvent(this);
+        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
+            this);
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -720,7 +723,8 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
             .setType(mqbi::DispatcherEventType::e_ACK)
             .setSource(this)
             .setBlob(blobSp);
-        dispatcher()->dispatchEvent(dispEvent, this);
+        dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(dispEvent),
+                                    this);
     } break;
     case bmqp::EventType::e_UNDEFINED:
     case bmqp::EventType::e_CLUSTER_STATE:
@@ -988,7 +992,8 @@ ClusterProxy::ClusterProxy(
                 statContexts,
                 allocator)
 , d_state(this,
-          0,  // Partition count.  Proxy has no notion of partition.
+          0,      // Partition count.  Proxy has no notion of partition.
+          false,  // isTemporary
           allocator)
 , d_activeNodeManager(d_clusterData.membership().netCluster()->nodes(),
                       description(),

@@ -143,8 +143,8 @@ struct ClusterUtil {
     /// Assign an available node to each partition which is currently
     /// orphan or is assigned to a node which is not available, and load the
     /// results into the specified `partitions`, using the specified
-    /// `clusterState`, `assignmentAlgo`, `clusterData` and `isCSLMode`
-    /// flag.  Note that a healthy partition-node mapping is not modified.
+    /// `clusterState`, `assignmentAlgo`, and `clusterData`.  Note that a
+    /// healthy partition-node mapping is not modified.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -152,8 +152,7 @@ struct ClusterUtil {
         bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions,
         ClusterState*                                    clusterState,
         mqbcfg::MasterAssignmentAlgorithm::Value         assignmentAlgo,
-        const ClusterData&                               clusterData,
-        bool                                             isCSLMode);
+        const ClusterData&                               clusterData);
 
     /// Return the partition id to use for a new queue, taking into account
     /// current load of each partition in the specified `clusterState` and
@@ -272,14 +271,16 @@ struct ClusterUtil {
                  bslma::Allocator*               allocator);
 
     /// Send the current cluster state to follower nodes.  If the specified
-    /// `sendPartitionPrimaryInfo` is true, the specified partition-primary
-    /// mapping `partitions` will be included.  If the specified
-    /// `sendQueuesInfo` is true, queue-partition assignments will be
-    /// included.  If the optionally specified `node` is non-null, send the
-    /// cluster state to that `node` only.  Otherwise, broadcast to all
-    /// followers.  Behavior is undefined unless this node is the leader,
-    /// and at least one of `sendPartitionPrimaryInfo` or `sendQueuesInfo`
-    /// is true.
+    /// `sendPartitionPrimaryInfo` is true, the partition-primary assignments
+    /// will be included.  The optionally specified `newlyAssigned` will be
+    /// sent instead of the current assignments.  If the specified
+    /// `sendQueuesInfo` is true, the queue-partition assignments will be
+    /// included.  The specified `trustCSL` determines whether to trust CSL as
+    /// source of truth.  If the optionally specified `node` is non-null, send
+    /// the cluster state to that `node` only.  Otherwise, broadcast to all
+    /// followers.  Use the specified `allocator` for memory allocations.
+    /// Behavior is undefined unless this node is the leader, and at least one
+    /// of `sendPartitionPrimaryInfo` or `sendQueuesInfo` is true.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -289,8 +290,10 @@ struct ClusterUtil {
         const ClusterState&  clusterState,
         bool                 sendPartitionPrimaryInfo,
         bool                 sendQueuesInfo,
+        bool                 trustCSL,
+        bslma::Allocator*    allocator,
         mqbnet::ClusterNode* node = 0,
-        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
+        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& newlyAssigned =
             bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>());
 
     /// Append to the specified `out` a newly created cluster node
@@ -391,7 +394,7 @@ ClusterUtil::generateNack(bmqt::AckResult::Enum               status,
                                 putHeader.messageGUID(),
                                 putHeader.queueId());
 
-    mqbi::DispatcherEvent* ev = dispatcher->getEvent(source);
+    mqbi::Dispatcher::DispatcherEventSp ev = dispatcher->getEvent(source);
     (*ev).setType(mqbi::DispatcherEventType::e_ACK).setAckMessage(ackMessage);
 
     if (appData) {
@@ -402,7 +405,7 @@ ClusterUtil::generateNack(bmqt::AckResult::Enum               status,
         BSLS_ASSERT_SAFE(!options);
     }
 
-    dispatcher->dispatchEvent(ev, source);
+    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(ev), source);
 }
 
 inline bool ClusterUtil::isValid(const bmqp_ctrlmsg::SyncPoint& syncPoint)
