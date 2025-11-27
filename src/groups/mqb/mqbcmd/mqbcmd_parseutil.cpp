@@ -840,11 +840,17 @@ int parseStoragePartition(StoragePartition* partition,
         return -1;  // RETURN
     }
 
-    if (parseInt(&partition->partitionId(), partitionIdString)) {
-        *error = "Invalid <partitionId> in command CLUSTERS CLUSTER <name> "
-                 "STORAGE PARTITION <partitionId>: " +
-                 partitionIdString;
-        return -1;  // RETURN
+    if (equalCaseless(partitionIdString, "ALL")) {
+        partition->partitionId() = -1;
+    }
+    else {
+        if (parseInt(&partition->partitionId(), partitionIdString)) {
+            *error =
+                "Invalid <partitionId> in command CLUSTERS CLUSTER <name> "
+                "STORAGE PARTITION <partitionId>: " +
+                partitionIdString;
+            return -1;  // RETURN
+        }
     }
 
     StoragePartitionCommand& command    = partition->command();
