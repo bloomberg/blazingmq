@@ -576,9 +576,9 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
     }
 }
 
-void StorageUtil::forceRollover(mqbcmd::StorageResult* result,
-                                FileStores*            fileStores,
-                                int                    partitionId
+void StorageUtil::doRollover(mqbcmd::StorageResult* result,
+                             FileStores*            fileStores,
+                             int                    partitionId
 
 )
 {
@@ -587,24 +587,40 @@ void StorageUtil::forceRollover(mqbcmd::StorageResult* result,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
 
-    bslmt::Latch latch(1);
+    if (partitionId < 0) {
+        executeForEachPartitions(
+            bdlf::BindUtil::bind(&doRolloverDispatched,
+                                 bdlf::PlaceHolders::_2,  // latch
+                                 bdlf::PlaceHolders::_1,  // partitionId
+                                 fileStores),
+            *fileStores);
+    }
+    else {
+        bslmt::Latch latch(1);
 
-    mqbs::FileStore* fs = fileStores->at(partitionId).get();
-    fs->execute(bdlf::BindUtil::bind(&forceRolloverDispatched, &latch, fs));
+        mqbs::FileStore* fs = fileStores->at(partitionId).get();
+        fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
+                                         &latch,
+                                         partitionId,
+                                         fileStores));
 
-    // Wait
-    latch.wait();
+        latch.wait();
+    }
 
     result->makeSuccess();
 }
 
-void StorageUtil::forceRolloverDispatched(bslmt::Latch*    latch,
-                                          mqbs::FileStore* fs)
+void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
+                                       int           partitionId,
+                                       FileStores*   fileStores)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(latch);
+
+    mqbs::FileStore* fs = fileStores->at(partitionId).get();
+
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(fs->isOpen());
 
@@ -3592,7 +3608,7 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
         }
 
         if (command.partition().command().isRolloverValue()) {
-            forceRollover(result, fileStores, partitionId);
+            doRollover(result, fileStores, partitionId);
             return 0;  // RETURN
         }
 

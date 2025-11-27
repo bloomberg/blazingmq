@@ -268,9 +268,9 @@ struct StorageUtil {
     /// `fileStores` having the specified `partitionId`.
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
-    static void forceRollover(mqbcmd::StorageResult* result,
-                              FileStores*            fileStores,
-                              int                    partitionId);
+    static void doRollover(mqbcmd::StorageResult* result,
+                           FileStores*            fileStores,
+                           int                    partitionId);
 
     /// Initiate the rollover of the partition out of the specified
     /// `fileStores` having the specified `partitionId`
@@ -279,8 +279,9 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
-    static void forceRolloverDispatched(bslmt::Latch*    latch,
-                                        mqbs::FileStore* fs);
+    static void doRolloverDispatched(bslmt::Latch* latch,
+                                     int           partitionId,
+                                     FileStores*   fileStores);
 
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
