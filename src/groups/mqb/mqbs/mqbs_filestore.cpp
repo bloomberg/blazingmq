@@ -981,10 +981,13 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     close(*fileSetSp, false);  // flush
 
     // Set max file sizes in recovery file set
-    
-    recoveryFileSet.setJournalFileSize(d_partitionMaxFileSizes.journalFileSize())
-        .setDataFileSize(d_partitionMaxFileSizes.dataFileSize());
-    recoveryFileSet.setQlistFileSize(d_qListAware ? d_partitionMaxFileSizes.qListFileSize()
+    // if overridden value is present, use it.
+    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes = 
+        d_overridenPartitionMaxFileSizes.value_or(d_partitionMaxFileSizes);
+
+    recoveryFileSet.setJournalFileSize(partitionMaxFileSizes.journalFileSize())
+        .setDataFileSize(partitionMaxFileSizes.dataFileSize());
+    recoveryFileSet.setQlistFileSize(d_qListAware ? partitionMaxFileSizes.qListFileSize()
                                                   : 0);
     // Re-open in write mode, grow & map (do not delete on failure).
     bmqu::MemOutStream errorDesc;
@@ -1003,6 +1006,26 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
                        << " mode during recovery. Reason: " << errorDesc.str();
         return rc * 100 + rc_OPEN_FAILURE;  // RETURN
     }
+
+    // Update file header with actual max file size per each file if it is updated
+    // (doesn't match with d_partitionMaxFileSizes)
+    if(fileSetSp->d_dataFile.fileSize() != d_partitionMaxFileSizes.dataFileSize()) {
+        OffsetPtr<FileHeader> fh(fileSetSp->d_dataFile.block(), 0);
+        fh->setMaxFileSize(fileSetSp->d_dataFile.fileSize());
+    }
+
+    if(fileSetSp->d_journalFile.fileSize() != d_partitionMaxFileSizes.journalFileSize()) {
+        OffsetPtr<FileHeader> fh(fileSetSp->d_journalFile.block(), 0);
+        fh->setMaxFileSize(fileSetSp->d_journalFile.fileSize());
+    }
+
+    if (d_qListAware && fileSetSp->d_qlistFile.fileSize() != d_partitionMaxFileSizes.qListFileSize()) {
+        OffsetPtr<FileHeader> fh(fileSetSp->d_qlistFile.block(), 0);
+        fh->setMaxFileSize(fileSetSp->d_qlistFile.fileSize());
+    }
+    
+    // Remember actual max file sizes.
+    d_partitionMaxFileSizes = partitionMaxFileSizes;    
 
     // Update file positions to point to the offsets retrieved in
     // 'recoverMessages' call above.
@@ -2691,12 +2714,21 @@ int FileStore::create(FileSetSp* fileSetSp)
     // d_partitionMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
     // d_partitionMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
 
+    // Make a copy of config and update it with active partition max file sizes 
+    // (override config values)
+    DataStoreConfig dataStoreConfig = d_config;
+    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes = 
+        d_overridenPartitionMaxFileSizes.value_or(d_partitionMaxFileSizes);
+    dataStoreConfig.setMaxDataFileSize(partitionMaxFileSizes.dataFileSize())
+                   .setMaxJournalFileSize(partitionMaxFileSizes.journalFileSize())
+                   .setMaxQlistFileSize(partitionMaxFileSizes.qListFileSize());
+
     bmqu::MemOutStream errorDesc;
     return FileStoreUtil::create(errorDesc,
                                  fileSetSp,
                                  this,
                                  d_config.partitionId(),
-                                 d_config,
+                                 dataStoreConfig,
                                  partitionDesc(),
                                  d_qListAware,
                                  d_allocator_p);
@@ -5186,6 +5218,7 @@ FileStore::FileStore(
                         allocator)
 , d_firstSyncPointAfterRolloverSeqNum()
 , d_partitionMaxFileSizes()
+, d_overridenPartitionMaxFileSizes()
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);

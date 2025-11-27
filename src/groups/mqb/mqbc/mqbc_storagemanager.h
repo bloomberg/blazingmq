@@ -713,6 +713,9 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_findHighestFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
+    void
+    do_overrideMaxFileSizes(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
     void do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 

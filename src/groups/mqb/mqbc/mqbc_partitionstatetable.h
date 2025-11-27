@@ -292,6 +292,8 @@ class PartitionStateTableActions {
 
     virtual void do_findHighestFileSizes(const ARGS& args) = 0;
 
+    virtual void do_overrideMaxFileSizes(const ARGS& args) = 0;
+
     virtual void do_flagFailedReplicaSeq(const ARGS& args) = 0;
 
     virtual void do_transitionToActivePrimary(const ARGS& args) = 0;
@@ -345,7 +347,7 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_closeRecoveryFileSet_attemptOpenStorage(
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
         const ARGS& args);
 
         void
@@ -489,7 +491,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             SELF_UPDATE_STORAGE_SIZES,
-            closeRecoveryFileSet_attemptOpenStorage,
+            closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage,
             PRIMARY_HEALING_STG1);            
         PST_CFG(
             PRIMARY_HEALING_STG1,
@@ -883,10 +885,11 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_closeRecoveryFileSet_attemptOpenStorage(
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
         const ARGS& args)
 {
     do_closeRecoveryFileSet(args);
+    do_overrideMaxFileSizes(args);
     do_attemptOpenStorage(args);
 }
 
