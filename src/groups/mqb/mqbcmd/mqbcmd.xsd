@@ -1056,9 +1056,10 @@
 
   <complexType name="StoragePartitionCommand">
     <choice>
-      <element name="enable"  type="tns:Void"/>
-      <element name="disable" type="tns:Void"/>
-      <element name="summary" type="tns:Void"/>
+      <element name="enable"   type="tns:Void"/>
+      <element name="disable"  type="tns:Void"/>
+      <element name="summary"  type="tns:Void"/>
+      <element name="rollover" type="tns:Void"/>
     </choice>
   </complexType>
 

@@ -264,6 +264,25 @@ struct StorageUtil {
                                 int                      partitionId,
                                 const bslstl::StringRef& partitionLocation);
 
+    /// Initiate the rollover of the partition out of the specified
+    /// `fileStores` having the specified `partitionId`.
+    ///
+    /// THREAD: Executed by the cluster-dispatcher thread.
+    static void doRollover(mqbcmd::StorageResult* result,
+                           FileStores*            fileStores,
+                           int                    partitionId);
+
+    /// Initiate the rollover of the partition out of the specified
+    /// `fileStores` having the specified `partitionId`
+    /// and arrive on the specified `latch` upon
+    /// completion.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `partitionId`.
+    static void doRolloverDispatched(bslmt::Latch* latch,
+                                     int           partitionId,
+                                     FileStores*   fileStores);
+
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
     ///
