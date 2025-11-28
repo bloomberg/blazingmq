@@ -514,6 +514,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     processReplicaDataRequestDrop(const bmqp_ctrlmsg::ControlMessage& message,
                                   mqbnet::ClusterNode*                source);
 
+    /// Process replica data request of type RESIZE received from the specified
+    /// `source` with the specified `message`.
+    void
+    processReplicaDataRequestResize(const bmqp_ctrlmsg::ControlMessage& message,
+                                    mqbnet::ClusterNode*                source);
+                                    
     /// Process the PrimaryStateResponse contained in the specified
     /// `context` from the specified `responder`.
     ///
@@ -658,6 +664,12 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     void do_failureReplicaDataResponsePush(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataRequestResize(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataResponseResize(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
     void

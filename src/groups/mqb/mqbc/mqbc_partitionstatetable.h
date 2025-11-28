@@ -138,8 +138,12 @@ struct PartitionStateTableEvent {
         e_WATCH_DOG                    = 30,
         e_STOP_NODE                    = 31,
         e_QUORUM_REPLICA_FILE_SIZES    = 32,
-        e_SELF_UPDATE_STORAGE_SIZES    = 33,
-        e_NUM_EVENTS                   = 34
+        e_SELF_RESIZE_STORAGE          = 33,
+        e_REPLICA_RESIZE_STORAGE       = 34,
+        e_REPLICA_DATA_RQST_RESIZE     = 35,
+        e_REPLICA_DATA_RSPN_RESIZE     = 36,
+        e_FAIL_REPLICA_DATA_RSPN_RESIZE = 37,
+        e_NUM_EVENTS                   = 38
     };
 
     // CLASS METHODS
@@ -255,6 +259,10 @@ class PartitionStateTableActions {
 
     virtual void do_failureReplicaDataResponsePush(const ARGS& args) = 0;
 
+    virtual void do_replicaDataRequestResize(const ARGS& args) = 0;
+
+    virtual void do_replicaDataResponseResize(const ARGS& args) = 0;
+
     virtual void do_bufferLiveData(const ARGS& args) = 0;
 
     virtual void do_processBufferedLiveData(const ARGS& args) = 0;
@@ -350,7 +358,11 @@ class PartitionStateTableActions {
     do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage(
         const ARGS& args);
 
-        void
+    void
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize(
+        const ARGS& args);
+
+    void
     do_closeRecoveryFileSet_attemptOpenStorage_replicaDataRequestPush_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
@@ -490,8 +502,13 @@ class PartitionStateTable
                 PRIMARY_HEALING_STG1);
         PST_CFG(
             PRIMARY_HEALING_STG1,
-            SELF_UPDATE_STORAGE_SIZES,
+            SELF_RESIZE_STORAGE,
             closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage,
+            PRIMARY_HEALING_STG1);            
+        PST_CFG(
+            PRIMARY_HEALING_STG1,
+            REPLICA_RESIZE_STORAGE,
+            replicaDataRequestResize,
             PRIMARY_HEALING_STG1);            
         PST_CFG(
             PRIMARY_HEALING_STG1,
@@ -619,6 +636,10 @@ class PartitionStateTable
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_DROP,
                 replicaDataResponseDrop_removeStorage_reapplyDetectSelfReplica,
+                REPLICA_HEALING);
+        PST_CFG(REPLICA_HEALING,
+                REPLICA_DATA_RQST_RESIZE,
+                closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 RECOVERY_DATA,
@@ -892,6 +913,19 @@ void PartitionStateTableActions<ARGS>::
     do_overrideMaxFileSizes(args);
     do_attemptOpenStorage(args);
 }
+
+
+template <typename ARGS>
+void PartitionStateTableActions<ARGS>::
+    do_closeRecoveryFileSet_overrideMaxFileSizes_attemptOpenStorage_replicaDataResponseResize(
+        const ARGS& args)
+{
+    do_closeRecoveryFileSet(args);
+    do_overrideMaxFileSizes(args);
+    do_attemptOpenStorage(args);
+    do_replicaDataResponseResize(args);
+}
+
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::

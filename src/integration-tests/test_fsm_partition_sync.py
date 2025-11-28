@@ -21,6 +21,7 @@ import glob
 import json
 from pathlib import Path
 import subprocess
+import time
 
 import pytest
 
@@ -99,6 +100,35 @@ def _compare_journal_files(
 
         # Check that content of leader and replica journal files is equal
         assert leader_res.stdout == replica_res.stdout
+
+
+def _compare_partition_file_headers(
+    leader_name: str, replica_name: str, cluster: Cluster, pattern: str
+) -> None:
+    """Compare leader and replica files headers for the given pattern,
+        and assert that they are equal."""
+    leader_files = glob.glob(
+        str(cluster.work_dir.joinpath(leader_name, "storage")) + pattern
+    )
+    replica_files = glob.glob(
+        str(cluster.work_dir.joinpath(replica_name, "storage")) + pattern
+    )
+
+    # Check that number of files equal to partitions number
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+    assert len(leader_files) == num_partitions
+    assert len(replica_files) == num_partitions
+
+    # Check that content of leader and replica file headers is equal
+    FILE_HEADER_SIZE = 32  # see mqbs_filestoreprotocol.h
+    for leader_file, replica_file in zip(
+        sorted(leader_files),
+        sorted(replica_files),
+    ):
+        with open(leader_file, "rb") as lf, open(replica_file, "rb") as rf:
+            leader_header = lf.read(FILE_HEADER_SIZE)
+            replica_header = rf.read(FILE_HEADER_SIZE)
+            assert leader_header == replica_header
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -474,25 +504,25 @@ def test_debug(
     assert False, "Just to capture debug logs"
 
 
-REPLICA_MAX_JOURNAL_FILE_SIZE = 60*20
-REPLICA_MAX_DATA_FILE_SIZE = 512
-REPLICA_MAX_QLIST_FILE_SIZE = 384
+CLUSTER_MAX_JOURNAL_FILE_SIZE = 60*20
+CLUSTER_MAX_DATA_FILE_SIZE = 512
+CLUSTER_MAX_QLIST_FILE_SIZE = 384
 
 @start_cluster(False)
 @tweak.cluster.elector.quorum(4)
-@tweak.cluster.partition_config.max_journal_file_size(REPLICA_MAX_JOURNAL_FILE_SIZE)
-@tweak.cluster.partition_config.max_data_file_size(REPLICA_MAX_DATA_FILE_SIZE)
-@tweak.cluster.partition_config.max_qlist_file_size(REPLICA_MAX_QLIST_FILE_SIZE)
-def test_primary_file_sizes_sync_at_startup(
+@tweak.cluster.partition_config.max_journal_file_size(CLUSTER_MAX_JOURNAL_FILE_SIZE)
+@tweak.cluster.partition_config.max_data_file_size(CLUSTER_MAX_DATA_FILE_SIZE)
+@tweak.cluster.partition_config.max_qlist_file_size(CLUSTER_MAX_QLIST_FILE_SIZE)
+def test_primary_partition_size_sync_at_startup(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
     Test primary partition file sizes synchronization with cluster due to cluster misconfig.
     - update `east1` node config to have smaller partition file sizes than cluster config
-    - start cluster
-    - put 2 messages
-    - check that primary is synchronized with replica (primary and replica partition files headers are equal)
+    - start cluster with `east1` as a leader
+    - put 2 messages to fill storage files
+    - check that primary's partition size is synchronized with replica one (primary and replica partition file headers are equal)
     """
     cluster: Cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
@@ -507,9 +537,9 @@ def test_primary_file_sizes_sync_at_startup(
     ) as f:
         data = json.load(f)
         data["myClusters"][0]["elector"]["quorum"] = 0   # to be a leader
-        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = REPLICA_MAX_JOURNAL_FILE_SIZE - 60
-        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = REPLICA_MAX_DATA_FILE_SIZE - 256
-        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = REPLICA_MAX_QLIST_FILE_SIZE - 128
+        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
+        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
+        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = CLUSTER_MAX_QLIST_FILE_SIZE - 128
         f.seek(0)
         json.dump(data, f, indent=4)
         f.truncate()
@@ -531,45 +561,93 @@ def test_primary_file_sizes_sync_at_startup(
     consumer = leader.create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    # Put 2 messages with confirms
+    # Put 2 messages with confirms to fill storage files
     for i in range(1, 3):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
         consumer.wait_push_event()
         consumer.confirm(uri_priority, "*", succeed=True)
 
-    def compare_partition_file_headers(
-        leader_name: str, replica_name: str, cluster: Cluster, pattern: str
-    ) -> None:
-        """Compare leader and replica files headers, and assert that they are equal."""
-        leader_files = glob.glob(
-            str(cluster.work_dir.joinpath(leader_name, "storage")) + pattern
-        )
-        replica_files = glob.glob(
-            str(cluster.work_dir.joinpath(replica_name, "storage")) + pattern
-        )
+    # Stop cluster to flush storage files
+    cluster.stop_nodes()
 
-        # Check that number of journal files equal to partitions number
-        num_partitions = cluster.config.definition.partition_config.num_partitions
-        assert len(leader_files) == num_partitions
-        assert len(replica_files) == num_partitions
-
-        # Check that content of leader and replica journal files headers are equal
-        FILE_HEADER_SIZE = 32  # see mqbs_filestoreprotocol.h
-        for leader_file, replica_file in zip(
-            sorted(leader_files),
-            sorted(replica_files),
-        ):
-            with open(leader_file, "rb") as lf, open(replica_file, "rb") as rf:
-                leader_header = lf.read(FILE_HEADER_SIZE)
-                replica_header = rf.read(FILE_HEADER_SIZE)
-                assert leader_header == replica_header
-
+    # Choose replica
     replica = cluster.nodes(exclude=leader)[0]
 
-    compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
-    compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_journal")
-    compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
+    # Check that leader and replica partition files headers are equal
+    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
+    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_journal")
+    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
+
+
+@start_cluster(False)
+@tweak.cluster.elector.quorum(4)
+@tweak.cluster.partition_config.max_journal_file_size(CLUSTER_MAX_JOURNAL_FILE_SIZE)
+@tweak.cluster.partition_config.max_data_file_size(CLUSTER_MAX_DATA_FILE_SIZE)
+@tweak.cluster.partition_config.max_qlist_file_size(CLUSTER_MAX_QLIST_FILE_SIZE)
+def test_replica_partition_size_sync_at_startup(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test replica partition file sizes synchronization with cluster due to cluster misconfig.    
+    - update `east2` node config to have smaller partition file sizes than cluster config
+    - start cluster with `east1` as a leader
+    - put 2 messages to fill storage files
+    - check that primary is synchronized with replica (primary and replica partition files headers are equal)
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    # Modify cluster config for node "east2" by setting smaller file sizes than the cluster config
+    with open(
+        cluster.work_dir.joinpath(
+            cluster.config.nodes["east2"].config_dir, "clusters.json"
+        ),
+        "r+",
+        encoding="utf-8",
+    ) as f:
+        data = json.load(f)
+        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
+        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
+        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = CLUSTER_MAX_QLIST_FILE_SIZE - 128
+        f.seek(0)
+        json.dump(data, f, indent=4)
+        f.truncate()
+
+    # Start cluster nodes
+    leader = cluster.start_node("east1")
+    leader.set_quorum(0) # to be a leader
+    replica = cluster.start_node("east2")
+    time.sleep(2)  # ensure east2 starts before others
+    cluster.start_node("west1")
+    cluster.start_node("west2")
+
+    # Wait until "east1" becomes a leader and cluster is ready
+    leader.wait_status(wait_leader=True, wait_ready=True)
+    assert leader == leader.last_known_leader
+
+    # Create producer and consumer
+    producer = leader.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = leader.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put 2 messages with confirms to fill storage files
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
+
+    # Stop cluster to flush storage files
+    cluster.stop_nodes()
+
+    # Check that leader and replica partition files headers are equal
+    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
+    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_journal")
+    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
 
     # assert False, "Just to capture debug logs"
 

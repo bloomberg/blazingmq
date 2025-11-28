@@ -786,13 +786,15 @@
         This type represents a request sent to the replica by the primary to
         start the synchronization of data.
 
-        replicaDataType:     type of request i.e. PULL, PUSH or DROP for
-                             corresponding partition.
+        replicaDataType:     type of request i.e. PULL, PUSH, DROP or RESIZE
+                             for corresponding partition.
         partitionId:         partition id for corresponding partition.
         beginSequenceNumber: Primary's begin sequence number for corresponding
                              partition for corresponding data chunks.
         endSequenceNumber:   Primary's end sequence number for corresponding
                              partition for corresponding data chunks.
+        partitionMaxFileSizes: Maximum journal/data/qlist file sizes for 
+                             corresponding partition.
       </documentation>
     </annotation>
     <sequence>
@@ -800,6 +802,7 @@
       <element name='partitionId'         type='int'/>
       <element name='beginSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='endSequenceNumber'   type='tns:PartitionSequenceNumber'/>
+      <element name='partitionMaxFileSizes' type='tns:PartitionMaxFileSizes'/>
     </sequence>
   </complexType>
 
@@ -809,7 +812,7 @@
         This type represents a response sent by a replica to the primary for
         the data synchronization request received by it.
 
-        replicaDataType:     type of request received i.e. PULL, PUSH or DROP
+        replicaDataType:     type of request received i.e. PULL, PUSH, DROP or RESIZE
                              for corresponding partition. Note, this field will
                              be set as per the request received and the primary
                              purpose of sending this field back in response is
@@ -819,6 +822,8 @@
                              partition for corresponding data chunks.
         endSequenceNumber:   Replica's end sequence number for corresponding
                              partition for corresponding data chunks.
+        partitionMaxFileSizes: Maximum journal/data/qlist file sizes for 
+                             corresponding partition.
       </documentation>
     </annotation>
     <sequence>
@@ -826,6 +831,7 @@
       <element name='partitionId'     type='int'/>
       <element name='beginSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='endSequenceNumber'   type='tns:PartitionSequenceNumber'/>
+      <element name='partitionMaxFileSizes' type='tns:PartitionMaxFileSizes'/>
     </sequence>
   </complexType>
 
@@ -840,6 +846,7 @@
       <enumeration value='E_PULL'    bdem:id='10'/>
       <enumeration value='E_PUSH'    bdem:id='20'/>
       <enumeration value='E_DROP'    bdem:id='30'/>
+      <enumeration value='E_RESIZE'  bdem:id='40'/>
     </restriction>
   </simpleType>
 
