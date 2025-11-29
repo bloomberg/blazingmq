@@ -832,6 +832,16 @@ class TweakFactory:
 
                 anonymous_credential = AnonymousCredential()
 
+                class MinThreads(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                min_threads = MinThreads()
+
+                class MaxThreads(metaclass=TweakMetaclass):
+                    def __call__(self, value: int) -> Callable: ...
+
+                max_threads = MaxThreads()
+
                 def __call__(
                     self,
                     value: typing.Union[
