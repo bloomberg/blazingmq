@@ -1913,6 +1913,10 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
 
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
+    
+    replicaStateResponse.partitionMaxFileSizes().dataFileSize() = mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;            
+    replicaStateResponse.partitionMaxFileSizes().journalFileSize() = mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -2041,6 +2045,10 @@ static void test11_primaryHealingStage2DetectSelfReplica()
 
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = seqNum;
+
+    replicaStateResponse.partitionMaxFileSizes().dataFileSize() = mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;            
+    replicaStateResponse.partitionMaxFileSizes().journalFileSize() = mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
@@ -2885,6 +2893,10 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
     k_REPLICA_SEQ_NUM_1.sequenceNumber()  = 3U;
     replicaStateResponse.partitionId()    = k_PARTITION_ID;
     replicaStateResponse.latestSequenceNumber() = k_REPLICA_SEQ_NUM_1;
+
+    replicaStateResponse.partitionMaxFileSizes().dataFileSize() = mqbmock::Cluster::k_MAX_DATA_FILE_SIZE;            
+    replicaStateResponse.partitionMaxFileSizes().journalFileSize() = mqbmock::Cluster::k_MAX_JOURNAL_FILE_SIZE;
+    replicaStateResponse.partitionMaxFileSizes().qListFileSize() = 0;    
 
     helper.d_cluster_mp->requestManager().processResponse(message);
 
