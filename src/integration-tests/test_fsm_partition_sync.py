@@ -103,32 +103,32 @@ def _compare_journal_files(
 
 
 def _compare_partition_file_headers(
-    leader_name: str, replica_name: str, cluster: Cluster, pattern: str
+    node1_name: str, node2_name: str, cluster: Cluster, pattern: str
 ) -> None:
-    """Compare leader and replica files headers for the given pattern,
+    """Compare two nodes file headers for the given file type pattern,
         and assert that they are equal."""
-    leader_files = glob.glob(
-        str(cluster.work_dir.joinpath(leader_name, "storage")) + pattern
+    node1_files = glob.glob(
+        str(cluster.work_dir.joinpath(node1_name, "storage")) + pattern
     )
-    replica_files = glob.glob(
-        str(cluster.work_dir.joinpath(replica_name, "storage")) + pattern
+    node2_files = glob.glob(
+        str(cluster.work_dir.joinpath(node2_name, "storage")) + pattern
     )
 
-    # Check that number of files equal to partitions number
+    # Check that number of files is equal to partitions number
     num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_files) == num_partitions
-    assert len(replica_files) == num_partitions
+    assert len(node1_files) == num_partitions
+    assert len(node2_files) == num_partitions
 
-    # Check that content of leader and replica file headers is equal
+    # Check that content of file headers is equal
     FILE_HEADER_SIZE = 32  # see mqbs_filestoreprotocol.h
-    for leader_file, replica_file in zip(
-        sorted(leader_files),
-        sorted(replica_files),
+    for node1_file, node2_file in zip(
+        sorted(node1_files),
+        sorted(node2_files),
     ):
-        with open(leader_file, "rb") as lf, open(replica_file, "rb") as rf:
-            leader_header = lf.read(FILE_HEADER_SIZE)
-            replica_header = rf.read(FILE_HEADER_SIZE)
-            assert leader_header == replica_header
+        with open(node1_file, "rb") as lf, open(node2_file, "rb") as rf:
+            node1_header = lf.read(FILE_HEADER_SIZE)
+            node2_header = rf.read(FILE_HEADER_SIZE)
+            assert node1_header == node2_header
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -536,7 +536,7 @@ def test_primary_partition_size_sync_at_startup(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 0   # to be a leader
+        data["myClusters"][0]["elector"]["quorum"] = 0   # force to be a leader
         data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
         data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
         data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = CLUSTER_MAX_QLIST_FILE_SIZE - 128
@@ -617,9 +617,8 @@ def test_replica_partition_size_sync_at_startup(
 
     # Start cluster nodes
     leader = cluster.start_node("east1")
-    leader.set_quorum(0) # to be a leader
+    leader.set_quorum(4)  # force to be a leader and wait all nodes for quorum
     replica = cluster.start_node("east2")
-    time.sleep(2)  # ensure east2 starts before others
     cluster.start_node("west1")
     cluster.start_node("west2")
 
@@ -670,7 +669,7 @@ def test_primary_replica_partition_size_sync_at_startup(
     cluster: Cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
 
-    # Modify cluster config for node "east1" by setting smaller journal file sizes than the cluster config
+    # Modify cluster config for node "east1" by setting smaller data file size than the cluster config
     with open(
         cluster.work_dir.joinpath(
             cluster.config.nodes["east1"].config_dir, "clusters.json"
@@ -679,7 +678,7 @@ def test_primary_replica_partition_size_sync_at_startup(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 0   # to be a leader
+        data["myClusters"][0]["elector"]["quorum"] = 4   # force to be a leader and wait all nodes for quorum
         data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
         f.seek(0)
         json.dump(data, f, indent=4)
@@ -702,7 +701,6 @@ def test_primary_replica_partition_size_sync_at_startup(
     # Start cluster nodes
     leader = cluster.start_node("east1")
     replica = cluster.start_node("east2")
-    time.sleep(2)  # ensure east2 starts before others
     standard_replica = cluster.start_node("west1")
     cluster.start_node("west2")
 
