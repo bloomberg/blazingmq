@@ -358,7 +358,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
 
-    /// Vector of `NodeToSeqNumCtxMap` indexed by partitionId.
+    /// Vector of `NodeToPartitionMaxFileSizesMap` indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
     ///         **must** be accessed in the associated Queue dispatcher thread

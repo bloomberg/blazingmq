@@ -1855,7 +1855,8 @@ struct JournalOpType {
         e_UNDEFINED = 0,
         e_UNUSED    = 1  // Can be used in future.
         ,
-        e_SYNCPOINT = 2
+        e_SYNCPOINT           = 2,
+        e_UPDATE_STORAGE_SIZE = 3
     };
 
     // CLASS METHODS
@@ -2019,6 +2020,132 @@ class JournalOpRecord {
     //  Magic.......................: Magic word
     //..
 
+    // NEW!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // JournalOpRecord structure datagram [60 bytes]:
+    //..
+    //   +---------------+---------------+---------------+---------------+
+    //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+    //   +---------------+---------------+---------------+---------------+
+    //   |                             Header                            |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                             Header                            |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                             Header                            |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                             Header                            |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                             Header                            |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                    Reserved                   | SyncPointType |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                       JournalOpType                           |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   Data0  Data[0...3] of Data[24]                |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   Data1 Data[4...7] of Data[24]                  |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                    Data2 Data[8...11] of Data[24] |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                       Data3 Data[12...15] of Data[24] |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                     Data4 Data[16...19] of Data[24] |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                     Data5 Data[20...23] of Data[24] |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                           Reserved                            |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                             Magic                             |
+    //   +---------------+---------------+---------------+---------------+
+    //
+    //  Header......................: Record header
+    //  SyncPointType...............: Type of sync point record.  Valid only
+    //                                for JournalOpType::e_SYNCPOINT
+    //  JournalOpType...............: JournalOpType
+    //  Data[24]....................: 24 bytes of data specific to either
+    //                                `SyncPoint` or `UpdateStorageSize`
+    //                                record.
+    //  Magic.......................: Magic word
+    //..
+
+  public:
+    // PUBLIC TYPES
+
+    // VST representing `SyncPoint` data, mapped onto d_recordData[24]
+    class SyncPointData {
+      private:
+        // PRIVATE DATA
+
+        bdlb::BigEndianUint32 d_seqNumUpperBits;
+
+        bdlb::BigEndianUint32 d_seqNumLowerBits;
+
+        bdlb::BigEndianInt32 d_primaryNodeId;
+
+        bdlb::BigEndianUint32 d_primaryLeaseId;
+
+        bdlb::BigEndianUint32 d_dataFileOffsetDwords;
+
+        bdlb::BigEndianUint32 d_qlistFileOffsetWords;
+
+        // TODO: private CTOR
+
+      public:
+        // MANIPULATORS
+
+        SyncPointData& setSequenceNum(bsls::Types::Uint64 value);
+
+        SyncPointData& setPrimaryNodeId(int value);
+
+        SyncPointData& setPrimaryLeaseId(unsigned int value);
+
+        SyncPointData& setDataFileOffsetDwords(unsigned int value);
+
+        SyncPointData& setQlistFileOffsetWords(unsigned int value);
+
+        // ACCESSORS
+
+        bsls::Types::Uint64 sequenceNum() const;
+
+        int primaryNodeId() const;
+
+        unsigned int primaryLeaseId() const;
+
+        unsigned int dataFileOffsetDwords() const;
+
+        unsigned int qlistFileOffsetWords() const;
+    };
+
+    // VST representing `UpdateStorageSize`  data, mapped onto d_recordData[24]
+    class UpdateStorageSizeData {
+      private:
+        bdlb::BigEndianUint32 d_maxJournalFileSizeUpperBits;
+        bdlb::BigEndianUint32 d_maxJournalFileSizeLowerBits;
+
+        bdlb::BigEndianUint32 d_maxDataFileSizeUpperBits;
+        bdlb::BigEndianUint32 d_maxDataFileSizeLowerBits;
+
+        bdlb::BigEndianUint32 d_maxQlistFileSizeUpperBits;
+        bdlb::BigEndianUint32 d_maxQlistFileSizeLowerBits;
+
+      public:
+        // MANIPULATORS
+
+        UpdateStorageSizeData&
+        setMaxJournalFileSize(bsls::Types::Uint64 value);
+
+        UpdateStorageSizeData& setMaxDataFileSize(bsls::Types::Uint64 value);
+
+        UpdateStorageSizeData& setMaxQlistFileSize(bsls::Types::Uint64 value);
+
+        // ACCESSORS
+
+        bsls::Types::Uint64 maxJournalFileSize() const;
+
+        bsls::Types::Uint64 maxDataFileSize() const;
+
+        bsls::Types::Uint64 maxQlistFileSize() const;
+    };
+
   private:
     // DATA
     RecordHeader d_header;
@@ -2029,17 +2156,7 @@ class JournalOpRecord {
 
     bdlb::BigEndianInt32 d_journalOpType;
 
-    bdlb::BigEndianUint32 d_seqNumUpperBits;
-
-    bdlb::BigEndianUint32 d_seqNumLowerBits;
-
-    bdlb::BigEndianInt32 d_primaryNodeId;
-
-    bdlb::BigEndianUint32 d_primaryLeaseId;
-
-    bdlb::BigEndianUint32 d_dataFileOffsetDwords;
-
-    bdlb::BigEndianUint32 d_qlistFileOffsetWords;
+    char d_recordData[24];
 
     BSLA_MAYBE_UNUSED char d_reserved2[4];
 
@@ -2056,17 +2173,25 @@ class JournalOpRecord {
     /// set to zero.
     JournalOpRecord(JournalOpType::Enum type, unsigned int magic);
 
-    /// Create an instance and initialize corresponding fields respectively
-    /// with the specified `type`, `sequenceNum`, `primaryNodeId`,
-    /// `primaryLeaseId` and `magic` values.
-    JournalOpRecord(JournalOpType::Enum type,
-                    SyncPointType::Enum syncPointType,
+    /// Create an instance and initialize corresponding fields of
+    /// `SyncPointRecord` respectively with the specified `syncPointType`,
+    /// `sequenceNum`, `primaryNodeId`, `primaryLeaseId` and `magic` values.
+
+    JournalOpRecord(SyncPointType::Enum syncPointType,
                     bsls::Types::Uint64 sequenceNum,
                     int                 primaryNodeId,
                     unsigned int        primaryLeaseId,
                     unsigned int        dataFileOffsetDwords,
                     unsigned int        qlistFileOffsetWords,
                     unsigned int        magic);
+
+    /// Create an instance and initialize corresponding fields of
+    /// `UpdateStorageSizeRecord` respectively with the specified `type`,
+    /// `sequenceNum`, `primaryNodeId`, `primaryLeaseId` and `magic` values.
+    // JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
+    //                 bsls::Types::Uint64 maxDataFileSize,
+    //                 bsls::Types::Uint64 maxQlistFileSize,
+    //                 unsigned int        magic);
 
     // MANIPULATORS
     RecordHeader& header();
@@ -2077,17 +2202,11 @@ class JournalOpRecord {
 
     JournalOpRecord& setSyncPointType(SyncPointType::Enum value);
 
-    JournalOpRecord& setSequenceNum(bsls::Types::Uint64 value);
+    JournalOpRecord& setMagic(unsigned int value);
 
-    JournalOpRecord& setPrimaryNodeId(int value);
+    SyncPointData& syncPointData();
 
-    JournalOpRecord& setPrimaryLeaseId(unsigned int value);
-
-    JournalOpRecord& setDataFileOffsetDwords(unsigned int value);
-
-    JournalOpRecord& setQlistFileOffsetWords(unsigned int value);
-
-    JournalOpRecord& setMagic(unsigned int value);    
+    UpdateStorageSizeData& updateStorageSizeData();
 
     // ACCESSORS
     const RecordHeader& header() const;
@@ -2098,16 +2217,10 @@ class JournalOpRecord {
 
     SyncPointType::Enum syncPointType() const;
 
-    bsls::Types::Uint64 sequenceNum() const;
+    const SyncPointData& syncPointData() const;
 
-    int primaryNodeId() const;    
+    const UpdateStorageSizeData& updateStorageSizeData() const;
 
-    unsigned int primaryLeaseId() const;
-
-    unsigned int dataFileOffsetDwords() const;
-
-    unsigned int qlistFileOffsetWords() const;
-    
     unsigned int magic() const;
 
     /// Format this object to the specified output `stream` at the (absolute
@@ -3102,8 +3215,7 @@ inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
     setMagic(magic);
 }
 
-inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
-                                        SyncPointType::Enum syncPointType,
+inline JournalOpRecord::JournalOpRecord(SyncPointType::Enum syncPointType,
                                         bsls::Types::Uint64 sequenceNum,
                                         int                 primaryNodeId,
                                         unsigned int        primaryLeaseId,
@@ -3113,13 +3225,14 @@ inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
-    setType(type);
+    setType(JournalOpType::Enum::e_SYNCPOINT);
     setSyncPointType(syncPointType);
-    setSequenceNum(sequenceNum);
-    setPrimaryNodeId(primaryNodeId);
-    setPrimaryLeaseId(primaryLeaseId);
-    setDataFileOffsetDwords(dataFileOffsetDwords);
-    setQlistFileOffsetWords(qlistFileOffsetWords);    
+    syncPointData()
+        .setSequenceNum(sequenceNum)
+        .setPrimaryNodeId(primaryNodeId)
+        .setPrimaryLeaseId(primaryLeaseId)
+        .setDataFileOffsetDwords(dataFileOffsetDwords)
+        .setQlistFileOffsetWords(qlistFileOffsetWords);
     setMagic(magic);
 }
 
@@ -3148,37 +3261,22 @@ JournalOpRecord::setSyncPointType(SyncPointType::Enum value)
     return *this;
 }
 
-inline JournalOpRecord&
-JournalOpRecord::setSequenceNum(bsls::Types::Uint64 value)
+inline JournalOpRecord::SyncPointData& JournalOpRecord::syncPointData()
 {
-    bmqp::Protocol::split(&d_seqNumUpperBits, &d_seqNumLowerBits, value);
-    return *this;
+    BSLS_ASSERT_SAFE(JournalOpType::e_SYNCPOINT == type());
+    BSLS_ASSERT_SAFE(sizeof(d_recordData) == sizeof(SyncPointData));
+
+    return *reinterpret_cast<JournalOpRecord::SyncPointData*>(&d_recordData);
 }
 
-inline JournalOpRecord& JournalOpRecord::setPrimaryNodeId(int value)
+inline JournalOpRecord::UpdateStorageSizeData&
+JournalOpRecord::updateStorageSizeData()
 {
-    d_primaryNodeId = value;
-    return *this;
-}
+    BSLS_ASSERT_SAFE(JournalOpType::e_UPDATE_STORAGE_SIZE == type());
+    BSLS_ASSERT_SAFE(sizeof(d_recordData) == sizeof(UpdateStorageSizeData));
 
-inline JournalOpRecord& JournalOpRecord::setPrimaryLeaseId(unsigned int value)
-{
-    d_primaryLeaseId = value;
-    return *this;
-}
-
-inline JournalOpRecord&
-JournalOpRecord::setDataFileOffsetDwords(unsigned int value)
-{
-    d_dataFileOffsetDwords = value;
-    return *this;
-}
-
-inline JournalOpRecord&
-JournalOpRecord::setQlistFileOffsetWords(unsigned int value)
-{
-    d_qlistFileOffsetWords = value;
-    return *this;
+    return *reinterpret_cast<JournalOpRecord::UpdateStorageSizeData*>(
+        &d_recordData);
 }
 
 inline JournalOpRecord& JournalOpRecord::setMagic(unsigned int value)
@@ -3208,34 +3306,155 @@ inline SyncPointType::Enum JournalOpRecord::syncPointType() const
     return static_cast<SyncPointType::Enum>(d_syncPointType);
 }
 
-inline bsls::Types::Uint64 JournalOpRecord::sequenceNum() const
+inline const JournalOpRecord::SyncPointData&
+JournalOpRecord::syncPointData() const
 {
-    return bmqp::Protocol::combine(d_seqNumUpperBits, d_seqNumLowerBits);
+    BSLS_ASSERT_SAFE(JournalOpType::e_SYNCPOINT == type());
+    BSLS_ASSERT_SAFE(sizeof(d_recordData) == sizeof(SyncPointData));
+    return reinterpret_cast<const JournalOpRecord::SyncPointData&>(
+        d_recordData);
 }
 
-inline int JournalOpRecord::primaryNodeId() const
+inline const JournalOpRecord::UpdateStorageSizeData&
+JournalOpRecord::updateStorageSizeData() const
 {
-    return d_primaryNodeId;
-}
+    BSLS_ASSERT_SAFE(JournalOpType::e_UPDATE_STORAGE_SIZE == type());
+    BSLS_ASSERT_SAFE(sizeof(d_recordData) == sizeof(UpdateStorageSizeData));
 
-inline unsigned int JournalOpRecord::primaryLeaseId() const
-{
-    return d_primaryLeaseId;
-}
-
-inline unsigned int JournalOpRecord::dataFileOffsetDwords() const
-{
-    return d_dataFileOffsetDwords;
-}
-
-inline unsigned int JournalOpRecord::qlistFileOffsetWords() const
-{
-    return d_qlistFileOffsetWords;
+    return *reinterpret_cast<const JournalOpRecord::UpdateStorageSizeData*>(
+        &d_recordData);
 }
 
 inline unsigned int JournalOpRecord::magic() const
 {
     return d_magic;
+}
+
+// ------------------------------------
+// class JournalOpRecord::SyncPointData
+// ------------------------------------
+
+// MANIPULATORS
+inline JournalOpRecord::SyncPointData&
+JournalOpRecord::SyncPointData::setSequenceNum(bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_seqNumUpperBits, &d_seqNumLowerBits, value);
+    return *this;
+}
+
+inline JournalOpRecord::SyncPointData&
+JournalOpRecord::SyncPointData::setPrimaryNodeId(int value)
+{
+    d_primaryNodeId = value;
+    return *this;
+}
+
+inline JournalOpRecord::SyncPointData&
+JournalOpRecord::SyncPointData::setPrimaryLeaseId(unsigned int value)
+{
+    d_primaryLeaseId = value;
+    return *this;
+}
+
+inline JournalOpRecord::SyncPointData&
+JournalOpRecord::SyncPointData::setDataFileOffsetDwords(unsigned int value)
+{
+    d_dataFileOffsetDwords = value;
+    return *this;
+}
+
+inline JournalOpRecord::SyncPointData&
+JournalOpRecord::SyncPointData::setQlistFileOffsetWords(unsigned int value)
+{
+    d_qlistFileOffsetWords = value;
+    return *this;
+}
+
+// ACCESSORS
+
+inline bsls::Types::Uint64 JournalOpRecord::SyncPointData::sequenceNum() const
+{
+    return bmqp::Protocol::combine(d_seqNumUpperBits, d_seqNumLowerBits);
+}
+
+inline int JournalOpRecord::SyncPointData::primaryNodeId() const
+{
+    return d_primaryNodeId;
+}
+
+inline unsigned int JournalOpRecord::SyncPointData::primaryLeaseId() const
+{
+    return d_primaryLeaseId;
+}
+
+inline unsigned int
+JournalOpRecord::SyncPointData::dataFileOffsetDwords() const
+{
+    return d_dataFileOffsetDwords;
+}
+
+inline unsigned int
+JournalOpRecord::SyncPointData::qlistFileOffsetWords() const
+{
+    return d_qlistFileOffsetWords;
+}
+
+// --------------------------------------------
+// class JournalOpRecord::UpdateStorageSizeData
+// --------------------------------------------
+
+// MANIPULATORS
+
+inline JournalOpRecord::UpdateStorageSizeData&
+JournalOpRecord::UpdateStorageSizeData::setMaxDataFileSize(
+    bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_maxDataFileSizeUpperBits,
+                          &d_maxDataFileSizeLowerBits,
+                          value);
+    return *this;
+}
+
+inline JournalOpRecord::UpdateStorageSizeData&
+JournalOpRecord::UpdateStorageSizeData::setMaxJournalFileSize(
+    bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_maxJournalFileSizeUpperBits,
+                          &d_maxJournalFileSizeLowerBits,
+                          value);
+    return *this;
+}
+inline JournalOpRecord::UpdateStorageSizeData&
+JournalOpRecord::UpdateStorageSizeData::setMaxQlistFileSize(
+    bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_maxQlistFileSizeUpperBits,
+                          &d_maxQlistFileSizeLowerBits,
+                          value);
+    return *this;
+}
+
+// ACCESSORS
+
+inline bsls::Types::Uint64
+JournalOpRecord::UpdateStorageSizeData::maxDataFileSize() const
+{
+    return bmqp::Protocol::combine(d_maxDataFileSizeUpperBits,
+                                   d_maxDataFileSizeLowerBits);
+}
+
+inline bsls::Types::Uint64
+JournalOpRecord::UpdateStorageSizeData::maxJournalFileSize() const
+{
+    return bmqp::Protocol::combine(d_maxJournalFileSizeUpperBits,
+                                   d_maxJournalFileSizeLowerBits);
+}
+
+inline bsls::Types::Uint64
+JournalOpRecord::UpdateStorageSizeData::maxQlistFileSize() const
+{
+    return bmqp::Protocol::combine(d_maxQlistFileSizeUpperBits,
+                                   d_maxQlistFileSizeLowerBits);
 }
 
 }  // close package namespace

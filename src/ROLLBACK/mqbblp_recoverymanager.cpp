@@ -2158,7 +2158,8 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
                      syncPtRec->syncPointType());
 
     bsls::Types::Uint64 qlistMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
 
     if (fti.qlistFd().fileSize() < qlistMapOffset) {
@@ -2176,7 +2177,8 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     }
 
     bsls::Types::Uint64 dataMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
 
     if (fti.dataFd().fileSize() < dataMapOffset) {
@@ -2244,6 +2246,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         if (bmqp::StorageMessageType::e_JOURNAL_OP != header.messageType()) {
             continue;  // CONTINUE
         }
+
+        // TODO: change description
 
         // So we have encountered a JournalOp record in the stream.  Currently,
         // there is 1 type of JournalOp record: SYNCPOINT (see
@@ -2320,6 +2324,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
             continue;  // CONTINUE
         }
 
+        // TODO: Need to handle storage size update sync point type???
+
         if (mqbs::SyncPointType::e_UNDEFINED ==
             journalOpRec->syncPointType()) {
             BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2344,7 +2350,7 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         // same reason).
 
         if (syncPointRecHeader->primaryLeaseId() <
-            journalOpRec->primaryLeaseId()) {
+            journalOpRec->syncPointData().primaryLeaseId()) {
             // This indicates bug in BlazingMQ replication logic.
 
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
@@ -2355,17 +2361,18 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                            << syncPointRecHeader->primaryLeaseId() << ", "
                            << syncPointRecHeader->sequenceNumber()
                            << "). Sequence number in sync point("
-                           << journalOpRec->primaryLeaseId() << ", "
-                           << journalOpRec->sequenceNum()
+                           << journalOpRec->syncPointData().primaryLeaseId()
+                           << ", "
+                           << journalOpRec->syncPointData().sequenceNum()
                            << "). Source: " << source->nodeDescription()
                            << ". Ignoring this message.";
             continue;  // CONTINUE
         }
 
         if (syncPointRecHeader->primaryLeaseId() ==
-            journalOpRec->primaryLeaseId()) {
+            journalOpRec->syncPointData().primaryLeaseId()) {
             if (syncPointRecHeader->sequenceNumber() !=
-                journalOpRec->sequenceNum()) {
+                journalOpRec->syncPointData().sequenceNum()) {
                 // If leaseId's match, sequence numbers must match too.  Again
                 // look at the above comment or see
                 // 'FileStore::writeJournalRecord'.
@@ -2378,8 +2385,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                     << syncPointRecHeader->primaryLeaseId() << ", "
                     << syncPointRecHeader->sequenceNumber()
                     << "). Sequence number in sync point ("
-                    << journalOpRec->primaryLeaseId() << ", "
-                    << journalOpRec->sequenceNum()
+                    << journalOpRec->syncPointData().primaryLeaseId() << ", "
+                    << journalOpRec->syncPointData().sequenceNum()
                     << "). Source: " << source->nodeDescription()
                     << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
                 continue;  // CONTINUE
@@ -2408,8 +2415,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << syncPointRecHeader->primaryLeaseId() << ", "
                 << syncPointRecHeader->sequenceNumber()
                 << "). Sequence number in sync point ("
-                << journalOpRec->primaryLeaseId() << ", "
-                << journalOpRec->sequenceNum()
+                << journalOpRec->syncPointData().primaryLeaseId() << ", "
+                << journalOpRec->syncPointData().sequenceNum()
                 << "). Source: " << source->nodeDescription();
 
             bmqp_ctrlmsg::SyncPoint dummySyncPt;
@@ -2427,12 +2434,13 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         // payload, not the RecordHeader (same reasoning as above -- new
         // primary could be issuing a SyncPt on behalf of previous primary).
 
-        syncPoint->primaryLeaseId() = journalOpRec->primaryLeaseId();
-        syncPoint->sequenceNum()    = journalOpRec->sequenceNum();
+        syncPoint->primaryLeaseId() =
+            journalOpRec->syncPointData().primaryLeaseId();
+        syncPoint->sequenceNum() = journalOpRec->syncPointData().sequenceNum();
         syncPoint->dataFileOffsetDwords() =
-            journalOpRec->dataFileOffsetDwords();
+            journalOpRec->syncPointData().dataFileOffsetDwords();
         syncPoint->qlistFileOffsetWords() =
-            journalOpRec->qlistFileOffsetWords();
+            journalOpRec->syncPointData().qlistFileOffsetWords();
         *syncPointHeaderPosition = iter.headerPosition();
         *journalOffset           = static_cast<bsls::Types::Uint64>(
                              header.journalOffsetWords()) *
@@ -3196,14 +3204,15 @@ void RecoveryManager::startRecovery(
         return;  // RETURN
     }
 
-    if (0 == journalOpRec.primaryLeaseId() ||
-        0 == journalOpRec.sequenceNum()) {
+    if (0 == journalOpRec.syncPointData().primaryLeaseId() ||
+        0 == journalOpRec.syncPointData().sequenceNum()) {
         BMQTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << ": For Partition ["
             << partitionId << "], "
             << "last sync point has invalid primaryLeaseId: "
-            << journalOpRec.primaryLeaseId()
-            << " or sequenceNum: " << journalOpRec.sequenceNum()
+            << journalOpRec.syncPointData().primaryLeaseId()
+            << " or sequenceNum: "
+            << journalOpRec.syncPointData().sequenceNum()
             << ". Ignoring this sync point. Recovery will proceed as if this "
             << "node had no local recoverable files for this partition."
             << BMQTSK_ALARMLOG_END;
@@ -3211,7 +3220,8 @@ void RecoveryManager::startRecovery(
     }
 
     bsls::Types::Uint64 dataFileOffset =
-        static_cast<bsls::Types::Uint64>(journalOpRec.dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(
+            journalOpRec.syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
 
     if (bdls::FilesystemUtil::getFileSize(recoveryCtx.fileSet().dataFile()) <
@@ -3229,7 +3239,8 @@ void RecoveryManager::startRecovery(
     }
 
     bsls::Types::Uint64 qlistFileOffset =
-        static_cast<bsls::Types::Uint64>(journalOpRec.qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(
+            journalOpRec.syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
 
     if (bdls::FilesystemUtil::getFileSize(recoveryCtx.fileSet().qlistFile()) <
@@ -3248,10 +3259,12 @@ void RecoveryManager::startRecovery(
 
     // Retrieved old sync point is valid.
 
-    syncPoint.primaryLeaseId()       = journalOpRec.primaryLeaseId();
-    syncPoint.sequenceNum()          = journalOpRec.sequenceNum();
-    syncPoint.dataFileOffsetDwords() = journalOpRec.dataFileOffsetDwords();
-    syncPoint.qlistFileOffsetWords() = journalOpRec.qlistFileOffsetWords();
+    syncPoint.primaryLeaseId() = journalOpRec.syncPointData().primaryLeaseId();
+    syncPoint.sequenceNum()    = journalOpRec.syncPointData().sequenceNum();
+    syncPoint.dataFileOffsetDwords() =
+        journalOpRec.syncPointData().dataFileOffsetDwords();
+    syncPoint.qlistFileOffsetWords() =
+        journalOpRec.syncPointData().qlistFileOffsetWords();
 
     recoveryCtx.setOldSyncPoint(syncPoint);
     recoveryCtx.setOldSyncPointOffset(lastSyncPointOffset);
@@ -4809,7 +4822,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
                      syncPtRec->syncPointType());
 
     bsls::Types::Uint64 qlistMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
     if (static_cast<bsls::Types::Uint64>(fileSet.qlistFileSize()) <
         qlistMapOffset) {
@@ -4834,7 +4848,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
     }
 
     bsls::Types::Uint64 dataMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
     if (static_cast<bsls::Types::Uint64>(fileSet.dataFileSize()) <
         dataMapOffset) {
