@@ -722,16 +722,13 @@ void StorageManager::processReplicaDataRequestResize(
     }
 
     EventData eventDataVec;
-    // TODO: need separate dedicated  CTOR???
     eventDataVec.emplace_back(
         source,
         message.rId().isNull() ? -1 : message.rId().value(),
         partitionId,
         1,
-        source,
-        d_clusterState_p->partitionsInfo().at(partitionId).primaryLeaseId(),
-        bmqp_ctrlmsg::PartitionSequenceNumber(),
-        bmqp_ctrlmsg::PartitionSequenceNumber(),
+        bmqp_ctrlmsg::PartitionSequenceNumber(), // seqNum
+        bmqp_ctrlmsg::PartitionSequenceNumber(), // firstSyncPointAfterRolloverSeqNum
         replicaDataRequest.partitionMaxFileSizes());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
@@ -2048,11 +2045,6 @@ void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
 
     // Get own partition max file sizes
     primaryStateRequest.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(partitionId);
-
-    // Get own partition max file sizes from partition configuration
-    // bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes =
-    //     d_partitionMaxFileSizesVec[partitionId];
-    //d_clusterConfig.partitionConfig().
 
     mqbnet::ClusterNode* destNode = eventData.primary();
 
@@ -3688,7 +3680,8 @@ void StorageManager::do_findHighestSeq(const PartitionFSMArgsSp& args)
         highestPartitionSeqNum,
         bmqp_ctrlmsg::
             PartitionSequenceNumber(),  // firstSyncPointAfterRollloverSeqNum
-        bmqp_ctrlmsg::PartitionMaxFileSizes(),
+        bmqp_ctrlmsg::
+            PartitionMaxFileSizes(),
         highestSeqNumNode);
 
     if (selfHighestSeq) {
@@ -3750,12 +3743,18 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
 
     // Limit highest partition max file sizes to configured grow limits.
     const mqbcfg::PartitionConfig& partitionCfg = d_clusterConfig.partitionConfig();
-    highestPartitionMaxFileSizes.dataFileSize() = bsl::min(highestPartitionMaxFileSizes.dataFileSize(), 
-                                                           partitionCfg.dataFileGrowLimit());
-    highestPartitionMaxFileSizes.journalFileSize() = bsl::min(highestPartitionMaxFileSizes.journalFileSize(), 
-                                                           partitionCfg.journalFileGrowLimit());
-    highestPartitionMaxFileSizes.qListFileSize() = bsl::min(highestPartitionMaxFileSizes.qListFileSize(), 
+    if (partitionCfg.dataFileGrowLimit() > 0) {
+        highestPartitionMaxFileSizes.dataFileSize() = bsl::min(highestPartitionMaxFileSizes.dataFileSize(), 
+                                                            partitionCfg.dataFileGrowLimit());
+    }
+    if (partitionCfg.journalFileGrowLimit() > 0) {
+        highestPartitionMaxFileSizes.journalFileSize() = bsl::min(highestPartitionMaxFileSizes.journalFileSize(), 
+                                                            partitionCfg.journalFileGrowLimit());
+    }
+    if (partitionCfg.qlistFileGrowLimit() > 0) {
+        highestPartitionMaxFileSizes.qListFileSize() = bsl::min(highestPartitionMaxFileSizes.qListFileSize(), 
                                                            partitionCfg.qlistFileGrowLimit());
+    }
 
     // Find nodes that require to update partition max file sizes
     // and send them corresponding event.

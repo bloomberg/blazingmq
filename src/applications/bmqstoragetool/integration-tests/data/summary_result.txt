@@ -13,6 +13,7 @@ Details of journal file:
     FileType          : JOURNAL
     HeaderWords       : 8
     PartitionId       : 0
+    MaxFileSize       : 0
 
     Journal File Header    : 
     HeaderWords                           : 3
@@ -48,6 +49,7 @@ Details of data file:
     FileType          : DATA
     HeaderWords       : 8
     PartitionId       : 0
+    MaxFileSize       : 0
 
     Data File Header       : 
     HeaderWords       : 2
