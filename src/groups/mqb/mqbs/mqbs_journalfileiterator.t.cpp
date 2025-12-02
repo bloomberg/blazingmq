@@ -171,15 +171,18 @@ int areEqual(const JournalOpRecord& lhs, const JournalOpRecord& rhs)
         return -2;  // RETURN
     }
 
-    if (lhs.syncPointData().sequenceNum() != rhs.syncPointData().sequenceNum()) {
+    if (lhs.syncPointData().sequenceNum() !=
+        rhs.syncPointData().sequenceNum()) {
         return -4;  // RETURN
     }
 
-    if (lhs.syncPointData().primaryNodeId() != rhs.syncPointData().primaryNodeId()) {
+    if (lhs.syncPointData().primaryNodeId() !=
+        rhs.syncPointData().primaryNodeId()) {
         return -5;  // RETURN
     }
 
-    if (lhs.syncPointData().primaryLeaseId() != rhs.syncPointData().primaryLeaseId()) {
+    if (lhs.syncPointData().primaryLeaseId() !=
+        rhs.syncPointData().primaryLeaseId()) {
         return -6;  // RETURN
     }
 

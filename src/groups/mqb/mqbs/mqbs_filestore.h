@@ -415,9 +415,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bmqp_ctrlmsg::PartitionMaxFileSizes d_partitionMaxFileSizes;
     // Max file sizes for journal, data and qlist files for this partition.
 
-    bsl::optional<bmqp_ctrlmsg::PartitionMaxFileSizes> d_overridenPartitionMaxFileSizes;
-    // Overriden (by storage manager) max file sizes for journal, data and qlist files for this partition.
-    // If it is not present, `d_partitionMaxFileSizes` is used.
+    bsl::optional<bmqp_ctrlmsg::PartitionMaxFileSizes>
+        d_overridenPartitionMaxFileSizes;
+    // Overriden (by storage manager) max file sizes for journal, data and
+    // qlist files for this partition. If it is not present,
+    // `d_partitionMaxFileSizes` is used.
 
   private:
     // NOT IMPLEMENTED
@@ -964,7 +966,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void loadSummary(mqbcmd::FileStore* fileStore) const;
 
     /// Override the max file sizes for this partition with the specified
-    /// `maxFileSizes`. It is set by `StorageManager` when higher max file 
+    /// `maxFileSizes`. It is set by `StorageManager` when higher max file
     /// sizes are found after quorum.
     void overridePartitionMaxFileSizes(
         const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
@@ -1060,9 +1062,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     firstSyncPointAfterRolloverSeqNum() const;
 
     /// Return the max file sizes for this partition.
-    const bmqp_ctrlmsg::PartitionMaxFileSizes&
-    partitionMaxFileSizes() const;
-
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes() const;
 };
 
 // =======================
@@ -1253,8 +1253,7 @@ FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
     d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
 }
 
-inline void
-FileStore::overridePartitionMaxFileSizes(
+inline void FileStore::overridePartitionMaxFileSizes(
     const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
 {
     d_overridenPartitionMaxFileSizes = maxFileSizes;

@@ -1067,8 +1067,7 @@ DataStoreConfig::setQlistFileGrowLimit(bsls::Types::Uint64 value)
     return *this;
 }
 
-inline DataStoreConfig&
-DataStoreConfig::setGrowStepPercent(unsigned int value)
+inline DataStoreConfig& DataStoreConfig::setGrowStepPercent(unsigned int value)
 {
     d_growStepPercent = value;
     return *this;

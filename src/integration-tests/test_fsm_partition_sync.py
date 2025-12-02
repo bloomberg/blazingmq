@@ -106,7 +106,7 @@ def _compare_partition_file_headers(
     node1_name: str, node2_name: str, cluster: Cluster, pattern: str
 ) -> None:
     """Compare two nodes file headers for the given file type pattern,
-        and assert that they are equal."""
+    and assert that they are equal."""
     node1_files = glob.glob(
         str(cluster.work_dir.joinpath(node1_name, "storage")) + pattern
     )
@@ -445,7 +445,6 @@ def test_journal_size_increase(
     # replica = replicas[0]
 
     def make_rollover() -> None:
-
         # Put 2 messages with confirms
         for i in range(1, 3):
             producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
@@ -476,8 +475,7 @@ def test_debug(
     fsm_multi_cluster: Cluster,
     domain_urls: tc.DomainUrls,
 ) -> None:
-    """
-    """
+    """ """
     cluster: Cluster = fsm_multi_cluster
     uri_priority = domain_urls.uri_priority
 
@@ -504,9 +502,10 @@ def test_debug(
     assert False, "Just to capture debug logs"
 
 
-CLUSTER_MAX_JOURNAL_FILE_SIZE = 60*20
+CLUSTER_MAX_JOURNAL_FILE_SIZE = 60 * 20
 CLUSTER_MAX_DATA_FILE_SIZE = 512
 CLUSTER_MAX_QLIST_FILE_SIZE = 384
+
 
 @start_cluster(False)
 @tweak.cluster.elector.quorum(5)
@@ -536,10 +535,16 @@ def test_primary_partition_size_sync_at_startup(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 0   # force to be a leader
-        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
-        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
-        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = CLUSTER_MAX_QLIST_FILE_SIZE - 128
+        data["myClusters"][0]["elector"]["quorum"] = 0  # force to be a leader
+        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = (
+            CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
+        )
+        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = (
+            CLUSTER_MAX_DATA_FILE_SIZE - 256
+        )
+        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = (
+            CLUSTER_MAX_QLIST_FILE_SIZE - 128
+        )
         f.seek(0)
         json.dump(data, f, indent=4)
         f.truncate()
@@ -576,7 +581,9 @@ def test_primary_partition_size_sync_at_startup(
 
     # Check that leader and replica partition files headers are equal
     _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
-    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_journal")
+    _compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_journal"
+    )
     _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
 
 
@@ -590,7 +597,7 @@ def test_replica_partition_size_sync_at_startup(
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
-    Test replica partition file sizes synchronization with cluster due to cluster misconfig.    
+    Test replica partition file sizes synchronization with cluster due to cluster misconfig.
     - update `east2` node config to have smaller partition file sizes than cluster config
     - start cluster with `east1` as a leader
     - put 2 messages to fill storage files
@@ -608,9 +615,15 @@ def test_replica_partition_size_sync_at_startup(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
-        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
-        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
-        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = CLUSTER_MAX_QLIST_FILE_SIZE - 128
+        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = (
+            CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
+        )
+        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = (
+            CLUSTER_MAX_DATA_FILE_SIZE - 256
+        )
+        data["myClusters"][0]["partitionConfig"]["maxQlistFileSize"] = (
+            CLUSTER_MAX_QLIST_FILE_SIZE - 128
+        )
         f.seek(0)
         json.dump(data, f, indent=4)
         f.truncate()
@@ -645,7 +658,9 @@ def test_replica_partition_size_sync_at_startup(
 
     # Check that leader and replica partition files headers are equal
     _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_data")
-    _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_journal")
+    _compare_partition_file_headers(
+        leader.name, replica.name, cluster, "/*.bmq_journal"
+    )
     _compare_partition_file_headers(leader.name, replica.name, cluster, "/*.bmq_qlist")
 
 
@@ -659,7 +674,7 @@ def test_primary_replica_partition_size_sync_at_startup(
     domain_urls: tc.DomainUrls,
 ) -> None:
     """
-    Test primary and replica partition file sizes synchronization with cluster due to cluster misconfig.    
+    Test primary and replica partition file sizes synchronization with cluster due to cluster misconfig.
     - update `east1` and `east2` nodes config to have smaller partition file sizes than cluster config
     - start cluster with `east1` as a leader
     - put 2 messages to fill storage files
@@ -678,8 +693,12 @@ def test_primary_replica_partition_size_sync_at_startup(
         encoding="utf-8",
     ) as f:
         data = json.load(f)
-        data["myClusters"][0]["elector"]["quorum"] = 4   # force to be a leader and wait all nodes for quorum
-        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = CLUSTER_MAX_DATA_FILE_SIZE - 256
+        data["myClusters"][0]["elector"]["quorum"] = (
+            4  # force to be a leader and wait all nodes for quorum
+        )
+        data["myClusters"][0]["partitionConfig"]["maxDataFileSize"] = (
+            CLUSTER_MAX_DATA_FILE_SIZE - 256
+        )
         f.seek(0)
         json.dump(data, f, indent=4)
         f.truncate()
@@ -692,8 +711,10 @@ def test_primary_replica_partition_size_sync_at_startup(
         "r+",
         encoding="utf-8",
     ) as f:
-        data = json.load(f)        
-        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
+        data = json.load(f)
+        data["myClusters"][0]["partitionConfig"]["maxJournalFileSize"] = (
+            CLUSTER_MAX_JOURNAL_FILE_SIZE - 60
+        )
         f.seek(0)
         json.dump(data, f, indent=4)
         f.truncate()
@@ -726,19 +747,25 @@ def test_primary_replica_partition_size_sync_at_startup(
     cluster.stop_nodes()
 
     # Check that leader and standard replica partition files headers are equal
-    _compare_partition_file_headers(leader.name, standard_replica.name, cluster, "/*.bmq_data")
-    _compare_partition_file_headers(leader.name, standard_replica.name, cluster, "/*.bmq_journal")
-    _compare_partition_file_headers(leader.name, standard_replica.name, cluster, "/*.bmq_qlist")
+    _compare_partition_file_headers(
+        leader.name, standard_replica.name, cluster, "/*.bmq_data"
+    )
+    _compare_partition_file_headers(
+        leader.name, standard_replica.name, cluster, "/*.bmq_journal"
+    )
+    _compare_partition_file_headers(
+        leader.name, standard_replica.name, cluster, "/*.bmq_qlist"
+    )
 
     # Check that replica and standard replica partition files headers are equal
-    _compare_partition_file_headers(replica.name, standard_replica.name, cluster, "/*.bmq_data")
-    _compare_partition_file_headers(replica.name, standard_replica.name, cluster, "/*.bmq_journal")
-    _compare_partition_file_headers(replica.name, standard_replica.name, cluster, "/*.bmq_qlist")
+    _compare_partition_file_headers(
+        replica.name, standard_replica.name, cluster, "/*.bmq_data"
+    )
+    _compare_partition_file_headers(
+        replica.name, standard_replica.name, cluster, "/*.bmq_journal"
+    )
+    _compare_partition_file_headers(
+        replica.name, standard_replica.name, cluster, "/*.bmq_qlist"
+    )
 
     # assert False, "Just to capture debug logs"
-
-
-
-
-
-

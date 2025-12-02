@@ -153,14 +153,14 @@ class Cluster : public mqbi::Cluster {
     /// This public constant represents the leader node Id for this cluster.
     static const int k_LEADER_NODE_ID;
 
-    /// These public constants represent the maximum file sizes 
+    /// These public constants represent the maximum file sizes
     /// of partition files.
     static const bsls::Types::Uint64 k_MAX_DATA_FILE_SIZE;
     static const bsls::Types::Uint64 k_MAX_JOURNAL_FILE_SIZE;
     static const bsls::Types::Uint64 k_MAX_QLIST_FILE_SIZE;
     static const bsls::Types::Uint64 k_MAX_CSL_FILE_SIZE;
 
-    /// These public constants represent growth limit for 
+    /// These public constants represent growth limit for
     /// partition files.
     static const bsls::Types::Uint64 k_DATA_FILE_GROW_LIMIT;
     static const bsls::Types::Uint64 k_JOURNAL_FILE_GROW_LIMIT;

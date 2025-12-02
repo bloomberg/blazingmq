@@ -538,10 +538,10 @@ void StorageInspector::processCommand(
                 }
                 printer << epochValue;
 
-                const mqbs::JournalOpRecord::SyncPointData& spd = syncPt.syncPointData();
+                const mqbs::JournalOpRecord::SyncPointData& spd =
+                    syncPt.syncPointData();
                 printer << spd.sequenceNum() << spd.primaryNodeId()
-                        << spd.primaryLeaseId()
-                        << spd.dataFileOffsetDwords()
+                        << spd.primaryLeaseId() << spd.dataFileOffsetDwords()
                         << spd.qlistFileOffsetWords();
             }
         }

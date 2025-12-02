@@ -411,7 +411,7 @@ RecordHeader::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct MessageRecord
 // --------------------
 
-const char MessageRecord::k_CAT_MASK               = 7;  // 00000111
+const char MessageRecord::k_CAT_MASK              = 7;  // 00000111
 const int MessageRecord::k_REFCOUNT_LOW_BITS_MASK = RecordHeader::k_FLAGS_MASK;
 
 bsl::ostream&
@@ -706,11 +706,16 @@ bsl::ostream& JournalOpRecord::print(bsl::ostream& stream,
         printer.printAttribute("sequenceNum", syncPoint.sequenceNum());
         printer.printAttribute("primaryNodeId", syncPoint.primaryNodeId());
         printer.printAttribute("primaryLeaseId", syncPoint.primaryLeaseId());
-        printer.printAttribute("dataFileOffsetDwords", syncPoint.dataFileOffsetDwords());
-        printer.printAttribute("qlistFileOffsetWords", syncPoint.qlistFileOffsetWords());
-    } else if (JournalOpType::e_UPDATE_STORAGE_SIZE == type()) {
-        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd = updateStorageSizeData();
-        printer.printAttribute("maxJournalFileSize", ussd.maxJournalFileSize());
+        printer.printAttribute("dataFileOffsetDwords",
+                               syncPoint.dataFileOffsetDwords());
+        printer.printAttribute("qlistFileOffsetWords",
+                               syncPoint.qlistFileOffsetWords());
+    }
+    else if (JournalOpType::e_UPDATE_STORAGE_SIZE == type()) {
+        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd =
+            updateStorageSizeData();
+        printer.printAttribute("maxJournalFileSize",
+                               ussd.maxJournalFileSize());
         printer.printAttribute("maxDataFileSize", ussd.maxDataFileSize());
         printer.printAttribute("maxQlistFileSize", ussd.maxQlistFileSize());
     }

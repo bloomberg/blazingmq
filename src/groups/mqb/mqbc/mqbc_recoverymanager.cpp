@@ -1599,7 +1599,8 @@ int RecoveryManager::recoverSeqNum(
     return rc_SUCCESS;
 }
 
-bmqp_ctrlmsg::PartitionMaxFileSizes RecoveryManager::recoverPartitionMaxFileSizes(int partitionId)
+bmqp_ctrlmsg::PartitionMaxFileSizes
+RecoveryManager::recoverPartitionMaxFileSizes(int partitionId)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1608,7 +1609,7 @@ bmqp_ctrlmsg::PartitionMaxFileSizes RecoveryManager::recoverPartitionMaxFileSize
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
-    RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
 
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
@@ -1617,11 +1618,17 @@ bmqp_ctrlmsg::PartitionMaxFileSizes RecoveryManager::recoverPartitionMaxFileSize
     }
 
     // Get partition max file sizes from the file headers
-    bmqp_ctrlmsg::PartitionMaxFileSizes result; 
-    result.journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedJournalFd).maxFileSize();
-    result.dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedDataFd).maxFileSize();
+    bmqp_ctrlmsg::PartitionMaxFileSizes result;
+    result.journalFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+                                   recoveryCtx.d_mappedJournalFd)
+                                   .maxFileSize();
+    result.dataFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+                                recoveryCtx.d_mappedDataFd)
+                                .maxFileSize();
     if (d_qListAware) {
-        result.qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedQlistFd).maxFileSize();
+        result.qListFileSize() = mqbs::FileStoreProtocolUtil::bmqHeader(
+                                     recoveryCtx.d_mappedQlistFd)
+                                     .maxFileSize();
     }
     return result;
 }

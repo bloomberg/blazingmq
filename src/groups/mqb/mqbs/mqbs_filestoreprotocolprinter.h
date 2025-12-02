@@ -160,7 +160,8 @@ void printJournalFileHeader(bsl::ostream&                     stream,
             journalFd.block(),
             offsetW * bmqp::Protocol::k_WORD_SIZE);
 
-        const mqbs::JournalOpRecord::SyncPointData& spd = joRec->syncPointData();
+        const mqbs::JournalOpRecord::SyncPointData& spd =
+            joRec->syncPointData();
 
         printer << joRec->syncPointType() << spd.primaryNodeId()
                 << spd.primaryLeaseId() << spd.sequenceNum()

@@ -607,8 +607,8 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
 
     new (fh.get()) FileHeader();
     fh->setFileType(FileType::e_DATA)
-       .setPartitionId(partitionId)
-       .setMaxFileSize(dataFile.fileSize());
+        .setPartitionId(partitionId)
+        .setMaxFileSize(dataFile.fileSize());
     dataFilePos = sizeof(FileHeader);
 
     // Data file -- append DataFileHeader
@@ -627,8 +627,8 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     fh.reset(journal.block(), journalPos);
     new (fh.get()) FileHeader();
     fh->setFileType(FileType::e_JOURNAL)
-       .setPartitionId(partitionId)
-       .setMaxFileSize(journal.fileSize());
+        .setPartitionId(partitionId)
+        .setMaxFileSize(journal.fileSize());
     journalPos += sizeof(FileHeader);
 
     // Journal file -- append JournalFileHeader
@@ -644,8 +644,8 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
 
         new (fh.get()) FileHeader();
         fh->setFileType(FileType::e_QLIST)
-          .setPartitionId(partitionId)
-          .setMaxFileSize(qlistFile.fileSize());
+            .setPartitionId(partitionId)
+            .setMaxFileSize(qlistFile.fileSize());
         qlistFilePos += sizeof(FileHeader);
 
         // Qlist file -- append QlistFileHeader
@@ -1125,10 +1125,11 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
             // When we open in write mode, we set to max file size such that we
             // can write to it.
             // TODO: my: need to get size from header instead of config.
-            // But we dont have access to headers here. This method called first time with readOnly=true so we can read headers there.
+            // But we dont have access to headers here. This method called
+            // first time with readOnly=true so we can read headers there.
             //  Solution:
-            // - if FileSize > config.maxFileSize then check GrowLimit and use FileSize + growStep
-            // and log alarm.
+            // - if FileSize > config.maxFileSize then check GrowLimit and use
+            // FileSize + growStep and log alarm.
             BSLS_ASSERT_SAFE(journalFileSize <= config.maxJournalFileSize());
             BSLS_ASSERT_SAFE(dataFileSize <= config.maxDataFileSize());
             if (qlistFd) {

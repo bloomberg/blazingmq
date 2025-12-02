@@ -2158,7 +2158,8 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
                      syncPtRec->syncPointType());
 
     bsls::Types::Uint64 qlistMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->syncPointData().qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
 
     if (fti.qlistFd().fileSize() < qlistMapOffset) {
@@ -2176,7 +2177,8 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     }
 
     bsls::Types::Uint64 dataMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->syncPointData().dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
 
     if (fti.dataFd().fileSize() < dataMapOffset) {
@@ -2321,8 +2323,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
-        
-        //TODO: Need to handle storage size update sync point type???
+
+        // TODO: Need to handle storage size update sync point type???
 
         if (mqbs::SyncPointType::e_UNDEFINED ==
             journalOpRec->syncPointType()) {
@@ -2359,7 +2361,8 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                            << syncPointRecHeader->primaryLeaseId() << ", "
                            << syncPointRecHeader->sequenceNumber()
                            << "). Sequence number in sync point("
-                           << journalOpRec->syncPointData().primaryLeaseId() << ", "
+                           << journalOpRec->syncPointData().primaryLeaseId()
+                           << ", "
                            << journalOpRec->syncPointData().sequenceNum()
                            << "). Source: " << source->nodeDescription()
                            << ". Ignoring this message.";
@@ -2431,8 +2434,9 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         // payload, not the RecordHeader (same reasoning as above -- new
         // primary could be issuing a SyncPt on behalf of previous primary).
 
-        syncPoint->primaryLeaseId() = journalOpRec->syncPointData().primaryLeaseId();
-        syncPoint->sequenceNum()    = journalOpRec->syncPointData().sequenceNum();
+        syncPoint->primaryLeaseId() =
+            journalOpRec->syncPointData().primaryLeaseId();
+        syncPoint->sequenceNum() = journalOpRec->syncPointData().sequenceNum();
         syncPoint->dataFileOffsetDwords() =
             journalOpRec->syncPointData().dataFileOffsetDwords();
         syncPoint->qlistFileOffsetWords() =
@@ -3207,7 +3211,8 @@ void RecoveryManager::startRecovery(
             << partitionId << "], "
             << "last sync point has invalid primaryLeaseId: "
             << journalOpRec.syncPointData().primaryLeaseId()
-            << " or sequenceNum: " << journalOpRec.syncPointData().sequenceNum()
+            << " or sequenceNum: "
+            << journalOpRec.syncPointData().sequenceNum()
             << ". Ignoring this sync point. Recovery will proceed as if this "
             << "node had no local recoverable files for this partition."
             << BMQTSK_ALARMLOG_END;
@@ -3215,7 +3220,8 @@ void RecoveryManager::startRecovery(
     }
 
     bsls::Types::Uint64 dataFileOffset =
-        static_cast<bsls::Types::Uint64>(journalOpRec.syncPointData().dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(
+            journalOpRec.syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
 
     if (bdls::FilesystemUtil::getFileSize(recoveryCtx.fileSet().dataFile()) <
@@ -3233,7 +3239,8 @@ void RecoveryManager::startRecovery(
     }
 
     bsls::Types::Uint64 qlistFileOffset =
-        static_cast<bsls::Types::Uint64>(journalOpRec.syncPointData().qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(
+            journalOpRec.syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
 
     if (bdls::FilesystemUtil::getFileSize(recoveryCtx.fileSet().qlistFile()) <
@@ -3252,10 +3259,12 @@ void RecoveryManager::startRecovery(
 
     // Retrieved old sync point is valid.
 
-    syncPoint.primaryLeaseId()       = journalOpRec.syncPointData().primaryLeaseId();
-    syncPoint.sequenceNum()          = journalOpRec.syncPointData().sequenceNum();
-    syncPoint.dataFileOffsetDwords() = journalOpRec.syncPointData().dataFileOffsetDwords();
-    syncPoint.qlistFileOffsetWords() = journalOpRec.syncPointData().qlistFileOffsetWords();
+    syncPoint.primaryLeaseId() = journalOpRec.syncPointData().primaryLeaseId();
+    syncPoint.sequenceNum()    = journalOpRec.syncPointData().sequenceNum();
+    syncPoint.dataFileOffsetDwords() =
+        journalOpRec.syncPointData().dataFileOffsetDwords();
+    syncPoint.qlistFileOffsetWords() =
+        journalOpRec.syncPointData().qlistFileOffsetWords();
 
     recoveryCtx.setOldSyncPoint(syncPoint);
     recoveryCtx.setOldSyncPointOffset(lastSyncPointOffset);
@@ -4813,7 +4822,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
                      syncPtRec->syncPointType());
 
     bsls::Types::Uint64 qlistMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->syncPointData().qlistFileOffsetWords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().qlistFileOffsetWords()) *
         bmqp::Protocol::k_WORD_SIZE;
     if (static_cast<bsls::Types::Uint64>(fileSet.qlistFileSize()) <
         qlistMapOffset) {
@@ -4838,7 +4848,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
     }
 
     bsls::Types::Uint64 dataMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->syncPointData().dataFileOffsetDwords()) *
+        static_cast<bsls::Types::Uint64>(
+            syncPtRec->syncPointData().dataFileOffsetDwords()) *
         bmqp::Protocol::k_DWORD_SIZE;
     if (static_cast<bsls::Types::Uint64>(fileSet.dataFileSize()) <
         dataMapOffset) {

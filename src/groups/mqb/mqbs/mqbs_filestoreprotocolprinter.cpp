@@ -449,13 +449,15 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     printer << epochValue << rec.type();
     if (mqbs::JournalOpType::e_SYNCPOINT == rec.type()) {
         const mqbs::JournalOpRecord::SyncPointData& spd = rec.syncPointData();
-        printer << rec.syncPointType()
-            << spd.primaryLeaseId() << spd.sequenceNum() << spd.primaryNodeId()
-            << spd.dataFileOffsetDwords();
-    } else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == rec.type()) {
-        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd = rec.updateStorageSizeData();
-        printer << ussd.maxJournalFileSize()
-            << ussd.maxDataFileSize() << ussd.maxQlistFileSize();
+        printer << rec.syncPointType() << spd.primaryLeaseId()
+                << spd.sequenceNum() << spd.primaryNodeId()
+                << spd.dataFileOffsetDwords();
+    }
+    else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == rec.type()) {
+        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd =
+            rec.updateStorageSizeData();
+        printer << ussd.maxJournalFileSize() << ussd.maxDataFileSize()
+                << ussd.maxQlistFileSize();
     }
 
     stream << "\n";

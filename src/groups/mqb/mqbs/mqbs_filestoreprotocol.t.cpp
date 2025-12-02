@@ -467,13 +467,15 @@ static void test1_breathingTest()
     {
         PV("JournalOpRecord of UpdateStorageSize type");
 
-        // Create JournalOpRecord of UPDATE_STORAGE_SIZE type, set fields, assert fields
+        // Create JournalOpRecord of UPDATE_STORAGE_SIZE type, set fields,
+        // assert fields
         JournalOpRecord fh;
         fh.setFlags(1000)
             .setType(JournalOpType::e_UPDATE_STORAGE_SIZE)
             .setMagic(0xdeadbeef);
 
-        JournalOpRecord::UpdateStorageSizeData& ussd = fh.updateStorageSizeData();
+        JournalOpRecord::UpdateStorageSizeData& ussd =
+            fh.updateStorageSizeData();
         ussd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);
@@ -801,8 +803,7 @@ static void test3_printTest()
         rh.setType(RecordType::e_JOURNAL_OP);
         mqbs::JournalOpRecord jOpRec;
         jOpRec.header() = rh;
-        jOpRec.setFlags(0)
-            .setType(JournalOpType::e_UPDATE_STORAGE_SIZE);
+        jOpRec.setFlags(0).setType(JournalOpType::e_UPDATE_STORAGE_SIZE);
 
         JournalOpRecord::UpdateStorageSizeData& ussd =
             jOpRec.updateStorageSizeData();

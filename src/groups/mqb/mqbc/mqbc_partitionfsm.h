@@ -127,23 +127,23 @@ class PartitionFSMEventData {
     /// `seqNum` and optionally specified `firstSyncPointAfterRollloverSeqNum`.
     /// There are also optionally specified `highestSeqNumNode`,
     /// optionally specified `seqNumDataRange`.
-    PartitionFSMEventData(mqbnet::ClusterNode* source,
-                          int                  requestId,
-                          int                  partitionId,
-                          int                  incrementCount,
-                          mqbnet::ClusterNode* primary        = 0,
-                          unsigned int         primaryLeaseId = 0,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
-                              bmqp_ctrlmsg::PartitionSequenceNumber(),
-                          const bmqp_ctrlmsg::PartitionSequenceNumber&
-                              firstSyncPointAfterRollloverSeqNum =
-                                  bmqp_ctrlmsg::PartitionSequenceNumber(),
-                          const bmqp_ctrlmsg::PartitionMaxFileSizes&
-                                partitionMaxFileSizes = 
-                                    bmqp_ctrlmsg::PartitionMaxFileSizes(),
-                          mqbnet::ClusterNode* highestSeqNumNode = 0,
-                          const PartitionSeqNumDataRange& seqNumDataRange =
-                              PartitionSeqNumDataRange());
+    PartitionFSMEventData(
+        mqbnet::ClusterNode*                         source,
+        int                                          requestId,
+        int                                          partitionId,
+        int                                          incrementCount,
+        mqbnet::ClusterNode*                         primary        = 0,
+        unsigned int                                 primaryLeaseId = 0,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
+            bmqp_ctrlmsg::PartitionSequenceNumber(),
+        const bmqp_ctrlmsg::PartitionSequenceNumber&
+            firstSyncPointAfterRollloverSeqNum =
+                bmqp_ctrlmsg::PartitionSequenceNumber(),
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes =
+            bmqp_ctrlmsg::PartitionMaxFileSizes(),
+        mqbnet::ClusterNode*            highestSeqNumNode = 0,
+        const PartitionSeqNumDataRange& seqNumDataRange =
+            PartitionSeqNumDataRange());
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
@@ -151,15 +151,15 @@ class PartitionFSMEventData {
     /// 'incrementCount', the associated data sequence number is the specified
     /// `seqNum`, the first sync point after rollover sequence number is the
     /// specified `firstSyncPointAfterRollloverSeqNum`.
-    PartitionFSMEventData(mqbnet::ClusterNode* source,
-                          int                  requestId,
-                          int                  partitionId,
-                          int                  incrementCount,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
-                          const bmqp_ctrlmsg::PartitionSequenceNumber&
-                              firstSyncPointAfterRollloverSeqNum, 
-                            const bmqp_ctrlmsg::PartitionMaxFileSizes&
-                                partitionMaxFileSizes);
+    PartitionFSMEventData(
+        mqbnet::ClusterNode*                         source,
+        int                                          requestId,
+        int                                          partitionId,
+        int                                          incrementCount,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
+        const bmqp_ctrlmsg::PartitionSequenceNumber&
+            firstSyncPointAfterRollloverSeqNum,
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, partition
@@ -188,10 +188,9 @@ class PartitionFSMEventData {
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     partitionSequenceNumber() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
-                         firstSyncPointAfterRolloverSequenceNumber() const;
-    const bmqp_ctrlmsg::PartitionMaxFileSizes&
-                         partitionMaxFileSizes() const;
-    mqbnet::ClusterNode* highestSeqNumNode() const;
+    firstSyncPointAfterRolloverSequenceNumber() const;
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes() const;
+    mqbnet::ClusterNode*                       highestSeqNumNode() const;
     const PartitionSeqNumDataRange& partitionSeqNumDataRange() const;
 
     /// Return the value of the corresponding member of this object
@@ -338,10 +337,10 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     unsigned int                                 primaryLeaseId,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber&
-                                    firstSyncPointAfterRollloverSeqNum,
-    const bmqp_ctrlmsg::PartitionMaxFileSizes&    partitionMaxFileSizes,                                    
-    mqbnet::ClusterNode*            highestSeqNumNode,
-    const PartitionSeqNumDataRange& seqNumDataRange)
+        firstSyncPointAfterRollloverSeqNum,
+    const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
+    mqbnet::ClusterNode*                       highestSeqNumNode,
+    const PartitionSeqNumDataRange&            seqNumDataRange)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
@@ -366,7 +365,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     int                                          incrementCount,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber&
-        firstSyncPointAfterRollloverSeqNum, 
+        firstSyncPointAfterRollloverSeqNum,
     const bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes)
 : d_source_p(source)
 , d_requestId(requestId)

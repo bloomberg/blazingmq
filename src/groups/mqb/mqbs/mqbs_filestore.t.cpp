@@ -162,21 +162,21 @@ struct Tester {
         bdls::FilesystemUtil::createDirectories(d_clusterArchiveLocation,
                                                 true);
 
-        d_partitionCfg.maxDataFileSize()     = 100 * 1024 * 1024;
-        d_partitionCfg.maxQlistFileSize()    = 1 * 1024 * 1024;
-        d_partitionCfg.maxCSLFileSize()      = 1 * 1024 * 1024;
-        d_partitionCfg.maxJournalFileSize()  = 1 * 1024 * 1024;
-        d_partitionCfg.dataFileGrowLimit()   = 24 * 1024 * 1024;
-        d_partitionCfg.journalFileGrowLimit()= 4 * 1024 * 1024;
-        d_partitionCfg.qlistFileGrowLimit()  = 1 * 1024 *1024;
-        d_partitionCfg.growStepPercent()     = 50;
-        d_partitionCfg.minAvailSpacePercent()= 20;
-        d_partitionCfg.location()            = d_clusterLocation;
-        d_partitionCfg.archiveLocation()     = d_clusterArchiveLocation;
-        d_partitionCfg.numPartitions()       = 1;
-        d_partitionCfg.maxArchivedFileSets() = 1;
-        d_partitionCfg.preallocate()         = false;
-        d_partitionCfg.prefaultPages()       = false;
+        d_partitionCfg.maxDataFileSize()      = 100 * 1024 * 1024;
+        d_partitionCfg.maxQlistFileSize()     = 1 * 1024 * 1024;
+        d_partitionCfg.maxCSLFileSize()       = 1 * 1024 * 1024;
+        d_partitionCfg.maxJournalFileSize()   = 1 * 1024 * 1024;
+        d_partitionCfg.dataFileGrowLimit()    = 24 * 1024 * 1024;
+        d_partitionCfg.journalFileGrowLimit() = 4 * 1024 * 1024;
+        d_partitionCfg.qlistFileGrowLimit()   = 1 * 1024 * 1024;
+        d_partitionCfg.growStepPercent()      = 50;
+        d_partitionCfg.minAvailSpacePercent() = 20;
+        d_partitionCfg.location()             = d_clusterLocation;
+        d_partitionCfg.archiveLocation()      = d_clusterArchiveLocation;
+        d_partitionCfg.numPartitions()        = 1;
+        d_partitionCfg.maxArchivedFileSets()  = 1;
+        d_partitionCfg.preallocate()          = false;
+        d_partitionCfg.prefaultPages()        = false;
 
         d_clusterCfg.name().assign("mock-cluster");
         d_clusterCfg.partitionConfig() = d_partitionCfg;
