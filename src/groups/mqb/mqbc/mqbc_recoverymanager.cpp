@@ -1394,18 +1394,22 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
 
     int                rc = rc_SUCCESS;
     bmqu::MemOutStream errorDesc;
+
+    // Since the recoveryFileSet files have been opened in read mode, we can't
+    // use FileStoreUtil::truncate, which uses ftruncate() syscall
+    // under the hood, because ftruncate() fails with EINVAL if
+    // file is opened in read mode.  So, we just call truncate()
+    // syscall, which works in all cases.
     if (recoveryCtx.d_mappedJournalFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedJournalFd,
-                                            recoveryCtx.d_journalFilePosition,
-                                            errorDesc);
+        rc = ::truncate(recoveryCtx.d_recoveryFileSet.dataFile().c_str(),
+                        recoveryCtx.d_dataFilePosition);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData.identity().description() << " Partition ["
-                << partitionId << "]: " << "Failed to truncate journal file ["
-                << recoveryCtx.d_recoveryFileSet.journalFile()
-                << "], rc: " << rc << ", error: " << errorDesc.str()
-                << BMQTSK_ALARMLOG_END;
-            errorDesc.reset();
+                << partitionId << "]: " << "Failed to truncate data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << ", errno: [" << errno << " [" << bsl::strerror(errno)
+                << "]." << BMQTSK_ALARMLOG_END;
         }
 
         rc = mqbs::FileSystemUtil::flush(
@@ -1441,16 +1445,15 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
     recoveryCtx.d_journalFilePosition = 0;
 
     if (recoveryCtx.d_mappedDataFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedDataFd,
-                                            recoveryCtx.d_dataFilePosition,
-                                            errorDesc);
+        rc = ::truncate(recoveryCtx.d_recoveryFileSet.dataFile().c_str(),
+                        recoveryCtx.d_dataFilePosition);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Failed to truncate data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
-                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
-            errorDesc.reset();
+                << ", errno: [" << errno << " [" << bsl::strerror(errno)
+                << "]." << BMQTSK_ALARMLOG_END;
         }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedDataFd.mapping(),
@@ -1484,16 +1487,15 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
     recoveryCtx.d_dataFilePosition = 0;
 
     if (recoveryCtx.d_mappedQlistFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedQlistFd,
-                                            recoveryCtx.d_qlistFilePosition,
-                                            errorDesc);
+        rc = ::truncate(recoveryCtx.d_recoveryFileSet.qlistFile().c_str(),
+                        recoveryCtx.d_qlistFilePosition);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Failed to truncate QList file ["
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
-                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
-            errorDesc.reset();
+                << ", errno: [" << errno << " [" << bsl::strerror(errno)
+                << "]." << BMQTSK_ALARMLOG_END;
         }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedQlistFd.mapping(),
