@@ -1084,8 +1084,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
             (d_qListAware && newDataStoreConfig.maxQlistFileSize() !=
                                  d_dataStoreConfig.maxQlistFileSize())) {
             BALL_LOG_WARN << d_clusterData.identity().description()
-                          << " Partition [" << partitionId << "]: "
-                          << "Override max file sizes "
+                          << " Partition [" << partitionId
+                          << "]: " << "Override max file sizes "
                           << "from config because max file sizes from headers "
                           << "are different. New max journal file size: "
                           << newDataStoreConfig.maxJournalFileSize()
