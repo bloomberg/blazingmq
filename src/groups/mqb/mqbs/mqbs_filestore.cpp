@@ -453,8 +453,11 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         d_partitionMaxFileSizes.qListFileSize() =
             FileStoreProtocolUtil::bmqHeader(qlistFd).maxFileSize();
     }
+
     BALL_LOG_INFO << partitionDesc()
                   << "Partition max file sizes: " << d_partitionMaxFileSizes;
+    BSLS_ASSERT_SAFE(d_partitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
 
     // Get first sync point after rollover.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
@@ -930,6 +933,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     // Ensure that the maximum file size for the partition is equal or greater
     // than the offsets obtained above.
+    BSLS_ASSERT_SAFE(d_partitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
 
     if (dataFileOffset > d_partitionMaxFileSizes.dataFileSize() ||
         (qlistFileOffset > d_partitionMaxFileSizes.qListFileSize() &&
@@ -982,8 +987,10 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     // Set max file sizes in recovery file set
     // if overridden value is present, use it.
-    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
+    const bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
         d_overridenPartitionMaxFileSizes.value_or(d_partitionMaxFileSizes);
+    BSLS_ASSERT_SAFE(partitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
 
     recoveryFileSet.setJournalFileSize(partitionMaxFileSizes.journalFileSize())
         .setDataFileSize(partitionMaxFileSizes.dataFileSize());
@@ -2704,8 +2711,8 @@ int FileStore::create(FileSetSp* fileSetSp)
 
     // Make a copy of config and update it with active partition max file sizes
     // (override config values)
-    DataStoreConfig                     dataStoreConfig = d_config;
-    bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
+    DataStoreConfig                           dataStoreConfig = d_config;
+    const bmqp_ctrlmsg::PartitionMaxFileSizes partitionMaxFileSizes =
         d_overridenPartitionMaxFileSizes.value_or(d_partitionMaxFileSizes);
     dataStoreConfig.setMaxDataFileSize(partitionMaxFileSizes.dataFileSize())
         .setMaxJournalFileSize(partitionMaxFileSizes.journalFileSize())

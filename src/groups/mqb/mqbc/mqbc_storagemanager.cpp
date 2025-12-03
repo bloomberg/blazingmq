@@ -3780,6 +3780,9 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
             partitionCfg.qlistFileGrowLimit());
     }
 
+    BSLS_ASSERT_SAFE(highestPartitionMaxFileSizes !=
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+
     // Find nodes that require to update partition max file sizes
     // and send them corresponding event.
     for (NodeToPartitionMaxFileSizesMapCIter cit =
@@ -3787,7 +3790,7 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
          cit != nodeToPartitionMaxFileSizesMap.cend();
          cit++) {
         if (cit->second == highestPartitionMaxFileSizes) {
-            // Node already has highest partition max file sizes.
+            // Node already has the highest partition max file sizes.
             continue;  // CONTINUE
         }
 
@@ -3852,7 +3855,7 @@ void StorageManager::do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
 
     fs->overridePartitionMaxFileSizes(highestPartitionMaxFileSizes);
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId
                   << "]: " << "override current partition max file sizes "
                   << fs->partitionMaxFileSizes() << " with "
@@ -5418,11 +5421,14 @@ StorageManager::getSelfPartitionMaxFileSizes(int partitionId) const
     BSLS_ASSERT_SAFE(fs);
 
     // Get own partition max file sizes
-    bmqp_ctrlmsg::PartitionMaxFileSizes selfPartitionMaxFileSizes;
+    bmqp_ctrlmsg::PartitionMaxFileSizes selfPartitionMaxFileSizes =
+        fs->isOpen()
+            ? fs->partitionMaxFileSizes()
+            : d_recoveryManager_mp->recoverPartitionMaxFileSizes(partitionId);
 
-    return fs->isOpen() ? fs->partitionMaxFileSizes()
-                        : d_recoveryManager_mp->recoverPartitionMaxFileSizes(
-                              partitionId);
+    BSLS_ASSERT_SAFE(selfPartitionMaxFileSizes !=
+                    bmqp_ctrlmsg::PartitionMaxFileSizes());
+    return selfPartitionMaxFileSizes;
 }
 
 }  // close package namespace
