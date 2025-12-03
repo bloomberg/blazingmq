@@ -22,8 +22,6 @@ import json
 from pathlib import Path
 import subprocess
 
-import pytest
-
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
