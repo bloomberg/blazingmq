@@ -950,8 +950,6 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     // See if journal is full.  If it is, the only way is to update the config
     // to bump the journal file size.
 
-    // TODO: me: try to increase journal size automatically till limit here?
-
     if (d_partitionMaxFileSizes.journalFileSize() <
         (journalFileOffset + 2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE)) {
         BALL_LOG_ERROR << partitionDesc() << "Journal does not have enough "
@@ -1654,9 +1652,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_DATA_OFFSET;  // RETURN
             }
 
-            if (dataFd->fileSize() < (static_cast<bsls::Types::Uint64>(
-                                          rec.dataFileOffsetDwords()) *
-                                      bmqp::Protocol::k_DWORD_SIZE)) {
+            if (dataFd->fileSize() <
+                (static_cast<bsls::Types::Uint64>(rec.dataFileOffsetDwords()) *
+                 bmqp::Protocol::k_DWORD_SIZE)) {
                 BALL_LOG_ERROR
                     << partitionDesc()
                     << "Encountered a sync point during backward "
@@ -2870,7 +2868,7 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     OffsetPtr<JournalOpRecord> spRec(rJournalFile.block(), rJournalFilePos);
     new (spRec.get())
         JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                        SyncPointType::e_REGULAR,  // 'regular' sync point            
+                        SyncPointType::e_REGULAR,  // 'regular' sync point
                         syncPoint.sequenceNum(),
                         journalOpRec->primaryNodeId(),
                         syncPoint.primaryLeaseId(),
@@ -3133,12 +3131,12 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     }
 
     bsls::Types::Uint64 availableSpacePercentJournal = 0;
-    if (outstandingBytesJournal <= activeFileSet->d_journalFile.fileSize()) {
+    bsls::Types::Uint64 maxJournalFileSize =
+        activeFileSet->d_journalFile.fileSize();
+    if (outstandingBytesJournal <= maxJournalFileSize) {
         availableSpacePercentJournal =
-            ((activeFileSet->d_journalFile.fileSize() -
-              outstandingBytesJournal) *
-             100) /
-            activeFileSet->d_journalFile.fileSize();
+            ((maxJournalFileSize - outstandingBytesJournal) * 100) /
+            maxJournalFileSize;
     }
 
     if (availableSpacePercentJournal < d_config.minAvailSpacePercent()) {
@@ -3156,9 +3154,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     }
 
     bsls::Types::Uint64 availableSpacePercentData = 0;
-    // TODO: me: use activeFileSet->d_dataFile.fileSize() ???
-    bsls::Types::Uint64 maxDataFileSize =
-        d_partitionMaxFileSizes.dataFileSize();
+    bsls::Types::Uint64 maxDataFileSize = activeFileSet->d_dataFile.fileSize();
     if (outstandingBytesData <= maxDataFileSize) {
         availableSpacePercentData = ((maxDataFileSize - outstandingBytesData) *
                                      100) /
@@ -3182,7 +3178,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         }
 
         bsls::Types::Uint64 maxQlistFileSize =
-            d_partitionMaxFileSizes.qListFileSize();
+            activeFileSet->d_qlistFile.fileSize();
         if (outstandingBytesQlist <= maxQlistFileSize) {
             availableSpacePercentQlist =
                 ((maxQlistFileSize - outstandingBytesQlist) * 100) /
@@ -4688,7 +4684,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             syncPoint.primaryLeaseId()       = jOpRec->primaryLeaseId();
             syncPoint.sequenceNum()          = jOpRec->sequenceNum();
             syncPoint.dataFileOffsetDwords() = jOpRec->dataFileOffsetDwords();
-            syncPoint.qlistFileOffsetWords() = d_qListAware ? jOpRec->qlistFileOffsetWords() : 0;
+            syncPoint.qlistFileOffsetWords() =
+                d_qListAware ? jOpRec->qlistFileOffsetWords() : 0;
             spoPair.offset() = recordOffset;
 
             // Ensure that replica's DATA file is in sync with that of primary.

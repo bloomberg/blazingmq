@@ -3607,6 +3607,8 @@ void StorageManager::do_checkQuorumMaxFileSizesAndSeq(
 
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfPrimary());
 
+    // Before checking sequence number quorum, check max file sizes quorum
+    // to update (resize) partition file sizes if needed.
     if (d_nodeToPartitionMaxFileSizesMapVec[partitionId].size() >=
         getMaxFileSizesQuorum()) {
         // If we have a quorum of Replica max file sizes (including self)
@@ -3791,8 +3793,6 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
 
         EventData newEventDataVec;
 
-        // TODO: my: check if other constructor is needed here w/o seqNum
-        // dont need this here!!!
         const unsigned int primaryLeaseId =
             d_partitionInfoVec[partitionId].primaryLeaseId();
 
@@ -3800,9 +3800,7 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
             cit->first,
             -1,  // placeholder requestId
             partitionId,
-            1,  // incrementCount
-            selfNode,
-            primaryLeaseId,
+            1,                                        // incrementCount
             bmqp_ctrlmsg::PartitionSequenceNumber(),  // seqNum
             bmqp_ctrlmsg::
                 PartitionSequenceNumber(),  // firstSyncPointAfterRollloverSeqNum
@@ -3855,8 +3853,8 @@ void StorageManager::do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
     fs->overridePartitionMaxFileSizes(highestPartitionMaxFileSizes);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "override current partition max file sizes "
+                  << " Partition [" << partitionId
+                  << "]: " << "override current partition max file sizes "
                   << fs->partitionMaxFileSizes() << " with "
                   << highestPartitionMaxFileSizes;
 }
@@ -3916,8 +3914,8 @@ void StorageManager::do_replicaDataRequestResize(
                                                bsls::TimeInterval(10));
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "sent ReplicaDataRequest(E_RESIZE) with "
+                  << " Partition [" << partitionId
+                  << "]: " << "sent ReplicaDataRequest(E_RESIZE) with "
                   << highestPartitionMaxFileSizes << " to "
                   << destNode->nodeDescription();
 
