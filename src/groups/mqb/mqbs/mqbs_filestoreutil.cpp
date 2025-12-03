@@ -1124,12 +1124,6 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         else {
             // When we open in write mode, we set to max file size such that we
             // can write to it.
-            // TODO: my: need to get size from header instead of config.
-            // But we dont have access to headers here. This method called
-            // first time with readOnly=true so we can read headers there.
-            //  Solution:
-            // - if FileSize > config.maxFileSize then check GrowLimit and use
-            // FileSize + growStep and log alarm.
             BSLS_ASSERT_SAFE(journalFileSize <= config.maxJournalFileSize());
             BSLS_ASSERT_SAFE(dataFileSize <= config.maxDataFileSize());
             if (qlistFd) {
