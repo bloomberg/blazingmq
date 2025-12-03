@@ -5427,7 +5427,7 @@ StorageManager::getSelfPartitionMaxFileSizes(int partitionId) const
             : d_recoveryManager_mp->recoverPartitionMaxFileSizes(partitionId);
 
     BSLS_ASSERT_SAFE(selfPartitionMaxFileSizes !=
-                    bmqp_ctrlmsg::PartitionMaxFileSizes());
+                     bmqp_ctrlmsg::PartitionMaxFileSizes());
     return selfPartitionMaxFileSizes;
 }
 
