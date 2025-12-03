@@ -160,18 +160,22 @@ void RecoveryManager::deprecateFileSet(int partitionId)
     RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
     bmqu::MemOutStream errorDesc;
     int                rc = -1;
+
+    // Since the recoveryFileSet files have been opened in read mode, we can't
+    // use FileStoreUtil::truncate, which uses ftruncate() syscall
+    // under the hood, because ftruncate() fails with EINVAL if
+    // file is opened in read mode.  So, we just call truncate()
+    // syscall, which works in all cases.
     if (recoveryCtx.d_mappedJournalFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedJournalFd,
-                                            recoveryCtx.d_journalFilePosition,
-                                            errorDesc);
+        rc = ::truncate(recoveryCtx.d_recoveryFileSet.journalFile().c_str(),
+                        recoveryCtx.d_journalFilePosition);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Failed to truncate journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
-                << "], rc: " << rc << ", error: " << errorDesc.str()
-                << BMQTSK_ALARMLOG_END;
-            errorDesc.reset();
+                << "], rc: " << rc << ", errno: [" << errno << " ["
+                << bsl::strerror(errno) << "]." << BMQTSK_ALARMLOG_END;
         }
 
         rc = mqbs::FileSystemUtil::flush(
@@ -211,16 +215,15 @@ void RecoveryManager::deprecateFileSet(int partitionId)
     recoveryCtx.d_journalFilePosition = 0;
 
     if (recoveryCtx.d_mappedDataFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedDataFd,
-                                            recoveryCtx.d_dataFilePosition,
-                                            errorDesc);
+        rc = ::truncate(recoveryCtx.d_recoveryFileSet.dataFile().c_str(),
+                        recoveryCtx.d_dataFilePosition);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Failed to truncate data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
-                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
-            errorDesc.reset();
+                << ", errno: [" << errno << " [" << bsl::strerror(errno)
+                << "]." << BMQTSK_ALARMLOG_END;
         }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedDataFd.mapping(),
@@ -257,16 +260,15 @@ void RecoveryManager::deprecateFileSet(int partitionId)
     recoveryCtx.d_dataFilePosition = 0;
 
     if (recoveryCtx.d_mappedQlistFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedQlistFd,
-                                            recoveryCtx.d_qlistFilePosition,
-                                            errorDesc);
+        rc = ::truncate(recoveryCtx.d_recoveryFileSet.qlistFile().c_str(),
+                        recoveryCtx.d_qlistFilePosition);
         if (rc != 0) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: " << "Failed to truncate QList file ["
                 << recoveryCtx.d_recoveryFileSet.qlistFile() << "], rc: " << rc
-                << ", error: " << errorDesc.str() << BMQTSK_ALARMLOG_END;
-            errorDesc.reset();
+                << ", errno: [" << errno << " [" << bsl::strerror(errno)
+                << "]." << BMQTSK_ALARMLOG_END;
         }
 
         rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedQlistFd.mapping(),
@@ -1044,7 +1046,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         partitionId,
         k_MAX_NUM_FILE_SETS_TO_CHECK,
         d_dataStoreConfig,
-        false,  // readOnly
+        true,  // readOnly
         d_qListAware ? &recoveryCtx.d_mappedQlistFd : 0,
         d_qListAware ? &recoveryCtx.d_qlistFilePosition : 0);
     if (rc == 1) {
