@@ -538,18 +538,10 @@ void RelayQueueEngine::onHandleReleasedDispatched(
 
         app->invalidate(handle);
 
-        // This is in continuation of the special-case handling above.  If the
-        // client is attempting to release the consumer portion of an *active*
-        // (highest priority) consumer handle without having first configured
-        // it to have null streamParameters (i.e. invalid consumerPriority).
-        // Then, we need to rebuild the highest priority state so as to "mimic"
-        // the effects of a configureQueue with null streamParameters.  Note
-        // that this may affect the 'd_queueState_p->streamParameters()'.
-
         if (app->transferUnconfirmedMessages(handle, info)) {
             processAppRedelivery(upstreamSubQueueId, app);
         }
-        else {
+        if (streamResult.hasNoQueueStreamConsumers()) {
             // We lost the last reader.
             //
             // Messages to be delivered downstream need to be cleared from
@@ -557,6 +549,11 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             // readers), because those messages may be re-routed by the primary
             // to another client.  Also get rid of any pending and
             // to-be-redelivered messages.
+
+            BMQ_LOGTHROTTLE_INFO << "Queue [" << d_queueState_p->uri()
+                                 << "], lost the last reader for the App: ["
+                                 << info.appId() << "]";
+
             beforeOneAppRemoved(upstreamSubQueueId);
             d_pushStream.removeApp(upstreamSubQueueId);
             app->clear();
