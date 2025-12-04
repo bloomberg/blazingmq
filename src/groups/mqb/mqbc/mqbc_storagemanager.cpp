@@ -3754,7 +3754,7 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
 
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
