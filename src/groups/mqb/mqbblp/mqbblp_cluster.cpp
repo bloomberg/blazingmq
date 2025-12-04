@@ -1774,22 +1774,6 @@ void Cluster::onPushEvent(const mqbi::DispatcherPushEvent& event)
     // Build push event using PushEventBuilder.
     const QueueState& queueState = queueIt->second;
 
-    // Update stats
-    // TODO: Extract this and the version from 'mqba::ClientSession' to a
-    //       function
-    for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
-         i < event.subQueueInfos().size();
-         ++i) {
-        StreamsMap::const_iterator subQueueCiter =
-            queueState.d_subQueueInfosMap.findBySubscriptionId(
-                event.subQueueInfos()[i].id());
-
-        subQueueCiter->value()
-            .d_clientStats
-            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_PUSH>(
-                event.blob() ? event.blob()->length() : 0);
-    }
-
     bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;
     // TBD: groupId: also pass options to the 'PushEventBuilder::packMessage'
     // routine below.
@@ -1807,8 +1791,27 @@ void Cluster::onPushEvent(const mqbi::DispatcherPushEvent& event)
             event.compressionAlgorithmType(),
             event.messagePropertiesInfo(),
             event.subQueueInfos());
+
+        // Broadcast PUSH does not carry SubscriptionId until last hop before
+        // SDK.
     }
     else {
+        // Update stats
+        // TODO: Extract this and the version from 'mqba::ClientSession' to a
+        //       function
+        for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
+             i < event.subQueueInfos().size();
+             ++i) {
+            StreamsMap::const_iterator subQueueCiter =
+                queueState.d_subQueueInfosMap.findBySubscriptionId(
+                    event.subQueueInfos()[i].id());
+
+            subQueueCiter->value()
+                .d_clientStats
+                ->onEvent<mqbstat::ClusterNodeStats::EventType::e_PUSH>(
+                    event.blob() ? event.blob()->length() : 0);
+        }
+
         int flags = 0;
 
         if (event.isOutOfOrderPush()) {

@@ -549,7 +549,7 @@ void RelayQueueEngine::onHandleReleasedDispatched(
         if (app->transferUnconfirmedMessages(handle, info)) {
             processAppRedelivery(upstreamSubQueueId, app);
         }
-        else {
+        if (streamResult.hasNoQueueStreamConsumers()) {
             // We lost the last reader.
             //
             // Messages to be delivered downstream need to be cleared from
