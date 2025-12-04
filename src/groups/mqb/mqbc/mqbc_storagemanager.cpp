@@ -3876,8 +3876,8 @@ void StorageManager::do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
     if (limitPartitionMaxFileSizes(limitedHighestPartitionMaxFileSizes,
                                    d_clusterConfig.partitionConfig())) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "received highest partition max file sizes: "
+                      << " Partition [" << partitionId
+                      << "]: " << "received highest partition max file sizes: "
                       << highestPartitionMaxFileSizes
                       << " were limited to grow limits"
                       << limitedHighestPartitionMaxFileSizes;
