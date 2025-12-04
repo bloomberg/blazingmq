@@ -1961,7 +1961,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, SyncPointType::Enum value);
 
 /// This struct represents a JournalOpRecord present in the `JOURNAL` file
 /// of a BlazingMQ file store.
-class JournalOpRecord {
+struct JournalOpRecord {
     // JournalOpRecord structure datagram [60 bytes]:
     //..
     //   +---------------+---------------+---------------+---------------+
@@ -2087,7 +2087,7 @@ class JournalOpRecord {
 
     JournalOpRecord& setQlistFileOffsetWords(unsigned int value);
 
-    JournalOpRecord& setMagic(unsigned int value);
+    JournalOpRecord& setMagic(unsigned int value);    
 
     // ACCESSORS
     const RecordHeader& header() const;
@@ -2100,14 +2100,14 @@ class JournalOpRecord {
 
     bsls::Types::Uint64 sequenceNum() const;
 
-    int primaryNodeId() const;
+    int primaryNodeId() const;    
 
     unsigned int primaryLeaseId() const;
 
     unsigned int dataFileOffsetDwords() const;
 
     unsigned int qlistFileOffsetWords() const;
-
+    
     unsigned int magic() const;
 
     /// Format this object to the specified output `stream` at the (absolute
@@ -3119,7 +3119,7 @@ inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
     setPrimaryNodeId(primaryNodeId);
     setPrimaryLeaseId(primaryLeaseId);
     setDataFileOffsetDwords(dataFileOffsetDwords);
-    setQlistFileOffsetWords(qlistFileOffsetWords);
+    setQlistFileOffsetWords(qlistFileOffsetWords);    
     setMagic(magic);
 }
 

@@ -454,10 +454,36 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
             FileStoreProtocolUtil::bmqHeader(qlistFd).maxFileSize();
     }
 
-    BALL_LOG_INFO << partitionDesc()
-                  << "Partition max file sizes: " << d_partitionMaxFileSizes;
-    BSLS_ASSERT_SAFE(d_partitionMaxFileSizes !=
-                     bmqp_ctrlmsg::PartitionMaxFileSizes());
+    // Validate max file sizes and compare with config values.
+    bmqp_ctrlmsg::PartitionMaxFileSizes configMaxFileSizes;
+    configMaxFileSizes.journalFileSize() = d_config.maxJournalFileSize();
+    configMaxFileSizes.dataFileSize()    = d_config.maxDataFileSize();
+    if (d_qListAware) {
+        configMaxFileSizes.qListFileSize() = d_config.maxQlistFileSize();
+    }
+
+    if (d_partitionMaxFileSizes == bmqp_ctrlmsg::PartitionMaxFileSizes()) {
+        // If file sizes are ommitted in file header, use config values
+        d_partitionMaxFileSizes = configMaxFileSizes;
+        BALL_LOG_WARN << partitionDesc()
+                      << "Partition max file sizes are omitted in file "
+                         "headers, use from config: "
+                      << d_partitionMaxFileSizes;
+    }
+    else {
+        if (d_partitionMaxFileSizes != configMaxFileSizes) {
+            BALL_LOG_WARN << partitionDesc()
+                          << "Override partition max file sizes from config ["
+                          << configMaxFileSizes
+                          << "] with values from file headers: "
+                          << d_partitionMaxFileSizes;
+        }
+        else {
+            BALL_LOG_INFO << partitionDesc()
+                          << "Partition max file sizes from file headers: "
+                          << d_partitionMaxFileSizes;
+        }
+    }
 
     // Get first sync point after rollover.
     if (jit.firstSyncPointAfterRolloverPosition() > 0) {
@@ -933,8 +959,6 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     // Ensure that the maximum file size for the partition is equal or greater
     // than the offsets obtained above.
-    BSLS_ASSERT_SAFE(d_partitionMaxFileSizes !=
-                     bmqp_ctrlmsg::PartitionMaxFileSizes());
 
     if (dataFileOffset > d_partitionMaxFileSizes.dataFileSize() ||
         (qlistFileOffset > d_partitionMaxFileSizes.qListFileSize() &&
