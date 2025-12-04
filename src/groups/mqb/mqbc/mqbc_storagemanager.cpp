@@ -1622,7 +1622,7 @@ void StorageManager::do_storeSelfMaxFileSizes(const PartitionFSMArgsSp& args)
     const PartitionFSM::EventWithData& eventWithData =
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
@@ -3754,7 +3754,7 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
 
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
@@ -3861,7 +3861,7 @@ void StorageManager::do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
 
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
@@ -3913,7 +3913,7 @@ void StorageManager::do_replicaDataRequestResize(
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
 
-    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
@@ -4017,7 +4017,8 @@ void StorageManager::do_replicaDataResponseResize(
 
     response.replicaDataType()       = bmqp_ctrlmsg::ReplicaDataType::E_RESIZE;
     response.partitionId()           = partitionId;
-    response.partitionMaxFileSizes() = eventData.partitionMaxFileSizes();
+    response.partitionMaxFileSizes() = getSelfPartitionMaxFileSizes(
+        partitionId);
 
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
                                                           eventData.source());
