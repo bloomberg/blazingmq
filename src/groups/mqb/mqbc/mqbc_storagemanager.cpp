@@ -60,6 +60,37 @@ bool isPrimaryActive(const mqbi::StorageManager_PartitionInfo pinfo)
     return pinfo.primaryStatus() == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
 }
 
+// Limit partition max file sizes to configured grow limits.
+// Return `true` if limit was applied, `false` otherwise.
+bool limitPartitionMaxFileSizes(
+    bmqp_ctrlmsg::PartitionMaxFileSizes& partitionMaxFileSizes,
+    const mqbcfg::PartitionConfig&       partitionCfg)
+{
+    bool limitApplied = false;
+    if (partitionCfg.dataFileGrowLimit() > 0 &&
+        partitionMaxFileSizes.dataFileSize() >
+            partitionCfg.dataFileGrowLimit()) {
+        partitionMaxFileSizes.dataFileSize() =
+            partitionCfg.dataFileGrowLimit();
+        limitApplied = true;
+    }
+    if (partitionCfg.journalFileGrowLimit() > 0 &&
+        partitionMaxFileSizes.journalFileSize() >
+            partitionCfg.journalFileGrowLimit()) {
+        partitionMaxFileSizes.journalFileSize() =
+            partitionCfg.journalFileGrowLimit();
+        limitApplied = true;
+    }
+    if (partitionCfg.qlistFileGrowLimit() > 0 &&
+        partitionMaxFileSizes.qListFileSize() >
+            partitionCfg.qlistFileGrowLimit()) {
+        partitionMaxFileSizes.qListFileSize() =
+            partitionCfg.qlistFileGrowLimit();
+        limitApplied = true;
+    }
+    return limitApplied;
+}
+
 }  // close unnamed namespace
 
 // ----------------------------
@@ -3762,22 +3793,16 @@ void StorageManager::do_findHighestFileSizes(const PartitionFSMArgsSp& args)
     }
 
     // Limit highest partition max file sizes to configured grow limits.
-    const mqbcfg::PartitionConfig& partitionCfg =
-        d_clusterConfig.partitionConfig();
-    if (partitionCfg.dataFileGrowLimit() > 0) {
-        highestPartitionMaxFileSizes.dataFileSize() = bsl::min(
-            highestPartitionMaxFileSizes.dataFileSize(),
-            partitionCfg.dataFileGrowLimit());
-    }
-    if (partitionCfg.journalFileGrowLimit() > 0) {
-        highestPartitionMaxFileSizes.journalFileSize() = bsl::min(
-            highestPartitionMaxFileSizes.journalFileSize(),
-            partitionCfg.journalFileGrowLimit());
-    }
-    if (partitionCfg.qlistFileGrowLimit() > 0) {
-        highestPartitionMaxFileSizes.qListFileSize() = bsl::min(
-            highestPartitionMaxFileSizes.qListFileSize(),
-            partitionCfg.qlistFileGrowLimit());
+    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes;
+    if (limitPartitionMaxFileSizes(limitedHighestPartitionMaxFileSizes,
+                                   d_clusterConfig.partitionConfig())) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "calculated highest partition max file sizes: "
+                      << highestPartitionMaxFileSizes
+                      << " were limited to grow limits"
+                      << limitedHighestPartitionMaxFileSizes;
+        highestPartitionMaxFileSizes = limitedHighestPartitionMaxFileSizes;
     }
 
     BSLS_ASSERT_SAFE(highestPartitionMaxFileSizes !=
@@ -3846,6 +3871,19 @@ void StorageManager::do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
 
     bmqp_ctrlmsg::PartitionMaxFileSizes highestPartitionMaxFileSizes =
         eventData.partitionMaxFileSizes();
+
+    bmqp_ctrlmsg::PartitionMaxFileSizes limitedHighestPartitionMaxFileSizes;
+    if (limitPartitionMaxFileSizes(limitedHighestPartitionMaxFileSizes,
+                                   d_clusterConfig.partitionConfig())) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "received highest partition max file sizes: "
+                      << highestPartitionMaxFileSizes
+                      << " were limited to grow limits"
+                      << limitedHighestPartitionMaxFileSizes;
+        highestPartitionMaxFileSizes = limitedHighestPartitionMaxFileSizes;
+    }
+
     BSLS_ASSERT_SAFE(highestPartitionMaxFileSizes !=
                      bmqp_ctrlmsg::PartitionMaxFileSizes());
 
