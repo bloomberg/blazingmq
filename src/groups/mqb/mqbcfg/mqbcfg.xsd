@@ -558,6 +558,13 @@
         maxJournalFileSize...: maximum size of partitions' journal file
         maxQlistFileSize.....: maximum size of partitions' qlist file
         maxCSLFileSize.......: maximum size of partitions' CSL file
+        dataFileGrowLimit....: limit for data file growth during rollover
+        journalFileGrowLimit.: limit for journal file growth during rollover
+        qlistFileGrowLimit...: limit for qlist file growth during rollover
+        growStepPercent.....: step (in percents of max file size) for file
+                               growth during rollover
+        minAvailSpacePercent.: minimum available free file space (in percents)
+                               which will appear after rollover (rollover criteria)
         preallocate..........: flag to indicate whether files should be
                                preallocated on disk
         maxArchivedFileSets..: maximum number of archived file sets per
@@ -571,18 +578,23 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='numPartitions'       type='int'/>
-      <element name='location'            type='string'/>
-      <element name='archiveLocation'     type='string'/>
-      <element name='maxDataFileSize'     type='unsignedLong'/>
-      <element name='maxJournalFileSize'  type='unsignedLong'/>
-      <element name='maxQlistFileSize'    type='unsignedLong'/>
-      <element name='maxCSLFileSize'      type='unsignedLong' default='67108864'/>
-      <element name='preallocate'         type='boolean' default='false'/>
-      <element name='maxArchivedFileSets' type='int'/>
-      <element name='prefaultPages'       type='boolean' default='false'/>
-      <element name='flushAtShutdown'     type='boolean' default='true'/>
-      <element name='syncConfig'          type='tns:StorageSyncConfig'/>
+      <element name='numPartitions'        type='int'/>
+      <element name='location'             type='string'/>
+      <element name='archiveLocation'      type='string'/>
+      <element name='maxDataFileSize'      type='unsignedLong'/>
+      <element name='maxJournalFileSize'   type='unsignedLong'/>
+      <element name='maxQlistFileSize'     type='unsignedLong'/>
+      <element name='maxCSLFileSize'       type='unsignedLong' default='67108864'/>
+      <element name='dataFileGrowLimit'    type='unsignedLong' default='25769803776'/> <!-- 24 GB -->
+      <element name='journalFileGrowLimit' type='unsignedLong' default='4294967296'/>  <!-- 4 GB -->
+      <element name='qlistFileGrowLimit'   type='unsignedLong' default='1073741824'/>  <!-- 1 GB -->
+      <element name='growStepPercent'      type='unsignedInt' default='50'/> <!-- 50% -->
+      <element name='minAvailSpacePercent' type='unsignedInt' default='20'/> <!-- 20% -->
+      <element name='preallocate'          type='boolean' default='false'/>
+      <element name='maxArchivedFileSets'  type='int'/>
+      <element name='prefaultPages'        type='boolean' default='false'/>
+      <element name='flushAtShutdown'      type='boolean' default='true'/>
+      <element name='syncConfig'           type='tns:StorageSyncConfig'/>
     </sequence>
   </complexType>
 

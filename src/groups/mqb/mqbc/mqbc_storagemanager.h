@@ -203,6 +203,16 @@ class StorageManager BSLS_KEYWORD_FINAL
     typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
     typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
 
+    typedef bsl::unordered_map<mqbnet::ClusterNode*,
+                               bmqp_ctrlmsg::PartitionMaxFileSizes>
+        NodeToPartitionMaxFileSizesMap;
+    typedef NodeToPartitionMaxFileSizesMap::iterator
+        NodeToPartitionMaxFileSizesMapIter;
+    typedef NodeToPartitionMaxFileSizesMap::const_iterator
+        NodeToPartitionMaxFileSizesMapCIter;
+    typedef bsl::vector<NodeToPartitionMaxFileSizesMap>
+        NodeToPartitionMaxFileSizesMapVec;
+
     typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 
@@ -347,6 +357,13 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         **must** be accessed in the associated Queue dispatcher thread
     ///         for the i-th partitionId.
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
+
+    /// Vector of `NodeToPartitionMaxFileSizesMap` indexed by partitionId.
+    ///
+    /// THREAD: Except during the ctor, the i-th index of this data member
+    ///         **must** be accessed in the associated Queue dispatcher thread
+    ///         for the i-th partitionId.
+    NodeToPartitionMaxFileSizesMapVec d_nodeToPartitionMaxFileSizesMapVec;
 
     /// Vector of number of replica data responses received, indexed by
     /// partitionId.
@@ -501,6 +518,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     processReplicaDataRequestDrop(const bmqp_ctrlmsg::ControlMessage& message,
                                   mqbnet::ClusterNode*                source);
 
+    /// Process replica data request of type RESIZE received from the specified
+    /// `source` with the specified `message`.
+    void processReplicaDataRequestResize(
+        const bmqp_ctrlmsg::ControlMessage& message,
+        mqbnet::ClusterNode*                source);
+
     /// Process the PrimaryStateResponse contained in the specified
     /// `context` from the specified `responder`.
     ///
@@ -585,6 +608,15 @@ class StorageManager BSLS_KEYWORD_FINAL
     void
     do_storeReplicaSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
+    void do_storeSelfMaxFileSizes(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_storePrimaryMaxFileSizes(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_storeReplicaMaxFileSizes(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_storePartitionInfo(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -639,6 +671,12 @@ class StorageManager BSLS_KEYWORD_FINAL
     void do_failureReplicaDataResponsePush(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_replicaDataRequestResize(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataResponseResize(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     void
     do_bufferLiveData(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
@@ -683,11 +721,17 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     void do_reapplyEvent(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_checkQuorumSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+    void do_checkQuorumMaxFileSizesAndSeq(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
 
     void
     do_findHighestSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
+
+    void do_findHighestFileSizes(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_overrideMaxFileSizes(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
 
     void do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
@@ -715,9 +759,16 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// Return the sequence number quorum to be used for this cluster.
     unsigned int getSeqNumQuorum() const;
 
+    /// Return the maximum file sizes quorum to be used for this cluster.
+    unsigned int getMaxFileSizesQuorum() const;
+
     /// Return own the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber
     getSelfFirstSyncPointAfterRolloverSequenceNumber(int partitionId) const;
+
+    /// Return own max file sizes for the specified `partitionId`.
+    const bmqp_ctrlmsg::PartitionMaxFileSizes
+    getSelfPartitionMaxFileSizes(int partitionId) const;
 
   public:
     // TRAITS
@@ -1188,6 +1239,11 @@ StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 }
 
 inline unsigned int StorageManager::getSeqNumQuorum() const
+{
+    return d_clusterData_p->quorumManager().quorum();
+}
+
+inline unsigned int StorageManager::getMaxFileSizesQuorum() const
 {
     return d_clusterData_p->quorumManager().quorum();
 }
