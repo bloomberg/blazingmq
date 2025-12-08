@@ -45,16 +45,6 @@ namespace {
 
 const int k_INITIALCONNECTION_READTIMEOUT = 3 * 60;  // 3 minutes
 
-// Trampoline that captures a shared_ptr to extend lifetime.
-void readCallbackTrampoline(
-    const bsl::shared_ptr<BloombergLP::mqbnet::InitialConnectionContext>& self,
-    const BloombergLP::bmqio::Status& status,
-    int*                              numNeeded,
-    BloombergLP::bdlbb::Blob*         blob)
-{
-    self->readCallback(status, numNeeded, blob);
-}
-
 }
 
 // -----------------------------
@@ -155,7 +145,7 @@ const char* InitialConnectionEvent::toAscii(InitialConnectionEvent::Enum value)
 
     switch (value) {
         CASE(NONE)
-        CASE(OUTBOUND_NEGOTATION)
+        CASE(OUTBOUND_NEGOTIATION)
         CASE(INCOMING)
         CASE(AUTHN_REQUEST)
         CASE(NEGOTIATION_MESSAGE)
@@ -180,7 +170,7 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
     }
 
     CHECKVALUE(NONE)
-    CHECKVALUE(OUTBOUND_NEGOTATION)
+    CHECKVALUE(OUTBOUND_NEGOTIATION)
     CHECKVALUE(INCOMING)
     CHECKVALUE(AUTHN_REQUEST)
     CHECKVALUE(NEGOTIATION_MESSAGE)
@@ -239,18 +229,17 @@ void InitialConnectionContext::setState(InitialConnectionState::Enum value)
 
 int InitialConnectionContext::scheduleRead(bsl::ostream& errorDescription)
 {
-    bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
-
     // Schedule a TimedRead
     bmqio::Status status;
-    channel()->read(&status,
-                    bmqp::Protocol::k_PACKET_MIN_SIZE,
-                    bdlf::BindUtil::bind(&readCallbackTrampoline,
-                                         self,
-                                         bdlf::PlaceHolders::_1,   // status
-                                         bdlf::PlaceHolders::_2,   // numNeeded
-                                         bdlf::PlaceHolders::_3),  // blob
-                    bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
+    channel()->read(
+        &status,
+        bmqp::Protocol::k_PACKET_MIN_SIZE,
+        bdlf::BindUtil::bind(&InitialConnectionContext::readCallback,
+                             this,
+                             bdlf::PlaceHolders::_1,   // status
+                             bdlf::PlaceHolders::_2,   // numNeeded
+                             bdlf::PlaceHolders::_3),  // blob
+        bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
 
     if (!status) {
         errorDescription << "Read failed while negotiating: " << status;
@@ -433,11 +422,9 @@ int InitialConnectionContext::handleAnonAuthentication(
         anonymousCredential.identity().begin(),
         anonymousCredential.identity().end());
 
-    bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
-
     const int rc = d_authenticator_p->handleAuthentication(
         errorDescription,
-        self,
+        this,
         authenticationMessage);
 
     return rc;
@@ -474,6 +461,8 @@ void InitialConnectionContext::readCallback(const bmqio::Status& status,
                                             bdlbb::Blob*         blob)
 {
     // executed by one of the *IO* threads
+
+    // PRECONDITIONS
 
     BALL_LOG_TRACE << "InitialConnectionContext readCb: [status: " << status
                    << ", peer: '" << channel()->peerUri() << "']";
@@ -513,14 +502,10 @@ void InitialConnectionContext::handleInitialConnection()
         // call `authenticationOutbound` here instead before calling
         // `negotiateOutbound`.
         handleEvent(bsl::string(),
-                    InitialConnectionEvent::e_OUTBOUND_NEGOTATION);
+                    mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTIATION);
     }
     else {
-        bmqu::MemOutStream errStream;
-        const int          rc = scheduleRead(errStream);
-        if (rc != 0) {
-            handleEvent(errStream.str(), InitialConnectionEvent::e_ERROR);
-        }
+        handleEvent(bsl::string(), mqbnet::InitialConnectionEvent::e_INCOMING);
     }
 }
 
@@ -539,8 +524,6 @@ void InitialConnectionContext::handleEvent(
         rc_ERROR   = -1
     };
 
-    bsl::shared_ptr<InitialConnectionContext> self = shared_from_this();
-
     bmqu::MemOutStream errStream(d_allocator_p);
     int                rc = rc_ERROR;
 
@@ -554,13 +537,13 @@ void InitialConnectionContext::handleEvent(
     InitialConnectionState::Enum oldState = d_state;
 
     switch (event) {
-    case InitialConnectionEvent::e_OUTBOUND_NEGOTATION: {
+    case InitialConnectionEvent::e_OUTBOUND_NEGOTIATION: {
         if (oldState == InitialConnectionState::e_INITIAL) {
             setState(InitialConnectionState::e_NEGOTIATING_OUTBOUND);
 
             createNegotiationContext();
 
-            rc = d_negotiator_p->negotiateOutbound(errStream, self);
+            rc = d_negotiator_p->negotiateOutbound(errStream, this);
             if (rc == rc_SUCCESS) {
                 rc = scheduleRead(errStream);
             }
@@ -597,7 +580,7 @@ void InitialConnectionContext::handleEvent(
             setState(InitialConnectionState::e_AUTHENTICATING);
 
             rc = d_authenticator_p->handleAuthentication(errStream,
-                                                         self,
+                                                         this,
                                                          authenticationMsg);
         }
         else {

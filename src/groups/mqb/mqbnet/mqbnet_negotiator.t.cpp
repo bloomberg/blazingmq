@@ -65,9 +65,8 @@ struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
         return 0;
     }
 
-    int negotiateOutbound(
-        bsl::ostream& errorDescription,
-        const bsl::shared_ptr<mqbnet::InitialConnectionContext>& context)
+    int negotiateOutbound(bsl::ostream&                     errorDescription,
+                          mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
@@ -137,20 +136,19 @@ static void test1_Negotiator()
     {
         PV("Verify that methods are public and virtual");
 
-        bsl::shared_ptr<mqbnet::InitialConnectionContext>
-                                         dummyInitialConnectionContextSp;
-        bsl::shared_ptr<mqbnet::Session> dummySessionSp;
-        bmqu::MemOutStream               errStream;
+        mqbnet::InitialConnectionContext* dummyInitialConnectionContext_p = 0;
+        bsl::shared_ptr<mqbnet::Session>  dummySessionSp;
+        bmqu::MemOutStream                errStream;
 
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
-            negotiateOutbound(errStream, dummyInitialConnectionContextSp));
+            negotiateOutbound(errStream, dummyInitialConnectionContext_p));
 
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             createSessionOnMsgType(errStream,
                                    &dummySessionSp,
-                                   dummyInitialConnectionContextSp.get()));
+                                   dummyInitialConnectionContext_p));
     }
 }
 

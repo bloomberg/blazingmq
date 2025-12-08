@@ -131,7 +131,7 @@ class Authenticator : public mqbnet::Authenticator {
     int onAuthenticationRequest(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-        const InitialConnectionContextSp&          context);
+        mqbnet::InitialConnectionContext*          context);
 
     /// Handle an incoming AuthenticationResponse message by authenticating
     /// using the specified `authenticationMsg` and `context`.  On success,
@@ -143,7 +143,7 @@ class Authenticator : public mqbnet::Authenticator {
     int onAuthenticationResponse(
         bsl::ostream&                              errorDescription,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-        const InitialConnectionContextSp&          context);
+        mqbnet::InitialConnectionContext*          context);
 
     /// Send an authentication response message with the specified `authnRc`,
     /// `errorMsg`, and `lifetimeMs` via the specified `channel`, using the
@@ -218,7 +218,7 @@ class Authenticator : public mqbnet::Authenticator {
     /// the specified `errorDescription` with a description of the error
     /// otherwise.
     int handleAuthentication(bsl::ostream& errorDescription,
-                             const InitialConnectionContextSp& context,
+                             mqbnet::InitialConnectionContext* context,
                              const bmqp_ctrlmsg::AuthenticationMessage&
                                  authenticationMsg) BSLS_KEYWORD_OVERRIDE;
 

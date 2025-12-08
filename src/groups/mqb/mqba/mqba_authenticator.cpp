@@ -69,7 +69,7 @@ namespace mqba {
 int Authenticator::onAuthenticationRequest(
     bsl::ostream&                              errorDescription,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    const InitialConnectionContextSp&          context)
+    mqbnet::InitialConnectionContext*          context)
 {
     // executed by one of the *IO* threads
 
@@ -84,7 +84,7 @@ int Authenticator::onAuthenticationRequest(
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
         bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
-            context.get(),      // initialConnectionContext
+            context,            // initialConnectionContext
             authenticationMsg,  // authenticationMessage
             context
                 ->authenticationEncodingType(),  // authenticationEncodingType
@@ -107,7 +107,7 @@ int Authenticator::onAuthenticationRequest(
 int Authenticator::onAuthenticationResponse(
     BSLA_UNUSED bsl::ostream& errorDescription,
     BSLA_UNUSED const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg,
-    BSLA_UNUSED const InitialConnectionContextSp&          context)
+    BSLA_UNUSED mqbnet::InitialConnectionContext* context)
 {
     // executed by one of the *IO* threads
 
@@ -154,7 +154,7 @@ int Authenticator::sendAuthenticationResponse(
                                      authenticationEncodingType,
                                      &localAllocator);
 
-    int rc = builder.setMessage(response, bmqp::EventType::e_AUTHENTICATION);
+    int rc = builder.setMessage(message, bmqp::EventType::e_AUTHENTICATION);
     if (rc != 0) {
         errorDescription << "Failed building AuthenticationMessage "
                          << "[rc: " << rc << ", message: " << message << "]";
@@ -194,9 +194,7 @@ int Authenticator::authenticateAsync(
 
     if (rc != 0) {
         errorDescription << "Failed to enqueue authentication job for '"
-                         << channel->peerUri() << "' [rc: " << rc
-                         << ", message: " << context->authenticationMessage()
-                         << "]";
+                         << channel->peerUri() << "' [rc: " << rc << "]";
     }
 
     return rc;
@@ -251,6 +249,7 @@ void Authenticator::authenticate(
 
     const bmqp_ctrlmsg::AuthenticationRequest& authenticationRequest =
         context->authenticationMessage().authenticationRequest();
+    bmqp::EncodingType::Enum encodingType = context->encodingType();
 
     BALL_LOG_INFO << (isReauthn ? "Reauthenticating" : "Authenticating")
                   << " connection '" << channel->peerUri()
@@ -285,37 +284,51 @@ void Authenticator::authenticate(
         return;  // RETURN
     }
 
-    // Set authentication result, state and schedule reauthentication timer
-    if (authnRc == 0) {
-        bmqu::MemOutStream scheduleErrStream;
-        context->setAuthenticationResult(result);
-        const int scheduleRc = context->setAuthenticatedAndScheduleReauthn(
-            scheduleErrStream,
-            d_scheduler_p,
-            result->lifetimeMs(),
-            channel);
-        if (scheduleRc != 0) {
-            rc    = (scheduleRc * 10) + rc_SCHEDULE_REAUTHN_FAILED;
-            error = scheduleErrStream.str();
-            return;  // RETURN
-        }
+    bmqu::MemOutStream sendResponseErrStream;
+
+    if (authnRc != 0) {
+        rc    = (authnRc * 10) + rc_AUTHENTICATION_FAILED;
+        error = authnErrStream.str();
+
+        sendAuthenticationResponse(sendResponseErrStream,
+                                   authnRc,
+                                   authnErrStream.str(),
+                                   result->lifetimeMs(),
+                                   channel,
+                                   encodingType);
+
+        return;  // RETURN
     }
 
-    // Build authentication response and send it back to the client
-    bmqu::MemOutStream sendResponseErrStream;
+    // Set authentication result, state and schedule reauthentication timer
+    context->setAuthenticationResult(result);
+
+    bmqu::MemOutStream scheduleErrStream;
+    const int scheduleRc = context->setAuthenticatedAndScheduleReauthn(
+        scheduleErrStream,
+        d_scheduler_p,
+        result->lifetimeMs(),
+        channel);
+    if (scheduleRc != 0) {
+        rc    = (scheduleRc * 10) + rc_SCHEDULE_REAUTHN_FAILED;
+        error = scheduleErrStream.str();
+
+        sendAuthenticationResponse(sendResponseErrStream,
+                                   scheduleRc,
+                                   scheduleErrStream.str(),
+                                   result->lifetimeMs(),
+                                   channel,
+                                   encodingType);
+        return;  // RETURN
+    }
+
+    // Build successful authentication response and send it back to the client
     const int sendRc = sendAuthenticationResponse(sendResponseErrStream,
                                                   authnRc,
                                                   authnErrStream.str(),
                                                   result->lifetimeMs(),
                                                   channel,
-                                                  context->encodingType());
-
-    if (authnRc != 0) {
-        rc    = (authnRc * 10) + rc_AUTHENTICATION_FAILED;
-        error = authnErrStream.str();
-        return;  // RETURN
-    }
-
+                                                  encodingType);
     if (sendRc != 0) {
         rc    = (sendRc * 10) + rc_SEND_AUTHENTICATION_RESPONSE_FAILED;
         error = sendResponseErrStream.str();
@@ -392,7 +405,7 @@ void Authenticator::stop()
 
 int Authenticator::handleAuthentication(
     bsl::ostream&                              errorDescription,
-    const InitialConnectionContextSp&          context,
+    mqbnet::InitialConnectionContext*          context,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     // executed by one of the *IO* threads

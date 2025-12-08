@@ -903,7 +903,7 @@ int SessionNegotiator::initiateOutboundNegotiation(
 
 int SessionNegotiator::negotiateOutbound(
     bsl::ostream&                     errorDescription,
-    const InitialConnectionContextSp& context)
+    mqbnet::InitialConnectionContext* context)
 {
     BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(!context->isIncoming());
