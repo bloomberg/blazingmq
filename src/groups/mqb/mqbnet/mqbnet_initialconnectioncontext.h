@@ -143,13 +143,13 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 struct InitialConnectionEvent {
     // TYPES
     enum Enum {
-        e_NONE                = 0,
-        e_OUTBOUND_NEGOTATION = 1,
-        e_INCOMING            = 2,
-        e_AUTHN_REQUEST       = 3,
-        e_NEGOTIATION_MESSAGE = 4,
-        e_AUTHN_SUCCESS       = 5,
-        e_ERROR               = 6
+        e_NONE                 = 0,
+        e_OUTBOUND_NEGOTIATION = 1,
+        e_INCOMING             = 2,
+        e_AUTHN_REQUEST        = 3,
+        e_NEGOTIATION_MESSAGE  = 4,
+        e_AUTHN_SUCCESS        = 5,
+        e_ERROR                = 6
     };
 
     // CLASS METHODS
@@ -201,8 +201,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 // ==============================
 
 /// Each session being authenticated and negotiated get its own context.
-class InitialConnectionContext
-: public bsl::enable_shared_from_this<InitialConnectionContext> {
+class InitialConnectionContext {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBNET.INITIALCONNECTIONCONTEXT");

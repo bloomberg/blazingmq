@@ -247,7 +247,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     int negotiateOutbound(bsl::ostream&                     errorDescription,
-                          const InitialConnectionContextSp& context)
+                          mqbnet::InitialConnectionContext* context)
         BSLS_KEYWORD_OVERRIDE;
 };
 
