@@ -395,19 +395,7 @@ void TCPSessionFactory::handleInitialConnection(
                               channel,
                               bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
-    if (!initialConnectionContext->isIncoming()) {
-        // TODO: When we are ready to move on to the next step, we should
-        // call `authenticationOutbound` here instead before calling
-        // `negotiateOutbound`.
-        initialConnectionContext->handleEvent(
-            bsl::string(),
-            mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTATION);
-    }
-    else {
-        initialConnectionContext->handleEvent(
-            bsl::string(),
-            mqbnet::InitialConnectionEvent::e_INCOMING);
-    }
+    initialConnectionContext->handleInitialConnection();
 }
 
 void TCPSessionFactory::readCallback(const bmqio::Status& status,
@@ -551,9 +539,16 @@ void TCPSessionFactory::initialConnectionComplete(
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
-        // Remove from cache before closing channel
+        // Remove from cache before closing channel, but need to keep the
+        // InitialConnectionContext alive until after channel->close(). This is
+        // because if close has been triggered by the peer already, erasing
+        // InitialConnectionContext would lose the last reference of channel.
+        // channel->close() would then cause a segfault.
+        bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
         {
             bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+            initialConnectionContext_sp = d_initialConnectionContextCache.at(
+                initialConnectionContext_p);
             d_initialConnectionContextCache.erase(initialConnectionContext_p);
         }
 
@@ -816,6 +811,10 @@ void TCPSessionFactory::onClose(const InitialConnectionContext* context_p,
 
     --d_nbActiveChannels;
 
+    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
+                  << "': onClose called for channel '" << channel.get()
+                  << "', " << d_nbActiveChannels << " active channels";
+
     int port;
     channel->properties().load(
         &port,
@@ -827,7 +826,7 @@ void TCPSessionFactory::onClose(const InitialConnectionContext* context_p,
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
         // set the 'isClosed' flag under lock to be checked under lock in
-        // 'negotiationComplete'.
+        // 'initialConnectionComplete'.
         bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
         if (d_initialConnectionContextCache.contains(context_p)) {
             initialConnectionContext_sp = d_initialConnectionContextCache.at(

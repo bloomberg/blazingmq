@@ -70,8 +70,8 @@ class Authenticator {
     /// Return 0 on success, or a non-zero error code and populate the
     /// specified `errorDescription` with a description of the error otherwise.
     virtual int handleAuthentication(
-        bsl::ostream&                                    errorDescription,
-        const bsl::shared_ptr<InitialConnectionContext>& context,
+        bsl::ostream&                              errorDescription,
+        InitialConnectionContext*                  context,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg) = 0;
 
     virtual int handleReauthentication(
