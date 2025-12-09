@@ -1622,7 +1622,7 @@ void StorageManager::do_storeSelfMaxFileSizes(const PartitionFSMArgsSp& args)
     const PartitionFSM::EventWithData& eventWithData =
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     const int                    partitionId = eventData.partitionId();
@@ -1653,7 +1653,7 @@ void StorageManager::do_storePrimaryMaxFileSizes(
     const PartitionFSM::EventWithData& eventWithData =
         args->eventsQueue()->front();
     const EventData& eventDataVec = eventWithData.second;
-    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+    BSLS_ASSERT_SAFE(eventDataVec.size() >= 1);
 
     const PartitionFSMEventData& eventData   = eventDataVec[0];
     int                          partitionId = eventData.partitionId();
