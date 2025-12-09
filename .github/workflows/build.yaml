@@ -151,7 +151,8 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             --durations=0                       \
-            -n logical -v
+            -v
+#            -n logical -v
 
       - name: Print core information
         if: failure()
