@@ -16,7 +16,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
@@ -98,37 +97,6 @@ jobs:
           sudo chmod 777 /cores
           echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
 
-      - name: Purge runner
-      # Strip the runner to avoid space quota exceeding
-        run: |
-          df -h
-          sudo apt-get purge -y \
-          azure-cli microsoft-edge-stable google-cloud-cli \
-          google-chrome-stable temurin-21-jdk temurin-17-jdk \
-          temurin-11-jdk dotnet-sdk-8.0 firefox temurin-8-jdk \
-          powershell libllvm17t64 libllvm18 libllvm16t64 \
-          openjdk-21-jre-headless mysql-server-core-8.0
-          sudo apt-get autoremove
-          sudo apt-get autoclean
-          df -h
-
-      - name: Cleanup disk space to avoid space quota exceeding
-        run: |
-          df -h
-          sudo rm -rf /tmp/*
-          sudo rm -rf /var/tmp/*
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /home/runner/work/_temp
-          sudo rm -rf /home/runner/.cache/*
-          sudo rm -rf /home/runner/.npm/*
-          sudo rm -rf /home/runner/.docker/*
-          sudo rm -rf /home/runner/actions-runner/_diag/*
-          sudo find /home/runner -type f -name "*.log" -size +10M -delete          
-          sudo docker system prune -af || true
-          df -h
-
       - name: Run Integration Tests
         run: |
           # Allow core dumps
@@ -151,7 +119,7 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             --durations=0                       \
-           -n logical -v
+            -n logical -v
 
       - name: Print core information
         if: failure()
