@@ -116,10 +116,16 @@ jobs:
         run: |
           df -h
           sudo rm -rf /tmp/*
+          sudo rm -rf /var/tmp/*
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-          sudo rm -rf /home/runner/work/_temp                
+          sudo rm -rf /home/runner/work/_temp
+          sudo rm -rf /home/runner/.cache/*
+          sudo rm -rf /home/runner/.npm/*
+          sudo rm -rf /home/runner/.docker/*
+          sudo rm -rf /home/runner/actions-runner/_diag/*
+          sudo find /home/runner -type f -name "*.log" -size +10M -delete          
           sudo docker system prune -af || true
           df -h
 
