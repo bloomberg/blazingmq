@@ -104,7 +104,6 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache
           sudo rm -rf /home/runner/work/_temp                
           sudo docker system prune -af || true
 
