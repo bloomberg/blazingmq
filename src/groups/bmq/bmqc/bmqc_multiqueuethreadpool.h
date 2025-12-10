@@ -996,7 +996,7 @@ MultiQueueThreadPool<TYPE>::enqueueEvent(bslmf::MovableRef<EventSp> event,
                                          int                        queueId)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(event);
+    BSLS_ASSERT_SAFE(bslmf::MovableRefUtil::access(event));
     BSLS_ASSERT(0 <= queueId && queueId < numQueues());
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
@@ -1010,7 +1010,7 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventOnAllQueues(
     bslmf::MovableRef<EventSp> event)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(event);
+    BSLS_ASSERT_SAFE(bslmf::MovableRefUtil::access(event));
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
     EventSp eventObj(bslmf::MovableRefUtil::move(event));
