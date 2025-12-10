@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,9 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bdlb_chartype.h>
+#include <bsl_algorithm.h>
+#include <bsl_cstring.h>
 #include <bsl_ios.h>
 
 // TEST DRIVER
@@ -62,7 +65,7 @@ static void test2_printTest()
         "openQueueTimeout = 300 configureQueueTimeout = 300 "
         "closeQueueTimeout = 300 eventQueueLowWatermark = 50 "
         "eventQueueHighWatermark = 2000 hasHostHealthMonitor = false "
-        "hasDistributedTracing = false ]";
+        "hasDistributedTracing = false userAgentPrefix = \"\" ]";
     bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
     bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
@@ -151,8 +154,24 @@ static void test3_setterGetterAndCopyTest()
     BMQTST_ASSERT_EQ(obj.eventQueueLowWatermark(), eventQueueLowWatermark);
     BMQTST_ASSERT_EQ(obj.eventQueueHighWatermark(), eventQueueHighWatermark);
 
+    PVV("Checking setter and getter for userAgentPrefix");
+    // 127 character long user agent with all printable characters.
+    const char* const userAgentPrefix       = "0123456789"
+                                              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                              "abcdefghijklmnopqrstuvwxyz"
+                                              "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+                                              "                                 ";
+    const bsl::size_t userAgentPrefixLength = bsl::strlen(userAgentPrefix);
+    BMQTST_ASSERT_EQ(userAgentPrefixLength, 127u);
+    BMQTST_ASSERT(bsl::all_of(userAgentPrefix,
+                              userAgentPrefix + userAgentPrefixLength,
+                              bdlb::CharType::isPrint));
+    BMQTST_ASSERT_NE(obj.userAgentPrefix(), userAgentPrefix);
+    obj.setUserAgentPrefix(userAgentPrefix);
+    BMQTST_ASSERT_EQ(obj.userAgentPrefix(), userAgentPrefix);
+
     PVV("Copy constructor test");
-    bmqt::SessionOptions objCopy(obj);
+    bmqt::SessionOptions objCopy(obj, bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(objCopy.brokerUri(), brokerUri);
     BMQTST_ASSERT_EQ(objCopy.numProcessingThreads(), numProcessingThreads);
     BMQTST_ASSERT_EQ(objCopy.blobBufferSize(), blobBufferSize);
@@ -165,6 +184,7 @@ static void test3_setterGetterAndCopyTest()
     BMQTST_ASSERT_EQ(objCopy.eventQueueLowWatermark(), eventQueueLowWatermark);
     BMQTST_ASSERT_EQ(objCopy.eventQueueHighWatermark(),
                      eventQueueHighWatermark);
+    BMQTST_ASSERT_EQ(objCopy.userAgentPrefix(), userAgentPrefix);
 }
 // ============================================================================
 //                                 MAIN PROGRAM
