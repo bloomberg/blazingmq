@@ -35,7 +35,6 @@
 #include <bmqp_protocol.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
-
 #include <bmqu_memoutstream.h>
 
 // BDE

@@ -123,11 +123,14 @@
 ///     operations (e.g., Queue-Open, Queue-Configure, Queue-Close).
 
 // BMQ
+#include <bmqt_authncredential.h>
 
 // BDE
 #include <bdlt_timeunitratio.h>
+#include <bsl_functional.h>
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
@@ -160,6 +163,16 @@ namespace bmqt {
 /// broker
 class SessionOptions {
   public:
+    // TYPES
+
+    /// Function type used to obtain authentication credentials (mechanism and
+    /// data) for authenticating with the broker.  The function should return
+    /// an `AuthnCredential` object on success, or `bsl::nullopt` if an error
+    /// occurs. Any error details should be written to the provided `error`
+    /// stream.
+    typedef bsl::function<bsl::optional<AuthnCredential>(bsl::ostream& error)>
+        AuthnCredentialCb;
+
     // CONSTANTS
 
     /// Default URI of the `bmqbrkr` to connect to.
@@ -215,6 +228,11 @@ class SessionOptions {
     /// DEPRECATED: This parameter is no longer relevant and will be removed in
     /// future release of libbmq.
     int d_eventQueueSize;
+
+    /// Callback invoked to obtain authentication credentials (mechanism and
+    /// data) for authenticating with the broker. If not set, the session will
+    /// not authenticate with the broker.
+    AuthnCredentialCb d_authnCredentialCb;
 
     bsl::shared_ptr<bmqpi::HostHealthMonitor> d_hostHealthMonitor_sp;
 
@@ -277,6 +295,9 @@ class SessionOptions {
     /// Set the timeout for closing a queue to the specified `value`.
     SessionOptions& setCloseQueueTimeout(const bsls::TimeInterval& value);
 
+    /// Set the authentication credential callback to the specified `value`.
+    SessionOptions& setAuthnCredentialCb(const AuthnCredentialCb& value);
+
     /// Set a `HostHealthMonitor` object that will notify the session when
     /// the health of the host has changed.
     SessionOptions& setHostHealthMonitor(
@@ -337,6 +358,9 @@ class SessionOptions {
 
     /// Get the timeout for closing a queue.
     const bsls::TimeInterval& closeQueueTimeout() const;
+
+    /// Get the authentication credential callback.
+    const AuthnCredentialCb& authnCredentialCb() const;
 
     const bsl::shared_ptr<bmqpi::HostHealthMonitor>& hostHealthMonitor() const;
 
@@ -487,6 +511,13 @@ inline SessionOptions& SessionOptions::setHostHealthMonitor(
     return *this;
 }
 
+inline SessionOptions&
+SessionOptions::setAuthnCredentialCb(const AuthnCredentialCb& value)
+{
+    d_authnCredentialCb = value;
+    return *this;
+}
+
 inline SessionOptions& SessionOptions::setTraceOptions(
     const bsl::shared_ptr<bmqpi::DTContext>& context,
     const bsl::shared_ptr<bmqpi::DTTracer>&  tracer)
@@ -572,6 +603,12 @@ inline const bsls::TimeInterval& SessionOptions::configureQueueTimeout() const
 inline const bsls::TimeInterval& SessionOptions::closeQueueTimeout() const
 {
     return d_closeQueueTimeout;
+}
+
+inline const SessionOptions::AuthnCredentialCb&
+SessionOptions::authnCredentialCb() const
+{
+    return d_authnCredentialCb;
 }
 
 inline const bsl::shared_ptr<bmqpi::HostHealthMonitor>&
