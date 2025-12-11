@@ -92,6 +92,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
         d_queueState_p->queue()));
 
     BSLS_ASSERT_SAFE(d_queueState_p->storage());
+    BSLS_ASSERT_SAFE(d_apps.find(app->appId()) != d_apps.end());
 
     if (!app->isAuthorized()) {
         return;  // RETURN

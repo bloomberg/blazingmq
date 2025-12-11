@@ -280,7 +280,7 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
             // Do not send CloseQueue request without waiting for deconfigure
             // response.
             const bsl::function<void(void)> cb = bdlf::BindUtil::bind(
-                &Queue::releaseHandleDispatched,
+                &Queue::releaseHandle,
                 this,
                 handle,
                 consumerHandleParams,
