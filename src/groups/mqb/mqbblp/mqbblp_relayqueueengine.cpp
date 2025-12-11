@@ -667,37 +667,22 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // Position to the last 'Routers::e_NO_CAPACITY_ALL' point
-    bslma::ManagedPtr<PushStreamIterator> storageIter_mp;
-    PushStreamIterator*                   start = 0;
+    bslma::ManagedPtr<PushStreamIterator> start;
 
-    if (app->resumePoint().isUnset()) {
-        start = d_storageIter_mp.get();
-    }
-    else {
-        PushStream::iterator it = d_pushStream.d_stream.find(
-            app->resumePoint());
+    // Always start with the first element in the App and always stop at the
+    // d_storageIter_mp (the start of all Apps processing).
 
-        if (it == d_pushStream.d_stream.end()) {
-            // The message is gone because of purge
-            // Start at the beginning
-            it = d_pushStream.d_stream.begin();
-        }
+    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID> stop(
+        d_storageIter_mp->atEnd() ? 0 : d_storageIter_mp->sequenceNumber());
 
-        storageIter_mp.load(new (*d_allocator_p)
-                                VirtualPushStreamIterator(upstreamSubQueueId,
-                                                          storage(),
-                                                          &d_pushStream,
-                                                          it),
-                            d_allocator_p);
-
-        start = storageIter_mp.get();
-    }
+    start.load(new (*d_allocator_p)
+                   VirtualPushStreamIterator(upstreamSubQueueId,
+                                             storage(),
+                                             &d_pushStream),
+               d_allocator_p);
 
     bsls::TimeInterval delay;
-    app->catchUp(&delay,
-                 d_realStorageIter_mp.get(),
-                 start,
-                 d_storageIter_mp.get());
+    app->catchUp(&delay, d_realStorageIter_mp.get(), start.get(), stop);
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(

@@ -1906,6 +1906,125 @@ static void test21_deliverOutOfOrder()
     BMQTST_ASSERT_EQ(C1->_numMessages("b"), 3);
 }
 
+static void test22_resumeAfterTTL()
+// ------------------------------------------------------------------------
+// REDELIVERY AND RESUME
+//
+// Concerns:
+//   1. Verifying resume for a fanout appId after TTL of its resume point
+//
+// Plan:
+//  Make the data stream of 1   2   3   4   5   6
+//                          |   |
+//  where   "a" state is    PAL RP  -   -   +   +
+//          "b" state is    QH  QH PAL  RP
+//                                      |
+//                                      iterator
+//  RL - RedeliveryList, PAL - PutAsideList, QH queue handle, RP - Resume Point
+//  Then TTL 1 and 2.
+//  Then trigger 'processAppRedelivery' for "a".
+//  It starts from 5 but since 5 is past the common iterator, there is no push.
+//  Then trigger 'processAppRedelivery' for "b".
+//  It delivers 3 and stops at 4.  It then attempts to deliver all Apps which
+//  results in "b" receiving 4 and then both "a" and "b" receiving 5 and 6.
+//
+// Testing:
+//   'processAppRedelivery'.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+
+    mqbconfm::Domain          config = fanoutConfig();
+    bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
+    appIDs.push_back("a");
+    appIDs.push_back("b");
+
+    mqbblp::QueueEngineTester                                tester(config,
+                                     false,  // start scheduler
+                                     bmqtst::TestHelperUtil::allocator());
+    mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
+
+    // 1. Bring up a consumer C1 with appId 'a' and 'b'.
+    mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
+    BMQTST_ASSERT_NE(C1, k_nullHandle_p);
+    BMQTST_ASSERT_EQ(C1, tester.getHandle("C1@b readCount=1"));
+
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@a consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@b consumerPriority=1 consumerPriorityCount=1"),
+                     0);
+
+    C1->_setCanDeliver("a", false);
+
+    // 2. Post 1 message
+    tester.post("1", guard.engine());
+    tester.afterNewMessage(1);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 1);
+
+    // 3. Post one more message to set it as RP for 'a'
+    tester.post("2", guard.engine());
+    tester.afterNewMessage(1);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 2);
+
+    // Keep next message(s) in the PushStream
+    C1->_setCanDeliver("b", false);
+
+    // Push to 'b' only (goes into PAL of 'b'
+    tester.post("3", 0);
+    tester.push(guard.engine(), "b", "3", false);
+
+    tester.post("4", 0);
+    tester.push(guard.engine(), "b", "4", false);
+
+    // Push to 'a' and 'b'
+    tester.post("5", guard.engine());
+    tester.post("6", guard.engine());
+
+    tester.afterNewMessage(1);
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 2);
+
+    // Remove the resume point of 'a'
+    tester.garbageCollectMessages(2);
+
+    C1->_setCanDeliver("a", true);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 2);
+
+    C1->_setCanDeliver("b", true);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 6);
+
+    tester.afterNewMessage(1);
+
+    PVV(L_ << ": C1@a Messages: " << C1->_messages("a"));
+    PVV(L_ << ": C1@b Messages: " << C1->_messages("b"));
+
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 6);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1927,6 +2046,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 22: test22_resumeAfterTTL(); break;
         case 21: test21_deliverOutOfOrder(); break;
         case 20: test20_handleParametersLimits(); break;
         case 19: test19_redeliveryAndResume(); break;

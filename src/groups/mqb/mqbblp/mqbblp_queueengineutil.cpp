@@ -909,10 +909,11 @@ QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
     // existing `RelayQueueEngine` routing contexts.
 }
 
-size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
-                                         mqbi::StorageIterator*       reader,
-                                         mqbi::StorageIterator*       start,
-                                         const mqbi::StorageIterator* end)
+size_t QueueEngineUtil_AppState::catchUp(
+    bsls::TimeInterval*                                          delay,
+    mqbi::StorageIterator*                                       reader,
+    mqbi::StorageIterator*                                       start,
+    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -920,9 +921,8 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
     BSLS_ASSERT_SAFE(delay);
     BSLS_ASSERT_SAFE(reader);
     BSLS_ASSERT_SAFE(start);
-    BSLS_ASSERT_SAFE(end);
 
-    // deliver everything up to the 'end'
+    // deliver everything up to the 'stop'
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasConsumers())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -950,18 +950,16 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
     // 'end' is never CONFIRMed, so the 'VirtualStorageIterator' cannot skip it
 
     d_resumePoint = bmqt::MessageGUID();
-    while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(start->hasReceipt())) {
-        if (!end->atEnd()) {
-            if (start->guid() == end->guid()) {
-                // Deliver the rest by 'QueueEngineUtil_AppsDeliveryContext'
-                break;
-            }
-        }
 
+    // 'end' may not have the app
+    while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(start->hasReceipt())) {
+        if (start->asFarAs(stop)) {
+            // Deliver the rest by 'QueueEngineUtil_AppsDeliveryContext'
+            break;
+        }
         Routers::Result result = Routers::e_SUCCESS;
 
         if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-            // No checking the state for broadcast
             broadcastOneMessage(start);
         }
         else {

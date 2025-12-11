@@ -123,12 +123,13 @@ void RootQueueEngine::deliverMessages(AppState* app)
         // 'start' points at the next message in the logical stream (common
         // for all apps).
     }
+    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID> stop(
+        d_storageIter_mp->atEnd() ? bmqt::MessageGUID()
+                                  : d_storageIter_mp->guid());
 
     bsls::TimeInterval delay;
-    const size_t       numMessages = app->catchUp(&delay,
-                                                  d_realStorageIter_mp.get(),
-                                                  start,
-                                                  d_storageIter_mp.get());
+    const size_t       numMessages =
+        app->catchUp(&delay, d_realStorageIter_mp.get(), start, stop);
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
@@ -1600,7 +1601,7 @@ void RootQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_storageIter_mp);
 
-    if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
+    if (!d_storageIter_mp->atEnd() && d_storageIter_mp->guid() == msgGUID) {
         d_storageIter_mp->advance();
     }
 }

@@ -171,10 +171,7 @@ static void test2_iterations()
     }
 
     {
-        mqbblp::VirtualPushStreamIterator vit(subQueueId1,
-                                              &dummyStorage,
-                                              &ps,
-                                              ps.d_stream.begin());
+        mqbblp::VirtualPushStreamIterator vit(subQueueId1, &dummyStorage, &ps);
 
         BMQTST_ASSERT(!vit.atEnd());
         BMQTST_ASSERT_EQ(vit.numApps(), 1u);
