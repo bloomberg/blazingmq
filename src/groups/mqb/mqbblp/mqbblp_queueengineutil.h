@@ -403,17 +403,18 @@ struct QueueEngineUtil_AppState {
     /// While doing so, load the message delay into the specified `delay` and
     /// throttle the redelivery as in the case of a Poisonous message.
     /// If the Redelivery List is empty, attempt to deliver data starting from
-    /// `start` (the resumePoint or the beginning of the stream) to the `end`.
+    /// `start` (the resumePoint or the beginning of the stream) to the `stop`.
     /// This is what any QueueEngine calls whenever there is a chance for the
     /// App to make progress: any configuration change, capacity availability.
     /// Note that depending upon queue's mode, messages are delivered either
     /// to all consumers (broadcast mode), or in a round-robin manner (every
     /// other mode).
     /// Use the specified `reader` to read data for delivery.
-    size_t catchUp(bsls::TimeInterval*          delay,
-                   mqbi::StorageIterator*       reader,
-                   mqbi::StorageIterator*       start,
-                   const mqbi::StorageIterator* end);
+    size_t
+    catchUp(bsls::TimeInterval*    delay,
+            mqbi::StorageIterator* reader,
+            mqbi::StorageIterator* start,
+            const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop);
 
     /// Try to deliver to the next available consumer the specified `message`.
     /// If poisonous message handling requires a delay in the delivery, iterate

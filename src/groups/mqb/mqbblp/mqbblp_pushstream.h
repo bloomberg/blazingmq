@@ -130,6 +130,20 @@ class PushStream {
         unsigned int numElements() const;
     };
 
+    struct Message {
+        Elements           d_appMessages;
+        bsls::Types::Int64 d_sequenceNumber;
+
+        explicit Message();
+
+        /// Return number of Elements in the list
+        unsigned int numElements() const;
+
+        bsls::Types::Uint64 sequenceNumber() const;
+
+        static bsls::Types::Int64 nextSequenceNumber();
+    };
+
     struct App {
         Elements                                   d_elements;
         bsl::shared_ptr<RelayQueueEngine_AppState> d_app;
@@ -153,7 +167,7 @@ class PushStream {
     };
 
     typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
-                                 Elements,
+                                 Message,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         Stream;
 
@@ -303,6 +317,8 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// data are already loaded; return `true` otherwise.
     bool loadMessageAndAttributes() const;
 
+    const PushStream::Message& message() const;
+
   public:
     // CREATORS
 
@@ -329,6 +345,8 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// pairs) for the current PUSH GUID.
     /// The behavior is undefined unless `atEnd` returns `false`.
     unsigned int numApps() const;
+
+    bsls::Types::Uint64 sequenceNumber() const;
 
     /// Return the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pair).
@@ -393,6 +411,9 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// `items` collection and the message currently pointed at by this
     /// iterator has received replication factor Receipts.
     bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
+
+    bool asFarAs(const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>&
+                     stop) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================
@@ -401,12 +422,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
 
 /// A mechanism to iterate `Element`s related to one App only.
 class VirtualPushStreamIterator : public PushStreamIterator {
-  private:
-    // DATA
-
-    /// An iterator to the App being iterated
-    PushStream::Apps::iterator d_itApp;
-
   private:
     // NOT IMPLEMENTED
     VirtualPushStreamIterator(const VirtualPushStreamIterator&);  // = delete
@@ -418,10 +433,9 @@ class VirtualPushStreamIterator : public PushStreamIterator {
 
     /// Create a new VirtualStorageIterator from the specified `storage` and
     /// pointing at the specified `initialPosition`.
-    VirtualPushStreamIterator(unsigned int                upstreamSubQueueId,
-                              mqbi::Storage*              storage,
-                              PushStream*                 owner,
-                              const PushStream::iterator& initialPosition);
+    VirtualPushStreamIterator(unsigned int   upstreamSubQueueId,
+                              mqbi::Storage* storage,
+                              PushStream*    owner);
 
     /// Destructor
     virtual ~VirtualPushStreamIterator() BSLS_KEYWORD_OVERRIDE;
@@ -497,7 +511,7 @@ inline const mqbi::AppMessage* PushStream::Element::appView() const
 
 inline PushStream::Elements& PushStream::Element::guid() const
 {
-    return d_iteratorGuid->second;
+    return d_iteratorGuid->second.d_appMessages;
 }
 
 inline PushStream::App& PushStream::Element::app() const
@@ -627,6 +641,30 @@ inline unsigned int PushStream::Elements::numElements() const
     return d_numElements;
 }
 
+inline PushStream::Message::Message()
+: d_appMessages()
+, d_sequenceNumber(nextSequenceNumber())
+{
+}
+
+/// Return number of Elements in the list
+inline unsigned int PushStream::Message::numElements() const
+{
+    return d_appMessages.numElements();
+}
+
+inline bsls::Types::Uint64 PushStream::Message::sequenceNumber() const
+{
+    return d_sequenceNumber;
+}
+
+inline bsls::Types::Int64 PushStream::Message::nextSequenceNumber()
+{
+    static bsls::Types::Int64 s_value = 0;
+
+    return ++s_value;
+}
+
 inline PushStream::App::App(
     const bsl::shared_ptr<RelayQueueEngine_AppState>& app)
 : d_elements()
@@ -695,7 +733,7 @@ inline bool PushStream::findOrAddLast(iterator*                itGuid,
     iterator existing = d_stream.find(guid);
 
     if (existing == d_stream.end()) {
-        *itGuid = d_stream.insert(bsl::make_pair(guid, Elements())).first;
+        *itGuid = d_stream.insert(bsl::make_pair(guid, Message())).first;
         return true;  // RETURN
     }
     if (existing == --d_stream.end()) {
