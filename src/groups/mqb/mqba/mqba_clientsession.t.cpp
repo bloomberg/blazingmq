@@ -2227,6 +2227,13 @@ static void test11_initiateShutdown()
         bool atEnd() const BSLS_KEYWORD_OVERRIDE { return false; }
 
         bool hasReceipt() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+        bool asFarAs(
+            const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop)
+            const BSLS_KEYWORD_OVERRIDE
+        {
+            return false;
+        }
     };
 
     MockStorageIterator iter(bmqtst::TestHelperUtil::allocator());
