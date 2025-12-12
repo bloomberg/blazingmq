@@ -78,7 +78,6 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-
 #include <mqbcfg_messages.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbstat_statcontroller.h>
@@ -86,6 +85,7 @@
 #include <bmqex_sequentialcontext.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
+#include <bmqio_channelfactorypipeline.h>
 #include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolvingchannelfactory.h>
 #include <bmqio_statchannelfactory.h>
@@ -111,8 +111,14 @@
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
+#include <ntci_encryptionserver.h>
 
 namespace BloombergLP {
+
+namespace bmqio {
+class NtcChannelFactory;
+class NtcChannel;
+}
 
 namespace mqbnet {
 
@@ -250,9 +256,6 @@ class TCPSessionFactory {
     typedef bsl::unordered_map<const bmqio::Channel*, ChannelInfoSp>
         ChannelMap;
 
-    /// Shortcut for a managedPtr to the `bmqio::TCPChannelFactory`
-    typedef bslma::ManagedPtr<bmqio::ChannelFactory> TCPChannelFactoryMp;
-
     typedef bslma::ManagedPtr<bmqio::ResolvingChannelFactory>
         ResolvingChannelFactoryMp;
 
@@ -271,15 +274,15 @@ class TCPSessionFactory {
     typedef bsl::unordered_map<int, OpHandleSp> ListeningHandleMap;
 
   private:
-    // DATA
+    // PRIVATE DATA
 
-    /// Used to make sure no callback is invoked on a destroyed object.
+    // Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<TCPSessionFactory> d_self;
 
-    /// Has this component been started?
+    // Has this component been started ?
     bool d_isStarted;
 
-    /// Config to use for setting up this SessionFactory
+    // Config to use for setting up this SessionFactory
     mqbcfg::TcpInterfaceConfig d_config;
 
     /// Event scheduler held not owned
@@ -295,17 +298,14 @@ class TCPSessionFactory {
     /// Channels' stat context (passed to TCPSessionFactory)
     mqbstat::StatController* d_statController_p;
 
-    /// ChannelFactory
-    TCPChannelFactoryMp d_tcpChannelFactory_mp;
-
     /// Executor context used for performing DNS resolution
     bmqex::SequentialContext d_resolutionContext;
 
-    ResolvingChannelFactoryMp d_resolvingChannelFactory_mp;
+    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+        d_channelFactoryPipeline_mp;
 
-    ReconnectingChannelFactoryMp d_reconnectingChannelFactory_mp;
-
-    StatChannelFactoryMp d_statChannelFactory_mp;
+    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+        d_tlsChannelFactoryPipeline_mp;
 
     /// Name to use for the IO threads
     bsl::string d_threadName;
@@ -372,6 +372,9 @@ class TCPSessionFactory {
 
     /// Map of HiRes timestamp of the session beginning per channel.
     TimestampMap d_timestampMap;
+
+    /// The encryption server used to authenticate incoming connections
+    bsl::shared_ptr<ntci::EncryptionServer> d_encryptionServer_sp;
 
     /// Allocator to use
     bslma::Allocator* d_allocator_p;
@@ -495,6 +498,13 @@ class TCPSessionFactory {
 
     /// Stop all hearbeats
     void stopHeartbeats();
+
+    /// Check that the TCP interfaces are valid.
+    ///
+    /// We require the following:
+    /// - The names of each network interface is unique
+    /// - The ports of each network interface is unqiue
+    int validateNetworkInterfaces() const;
 
   private:
     // NOT IMPLEMENTED

@@ -22,5 +22,6 @@ macro(setup_package_provider)
 
         find_package(GTest CONFIG REQUIRED)
         add_library(gmock ALIAS GTest::gmock)
+        add_library(gtest ALIAS GTest::gtest)
     endif()
 endmacro()
