@@ -51,6 +51,7 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <bdlb_variant.h>
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -354,8 +355,8 @@ class StorageIterator {
     virtual bool advance() = 0;
 
     /// If the specified `atEnd` is `true`, reset the iterator to point to the
-    /// to the end of the underlying storage.  Otherwise, reset the iterator to
-    /// point first item, if any, in the underlying storage.
+    /// end of the underlying storage.  Otherwise, reset the iterator to point
+    /// to the first item, if any, in the underlying storage.
     virtual void
     reset(const bmqt::MessageGUID& where = bmqt::MessageGUID()) = 0;
 
@@ -400,6 +401,10 @@ class StorageIterator {
     /// `items` collection and the message currently pointed at by this
     /// iterator has received replication factor Receipts.
     virtual bool hasReceipt() const = 0;
+
+    virtual bool
+    asFarAs(const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop)
+        const = 0;
 };
 
 // =============
