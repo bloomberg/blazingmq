@@ -2132,12 +2132,13 @@ struct JournalOpRecord {
                     unsigned int        magic);
 
     /// Create an instance and initialize corresponding fields of
-    /// `UpdateStorageSizeRecord` respectively with the specified `type`,
-    /// `sequenceNum`, `primaryNodeId`, `primaryLeaseId` and `magic` values.
-    // JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
-    //                 bsls::Types::Uint64 maxDataFileSize,
-    //                 bsls::Types::Uint64 maxQlistFileSize,
-    //                 unsigned int        magic);
+    /// `UpdateStorageSizeRecord` respectively with the specified
+    /// `maxJournalFileSize`, `maxDataFileSize`, `maxQlistFileSize`
+    /// and `magic` values.
+    JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
+                    bsls::Types::Uint64 maxDataFileSize,
+                    bsls::Types::Uint64 maxQlistFileSize,
+                    unsigned int        magic);
 
     // MANIPULATORS
     RecordHeader& header();
@@ -3180,6 +3181,20 @@ inline JournalOpRecord::JournalOpRecord(SyncPointType::Enum syncPointType,
         .setDataFileOffsetDwords(dataFileOffsetDwords)
         .setQlistFileOffsetWords(qlistFileOffsetWords);
     setMagic(magic);
+}
+
+inline JournalOpRecord::JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
+                    bsls::Types::Uint64 maxDataFileSize,
+                    bsls::Types::Uint64 maxQlistFileSize,
+                    unsigned int        magic)
+{
+    bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
+    d_header.setType(RecordType::e_JOURNAL_OP);
+    setType(JournalOpType::Enum::e_UPDATE_STORAGE_SIZE);
+    updateStorageSizeData()
+        .setMaxJournalFileSize(maxJournalFileSize)
+        .setMaxDataFileSize(maxDataFileSize)
+        .setMaxQlistFileSize(maxQlistFileSize);
 }
 
 // MANIPULATORS

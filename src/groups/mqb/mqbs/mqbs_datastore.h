@@ -428,7 +428,7 @@ class DataStoreConfig {
 
     bsls::Types::Uint64 d_journalFileGrowLimit;
 
-    bsls::Types::Uint64 d_qlistFileGrowLimit;
+    bsls::Types::Uint64 d_qListFileGrowLimit;
 
     unsigned int d_growStepPercent;
 
@@ -484,7 +484,7 @@ class DataStoreConfig {
     bsls::Types::Uint64       maxQlistFileSize() const;
     bsls::Types::Uint64       dataFileGrowLimit() const;
     bsls::Types::Uint64       journalFileGrowLimit() const;
-    bsls::Types::Uint64       qlistFileGrowLimit() const;
+    bsls::Types::Uint64       qListFileGrowLimit() const;
     unsigned int              growStepPercent() const;
     unsigned int              minAvailSpacePercent() const;
     const QueueCreationCb&    queueCreationCb() const;
@@ -680,6 +680,10 @@ class DataStore : public mqbi::DispatcherClient {
 
     virtual int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                                      SyncPointType::Enum            type) = 0;
+
+    /// Write a RESIZE_STORAGE record to the data store with the specified
+    /// `maxFileSizes`.
+    virtual int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes) = 0;
 
     /// Remove the record identified by the specified `handle`.  Return zero
     /// on success, non-zero value if `handle` is invalid.  Behavior is
@@ -1063,7 +1067,7 @@ DataStoreConfig::setJournalFileGrowLimit(bsls::Types::Uint64 value)
 inline DataStoreConfig&
 DataStoreConfig::setQlistFileGrowLimit(bsls::Types::Uint64 value)
 {
-    d_qlistFileGrowLimit = value;
+    d_qListFileGrowLimit = value;
     return *this;
 }
 
@@ -1171,9 +1175,9 @@ inline bsls::Types::Uint64 DataStoreConfig::journalFileGrowLimit() const
     return d_journalFileGrowLimit;
 }
 
-inline bsls::Types::Uint64 DataStoreConfig::qlistFileGrowLimit() const
+inline bsls::Types::Uint64 DataStoreConfig::qListFileGrowLimit() const
 {
-    return d_qlistFileGrowLimit;
+    return d_qListFileGrowLimit;
 }
 
 inline unsigned int DataStoreConfig::growStepPercent() const

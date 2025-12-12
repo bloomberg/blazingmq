@@ -376,6 +376,12 @@ class MockDataStore : public mqbs::DataStore {
         return 0;
     }
 
+    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
     int removeRecord(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
