@@ -33,11 +33,12 @@ namespace mqbc {
 
 // CREATORS
 ClusterNodeSession::ClusterNodeSession(
-    mqbi::DispatcherClient*             cluster,
-    mqbnet::ClusterNode*                netNode,
-    const bsl::string&                  clusterName,
-    const bmqp_ctrlmsg::ClientIdentity& identity,
-    bslma::Allocator*                   allocator)
+    mqbi::DispatcherClient*                    cluster,
+    mqbnet::ClusterNode*                       netNode,
+    const bsl::string&                         clusterName,
+    const bmqp_ctrlmsg::ClientIdentity&        identity,
+    const bsl::shared_ptr<bmqst::StatContext>& statContext,
+    bslma::Allocator*                          allocator)
 : d_cluster_p(cluster)
 , d_clusterNode_p(netNode)
 , d_peerInstanceId(0)  // There is no invalid value for this field
@@ -45,7 +46,7 @@ ClusterNodeSession::ClusterNodeSession(
       new(*allocator) mqbi::QueueHandleRequesterContext(allocator),
       allocator)
 , d_nodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE)  // See note in ctor
-, d_statContext_sp()
+, d_statContext_sp(statContext)
 , d_primaryPartitions(allocator)
 , d_queueHandles(allocator)
 {
@@ -58,7 +59,8 @@ ClusterNodeSession::ClusterNodeSession(
         .setDescription(description())
         .setIsClusterMember(true)
         .setRequesterId(
-            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId());
+            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId())
+        .setStatContext(statContext);
     // TBD: The passed in 'queueHandleRequesterIdentity' is currently the
     //      'clusterState->identity()' (representing the identity of self node
     //      in the cluster); and it should instead represent the identity of

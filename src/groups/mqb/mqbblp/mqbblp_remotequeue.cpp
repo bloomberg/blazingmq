@@ -621,6 +621,7 @@ void RemoteQueue::close()
 }
 
 void RemoteQueue::getHandle(
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -660,7 +661,8 @@ void RemoteQueue::getHandle(
         }
     }
 
-    d_queueEngine_mp->getHandle(clientContext,
+    d_queueEngine_mp->getHandle(context,
+                                clientContext,
                                 handleParameters,
                                 upstreamSubQueueId,
                                 callback);

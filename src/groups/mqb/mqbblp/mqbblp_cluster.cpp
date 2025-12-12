@@ -468,9 +468,9 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             cit->second.d_subQueueInfosMap.findBySubIdSafe(
                 bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
         if (subQueueCiter != cit->second.d_subQueueInfosMap.end()) {
-            subQueueCiter->value()
-                .d_clientStats
-                ->onEvent<mqbstat::ClusterNodeStats::EventType::e_ACK>(1);
+            subQueueCiter->value().onEvent(
+                mqbstat::QueueStatsClient::EventType::e_ACK,
+                1);
         }
         // In the case of Strong Consistency, a Receipt can arrive and trigger
         // an ACK after Producer closes subStream.
@@ -1076,11 +1076,9 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
             queueState.d_subQueueInfosMap.findBySubId(
                 bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-        subQueueCiter->value()
-            .d_clientStats
-            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_PUT>(
-
-                appDataSp->length());
+        subQueueCiter->value().onEvent(
+            mqbstat::QueueStatsClient::EventType::e_PUT,
+            appDataSp->length());
 
         // TBD: groupId: Similar to 'appDataSp' above, load 'optionsSp' here,
         // using something like PutMessageIterator::loadOptions().
@@ -1516,9 +1514,9 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
 
     if (eventType == bmqp::EventType::e_CONFIRM) {
         // Update client stats
-        subQueueIt->value()
-            .d_clientStats
-            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_CONFIRM>(1);
+        subQueueIt->value().onEvent(
+            mqbstat::QueueStatsClient::EventType::e_CONFIRM,
+            1);
     }
 
     return ValidationResult::k_SUCCESS;
@@ -1784,10 +1782,9 @@ void Cluster::onPushEvent(const mqbi::DispatcherPushEvent& event)
             queueState.d_subQueueInfosMap.findBySubscriptionId(
                 event.subQueueInfos()[i].id());
 
-        subQueueCiter->value()
-            .d_clientStats
-            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_PUSH>(
-                event.blob() ? event.blob()->length() : 0);
+        subQueueCiter->value().onEvent(
+            mqbstat::QueueStatsClient::EventType::e_PUSH,
+            event.blob() ? event.blob()->length() : 0);
     }
 
     bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;
@@ -2452,22 +2449,22 @@ Cluster::Cluster(const bslstl::StringRef&           name,
     NodeListIter endIter  = netCluster_p->nodes().end();
 
     for (; nodeIter != endIter; ++nodeIter) {
-        mqbc::ClusterMembership::ClusterNodeSessionSp nodeSessionSp;
-        nodeSessionSp.createInplace(d_allocator_p,
-                                    this,
-                                    *nodeIter,
-                                    d_clusterData.identity().name(),
-                                    d_clusterData.identity().identity(),
-                                    d_allocator_p);
-        nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNKNOWN);
-
         // Create stat context for each cluster node
         bmqst::StatContextConfiguration config((*nodeIter)->hostName());
 
         StatContextMp statContextMp =
             d_clusterData.clusterNodesStatContext()->addSubcontext(config);
         StatContextSp statContextSp(statContextMp, d_allocator_p);
-        nodeSessionSp->statContext() = statContextSp;
+
+        mqbc::ClusterMembership::ClusterNodeSessionSp nodeSessionSp;
+        nodeSessionSp.createInplace(d_allocator_p,
+                                    this,
+                                    *nodeIter,
+                                    d_clusterData.identity().name(),
+                                    d_clusterData.identity().identity(),
+                                    statContextSp,
+                                    d_allocator_p);
+        nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNKNOWN);
 
         nodeSessionMap.insert(bsl::make_pair(*nodeIter, nodeSessionSp));
 

@@ -28,7 +28,7 @@
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
 #include <mqbnet_cluster.h>
-#include <mqbstat_clusterstats.h>
+#include <mqbstat_queuestats.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -72,13 +72,17 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// opened in this session.
     struct SubQueueInfo {
         /// Stats of this SubQueue, with regards to the client.
-        bsl::shared_ptr<mqbstat::ClusterNodeStats> d_clientStats;
+        bsl::shared_ptr<mqbstat::QueueStatsClient> d_clientStats_sp;
 
         // CREATORS
 
         /// Constructor of a new object, initializes all data members to
         /// default values.
         SubQueueInfo();
+
+        // ACCESSORS
+        void onEvent(mqbstat::QueueStatsClient::EventType::Enum type,
+                     bsls::Types::Int64                         value) const;
     };
 
     /// Struct holding the state associated to a queue opened in by the
@@ -129,8 +133,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
     typedef QueueHandleMap::const_iterator QueueHandleMapConstIter;
 
-    typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
-
     typedef QueueState::StreamsMap StreamsMap;
 
   private:
@@ -160,7 +162,8 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Node status.
     bmqp_ctrlmsg::NodeStatus::Value d_nodeStatus;
 
-    StatContextSp d_statContext_sp;
+    // Extra reference to the stat context
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
 
     /// PartitionIds for which this node is the primary.
     bsl::vector<int> d_primaryPartitions;
@@ -179,11 +182,13 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit ClusterNodeSession(mqbi::DispatcherClient* cluster,
-                                mqbnet::ClusterNode*    netNode,
-                                const bsl::string&      clusterName,
-                                const bmqp_ctrlmsg::ClientIdentity& identity,
-                                bslma::Allocator*                   allocator);
+    explicit ClusterNodeSession(
+        mqbi::DispatcherClient*                    cluster,
+        mqbnet::ClusterNode*                       netNode,
+        const bsl::string&                         clusterName,
+        const bmqp_ctrlmsg::ClientIdentity&        identity,
+        const bsl::shared_ptr<bmqst::StatContext>& statContext,
+        bslma::Allocator*                          allocator);
 
     /// Destructor.
     ~ClusterNodeSession() BSLS_KEYWORD_OVERRIDE;
@@ -214,9 +219,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     void setNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value);
 
     void setPeerInstanceId(int value);
-
-    /// Return the associated stat context.
-    StatContextSp& statContext();
 
     /// Return a reference to the modifiable list of queue handles.
     QueueHandleMap& queueHandles();
@@ -265,7 +267,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     int peerInstanceId() const;
 
     /// Return the associated stat context.
-    const StatContextSp& statContext() const;
+    const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
 
     /// Return a reference to the non-modifiable list of partitions for
     /// which this cluster node is the primary.
@@ -296,9 +298,18 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 // ---------------------------------------
 
 inline ClusterNodeSession::SubQueueInfo::SubQueueInfo()
-: d_clientStats()
+: d_clientStats_sp()
 {
-    d_clientStats.createInplace();
+}
+
+// ACCESSORS
+inline void ClusterNodeSession::SubQueueInfo::onEvent(
+    mqbstat::QueueStatsClient::EventType::Enum type,
+    bsls::Types::Int64                         value) const
+{
+    if (d_clientStats_sp) {
+        d_clientStats_sp->onEvent(type, value);
+    }
 }
 
 // ------------------------------------
@@ -369,11 +380,6 @@ ClusterNodeSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     d_cluster_p->onDispatcherEvent(event);
 }
 
-inline ClusterNodeSession::StatContextSp& ClusterNodeSession::statContext()
-{
-    return d_statContext_sp;
-}
-
 inline ClusterNodeSession::QueueHandleMap& ClusterNodeSession::queueHandles()
 {
     return d_queueHandles;
@@ -429,7 +435,7 @@ inline int ClusterNodeSession::peerInstanceId() const
     return d_peerInstanceId;
 }
 
-inline const ClusterNodeSession::StatContextSp&
+inline const bsl::shared_ptr<bmqst::StatContext>&
 ClusterNodeSession::statContext() const
 {
     return d_statContext_sp;
