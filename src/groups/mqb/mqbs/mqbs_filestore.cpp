@@ -385,44 +385,6 @@ bool isSatisfyRolloverPolicy(bsls::Types::Uint64* availableSpacePercent,
     return *availableSpacePercent >= minAvailSpacePercent;
 }
 
-// // Try to adjust partition max file sizes that satisfy 
-// // rollover policy. 
-// // Return `true` if adjustment was successful, `false` otherwise.
-// bool adjustPartitionMaxFileSizes(bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes,
-//                                  FileSet* activeFileSet,
-//                                  DataStoreConfig& config, 
-//                                  unsigned int requestedSpace, bool qListAware)
-// {
-//     bool canRollover = true;
-//     bsls::Types::Uint64 currMaxFileSize = d_config.maxJournalFileSize(); // start from config value
-//     bsls::Types::Uint64 availableSpacePercentJournal = 0;
-//     bsls::Types::Uint64 outstandingBytesJournal =
-//         activeFileSet->d_outstandingBytesJournal;
-//     if (FileType::e_JOURNAL == fileType) {
-//         outstandingBytesJournal += requestedSpace;
-//     }
-//     // TODO: check for zero!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//     BSLS_ASSERT_SAFE(config.growStepPercent() > 0);
-//     bsls::Types::Uint64 journalFileSizeGrowStep = config.growStepPercent() * d_config.maxJournalFileSize() / 100;
-//     // If journalFileGrowLimit is not set, use current max file size as grow limit
-//     bsls::Types::Uint64 journalFileSizeGrowLimit = bsl::max(config.journalFileGrowLimit(), d_partitionMaxFileSizes.journalFileSize());
-
-//     // Try to grow journal file size from maxJournalFileSize till grow limit
-//     while (currMaxFileSize <= journalFileSizeGrowLimit) {
-//         canRollover = isSatisfyRolloverPolicy(&availableSpacePercentJournal,
-//                                             currMaxFileSize, outstandingBytesJournal, config.minAvailSpacePercent());
-//         if(canRollover){                                               
-//             break;  // BREAK
-//         }
-//         currMaxFileSize += journalFileSizeGrowStep;
-//     } 
-
-//     if (!canRollover) {
-//         return false;  // RETURN
-//     }
-
-// }
-
 }  // close unnamed namespace
 
 // -------------------------------------
@@ -7380,16 +7342,16 @@ bsls::Types::Uint64 FileStore::adjustPartitionFileSize(bsls::Types::Uint64* avai
 
     // Find a min file size that satisfy rollover policy
     bool canRollover = false;
-    do {
+    while (true){
         canRollover = isSatisfyRolloverPolicy(availableSpacePercent,
                                             currMaxFileSize, outstandingBytes, d_config.minAvailSpacePercent());
-        if (currMaxFileSize == fileSizeGrowLimit) {
-            // Reached the limit
+        if (canRollover || currMaxFileSize == fileSizeGrowLimit) {
+            // Policy is met or reached the limit
             break;  // BREAK
         }
         // Increase file size by step up to limit
         currMaxFileSize = bsl::min(currMaxFileSize + fileSizeGrowStep, fileSizeGrowLimit);
-    } while (!canRollover && currMaxFileSize <= fileSizeGrowLimit);
+    }
 
     return (canRollover ? currMaxFileSize : 0);
 }                                
