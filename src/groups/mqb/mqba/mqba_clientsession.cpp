@@ -2487,6 +2487,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
 {
     // executed by the *IO* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!event.isAuthenticationEvent());
+
     if (event.isControlEvent()) {
         bdlma::LocalSequentialAllocator<2048> localAllocator(
             d_state.d_allocator_p);
