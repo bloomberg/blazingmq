@@ -129,6 +129,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     void configureDispatched(bool isReconfigure);
 
     void getHandleDispatched(
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
         const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                     clientContext,
         const bmqp_ctrlmsg::QueueHandleParameters&  handleParameters,
@@ -213,11 +214,13 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// specified `clientContext` and using the specified `handleParameters`
     /// and `upstreamSubQueueId`.  Invoke the specified `callback` with the
     /// result.
-    void getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
-                                                              clientContext,
-                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-                   unsigned int upstreamSubQueueId,
-                   const mqbi::QueueHandle::GetHandleCallback& callback)
+    void
+    getHandle(const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+              const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+                                                          clientContext,
+              const bmqp_ctrlmsg::QueueHandleParameters&  handleParameters,
+              unsigned int                                upstreamSubQueueId,
+              const mqbi::QueueHandle::GetHandleCallback& callback)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Configure the specified `handle` with the specified

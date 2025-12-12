@@ -206,18 +206,6 @@ class Cluster : public DispatcherClient {
   public:
     // TYPES
 
-    /// Type of a `cookie` provided in the `OpenQueueCallback` to confirm
-    /// processing of the `openQueue` response by the requester.  Opening a
-    /// queue is fully async, and it could happen that the requester went
-    /// down before the `openQueue` response got delivered to it.  In this
-    /// case, we must rollback upstream state.  This cookie is used for
-    /// that: it is initialized to zero (in the `Cluster` implementation),
-    /// and carried over to the original requester of the `openQueue`.  If
-    /// the requester is not able to process the openQueue response, it
-    /// needs to set this cookie to the queue handle which it received, so
-    /// that the operation can be rolled back.
-    typedef bsl::shared_ptr<QueueHandle*> OpenQueueConfirmationCookie;
-
     /// Signature of the callback passed to the `openQueue()` method: if the
     /// specified `status` is SUCCESS, the operation was a success and the
     /// specified `queueHandle` contains the queue handle, and the specified
@@ -232,7 +220,7 @@ class Cluster : public DispatcherClient {
         const bmqp_ctrlmsg::Status&            status,
         QueueHandle*                           queueHandle,
         const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
-        const OpenQueueConfirmationCookie&     confirmationCookie)>
+        const OpenQueueConfirmationCookieSp&   confirmationCookie)>
         OpenQueueCallback;
 
     // TYPES

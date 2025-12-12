@@ -258,6 +258,7 @@ void LocalQueue::close()
 }
 
 void LocalQueue::getHandle(
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -269,7 +270,8 @@ void LocalQueue::getHandle(
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
-    d_queueEngine_mp->getHandle(clientContext,
+    d_queueEngine_mp->getHandle(context,
+                                clientContext,
                                 handleParameters,
                                 upstreamSubQueueId,
                                 callback);

@@ -112,6 +112,7 @@ int Queue::configure(BSLA_UNUSED bsl::ostream* errorDescription_p,
 }
 
 void Queue::getHandle(
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -123,7 +124,8 @@ void Queue::getHandle(
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    d_queueEngine_p->getHandle(clientContext,
+    d_queueEngine_p->getHandle(context,
+                               clientContext,
                                handleParameters,
                                upstreamSubQueueId,
                                callback);
