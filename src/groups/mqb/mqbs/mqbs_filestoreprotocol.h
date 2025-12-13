@@ -318,9 +318,9 @@ struct FileHeader {
     //   +---------------+---------------+---------------+---------------+
     //   |PV |   HW      |B|  FileType   |            Reserved           |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |                    MaxFileSize upper bits                     |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |                    MaxFileSize lower bits                     |
     //   +---------------+---------------+---------------+---------------+
     //   |                         PartitionId                           |
     //   +---------------+---------------+---------------+---------------+
@@ -374,7 +374,10 @@ struct FileHeader {
 
     char d_bitnessAndFileType;
 
-    BSLA_MAYBE_UNUSED char d_reserved1[10];
+    BSLA_MAYBE_UNUSED char d_reserved1[2];
+
+    bdlb::BigEndianUint32 d_maxFileSizeUpperBits;
+    bdlb::BigEndianUint32 d_maxFileSizeLowerBits;
 
     bdlb::BigEndianInt32 d_partitionId;
 
@@ -404,6 +407,8 @@ struct FileHeader {
 
     FileHeader& setPartitionId(int value);
 
+    FileHeader& setMaxFileSize(bsls::Types::Uint64 value);
+
     // ACCESSORS
     unsigned int magic1() const;
 
@@ -418,6 +423,8 @@ struct FileHeader {
     unsigned char headerWords() const;
 
     int partitionId() const;
+
+    bsls::Types::Uint64 maxFileSize() const;
 };
 
 // =====================
@@ -2199,6 +2206,14 @@ inline FileHeader& FileHeader::setPartitionId(int value)
     return *this;
 }
 
+inline FileHeader& FileHeader::setMaxFileSize(bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_maxFileSizeUpperBits,
+                          &d_maxFileSizeLowerBits,
+                          value);
+    return *this;
+}
+
 // ACCESSORS
 inline unsigned int FileHeader::magic1() const
 {
@@ -2242,6 +2257,12 @@ inline FileType::Enum FileHeader::fileType() const
 inline int FileHeader::partitionId() const
 {
     return d_partitionId;
+}
+
+inline bsls::Types::Uint64 FileHeader::maxFileSize() const
+{
+    return bmqp::Protocol::combine(d_maxFileSizeUpperBits,
+                                   d_maxFileSizeLowerBits);
 }
 
 // ---------------------
@@ -2292,7 +2313,6 @@ inline JournalFileHeader::JournalFileHeader()
     setHeaderWords(sizeof(JournalFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     setRecordWords(FileStoreProtocol::k_JOURNAL_RECORD_SIZE /
                    bmqp::Protocol::k_WORD_SIZE);
-    setFirstSyncPointAfterRolloverOffsetWords(0);
 }
 
 // MANIPULATORS
