@@ -47,10 +47,10 @@ static void test1_breathingTest()
         makeAuthnData(bslma::Allocator* alloc = 0)
         {
             bsl::vector<char> res(alloc);
-            res.pushBack('d');
-            res.pushBack('a');
-            res.pushBack('t');
-            res.pushBack('a');
+            res.push_back('d');
+            res.push_back('a');
+            res.push_back('t');
+            res.push_back('a');
             return res;
         }
     };
