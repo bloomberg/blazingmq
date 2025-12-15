@@ -44,7 +44,7 @@ static void test1_breathingTest()
 
     struct Local {
         inline static bsl::vector<char>
-        makeAuthnData(bslma::Allocator *alloc = 0)
+        makeAuthnData(bslma::Allocator* alloc = 0)
         {
             bsl::vector<char> res(alloc);
             res.pushBack('d');
