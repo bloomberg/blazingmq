@@ -277,7 +277,11 @@ struct Tester {
         for (mqbnet::Cluster::NodesList::iterator iter = nodes.begin();
              iter != nodes.end();
              ++iter) {
-            d_cluster_mp->_state()->setPartitionPrimary(pid, 1, *iter);
+            mqbc::ClusterNodeSession* ns = d_cluster_mp->_clusterData()
+                                               ->membership()
+                                               .getClusterNodeSession(*iter);
+            BSLS_ASSERT_OPT(ns);
+            d_cluster_mp->_state()->setPartitionPrimary(pid, 1, ns);
             ++pid;
         }
 

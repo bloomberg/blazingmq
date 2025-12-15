@@ -113,16 +113,6 @@ struct ClusterUtil {
   public:
     // FUNCTIONS
 
-    /// Generate a nack with the specified `status` for a PUT message having
-    /// the specified `putHeader` from the specified `source`.  The nack is
-    /// replied to the `source`.
-    static void generateNack(bmqt::AckResult::Enum               status,
-                             const bmqp::PutHeader&              putHeader,
-                             mqbi::DispatcherClient*             source,
-                             mqbi::Dispatcher*                   dispatcher,
-                             const bsl::shared_ptr<bdlbb::Blob>& appData,
-                             const bsl::shared_ptr<bdlbb::Blob>& options);
-
     /// Return true if the specified `syncPoint` is valid, false otherwise.
     static bool isValid(const bmqp_ctrlmsg::SyncPoint& syncPoint);
 
@@ -379,34 +369,6 @@ struct ClusterUtil {
 // ------------------
 // struct ClusterUtil
 // ------------------
-inline void
-ClusterUtil::generateNack(bmqt::AckResult::Enum               status,
-                          const bmqp::PutHeader&              putHeader,
-                          mqbi::DispatcherClient*             source,
-                          mqbi::Dispatcher*                   dispatcher,
-                          const bsl::shared_ptr<bdlbb::Blob>& appData,
-                          const bsl::shared_ptr<bdlbb::Blob>& options)
-{
-    BSLS_ASSERT_SAFE(status != bmqt::AckResult::e_SUCCESS);
-
-    bmqp::AckMessage ackMessage(bmqp::ProtocolUtil::ackResultToCode(status),
-                                putHeader.correlationId(),
-                                putHeader.messageGUID(),
-                                putHeader.queueId());
-
-    mqbi::Dispatcher::DispatcherEventSp ev = dispatcher->getEvent(source);
-    (*ev).setType(mqbi::DispatcherEventType::e_ACK).setAckMessage(ackMessage);
-
-    if (appData) {
-        (*ev).setBlob(appData);
-        (*ev).setOptions(options);
-    }
-    else {
-        BSLS_ASSERT_SAFE(!options);
-    }
-
-    dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(ev), source);
-}
 
 inline bool ClusterUtil::isValid(const bmqp_ctrlmsg::SyncPoint& syncPoint)
 {

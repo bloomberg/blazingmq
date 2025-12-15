@@ -352,6 +352,25 @@ class Cluster : public DispatcherClient {
     /// Load the cluster state to the specified `out` object.
     virtual void loadClusterStatus(mqbcmd::ClusterResult* out) = 0;
 
+    /// Send the specified CONFIRM 'message' for the specified 'partitionId'
+    /// without switching thread context.
+    /// 'onRelayConfirmEvent' replacement.
+    virtual mqbi::InlineResult::Enum
+    sendConfirmInline(int                         partitionId,
+                      const bmqp::ConfirmMessage& message) = 0;
+
+    /// Send PUT message for the specified 'partitionId' using the specified
+    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
+    /// switching thread context.
+    /// 'onRelayPutEvent' replacement.
+    virtual mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
+                  bsls::Types::Uint64                       genCount) = 0;
+
     /// Purge and force GC queues in this cluster on a given domain.
     virtual void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,
                                          const bsl::string& domainName) = 0;
