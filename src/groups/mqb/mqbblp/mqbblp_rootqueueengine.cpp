@@ -1147,15 +1147,17 @@ void RootQueueEngine::releaseHandle(
 
             BSLS_ASSERT_SAFE(itApp != d_apps.end());
 
-            AppState* app(itApp->second.get());
+            AppStateSp app = itApp->second;
 
             BSLS_ASSERT_SAFE(itApp->first == app->appId());
+
+            bool isConfigured = app->find(handle);
 
             if (result.hasNoHandleStreamConsumers()) {
                 // No re-delivery attempts until entire handle stops consuming
                 // (read count drops to zero).
 
-                if (app->find(handle)) {
+                if (isConfigured) {
                     // The handle has a valid consumer priority, meaning that a
                     // downstream client is attempting to release the handle
                     // without having first configured it to have null
@@ -1214,14 +1216,15 @@ void RootQueueEngine::releaseHandle(
                         << "', appId = '" << currSubStreamInfo.appId()
                         << "'. Now there are " << app->consumers().size()
                         << " consumers.";
+
+                    isConfigured = false;
                 }
                 // else configureHandle has not been called or the handle is
                 // of too low priority
-                if (app->transferUnconfirmedMessages(handle,
-                                                     currSubStreamInfo)) {
-                    // There are potential consumers to redeliver to
-                    deliverMessages(app);
-                }
+
+                // If lost read capacity, validate that handle is removed from
+                // the set of consumers for the given appId
+                BSLS_ASSERT_SAFE(!app->find(handle));
 
                 if (result.isQueueStreamEmpty()) {
                     // There are no clients for this app in this queue (across
@@ -1245,10 +1248,23 @@ void RootQueueEngine::releaseHandle(
                         d_queueState_p->abandon(app->upstreamSubQueueId());
                     }
                 }
-                // If lost read capacity, validate that handle is removed from
-                // the set of consumers for the given appId
-                BSLS_ASSERT_SAFE(!hasHandle(subStreamInfo.appId(), handle));
             }  // else there are app consumers on this handle
+
+            // Make the re-delivery decision based on the number of configured
+            // consumers, not the readCount, because the downstream may have
+            // different readCount while waiting for response.  Downstream's
+            // view has readCount <= upstream's readCount so downstream may
+            // clear its state relying on the upstream re-delivering.
+            // The number of configured consumers is more reliable.
+
+            if (!isConfigured) {
+                if (app->transferUnconfirmedMessages(handle,
+                                                     currSubStreamInfo)) {
+                    // There are potential consumers to redeliver to
+                    deliverMessages(app.get());
+                }
+            }
+
         }  // else producer
 
         // Register/unregister both consumers and producers
