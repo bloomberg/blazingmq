@@ -168,7 +168,7 @@ struct Tester {
         d_partitionCfg.maxJournalFileSize()   = 1 * 1024 * 1024;
         d_partitionCfg.dataFileGrowLimit()    = 24 * 1024 * 1024;
         d_partitionCfg.journalFileGrowLimit() = 4 * 1024 * 1024;
-        d_partitionCfg.qlistFileGrowLimit()   = 1 * 1024 * 1024;
+        d_partitionCfg.qListFileGrowLimit()   = 1 * 1024 * 1024;
         d_partitionCfg.growStepPercent()      = 50;
         d_partitionCfg.minAvailSpacePercent() = 20;
         d_partitionCfg.location()             = d_clusterLocation;
@@ -213,7 +213,7 @@ struct Tester {
             .setMaxQlistFileSize(d_partitionCfg.maxQlistFileSize())
             .setDataFileGrowLimit(d_partitionCfg.dataFileGrowLimit())
             .setJournalFileGrowLimit(d_partitionCfg.journalFileGrowLimit())
-            .setQlistFileGrowLimit(d_partitionCfg.qlistFileGrowLimit())
+            .setQlistFileGrowLimit(d_partitionCfg.qListFileGrowLimit())
             .setGrowStepPercent(d_partitionCfg.growStepPercent())
             .setMinAvailSpacePercent(d_partitionCfg.minAvailSpacePercent())
             .setRecoveredQueuesCb(bdlf::BindUtil::bind(

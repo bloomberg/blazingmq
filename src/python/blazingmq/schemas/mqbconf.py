@@ -21,97 +21,6 @@ from typing import List, Optional
 __NAMESPACE__ = "urn:x-bloomberg-com:mqbconfm"
 
 
-@dataclass
-class BrokerIdentity:
-    """Generic type to hold identification of a broker.
-
-    hostName......: machine name
-    hostTags......: machine tags
-    brokerVersion.: version of the broker
-    """
-
-    host_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "hostName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    host_tags: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "hostTags",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    broker_version: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "brokerVersion",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
-class DomainConfigRaw:
-    """
-    Response of a get domain config request.
-    """
-
-    domain_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "domainName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    config: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
-class DomainResolver:
-    """Top level type representing the information retrieved when resolving a
-    domain.
-
-    Review: Keep this? Why not just store the cluster name?
-    name....: Domain name
-    cluster.: Cluster name
-    """
-
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    cluster: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
 class ExpressionVersion(Enum):
     """
     Enumeration of the various expression versions.
@@ -119,32 +28,6 @@ class ExpressionVersion(Enum):
 
     E_UNDEFINED = "E_UNDEFINED"
     E_VERSION_1 = "E_VERSION_1"
-
-
-@dataclass
-class Failure:
-    """Generic type to represent an error.
-
-    code.....: an integer value representing the error
-    message..: an optional string describing the error
-    """
-
-    code: Optional[int] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    message: str = field(
-        default="",
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
 
 
 @dataclass
@@ -341,32 +224,6 @@ class Consistency:
 
 
 @dataclass
-class DomainConfigRequest:
-    """
-    Request to get a domain config.
-    """
-
-    broker_identity: Optional[BrokerIdentity] = field(
-        default=None,
-        metadata={
-            "name": "brokerIdentity",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-    domain_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "domainName",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
-        },
-    )
-
-
-@dataclass
 class Expression:
     """This complex type contains expression to evaluate when selecting
     Subscription for delivery.
@@ -427,32 +284,6 @@ class QueueMode:
 
 
 @dataclass
-class Response1:
-    """
-    The choice between all the possible responses from the bmqconf task.
-    """
-
-    class Meta:
-        name = "Response"
-
-    failure: Optional[Failure] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-        },
-    )
-    domain_config: Optional[DomainConfigRaw] = field(
-        default=None,
-        metadata={
-            "name": "domainConfig",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-        },
-    )
-
-
-@dataclass
 class Storage:
     """
     Choice of all the various Storage backends inMemory....: store data in memory
@@ -473,26 +304,6 @@ class Storage:
             "name": "fileBacked",
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        },
-    )
-
-
-@dataclass
-class Request1:
-    """
-    The choice between all the possible requests to the bmqconf task.
-    """
-
-    class Meta:
-        name = "Request"
-
-    domain_config: Optional[DomainConfigRequest] = field(
-        default=None,
-        metadata={
-            "name": "domainConfig",
-            "type": "Element",
-            "namespace": "urn:x-bloomberg-com:mqbconfm",
-            "required": True,
         },
     )
 
@@ -562,13 +373,6 @@ class Subscription:
             "required": True,
         },
     )
-
-
-@dataclass
-class Response(Response1):
-    class Meta:
-        name = "response"
-        namespace = "urn:x-bloomberg-com:mqbconfm"
 
 
 @dataclass
@@ -717,13 +521,6 @@ class Domain:
             "min_occurs": 1,
         },
     )
-
-
-@dataclass
-class Request(Request1):
-    class Meta:
-        name = "request"
-        namespace = "urn:x-bloomberg-com:mqbconfm"
 
 
 @dataclass

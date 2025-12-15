@@ -6503,7 +6503,7 @@ class PartitionConfig {
     // maxCSLFileSize.......: maximum size of partitions' CSL file
     // dataFileGrowLimit....: limit for data file growth during rollover
     // journalFileGrowLimit.: limit for journal file growth during rollover
-    // qlistFileGrowLimit...: limit for qlist file growth during rollover
+    // qListFileGrowLimit...: limit for qlist file growth during rollover
     // growStepPercent.....: step (in percents of max file size) for file
     // growth during rollover minAvailSpacePercent.: minimum available free
     // file space (in percents) which will appear after rollover (rollover
@@ -6522,7 +6522,7 @@ class PartitionConfig {
     bsls::Types::Uint64 d_maxCSLFileSize;
     bsls::Types::Uint64 d_dataFileGrowLimit;
     bsls::Types::Uint64 d_journalFileGrowLimit;
-    bsls::Types::Uint64 d_qlistFileGrowLimit;
+    bsls::Types::Uint64 d_qListFileGrowLimit;
     bsl::string         d_location;
     bsl::string         d_archiveLocation;
     StorageSyncConfig   d_syncConfig;
@@ -6552,7 +6552,7 @@ class PartitionConfig {
         ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE     = 6,
         ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT    = 7,
         ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT = 8,
-        ATTRIBUTE_ID_QLIST_FILE_GROW_LIMIT   = 9,
+        ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT  = 9,
         ATTRIBUTE_ID_GROW_STEP_PERCENT       = 10,
         ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT = 11,
         ATTRIBUTE_ID_PREALLOCATE             = 12,
@@ -6574,7 +6574,7 @@ class PartitionConfig {
         ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE     = 6,
         ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT    = 7,
         ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT = 8,
-        ATTRIBUTE_INDEX_QLIST_FILE_GROW_LIMIT   = 9,
+        ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT  = 9,
         ATTRIBUTE_INDEX_GROW_STEP_PERCENT       = 10,
         ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT = 11,
         ATTRIBUTE_INDEX_PREALLOCATE             = 12,
@@ -6594,7 +6594,8 @@ class PartitionConfig {
     static const bsls::Types::Uint64
         DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT;
 
-    static const bsls::Types::Uint64 DEFAULT_INITIALIZER_QLIST_FILE_GROW_LIMIT;
+    static const bsls::Types::Uint64
+        DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT;
 
     static const unsigned int DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
 
@@ -6735,8 +6736,8 @@ class PartitionConfig {
     // Return a reference to the modifiable "JournalFileGrowLimit"
     // attribute of this object.
 
-    bsls::Types::Uint64& qlistFileGrowLimit();
-    // Return a reference to the modifiable "QlistFileGrowLimit" attribute
+    bsls::Types::Uint64& qListFileGrowLimit();
+    // Return a reference to the modifiable "QListFileGrowLimit" attribute
     // of this object.
 
     unsigned int& growStepPercent();
@@ -6842,8 +6843,8 @@ class PartitionConfig {
     // Return the value of the "JournalFileGrowLimit" attribute of this
     // object.
 
-    bsls::Types::Uint64 qlistFileGrowLimit() const;
-    // Return the value of the "QlistFileGrowLimit" attribute of this
+    bsls::Types::Uint64 qListFileGrowLimit() const;
+    // Return the value of the "QListFileGrowLimit" attribute of this
     // object.
 
     unsigned int growStepPercent() const;
@@ -16573,7 +16574,7 @@ void PartitionConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->maxCSLFileSize());
     hashAppend(hashAlgorithm, this->dataFileGrowLimit());
     hashAppend(hashAlgorithm, this->journalFileGrowLimit());
-    hashAppend(hashAlgorithm, this->qlistFileGrowLimit());
+    hashAppend(hashAlgorithm, this->qListFileGrowLimit());
     hashAppend(hashAlgorithm, this->growStepPercent());
     hashAppend(hashAlgorithm, this->minAvailSpacePercent());
     hashAppend(hashAlgorithm, this->preallocate());
@@ -16594,7 +16595,7 @@ inline bool PartitionConfig::isEqualTo(const PartitionConfig& rhs) const
            this->maxCSLFileSize() == rhs.maxCSLFileSize() &&
            this->dataFileGrowLimit() == rhs.dataFileGrowLimit() &&
            this->journalFileGrowLimit() == rhs.journalFileGrowLimit() &&
-           this->qlistFileGrowLimit() == rhs.qlistFileGrowLimit() &&
+           this->qListFileGrowLimit() == rhs.qListFileGrowLimit() &&
            this->growStepPercent() == rhs.growStepPercent() &&
            this->minAvailSpacePercent() == rhs.minAvailSpacePercent() &&
            this->preallocate() == rhs.preallocate() &&
@@ -16672,8 +16673,8 @@ int PartitionConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     }
 
     ret = manipulator(
-        &d_qlistFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_GROW_LIMIT]);
+        &d_qListFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
     if (ret) {
         return ret;
     }
@@ -16775,10 +16776,10 @@ int PartitionConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
             &d_journalFileGrowLimit,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
     }
-    case ATTRIBUTE_ID_QLIST_FILE_GROW_LIMIT: {
+    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT: {
         return manipulator(
-            &d_qlistFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_GROW_LIMIT]);
+            &d_qListFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
     }
     case ATTRIBUTE_ID_GROW_STEP_PERCENT: {
         return manipulator(
@@ -16878,9 +16879,9 @@ inline bsls::Types::Uint64& PartitionConfig::journalFileGrowLimit()
     return d_journalFileGrowLimit;
 }
 
-inline bsls::Types::Uint64& PartitionConfig::qlistFileGrowLimit()
+inline bsls::Types::Uint64& PartitionConfig::qListFileGrowLimit()
 {
-    return d_qlistFileGrowLimit;
+    return d_qListFileGrowLimit;
 }
 
 inline unsigned int& PartitionConfig::growStepPercent()
@@ -16980,8 +16981,8 @@ int PartitionConfig::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(
-        d_qlistFileGrowLimit,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_GROW_LIMIT]);
+        d_qListFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
     if (ret) {
         return ret;
     }
@@ -17082,10 +17083,10 @@ int PartitionConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_journalFileGrowLimit,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
     }
-    case ATTRIBUTE_ID_QLIST_FILE_GROW_LIMIT: {
+    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT: {
         return accessor(
-            d_qlistFileGrowLimit,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_GROW_LIMIT]);
+            d_qListFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
     }
     case ATTRIBUTE_ID_GROW_STEP_PERCENT: {
         return accessor(
@@ -17184,9 +17185,9 @@ inline bsls::Types::Uint64 PartitionConfig::journalFileGrowLimit() const
     return d_journalFileGrowLimit;
 }
 
-inline bsls::Types::Uint64 PartitionConfig::qlistFileGrowLimit() const
+inline bsls::Types::Uint64 PartitionConfig::qListFileGrowLimit() const
 {
-    return d_qlistFileGrowLimit;
+    return d_qListFileGrowLimit;
 }
 
 inline unsigned int PartitionConfig::growStepPercent() const

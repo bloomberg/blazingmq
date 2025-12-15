@@ -1341,7 +1341,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
         .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
         .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-        .setQlistFileGrowLimit(partitionCfg.qlistFileGrowLimit())
+        .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
         .setGrowStepPercent(partitionCfg.growStepPercent())
         .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
     // Only relevant fields of data store config are set.

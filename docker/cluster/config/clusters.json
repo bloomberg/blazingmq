@@ -59,7 +59,7 @@
                 "maxCSLFileSize": 8388608,
                 "dataFileGrowLimit": 0,
                 "journalFileGrowLimit": 0,
-                "qlistFileGrowLimit": 0,
+                "qListFileGrowLimit": 0,
                 "growStepPercent": 50,
                 "minAvailSpacePercent": 20,
                 "numPartitions": 1,
