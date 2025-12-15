@@ -81,11 +81,11 @@ bool limitPartitionMaxFileSizes(
             partitionCfg.journalFileGrowLimit();
         limitApplied = true;
     }
-    if (partitionCfg.qlistFileGrowLimit() > 0 &&
+    if (partitionCfg.qListFileGrowLimit() > 0 &&
         partitionMaxFileSizes.qListFileSize() >
-            partitionCfg.qlistFileGrowLimit()) {
+            partitionCfg.qListFileGrowLimit()) {
         partitionMaxFileSizes.qListFileSize() =
-            partitionCfg.qlistFileGrowLimit();
+            partitionCfg.qListFileGrowLimit();
         limitApplied = true;
     }
     return limitApplied;
@@ -4449,7 +4449,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
         .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
         .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-        .setQlistFileGrowLimit(partitionCfg.qlistFileGrowLimit())
+        .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
         .setGrowStepPercent(partitionCfg.growStepPercent())
         .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
 

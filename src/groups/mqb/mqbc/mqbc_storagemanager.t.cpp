@@ -907,7 +907,7 @@ struct TestHelper {
             .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets())
             .setDataFileGrowLimit(partitionCfg.dataFileGrowLimit())
             .setJournalFileGrowLimit(partitionCfg.journalFileGrowLimit())
-            .setQlistFileGrowLimit(partitionCfg.qlistFileGrowLimit())
+            .setQlistFileGrowLimit(partitionCfg.qListFileGrowLimit())
             .setGrowStepPercent(partitionCfg.growStepPercent())
             .setMinAvailSpacePercent(partitionCfg.minAvailSpacePercent());
 

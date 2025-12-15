@@ -4286,7 +4286,7 @@ const bsls::Types::Uint64
     PartitionConfig::DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT = 4294967296;
 
 const bsls::Types::Uint64
-    PartitionConfig::DEFAULT_INITIALIZER_QLIST_FILE_GROW_LIMIT = 1073741824;
+    PartitionConfig::DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT = 1073741824;
 
 const unsigned int PartitionConfig::DEFAULT_INITIALIZER_GROW_STEP_PERCENT = 50;
 
@@ -4345,9 +4345,9 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("journalFileGrowLimit") - 1,
      "",
      bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
-    {ATTRIBUTE_ID_QLIST_FILE_GROW_LIMIT,
-     "qlistFileGrowLimit",
-     sizeof("qlistFileGrowLimit") - 1,
+    {ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT,
+     "qListFileGrowLimit",
+     sizeof("qListFileGrowLimit") - 1,
      "",
      bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_GROW_STEP_PERCENT,
@@ -4425,8 +4425,8 @@ const bdlat_AttributeInfo* PartitionConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT];
     case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT];
-    case ATTRIBUTE_ID_QLIST_FILE_GROW_LIMIT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QLIST_FILE_GROW_LIMIT];
+    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT];
     case ATTRIBUTE_ID_GROW_STEP_PERCENT:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT];
     case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT:
@@ -4454,7 +4454,7 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 , d_maxCSLFileSize(DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE)
 , d_dataFileGrowLimit(DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT)
 , d_journalFileGrowLimit(DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT)
-, d_qlistFileGrowLimit(DEFAULT_INITIALIZER_QLIST_FILE_GROW_LIMIT)
+, d_qListFileGrowLimit(DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT)
 , d_location(basicAllocator)
 , d_archiveLocation(basicAllocator)
 , d_syncConfig()
@@ -4476,7 +4476,7 @@ PartitionConfig::PartitionConfig(const PartitionConfig& original,
 , d_maxCSLFileSize(original.d_maxCSLFileSize)
 , d_dataFileGrowLimit(original.d_dataFileGrowLimit)
 , d_journalFileGrowLimit(original.d_journalFileGrowLimit)
-, d_qlistFileGrowLimit(original.d_qlistFileGrowLimit)
+, d_qListFileGrowLimit(original.d_qListFileGrowLimit)
 , d_location(original.d_location, basicAllocator)
 , d_archiveLocation(original.d_archiveLocation, basicAllocator)
 , d_syncConfig(original.d_syncConfig)
@@ -4499,7 +4499,7 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original) noexcept
   d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize)),
   d_dataFileGrowLimit(bsl::move(original.d_dataFileGrowLimit)),
   d_journalFileGrowLimit(bsl::move(original.d_journalFileGrowLimit)),
-  d_qlistFileGrowLimit(bsl::move(original.d_qlistFileGrowLimit)),
+  d_qListFileGrowLimit(bsl::move(original.d_qListFileGrowLimit)),
   d_location(bsl::move(original.d_location)),
   d_archiveLocation(bsl::move(original.d_archiveLocation)),
   d_syncConfig(bsl::move(original.d_syncConfig)),
@@ -4521,7 +4521,7 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original,
 , d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize))
 , d_dataFileGrowLimit(bsl::move(original.d_dataFileGrowLimit))
 , d_journalFileGrowLimit(bsl::move(original.d_journalFileGrowLimit))
-, d_qlistFileGrowLimit(bsl::move(original.d_qlistFileGrowLimit))
+, d_qListFileGrowLimit(bsl::move(original.d_qListFileGrowLimit))
 , d_location(bsl::move(original.d_location), basicAllocator)
 , d_archiveLocation(bsl::move(original.d_archiveLocation), basicAllocator)
 , d_syncConfig(bsl::move(original.d_syncConfig))
@@ -4554,7 +4554,7 @@ PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
         d_maxCSLFileSize       = rhs.d_maxCSLFileSize;
         d_dataFileGrowLimit    = rhs.d_dataFileGrowLimit;
         d_journalFileGrowLimit = rhs.d_journalFileGrowLimit;
-        d_qlistFileGrowLimit   = rhs.d_qlistFileGrowLimit;
+        d_qListFileGrowLimit   = rhs.d_qListFileGrowLimit;
         d_growStepPercent      = rhs.d_growStepPercent;
         d_minAvailSpacePercent = rhs.d_minAvailSpacePercent;
         d_preallocate          = rhs.d_preallocate;
@@ -4581,7 +4581,7 @@ PartitionConfig& PartitionConfig::operator=(PartitionConfig&& rhs)
         d_maxCSLFileSize       = bsl::move(rhs.d_maxCSLFileSize);
         d_dataFileGrowLimit    = bsl::move(rhs.d_dataFileGrowLimit);
         d_journalFileGrowLimit = bsl::move(rhs.d_journalFileGrowLimit);
-        d_qlistFileGrowLimit   = bsl::move(rhs.d_qlistFileGrowLimit);
+        d_qListFileGrowLimit   = bsl::move(rhs.d_qListFileGrowLimit);
         d_growStepPercent      = bsl::move(rhs.d_growStepPercent);
         d_minAvailSpacePercent = bsl::move(rhs.d_minAvailSpacePercent);
         d_preallocate          = bsl::move(rhs.d_preallocate);
@@ -4606,7 +4606,7 @@ void PartitionConfig::reset()
     d_maxCSLFileSize       = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
     d_dataFileGrowLimit    = DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT;
     d_journalFileGrowLimit = DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT;
-    d_qlistFileGrowLimit   = DEFAULT_INITIALIZER_QLIST_FILE_GROW_LIMIT;
+    d_qListFileGrowLimit   = DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT;
     d_growStepPercent      = DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
     d_minAvailSpacePercent = DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT;
     d_preallocate          = DEFAULT_INITIALIZER_PREALLOCATE;
@@ -4634,7 +4634,7 @@ bsl::ostream& PartitionConfig::print(bsl::ostream& stream,
     printer.printAttribute("dataFileGrowLimit", this->dataFileGrowLimit());
     printer.printAttribute("journalFileGrowLimit",
                            this->journalFileGrowLimit());
-    printer.printAttribute("qlistFileGrowLimit", this->qlistFileGrowLimit());
+    printer.printAttribute("qListFileGrowLimit", this->qListFileGrowLimit());
     printer.printAttribute("growStepPercent", this->growStepPercent());
     printer.printAttribute("minAvailSpacePercent",
                            this->minAvailSpacePercent());

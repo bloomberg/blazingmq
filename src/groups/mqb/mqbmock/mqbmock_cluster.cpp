@@ -124,7 +124,7 @@ void Cluster::_initializeClusterDefinition(
     partitionCfg.maxCSLFileSize()       = k_MAX_CSL_FILE_SIZE;
     partitionCfg.dataFileGrowLimit()    = k_DATA_FILE_GROW_LIMIT;
     partitionCfg.journalFileGrowLimit() = k_JOURNAL_FILE_GROW_LIMIT;
-    partitionCfg.qlistFileGrowLimit()   = k_QLIST_FILE_GROW_LIMIT;
+    partitionCfg.qListFileGrowLimit()   = k_QLIST_FILE_GROW_LIMIT;
     partitionCfg.preallocate()          = false;
     partitionCfg.maxArchivedFileSets()  = 0;
     partitionCfg.prefaultPages()        = true;

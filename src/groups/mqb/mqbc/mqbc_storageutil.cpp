@@ -1232,7 +1232,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
             .setMaxQlistFileSize(config.maxQlistFileSize())
             .setDataFileGrowLimit(config.dataFileGrowLimit())
             .setJournalFileGrowLimit(config.journalFileGrowLimit())
-            .setQlistFileGrowLimit(config.qlistFileGrowLimit())
+            .setQlistFileGrowLimit(config.qListFileGrowLimit())
             .setGrowStepPercent(config.growStepPercent())
             .setMinAvailSpacePercent(config.minAvailSpacePercent())
             .setMaxArchivedFileSets(config.maxArchivedFileSets())
