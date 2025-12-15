@@ -43,7 +43,8 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     struct Local {
-        inline static bsl::vector<char> makeAuthnData(bslma::Allocator *alloc = 0) {
+        inline static bsl::vector<char>
+        makeAuthnData(bslma::Allocator *alloc = 0) {
             bsl::vector<char> res(alloc);
             res.pushBack('d');
             res.pushBack('a');
