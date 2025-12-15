@@ -40,10 +40,6 @@ class AuthnCredential {
     bsl::string       d_mechanism;  // authentication mechanism
     bsl::vector<char> d_data;       // authentication data
 
-  private:
-    // NOT IMPLEMENTED (delete non-allocator creators)
-    AuthnCredential(const AuthnCredential&) BSLS_KEYWORD_DELETED;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(AuthnCredential, bslma::UsesBslmaAllocator)
