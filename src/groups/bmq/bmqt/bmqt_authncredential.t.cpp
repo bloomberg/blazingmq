@@ -42,6 +42,19 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    struct Local {
+        inline static bsl::vector<char>
+        makeAuthnData(bslma::Allocator* alloc = 0)
+        {
+            bsl::vector<char> res(alloc);
+            res.push_back('d');
+            res.push_back('a');
+            res.push_back('t');
+            res.push_back('a');
+            return res;
+        }
+    };
+
     PV("Test default constructor");
     {
         bmqt::AuthnCredential cred;
@@ -52,7 +65,7 @@ static void test1_breathingTest()
     PV("Test parameterized constructor");
     {
         bsl::string           mechanism("BMQ");
-        bsl::vector<char>     data{'d', 'a', 't', 'a'};
+        bsl::vector<char>     data(Local::makeAuthnData());
         bmqt::AuthnCredential cred(mechanism, data);
 
         ASSERT(cred.mechanism() == mechanism);
@@ -63,7 +76,7 @@ static void test1_breathingTest()
     {
         bmqt::AuthnCredential cred;
         bsl::string           mechanism("BMQ");
-        bsl::vector<char>     data{'d', 'a', 't', 'a'};
+        bsl::vector<char>     data(Local::makeAuthnData());
 
         cred.setMechanism(mechanism);
         cred.setData(data);
@@ -80,7 +93,7 @@ static void test1_breathingTest()
         ASSERT(cred.data().get_allocator() == allocator);
 
         bsl::string           mechanism("BMQ", allocator);
-        bsl::vector<char>     data({'d', 'a', 't', 'a'}, allocator);
+        bsl::vector<char>     data(Local::makeAuthnData(allocator));
         bmqt::AuthnCredential cred2(mechanism, data, allocator);
 
         ASSERT(cred2.mechanism() == mechanism);
