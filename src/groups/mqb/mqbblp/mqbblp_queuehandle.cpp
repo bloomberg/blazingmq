@@ -114,13 +114,13 @@ void onHandleDeconfigured(const bmqp_ctrlmsg::Status&,
 
 // CREATORS
 QueueHandle::Subscription::Subscription(
-    unsigned int                       subId,
+    unsigned int                       downstreamSubQueueId,
     const bsl::shared_ptr<Downstream>& downstream,
     unsigned int                       upstreamId)
 
 : d_unconfirmedMonitor(0, 0, 0, 0, 0, 0)  // Set later
 , d_downstream(downstream)
-, d_downstreamSubQueueId(subId)
+, d_downstreamSubQueueId(downstreamSubQueueId)
 , d_upstreamId(upstreamId)
 {
     // NOTHING
@@ -129,6 +129,11 @@ QueueHandle::Subscription::Subscription(
 const bsl::string& QueueHandle::Subscription::appId() const
 {
     return d_downstream->d_appId;
+}
+
+const QueueHandle::StatsSp& QueueHandle::Subscription::stats() const
+{
+    return d_downstream->d_stats_sp;
 }
 
 // ----------------------------------
@@ -201,6 +206,11 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
     const bsl::shared_ptr<Downstream>& subStream = downstream(
         downstreamSubQueueId);
     unsigned int upstreamSubQueueId = subStream->d_upstreamSubQueueId;
+
+    // Update client stats
+    subStream->d_stats_sp->onEvent(
+        mqbstat::QueueStatsClient::EventType::e_CONFIRM,
+        1);
 
     // If we previously hit the maxUnconfirmed and are now back to below the
     // lowWatermark for BOTH messages and bytes, then we will schedule a
@@ -531,7 +541,7 @@ void QueueHandle::deliverMessageImpl(
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
 {
     // executed by the *QUEUE_DISPATCHER* thread
@@ -541,8 +551,8 @@ void QueueHandle::deliverMessageImpl(
         d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
-    BSLS_ASSERT_SAFE(subQueueInfos.size() >= 1 &&
-                     subQueueInfos.size() <= d_subscriptions.size());
+    BSLS_ASSERT_SAFE(subscriptions.size() >= 1 &&
+                     subscriptions.size() <= d_subscriptions.size());
 
     d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUSH>(
         attributes.appDataLen());
@@ -559,7 +569,7 @@ void QueueHandle::deliverMessageImpl(
         .setMessagePropertiesInfo(d_queue_sp->schemaLearner().demultiplex(
             d_schemaLearnerPushContext,
             attributes.messagePropertiesInfo()))
-        .setSubQueueInfos(subQueueInfos)
+        .setSubQueueInfos(subscriptions)
         .setMsgGroupId(msgGroupId)
         .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
         .setOutOfOrderPush(isOutOfOrder);
@@ -591,6 +601,7 @@ QueueHandle::QueueHandle(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
 , d_schemaLearnerPushContext(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
+, d_producerStats()
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -626,9 +637,10 @@ QueueHandle::~QueueHandle()
     // QueueHandle.
 }
 
-void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
-                                    unsigned int upstreamSubQueueId,
-                                    const mqbi::QueueCounts& counts)
+mqbi::QueueHandle::SubStreams::const_iterator
+QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
+                               unsigned int             upstreamSubQueueId,
+                               const mqbi::QueueCounts& counts)
 {
     // executed by the *QUEUE_DISPATCHER* thread
 
@@ -649,21 +661,44 @@ void QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
         // Update the 'upstreamSubQueueId'.  The previously registered stream
         // could be a producer and the new one - consumer with a new id.
         downstream(stream.subId())->d_upstreamSubQueueId = upstreamSubQueueId;
-        return;  // RETURN
     }
-    // Allocate spot
+    else {
+        BSLS_ASSERT_SAFE(!validateDownstreamId(stream.subId()));
 
-    BSLS_ASSERT_SAFE(!validateDownstreamId(stream.subId()));
+        StatsSp stats;
 
-    makeSubStream(stream.appId(), stream.subId(), upstreamSubQueueId);
+        if (d_clientContext_sp->statContext()) {
+            stats.createInplace(d_allocator_p);
 
-    BALL_LOG_INFO << "QueueHandle [" << this << "] registering subQueue ["
-                  << stream << "] with upstreamSubQueueId ["
-                  << upstreamSubQueueId << "]";
+            stats->initialize(queue()->uri(),
+                              d_clientContext_sp->statContext().get(),
+                              d_allocator_p);
 
-    d_subStreamInfos.emplace(
-        stream.appId(),
-        StreamInfo(counts, stream.subId(), upstreamSubQueueId, d_allocator_p));
+            if (upstreamSubQueueId == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+                // cache producer stats to avoid lookup
+                d_producerStats = stats;
+            }
+        }
+        makeSubStream(stream.appId(),
+                      stream.subId(),
+                      upstreamSubQueueId,
+                      stats);
+
+        BALL_LOG_INFO << "QueueHandle [" << this << "] registering subQueue ["
+                      << stream << "] with upstreamSubQueueId ["
+                      << upstreamSubQueueId << "]";
+
+        infoIter = d_subStreamInfos
+                       .emplace(stream.appId(),
+                                StreamInfo(counts,
+                                           stream.subId(),
+                                           upstreamSubQueueId,
+                                           d_allocator_p))
+                       .first;
+        infoIter->second.d_clientStats_sp = stats;
+    }
+
+    return infoIter;
 }
 
 void QueueHandle::registerSubscription(unsigned int downstreamSubId,
@@ -788,6 +823,11 @@ bool QueueHandle::unregisterSubStream(
         }
         d_downstreams[downstreamSubQueueId].reset();
         d_subStreamInfos.erase(infoIter);
+
+        if (subStreamInfo.subId() == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+            d_producerStats.reset();
+        }
+
         return true;  // RETURN
     }
     return false;

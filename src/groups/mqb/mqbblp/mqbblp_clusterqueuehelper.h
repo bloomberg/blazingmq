@@ -616,7 +616,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Custom deleter of the openQueue confirmationCookie (in the specified
     /// `value`), for an open queue from the specified `request`.
     void onOpenQueueConfirmationCookieReleased(
-        mqbi::QueueHandle**                        value,
+        mqbi::OpenQueueContext*                    value,
         const bmqp_ctrlmsg::QueueHandleParameters& handleParameters);
 
     /// Final part of the open queue pipeline for the specified `context`:
@@ -668,7 +668,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                      mqbi::Domain*                       domain,
                      const bmqp_ctrlmsg::ControlMessage& request,
                      mqbc::ClusterNodeSession*           requester,
-                     const int                           peerInstanceId);
+                     int                                 peerInstanceId);
 
     /// Callback invoked in response to an open domain query (in the
     /// specified `request`) made to the domain factory on behalf of the
@@ -684,11 +684,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                const int peerInstanceId);
 
     void onGetQueueHandle(
-        const bmqp_ctrlmsg::Status&                      status,
-        mqbi::QueueHandle*                               queueHandle,
-        const OpenQueueContextSp&                        context,
-        const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-        const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie);
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const OpenQueueContextSp&                  context,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie);
 
     /// Callback invoked in response to an open queue request to the domain
     /// (in the specified `request`).  If the specified `status` is SUCCESS,
@@ -700,13 +700,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// `status` contains the category, error code and description of the
     /// failure.  The `queueHandle` must be released once no longer needed.
     void onGetQueueHandleDispatched(
-        const bmqp_ctrlmsg::Status&                      status,
-        mqbi::QueueHandle*                               queueHandle,
-        const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-        const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
-        const bmqp_ctrlmsg::ControlMessage&              request,
-        mqbc::ClusterNodeSession*                        requester,
-        const int                                        peerInstanceId);
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+        const bmqp_ctrlmsg::ControlMessage&        request,
+        mqbc::ClusterNodeSession*                  requester,
+        const int                                  peerInstanceId);
 
     void reconfigureCallback(
         const bmqp_ctrlmsg::Status&           status,
@@ -874,11 +874,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                           const bmqp_ctrlmsg::Status& status);
 
     void finishOpening(
-        const OpenQueueContextSp&                         openQueueContext_sp,
-        const bmqp_ctrlmsg::Status&                       status,
-        mqbi::QueueHandle*                                queueHandle,
-        const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-        const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie);
+        const OpenQueueContextSp&                  openQueueContext_sp,
+        const bmqp_ctrlmsg::Status&                status,
+        mqbi::QueueHandle*                         queueHandle,
+        const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterMembershipObserver)

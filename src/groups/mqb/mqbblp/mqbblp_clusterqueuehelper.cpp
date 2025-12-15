@@ -212,11 +212,11 @@ ClusterQueueHelper::OpenQueueContext::OpenQueueContext(
 }
 
 void ClusterQueueHelper::finishOpening(
-    const OpenQueueContextSp&                         openQueueContext_sp,
-    const bmqp_ctrlmsg::Status&                       status,
-    mqbi::QueueHandle*                                queueHandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-    const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie)
+    const OpenQueueContextSp&                  openQueueContext_sp,
+    const bmqp_ctrlmsg::Status&                status,
+    mqbi::QueueHandle*                         queueHandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -251,7 +251,7 @@ void ClusterQueueHelper::finishAllOpening(const QueueContextSp& queueContext,
                       status,
                       0,
                       bmqp_ctrlmsg::OpenQueueResponse(),
-                      mqbi::Cluster::OpenQueueConfirmationCookie());
+                      mqbi::OpenQueueConfirmationCookieSp());
     }
 }
 
@@ -1136,7 +1136,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
                       failure,
                       0,
                       bmqp_ctrlmsg::OpenQueueResponse(),
-                      mqbi::Cluster::OpenQueueConfirmationCookie());
+                      mqbi::OpenQueueConfirmationCookieSp());
 
         return;  // RETURN
     }
@@ -1377,7 +1377,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
                       status,
                       0,
                       bmqp_ctrlmsg::OpenQueueResponse(),
-                      mqbi::Cluster::OpenQueueConfirmationCookie());
+                      mqbi::OpenQueueConfirmationCookieSp());
 
         return;  // RETURN
     }
@@ -1492,7 +1492,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
                       requestContext->response().choice().status(),
                       0,
                       bmqp_ctrlmsg::OpenQueueResponse(),
-                      mqbi::Cluster::OpenQueueConfirmationCookie());
+                      mqbi::OpenQueueConfirmationCookieSp());
 
         // No need to reopen.
         return;  // RETURN
@@ -1534,7 +1534,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
                       requestContext->response().choice().status(),
                       0,
                       bmqp_ctrlmsg::OpenQueueResponse(),
-                      mqbi::Cluster::OpenQueueConfirmationCookie());
+                      mqbi::OpenQueueConfirmationCookieSp());
     }
 }
 
@@ -2096,13 +2096,13 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
 }
 
 void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
-    mqbi::QueueHandle**                        value,
+    mqbi::OpenQueueContext*                    value,
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
 {
     // TBD: NOT REVIEWED
     // executed by *ANY* thread
 
-    mqbi::QueueHandle* handle = *value;
+    mqbi::QueueHandle* handle = value->d_handle;
     d_allocator_p->deleteObject(value);
 
     if (!handle) {
@@ -2196,8 +2196,8 @@ bool ClusterQueueHelper::createQueue(
             << ", context.d_handleParameters: " << context->d_handleParameters
             << "]";
 
-        mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
-            new (*d_allocator_p) mqbi::QueueHandle * (0),
+        mqbi::OpenQueueConfirmationCookieSp confirmationCookie(
+            new (*d_allocator_p) mqbi::OpenQueueContext(),
             bdlf::BindUtil::bindS(
                 d_allocator_p,
                 &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
@@ -2236,6 +2236,7 @@ bool ClusterQueueHelper::createQueue(
                 bmqp::QueueUtil::extractSubQueueId(parameters);
 
             queue->getHandle(
+                confirmationCookie,
                 context->d_clientContext,
                 context->d_handleParameters,
                 upstreamSubQueueId,
@@ -2266,7 +2267,7 @@ bool ClusterQueueHelper::createQueue(
                      0,
                      context,
                      openQueueResponse,
-                     mqbi::Cluster::OpenQueueConfirmationCookie());
+                     mqbi::OpenQueueConfirmationCookieSp());
 
     if (isPrimary) {
         // No further cleanup required.
@@ -2775,11 +2776,11 @@ void ClusterQueueHelper::onGetDomainDispatched(
 }
 
 void ClusterQueueHelper::onGetQueueHandle(
-    const bmqp_ctrlmsg::Status&                      status,
-    mqbi::QueueHandle*                               queueHandle,
-    const OpenQueueContextSp&                        context,
-    const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-    const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie)
+    const bmqp_ctrlmsg::Status&                status,
+    mqbi::QueueHandle*                         queueHandle,
+    const OpenQueueContextSp&                  context,
+    const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie)
 {
     // executed by *ANY* thread
 
@@ -2794,7 +2795,7 @@ void ClusterQueueHelper::onGetQueueHandle(
     // 'requester'.
 
     if (confirmationCookie) {
-        *confirmationCookie = queueHandle;
+        confirmationCookie->d_handle = queueHandle;
     }
 
     d_cluster_p->dispatcher()->execute(
@@ -2810,13 +2811,13 @@ void ClusterQueueHelper::onGetQueueHandle(
 }
 
 void ClusterQueueHelper::onGetQueueHandleDispatched(
-    const bmqp_ctrlmsg::Status&                      status,
-    mqbi::QueueHandle*                               queueHandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-    const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
-    const bmqp_ctrlmsg::ControlMessage&              request,
-    mqbc::ClusterNodeSession*                        requester,
-    const int                                        peerInstanceId)
+    const bmqp_ctrlmsg::Status&                status,
+    mqbi::QueueHandle*                         queueHandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&     openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
+    const bmqp_ctrlmsg::ControlMessage&        request,
+    mqbc::ClusterNodeSession*                  requester,
+    const int                                  peerInstanceId)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2873,12 +2874,14 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     BSLS_ASSERT_SAFE(queueHandle);
     BSLS_ASSERT_SAFE(confirmationCookie);  // in case of success, the cookie
                                            // must be a valid shared_ptr
+    BSLS_ASSERT_SAFE(confirmationCookie->d_handle);
 
     // Update the cookie to point to a null queue handle, which indicates that
     // 'requester' has successfully received and processed the open-queue
     // response.
 
-    *confirmationCookie = 0;  // Indicate proper response of the queueHandle
+    confirmationCookie->d_handle = 0;
+    // Indicate proper response of the queueHandle
 
     const bmqp_ctrlmsg::OpenQueue& openQueue = request.choice().openQueue();
     const bmqp_ctrlmsg::QueueHandleParameters& handleParams =
@@ -2903,10 +2906,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         if (subQueueIter == iter->second.d_subQueueInfosMap.end()) {
             // New subStream for this queueHandle
             mqbc::ClusterNodeSession::SubQueueInfo subQueueInfo;
-            subQueueInfo.d_clientStats->initialize(
-                queueHandle->queue()->uri(),
-                requester->statContext().get(),
-                d_allocator_p);
+            subQueueInfo.d_clientStats_sp = confirmationCookie->d_stats_sp;
 
             iter->second.d_subQueueInfosMap.insert(handleParams, subQueueInfo);
         }
@@ -2923,9 +2923,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         queueContext.d_handle_p = queueHandle;
 
         CNSSubQueueInfo subQueueInfo;
-        subQueueInfo.d_clientStats->initialize(queueHandle->queue()->uri(),
-                                               requester->statContext().get(),
-                                               d_allocator_p);
+        subQueueInfo.d_clientStats_sp = confirmationCookie->d_stats_sp;
 
         queueContext.d_subQueueInfosMap.insert(handleParams, subQueueInfo);
 
@@ -4844,10 +4842,8 @@ void ClusterQueueHelper::openQueue(
         failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;         \
         failure.code()     = CODE;                                            \
         failure.message()  = REASON;                                          \
-        callback(failure,                                                     \
-                 0,                                                           \
-                 bmqp_ctrlmsg::OpenQueueResponse(),                           \
-                 mqbi::Cluster::OpenQueueConfirmationCookie());               \
+        mqbi::OpenQueueConfirmationCookieSp temp;                             \
+        callback(failure, 0, bmqp_ctrlmsg::OpenQueueResponse(), temp);        \
     } while (0)
 
     if (d_cluster_p->isStopping()) {
