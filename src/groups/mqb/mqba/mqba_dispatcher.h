@@ -540,9 +540,9 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                           mqbi::DispatcherClient*                destination)
 {
     BALL_LOG_TRACE << "Enqueuing Event to '" << destination->description()
-                   << "': " << *event;
+                   << "': " << *bslmf::MovableRefUtil::access(event);
 
-    event->setDestination(destination);
+    bslmf::MovableRefUtil::access(event)->setDestination(destination);
 
     dispatchEvent(bslmf::MovableRefUtil::move(event),
                   destination->dispatcherClientData().clientType(),
@@ -558,7 +558,7 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     BSLS_ASSERT_SAFE(handle != mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
 
     BALL_LOG_TRACE << "Enqueuing Event to processor " << handle << " of "
-                   << type << ": " << *event;
+                   << type << ": " << *bslmf::MovableRefUtil::access(event);
 
     switch (type) {
     case mqbi::DispatcherClientType::e_SESSION:

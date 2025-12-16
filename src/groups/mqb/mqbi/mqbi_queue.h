@@ -1102,23 +1102,22 @@ inline const char* InlineResult::toAscii(InlineResult::Enum value)
 
 inline bool InlineResult::isPermanentError(InlineResult::Enum value)
 {
-    return (value == InlineResult::Enum::e_INVALID_PARTITION ||
-            value == InlineResult::Enum::e_SELF_PRIMARY);
+    return (value == InlineResult::e_INVALID_PARTITION ||
+            value == InlineResult::e_SELF_PRIMARY);
 }
 
 inline bmqt::AckResult::Enum
 InlineResult::toAckResult(InlineResult::Enum value)
 {
     switch (value) {
-    case InlineResult::Enum::e_SUCCESS:
-        return bmqt::AckResult::e_SUCCESS;
-    case InlineResult::Enum::e_INVALID_PARTITION:
-    case InlineResult::Enum::e_INVALID_GEN_COUNT:
+    case InlineResult::e_SUCCESS: return bmqt::AckResult::e_SUCCESS;
+    case InlineResult::e_INVALID_PARTITION:
+    case InlineResult::e_INVALID_GEN_COUNT:
         return bmqt::AckResult::e_INVALID_ARGUMENT;
-    case InlineResult::Enum::e_UNAVAILABLE:
-    case InlineResult::Enum::e_INVALID_PRIMARY:
-    case InlineResult::Enum::e_CHANNEL_ERROR:
-    case InlineResult::Enum::e_SELF_PRIMARY:
+    case InlineResult::e_UNAVAILABLE:
+    case InlineResult::e_INVALID_PRIMARY:
+    case InlineResult::e_CHANNEL_ERROR:
+    case InlineResult::e_SELF_PRIMARY:
     default:
         return bmqt::AckResult::e_UNKNOWN;
     }
