@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mqbc_storagemanager.cpp                                            -*-C++-*-
-#include "mqbc_partitionstatetable.h"
 #include <ball_log.h>
 #include <bsls_assert.h>
 #include <mqbc_storagemanager.h>
@@ -413,6 +412,13 @@ void StorageManager::setPrimaryForPartitionDispatched(
     pinfo.setPrimaryLeaseId(primaryLeaseId);
     pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
 
+    if (!d_isQueueKeyInfoMapVecInitialized) {
+        // We must wait until queue key info map is initialized before
+        // processing primary detection in the Partition FSM.
+
+        return;  // RETURN
+    }
+
     if (primaryNode->nodeId() ==
         d_clusterData_p->membership().selfNode()->nodeId()) {
         processPrimaryDetect(partitionId, primaryNode, primaryLeaseId);
@@ -480,6 +486,12 @@ void StorageManager::processPrimaryDetect(int                  partitionId,
         return;  // RETURN
     }
 
+    // The fact that we are processing primary detection retraoactively implies
+    // that queue key info map must have been initialized.  We cannot set this
+    // flag earlier, or else there could be race condition.  See explanation in
+    // `initializeQueueKeyInfoMap`.
+    d_isQueueKeyInfoMapVecInitialized = true;
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition to Primary in the Partition FSM.";
@@ -516,6 +528,12 @@ void StorageManager::processReplicaDetect(int                  partitionId,
                       << "Replica to the Partition FSM.";
         return;  // RETURN
     }
+
+    // The fact that we are processing primary detection retraoactively implies
+    // that queue key info map must have been initialized.  We cannot set this
+    // flag earlier, or else there could be race condition. See explanation in
+    // `initializeQueueKeyInfoMap`.
+    d_isQueueKeyInfoMapVecInitialized = true;
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -1734,16 +1752,12 @@ void StorageManager::do_logFailurePrimaryStateResponse(
 
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_partitionInfoVec[partitionId].primary() == sourceNode);
 
-    const mqbnet::ClusterNode* currentPrimary =
-        d_partitionInfoVec[partitionId].primary();
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Received failure PrimaryStateResponse from node "
-                  << sourceNode->nodeDescription() << ", current primary is: "
-                  << (currentPrimary ? currentPrimary->nodeDescription()
-                                     : "** null **")
-                  << ".";
+                  << sourceNode->nodeDescription() << ".";
 }
 
 void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
@@ -3932,13 +3946,7 @@ void StorageManager::initializeQueueKeyInfoMap(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     if (d_isQueueKeyInfoMapVecInitialized) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Queue key info map should only be initialized "
-                      << "once, but the initalization method is called more "
-                      << "than once.  This can happen if the node goes "
-                      << "back-and-forth between healing and healed FSM "
-                      << "states.  Please check.";
-
+        // Queue key info map should only be initialized once at startup.
         return;  // RETURN
     }
 
@@ -3971,7 +3979,37 @@ void StorageManager::initializeQueueKeyInfoMap(
         }
     }
 
-    d_isQueueKeyInfoMapVecInitialized = true;
+    for (PartitionsInfoCIter cit = clusterState.partitions().cbegin();
+         cit != clusterState.partitions().cend();
+         ++cit) {
+        const int pid = cit->partitionId();
+
+        mqbs::FileStore* fs = d_fileStores.at(pid).get();
+        BSLS_ASSERT_SAFE(fs);
+        if (clusterState.isSelfPrimary(pid)) {
+            fs->execute(
+                bdlf::BindUtil::bind(&StorageManager::processPrimaryDetect,
+                                     this,
+                                     pid,
+                                     cit->primaryNode(),
+                                     cit->primaryLeaseId()));
+        }
+        else {
+            fs->execute(
+                bdlf::BindUtil::bind(&StorageManager::processReplicaDetect,
+                                     this,
+                                     pid,
+                                     cit->primaryNode(),
+                                     cit->primaryLeaseId()));
+        }
+    }
+
+    // `setPrimaryForPartitionDispatched`, which runs on partition threads,
+    // checks this flag to determine whether to process primary/replica detect.
+    // Setting `d_isQueueKeyInfoMapVecInitialized` to true here in the cluster
+    // dispatcher thread might cause a race condition where primary/replica
+    // detect will be processed twice.  Instead, we set this flag to true
+    // inside the process primary/replica detect methods.
 }
 
 void StorageManager::registerQueue(const bmqt::Uri&        uri,
