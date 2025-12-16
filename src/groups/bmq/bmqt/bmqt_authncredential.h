@@ -40,30 +40,25 @@ class AuthnCredential {
     bsl::string       d_mechanism;  // authentication mechanism
     bsl::vector<char> d_data;       // authentication data
 
-  private:
-    // NOT IMPLEMENTED (delete non-allocator creators)
-    AuthnCredential(const AuthnCredential&) BSLS_KEYWORD_DELETED;
-    AuthnCredential(AuthnCredential&&) BSLS_KEYWORD_DELETED;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(AuthnCredential, bslma::UsesBslmaAllocator)
 
     // CREATORS
-    AuthnCredential(bslma::Allocator* allocator = 0);
+    explicit AuthnCredential(bslma::Allocator* allocator = 0);
 
-    AuthnCredential(const AuthnCredential& other,
-                    bslma::Allocator*      allocator = 0);
+    explicit AuthnCredential(const AuthnCredential& other,
+                             bslma::Allocator*      allocator = 0);
 
-    AuthnCredential(bslmf::MovableRef<AuthnCredential> other,
-                    bslma::Allocator*                  allocator = 0);
+    explicit AuthnCredential(bslmf::MovableRef<AuthnCredential> other,
+                             bslma::Allocator*                  allocator = 0);
 
     /// Create an `AuthnCredential` object with the specified `mechanism`
     /// and `data`, using the specified `allocator` to supply memory.  If
     /// `allocator` is 0, the currently installed default allocator is used.
-    AuthnCredential(const bsl::string&       mechanism,
-                    const bsl::vector<char>& data,
-                    bslma::Allocator*        allocator = 0);
+    explicit AuthnCredential(const bsl::string&       mechanism,
+                             const bsl::vector<char>& data,
+                             bslma::Allocator*        allocator = 0);
 
     ~AuthnCredential();
 

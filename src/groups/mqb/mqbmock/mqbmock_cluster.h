@@ -147,6 +147,15 @@ class Cluster : public mqbi::Cluster {
     typedef TestChannelMap::iterator       TestChannelMapIter;
     typedef TestChannelMap::const_iterator TestChannelMapCIter;
 
+    typedef bsl::function<mqbi::InlineResult::Enum(
+        int                                       partitionId,
+        const bmqp::PutHeader&                    putHeader,
+        const bsl::shared_ptr<bdlbb::Blob>&       appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        const bsl::shared_ptr<bmqu::AtomicState>& state,
+        bsls::Types::Uint64                       genCount)>
+        PutFunctor;
+
   public:
     // CONSTANTS
 
@@ -231,6 +240,8 @@ class Cluster : public mqbi::Cluster {
 
     EventProcessor d_processor;
 
+    PutFunctor d_putFunctor;
+
     mqbi::ClusterResources d_resources;
 
   private:
@@ -293,6 +304,7 @@ class Cluster : public mqbi::Cluster {
     mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE;
 
     void _setEventProcessor(const EventProcessor& processor);
+    void _setPutFunctor(const PutFunctor& f);
 
     /// Return a reference to the dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE;
@@ -413,6 +425,18 @@ class Cluster : public mqbi::Cluster {
     void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,
                                  const bsl::string&     domainName)
         BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum sendConfirmInline(
+        int                         partitionId,
+        const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
+                  bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (specific to mqbmock::Cluster)
@@ -581,6 +605,11 @@ inline void Cluster::processResponse(
 inline void Cluster::_setEventProcessor(const EventProcessor& processor)
 {
     d_processor = processor;
+}
+
+inline void Cluster::_setPutFunctor(const PutFunctor& f)
+{
+    d_putFunctor = f;
 }
 
 inline Cluster::BlobSpPool* Cluster::_blobSpPool()

@@ -538,18 +538,10 @@ void RelayQueueEngine::onHandleReleasedDispatched(
 
         app->invalidate(handle);
 
-        // This is in continuation of the special-case handling above.  If the
-        // client is attempting to release the consumer portion of an *active*
-        // (highest priority) consumer handle without having first configured
-        // it to have null streamParameters (i.e. invalid consumerPriority).
-        // Then, we need to rebuild the highest priority state so as to "mimic"
-        // the effects of a configureQueue with null streamParameters.  Note
-        // that this may affect the 'd_queueState_p->streamParameters()'.
-
         if (app->transferUnconfirmedMessages(handle, info)) {
             processAppRedelivery(upstreamSubQueueId, app);
         }
-        else {
+        if (streamResult.hasNoQueueStreamConsumers()) {
             // We lost the last reader.
             //
             // Messages to be delivered downstream need to be cleared from
@@ -557,6 +549,11 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             // readers), because those messages may be re-routed by the primary
             // to another client.  Also get rid of any pending and
             // to-be-redelivered messages.
+
+            BMQ_LOGTHROTTLE_INFO << "Queue [" << d_queueState_p->uri()
+                                 << "], lost the last reader for the App: ["
+                                 << info.appId() << "]";
+
             beforeOneAppRemoved(upstreamSubQueueId);
             d_pushStream.removeApp(upstreamSubQueueId);
             app->clear();
@@ -1012,6 +1009,7 @@ int RelayQueueEngine::rebuildInternalState(
 }
 
 mqbi::QueueHandle* RelayQueueEngine::getHandle(
+    const mqbi::OpenQueueConfirmationCookieSp&                context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -1064,7 +1062,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         // Already aware of this queueId from this client.
         if (QueueEngineUtil::validateUri(handleParameters,
                                          queueHandle,
-                                         *clientContext) != 0) {
+                                         clientContext.get()) != 0) {
             CALLBACK(bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
                      -1,
                      "Queue URI mismatch for same queueId.",
@@ -1161,11 +1159,16 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         }
     }
 
-    queueHandle->registerSubStream(
-        downstreamInfo,
-        upstreamSubQueueId,
-        mqbi::QueueCounts(handleParameters.readCount(),
-                          handleParameters.writeCount()));
+    {
+        mqbi::QueueHandle::SubStreams::const_iterator citSubStream =
+            queueHandle->registerSubStream(
+                downstreamInfo,
+                upstreamSubQueueId,
+                mqbi::QueueCounts(handleParameters.readCount(),
+                                  handleParameters.writeCount()));
+
+        context->d_stats_sp = citSubStream->second.d_clientStats_sp;
+    }
 
     // If a new reader/write, insert its (default-valued) stream parameters
     // into our map of consumer stream parameters advertised upstream.
@@ -1180,6 +1183,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
             &insertResult.first->second.d_handleParameters,
             handleParameters);
     }
+
     // Inform the requester of the success
     CALLBACK(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "", queueHandle);
 
