@@ -83,7 +83,7 @@ Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
 void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                                mqbi::DispatcherClient* destination)
 {
-    destination->onDispatcherEvent(*event);
+    destination->onDispatcherEvent(*bslmf::MovableRefUtil::access(event));
 }
 
 void Dispatcher::dispatchEvent(
