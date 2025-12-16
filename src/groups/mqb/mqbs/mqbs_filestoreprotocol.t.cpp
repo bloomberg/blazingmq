@@ -465,23 +465,23 @@ static void test1_breathingTest()
     }
 
     {
-        PV("JournalOpRecord of UpdateStorageSize type");
+        PV("JournalOpRecord of ResizeStorage type");
 
-        // Create JournalOpRecord of UPDATE_STORAGE_SIZE type, set fields,
+        // Create JournalOpRecord of RESIZE_STORAGE type, set fields,
         // assert fields
         JournalOpRecord fh;
         fh.setFlags(1000)
-            .setType(JournalOpType::e_UPDATE_STORAGE_SIZE)
+            .setType(JournalOpType::e_RESIZE_STORAGE)
             .setMagic(0xdeadbeef);
 
-        JournalOpRecord::UpdateStorageSizeData& ussd =
-            fh.updateStorageSizeData();
+        JournalOpRecord::resizeStorageData& ussd =
+            fh.resizeStorageData();
         ussd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);
 
         BMQTST_ASSERT_EQ(fh.flags(), 1000U);
-        BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_UPDATE_STORAGE_SIZE);
+        BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_RESIZE_STORAGE);
         BMQTST_ASSERT_EQ(ussd.maxJournalFileSize(), 0x12345678);
         BMQTST_ASSERT_EQ(ussd.maxDataFileSize(), 0x87654321);
         BMQTST_ASSERT_EQ(ussd.maxQlistFileSize(), 0x12348765);
@@ -799,14 +799,14 @@ static void test3_printTest()
         BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
     {
-        PV("JournalOpRecord of UpdateStorageSize type");
+        PV("JournalOpRecord of resizeStorage type");
         rh.setType(RecordType::e_JOURNAL_OP);
         mqbs::JournalOpRecord jOpRec;
         jOpRec.header() = rh;
-        jOpRec.setFlags(0).setType(JournalOpType::e_UPDATE_STORAGE_SIZE);
+        jOpRec.setFlags(0).setType(JournalOpType::e_RESIZE_STORAGE);
 
-        JournalOpRecord::UpdateStorageSizeData& ussd =
-            jOpRec.updateStorageSizeData();
+        JournalOpRecord::resizeStorageData& ussd =
+            jOpRec.resizeStorageData();
         ussd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);
@@ -814,7 +814,7 @@ static void test3_printTest()
         const char* const expectedOut =
             "[ header = [ type = JOURNAL_OP flags = 0 primaryLeaseId = 8 "
             "sequenceNumber = 33 timestamp = 123456 ] flags = 0 type = "
-            "UPDATE_STORAGE_SIZE maxJournalFileSize = 305419896 "
+            "RESIZE_STORAGE maxJournalFileSize = 305419896 "
             "maxDataFileSize = 2271560481 maxQlistFileSize = 305432421 ]";
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());

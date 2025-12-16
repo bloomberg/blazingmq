@@ -428,7 +428,7 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
         fields.push_back("PrimaryNodeId");
         fields.push_back("DataFileOffsetDwords");
     }
-    else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == rec.type()) {
+    else if (mqbs::JournalOpType::e_RESIZE_STORAGE == rec.type()) {
         fields.push_back("MaxJournalFileSize");
         fields.push_back("MaxDataFileSize");
         fields.push_back("MaxQlistFileSize");
@@ -453,11 +453,11 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
                 << spd.sequenceNum() << spd.primaryNodeId()
                 << spd.dataFileOffsetDwords();
     }
-    else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE == rec.type()) {
-        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd =
-            rec.updateStorageSizeData();
-        printer << ussd.maxJournalFileSize() << ussd.maxDataFileSize()
-                << ussd.maxQlistFileSize();
+    else if (mqbs::JournalOpType::e_RESIZE_STORAGE == rec.type()) {
+        const mqbs::JournalOpRecord::ResizeStorageData& rsd =
+            rec.resizeStorageData();
+        printer << rsd.maxJournalFileSize() << rsd.maxDataFileSize()
+                << rsd.maxQlistFileSize();
     }
 
     stream << "\n";

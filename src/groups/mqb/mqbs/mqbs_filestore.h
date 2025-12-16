@@ -717,7 +717,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `minFileSize` and `fileSizeGrowLimit`.
     /// Return the adjusted file size and set `availableSpacePercent` 
     /// if rollover policy is satisfied. Return zero value otherwise.
-    bsls::Types::Uint64 adjustPartitionFileSize(bsls::Types::Uint64* availableSpacePercent,
+    bsls::Types::Uint64 adjustPartitionFileSize(unsigned int* availableSpacePercent,
                                 bsls::Types::Uint64 outstandingBytes,
                                 bsls::Types::Uint64 minFileSize,
                                 bsls::Types::Uint64 fileSizeGrowLimit);

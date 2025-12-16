@@ -282,15 +282,15 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
                       << spd.primaryLeaseId() << spd.sequenceNum()
                       << spd.primaryNodeId() << spd.dataFileOffsetDwords();
     }
-    else if (mqbs::JournalOpType::e_UPDATE_STORAGE_SIZE ==
+    else if (mqbs::JournalOpType::e_RESIZE_STORAGE ==
              rec.d_record.type()) {
         d_fields.push_back("MaxJournalFileSize");
         d_fields.push_back("MaxDataFileSize");
         d_fields.push_back("MaxQlistFileSize");
-        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd =
-            rec.d_record.updateStorageSizeData();
-        *d_printer_mp << ussd.maxJournalFileSize() << ussd.maxDataFileSize()
-                      << ussd.maxQlistFileSize();
+        const mqbs::JournalOpRecord::ResizeStorageData& rsd =
+            rec.d_record.resizeStorageData();
+        *d_printer_mp << rsd.maxJournalFileSize() << rsd.maxDataFileSize()
+                      << rsd.maxQlistFileSize();
     }
 }
 

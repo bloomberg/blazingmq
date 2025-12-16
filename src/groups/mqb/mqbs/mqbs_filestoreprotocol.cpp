@@ -641,7 +641,7 @@ const char* JournalOpType::toAscii(JournalOpType::Enum value)
         CASE(UNDEFINED)
         CASE(UNUSED)
         CASE(SYNCPOINT)
-        CASE(UPDATE_STORAGE_SIZE)
+        CASE(RESIZE_STORAGE)
     default: return "(* UNKNOWN *)";
     }
 
@@ -711,13 +711,13 @@ bsl::ostream& JournalOpRecord::print(bsl::ostream& stream,
         printer.printAttribute("qlistFileOffsetWords",
                                syncPoint.qlistFileOffsetWords());
     }
-    else if (JournalOpType::e_UPDATE_STORAGE_SIZE == type()) {
-        const mqbs::JournalOpRecord::UpdateStorageSizeData& ussd =
-            updateStorageSizeData();
+    else if (JournalOpType::e_RESIZE_STORAGE == type()) {
+        const mqbs::JournalOpRecord::ResizeStorageData& rsd =
+            resizeStorageData();
         printer.printAttribute("maxJournalFileSize",
-                               ussd.maxJournalFileSize());
-        printer.printAttribute("maxDataFileSize", ussd.maxDataFileSize());
-        printer.printAttribute("maxQlistFileSize", ussd.maxQlistFileSize());
+                               rsd.maxJournalFileSize());
+        printer.printAttribute("maxDataFileSize", rsd.maxDataFileSize());
+        printer.printAttribute("maxQlistFileSize", rsd.maxQlistFileSize());
     }
 
     printer.end();
