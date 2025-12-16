@@ -91,7 +91,7 @@ void printDataFileMeta(bsl::ostream&                 ostream,
 {
     BSLS_ASSERT_SAFE(dataFile_p && dataFile_p->isValid());
 
-    const bsl::vector<const char*> fields = {"BlazingMQ File Header",
+    const bsl::vector<bsl::string> fields = {"BlazingMQ File Header",
                                              "Data File Header"};
 
     PRINTER_TYPE1 printer(ostream, &fields);
@@ -121,7 +121,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
 {
     BSLS_ASSERT_SAFE(journalFile_p && journalFile_p->isValid());
 
-    const bsl::vector<const char*> fields = {"BlazingMQ File Header",
+    const bsl::vector<bsl::string> fields = {"BlazingMQ File Header",
                                              "Journal File Header",
                                              "Journal SyncPoint"};
 
@@ -150,20 +150,20 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
         s << '\n';
         {
             // Print journal-specific fields
-            bsl::vector<const char*> fieldsSyncPoint(allocator);
+            bsl::vector<bsl::string> fieldsSyncPoint(allocator);
             fieldsSyncPoint.reserve(12);
-            fieldsSyncPoint.push_back("Last Valid Record Offset");
-            fieldsSyncPoint.push_back("Record Type");
-            fieldsSyncPoint.push_back("Record Timestamp");
-            fieldsSyncPoint.push_back("Record Epoch");
-            fieldsSyncPoint.push_back("Last Valid SyncPoint Offset");
-            fieldsSyncPoint.push_back("SyncPoint Timestamp");
-            fieldsSyncPoint.push_back("SyncPoint Epoch");
-            fieldsSyncPoint.push_back("SyncPoint SeqNum");
-            fieldsSyncPoint.push_back("SyncPoint Primary NodeId");
-            fieldsSyncPoint.push_back("SyncPoint Primary LeaseId");
-            fieldsSyncPoint.push_back("SyncPoint DataFileOffset (DWORDS)");
-            fieldsSyncPoint.push_back("SyncPoint QlistFileOffset (WORDS)");
+            fieldsSyncPoint.emplace_back("Last Valid Record Offset");
+            fieldsSyncPoint.emplace_back("Record Type");
+            fieldsSyncPoint.emplace_back("Record Timestamp");
+            fieldsSyncPoint.emplace_back("Record Epoch");
+            fieldsSyncPoint.emplace_back("Last Valid SyncPoint Offset");
+            fieldsSyncPoint.emplace_back("SyncPoint Timestamp");
+            fieldsSyncPoint.emplace_back("SyncPoint Epoch");
+            fieldsSyncPoint.emplace_back("SyncPoint SeqNum");
+            fieldsSyncPoint.emplace_back("SyncPoint Primary NodeId");
+            fieldsSyncPoint.emplace_back("SyncPoint Primary LeaseId");
+            fieldsSyncPoint.emplace_back("SyncPoint DataFileOffset (DWORDS)");
+            fieldsSyncPoint.emplace_back("SyncPoint QlistFileOffset (WORDS)");
 
             PRINTER_TYPE2       p(s, &fieldsSyncPoint);
             bsls::Types::Uint64 lastRecPos =
@@ -251,20 +251,20 @@ void printQueueDetails(bsl::ostream&          ostream,
         const bsl::size_t       appKeysCount = details.d_appDetailsMap.size();
 
         // Setup fields to be displayed
-        bsl::vector<const char*> fields(allocator);
+        bsl::vector<bsl::string> fields(allocator);
         fields.reserve(8);
-        fields.push_back("Queue Key");
+        fields.emplace_back("Queue Key");
         if (!details.d_queueUri.empty()) {
-            fields.push_back("Queue URI");
+            fields.emplace_back("Queue URI");
         }
-        fields.push_back("Total Records");
-        fields.push_back("Num Queue Op Records");
-        fields.push_back("Num Message Records");
-        fields.push_back("Num Confirm Records");
+        fields.emplace_back("Total Records");
+        fields.emplace_back("Num Queue Op Records");
+        fields.emplace_back("Num Message Records");
+        fields.emplace_back("Num Confirm Records");
         if (appKeysCount > 1U) {
-            fields.push_back("Num Records Per App");
+            fields.emplace_back("Num Records Per App");
         }
-        fields.push_back("Num Delete Records");
+        fields.emplace_back("Num Delete Records");
 
         {
             PRINTER_TYPE printer(ostream, &fields);
@@ -572,12 +572,12 @@ void HumanReadablePrinter::printQueueOpSummary(
         d_ostream << "\nTotal number of queueOp records: "
                   << queueOpRecordsCount << '\n';
 
-        bsl::vector<const char*> fields(d_allocator_p);
+        bsl::vector<bsl::string> fields(d_allocator_p);
         fields.reserve(4);
-        fields.push_back("Number of 'purge' operations");
-        fields.push_back("Number of 'creation' operations");
-        fields.push_back("Number of 'deletion' operations");
-        fields.push_back("Number of 'addition' operations");
+        fields.emplace_back("Number of 'purge' operations");
+        fields.emplace_back("Number of 'creation' operations");
+        fields.emplace_back("Number of 'deletion' operations");
+        fields.emplace_back("Number of 'addition' operations");
         bmqu::AlignedPrinter printer(d_ostream, &fields);
         printer << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
                 << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
@@ -887,13 +887,13 @@ void JsonPrinter::printQueueOpSummary(
 {
     BSLS_ASSERT_SAFE(queueOpCountsVec.size() > mqbs::QueueOpType::e_ADDITION);
     closeBraceIfOpen();
-    bsl::vector<const char*> fields(d_allocator_p);
+    bsl::vector<bsl::string> fields(d_allocator_p);
     fields.reserve(5);
-    fields.push_back("TotalQueueOperationsNumber");
-    fields.push_back("PurgeOperationsNumber");
-    fields.push_back("CreationOperationsNumber");
-    fields.push_back("DeletionOperationsNumber");
-    fields.push_back("AdditionOperationsNumber");
+    fields.emplace_back("TotalQueueOperationsNumber");
+    fields.emplace_back("PurgeOperationsNumber");
+    fields.emplace_back("CreationOperationsNumber");
+    fields.emplace_back("DeletionOperationsNumber");
+    fields.emplace_back("AdditionOperationsNumber");
 
     bmqu::JsonPrinter<true, false, 0, 2> printer(d_ostream, &fields);
     printer << queueOpRecordsCount
