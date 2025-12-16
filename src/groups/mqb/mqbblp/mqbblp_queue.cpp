@@ -60,12 +60,38 @@ namespace mqbblp {
 
 namespace {
 
-void onHandleDeconfigured(const bmqp_ctrlmsg::Status&,
-                          const bmqp_ctrlmsg::StreamParameters&,
-                          const bsl::function<void(void)>& cb)
+struct Counter {
+    bsls::AtomicUint d_count;
+
+    explicit Counter(unsigned count)
+    : d_count(count)
+    {
+        // NOTHING
+    }
+    unsigned decrement()
+    {
+        BSLS_ASSERT_SAFE(d_count.load());
+        return d_count.subtract(1);
+    }
+};
+
+void onHandleDeconfigured(
+    const bmqp_ctrlmsg::Status&,
+    const bmqp_ctrlmsg::StreamParameters&,
+    mqbi::Queue*                               queue,
+    mqbi::QueueHandle*                         handle,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+    const bsl::shared_ptr<Counter>&            counter)
 {
-    BSLS_ASSERT_SAFE(cb);
-    cb();
+    BSLS_ASSERT_SAFE(queue);
+    BSLS_ASSERT_SAFE(handle);
+
+    const bool isFinal = (counter->decrement() == 0);
+
+    queue->releaseHandle(handle,
+                         handleParameters,
+                         isFinal,
+                         mqbi::QueueHandle::HandleReleasedCallback());
 }
 
 }
@@ -228,8 +254,13 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
         return;  // RETURN
     }
 
+    bsl::shared_ptr<Counter> counter(
+        new (*d_allocator_p) Counter(handle->subStreamInfos().size()),
+        d_allocator_p);
+
     BALL_LOG_INFO << "Dropping QueueHandle [" << handle << "] for queue ["
-                  << description() << "].";
+                  << description() << "] having "
+                  << handle->subStreamInfos().size() << " subStreams.";
 
     // Since the handle is being dropped (which typically occurs if a client is
     // stopping without explicitly closing its queues, or if a client crashes),
@@ -246,6 +277,7 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
     // Execute the 'configureHandle' & 'releaseHandle' sequence to drop each
     // subStream of the handle in turn.
 
+    int totalReadCount = handle->handleParameters().readCount();
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         handle->subStreamInfos().begin();
     bool isFinal = (citer == handle->subStreamInfos().end());
@@ -264,17 +296,15 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
                                                     subStreamInfo,
                                                     info.d_counts.d_readCount);
 
-        // Set 'isFinal' when releasing the last subStream of this handle
         isFinal = ((++citer) == handle->subStreamInfos().end());
+        totalReadCount -= consumerHandleParams.readCount();
 
         BALL_LOG_INFO << "For queue [" << handle->queue()->description()
                       << "] and handle [" << handle->client() << ":"
                       << handle->id() << "] " << "having [handleParamerers: "
                       << handle->handleParameters() << "], dropping subStream "
                       << "[" << subStreamInfo << "] having [streamParameters: "
-                      << info.d_streamParameters
-                      << "]. 'isFinal' flag: " << bsl::boolalpha << isFinal
-                      << ".";
+                      << info.d_streamParameters << "].";
 
         if (doDeconfigure) {
             bmqp_ctrlmsg::StreamParameters nullStreamParameters;
@@ -282,20 +312,15 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
 
             // Do not send CloseQueue request without waiting for deconfigure
             // response.
-            const bsl::function<void(void)> cb = bdlf::BindUtil::bind(
-                &Queue::releaseHandle,
-                this,
-                handle,
-                consumerHandleParams,
-                isFinal,
-                mqbi::QueueHandle::HandleReleasedCallback());
-
             configureHandle(handle,
                             nullStreamParameters,
                             bdlf::BindUtil::bind(&onHandleDeconfigured,
                                                  bdlf::PlaceHolders::_1,
                                                  bdlf::PlaceHolders::_2,
-                                                 cb));
+                                                 this,
+                                                 handle,
+                                                 consumerHandleParams,
+                                                 counter));
         }
         else {
             // 'releaseHandle' erases from 'handle->subStreamInfos()'
@@ -307,6 +332,8 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
                 mqbi::QueueHandle::HandleReleasedCallback());
         }
     }
+
+    BSLS_ASSERT_SAFE(0 == totalReadCount);
 }
 
 void Queue::closeDispatched()
