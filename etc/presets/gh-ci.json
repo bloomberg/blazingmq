@@ -32,6 +32,21 @@
             }
         },
         {
+            "name": "gh-build-ubuntu-latest-cpp03",
+            "description": "GitHub Actions CI: Build on ubuntu-latest, C++03",
+            "inherits": "gh-base",
+            "toolchainFile":
+                "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake",
+            "environment": {
+                "PKG_CONFIG_PATH":
+                    "/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig"
+            },
+            "cacheVariables": {
+                "BDE_BUILD_TARGET_CPP03": "ON",
+                "CMAKE_INSTALL_LIBDIR": "lib64"
+            }
+        },
+        {
             "name": "gh-build-ubuntu-latest-cpp17",
             "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
             "inherits": "gh-base",
@@ -65,6 +80,17 @@
         }
     ],
     "buildPresets": [
+        {
+            "name": "gh-build-ubuntu-latest-cpp03",
+            "description": "GitHub Actions CI: Build on ubuntu-latest, C++03",
+            "configurePreset": "gh-build-ubuntu-latest-cpp03",
+            "jobs": 8,
+            "targets": [
+                "bmqbrkr",
+                "bmqtool",
+                "all.it"
+            ]
+        },
         {
             "name": "gh-build-ubuntu-latest-cpp17",
             "description": "GitHub Actions CI: Build on ubuntu-latest, C++17",
@@ -120,6 +146,24 @@
         }
     ],
     "testPresets": [
+        {
+            "name": "gh-build-ubuntu-latest-cpp03",
+            "description":
+                "GitHub Actions CI: Unit tests on ubuntu-latest, C++03",
+            "configurePreset": "gh-build-ubuntu-latest-cpp03",
+            "filter": {
+                "include": {
+                    "label": "^unit$"
+                }
+            },
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": false
+            }
+        },
         {
             "name": "gh-build-ubuntu-latest-cpp17",
             "description":
