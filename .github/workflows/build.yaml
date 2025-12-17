@@ -37,6 +37,18 @@ jobs:
       target: "bmqbrkr bmqtool bmqstoragetool all.it"
       save_build_as_artifacts: true
       run_unit_tests: false
+      cpp03: false
+
+  build_ubuntu_cpp03:
+    name: "Build [ubuntu, c++03]"
+    needs: get_dependencies_cpp03
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      target: "all.t"
+      save_build_as_artifacts: false
+      run_unit_tests: false
+      cpp03: true
 
   unit_tests_cxx:
     name: "UT [c++]"
@@ -47,6 +59,7 @@ jobs:
       target: "all.t"
       save_build_as_artifacts: false
       run_unit_tests: true
+      cpp03: false
 
   unit_tests_python:
     name: UT [python]

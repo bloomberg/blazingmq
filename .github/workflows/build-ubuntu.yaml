@@ -32,6 +32,10 @@ on:
         required: false
         type: string
         default: "build-ubuntu"
+      cpp03:
+        description: "Whether to build dependencies with C++03"
+        required: true
+        type: boolean
     outputs:
       artifact_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -42,12 +46,12 @@ jobs:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
     with:
-      cpp03: false
+      cpp03: ${{ inputs.cpp03 }}
 
   build_ubuntu:
     name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
     runs-on: ubuntu-latest
-    needs: get_dependencies   
+    needs: get_dependencies
     outputs:
       artifact_key: ${{ steps.get_cache_key.outputs.artifact_key }}
     steps:
@@ -56,7 +60,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
-      
+
       # Since input.ref can be a branch, tag or commit SHA,
       # we need to get the commit SHA to use it in the cache key.
       - name: Generate cache key from commit SHA
@@ -67,8 +71,9 @@ jobs:
         # E.g. "...-all" can fallback to "...-all.t" 
         # Thus do not put the target at the end of the key.
         run: |
+            [[ ${{ inputs.cpp03 }} ]] && CPP_VERSION_TAG="cpp03-" || CPP_VERSION_TAG=""
             COMMIT_SHA=$(git rev-parse HEAD)
-            echo "cache_key=cache-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+            echo "cache_key=cache-$CPP_VERSION_TAG${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
             echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
       - uses: actions/cache/restore@v4
         id: build-cache-restore-step
@@ -107,11 +112,29 @@ jobs:
       - name: Install cached non packaged dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         working-directory: deps
-        run: ../docker/build_deps.sh
+        run: |
+          {{ inputs.cpp03 }} ]] && ../docker/build_deps.sh --cpp03 || ../docker/build_deps.sh
 
       # Build BlazingMQ
+      - name: Build BlazingMQ [C++03]
+        if: inputs.cpp03 == true && steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        env:
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+        run: |
+          cmake -S . -B build/blazingmq -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBDE_BUILD_TARGET_SAFE=ON \
+            -DBDE_BUILD_TARGET_64=ON \
+            -DBDE_BUILD_TARGET_CPP03=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
+            -DCMAKE_INSTALL_LIBDIR=lib64
+          echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
+          cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
+          echo "::remove-matcher owner=cpp"
+
       - name: Build BlazingMQ
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        if: inputs.cpp03 == false && steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
