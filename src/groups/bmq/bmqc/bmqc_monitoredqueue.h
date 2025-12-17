@@ -271,6 +271,8 @@ class MonitoredQueue {
     /// the queue is disabled.
     int pushBack(bslmf::MovableRef<ElementType> value);
 
+    void testCpp11ism(int&&);
+
     /// Attempt to append the specified `value` to the back of this queue
     /// without blocking.  Return 0 on success, and a non-zero value if the
     /// queue is full or disabled.
