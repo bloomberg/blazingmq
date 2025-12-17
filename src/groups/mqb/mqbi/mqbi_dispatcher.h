@@ -1619,37 +1619,96 @@ DispatcherEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
 
 inline void DispatcherEvent::reset()
 {
-    if (d_type == mqbi::DispatcherEventType::e_DISPATCHER &&
-        !d_finalizeCallback.empty()) {
-        // We only set finalizeCallback on e_DISPATCHER events
+    switch (d_type) {
+    case mqbi::DispatcherEventType::e_UNDEFINED:
+    default: {
+        BSLS_ASSERT_OPT(false && "Unexpected event type");
+    } break;
+    case mqbi::DispatcherEventType::e_DISPATCHER: {
+        if (!d_finalizeCallback.empty()) {
+            // We only set finalizeCallback on e_DISPATCHER events
 
-        // TODO(678098): make a special event type that handles this case
-        d_finalizeCallback();
+            // TODO(678098): make a special event type that handles this case
+            d_finalizeCallback();
+        }
+
+        d_callback.reset();
+        d_finalizeCallback.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_CALLBACK: {
+        d_callback.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_CONTROL_MSG: {
+        d_controlMessage.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_CONFIRM: {
+        d_blob_sp.reset();
+        d_clusterNode_p  = 0;
+        d_confirmMessage = bmqp::ConfirmMessage();
+        d_isRelay        = false;
+        d_partitionId    = -1;
+    } break;
+    case mqbi::DispatcherEventType::e_REJECT: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+        d_rejectMessage = bmqp::RejectMessage();
+        d_isRelay       = false;
+        d_partitionId   = -1;
+    } break;
+    case mqbi::DispatcherEventType::e_PUSH: {
+        d_blob_sp.reset();
+        d_options_sp.reset();
+        d_clusterNode_p = 0;
+        d_guid          = bmqt::MessageGUID();
+        d_isRelay       = false;
+        d_queueId       = -1;
+        d_subQueueInfos.clear();
+        d_msgGroupId.clear();
+        d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
+        d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
+        d_isOutOfOrder             = false;
+    } break;
+    case mqbi::DispatcherEventType::e_PUT: {
+        d_blob_sp.reset();
+        d_options_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+        d_partitionId   = -1;
+        d_putHeader     = bmqp::PutHeader();
+        d_queueHandle_p = 0;
+        d_genCount      = 0;
+        d_state.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_ACK: {
+        d_ackMessage = bmqp::AckMessage();
+        d_blob_sp.reset();
+        d_options_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+    } break;
+    case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+    } break;
+    case mqbi::DispatcherEventType::e_STORAGE: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+    } break;
+    case mqbi::DispatcherEventType::e_RECOVERY: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+    } break;
+    case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+    } break;
     }
 
     d_type          = DispatcherEventType::e_UNDEFINED;
     d_source_p      = 0;
     d_destination_p = 0;
-    d_ackMessage    = bmqp::AckMessage();
-    d_blob_sp.reset();
-    d_options_sp.reset();
-    d_callback.reset();
-    d_finalizeCallback.reset();
-    d_clusterNode_p    = 0;
-    d_confirmMessage   = bmqp::ConfirmMessage();
-    d_rejectMessage    = bmqp::RejectMessage();
-    d_guid             = bmqt::MessageGUID();
-    d_isRelay          = false;
-    d_putHeader        = bmqp::PutHeader();
-    d_queueHandle_p    = 0;
-    d_queueId          = -1;
-    d_subQueueInfos.clear();
-    d_msgGroupId.clear();
-    d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
-    d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
-    d_isOutOfOrder             = false;
-    d_genCount                 = 0;
-    d_state.reset();
 }
 
 inline DispatcherEventType::Enum DispatcherEvent::type() const
