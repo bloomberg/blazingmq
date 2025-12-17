@@ -885,7 +885,7 @@ void ClusterQueueHelper::finishReopening(QueueContext*        queueContext,
     bsl::vector<SubQueueContext::PendingClose> pendingClose(d_allocator_p);
     pendingClose.swap(sqit->value().d_pendingCloseRequests);
 
-    bool isOpen  = sqit->value().d_state == SubQueueContext::k_OPEN;
+    const bool isOpen  = (sqit->value().d_state == SubQueueContext::k_OPEN);
     bool isValid = true;
 
     for (size_t i = 0; i < pendingClose.size(); ++i) {
@@ -929,7 +929,9 @@ void ClusterQueueHelper::finishReopening(QueueContext*        queueContext,
     }
 
     if (0 == --queueContext->d_liveQInfo.d_numReopenQueueRequests) {
-        processPendingContexts(queueContext);
+        if (isOpen) {
+            processPendingContexts(queueContext);
+        }
     }
 }
 
