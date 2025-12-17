@@ -1211,6 +1211,31 @@ class TweakFactory:
 
             max_cslfile_size = MaxCslfileSize()
 
+            class DataFileGrowLimit(metaclass=TweakMetaclass):
+                def __call__(self, value: int) -> Callable: ...
+
+            data_file_grow_limit = DataFileGrowLimit()
+
+            class JournalFileGrowLimit(metaclass=TweakMetaclass):
+                def __call__(self, value: int) -> Callable: ...
+
+            journal_file_grow_limit = JournalFileGrowLimit()
+
+            class QlistFileGrowLimit(metaclass=TweakMetaclass):
+                def __call__(self, value: int) -> Callable: ...
+
+            qlist_file_grow_limit = QlistFileGrowLimit()
+
+            class GrowStepPercent(metaclass=TweakMetaclass):
+                def __call__(self, value: int) -> Callable: ...
+
+            grow_step_percent = GrowStepPercent()
+
+            class MinAvailSpacePercent(metaclass=TweakMetaclass):
+                def __call__(self, value: int) -> Callable: ...
+
+            min_avail_space_percent = MinAvailSpacePercent()
+
             class Preallocate(metaclass=TweakMetaclass):
                 def __call__(self, value: bool) -> Callable: ...
 

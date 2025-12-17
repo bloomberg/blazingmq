@@ -1334,6 +1334,13 @@ class PartitionConfig:
     maxJournalFileSize...: maximum size of partitions' journal file
     maxQlistFileSize.....: maximum size of partitions' qlist file
     maxCSLFileSize.......: maximum size of partitions' CSL file
+    dataFileGrowLimit....: limit for data file growth during rollover
+    journalFileGrowLimit.: limit for journal file growth during rollover
+    qListFileGrowLimit...: limit for qlist file growth during rollover
+    growStepPercent.....: step (in percents of max file size) for file
+                            growth during rollover
+    minAvailSpacePercent.: minimum available free file space (in percents)
+                            which will appear after rollover (rollover criteria)
     preallocate..........: flag to indicate whether files should be
     preallocated on disk
     maxArchivedFileSets..: maximum number of archived file sets per
@@ -1403,6 +1410,51 @@ class PartitionConfig:
         default=67108864,
         metadata={
             "name": "maxCSLFileSize",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    data_file_grow_limit: int = field(
+        default=25769803776,
+        metadata={
+            "name": "dataFileGrowLimit",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    journal_file_grow_limit: int = field(
+        default=4294967296,
+        metadata={
+            "name": "journalFileGrowLimit",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    qlist_file_grow_limit: int = field(
+        default=1073741824,
+        metadata={
+            "name": "qlistFileGrowLimit",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    grow_step_percent: int = field(
+        default=50,
+        metadata={
+            "name": "growStepPercent",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    min_avail_space_percent: int = field(
+        default=20,
+        metadata={
+            "name": "minAvailSpacePercent",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,

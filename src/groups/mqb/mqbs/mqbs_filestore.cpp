@@ -109,8 +109,10 @@ const int k_NAGLE_PACKET_COUNT = 100;
 const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 
 const unsigned int k_REQUESTED_JOURNAL_SPACE =
-    3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-// Above, 3 == 1 journal record being written +
+    4 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+// Above, 4 == 1 journal record being written +
+//             1 journal `resize storage` record if rolling over
+//               to satisfy rollover policy +
 //             1 journal sync point if rolling over +
 //             1 journal sync point if self needs to issue another sync point
 //             in 'setActivePrimary' with old values
@@ -3277,8 +3279,8 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     unsigned int availableSpacePercentJournal = 0;
     // If journalFileGrowLimit is not set or less, use current max file size as grow limit
-    // TODO: or use d_config.maxJournalFileSize() as a limit? But d_partitionMaxFileSizes
-    // was agreed at quorum time, so better to use that.
+    // TBD: or use d_config.maxJournalFileSize() as a limit? But d_partitionMaxFileSizes
+    // was agreed at quorum time, so better to use it.
     bsls::Types::Uint64 journalFileSizeGrowLimit = bsl::max(d_config.journalFileGrowLimit(), d_partitionMaxFileSizes.journalFileSize());
 
     adjustedMaxFileSizes.journalFileSize() = adjustPartitionFileSize(&availableSpacePercentJournal,
@@ -4234,6 +4236,8 @@ int FileStore::issueResizeStorage(const bmqp_ctrlmsg::PartitionMaxFileSizes& max
 {
     enum { rc_SUCCESS = 0, rc_WRITE_FAILURE = -1 };
 
+    ++d_sequenceNum; // Increase sequence number for the new record
+
     // Write to self.
     int rc = writeResizeStorageRecord(maxFileSizes);
     if (0 != rc) {
@@ -4961,13 +4965,17 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             }
         } else if (JournalOpType::e_RESIZE_STORAGE == journalOpType) {
             // Resize storage record
-            // Save the overridden max file sizes to be used by the following sync point of 
-            // e_ROLLOVER type.
+            // Save the overridden max file sizes to be used by the following rollover
+            // (initiated by sync point of e_ROLLOVER type).
             bmqp_ctrlmsg::PartitionMaxFileSizes overridenMaxFileSizes;
             overridenMaxFileSizes.journalFileSize() = jOpRec->resizeStorageData().maxJournalFileSize();
             overridenMaxFileSizes.dataFileSize() = jOpRec->resizeStorageData().maxDataFileSize();
             overridenMaxFileSizes.qListFileSize() = jOpRec->resizeStorageData().maxQlistFileSize();
             d_overridenPartitionMaxFileSizes = overridenMaxFileSizes;
+            BALL_LOG_INFO
+                << partitionDesc()
+                << "Received ResizeStorage record with max file sizes: "
+                << overridenMaxFileSizes;
         }
     }
     else {
