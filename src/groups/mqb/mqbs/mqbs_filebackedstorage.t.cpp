@@ -1914,7 +1914,6 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     mqbu::MessageGUIDUtil::initialize();
@@ -1932,7 +1931,6 @@ int main(int argc, char* argv[])
     }
 
     bmqsys::Time::shutdown();
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
