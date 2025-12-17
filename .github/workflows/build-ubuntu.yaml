@@ -41,6 +41,8 @@ jobs:
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
+    with:
+      cpp03: false
 
   build_ubuntu:
     name: Build [ubuntu] ${{ inputs.ref }} ${{ inputs.target }}
