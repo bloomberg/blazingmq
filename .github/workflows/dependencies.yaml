@@ -2,6 +2,12 @@ name: Dependencies
 
 on:
   workflow_call:
+    inputs:
+      cpp03:
+        description: "Whether to build dependencies with C++03"
+        required: true
+        type: boolean
+        default: false
     outputs:
       cache_key:
         description: "GH Actions Cache key associated with the built dependencies"
@@ -12,7 +18,7 @@ on:
     - cron: "10 0 * * *"
 
 concurrency:
-  group: global
+  group: global-${{ inputs.cpp03 }}
   cancel-in-progress: false
 
 jobs:
@@ -27,7 +33,9 @@ jobs:
       - name: Generate dependencies cache key
         id: get-cache-key
         run: |
-          echo "cache_key=deps-`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+          ${{ inputs.cpp03 }} && CPP_VERSION_TAG="cpp03-" || CPP_VERSION_TAG=""
+          BUILD_DEPS_SHA=$(cat docker/build_deps.sh | shasum)
+          echo "cache_key=deps-$CPP_VERSION_TAG$BUILD_DEPS_SHA" >> $GITHUB_OUTPUT
 
       - name: Cache lookup
         uses: actions/cache/restore@v4
@@ -60,7 +68,7 @@ jobs:
         run: |
           mkdir -p deps
           cd deps
-          ../docker/build_deps.sh
+          ${{ inputs.cpp03 }} && ../docker/build_deps.sh --cpp03 || ../docker/build_deps.sh
 
       - name: Cache save
         if: steps.cache-lookup.outputs.cache-hit != 'true'

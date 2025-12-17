@@ -19,6 +19,14 @@ jobs:
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
+    with:
+      cpp03: false
+
+  get_dependencies_cpp03:
+    name: "Dependencies [C++03]"
+    uses: ./.github/workflows/dependencies.yaml
+    with:
+      cpp03: true
 
   build_ubuntu:
     name: "Build [ubuntu]"

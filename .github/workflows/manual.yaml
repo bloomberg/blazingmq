@@ -25,6 +25,8 @@ jobs:
   get_dependencies:
     name: "Dependencies"
     uses: ./.github/workflows/dependencies.yaml
+    with:
+      cpp03: false
 
   build1:
     name: "Build ref ${{ github.event.inputs.ref1 }}"
