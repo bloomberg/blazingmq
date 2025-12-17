@@ -540,7 +540,6 @@ void QueueHandle::deliverMessageImpl(
     const bsl::shared_ptr<bdlbb::Blob>&       message,
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
-    const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
 {
@@ -572,7 +571,6 @@ void QueueHandle::deliverMessageImpl(
                 d_schemaLearnerPushContext,
                 attributes.messagePropertiesInfo()))
             .setSubQueueInfos(subscriptions)
-            .setMsgGroupId(msgGroupId)
             .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
             .setOutOfOrderPush(isOutOfOrder);
 
@@ -917,7 +915,6 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
 
 void QueueHandle::deliverMessageNoTrack(
     const mqbi::StorageIterator&              iter,
-    const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
 {
     // PRECONDITIONS
@@ -928,14 +925,12 @@ void QueueHandle::deliverMessageNoTrack(
     deliverMessageImpl(iter.appData(),
                        iter.guid(),
                        iter.attributes(),
-                       msgGroupId,
                        subQueueInfos,
                        false);
 }
 
 void QueueHandle::deliverMessage(
     const mqbi::StorageIterator&              iter,
-    const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
 {
@@ -1048,7 +1043,6 @@ void QueueHandle::deliverMessage(
                                                : iter.appData(),
                        iter.guid(),
                        iter.attributes(),
-                       msgGroupId,
                        targetSubscriptions,
                        isOutOfOrder);
 }

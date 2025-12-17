@@ -364,7 +364,6 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
             out << "subQueueInfo[" << i << "]: ";
             printer.printAttribute(out.str().data(), d_subQueueInfos[i]);
         }
-        printer.printAttribute("msGroupId", d_msgGroupId);
         printer.printAttribute("isRelay", (d_isRelay ? "true" : "false"));
     } break;
     case DispatcherEventType::e_PUT: {
@@ -376,7 +375,6 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
         printer.printAttribute("putHeader.queueId", d_putHeader.queueId());
         printer.printAttribute("putHeader.guid", d_putHeader.messageGUID());
         printer.printAttribute("putHeader.flags", d_putHeader.flags());
-        printer.printAttribute("msGroupId", d_msgGroupId);
         printer.printAttribute("isRelay", (d_isRelay ? "true" : "false"));
     } break;
     case DispatcherEventType::e_ACK: {

@@ -659,10 +659,6 @@ class DispatcherPushEvent {
     virtual const bmqp::Protocol::SubQueueInfosArray&
     subQueueInfos() const = 0;
 
-    /// Return a reference not offering modifiable access to the Message
-    /// Group Id associated with a message in this event.
-    virtual const bmqp::Protocol::MsgGroupId& msgGroupId() const = 0;
-
     /// Return (true, *) if the associated PUSH message contains message
     /// properties.  Return (true, true) if the properties is de-compressed
     /// even if the `compressionAlgorithmType` is not `e_NONE`.
@@ -965,10 +961,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     // subQueueInfos associated with the
     // message in this event
 
-    bmqp::Protocol::MsgGroupId d_msgGroupId;
-    // Message Group Id associated with
-    // the message in this event
-
     bmqp::MessagePropertiesInfo d_messagePropertiesInfo;
     // Flags indicating if the associated
     // message has message properties or
@@ -1033,8 +1025,7 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     const bmqp::PutHeader&   putHeader() const BSLS_KEYWORD_OVERRIDE;
     int                      queueId() const BSLS_KEYWORD_OVERRIDE;
     const bmqp::Protocol::SubQueueInfosArray&
-    subQueueInfos() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::Protocol::MsgGroupId& msgGroupId() const BSLS_KEYWORD_OVERRIDE;
+                 subQueueInfos() const BSLS_KEYWORD_OVERRIDE;
     QueueHandle* queueHandle() const BSLS_KEYWORD_OVERRIDE;
     const bmqp::MessagePropertiesInfo&
     messagePropertiesInfo() const BSLS_KEYWORD_OVERRIDE;
@@ -1079,7 +1070,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     DispatcherEvent& setQueueId(int value);
     DispatcherEvent&
     setSubQueueInfos(const bmqp::Protocol::SubQueueInfosArray& value);
-    DispatcherEvent& setMsgGroupId(const bmqp::Protocol::MsgGroupId& value);
     DispatcherEvent&
     setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value);
 
@@ -1299,7 +1289,6 @@ inline DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
 , d_queueHandle_p(0)
 , d_queueId(-1)
 , d_subQueueInfos(allocator)
-, d_msgGroupId(allocator)
 , d_messagePropertiesInfo()
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
 , d_isOutOfOrder(false)
@@ -1395,11 +1384,6 @@ inline const bmqp::Protocol::SubQueueInfosArray&
 DispatcherEvent::subQueueInfos() const
 {
     return d_subQueueInfos;
-}
-
-inline const bmqp::Protocol::MsgGroupId& DispatcherEvent::msgGroupId() const
-{
-    return d_msgGroupId;
 }
 
 inline QueueHandle* DispatcherEvent::queueHandle() const
@@ -1576,13 +1560,6 @@ inline DispatcherEvent& DispatcherEvent::setSubQueueInfos(
     return *this;
 }
 
-inline DispatcherEvent&
-DispatcherEvent::setMsgGroupId(const bmqp::Protocol::MsgGroupId& value)
-{
-    d_msgGroupId = value;
-    return *this;
-}
-
 inline DispatcherEvent& DispatcherEvent::setMessagePropertiesInfo(
     const bmqp::MessagePropertiesInfo& value)
 {
@@ -1620,9 +1597,8 @@ DispatcherEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
 inline void DispatcherEvent::reset()
 {
     switch (d_type) {
-    case mqbi::DispatcherEventType::e_UNDEFINED:
-    default: {
-        BSLS_ASSERT_OPT(false && "Unexpected event type");
+    case mqbi::DispatcherEventType::e_UNDEFINED: {
+        // NOTHING
     } break;
     case mqbi::DispatcherEventType::e_DISPATCHER: {
         if (!d_finalizeCallback.empty()) {
@@ -1663,7 +1639,6 @@ inline void DispatcherEvent::reset()
         d_isRelay       = false;
         d_queueId       = -1;
         d_subQueueInfos.clear();
-        d_msgGroupId.clear();
         d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
         d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
         d_isOutOfOrder             = false;
@@ -1703,6 +1678,9 @@ inline void DispatcherEvent::reset()
     case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
         d_blob_sp.reset();
         d_clusterNode_p = 0;
+    } break;
+    default: {
+        BSLS_ASSERT_OPT(false && "Unexpected event type");
     } break;
     }
 
