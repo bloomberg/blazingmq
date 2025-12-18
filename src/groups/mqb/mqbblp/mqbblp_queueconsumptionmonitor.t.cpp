@@ -152,9 +152,6 @@ struct MockStorageIterator : public mqbi::StorageIterator {
     bool atEnd() const BSLS_KEYWORD_OVERRIDE;
 
     bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
-
-    bool asFarAs(const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>&
-                     stop) const BSLS_KEYWORD_OVERRIDE;
 };
 
 MockStorageIterator::MockStorageIterator()
@@ -224,12 +221,6 @@ bool MockStorageIterator::atEnd() const
 bool MockStorageIterator::hasReceipt() const
 {
     return true;
-}
-
-bool MockStorageIterator::asFarAs(
-    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>&) const
-{
-    return false;
 }
 
 struct Test : bmqtst::Test {

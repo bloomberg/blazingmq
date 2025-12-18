@@ -1932,7 +1932,7 @@ static void test22_resumeAfterTTL()
 //   'processAppRedelivery'.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+    bmqtst::TestHelper::printTestName("RESUME AFTER TTL");
 
     mqbconfm::Domain          config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();

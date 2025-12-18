@@ -331,6 +331,13 @@ struct QueueEngineUtil_AppState {
     /// Set of alive consumers
     typedef Routers::Consumers Consumers;
 
+    class VirtualIterator {
+      public:
+        virtual ~VirtualIterator();
+
+        virtual const mqbi::StorageIterator* next() = 0;
+    };
+
   private:
     // PRIVATE DATA
 
@@ -410,11 +417,7 @@ struct QueueEngineUtil_AppState {
     /// to all consumers (broadcast mode), or in a round-robin manner (every
     /// other mode).
     /// Use the specified `reader` to read data for delivery.
-    size_t
-    catchUp(bsls::TimeInterval*    delay,
-            mqbi::StorageIterator* reader,
-            mqbi::StorageIterator* start,
-            const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop);
+    size_t catchUp(bsls::TimeInterval* delay, VirtualIterator* start);
 
     /// Try to deliver to the next available consumer the specified `message`.
     /// If poisonous message handling requires a delay in the delivery, iterate
