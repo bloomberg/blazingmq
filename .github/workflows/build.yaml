@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'integration/**'
+      - enhance-rollover
   pull_request:
     branches:
       - main
