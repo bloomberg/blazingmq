@@ -292,10 +292,9 @@ void QueueHandle::onAckMessage(BSLA_UNUSED const bmqp::AckMessage& ackMessage)
 }
 
 void QueueHandle::deliverMessage(
-    const mqbi::StorageIterator& message,
-    BSLA_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray&     subscriptions,
-    BSLA_MAYBE_UNUSED bool                        isOutOfOrder)
+    const mqbi::StorageIterator&              message,
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+    BSLA_MAYBE_UNUSED bool                    isOutOfOrder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -325,11 +324,10 @@ void QueueHandle::deliverMessage(
 
 void QueueHandle::deliverMessageNoTrack(
     const mqbi::StorageIterator&              message,
-    const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions)
 {
     // Delegate, from a simplified mock perspective.
-    deliverMessage(message, msgGroupId, subscriptions, false);
+    deliverMessage(message, subscriptions, false);
 }
 
 void QueueHandle::configure(

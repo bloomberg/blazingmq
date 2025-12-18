@@ -656,21 +656,20 @@ class QueueHandle {
     virtual void onAckMessage(const bmqp::AckMessage& ackMessage) = 0;
 
     /// Called by the `Queue` to deliver a message under the specified `iter`
-    /// with the specified `msgGroupId` for the specified `subscriptions` of
-    /// the queue.  The behavior is undefined unless the queueHandle can send
+    /// for the specified `subscriptions` of the queue.
+    /// The behavior is undefined unless the queueHandle can send
     /// a message at this time for each of the corresponding subStreams (see
     /// `canDeliver(unsigned int subQueueId)` for more details).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
     deliverMessage(const mqbi::StorageIterator&              iter,
-                   const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool                                      isOutOfOrder) = 0;
 
     /// Called by the `Queue` to deliver a message under the specified `iter`
-    /// with the specified `msgGroupId` for the specified `subscriptions` of
-    /// the queue.  This method is identical with `deliverMessage()` but it
+    /// for the specified `subscriptions` of the queue.
+    /// This method is identical with `deliverMessage()` but it
     /// doesn't update any flow-control mechanisms implemented by this handler.
     /// The behavior is undefined unless the queueHandle can send a message at
     /// this time (see `canDeliver(unsigned int subQueueId)` for more details).
@@ -678,7 +677,6 @@ class QueueHandle {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void deliverMessageNoTrack(
         const mqbi::StorageIterator&              iter,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
         const bmqp::Protocol::SubQueueInfosArray& subscriptions) = 0;
 
     /// Used by the client to configure a given queue handle with the

@@ -736,14 +736,14 @@ void ClusterQueueHelper::onQueueContextAssigned(
     bool       isAvailable       = true;
 
     if (d_cluster_p->isRemote()) {
-        BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID == pid);
+        BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID == pid);
 
         haveActivePrimary = d_clusterData_p->electorInfo().hasActiveLeader();
     }
     else {
         // Cluster member.
 
-        BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID != pid);
+        BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID != pid);
         const ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
             pid);
 
@@ -3731,7 +3731,7 @@ void ClusterQueueHelper::restoreState(int partitionId)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID != partitionId);
+    BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID != partitionId);
 
     // This routine is invoked in the cluster node as well as cluster proxy.
 
@@ -3832,9 +3832,9 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID != partitionId);
+    BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID != partitionId);
 
-    const bool allPartitions = (mqbs::DataStore::k_ANY_PARTITION_ID ==
+    const bool allPartitions = (mqbi::Storage::k_ANY_PARTITION_ID ==
                                 partitionId);
 
     BALL_LOG_INFO_BLOCK
@@ -4321,7 +4321,7 @@ void ClusterQueueHelper::onSelfNodeStatus(
     BALL_LOG_INFO << d_cluster_p->description()
                   << " onSelfNodeStatus: self node status: " << value;
 
-    restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
+    restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
 }
 
 void ClusterQueueHelper::onClusterLeader(
@@ -4346,7 +4346,7 @@ void ClusterQueueHelper::onClusterLeader(
                   << ", leader status: " << status;
 
     if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
-        restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
+        restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
     }
 
     if (d_cluster_p->isRemote()) {
@@ -4354,10 +4354,10 @@ void ClusterQueueHelper::onClusterLeader(
         // afterPartitionPrimaryAssignment
 
         if (node == 0) {
-            onUpstreamNodeChange(0, mqbs::DataStore::k_ANY_PARTITION_ID);
+            onUpstreamNodeChange(0, mqbi::Storage::k_ANY_PARTITION_ID);
         }
         else if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
-            onUpstreamNodeChange(node, mqbs::DataStore::k_ANY_PARTITION_ID);
+            onUpstreamNodeChange(node, mqbi::Storage::k_ANY_PARTITION_ID);
         }
     }
 }
@@ -4614,7 +4614,7 @@ void ClusterQueueHelper::onQueueUpdated(
     QueueContext& queueContext = *qiter->second;
     mqbi::Queue*  queue        = queueContext.d_liveQInfo.d_queue_sp.get();
     const int     partitionId  = queueContext.partitionId();
-    BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
+    BSLS_ASSERT_SAFE(partitionId != mqbi::Storage::k_INVALID_PARTITION_ID);
 
     if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
         d_storageManager_p->updateQueueReplica(partitionId,
@@ -4725,7 +4725,7 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
             continue;  // CONTINUE
         }
 
-        if (partitionId != mqbs::DataStore::k_ANY_PARTITION_ID &&
+        if (partitionId != mqbi::Storage::k_ANY_PARTITION_ID &&
             partitionId != queueContextSp->partitionId()) {
             continue;  // CONTINUE
         }
@@ -4966,7 +4966,7 @@ void ClusterQueueHelper::openQueue(
                 }
                 else {
                     const int pid = queueContext.partitionId();
-                    if (pid == mqbs::DataStore::k_INVALID_PARTITION_ID) {
+                    if (pid == mqbi::Storage::k_INVALID_PARTITION_ID) {
                         BALL_LOG_OUTPUT_STREAM << "partitionId: invalid";
                     }
                     else {
@@ -5722,7 +5722,7 @@ void ClusterQueueHelper::onLeaderAvailable()
     BALL_LOG_INFO << d_cluster_p->description()
                   << ": On leader available, restoring state.";
 
-    restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
+    restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
 }
 
 bool ClusterQueueHelper::setStopContext(
@@ -6260,7 +6260,7 @@ void ClusterQueueHelper::loadState(
 
         clusterQueue.partitionId() = pid;
         bmqu::MemOutStream os;
-        if (pid != mqbs::DataStore::k_INVALID_PARTITION_ID) {
+        if (pid != mqbi::Storage::k_INVALID_PARTITION_ID) {
             mqbnet::ClusterNode* primary =
                 d_clusterState_p->partition(pid).primaryNode();
             if (primary) {

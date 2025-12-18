@@ -560,14 +560,6 @@ bool operator!=(const DataStoreRecordHandle& lhs,
 /// This component provides an interface for a BlazingMQ data store.
 class DataStore : public mqbi::DispatcherClient {
   public:
-    // PUBLIC CONSTANTS
-    static const int k_INVALID_PARTITION_ID = -1;
-
-    /// A constant representing any (but not invalid) partitionId.  This is
-    /// useful in certain APIs.
-    static const int k_ANY_PARTITION_ID = 2147483647;  // INT_MAX
-
-  public:
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
 
@@ -890,7 +882,7 @@ inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
     bslma::Allocator* basicAllocator)
 : d_isCSL(isCSL)
 , d_canonicalUri(basicAllocator)
-, d_partitionId(DataStore::k_INVALID_PARTITION_ID)
+, d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_appIdKeyPairs(basicAllocator)
 , d_ghosts(basicAllocator)
 , d_purgeOps(basicAllocator)
