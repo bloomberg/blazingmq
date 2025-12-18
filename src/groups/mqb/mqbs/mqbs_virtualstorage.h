@@ -309,9 +309,6 @@ class StorageIterator : public mqbi::StorageIterator {
     /// `items` collection and the message currently pointed at by this
     /// iterator has received replication factor Receipts.
     bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
-
-    bool asFarAs(const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>&
-                     stop) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================

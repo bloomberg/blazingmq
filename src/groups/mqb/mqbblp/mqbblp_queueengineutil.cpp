@@ -859,6 +859,11 @@ int QueueEngineUtil_AppsDeliveryContext::revCounter() const
 // struct AppConsumers_State
 // -------------------------
 
+QueueEngineUtil_AppState::VirtualIterator::~VirtualIterator()
+{
+    // NOTHING
+}
+
 // CREATORS
 QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     mqbi::Queue*                  queue,
@@ -910,37 +915,16 @@ QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
 }
 
 size_t QueueEngineUtil_AppState::catchUp(
-    bsls::TimeInterval*                                          delay,
-    mqbi::StorageIterator*                                       reader,
-    mqbi::StorageIterator*                                       start,
-    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop)
+    bsls::TimeInterval*                        delay,
+    QueueEngineUtil_AppState::VirtualIterator* start)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(delay);
-    BSLS_ASSERT_SAFE(reader);
     BSLS_ASSERT_SAFE(start);
 
     // deliver everything up to the 'stop'
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasConsumers())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return 0;  // RETURN
-    }
-
-    size_t numMessages = processDeliveryLists(delay, reader);
-    // `reader` might keep a shared pointer to a memory mapped file area, and
-    // this prevents file set from closing possibly for a very long time.
-    // Make sure to invalidate any cached data within this iterator after use.
-    // TODO: refactor iterators to remove cached data.
-    reader->clearCache();
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_redeliveryList.size())) {
-        // We only attempt to deliver new messages if we successfully
-        // redelivered all messages in the redelivery list.
-        return numMessages;  // RETURN
-    }
 
     // Deliver messages until either:
     //   1. End of storage; or
@@ -951,22 +935,19 @@ size_t QueueEngineUtil_AppState::catchUp(
 
     d_resumePoint = bmqt::MessageGUID();
 
-    // 'end' may not have the app
-    while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(start->hasReceipt())) {
-        if (start->asFarAs(stop)) {
-            // Deliver the rest by 'QueueEngineUtil_AppsDeliveryContext'
-            break;
-        }
+    size_t                       numMessages = 0;
+    const mqbi::StorageIterator* current     = 0;
+    while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(current = start->next())) {
         Routers::Result result = Routers::e_SUCCESS;
 
         if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-            broadcastOneMessage(start);
+            broadcastOneMessage(current);
         }
         else {
-            result = tryDeliverOneMessage(delay, start, false);
+            result = tryDeliverOneMessage(delay, current, false);
 
             if (result == Routers::e_SUCCESS) {
-                reportStats(start);
+                reportStats(current);
 
                 ++numMessages;
             }
@@ -975,12 +956,12 @@ size_t QueueEngineUtil_AppState::catchUp(
                          result == Routers::e_NO_SUBSCRIPTION)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-                putAside(start->guid());
+                putAside(current->guid());
                 // Do not block other Subscriptions. Continue.
             }
             else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                          result == Routers::e_NO_CAPACITY_ALL)) {
-                d_resumePoint = start->guid();
+                d_resumePoint = current->guid();
                 break;
             }
             else {
@@ -988,14 +969,8 @@ size_t QueueEngineUtil_AppState::catchUp(
                 // The {GUID, App} is not valid anymore
             }
         }
-
-        start->advance();
     }
-    // `start` might keep a shared pointer to a memory mapped file area, and
-    // this prevents file set from closing possibly for a very long time.
-    // Make sure to invalidate any cached data within this iterator after use.
-    // TODO: refactor iterators to remove cached data.
-    start->clearCache();
+
     return numMessages;
 }
 
@@ -1132,6 +1107,13 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
         // The only excuse for stopping the iteration is poisonous message
         numMessages += processDeliveryList(delay, reader, d_putAsideList);
     }
+
+    // `reader` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    reader->clearCache();
+
     return numMessages;
 }
 

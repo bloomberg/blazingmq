@@ -134,14 +134,12 @@ class PushStream {
         Elements           d_appMessages;
         bsls::Types::Int64 d_sequenceNumber;
 
-        explicit Message();
+        explicit Message(bsls::Types::Int64 sequenceNumber);
 
         /// Return number of Elements in the list
         unsigned int numElements() const;
 
         bsls::Types::Uint64 sequenceNumber() const;
-
-        static bsls::Types::Int64 nextSequenceNumber();
     };
 
     struct App {
@@ -223,6 +221,8 @@ class PushStream {
 
     bsl::shared_ptr<bdlma::ConcurrentPool> d_pushElementsPool_sp;
 
+    bsls::Types::Int64 s_nextSequenceNumber;
+
     // CREATORS
     /// @brief Construct this object.
     /// @param pushElementsPool_sp The shared push element pool used to supply
@@ -267,6 +267,9 @@ class PushStream {
                  unsigned int          subscriptionId,
                  const iterator&       iterator,
                  const Apps::iterator& iteratorApp);
+
+    /// Generate and return unique, monotonically increasing integer
+    bsls::Types::Int64 nextSequenceNumber();
 };
 
 // ========================
@@ -411,9 +414,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// `items` collection and the message currently pointed at by this
     /// iterator has received replication factor Receipts.
     bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
-
-    bool asFarAs(const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>&
-                     stop) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================
@@ -641,9 +641,9 @@ inline unsigned int PushStream::Elements::numElements() const
     return d_numElements;
 }
 
-inline PushStream::Message::Message()
+inline PushStream::Message::Message(bsls::Types::Int64 sequenceNumber)
 : d_appMessages()
-, d_sequenceNumber(nextSequenceNumber())
+, d_sequenceNumber(sequenceNumber)
 {
 }
 
@@ -656,13 +656,6 @@ inline unsigned int PushStream::Message::numElements() const
 inline bsls::Types::Uint64 PushStream::Message::sequenceNumber() const
 {
     return d_sequenceNumber;
-}
-
-inline bsls::Types::Int64 PushStream::Message::nextSequenceNumber()
-{
-    static bsls::Types::Int64 s_value = 0;
-
-    return ++s_value;
 }
 
 inline PushStream::App::App(
@@ -703,6 +696,11 @@ inline const PushStream::Element* PushStream::App::last() const
 // struct PushStream
 // -----------------
 
+inline bsls::Types::Int64 PushStream::nextSequenceNumber()
+{
+    return ++s_nextSequenceNumber;
+}
+
 inline PushStream::Element* PushStream::add(const bmqp::RdaInfo& rda,
                                             unsigned int    subscriptionId,
                                             const iterator& it,
@@ -733,7 +731,10 @@ inline bool PushStream::findOrAddLast(iterator*                itGuid,
     iterator existing = d_stream.find(guid);
 
     if (existing == d_stream.end()) {
-        *itGuid = d_stream.insert(bsl::make_pair(guid, Message())).first;
+        *itGuid = d_stream
+                      .insert(
+                          bsl::make_pair(guid, Message(nextSequenceNumber())))
+                      .first;
         return true;  // RETURN
     }
     if (existing == --d_stream.end()) {

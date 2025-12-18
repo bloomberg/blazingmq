@@ -51,7 +51,6 @@
 #include <bmqu_printutil.h>
 
 // BDE
-#include <bdlb_variant.h>
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -401,10 +400,6 @@ class StorageIterator {
     /// `items` collection and the message currently pointed at by this
     /// iterator has received replication factor Receipts.
     virtual bool hasReceipt() const = 0;
-
-    virtual bool
-    asFarAs(const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop)
-        const = 0;
 };
 
 // =============

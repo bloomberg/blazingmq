@@ -77,6 +77,53 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
+struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
+    mqbi::StorageIterator* d_start;
+    mqbi::StorageIterator* d_stop;
+    bool                   d_doAdvance;
+
+    VirtualIterator(mqbi::StorageIterator* start, mqbi::StorageIterator* stop)
+    : d_start(start)
+    , d_stop(stop)
+    , d_doAdvance(false)
+    {
+        // NOTHING
+    }
+    ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
+    const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
+};
+
+const mqbi::StorageIterator* VirtualIterator::next()
+{
+    if (d_doAdvance) {
+        d_start->advance();
+    }
+    else {
+        d_doAdvance = true;
+    }
+
+    if (d_start->atEnd()) {
+        return 0;
+    }
+
+    if (!d_stop->atEnd()) {
+        if (d_start->guid() == d_stop->guid()) {
+            return 0;
+        }
+    }
+
+    return d_start;
+}
+
+VirtualIterator::~VirtualIterator()
+{
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    d_start->clearCache();
+}
+
 }  // close unnamed namespace
 
 // ---------------------
@@ -97,39 +144,39 @@ void RootQueueEngine::deliverMessages(AppState* app)
         return;  // RETURN
     }
 
-    // Position to the resumePoint
-    bslma::ManagedPtr<mqbi::StorageIterator> storageIter_mp;
-    mqbi::StorageIterator*                   start = 0;
-
-    if (!app->resumePoint().isUnset()) {
-        if (d_queueState_p->storage()->getIterator(&storageIter_mp,
-                                                   app->appKey(),
-                                                   app->resumePoint()) !=
-            mqbi::StorageResult::e_SUCCESS) {
-            // The message is gone because of either GC or purge.
-            // In either case, start at the beginning.
-            // This code relies on TTL per Queue (Domain), not per message - if
-            // 'resumePoint()' has exceeded the TTL, everything before that had
-            // as well.
-            storageIter_mp = d_queueState_p->storage()->getIterator(
-                app->appKey());
-        }
-        start = storageIter_mp.get();
-        // 'start' points at either the resume point (if found) or the first
-        // unconfirmed message of the 'app' (if not found).
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!app->hasConsumers())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
     }
-    else {
-        start = d_storageIter_mp.get();
-        // 'start' points at the next message in the logical stream (common
-        // for all apps).
-    }
-    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID> stop(
-        d_storageIter_mp->atEnd() ? bmqt::MessageGUID()
-                                  : d_storageIter_mp->guid());
 
     bsls::TimeInterval delay;
-    const size_t       numMessages =
-        app->catchUp(&delay, d_realStorageIter_mp.get(), start, stop);
+    size_t             numMessages = app->processDeliveryLists(&delay,
+                                                   d_realStorageIter_mp.get());
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
+        if (!app->resumePoint().isUnset()) {
+            // Position to the resumePoint
+            bslma::ManagedPtr<mqbi::StorageIterator> start;
+
+            if (d_queueState_p->storage()->getIterator(&start,
+                                                       app->appKey(),
+                                                       app->resumePoint()) !=
+                mqbi::StorageResult::e_SUCCESS) {
+                // The message is gone because of either GC or purge.
+                // In either case, start at the beginning.
+                // This code relies on TTL per Queue (Domain), not per message
+                // - if 'resumePoint()' has exceeded the TTL, everything before
+                // that had as well.
+                start = d_queueState_p->storage()->getIterator(app->appKey());
+            }
+            // 'start' points at either the resume point (if found) or the
+            // first unconfirmed message of the 'app' (if not found).
+
+            VirtualIterator vi(start.get(), d_storageIter_mp.get());
+
+            numMessages += app->catchUp(&delay, &vi);
+        }
+    }
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(

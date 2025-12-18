@@ -41,6 +41,7 @@ PushStream::PushStream(
           : bsl::allocate_shared<bdlma::ConcurrentPool>(allocator,
                                                         sizeof(Element),
                                                         allocator))
+, s_nextSequenceNumber(0)
 // ConcurrentPool doesn't have allocator traits, have to pass allocator
 // twice
 {
@@ -251,19 +252,6 @@ bool PushStreamIterator::atEnd() const
 bool PushStreamIterator::hasReceipt() const
 {
     return !atEnd();
-}
-
-bool PushStreamIterator::asFarAs(
-    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    BSLS_ASSERT_SAFE(stop.is<bsls::Types::Uint64>());
-
-    bsls::Types::Uint64 value = stop.the<bsls::Types::Uint64>();
-
-    return value && sequenceNumber() >= value;
 }
 
 // CREATORS

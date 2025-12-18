@@ -326,15 +326,6 @@ bool StorageIterator::hasReceipt() const
     return d_haveReceipt;
 }
 
-bool StorageIterator::asFarAs(
-    const bdlb::Variant<bsls::Types::Uint64, bmqt::MessageGUID>& stop) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(stop.is<bmqt::MessageGUID>());
-
-    return guid() == stop.the<bmqt::MessageGUID>();
-}
-
 // CREATORS
 VirtualStorageIterator::VirtualStorageIterator(
     VirtualStorage*                             virtualStorage,
