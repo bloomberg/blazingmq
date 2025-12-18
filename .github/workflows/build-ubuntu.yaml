@@ -110,19 +110,10 @@ jobs:
       # Build BlazingMQ
       - name: Build BlazingMQ
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
-        env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
-          cmake -S . -B build/blazingmq -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib64
+          cmake --preset gh-build-ubuntu-latest-cpp17 -S .
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
-          cmake --build build/blazingmq --parallel 8 --target ${{ inputs.target }}
+          cmake --build --preset gh-build-ubuntu-latest-cpp17 --target ${{ inputs.target }}
           echo "::remove-matcher owner=cpp"
 
       - name: Clean-up build directories before caching
@@ -134,10 +125,9 @@ jobs:
       - name: Run UT [c++]
         if: contains(inputs.target, 'all.t') && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest --output-on-failure -L \^unit\$
+          ctest --preset gh-build-ubuntu-latest-cpp17
 
-      - name: Fail if requrested to run UTs, they were not built
+      - name: Fail if requested to run UTs, they were not built
         if: contains(inputs.target, 'all.t') == false && inputs.run_unit_tests == true # Variable type is boolean, thus no quotes
         run: |
           echo "Unit tests were requested to run, but the target does not include 'all.t'."
