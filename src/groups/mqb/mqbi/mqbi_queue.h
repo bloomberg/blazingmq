@@ -776,6 +776,10 @@ class QueueHandle {
     /// cluster member, false otherwise.
     virtual bool isClientClusterMember() const = 0;
 
+    /// Return a pointer offering non-modifiable access to the client
+    /// context associated with this object.
+    virtual const QueueHandleRequesterContext* clientContext() const = 0;
+
     /// Return true if the queueHandle can send a message to the client
     /// which has subscribed to the specified `downstreamSubscriptionId`,
     /// and false otherwise.  Note the queueHandle may or may not be able to

@@ -132,30 +132,33 @@ struct Visitor {
     {
         // NOTHING
     }
-    bool oneConsumer(const Routers::Subscription* subscription)
+    bool oneConsumer(mqbi::QueueHandle* handle,
+                     Routers::Consumer* consumer,
+                     unsigned int       downstreamSubscriptionId)
     {
-        d_downstreamSubscriptionId = subscription->d_downstreamSubscriptionId;
-        d_consumer                 = subscription->consumer();
-        d_handle                   = subscription->handle();
+        d_downstreamSubscriptionId = downstreamSubscriptionId;
+        d_consumer                 = consumer;
+        d_handle                   = handle;
 
         return true;
     }
-    bool minDelayConsumer(bsls::TimeInterval*          delay,
-                          const Routers::Subscription* subscription,
-                          const bsls::TimeInterval&    messageDelay,
-                          const bsls::TimeInterval&    now)
+    bool minDelayConsumer(bsls::TimeInterval*       delay,
+                          mqbi::QueueHandle*        handle,
+                          Routers::Consumer*        consumer,
+                          unsigned int              downstreamSubscriptionId,
+                          const bsls::TimeInterval& messageDelay,
+                          const bsls::TimeInterval& now)
     {
-        BSLS_ASSERT_SAFE(subscription);
+        BSLS_ASSERT_SAFE(handle);
+        BSLS_ASSERT_SAFE(consumer);
 
-        bsls::TimeInterval delayLeft =
-            subscription->consumer()->d_timeLastMessageSent + messageDelay -
-            now;
+        bsls::TimeInterval delayLeft = consumer->d_timeLastMessageSent +
+                                       messageDelay - now;
 
         if (delayLeft <= 0) {
-            d_handle   = subscription->handle();
-            d_consumer = subscription->consumer();
-            d_downstreamSubscriptionId =
-                subscription->d_downstreamSubscriptionId;
+            d_handle                   = handle;
+            d_consumer                 = consumer;
+            d_downstreamSubscriptionId = downstreamSubscriptionId;
 
             return true;
         }
@@ -647,12 +650,16 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
       bdlf::BindUtil::bindS(allocator,
                             &QueueEngineUtil_AppsDeliveryContext::visit,
                             this,
-                            bdlf::PlaceHolders::_1))
+                            bdlf::PlaceHolders::_1,
+                            bdlf::PlaceHolders::_2,
+                            bdlf::PlaceHolders::_3))
 , d_broadcastVisitor(bdlf::BindUtil::bindS(
       allocator,
       &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
       this,
-      bdlf::PlaceHolders::_1))
+      bdlf::PlaceHolders::_1,
+      bdlf::PlaceHolders::_2,
+      bdlf::PlaceHolders::_3))
 , d_revCounter(0)
 {
     BSLS_ASSERT_SAFE(queue);
@@ -767,27 +774,31 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
-    const Routers::Subscription* subscription)
+    mqbi::QueueHandle* handle,
+    BSLA_UNUSED Routers::Consumer* consumer,
+    unsigned int                   downstreamSubscriptionId)
 {
-    BSLS_ASSERT_SAFE(subscription);
+    BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(
         d_currentAppView_p &&
         "`d_currentAppView_p` must be assigned before calling this function");
 
-    d_consumers[subscription->handle()].push_back(
-        bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId,
+    d_consumers[handle].push_back(
+        bmqp::SubQueueInfo(downstreamSubscriptionId,
                            d_currentAppView_p->d_rdaInfo));
 
     return true;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visitBroadcast(
-    const Routers::Subscription* subscription)
+    mqbi::QueueHandle* handle,
+    BSLA_UNUSED Routers::Consumer* consumer,
+    unsigned int                   downstreamSubscriptionId)
 {
-    BSLS_ASSERT_SAFE(subscription);
+    BSLS_ASSERT_SAFE(handle);
 
-    d_consumers[subscription->handle()].push_back(
-        bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId));
+    d_consumers[handle].push_back(
+        bmqp::SubQueueInfo(downstreamSubscriptionId));
 
     return false;
 }
@@ -1035,7 +1046,9 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
                                            &messageDelay)) {
         result = selectConsumer(bdlf::BindUtil::bind(&Visitor::oneConsumer,
                                                      &visitor,
-                                                     bdlf::PlaceHolders::_1),
+                                                     bdlf::PlaceHolders::_1,
+                                                     bdlf::PlaceHolders::_2,
+                                                     bdlf::PlaceHolders::_3),
                                 message,
                                 ordinal());
         // RelayQueueEngine_VirtualPushStorageIterator ignores ordinal
@@ -1047,6 +1060,8 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
                                      &visitor,
                                      delay,
                                      bdlf::PlaceHolders::_1,
+                                     bdlf::PlaceHolders::_2,
+                                     bdlf::PlaceHolders::_3,
                                      messageDelay,
                                      now),
                 message)) {
@@ -1085,22 +1100,25 @@ void QueueEngineUtil_AppState::broadcastOneMessage(
         bdlf::BindUtil::bind(&QueueEngineUtil_AppState::visitBroadcast,
                              this,
                              storageIter,
-                             bdlf::PlaceHolders::_1),
+                             bdlf::PlaceHolders::_1,
+                             bdlf::PlaceHolders::_2,
+                             bdlf::PlaceHolders::_3),
         storageIter);
 }
 
 bool QueueEngineUtil_AppState::visitBroadcast(
     const mqbi::StorageIterator* message,
-    const Routers::Subscription* subscription)
+    mqbi::QueueHandle*           handle,
+    BSLA_UNUSED Routers::Consumer* consumer,
+    unsigned int                   downstreamSubscriptionId)
 {
-    mqbi::QueueHandle* handle = subscription->handle();
     BSLS_ASSERT_SAFE(handle);
     // TBD: groupId: send 'options' as well...
     handle->deliverMessageNoTrack(
         *message,
         bmqp::Protocol::SubQueueInfosArray(
             1,
-            bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId)));
+            bmqp::SubQueueInfo(downstreamSubscriptionId)));
 
     return false;
 }
