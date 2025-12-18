@@ -763,20 +763,17 @@ bool Routers::AppContext::iterateConsumers(
         Consumer&                    consumer   = itConsumer->value();
 
         if (consumer.d_isBroadcastBroker) {
-            if (consumer.d_highestSubscriptions.empty()) {
-                // For each subscription of this consumer there is another one
-                // with higher priority.
-
-                continue;  // CONTINUE
+            if (!consumer.d_highestSubscriptions.empty()) {
+                // If this is not SDK, ignore subscriptions and PUSH
+                // unconditionally.
+                if (visitor(cit->first,
+                            &consumer,
+                            bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)) {
+                    return true;  // RETURN
+                }
             }
-
-            // If this is not SDK, ignore subscriptions and PUSH
-            // unconditionally.
-            if (visitor(cit->first,
-                        &consumer,
-                        bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)) {
-                return true;  // RETURN
-            }
+            // else, for each subscription of this consumer there is another
+            // one with higher priority.
         }
         else {
             const Routers::Subscription* subscription = selectSubscription(

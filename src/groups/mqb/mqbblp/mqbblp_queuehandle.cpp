@@ -598,13 +598,28 @@ void QueueHandle::deliverMessageImpl(
         for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
              i < subscriptions.size();
              ++i) {
-            const bsl::shared_ptr<Subscription>& subscription =
-                d_subscriptions[subscriptions[i].id()];
+            Subscriptions::iterator itSubscription = d_subscriptions.find(
+                subscriptions[i].id());
 
-            if (subscription->stats()) {
-                subscription->stats()->onEvent(
-                    mqbstat::QueueStatsClient::EventType::e_PUSH,
-                    message ? message->length() : 0);
+            // Broadcast PUSH carry 'bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID'
+            // (0) as SubscriptionId until last hop before SDK.
+            // And downstream broker sends non-zero upstream as subscriptionId.
+            // Meaning, in the 'registerSubscription' call 'downstreamId' is
+            // never '0' in this case.
+            // So, the below condition is always 'false' when the downstream is
+            // a broker and the queue is broadcast.
+
+            if (itSubscription != d_subscriptions.end()) {
+                const bsl::shared_ptr<Subscription>& subscription =
+                    itSubscription->second;
+
+                BSLS_ASSERT_SAFE(subscription);
+
+                if (subscription->stats()) {
+                    subscription->stats()->onEvent(
+                        mqbstat::QueueStatsClient::EventType::e_PUSH,
+                        message ? message->length() : 0);
+                }
             }
         }
     }
