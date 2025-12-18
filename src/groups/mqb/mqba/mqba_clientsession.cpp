@@ -1828,29 +1828,51 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
         // Finally, Update stats
         // TODO: Extract this and the version from 'mqbblp::Cluster' to a
         // function
+
+        BSLS_ASSERT_SAFE(handleRequesterContext());
+
+        const bool isBroadcastBroker =
+            (handle_p->queue()->isDeliverAll()
+                 ? !handleRequesterContext()->isFirstHop()
+                 : false);
+
         for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
              i < event.subQueueInfos().size();
              ++i) {
+            unsigned int subscriptionId = event.subQueueInfos()[i].id();
             StreamsMap::const_iterator subQueueCiter =
                 context_p->d_subQueueInfosMap.findBySubscriptionIdSafe(
-                    event.subQueueInfos()[i].id());
+                    subscriptionId);
+
+            // Broadcast PUSH carry 'bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID'
+            // (0) as SubscriptionId until last hop before SDK.
+            // And downstream broker sends non-zero upstream as subscriptionId.
+            // Meaning, in the 'registerSubscription' call 'downstreamId' is
+            // never '0' in this case.
+            // So, the below condition is always 'true' when the downstream is
+            // a broker and the queue is broadcast.
 
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                     subQueueCiter == context_p->d_subQueueInfosMap.end())) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-                // subStream of the queue not found
-                BALL_LOG_ERROR
-                    << "#CLIENT_INVALID_PUSH " << description()
-                    << ": PUSH for an unknown subStream of the queue [queue: '"
-                    << handle_p->queue()->uri()
-                    << "', subQueueInfo: " << event.subQueueInfos()[i]
-                    << ", GUID: " << event.guid() << "]:\n"
-                    << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
+                if (!isBroadcastBroker ||
+                    subscriptionId !=
+                        bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
+                    // subStream of the queue not found
+                    BALL_LOG_ERROR
+                        << "#CLIENT_INVALID_PUSH " << description()
+                        << ": PUSH for an unknown subStream of the queue "
+                           "[queue: '"
+                        << handle_p->queue()->uri()
+                        << "', subQueueInfo: " << event.subQueueInfos()[i]
+                        << ", GUID: " << event.guid() << "]:\n"
+                        << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
 
-                invalidQueueStats()->onEvent(
-                    mqbstat::QueueStatsClient::EventType::e_PUSH,
-                    blob->length());
+                    invalidQueueStats()->onEvent(
+                        mqbstat::QueueStatsClient::EventType::e_PUSH,
+                        blob->length());
+                }
             }
             else {
                 subQueueCiter->value().onEvent(
