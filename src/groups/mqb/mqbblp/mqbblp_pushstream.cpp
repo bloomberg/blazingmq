@@ -41,6 +41,7 @@ PushStream::PushStream(
           : bsl::allocate_shared<bdlma::ConcurrentPool>(allocator,
                                                         sizeof(Element),
                                                         allocator))
+, s_nextSequenceNumber(0)
 // ConcurrentPool doesn't have allocator traits, have to pass allocator
 // twice
 {
@@ -78,6 +79,13 @@ bool PushStreamIterator::loadMessageAndAttributes() const
     return false;
 }
 
+const PushStream::Message& PushStreamIterator::message() const
+{
+    BSLS_ASSERT_SAFE(d_iterator != d_owner_p->d_stream.end());
+
+    return d_iterator->second;
+}
+
 // CREATORS
 PushStreamIterator::PushStreamIterator(
     mqbi::Storage*              storage,
@@ -103,8 +111,12 @@ PushStreamIterator::~PushStreamIterator()
 
 unsigned int PushStreamIterator::numApps() const
 {
-    BSLS_ASSERT_SAFE(!atEnd());
-    return d_iterator->second.numElements();
+    return message().numElements();
+}
+
+bsls::Types::Uint64 PushStreamIterator::sequenceNumber() const
+{
+    return message().sequenceNumber();
 }
 
 void PushStreamIterator::removeCurrentElement()
@@ -121,17 +133,14 @@ void PushStreamIterator::removeCurrentElement()
     d_owner_p->remove(del, false);
     // cannot erase the GUID because of the d_iterator
 
-    if (d_iterator->second.numElements() == 0) {
+    if (message().numElements() == 0) {
         BSLS_ASSERT_SAFE(d_currentElement == 0);
     }
 }
 
 void PushStreamIterator::removeAllElements()
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    d_currentElement = d_iterator->second.front();
+    d_currentElement = message().d_appMessages.front();
     d_currentOrdinal = 0;
 
     while (d_currentElement) {
@@ -147,7 +156,7 @@ bool PushStreamIterator::advance()
 
     clearCache();
 
-    if (d_iterator->second.numElements() == 0) {
+    if (message().numElements() == 0) {
         d_iterator = d_owner_p->d_stream.erase(d_iterator);
     }
     else {
@@ -191,7 +200,7 @@ PushStream::Element* PushStreamIterator::element(unsigned int appOrdinal) const
 
     if (d_currentOrdinal > appOrdinal) {
         d_currentOrdinal = 0;
-        d_currentElement = d_iterator->second.front();
+        d_currentElement = message().d_appMessages.front();
     }
 
     BSLS_ASSERT_SAFE(d_currentElement);
@@ -247,23 +256,28 @@ bool PushStreamIterator::hasReceipt() const
 
 // CREATORS
 VirtualPushStreamIterator::VirtualPushStreamIterator(
-    unsigned int                upstreamSubQueueId,
-    mqbi::Storage*              storage,
-    PushStream*                 owner,
-    const PushStream::iterator& initialPosition)
-: PushStreamIterator(storage, owner, initialPosition)
+    unsigned int   upstreamSubQueueId,
+    mqbi::Storage* storage,
+    PushStream*    owner)
+: PushStreamIterator(storage, owner, owner->d_stream.end())
 {
-    d_itApp = owner->d_apps.find(upstreamSubQueueId);
+    /// An iterator to the App being iterated
+    PushStream::Apps::iterator itApp = owner->d_apps.find(upstreamSubQueueId);
 
-    if (d_itApp != owner->d_apps.end()) {
-        // Assume VirtualPushStreamIterator always starts with the first
-        // element in the App
+    if (itApp != owner->d_apps.end()) {
+        const PushStream::App& app = itApp->second;
 
-        d_currentElement = d_itApp->second.d_elements.front();
+        BSLS_ASSERT_SAFE(app.d_elements.numElements());
 
-        BSLS_ASSERT_SAFE(d_currentElement->iteratorGuid() == initialPosition);
-        BSLS_ASSERT_SAFE(d_currentElement->app().d_app ==
-                         d_itApp->second.d_app);
+        // Always start with the first element in the App
+
+        d_currentElement = app.d_elements.front();
+
+        BSLS_ASSERT_SAFE(d_currentElement);
+
+        BSLS_ASSERT_SAFE(d_currentElement->app().d_app == app.d_app);
+
+        d_iterator = d_currentElement->iteratorGuid();
     }
 }
 
@@ -303,7 +317,6 @@ bool VirtualPushStreamIterator::advance()
         return false;
     }
 
-    BSLS_ASSERT_SAFE(d_itApp->second.d_elements.numElements());
     BSLS_ASSERT_SAFE(d_currentElement);
 
     d_iterator = d_currentElement->iteratorGuid();
