@@ -885,7 +885,6 @@ class TestBench {
             .setIsRelay(true)  // Relay message
             .setSource(&d_cs)  // DispatcherClient *value
             .setPutHeader(putHeader)
-            .setPartitionId(1)   // d_state_p->partitionId()) // int value
             .setBlob(eventBlob)  // const bsl::shared_ptr<bdlbb::Blob>& value
             .setCompressionAlgorithmType(cat);
 

@@ -1278,7 +1278,7 @@ Cluster::sendConfirmInline(int                         partitionId,
     // is a replica so this node just needs to forward the message to queue's
     // partition's primary node (after appropriate checks).
 
-    if (mqbs::DataStore::k_INVALID_PARTITION_ID == partitionId) {
+    if (mqbi::Storage::k_INVALID_PARTITION_ID == partitionId) {
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
 
@@ -1342,7 +1342,7 @@ Cluster::sendPutInline(int                                 partitionId,
     // replica so this node just needs to forward the message to queue's
     // partition's primary node (after appropriate checks).
 
-    if (mqbs::DataStore::k_INVALID_PARTITION_ID == partitionId) {
+    if (mqbi::Storage::k_INVALID_PARTITION_ID == partitionId) {
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN
     }
 
@@ -1405,7 +1405,7 @@ bool Cluster::validateRelayMessage(mqbc::ClusterNodeSession** ns,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(ns);
 
-    if (mqbs::DataStore::k_INVALID_PARTITION_ID == pid) {
+    if (mqbi::Storage::k_INVALID_PARTITION_ID == pid) {
         *errorStream << "Reason: invalid partition.";
 
         return false;  // RETURN

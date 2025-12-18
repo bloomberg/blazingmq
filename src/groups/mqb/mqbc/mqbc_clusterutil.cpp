@@ -207,7 +207,7 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
             // queue.
             BSLS_ASSERT_SAFE(queueKey == mqbu::StorageKey::k_NULL_KEY);
             BSLS_ASSERT_SAFE(partitionId ==
-                             mqbs::DataStore::k_INVALID_PARTITION_ID);
+                             mqbi::Storage::k_INVALID_PARTITION_ID);
         }
 
         const int rc = clusterState->updateQueue(queueUpdate);
@@ -1283,7 +1283,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 
         bmqp_ctrlmsg::QueueInfoUpdate queueUpdate;
         queueUpdate.uri()         = "";
-        queueUpdate.partitionId() = mqbs::DataStore::k_INVALID_PARTITION_ID;
+        queueUpdate.partitionId() = mqbi::Storage::k_INVALID_PARTITION_ID;
         mqbu::StorageKey::k_NULL_KEY.loadBinary((&queueUpdate.key()));
         queueUpdate.domain() = domainName;
 

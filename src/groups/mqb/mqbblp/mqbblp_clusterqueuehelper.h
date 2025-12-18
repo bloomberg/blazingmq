@@ -778,7 +778,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// status, in order to restore any state for the specified
     /// `partitionId` (i.e., resume the requests that were issued, reissue
     /// open queues to the new in charge nodes).  Note that if `partitionId`
-    /// is equal to `mqbs::DataStore::k_ANY_PARTITION_ID`, an attempt is
+    /// is equal to `mqbi::Storage::k_ANY_PARTITION_ID`, an attempt is
     /// made to restore state for all partitions.
     ///
     /// THREAD: This method is called from the Cluster's dispatcher thread.
@@ -1145,7 +1145,7 @@ inline const mqbu::StorageKey& ClusterQueueHelper::QueueContext::key() const
 inline int ClusterQueueHelper::QueueContext::partitionId() const
 {
     return d_stateQInfo_sp ? d_stateQInfo_sp->partitionId()
-                           : mqbs::DataStore::k_INVALID_PARTITION_ID;
+                           : mqbi::Storage::k_INVALID_PARTITION_ID;
 }
 
 // ------------------------
@@ -1195,7 +1195,7 @@ ClusterQueueHelper::isQueueAssigned(const QueueContext& queueContext) const
     }
 
     BSLS_ASSERT_SAFE(assigned->partitionId() !=
-                         mqbs::DataStore::k_INVALID_PARTITION_ID &&
+                         mqbi::Storage::k_INVALID_PARTITION_ID &&
                      !assigned->key().isNull());
     return true;
 }
@@ -1224,7 +1224,7 @@ inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
 
     const int partitionId = queueContext.partitionId();
 
-    return partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID &&
+    return partitionId != mqbi::Storage::k_INVALID_PARTITION_ID &&
            hasActiveAvailablePrimary(partitionId, otherThan);
 }
 

@@ -130,7 +130,7 @@ static void test2_iterations()
                                        dummyUri,
                                        mqbu::StorageKey::k_NULL_KEY,
                                        &dummyDomain,
-                                       mqbs::DataStore::k_INVALID_PARTITION_ID,
+                                       mqbi::Storage::k_INVALID_PARTITION_ID,
                                        dummyDomainConfig,
                                        &dummyCapacityMeter,
                                        bmqtst::TestHelperUtil::allocator());

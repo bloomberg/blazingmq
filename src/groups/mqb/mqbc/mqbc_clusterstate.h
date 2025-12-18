@@ -216,7 +216,7 @@ class ClusterStateQueueInfo {
     /// Assigned queue key, only if cluster member (null if unassigned).
     mqbu::StorageKey d_key;
 
-    /// Assigned partitionId (@bbref{mqbs::DataStore::k_INVALID_PARTITION_ID}
+    /// Assigned partitionId (@bbref{mqbi::Storage::k_INVALID_PARTITION_ID}
     /// if unassigned).
     int d_partitionId;
 
@@ -782,7 +782,7 @@ class ClusterState {
 
 // CREATORS
 inline ClusterStatePartitionInfo::ClusterStatePartitionInfo()
-: d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+: d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_primaryLeaseId(0)
 , d_primaryNodeId(mqbnet::Cluster::k_INVALID_NODE_ID)
 , d_numQueuesMapped(0)
@@ -896,7 +896,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
     bslma::Allocator* allocator)
 : d_uri(uri, allocator)
 , d_key()
-, d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+, d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_appInfos(allocator)
 , d_state(State::k_NONE)
 , d_allocator_p(allocator)
@@ -962,7 +962,7 @@ inline void ClusterStateQueueInfo::reset()
     //       given instance of ClusterStateQueueInfo object).
 
     d_key.reset();
-    d_partitionId = mqbs::DataStore::k_INVALID_PARTITION_ID;
+    d_partitionId = mqbi::Storage::k_INVALID_PARTITION_ID;
     d_appInfos.clear();
 }
 
@@ -1107,7 +1107,7 @@ inline bool ClusterState::isSelfPrimary(int partitionId) const
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
     BSLS_ASSERT_SAFE(!cluster()->isRemote());
 
-    if (mqbs::DataStore::k_INVALID_PARTITION_ID == partitionId) {
+    if (mqbi::Storage::k_INVALID_PARTITION_ID == partitionId) {
         return false;  // RETURN
     }
 

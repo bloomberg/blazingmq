@@ -18,7 +18,11 @@
 
 #include <mqbscm_version.h>
 
+// BMQ
 #include <bmqu_memoutstream.h>
+
+// MQB
+#include <mqbi_storage.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -284,9 +288,130 @@ DispatcherReceiptEvent::~DispatcherReceiptEvent()
 // class DispatcherEvent
 // ---------------------
 
+DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
+: d_type(DispatcherEventType::e_UNDEFINED)
+, d_source_p(0)
+, d_destination_p(0)
+, d_ackMessage()
+, d_blob_sp(0, allocator)
+, d_options_sp(0, allocator)
+, d_clusterNode_p(0)
+, d_confirmMessage()
+, d_rejectMessage()
+, d_controlMessage(allocator)
+, d_guid(bmqt::MessageGUID())
+, d_isRelay(false)
+, d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
+, d_putHeader()
+, d_queueHandle_p(0)
+, d_queueId(bmqp::QueueId::k_UNASSIGNED_QUEUE_ID)
+, d_subQueueInfos(allocator)
+, d_messagePropertiesInfo()
+, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+, d_isOutOfOrder(false)
+, d_genCount(0)
+, d_callback(allocator)
+, d_finalizeCallback(allocator)
+{
+    // NOTHING
+}
+
 DispatcherEvent::~DispatcherEvent()
 {
     // NOTHING (interface)
+}
+
+void DispatcherEvent::reset()
+{
+    switch (d_type) {
+    case mqbi::DispatcherEventType::e_UNDEFINED: {
+        // NOTHING
+    } break;
+    case mqbi::DispatcherEventType::e_DISPATCHER: {
+        if (!d_finalizeCallback.empty()) {
+            // We only set finalizeCallback on e_DISPATCHER events
+
+            // TODO(678098): make a special event type that handles this case
+            d_finalizeCallback();
+        }
+
+        d_callback.reset();
+        d_finalizeCallback.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_CALLBACK: {
+        d_callback.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_CONTROL_MSG: {
+        d_controlMessage.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_CONFIRM: {
+        d_blob_sp.reset();
+        d_clusterNode_p  = 0;
+        d_confirmMessage = bmqp::ConfirmMessage();
+        d_isRelay        = false;
+    } break;
+    case mqbi::DispatcherEventType::e_REJECT: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+        d_rejectMessage = bmqp::RejectMessage();
+        d_isRelay       = false;
+        d_partitionId   = mqbi::Storage::k_INVALID_PARTITION_ID;
+    } break;
+    case mqbi::DispatcherEventType::e_PUSH: {
+        d_blob_sp.reset();
+        d_options_sp.reset();
+        d_clusterNode_p = 0;
+        d_guid          = bmqt::MessageGUID();
+        d_isRelay       = false;
+        d_queueId       = bmqp::QueueId::k_UNASSIGNED_QUEUE_ID;
+        d_subQueueInfos.clear();
+        d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
+        d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
+        d_isOutOfOrder             = false;
+    } break;
+    case mqbi::DispatcherEventType::e_PUT: {
+        d_blob_sp.reset();
+        d_options_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+        d_putHeader     = bmqp::PutHeader();
+        d_queueHandle_p = 0;
+        d_genCount      = 0;
+        d_state.reset();
+    } break;
+    case mqbi::DispatcherEventType::e_ACK: {
+        d_ackMessage = bmqp::AckMessage();
+        d_blob_sp.reset();
+        d_options_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+    } break;
+    case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+    } break;
+    case mqbi::DispatcherEventType::e_STORAGE: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+    } break;
+    case mqbi::DispatcherEventType::e_RECOVERY: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+        d_isRelay       = false;
+    } break;
+    case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
+        d_blob_sp.reset();
+        d_clusterNode_p = 0;
+    } break;
+    default: {
+        BSLS_ASSERT_OPT(false && "Unexpected event type");
+    } break;
+    }
+
+    d_type          = DispatcherEventType::e_UNDEFINED;
+    d_source_p      = 0;
+    d_destination_p = 0;
 }
 
 bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
@@ -335,7 +460,6 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
                                d_confirmMessage.subQueueId());
         printer.printAttribute("confirmMessage.guid",
                                d_confirmMessage.messageGUID());
-        printer.printAttribute("partitionId", d_partitionId);
         printer.printAttribute("isRelay", (d_isRelay ? "true" : "false"));
     } break;
     case DispatcherEventType::e_REJECT: {
@@ -371,7 +495,6 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
                                (d_blob_sp ? d_blob_sp->length() : -1));
         printer.printAttribute("optionsLength",
                                (d_options_sp ? d_options_sp->length() : -1));
-        printer.printAttribute("partitionId", d_partitionId);
         printer.printAttribute("putHeader.queueId", d_putHeader.queueId());
         printer.printAttribute("putHeader.guid", d_putHeader.messageGUID());
         printer.printAttribute("putHeader.flags", d_putHeader.flags());

@@ -100,7 +100,7 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
+const int  k_PROXY_PARTITION_ID = mqbi::Storage::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
 
 const bsls::Types::Int64 k_DEFAULT_MSG          = 20;

@@ -284,7 +284,7 @@ Test::Test()
             d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
             &d_domain,
-            mqbs::DataStore::k_INVALID_PARTITION_ID,
+            mqbi::Storage::k_INVALID_PARTITION_ID,
             getDomainConfig(),
             d_domain.capacityMeter(),
             d_allocator_p)

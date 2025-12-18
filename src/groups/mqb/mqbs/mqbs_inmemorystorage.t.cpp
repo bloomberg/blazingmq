@@ -98,7 +98,7 @@ namespace {
 
 // CONSTANTS
 const int  k_PARTITION_ID       = 1;
-const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
+const int  k_PROXY_PARTITION_ID = mqbi::Storage::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
 
 const bsls::Types::Int64 k_DEFAULT_MSG          = 20;
@@ -401,7 +401,7 @@ BMQTST_TEST(breathingTest)
     BMQTST_ASSERT_EQ(storage.isEmpty(), true);
     BMQTST_ASSERT_EQ(storage.partitionId(), k_PROXY_PARTITION_ID);
     BMQTST_ASSERT_EQ(storage.queue(), static_cast<mqbi::Queue*>(0));
-    // 'mqbs::DataStore::k_INVALID_PARTITION_ID' does not expose queue
+    // 'mqbi::Storage::k_INVALID_PARTITION_ID' does not expose queue
 
     BMQTST_ASSERT_PASS(storage.flushStorage());
     // Does nothing, at the time of this writing

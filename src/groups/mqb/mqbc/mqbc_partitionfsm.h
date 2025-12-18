@@ -304,7 +304,7 @@ class PartitionFSM {
 inline PartitionFSMEventData::PartitionFSMEventData()
 : d_source_p(0)
 , d_requestId(-1)  // Invalid requestId
-, d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+, d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_incrementCount(1)
 , d_primary_p(0)
 , d_primaryLeaseId(0)  // Invalid placeholder LeaseId
