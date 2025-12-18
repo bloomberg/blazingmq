@@ -236,10 +236,6 @@ class Dispatcher : public mqbi::Dispatcher {
     bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Not implemented.
-    bmqex::Executor clientExecutor(const mqbi::DispatcherClient* client) const
-        BSLS_KEYWORD_OVERRIDE;
-
     class InnerEventGuard;
     friend class InnerEventGuard;
     // A guard class that releases the even association when it goes out of
