@@ -411,7 +411,7 @@ RecordHeader::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct MessageRecord
 // --------------------
 
-const char MessageRecord::k_CAT_MASK              = 7;  // 00000111
+const char MessageRecord::k_CAT_MASK               = 7;  // 00000111
 const int MessageRecord::k_REFCOUNT_LOW_BITS_MASK = RecordHeader::k_FLAGS_MASK;
 
 bsl::ostream&

@@ -2076,8 +2076,7 @@ struct JournalOpRecord {
 
       public:
         // MANIPULATORS
-        ResizeStorageData&
-        setMaxJournalFileSize(bsls::Types::Uint64 value);
+        ResizeStorageData& setMaxJournalFileSize(bsls::Types::Uint64 value);
 
         ResizeStorageData& setMaxDataFileSize(bsls::Types::Uint64 value);
 
@@ -2123,21 +2122,21 @@ struct JournalOpRecord {
     /// `SyncPointData` respectively with the specified `syncPointType`,
     /// `sequenceNum`, `primaryNodeId`, `primaryLeaseId` and `magic` values.
     explicit JournalOpRecord(SyncPointType::Enum syncPointType,
-                    bsls::Types::Uint64 sequenceNum,
-                    int                 primaryNodeId,
-                    unsigned int        primaryLeaseId,
-                    unsigned int        dataFileOffsetDwords,
-                    unsigned int        qlistFileOffsetWords,
-                    unsigned int        magic);
+                             bsls::Types::Uint64 sequenceNum,
+                             int                 primaryNodeId,
+                             unsigned int        primaryLeaseId,
+                             unsigned int        dataFileOffsetDwords,
+                             unsigned int        qlistFileOffsetWords,
+                             unsigned int        magic);
 
     /// Create an instance and initialize corresponding fields of
     /// `ResizeStorageData` respectively with the specified
     /// `maxJournalFileSize`, `maxDataFileSize`, `maxQlistFileSize`
     /// and `magic` values.
     explicit JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
-                    bsls::Types::Uint64 maxDataFileSize,
-                    bsls::Types::Uint64 maxQlistFileSize,
-                    unsigned int        magic);
+                             bsls::Types::Uint64 maxDataFileSize,
+                             bsls::Types::Uint64 maxQlistFileSize,
+                             unsigned int        magic);
 
     // MANIPULATORS
     RecordHeader& header();
@@ -3183,9 +3182,9 @@ inline JournalOpRecord::JournalOpRecord(SyncPointType::Enum syncPointType,
 }
 
 inline JournalOpRecord::JournalOpRecord(bsls::Types::Uint64 maxJournalFileSize,
-                    bsls::Types::Uint64 maxDataFileSize,
-                    bsls::Types::Uint64 maxQlistFileSize,
-                    unsigned int        magic)
+                                        bsls::Types::Uint64 maxDataFileSize,
+                                        bsls::Types::Uint64 maxQlistFileSize,
+                                        unsigned int        magic)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
@@ -3229,8 +3228,7 @@ inline JournalOpRecord::SyncPointData& JournalOpRecord::syncPointData()
     return *reinterpret_cast<JournalOpRecord::SyncPointData*>(&d_recordData);
 }
 
-inline JournalOpRecord::ResizeStorageData&
-JournalOpRecord::resizeStorageData()
+inline JournalOpRecord::ResizeStorageData& JournalOpRecord::resizeStorageData()
 {
     BSLS_ASSERT_SAFE(JournalOpType::e_RESIZE_STORAGE == type());
     BSLS_ASSERT_SAFE(sizeof(d_recordData) == sizeof(ResizeStorageData));

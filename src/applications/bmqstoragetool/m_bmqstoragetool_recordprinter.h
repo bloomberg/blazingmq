@@ -282,8 +282,7 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
                       << spd.primaryLeaseId() << spd.sequenceNum()
                       << spd.primaryNodeId() << spd.dataFileOffsetDwords();
     }
-    else if (mqbs::JournalOpType::e_RESIZE_STORAGE ==
-             rec.d_record.type()) {
+    else if (mqbs::JournalOpType::e_RESIZE_STORAGE == rec.d_record.type()) {
         d_fields.push_back("MaxJournalFileSize");
         d_fields.push_back("MaxDataFileSize");
         d_fields.push_back("MaxQlistFileSize");
