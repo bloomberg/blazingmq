@@ -474,17 +474,17 @@ static void test1_breathingTest()
             .setType(JournalOpType::e_RESIZE_STORAGE)
             .setMagic(0xdeadbeef);
 
-        JournalOpRecord::resizeStorageData& ussd =
+        JournalOpRecord::ResizeStorageData& rsd =
             fh.resizeStorageData();
-        ussd.setMaxJournalFileSize(0x12345678)
+        rsd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);
 
         BMQTST_ASSERT_EQ(fh.flags(), 1000U);
         BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_RESIZE_STORAGE);
-        BMQTST_ASSERT_EQ(ussd.maxJournalFileSize(), 0x12345678);
-        BMQTST_ASSERT_EQ(ussd.maxDataFileSize(), 0x87654321);
-        BMQTST_ASSERT_EQ(ussd.maxQlistFileSize(), 0x12348765);
+        BMQTST_ASSERT_EQ(rsd.maxJournalFileSize(), 0x12345678);
+        BMQTST_ASSERT_EQ(rsd.maxDataFileSize(), 0x87654321);
+        BMQTST_ASSERT_EQ(rsd.maxQlistFileSize(), 0x12348765);
         BMQTST_ASSERT_EQ(fh.magic(), 0xdeadbeef);
     }
 }
@@ -805,9 +805,9 @@ static void test3_printTest()
         jOpRec.header() = rh;
         jOpRec.setFlags(0).setType(JournalOpType::e_RESIZE_STORAGE);
 
-        JournalOpRecord::resizeStorageData& ussd =
+        JournalOpRecord::ResizeStorageData& rsd =
             jOpRec.resizeStorageData();
-        ussd.setMaxJournalFileSize(0x12345678)
+        rsd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);
 
