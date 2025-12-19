@@ -2247,11 +2247,10 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
             continue;  // CONTINUE
         }
 
-        // TODO: change description
-
         // So we have encountered a JournalOp record in the stream.  Currently,
-        // there is 1 type of JournalOp record: SYNCPOINT (see
-        // mqbs::JournalOpType).  We know that SYNCPOINT can be of 2 sub-types:
+        // there are 2 types of JournalOp record: SYNCPOINT and RESIZE_STORAGE (see
+        // mqbs::JournalOpType).  RESIZE_STORAGE is supported only in FSM mode.
+        // (should be never encountered here).  We know that SYNCPOINT can be of 2 sub-types:
         // REGULAR and ROLLOVER (see mqbs::SyncPointType).  We don't care about
         // sub-type, it can be either.
 
@@ -2308,7 +2307,9 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
         }
 
         if (mqbs::JournalOpType::e_SYNCPOINT != journalOpRec->type()) {
-            // This should not occur.  Per BlazingMQ replication algo, only a
+            // This should not occur. RESIZE_STORAGE record type is supported 
+            // only in FSM mode and should not be encountered here.
+            // Per BlazingMQ replication algo, only a
             // JournalOp record of type SYNCPOINT should be encountered.
 
             BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2323,8 +2324,6 @@ bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                 << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
-
-        // TODO: Need to handle storage size update sync point type???
 
         if (mqbs::SyncPointType::e_UNDEFINED ==
             journalOpRec->syncPointType()) {
