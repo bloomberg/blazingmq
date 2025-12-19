@@ -107,13 +107,14 @@ void printFileHeader(bsl::ostream&                     stream,
     fields.push_back("FileType");
     fields.push_back("HeaderWords");
     fields.push_back("PartitionId");
+    fields.push_back("MaxFileSize");
 
     const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
 
     PRINTER_TYPE printer(stream, &fields);
     printer << static_cast<unsigned int>(fh.protocolVersion()) << fh.bitness()
             << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
-            << fh.partitionId();
+            << fh.partitionId() << fh.maxFileSize();
 }
 
 /// Print the specified `header` while using the specified `journalFd` and the
@@ -128,6 +129,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
     fields.reserve(10);
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
+
     fields.push_back("First SyncPointRecord offset words");
     fields.push_back("First SyncPointRecord type");
     fields.push_back("First SyncPointRecord primaryNodeId");
@@ -160,9 +162,12 @@ void printJournalFileHeader(bsl::ostream&                     stream,
 
         BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == spRec->type());
 
-        printer << spRec->syncPointType() << spRec->primaryNodeId()
-                << spRec->primaryLeaseId() << spRec->sequenceNum()
-                << spRec->dataFileOffsetDwords();
+        const mqbs::JournalOpRecord::SyncPointData& spd =
+            spRec->syncPointData();
+
+        printer << spRec->syncPointType() << spd.primaryNodeId()
+                << spd.primaryLeaseId() << spd.sequenceNum()
+                << spd.dataFileOffsetDwords();
 
         bsls::Types::Uint64 epochValue = spRec->header().timestamp();
         bdlt::Datetime      datetime;

@@ -396,8 +396,7 @@ static void test3_lastJournalSyncPoint()
                 // 7th record is sync point
                 syncPointPos = currPos;
                 OffsetPtr<JournalOpRecord> rec(block, currPos);
-                new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                                                SyncPointType::e_REGULAR,
+                new (rec.get()) JournalOpRecord(SyncPointType::e_REGULAR,
                                                 10000,  // seqNum
                                                 10,     // primaryNodeId
                                                 2,      // primaryLeaseId
@@ -495,8 +494,7 @@ static void test3_lastJournalSyncPoint()
         for (unsigned int i = 0; i < numRecords; ++i) {
             // Must be sync point record
             OffsetPtr<JournalOpRecord> rec(block, currPos);
-            new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                                            SyncPointType::e_REGULAR,
+            new (rec.get()) JournalOpRecord(SyncPointType::e_REGULAR,
                                             10000,  // seqNum
                                             10,     // leaderTerm
                                             2,      // leaderNodeId

@@ -194,17 +194,17 @@ const bdlat_AttributeInfo ClusterAttributes::ATTRIBUTE_INFO_ARRAY[] = {
      "isCSLModeEnabled",
      sizeof("isCSLModeEnabled") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_IS_F_S_M_WORKFLOW,
      "isFSMWorkflow",
      sizeof("isFSMWorkflow") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DOES_F_S_MWRITE_Q_L_I_S_T,
      "doesFSMwriteQLIST",
      sizeof("doesFSMwriteQLIST") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -300,42 +300,42 @@ const bdlat_AttributeInfo ClusterMonitorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxTimeLeader",
      sizeof("maxTimeLeader") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_MASTER,
      "maxTimeMaster",
      sizeof("maxTimeMaster") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_NODE,
      "maxTimeNode",
      sizeof("maxTimeNode") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_TIME_FAILOVER,
      "maxTimeFailover",
      sizeof("maxTimeFailover") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_LEADER,
      "thresholdLeader",
      sizeof("thresholdLeader") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_MASTER,
      "thresholdMaster",
      sizeof("thresholdMaster") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_NODE,
      "thresholdNode",
      sizeof("thresholdNode") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_THRESHOLD_FAILOVER,
      "thresholdFailover",
      sizeof("thresholdFailover") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -721,47 +721,47 @@ const bdlat_AttributeInfo ElectorConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "initialWaitTimeoutMs",
      sizeof("initialWaitTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_RANDOM_WAIT_TIMEOUT_MS,
      "maxRandomWaitTimeoutMs",
      sizeof("maxRandomWaitTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SCOUTING_RESULT_TIMEOUT_MS,
      "scoutingResultTimeoutMs",
      sizeof("scoutingResultTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ELECTION_RESULT_TIMEOUT_MS,
      "electionResultTimeoutMs",
      sizeof("electionResultTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_BROADCAST_PERIOD_MS,
      "heartbeatBroadcastPeriodMs",
      sizeof("heartbeatBroadcastPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_CHECK_PERIOD_MS,
      "heartbeatCheckPeriodMs",
      sizeof("heartbeatCheckPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_MISS_COUNT,
      "heartbeatMissCount",
      sizeof("heartbeatMissCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUORUM,
      "quorum",
      sizeof("quorum") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LEADER_SYNC_DELAY_MS,
      "leaderSyncDelayMs",
      sizeof("leaderSyncDelayMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -948,22 +948,22 @@ const bdlat_AttributeInfo Heartbeat::ATTRIBUTE_INFO_ARRAY[] = {
      "client",
      sizeof("client") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DOWNSTREAM_BROKER,
      "downstreamBroker",
      sizeof("downstreamBroker") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_UPSTREAM_BROKER,
      "upstreamBroker",
      sizeof("upstreamBroker") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLUSTER_PEER,
      "clusterPeer",
      sizeof("clusterPeer") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1052,17 +1052,17 @@ const bdlat_AttributeInfo LogDumpConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "recordBufferSize",
      sizeof("recordBufferSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_RECORDING_LEVEL,
      "recordingLevel",
      sizeof("recordingLevel") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_TRIGGER_LEVEL,
      "triggerLevel",
      sizeof("triggerLevel") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1272,17 +1272,17 @@ const bdlat_AttributeInfo MessagePropertiesV2::ATTRIBUTE_INFO_ARRAY[] = {
      "advertiseV2Support",
      sizeof("advertiseV2Support") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MIN_CPP_SDK_VERSION,
      "minCppSdkVersion",
      sizeof("minCppSdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MIN_JAVA_SDK_VERSION,
      "minJavaSdkVersion",
      sizeof("minJavaSdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -1373,22 +1373,22 @@ const bdlat_AttributeInfo MessageThrottleConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "lowThreshold",
      sizeof("lowThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HIGH_THRESHOLD,
      "highThreshold",
      sizeof("highThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOW_INTERVAL,
      "lowInterval",
      sizeof("lowInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HIGH_INTERVAL,
      "highInterval",
      sizeof("highInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2120,62 +2120,62 @@ const bdlat_AttributeInfo QueueOperationsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "openTimeoutMs",
      sizeof("openTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONFIGURE_TIMEOUT_MS,
      "configureTimeoutMs",
      sizeof("configureTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CLOSE_TIMEOUT_MS,
      "closeTimeoutMs",
      sizeof("closeTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_TIMEOUT_MS,
      "reopenTimeoutMs",
      sizeof("reopenTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_RETRY_INTERVAL_MS,
      "reopenRetryIntervalMs",
      sizeof("reopenRetryIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_REOPEN_MAX_ATTEMPTS,
      "reopenMaxAttempts",
      sizeof("reopenMaxAttempts") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ASSIGNMENT_TIMEOUT_MS,
      "assignmentTimeoutMs",
      sizeof("assignmentTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_KEEPALIVE_DURATION_MS,
      "keepaliveDurationMs",
      sizeof("keepaliveDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSUMPTION_MONITOR_PERIOD_MS,
      "consumptionMonitorPeriodMs",
      sizeof("consumptionMonitorPeriodMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STOP_TIMEOUT_MS,
      "stopTimeoutMs",
      sizeof("stopTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SHUTDOWN_TIMEOUT_MS,
      "shutdownTimeoutMs",
      sizeof("shutdownTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ACK_WINDOW_SIZE,
      "ackWindowSize",
      sizeof("ackWindowSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2439,7 +2439,7 @@ const bdlat_AttributeInfo StatsPrinterConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "printInterval",
      sizeof("printInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FILE,
      "file",
      sizeof("file") - 1,
@@ -2454,12 +2454,12 @@ const bdlat_AttributeInfo StatsPrinterConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "rotateBytes",
      sizeof("rotateBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ROTATE_DAYS,
      "rotateDays",
      sizeof("rotateDays") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2640,47 +2640,47 @@ const bdlat_AttributeInfo StorageSyncConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "startupRecoveryMaxDurationMs",
      sizeof("startupRecoveryMaxDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_ATTEMPTS_STORAGE_SYNC,
      "maxAttemptsStorageSync",
      sizeof("maxAttemptsStorageSync") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STORAGE_SYNC_REQ_TIMEOUT_MS,
      "storageSyncReqTimeoutMs",
      sizeof("storageSyncReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MASTER_SYNC_MAX_DURATION_MS,
      "masterSyncMaxDurationMs",
      sizeof("masterSyncMaxDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_STATE_REQ_TIMEOUT_MS,
      "partitionSyncStateReqTimeoutMs",
      sizeof("partitionSyncStateReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_DATA_REQ_TIMEOUT_MS,
      "partitionSyncDataReqTimeoutMs",
      sizeof("partitionSyncDataReqTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_STARTUP_WAIT_DURATION_MS,
      "startupWaitDurationMs",
      sizeof("startupWaitDurationMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FILE_CHUNK_SIZE,
      "fileChunkSize",
      sizeof("fileChunkSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PARTITION_SYNC_EVENT_SIZE,
      "partitionSyncEventSize",
      sizeof("partitionSyncEventSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -2814,7 +2814,7 @@ const bdlat_AttributeInfo SyslogConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "enabled",
      sizeof("enabled") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_APP_NAME,
      "appName",
      sizeof("appName") - 1,
@@ -4038,7 +4038,7 @@ const bdlat_AttributeInfo LogController::ATTRIBUTE_INFO_ARRAY[] = {
      "bslsLogSeverityThreshold",
      sizeof("bslsLogSeverityThreshold") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_CONSOLE_SEVERITY_THRESHOLD,
      "consoleSeverityThreshold",
      sizeof("consoleSeverityThreshold") - 1,
@@ -4279,6 +4279,20 @@ const char PartitionConfig::CLASS_NAME[] = "PartitionConfig";
 const bsls::Types::Uint64
     PartitionConfig::DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE = 67108864;
 
+const bsls::Types::Uint64
+    PartitionConfig::DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT = 25769803776;
+
+const bsls::Types::Uint64
+    PartitionConfig::DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT = 4294967296;
+
+const bsls::Types::Uint64
+    PartitionConfig::DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT = 1073741824;
+
+const unsigned int PartitionConfig::DEFAULT_INITIALIZER_GROW_STEP_PERCENT = 50;
+
+const unsigned int
+    PartitionConfig::DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT = 20;
+
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREALLOCATE = false;
 
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREFAULT_PAGES = false;
@@ -4320,12 +4334,37 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxCSLFileSize",
      sizeof("maxCSLFileSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT,
+     "dataFileGrowLimit",
+     sizeof("dataFileGrowLimit") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT,
+     "journalFileGrowLimit",
+     sizeof("journalFileGrowLimit") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT,
+     "qListFileGrowLimit",
+     sizeof("qListFileGrowLimit") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_GROW_STEP_PERCENT,
+     "growStepPercent",
+     sizeof("growStepPercent") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+    {ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT,
+     "minAvailSpacePercent",
+     sizeof("minAvailSpacePercent") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PREALLOCATE,
      "preallocate",
      sizeof("preallocate") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS,
      "maxArchivedFileSets",
      sizeof("maxArchivedFileSets") - 1,
@@ -4335,12 +4374,12 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "prefaultPages",
      sizeof("prefaultPages") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN,
      "flushAtShutdown",
      sizeof("flushAtShutdown") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_SYNC_CONFIG,
      "syncConfig",
      sizeof("syncConfig") - 1,
@@ -4352,7 +4391,7 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PartitionConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 17; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PartitionConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4382,6 +4421,16 @@ const bdlat_AttributeInfo* PartitionConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE];
     case ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE];
+    case ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT];
+    case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT];
+    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT];
+    case ATTRIBUTE_ID_GROW_STEP_PERCENT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT];
+    case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT];
     case ATTRIBUTE_ID_PREALLOCATE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREALLOCATE];
     case ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS:
@@ -4403,9 +4452,14 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 , d_maxJournalFileSize()
 , d_maxQlistFileSize()
 , d_maxCSLFileSize(DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE)
+, d_dataFileGrowLimit(DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT)
+, d_journalFileGrowLimit(DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT)
+, d_qListFileGrowLimit(DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT)
 , d_location(basicAllocator)
 , d_archiveLocation(basicAllocator)
 , d_syncConfig()
+, d_growStepPercent(DEFAULT_INITIALIZER_GROW_STEP_PERCENT)
+, d_minAvailSpacePercent(DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT)
 , d_numPartitions()
 , d_maxArchivedFileSets()
 , d_preallocate(DEFAULT_INITIALIZER_PREALLOCATE)
@@ -4420,9 +4474,14 @@ PartitionConfig::PartitionConfig(const PartitionConfig& original,
 , d_maxJournalFileSize(original.d_maxJournalFileSize)
 , d_maxQlistFileSize(original.d_maxQlistFileSize)
 , d_maxCSLFileSize(original.d_maxCSLFileSize)
+, d_dataFileGrowLimit(original.d_dataFileGrowLimit)
+, d_journalFileGrowLimit(original.d_journalFileGrowLimit)
+, d_qListFileGrowLimit(original.d_qListFileGrowLimit)
 , d_location(original.d_location, basicAllocator)
 , d_archiveLocation(original.d_archiveLocation, basicAllocator)
 , d_syncConfig(original.d_syncConfig)
+, d_growStepPercent(original.d_growStepPercent)
+, d_minAvailSpacePercent(original.d_minAvailSpacePercent)
 , d_numPartitions(original.d_numPartitions)
 , d_maxArchivedFileSets(original.d_maxArchivedFileSets)
 , d_preallocate(original.d_preallocate)
@@ -4438,9 +4497,14 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original) noexcept
   d_maxJournalFileSize(bsl::move(original.d_maxJournalFileSize)),
   d_maxQlistFileSize(bsl::move(original.d_maxQlistFileSize)),
   d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize)),
+  d_dataFileGrowLimit(bsl::move(original.d_dataFileGrowLimit)),
+  d_journalFileGrowLimit(bsl::move(original.d_journalFileGrowLimit)),
+  d_qListFileGrowLimit(bsl::move(original.d_qListFileGrowLimit)),
   d_location(bsl::move(original.d_location)),
   d_archiveLocation(bsl::move(original.d_archiveLocation)),
   d_syncConfig(bsl::move(original.d_syncConfig)),
+  d_growStepPercent(bsl::move(original.d_growStepPercent)),
+  d_minAvailSpacePercent(bsl::move(original.d_minAvailSpacePercent)),
   d_numPartitions(bsl::move(original.d_numPartitions)),
   d_maxArchivedFileSets(bsl::move(original.d_maxArchivedFileSets)),
   d_preallocate(bsl::move(original.d_preallocate)),
@@ -4455,9 +4519,14 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original,
 , d_maxJournalFileSize(bsl::move(original.d_maxJournalFileSize))
 , d_maxQlistFileSize(bsl::move(original.d_maxQlistFileSize))
 , d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize))
+, d_dataFileGrowLimit(bsl::move(original.d_dataFileGrowLimit))
+, d_journalFileGrowLimit(bsl::move(original.d_journalFileGrowLimit))
+, d_qListFileGrowLimit(bsl::move(original.d_qListFileGrowLimit))
 , d_location(bsl::move(original.d_location), basicAllocator)
 , d_archiveLocation(bsl::move(original.d_archiveLocation), basicAllocator)
 , d_syncConfig(bsl::move(original.d_syncConfig))
+, d_growStepPercent(bsl::move(original.d_growStepPercent))
+, d_minAvailSpacePercent(bsl::move(original.d_minAvailSpacePercent))
 , d_numPartitions(bsl::move(original.d_numPartitions))
 , d_maxArchivedFileSets(bsl::move(original.d_maxArchivedFileSets))
 , d_preallocate(bsl::move(original.d_preallocate))
@@ -4476,18 +4545,23 @@ PartitionConfig::~PartitionConfig()
 PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
 {
     if (this != &rhs) {
-        d_numPartitions       = rhs.d_numPartitions;
-        d_location            = rhs.d_location;
-        d_archiveLocation     = rhs.d_archiveLocation;
-        d_maxDataFileSize     = rhs.d_maxDataFileSize;
-        d_maxJournalFileSize  = rhs.d_maxJournalFileSize;
-        d_maxQlistFileSize    = rhs.d_maxQlistFileSize;
-        d_maxCSLFileSize      = rhs.d_maxCSLFileSize;
-        d_preallocate         = rhs.d_preallocate;
-        d_maxArchivedFileSets = rhs.d_maxArchivedFileSets;
-        d_prefaultPages       = rhs.d_prefaultPages;
-        d_flushAtShutdown     = rhs.d_flushAtShutdown;
-        d_syncConfig          = rhs.d_syncConfig;
+        d_numPartitions        = rhs.d_numPartitions;
+        d_location             = rhs.d_location;
+        d_archiveLocation      = rhs.d_archiveLocation;
+        d_maxDataFileSize      = rhs.d_maxDataFileSize;
+        d_maxJournalFileSize   = rhs.d_maxJournalFileSize;
+        d_maxQlistFileSize     = rhs.d_maxQlistFileSize;
+        d_maxCSLFileSize       = rhs.d_maxCSLFileSize;
+        d_dataFileGrowLimit    = rhs.d_dataFileGrowLimit;
+        d_journalFileGrowLimit = rhs.d_journalFileGrowLimit;
+        d_qListFileGrowLimit   = rhs.d_qListFileGrowLimit;
+        d_growStepPercent      = rhs.d_growStepPercent;
+        d_minAvailSpacePercent = rhs.d_minAvailSpacePercent;
+        d_preallocate          = rhs.d_preallocate;
+        d_maxArchivedFileSets  = rhs.d_maxArchivedFileSets;
+        d_prefaultPages        = rhs.d_prefaultPages;
+        d_flushAtShutdown      = rhs.d_flushAtShutdown;
+        d_syncConfig           = rhs.d_syncConfig;
     }
 
     return *this;
@@ -4498,18 +4572,23 @@ PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
 PartitionConfig& PartitionConfig::operator=(PartitionConfig&& rhs)
 {
     if (this != &rhs) {
-        d_numPartitions       = bsl::move(rhs.d_numPartitions);
-        d_location            = bsl::move(rhs.d_location);
-        d_archiveLocation     = bsl::move(rhs.d_archiveLocation);
-        d_maxDataFileSize     = bsl::move(rhs.d_maxDataFileSize);
-        d_maxJournalFileSize  = bsl::move(rhs.d_maxJournalFileSize);
-        d_maxQlistFileSize    = bsl::move(rhs.d_maxQlistFileSize);
-        d_maxCSLFileSize      = bsl::move(rhs.d_maxCSLFileSize);
-        d_preallocate         = bsl::move(rhs.d_preallocate);
-        d_maxArchivedFileSets = bsl::move(rhs.d_maxArchivedFileSets);
-        d_prefaultPages       = bsl::move(rhs.d_prefaultPages);
-        d_flushAtShutdown     = bsl::move(rhs.d_flushAtShutdown);
-        d_syncConfig          = bsl::move(rhs.d_syncConfig);
+        d_numPartitions        = bsl::move(rhs.d_numPartitions);
+        d_location             = bsl::move(rhs.d_location);
+        d_archiveLocation      = bsl::move(rhs.d_archiveLocation);
+        d_maxDataFileSize      = bsl::move(rhs.d_maxDataFileSize);
+        d_maxJournalFileSize   = bsl::move(rhs.d_maxJournalFileSize);
+        d_maxQlistFileSize     = bsl::move(rhs.d_maxQlistFileSize);
+        d_maxCSLFileSize       = bsl::move(rhs.d_maxCSLFileSize);
+        d_dataFileGrowLimit    = bsl::move(rhs.d_dataFileGrowLimit);
+        d_journalFileGrowLimit = bsl::move(rhs.d_journalFileGrowLimit);
+        d_qListFileGrowLimit   = bsl::move(rhs.d_qListFileGrowLimit);
+        d_growStepPercent      = bsl::move(rhs.d_growStepPercent);
+        d_minAvailSpacePercent = bsl::move(rhs.d_minAvailSpacePercent);
+        d_preallocate          = bsl::move(rhs.d_preallocate);
+        d_maxArchivedFileSets  = bsl::move(rhs.d_maxArchivedFileSets);
+        d_prefaultPages        = bsl::move(rhs.d_prefaultPages);
+        d_flushAtShutdown      = bsl::move(rhs.d_flushAtShutdown);
+        d_syncConfig           = bsl::move(rhs.d_syncConfig);
     }
 
     return *this;
@@ -4524,8 +4603,13 @@ void PartitionConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_maxDataFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxJournalFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxQlistFileSize);
-    d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
-    d_preallocate    = DEFAULT_INITIALIZER_PREALLOCATE;
+    d_maxCSLFileSize       = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
+    d_dataFileGrowLimit    = DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT;
+    d_journalFileGrowLimit = DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT;
+    d_qListFileGrowLimit   = DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT;
+    d_growStepPercent      = DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
+    d_minAvailSpacePercent = DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT;
+    d_preallocate          = DEFAULT_INITIALIZER_PREALLOCATE;
     bdlat_ValueTypeFunctions::reset(&d_maxArchivedFileSets);
     d_prefaultPages   = DEFAULT_INITIALIZER_PREFAULT_PAGES;
     d_flushAtShutdown = DEFAULT_INITIALIZER_FLUSH_AT_SHUTDOWN;
@@ -4547,6 +4631,13 @@ bsl::ostream& PartitionConfig::print(bsl::ostream& stream,
     printer.printAttribute("maxJournalFileSize", this->maxJournalFileSize());
     printer.printAttribute("maxQlistFileSize", this->maxQlistFileSize());
     printer.printAttribute("maxCSLFileSize", this->maxCSLFileSize());
+    printer.printAttribute("dataFileGrowLimit", this->dataFileGrowLimit());
+    printer.printAttribute("journalFileGrowLimit",
+                           this->journalFileGrowLimit());
+    printer.printAttribute("qListFileGrowLimit", this->qListFileGrowLimit());
+    printer.printAttribute("growStepPercent", this->growStepPercent());
+    printer.printAttribute("minAvailSpacePercent",
+                           this->minAvailSpacePercent());
     printer.printAttribute("preallocate", this->preallocate());
     printer.printAttribute("maxArchivedFileSets", this->maxArchivedFileSets());
     printer.printAttribute("prefaultPages", this->prefaultPages());
@@ -4709,17 +4800,17 @@ const bdlat_AttributeInfo StatPluginConfigPrometheus::ATTRIBUTE_INFO_ARRAY[] =
       "mode",
       sizeof("mode") - 1,
       "",
-      bdlat_FormattingMode::e_DEFAULT},
+      bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
      {ATTRIBUTE_ID_HOST,
       "host",
       sizeof("host") - 1,
       "",
-      bdlat_FormattingMode::e_TEXT},
+      bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
      {ATTRIBUTE_ID_PORT,
       "port",
       sizeof("port") - 1,
       "",
-      bdlat_FormattingMode::e_DEC}};
+      bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -4883,7 +4974,7 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "maxConnections",
      sizeof("maxConnections") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LOW_WATERMARK,
      "lowWatermark",
      sizeof("lowWatermark") - 1,
@@ -4898,17 +4989,17 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "nodeLowWatermark",
      sizeof("nodeLowWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NODE_HIGH_WATERMARK,
      "nodeHighWatermark",
      sizeof("nodeHighWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS,
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_LISTENERS,
      "listeners",
      sizeof("listeners") - 1,
@@ -5637,32 +5728,32 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "name",
      sizeof("name") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_SIZE,
      "queueSize",
      sizeof("queueSize") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK,
      "queueHighWatermark",
      sizeof("queueHighWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_QUEUE_LOW_WATERMARK,
      "queueLowWatermark",
      sizeof("queueLowWatermark") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PUBLISH_INTERVAL,
      "publishInterval",
      sizeof("publishInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_NAMESPACE_PREFIX,
      "namespacePrefix",
      sizeof("namespacePrefix") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_HOSTS,
      "hosts",
      sizeof("hosts") - 1,
@@ -5672,7 +5763,7 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "instanceId",
      sizeof("instanceId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PROMETHEUS_SPECIFIC,
      "prometheusSpecific",
      sizeof("prometheusSpecific") - 1,
@@ -6562,7 +6653,7 @@ const bdlat_AttributeInfo StatsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "snapshotInterval",
      sizeof("snapshotInterval") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PLUGINS,
      "plugins",
      sizeof("plugins") - 1,
@@ -6754,7 +6845,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "latencyMonitorDomain",
      sizeof("latencyMonitorDomain") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_DISPATCHER_CONFIG,
      "dispatcherConfig",
      sizeof("dispatcherConfig") - 1,
@@ -6789,17 +6880,17 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "configureStream",
      sizeof("configureStream") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS,
      "advertiseSubscriptions",
      sizeof("advertiseSubscriptions") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT},
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS,
      "routeCommandTimeoutMs",
      sizeof("routeCommandTimeoutMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
+     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_AUTHENTICATION,
      "authentication",
      sizeof("authentication") - 1,
