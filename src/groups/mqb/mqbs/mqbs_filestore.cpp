@@ -3186,9 +3186,8 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     }
 
     unsigned int availableSpacePercentJournal = 0;
-    // If journalFileGrowLimit is not set or less, use current max file size as
-    // grow limit TBD: or use d_config.maxJournalFileSize() as a limit? But
-    // d_partitionMaxFileSizes was agreed at quorum time, so better to use it.
+    // If journalFileGrowLimit is not set, use current max file size as
+    // grow limit.
     const bsls::Types::Uint64 journalFileSizeGrowLimit = bsl::max(
         d_config.journalFileGrowLimit(),
         d_partitionMaxFileSizes.journalFileSize());
@@ -3213,7 +3212,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     }
 
     unsigned int availableSpacePercentData = 0;
-    // If dataFileGrowLimit is not set or less, use current max file size as
+    // If dataFileGrowLimit is not set, use current max file size as
     // grow limit
     const bsls::Types::Uint64 dataFileSizeGrowLimit = bsl::max(
         d_config.dataFileGrowLimit(),
@@ -3240,7 +3239,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             outstandingBytesQlist += requestedSpace;
         }
 
-        // If qListFileGrowLimit is not set or less, use current max file size
+        // If qListFileGrowLimit is not set, use current max file size
         // as grow limit
         const bsls::Types::Uint64 qListFileSizeGrowLimit = bsl::max(
             d_config.qListFileGrowLimit(),
