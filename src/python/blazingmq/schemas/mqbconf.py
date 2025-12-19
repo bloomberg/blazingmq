@@ -16,7 +16,7 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 __NAMESPACE__ = "urn:x-bloomberg-com:mqbconfm"
 
@@ -172,7 +172,7 @@ class QueueModeFanout:
     publishAppIdMetrics: Whether to publish appId metrics.
     """
 
-    app_ids: List[str] = field(
+    app_ids: list[str] = field(
         default_factory=list,
         metadata={
             "name": "appIDs",
@@ -513,7 +513,7 @@ class Domain:
             "required": True,
         },
     )
-    subscriptions: List[Subscription] = field(
+    subscriptions: list[Subscription] = field(
         default_factory=list,
         metadata={
             "type": "Element",

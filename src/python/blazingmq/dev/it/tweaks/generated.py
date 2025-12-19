@@ -1221,10 +1221,10 @@ class TweakFactory:
 
             journal_file_grow_limit = JournalFileGrowLimit()
 
-            class QlistFileGrowLimit(metaclass=TweakMetaclass):
+            class QListFileGrowLimit(metaclass=TweakMetaclass):
                 def __call__(self, value: int) -> Callable: ...
 
-            qlist_file_grow_limit = QlistFileGrowLimit()
+            q_list_file_grow_limit = QListFileGrowLimit()
 
             class GrowStepPercent(metaclass=TweakMetaclass):
                 def __call__(self, value: int) -> Callable: ...

@@ -438,7 +438,7 @@ class Proto:
                 max_qlist_file_size=33554432,
                 data_file_grow_limit=25769803776,
                 journal_file_grow_limit=4294967296,
-                qlist_file_grow_limit=1073741824,
+                q_list_file_grow_limit=1073741824,
                 grow_step_percent=50,
                 min_avail_space_percent=20,
                 preallocate=False,

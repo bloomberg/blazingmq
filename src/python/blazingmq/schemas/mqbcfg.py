@@ -15,7 +15,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 __NAMESPACE__ = "http://bloomberg.com/schemas/mqbcfg"
 
@@ -630,7 +630,7 @@ class PluginSettingValue:
 
 @dataclass
 class Plugins:
-    libraries: List[str] = field(
+    libraries: list[str] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -638,7 +638,7 @@ class Plugins:
             "min_occurs": 1,
         },
     )
-    enabled: List[str] = field(
+    enabled: list[str] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1296,7 +1296,7 @@ class LogController:
             "required": True,
         },
     )
-    categories: List[str] = field(
+    categories: list[str] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1337,7 +1337,7 @@ class PartitionConfig:
     dataFileGrowLimit....: limit for data file growth during rollover
     journalFileGrowLimit.: limit for journal file growth during rollover
     qListFileGrowLimit...: limit for qlist file growth during rollover
-    growStepPercent......: step (in percents of max file size) for file
+    growStepPercent.....: step (in percents of max file size) for file
     growth during rollover
     minAvailSpacePercent.: minimum available free file space (in percents)
     which will appear after rollover (rollover criteria)
@@ -1433,10 +1433,10 @@ class PartitionConfig:
             "required": True,
         },
     )
-    qlist_file_grow_limit: int = field(
+    q_list_file_grow_limit: int = field(
         default=1073741824,
         metadata={
-            "name": "qlistFileGrowLimit",
+            "name": "qListFileGrowLimit",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1661,7 +1661,7 @@ class TcpInterfaceConfig:
             "required": True,
         },
     )
-    listeners: List[TcpInterfaceListener] = field(
+    listeners: list[TcpInterfaceListener] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1688,7 +1688,7 @@ class AuthenticatorPluginConfig:
             "required": True,
         },
     )
-    settings: List[PluginSettingKeyValue] = field(
+    settings: list[PluginSettingKeyValue] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1847,7 +1847,7 @@ class StatPluginConfig:
             "required": True,
         },
     )
-    hosts: List[str] = field(
+    hosts: list[str] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1920,7 +1920,7 @@ class AuthenticatorConfig:
     anonymous authentication.
     """
 
-    authenticators: List[AuthenticatorPluginConfig] = field(
+    authenticators: list[AuthenticatorPluginConfig] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -1961,7 +1961,7 @@ class ClusterDefinition:
             "required": True,
         },
     )
-    nodes: List[ClusterNode] = field(
+    nodes: list[ClusterNode] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -2053,7 +2053,7 @@ class ClusterProxyDefinition:
             "required": True,
         },
     )
-    nodes: List[ClusterNode] = field(
+    nodes: list[ClusterNode] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -2101,7 +2101,7 @@ class StatsConfig:
             "required": True,
         },
     )
-    plugins: List[StatPluginConfig] = field(
+    plugins: list[StatPluginConfig] = field(
         default_factory=list,
         metadata={
             "type": "Element",
@@ -2327,7 +2327,7 @@ class ClustersDefinition:
     proxyClusters..............: array of cluster proxy definition
     """
 
-    my_clusters: List[ClusterDefinition] = field(
+    my_clusters: list[ClusterDefinition] = field(
         default_factory=list,
         metadata={
             "name": "myClusters",
@@ -2336,7 +2336,7 @@ class ClustersDefinition:
             "min_occurs": 1,
         },
     )
-    my_virtual_clusters: List[VirtualClusterInformation] = field(
+    my_virtual_clusters: list[VirtualClusterInformation] = field(
         default_factory=list,
         metadata={
             "name": "myVirtualClusters",
@@ -2345,7 +2345,7 @@ class ClustersDefinition:
             "min_occurs": 1,
         },
     )
-    proxy_clusters: List[ClusterProxyDefinition] = field(
+    proxy_clusters: list[ClusterProxyDefinition] = field(
         default_factory=list,
         metadata={
             "name": "proxyClusters",
