@@ -683,7 +683,8 @@ class DataStore : public mqbi::DispatcherClient {
 
     /// Write a RESIZE_STORAGE record to the data store with the specified
     /// `maxFileSizes`.
-    virtual int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes) = 0;
+    virtual int writeResizeStorageRecord(
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes) = 0;
 
     /// Remove the record identified by the specified `handle`.  Return zero
     /// on success, non-zero value if `handle` is invalid.  Behavior is

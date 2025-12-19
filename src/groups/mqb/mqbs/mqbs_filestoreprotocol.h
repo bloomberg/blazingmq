@@ -3359,9 +3359,9 @@ JournalOpRecord::SyncPointData::qlistFileOffsetWords() const
     return d_qlistFileOffsetWords;
 }
 
-// --------------------------------------------
+// ----------------------------------------
 // class JournalOpRecord::ResizeStorageData
-// --------------------------------------------
+// ----------------------------------------
 
 // MANIPULATORS
 

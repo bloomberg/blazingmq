@@ -474,8 +474,7 @@ static void test1_breathingTest()
             .setType(JournalOpType::e_RESIZE_STORAGE)
             .setMagic(0xdeadbeef);
 
-        JournalOpRecord::ResizeStorageData& rsd =
-            fh.resizeStorageData();
+        JournalOpRecord::ResizeStorageData& rsd = fh.resizeStorageData();
         rsd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);
@@ -805,8 +804,7 @@ static void test3_printTest()
         jOpRec.header() = rh;
         jOpRec.setFlags(0).setType(JournalOpType::e_RESIZE_STORAGE);
 
-        JournalOpRecord::ResizeStorageData& rsd =
-            jOpRec.resizeStorageData();
+        JournalOpRecord::ResizeStorageData& rsd = jOpRec.resizeStorageData();
         rsd.setMaxJournalFileSize(0x12345678)
             .setMaxDataFileSize(0x87654321)
             .setMaxQlistFileSize(0x12348765);

@@ -376,8 +376,8 @@ class MockDataStore : public mqbs::DataStore {
         return 0;
     }
 
-    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
-        BSLS_KEYWORD_OVERRIDE
+    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes&
+                                     maxFileSizes) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
@@ -1763,7 +1763,7 @@ BMQTST_TEST(garbageCollect)
                      mqbi::StorageResult::e_SUCCESS);
 
     const bdlt::Datetime currentTimeUtc;
-    bsls::Types::Uint64 secondsFromEpoch = 5;
+    bsls::Types::Uint64  secondsFromEpoch = 5;
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 

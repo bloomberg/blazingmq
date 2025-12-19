@@ -591,7 +591,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Issue a resize storage request.
     ///
     /// THREAD: This method executes in the partition dispatcher thread.
-    int issueResizeStorage(const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
+    int issueResizeStorage(
+        const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes);
 
     int writeMessageRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
@@ -715,12 +716,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Adjust the partition file size that satisfies rollover
     /// policy based on the specified `outstandingBytes`,
     /// `minFileSize` and `fileSizeGrowLimit`.
-    /// Return the adjusted file size and set `availableSpacePercent` 
+    /// Return the adjusted file size and set `availableSpacePercent`
     /// if rollover policy is satisfied. Return zero value otherwise.
-    bsls::Types::Uint64 adjustPartitionFileSize(unsigned int* availableSpacePercent,
-                                bsls::Types::Uint64 outstandingBytes,
-                                bsls::Types::Uint64 minFileSize,
-                                bsls::Types::Uint64 fileSizeGrowLimit);
+    bsls::Types::Uint64
+    adjustPartitionFileSize(unsigned int*       availableSpacePercent,
+                            bsls::Types::Uint64 outstandingBytes,
+                            bsls::Types::Uint64 minFileSize,
+                            bsls::Types::Uint64 fileSizeGrowLimit);
 
   public:
     // TRAITS
@@ -868,8 +870,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Write a RESIZE_STORAGE record to the journal with the specified
     /// `maxFileSizes`.
     ///  Return zero on success, non-zero value otherwise.
-    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes& maxFileSizes)
-        BSLS_KEYWORD_OVERRIDE;
+    int writeResizeStorageRecord(const bmqp_ctrlmsg::PartitionMaxFileSizes&
+                                     maxFileSizes) BSLS_KEYWORD_OVERRIDE;
 
     /// Remove the record identified by the specified `handle`.  Return zero
     /// on success, non-zero value if `handle` is invalid.  Behavior is

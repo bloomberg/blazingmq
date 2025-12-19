@@ -411,7 +411,7 @@ RecordHeader::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct MessageRecord
 // --------------------
 
-const char MessageRecord::k_CAT_MASK               = 7;  // 00000111
+const char MessageRecord::k_CAT_MASK              = 7;  // 00000111
 const int MessageRecord::k_REFCOUNT_LOW_BITS_MASK = RecordHeader::k_FLAGS_MASK;
 
 bsl::ostream&
@@ -714,8 +714,7 @@ bsl::ostream& JournalOpRecord::print(bsl::ostream& stream,
     else if (JournalOpType::e_RESIZE_STORAGE == type()) {
         const mqbs::JournalOpRecord::ResizeStorageData& rsd =
             resizeStorageData();
-        printer.printAttribute("maxJournalFileSize",
-                               rsd.maxJournalFileSize());
+        printer.printAttribute("maxJournalFileSize", rsd.maxJournalFileSize());
         printer.printAttribute("maxDataFileSize", rsd.maxDataFileSize());
         printer.printAttribute("maxQlistFileSize", rsd.maxQlistFileSize());
     }

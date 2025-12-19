@@ -1337,10 +1337,10 @@ class PartitionConfig:
     dataFileGrowLimit....: limit for data file growth during rollover
     journalFileGrowLimit.: limit for journal file growth during rollover
     qListFileGrowLimit...: limit for qlist file growth during rollover
-    growStepPercent.....: step (in percents of max file size) for file
-                            growth during rollover
+    growStepPercent......: step (in percents of max file size) for file
+    growth during rollover
     minAvailSpacePercent.: minimum available free file space (in percents)
-                            which will appear after rollover (rollover criteria)
+    which will appear after rollover (rollover criteria)
     preallocate..........: flag to indicate whether files should be
     preallocated on disk
     maxArchivedFileSets..: maximum number of archived file sets per

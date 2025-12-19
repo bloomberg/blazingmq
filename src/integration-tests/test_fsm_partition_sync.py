@@ -37,7 +37,7 @@ from blazingmq.dev import paths
 # Set max journal file size to a small value to force rollover during the test
 MAX_JOURNAL_FILE_SIZE = 884
 
-# step (in percents of max file size) for file growth during rollover
+# Step (in percents of max file size) for file growth during rollover
 GROW_STEP_PERCENT = 50
 
 

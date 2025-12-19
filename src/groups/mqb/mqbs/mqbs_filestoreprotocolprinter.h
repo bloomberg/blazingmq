@@ -156,18 +156,20 @@ void printJournalFileHeader(bsl::ostream&                     stream,
         printer << " ** NA ** ";
     }
     else {
-        mqbs::OffsetPtr<const mqbs::JournalOpRecord> joRec(
+        mqbs::OffsetPtr<const mqbs::JournalOpRecord> spRec(
             journalFd.block(),
             offsetW * bmqp::Protocol::k_WORD_SIZE);
 
-        const mqbs::JournalOpRecord::SyncPointData& spd =
-            joRec->syncPointData();
+        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == spRec->type());
 
-        printer << joRec->syncPointType() << spd.primaryNodeId()
+        const mqbs::JournalOpRecord::SyncPointData& spd =
+            spRec->syncPointData();
+
+        printer << spRec->syncPointType() << spd.primaryNodeId()
                 << spd.primaryLeaseId() << spd.sequenceNum()
                 << spd.dataFileOffsetDwords();
 
-        bsls::Types::Uint64 epochValue = joRec->header().timestamp();
+        bsls::Types::Uint64 epochValue = spRec->header().timestamp();
         bdlt::Datetime      datetime;
         int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
         if (0 != rc) {
