@@ -669,12 +669,9 @@ template <typename ARGS>
 void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
-    BSLS_ASSERT_SAFE(!args->eventsQueue()->front().second.empty());
+    BSLS_ASSERT_SAFE(!args.second.empty());
 
-    const int partitionId =
-        args->eventsQueue()->front().second[0].partitionId();
-
+    const int partitionId = args.second[0].partitionId();
     BALL_LOG_INFO << "Partition [" << partitionId << "]: NO ACTION PERFORMED.";
 }
 
