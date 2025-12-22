@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'integration/**'
+      - enhance-listener-config
   pull_request:
     branches:
       - main

@@ -282,12 +282,15 @@
 
       name.................:
         A name to associate this listener to.
+      address..............:
+        The IPv4 address this listener will accept connections on.
       port.................:
         The port this listener will accept connections on.
       </documentation>
     </annotation>
     <sequence>
       <element name='name'                type='string'/>
+      <element name='address'             type='string' default='0.0.0.0'/>
       <element name='port'                type='int'/>
     </sequence>
   </complexType>
