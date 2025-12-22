@@ -1013,14 +1013,6 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         channelInfo->d_authenticationCtx_sp;
     const bsl::string& description = channelInfo->d_session_sp->description();
 
-    if (!context->tryStartReauthentication()) {
-        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
-                       << ": Dropping Authentication event since "
-                          "authentication is in progress: "
-                       << event;
-        return;  // RETURN
-    }
-
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     int rc = event.loadAuthenticationEvent(&authenticationMessage);
     if (rc != 0) {
@@ -1038,8 +1030,17 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
     context->setAuthenticationEncodingType(
         event.authenticationEventEncodingType());
 
-    bmqu::MemOutStream errorStream;
+    // Try to start reauthentication.  If another reauthentication is
+    // in progress, drop this event.
+    if (!context->tryStartReauthentication()) {
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
+                       << ": Dropping Authentication event since "
+                          "authentication is in progress: "
+                       << event;
+        return;  // RETURN
+    }
 
+    bmqu::MemOutStream errorStream;
     rc = d_authenticator_p->handleReauthentication(errorStream,
                                                    context,
                                                    channelInfo->d_channel_sp);
