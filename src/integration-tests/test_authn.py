@@ -19,9 +19,9 @@ Authentication test suite using ONLY built-in authenticators.
 This test suite validates authentication logic without any external plugins.
 All tests use the built-in authenticators:
   - BasicAuthenticator: BASIC mechanism, validates credentials from config
-                       Config format: {"key": "username", "value": {"stringVal": "password"}}
-  - AnonPassAuthenticator: ANONYMOUS mechanism, always passes (default)
-  - AnonFailAuthenticator: ANONYMOUS mechanism, always fails
+                        Config format: {"key": "username", "value": {"stringVal": "password"}}
+  - AnonAuthenticator: ANONYMOUS mechanism, passes if "shouldPass" setting is true (default),
+                       fails otherwise
 
 This approach tests all authentication scenarios without needing external plugins.
 """
@@ -55,14 +55,17 @@ pytestmark = order(99)
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
         ]
     }
 )
-def test_authenticate_basic_success(single_node: Cluster) -> None:
+def test_authenticate_basic_success(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test successful authentication with built-in BasicAuthenticator."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -81,14 +84,17 @@ def test_authenticate_basic_success(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
         ]
     }
 )
-def test_authenticate_basic_failure(single_node: Cluster) -> None:
+def test_authenticate_basic_failure(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test failed authentication with invalid credentials."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -105,7 +111,7 @@ def test_authenticate_basic_failure(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user0", "value": {"stringVal": "password0"}},
                     {"key": "user1", "value": {"stringVal": "password1"}},
                     {"key": "user2", "value": {"stringVal": "password2"}},
@@ -119,7 +125,10 @@ def test_authenticate_basic_failure(single_node: Cluster) -> None:
         ]
     }
 )
-def test_authenticate_concurrent(single_node: Cluster) -> None:
+def test_authenticate_concurrent(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test concurrent authentication with BasicAuthenticator."""
     num_threads = 8
     results = [None] * num_threads
@@ -157,7 +166,7 @@ def test_authenticate_concurrent(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                     {"key": "user2", "value": {"stringVal": "password2"}},
                 ],
@@ -165,7 +174,10 @@ def test_authenticate_concurrent(single_node: Cluster) -> None:
         ]
     }
 )
-def test_reauthenticate_success(single_node: Cluster) -> None:
+def test_reauthenticate_success(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test successful reauthentication with same credentials."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -194,14 +206,17 @@ def test_reauthenticate_success(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
         ]
     }
 )
-def test_reauthenticate_failure(single_node: Cluster) -> None:
+def test_reauthenticate_failure(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test reauthentication failure with invalid credentials."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -230,12 +245,15 @@ def test_reauthenticate_failure(single_node: Cluster) -> None:
 # ==============================================================================
 
 
-def test_default_anonymous_single_node(single_node: Cluster) -> None:
+def test_default_anonymous_single_node(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test default anonymous authentication on single node."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
 
-    # Should succeed with default AnonPassAuthenticator
+    # Should succeed with default AnonAuthenticator
     nego_resp = client.send_negotiation_request()
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
@@ -262,7 +280,10 @@ def test_default_anonymous_multi_node(
 
 
 @tweak.broker.app_config.authentication({"anonymousCredential": {"disallow": {}}})
-def test_anonymous_disallowed(single_node: Cluster) -> None:
+def test_anonymous_disallowed(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test that anonymous authentication can be disallowed."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -279,7 +300,7 @@ def test_anonymous_disallowed(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
@@ -289,7 +310,10 @@ def test_anonymous_disallowed(single_node: Cluster) -> None:
         },
     }
 )
-def test_anonymous_credential_invalid(single_node: Cluster) -> None:
+def test_anonymous_credential_invalid(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test negotiation with invalid anonymous credential."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -306,7 +330,10 @@ def test_anonymous_credential_invalid(single_node: Cluster) -> None:
 # ==============================================================================
 
 
-def test_empty_authenticators_reject_basic(single_node: Cluster) -> None:
+def test_empty_authenticators_reject_basic(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Empty authenticators should reject non-ANONYMOUS mechanisms."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -328,14 +355,17 @@ def test_empty_authenticators_reject_basic(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
         ]
     }
 )
-def test_basic_auth_allows_anonymous(single_node: Cluster) -> None:
+def test_basic_auth_allows_anonymous(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test that BasicAuthenticator coexists with default anonymous (AnonPass)."""
     # Should allow anonymous negotiation (default AnonPass still active)
     client1 = RawClient()
@@ -364,14 +394,17 @@ def test_basic_auth_allows_anonymous(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
         ]
     }
 )
-def test_basic_auth_rejects_other_mechanisms(single_node: Cluster) -> None:
+def test_basic_auth_rejects_other_mechanisms(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """BasicAuthenticator should reject unsupported mechanisms."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -393,7 +426,7 @@ def test_basic_auth_rejects_other_mechanisms(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             },
@@ -403,7 +436,10 @@ def test_basic_auth_rejects_other_mechanisms(single_node: Cluster) -> None:
         },
     }
 )
-def test_anonymous_credential_mechanism_match(single_node: Cluster) -> None:
+def test_anonymous_credential_mechanism_match(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test anonymous credential with matching authenticator."""
     # Test explicit authentication
     client1 = RawClient()
@@ -432,7 +468,7 @@ def test_anonymous_credential_mechanism_match(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             },
@@ -440,7 +476,10 @@ def test_anonymous_credential_mechanism_match(single_node: Cluster) -> None:
         "anonymousCredential": {"disallow": {}},
     }
 )
-def test_basic_with_anonymous_disallowed(single_node: Cluster) -> None:
+def test_basic_with_anonymous_disallowed(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test BasicAuthenticator with anonymous disallowed."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -463,7 +502,10 @@ def test_basic_with_anonymous_disallowed(single_node: Cluster) -> None:
         "anonymousCredential": {"disallow": {}},
     }
 )
-def test_no_authentication_possible(single_node: Cluster) -> None:
+def test_no_authentication_possible(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test that no connection is possible when configured that way."""
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
@@ -485,7 +527,7 @@ def test_no_authentication_possible(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             },
@@ -495,7 +537,10 @@ def test_no_authentication_possible(single_node: Cluster) -> None:
         },
     }
 )
-def test_mechanism_case_insensitive(single_node: Cluster) -> None:
+def test_mechanism_case_insensitive(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test that mechanism names are case-insensitive."""
     # Test lowercase
     client1 = RawClient()
@@ -530,7 +575,10 @@ def test_mechanism_case_insensitive(single_node: Cluster) -> None:
 # ==============================================================================
 
 
-def test_admin_with_default_anonymous(single_node: Cluster) -> None:
+def test_admin_with_default_anonymous(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """Test admin commands with default anonymous authentication."""
     admin = AdminClient()
     admin.connect(*single_node.admin_endpoint)
@@ -544,29 +592,37 @@ def test_admin_with_default_anonymous(single_node: Cluster) -> None:
 
 
 # ==============================================================================
-# AnonFailAuthenticator Tests (if needed for negative testing)
+# AnonAuthenticator Test (failure case)
 # ==============================================================================
 
 
 @tweak.broker.app_config.authentication(
     {
         "authenticators": [
-            {"name": "AnonFailAuthenticator", "configs": []},
+            {
+                "name": "AnonAuthenticator",
+                "settings": [
+                    {"key": "shouldPass", "value": {"boolVal": "false"}},
+                ],
+            },
         ],
         "anonymousCredential": {
             "credential": {"mechanism": "ANONYMOUS", "identity": ""}
         },
     }
 )
-def test_anon_fail_authenticator(single_node: Cluster) -> None:
+def test_anon_fail_authenticator(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
-    Test AnonFailAuthenticator that always fails.
+    Test AnonAuthenticator that always fails when "shouldPass" is false.
     This tests the scenario where ANONYMOUS mechanism exists but fails authentication.
     """
     client = RawClient()
     client.open_channel(*single_node.admin_endpoint)
 
-    # Should fail with AnonFailAuthenticator
+    # Should fail when "shouldPass" is set to fail
     with pytest.raises(ConnectionError):
         client.send_negotiation_request()
 
@@ -602,17 +658,22 @@ def check_fail_to_start(node: Cluster):
     {
         "authenticators": [
             {
-                "name": "AnonPassAuthenticator",
-                "configs": [],
+                "name": "AnonAuthenticator",
+                "settings": [],
             },
             {
-                "name": "AnonFailAuthenticator",  # Duplicate mechanism ANONYMOUS
-                "configs": [],
+                "name": "AnonAuthenticator",  # Duplicate mechanism ANONYMOUS
+                "settings": [
+                    {"key": "shouldPass", "value": {"boolVal": "false"}},
+                ],
             },
         ]
     }
 )
-def test_duplicate_mechanism_fails_startup(single_node: Cluster) -> None:
+def test_duplicate_mechanism_fails_startup(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     Test that broker fails at startup when two authenticators have the same mechanism.
 
@@ -629,7 +690,7 @@ def test_duplicate_mechanism_fails_startup(single_node: Cluster) -> None:
         "authenticators": [
             {
                 "name": "BasicAuthenticator",
-                "configs": [
+                "settings": [
                     {"key": "user1", "value": {"stringVal": "password1"}},
                 ],
             }
@@ -642,7 +703,10 @@ def test_duplicate_mechanism_fails_startup(single_node: Cluster) -> None:
         },
     }
 )
-def test_mismatched_anonymous_credential_fails_startup(single_node: Cluster) -> None:
+def test_mismatched_anonymous_credential_fails_startup(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
     """
     Test that broker fails at startup when anonymousCredential uses a mechanism
     that doesn't match any configured authenticator.
@@ -656,13 +720,14 @@ def test_mismatched_anonymous_credential_fails_startup(single_node: Cluster) -> 
 @tweak.broker.app_config.authentication(
     {
         "authenticators": [
-            {"name": "AnonPassAuthenticator", "configs": []},
+            {"name": "AnonAuthenticator", "settings": []},
         ],
         # No anonymousCredential specified - custom ANONYMOUS must have credential
     }
 )
 def test_custom_anonymous_without_credential_fails_startup(
     single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
 ) -> None:
     """
     Test that broker fails at startup when a custom ANONYMOUS authenticator

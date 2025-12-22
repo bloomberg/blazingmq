@@ -443,6 +443,9 @@ int AuthenticationController::authenticate(
 {
     // executed by an *AUTHENTICATION* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS                 = 0,

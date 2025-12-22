@@ -293,7 +293,7 @@ void Authenticator::authenticate(
         sendAuthenticationResponse(sendResponseErrStream,
                                    authnRc,
                                    authnErrStream.str(),
-                                   result->lifetimeMs(),
+                                   bsl::nullopt,
                                    channel,
                                    encodingType);
 
@@ -335,8 +335,15 @@ void Authenticator::authenticate(
         return;  // RETURN
     }
 
-    // Transition to the next state
-    event.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
+    if (isReauthn) {
+        // For reauthentication, we're done
+        scopeGuard->release();
+        return;  // RETURN
+    }
+    else {
+        // Transition to the next state
+        event.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
+    }
 }
 
 // CREATORS
