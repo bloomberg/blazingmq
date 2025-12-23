@@ -7,16 +7,25 @@
 
 set -euxo pipefail
 
-if [ $# == 1 ]; then
-  if [[ $1 == "--only-download" ]]; then
-    DO_BUILD=false
-  else
-     echo "Unexpected optional argument, only '--only-download' is supported"
-     exit 1
-  fi
-else
-    DO_BUILD=true
-fi
+DO_BUILD=true
+CPP_VERSION=cpp17
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --only-download)
+            DO_BUILD=false
+            shift
+            ;;
+        --cpp03)
+            CPP_VERSION=cpp03
+            shift
+            ;;
+        *)
+            echo "Unexpected optional argument $1, only '--only-download' and '--cpp03' are supported"
+            exit 1
+            ;;
+    esac
+done
 
 fetch_git() {
     local org=$1
@@ -49,7 +58,7 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u opt_64_cpp17)"
+    eval "$(bbs_build_env -u opt_64_$CPP_VERSION)"
 }
 
 build_bde() {
@@ -68,7 +77,7 @@ build_ntf() {
         --without-usage-examples     \
         --without-applications       \
         --without-warnings-as-errors \
-        --ufid opt_64_cpp17
+        --ufid opt_64_$CPP_VERSION
     make -j8
     make install
     popd
