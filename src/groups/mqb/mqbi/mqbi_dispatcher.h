@@ -93,17 +93,13 @@
 /// Executors support
 ///-----------------
 // Implementations of the 'mqbi::Dispatcher' protocol are required to provide
-// two types of executors.  The first being an executor, available through the
-// dispatcher's 'executor' member function, to execute functors on a
-// dispatcher's processor.  The second being an executor, available through the
-// dispatcher's 'clientExecutor' member function, to execute functors, still in
-// a dispatcher's processor, but directly by a dispatcher's client.  Submitting
-// a functor via each of the executor's 'post' member functions shall be
-// functionally equivalent to dispatching an event of type 'e_DISPATCHER' and
-// 'e_CALLBACK' respectively.  The comparison of such executor objects and the
-// blocking behavior of their 'dispatch' member functions is implementation-
-// defined.  For more information about executors see the 'bmqex' package
-// documentation.
+// an executor, available through the dispatcher's 'executor' member function,
+// to execute functors on a dispatcher's processor.  Submitting a functor via
+// the executor's 'post' member functions shall be functionally equivalent to
+// dispatching an event of type 'e_DISPATCHER'.
+// The blocking behavior of the executor's 'dispatch' member functions is
+// implementation-defined.  For more information about executors see the
+// 'bmqex' package documentation.
 
 // MQB
 
@@ -457,18 +453,6 @@ class Dispatcher {
     /// after the specified `client` has been unregistered from this
     /// dispatcher.
     virtual bmqex::Executor executor(const DispatcherClient* client) const = 0;
-
-    /// Return an executor object suitable for executing function objects by
-    /// the specified `client` on the processor in charge of that client.
-    /// The behavior is undefined unless the specified `client` is
-    /// registered on this dispatcher and the client type is not
-    /// `e_UNDEFINED`.
-    ///
-    /// Note that submitting work on the returned executor is undefined
-    /// behavior if the specified `client` was unregistered from this
-    /// dispatcher.
-    virtual bmqex::Executor
-    clientExecutor(const mqbi::DispatcherClient* client) const = 0;
 };
 
 // ===============================

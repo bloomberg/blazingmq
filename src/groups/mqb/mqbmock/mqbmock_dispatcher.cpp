@@ -201,13 +201,6 @@ Dispatcher::executor(BSLA_UNUSED const mqbi::DispatcherClient* client) const
     return bmqex::Executor();
 }
 
-bmqex::Executor Dispatcher::clientExecutor(
-    BSLA_UNUSED const mqbi::DispatcherClient* client) const
-{
-    BSLS_ASSERT(false && "Not yet implemented");
-    return bmqex::Executor();
-}
-
 // ---------------------------------
 // class Dispatcher::InnerEventGuard
 // ---------------------------------

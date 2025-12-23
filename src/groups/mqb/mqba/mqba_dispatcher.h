@@ -39,15 +39,11 @@
 /// =================
 ///
 /// As required by the @bbref{mqbi::Dispatcher} protocol, this implementation
-/// provides two types of executors, each available through the dispatcher's
-/// `executor` and `clientExecutor` member functions respectively.  Provided
-/// executors compares equal only if they refer to the same processor (for
-/// executors returned by `executor`), or if they refer to the same client (for
-/// executors returned by `clientExecutor`).  A call to `dispatch` on such
-/// executors performed from within the executor's associated processor thread
-/// results in the submitted functor to be executed in-place.  A call to
-/// `dispatch` from outside of the executor's associated processor thread is
-/// equivalent to a call to `post`.
+/// provides an executor, available through the dispatcher's `executor` member
+/// function.  A call to `dispatch` on such executor performed from within the
+/// executor's associated processor thread results in the submitted functor to
+/// be executed in-place.  A call to `dispatch` from outside of the executor's
+/// associated processor thread is equivalent to a call to `post`.
 
 // MQB
 #include <mqbcfg_messages.h>
@@ -129,69 +125,6 @@ class Dispatcher_Executor {
     /// Submit the specified function object `f` to be executed on the
     /// executor's associated processor.  Return immediately without waiting
     /// for the submitted function object to complete.
-    void post(const bsl::function<void()>& f) const;
-
-    /// If this function is called from the thread owned by the executor's
-    /// associated processor, invoke the specified function object `f`
-    /// in-place as if by `f()`.  Otherwise, submit the function object for
-    /// execution as if by `post(f)`.
-    void dispatch(const bsl::function<void()>& f) const;
-};
-
-// ===============================
-// class Dispatcher_ClientExecutor
-// ===============================
-
-/// Provides an executor suitable for submitting function objects on an
-/// dispatcher's processor to be executed by a dispatcher's client.
-///
-/// Note that this class conforms to the Executor concept as defined in
-/// the `bmqex` package documentation.
-///
-/// Note also that it is undefined behavior to submit work on this
-/// executor unless its associated dispatcher is started and the
-/// dispatcher's client used to initialize the executor has not been
-/// unregistered from the executor's associated dispatcher.
-class Dispatcher_ClientExecutor {
-  private:
-    // PRIVATE DATA
-    const mqbi::DispatcherClient* d_client_p;
-
-  private:
-    // PRIVATE ACCESSORS
-
-    /// Return a pointer to the processor pool used to submit work.
-    bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>*
-    processorPool() const BSLS_CPP11_NOEXCEPT;
-
-    /// Return the handle of the associated processor.
-    mqbi::Dispatcher::ProcessorHandle
-    processorHandle() const BSLS_CPP11_NOEXCEPT;
-
-  public:
-    // CREATORS
-
-    /// Create a `Dispatcher_ClientExecutor` object for executing function
-    /// objects by the specified `client` on a processor in charge of that
-    /// client owned by the specified `dispacher`.  The behavior is
-    /// undefined unless the specified `client` is registered on the
-    /// specified `dispacher` and the client type is not `e_UNDEFINED`.
-    Dispatcher_ClientExecutor(const Dispatcher*             dispacher,
-                              const mqbi::DispatcherClient* client)
-        BSLS_CPP11_NOEXCEPT;
-
-  public:
-    // ACCESSORS
-
-    /// Return `true` if `*this` refer to the same client as `rhs`, and
-    /// `false` otherwise.
-    bool
-    operator==(const Dispatcher_ClientExecutor& rhs) const BSLS_CPP11_NOEXCEPT;
-
-    /// Submit the specified function object `f` to be executed by the
-    /// executor's associated client on the executor's associated processor.
-    /// Return immediately without waiting for the submitted function object
-    /// to complete.
     void post(const bsl::function<void()>& f) const;
 
     /// If this function is called from the thread owned by the executor's
@@ -312,7 +245,6 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     bsl::vector<DispatcherContextSp> d_contexts;
 
     // FRIENDS
-    friend class Dispatcher_ClientExecutor;
     friend class Dispatcher_Executor;
 
   private:
@@ -498,17 +430,6 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// dispatcher.
     bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return an executor object suitable for executing function objects by
-    /// the specified `client` on the processor in charge of that client.
-    /// The behavior is undefined unless the specified `client` is registered
-    /// on this dispatcher and the client type is not `e_UNDEFINED`.
-    ///
-    /// Note that submitting work on the returned executor is undefined
-    /// behavior unless this dispatcher is started or if the specified
-    /// `client` was unregistered from this dispatcher.
-    bmqex::Executor clientExecutor(const mqbi::DispatcherClient* client) const
-        BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
