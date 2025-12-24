@@ -406,6 +406,8 @@ class BmqconfConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -618,6 +620,9 @@ class ClusterAttributes {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -904,6 +909,9 @@ class ClusterMonitorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1124,6 +1132,8 @@ class Credential {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Credential> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1273,6 +1283,8 @@ class Disallow {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Disallow> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1473,6 +1485,9 @@ class DispatcherProcessorParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1780,6 +1795,8 @@ class ElectorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2064,6 +2081,8 @@ class Heartbeat {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2307,6 +2326,8 @@ class LogDumpConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogDumpConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2584,6 +2605,9 @@ class MessagePropertiesV2 {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2809,6 +2833,9 @@ class MessageThrottleConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3338,6 +3365,8 @@ class Plugins {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3697,6 +3726,9 @@ class QueueOperationsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3926,6 +3958,8 @@ class ResolvedDomain {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ResolvedDomain)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4191,6 +4225,9 @@ class StatsPrinterConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatsPrinterConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4524,6 +4561,9 @@ class StorageSyncConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -4773,6 +4813,8 @@ class SyslogConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4987,6 +5029,9 @@ class TcpClusterNodeConnection {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpClusterNodeConnection)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5212,6 +5257,9 @@ class TcpInterfaceListener {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceListener)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5438,6 +5486,9 @@ class VirtualClusterInformation {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::VirtualClusterInformation)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6102,6 +6153,9 @@ class DispatcherProcessorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6428,6 +6482,8 @@ class LogController {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogController)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6445,10 +6501,16 @@ class PartitionConfig {
     // maxJournalFileSize...: maximum size of partitions' journal file
     // maxQlistFileSize.....: maximum size of partitions' qlist file
     // maxCSLFileSize.......: maximum size of partitions' CSL file
-    // preallocate..........: flag to indicate whether files should be
-    // preallocated on disk maxArchivedFileSets..: maximum number of archived
-    // file sets per partition to keep prefaultPages........: flag to indicate
-    // whether to populate (prefault) page tables for a mapping.
+    // dataFileGrowLimit....: limit for data file growth during rollover
+    // journalFileGrowLimit.: limit for journal file growth during rollover
+    // qListFileGrowLimit...: limit for qlist file growth during rollover
+    // growStepPercent.....: step (in percents of max file size) for file
+    // growth during rollover minAvailSpacePercent.: minimum available free
+    // file space (in percents) which will appear after rollover (rollover
+    // criteria) preallocate..........: flag to indicate whether files should
+    // be preallocated on disk maxArchivedFileSets..: maximum number of
+    // archived file sets per partition to keep prefaultPages........: flag to
+    // indicate whether to populate (prefault) page tables for a mapping.
     // flushAtShutdown......: flag to indicate whether broker should flush
     // storage files to disk at shutdown syncConfig...........: configuration
     // for storage synchronization and recovery
@@ -6458,9 +6520,14 @@ class PartitionConfig {
     bsls::Types::Uint64 d_maxJournalFileSize;
     bsls::Types::Uint64 d_maxQlistFileSize;
     bsls::Types::Uint64 d_maxCSLFileSize;
+    bsls::Types::Uint64 d_dataFileGrowLimit;
+    bsls::Types::Uint64 d_journalFileGrowLimit;
+    bsls::Types::Uint64 d_qListFileGrowLimit;
     bsl::string         d_location;
     bsl::string         d_archiveLocation;
     StorageSyncConfig   d_syncConfig;
+    unsigned int        d_growStepPercent;
+    unsigned int        d_minAvailSpacePercent;
     int                 d_numPartitions;
     int                 d_maxArchivedFileSets;
     bool                d_preallocate;
@@ -6476,41 +6543,63 @@ class PartitionConfig {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_NUM_PARTITIONS         = 0,
-        ATTRIBUTE_ID_LOCATION               = 1,
-        ATTRIBUTE_ID_ARCHIVE_LOCATION       = 2,
-        ATTRIBUTE_ID_MAX_DATA_FILE_SIZE     = 3,
-        ATTRIBUTE_ID_MAX_JOURNAL_FILE_SIZE  = 4,
-        ATTRIBUTE_ID_MAX_QLIST_FILE_SIZE    = 5,
-        ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE    = 6,
-        ATTRIBUTE_ID_PREALLOCATE            = 7,
-        ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS = 8,
-        ATTRIBUTE_ID_PREFAULT_PAGES         = 9,
-        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN      = 10,
-        ATTRIBUTE_ID_SYNC_CONFIG            = 11
+        ATTRIBUTE_ID_NUM_PARTITIONS          = 0,
+        ATTRIBUTE_ID_LOCATION                = 1,
+        ATTRIBUTE_ID_ARCHIVE_LOCATION        = 2,
+        ATTRIBUTE_ID_MAX_DATA_FILE_SIZE      = 3,
+        ATTRIBUTE_ID_MAX_JOURNAL_FILE_SIZE   = 4,
+        ATTRIBUTE_ID_MAX_QLIST_FILE_SIZE     = 5,
+        ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE     = 6,
+        ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT    = 7,
+        ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT = 8,
+        ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT  = 9,
+        ATTRIBUTE_ID_GROW_STEP_PERCENT       = 10,
+        ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT = 11,
+        ATTRIBUTE_ID_PREALLOCATE             = 12,
+        ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS  = 13,
+        ATTRIBUTE_ID_PREFAULT_PAGES          = 14,
+        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN       = 15,
+        ATTRIBUTE_ID_SYNC_CONFIG             = 16
     };
 
-    enum { NUM_ATTRIBUTES = 12 };
+    enum { NUM_ATTRIBUTES = 17 };
 
     enum {
-        ATTRIBUTE_INDEX_NUM_PARTITIONS         = 0,
-        ATTRIBUTE_INDEX_LOCATION               = 1,
-        ATTRIBUTE_INDEX_ARCHIVE_LOCATION       = 2,
-        ATTRIBUTE_INDEX_MAX_DATA_FILE_SIZE     = 3,
-        ATTRIBUTE_INDEX_MAX_JOURNAL_FILE_SIZE  = 4,
-        ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE    = 5,
-        ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE    = 6,
-        ATTRIBUTE_INDEX_PREALLOCATE            = 7,
-        ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS = 8,
-        ATTRIBUTE_INDEX_PREFAULT_PAGES         = 9,
-        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN      = 10,
-        ATTRIBUTE_INDEX_SYNC_CONFIG            = 11
+        ATTRIBUTE_INDEX_NUM_PARTITIONS          = 0,
+        ATTRIBUTE_INDEX_LOCATION                = 1,
+        ATTRIBUTE_INDEX_ARCHIVE_LOCATION        = 2,
+        ATTRIBUTE_INDEX_MAX_DATA_FILE_SIZE      = 3,
+        ATTRIBUTE_INDEX_MAX_JOURNAL_FILE_SIZE   = 4,
+        ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE     = 5,
+        ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE     = 6,
+        ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT    = 7,
+        ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT = 8,
+        ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT  = 9,
+        ATTRIBUTE_INDEX_GROW_STEP_PERCENT       = 10,
+        ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT = 11,
+        ATTRIBUTE_INDEX_PREALLOCATE             = 12,
+        ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS  = 13,
+        ATTRIBUTE_INDEX_PREFAULT_PAGES          = 14,
+        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN       = 15,
+        ATTRIBUTE_INDEX_SYNC_CONFIG             = 16
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
     static const bsls::Types::Uint64 DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
+
+    static const bsls::Types::Uint64 DEFAULT_INITIALIZER_DATA_FILE_GROW_LIMIT;
+
+    static const bsls::Types::Uint64
+        DEFAULT_INITIALIZER_JOURNAL_FILE_GROW_LIMIT;
+
+    static const bsls::Types::Uint64
+        DEFAULT_INITIALIZER_Q_LIST_FILE_GROW_LIMIT;
+
+    static const unsigned int DEFAULT_INITIALIZER_GROW_STEP_PERCENT;
+
+    static const unsigned int DEFAULT_INITIALIZER_MIN_AVAIL_SPACE_PERCENT;
 
     static const bool DEFAULT_INITIALIZER_PREALLOCATE;
 
@@ -6639,6 +6728,26 @@ class PartitionConfig {
     // Return a reference to the modifiable "MaxCSLFileSize" attribute of
     // this object.
 
+    bsls::Types::Uint64& dataFileGrowLimit();
+    // Return a reference to the modifiable "DataFileGrowLimit" attribute
+    // of this object.
+
+    bsls::Types::Uint64& journalFileGrowLimit();
+    // Return a reference to the modifiable "JournalFileGrowLimit"
+    // attribute of this object.
+
+    bsls::Types::Uint64& qListFileGrowLimit();
+    // Return a reference to the modifiable "QListFileGrowLimit" attribute
+    // of this object.
+
+    unsigned int& growStepPercent();
+    // Return a reference to the modifiable "GrowStepPercent" attribute of
+    // this object.
+
+    unsigned int& minAvailSpacePercent();
+    // Return a reference to the modifiable "MinAvailSpacePercent"
+    // attribute of this object.
+
     bool& preallocate();
     // Return a reference to the modifiable "Preallocate" attribute of this
     // object.
@@ -6726,6 +6835,25 @@ class PartitionConfig {
     bsls::Types::Uint64 maxCSLFileSize() const;
     // Return the value of the "MaxCSLFileSize" attribute of this object.
 
+    bsls::Types::Uint64 dataFileGrowLimit() const;
+    // Return the value of the "DataFileGrowLimit" attribute of this
+    // object.
+
+    bsls::Types::Uint64 journalFileGrowLimit() const;
+    // Return the value of the "JournalFileGrowLimit" attribute of this
+    // object.
+
+    bsls::Types::Uint64 qListFileGrowLimit() const;
+    // Return the value of the "QListFileGrowLimit" attribute of this
+    // object.
+
+    unsigned int growStepPercent() const;
+    // Return the value of the "GrowStepPercent" attribute of this object.
+
+    unsigned int minAvailSpacePercent() const;
+    // Return the value of the "MinAvailSpacePercent" attribute of this
+    // object.
+
     bool preallocate() const;
     // Return the value of the "Preallocate" attribute of this object.
 
@@ -6786,6 +6914,8 @@ class PartitionConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PartitionConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7008,6 +7138,9 @@ class PluginSettingKeyValue {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PluginSettingKeyValue)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PluginSettingKeyValue>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7254,6 +7387,9 @@ class StatPluginConfigPrometheus {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfigPrometheus)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7586,6 +7722,9 @@ class TcpInterfaceConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7811,6 +7950,9 @@ class AuthenticatorPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::AuthenticatorPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorPluginConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8062,6 +8204,8 @@ class ClusterNode {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8262,6 +8406,9 @@ class DispatcherConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8483,6 +8630,9 @@ class NetworkInterfaces {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::NetworkInterfaces)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8803,6 +8953,9 @@ class StatPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -9036,6 +9189,8 @@ class TaskConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9274,6 +9429,9 @@ class AuthenticatorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::AuthenticatorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9591,6 +9749,9 @@ class ClusterDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -9862,6 +10023,9 @@ class ClusterProxyDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterProxyDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10099,6 +10263,8 @@ class StatsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10534,6 +10700,8 @@ class AppConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10782,6 +10950,9 @@ class ClustersDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClustersDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -11000,6 +11171,8 @@ class Configuration {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::Configuration)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -16399,6 +16572,11 @@ void PartitionConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->maxJournalFileSize());
     hashAppend(hashAlgorithm, this->maxQlistFileSize());
     hashAppend(hashAlgorithm, this->maxCSLFileSize());
+    hashAppend(hashAlgorithm, this->dataFileGrowLimit());
+    hashAppend(hashAlgorithm, this->journalFileGrowLimit());
+    hashAppend(hashAlgorithm, this->qListFileGrowLimit());
+    hashAppend(hashAlgorithm, this->growStepPercent());
+    hashAppend(hashAlgorithm, this->minAvailSpacePercent());
     hashAppend(hashAlgorithm, this->preallocate());
     hashAppend(hashAlgorithm, this->maxArchivedFileSets());
     hashAppend(hashAlgorithm, this->prefaultPages());
@@ -16415,6 +16593,11 @@ inline bool PartitionConfig::isEqualTo(const PartitionConfig& rhs) const
            this->maxJournalFileSize() == rhs.maxJournalFileSize() &&
            this->maxQlistFileSize() == rhs.maxQlistFileSize() &&
            this->maxCSLFileSize() == rhs.maxCSLFileSize() &&
+           this->dataFileGrowLimit() == rhs.dataFileGrowLimit() &&
+           this->journalFileGrowLimit() == rhs.journalFileGrowLimit() &&
+           this->qListFileGrowLimit() == rhs.qListFileGrowLimit() &&
+           this->growStepPercent() == rhs.growStepPercent() &&
+           this->minAvailSpacePercent() == rhs.minAvailSpacePercent() &&
            this->preallocate() == rhs.preallocate() &&
            this->maxArchivedFileSets() == rhs.maxArchivedFileSets() &&
            this->prefaultPages() == rhs.prefaultPages() &&
@@ -16471,6 +16654,40 @@ int PartitionConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     ret = manipulator(
         &d_maxCSLFileSize,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_dataFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_journalFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_qListFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_growStepPercent,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_minAvailSpacePercent,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
     if (ret) {
         return ret;
     }
@@ -16548,6 +16765,31 @@ int PartitionConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_maxCSLFileSize,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
+    }
+    case ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT: {
+        return manipulator(
+            &d_dataFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
+    }
+    case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT: {
+        return manipulator(
+            &d_journalFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
+    }
+    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT: {
+        return manipulator(
+            &d_qListFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
+    }
+    case ATTRIBUTE_ID_GROW_STEP_PERCENT: {
+        return manipulator(
+            &d_growStepPercent,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
+    }
+    case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT: {
+        return manipulator(
+            &d_minAvailSpacePercent,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
     }
     case ATTRIBUTE_ID_PREALLOCATE: {
         return manipulator(&d_preallocate,
@@ -16627,6 +16869,31 @@ inline bsls::Types::Uint64& PartitionConfig::maxCSLFileSize()
     return d_maxCSLFileSize;
 }
 
+inline bsls::Types::Uint64& PartitionConfig::dataFileGrowLimit()
+{
+    return d_dataFileGrowLimit;
+}
+
+inline bsls::Types::Uint64& PartitionConfig::journalFileGrowLimit()
+{
+    return d_journalFileGrowLimit;
+}
+
+inline bsls::Types::Uint64& PartitionConfig::qListFileGrowLimit()
+{
+    return d_qListFileGrowLimit;
+}
+
+inline unsigned int& PartitionConfig::growStepPercent()
+{
+    return d_growStepPercent;
+}
+
+inline unsigned int& PartitionConfig::minAvailSpacePercent()
+{
+    return d_minAvailSpacePercent;
+}
+
 inline bool& PartitionConfig::preallocate()
 {
     return d_preallocate;
@@ -16696,6 +16963,39 @@ int PartitionConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_maxCSLFileSize,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_dataFileGrowLimit,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_journalFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_qListFileGrowLimit,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_growStepPercent,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_minAvailSpacePercent,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
     if (ret) {
         return ret;
     }
@@ -16773,6 +17073,31 @@ int PartitionConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_maxCSLFileSize,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
     }
+    case ATTRIBUTE_ID_DATA_FILE_GROW_LIMIT: {
+        return accessor(
+            d_dataFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA_FILE_GROW_LIMIT]);
+    }
+    case ATTRIBUTE_ID_JOURNAL_FILE_GROW_LIMIT: {
+        return accessor(
+            d_journalFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_JOURNAL_FILE_GROW_LIMIT]);
+    }
+    case ATTRIBUTE_ID_Q_LIST_FILE_GROW_LIMIT: {
+        return accessor(
+            d_qListFileGrowLimit,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_Q_LIST_FILE_GROW_LIMIT]);
+    }
+    case ATTRIBUTE_ID_GROW_STEP_PERCENT: {
+        return accessor(
+            d_growStepPercent,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_GROW_STEP_PERCENT]);
+    }
+    case ATTRIBUTE_ID_MIN_AVAIL_SPACE_PERCENT: {
+        return accessor(
+            d_minAvailSpacePercent,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MIN_AVAIL_SPACE_PERCENT]);
+    }
     case ATTRIBUTE_ID_PREALLOCATE: {
         return accessor(d_preallocate,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREALLOCATE]);
@@ -16848,6 +17173,31 @@ inline bsls::Types::Uint64 PartitionConfig::maxQlistFileSize() const
 inline bsls::Types::Uint64 PartitionConfig::maxCSLFileSize() const
 {
     return d_maxCSLFileSize;
+}
+
+inline bsls::Types::Uint64 PartitionConfig::dataFileGrowLimit() const
+{
+    return d_dataFileGrowLimit;
+}
+
+inline bsls::Types::Uint64 PartitionConfig::journalFileGrowLimit() const
+{
+    return d_journalFileGrowLimit;
+}
+
+inline bsls::Types::Uint64 PartitionConfig::qListFileGrowLimit() const
+{
+    return d_qListFileGrowLimit;
+}
+
+inline unsigned int PartitionConfig::growStepPercent() const
+{
+    return d_growStepPercent;
+}
+
+inline unsigned int PartitionConfig::minAvailSpacePercent() const
+{
+    return d_minAvailSpacePercent;
 }
 
 inline bool PartitionConfig::preallocate() const
