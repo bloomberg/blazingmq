@@ -94,8 +94,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -213,8 +212,7 @@ void LocalQueue::resetState()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     d_queueEngine_mp->resetState();
     d_queueEngine_mp->afterQueuePurged(bmqp::ProtocolUtil::k_NULL_APP_ID,
@@ -231,8 +229,7 @@ void LocalQueue::close()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_state_p->storage());
 
     mqbi::Storage* storage = d_state_p->storage();
@@ -267,8 +264,7 @@ void LocalQueue::getHandle(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     d_queueEngine_mp->getHandle(context,
                                 clientContext,
@@ -285,8 +281,7 @@ void LocalQueue::configureHandle(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // As part of configuring a handle, engine may attempt to deliver messages
     // to it.  We need to make sure that storage/replication is in sync, and
@@ -311,8 +306,7 @@ void LocalQueue::releaseHandle(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     d_state_p->storage()->flushStorage();
 
@@ -327,8 +321,7 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
@@ -375,8 +368,7 @@ void LocalQueue::flush()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // If 'configure' fails, the queue remains registered with the dispatcher
     // until it gets rolled back.  If 'flush' gets called in between, the queue
@@ -412,8 +404,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         source->subStreamInfos().find(bmqp::ProtocolUtil::k_DEFAULT_APP_ID) !=
         source->subStreamInfos().end());
@@ -610,8 +601,7 @@ void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     BALL_LOG_TRACE << "OnConfirm [queue: '" << d_state_p->description()
                    << "', client: '" << *(source->client()) << "', GUID: '"
@@ -674,8 +664,7 @@ void LocalQueue::loadInternals(mqbcmd::LocalQueue* out) const
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     d_queueEngine_mp->loadInternals(&out->queueEngine());
 }

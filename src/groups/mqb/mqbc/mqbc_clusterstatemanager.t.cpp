@@ -179,6 +179,9 @@ struct Tester {
             bmqtst::TestHelperUtil::allocator());
         d_clusterStateManager_mp->setStorageManager(&d_storageManager);
 
+        // To pass `inDispatcherThread` checks (allow ANY thread):
+        d_cluster_mp->dispatcherClientData().setThreadId(0);
+
         // Start the cluster and the cluster state manager
         bmqu::MemOutStream errorDescription;
         int                rc = d_cluster_mp->start(errorDescription);

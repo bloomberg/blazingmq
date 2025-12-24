@@ -155,8 +155,7 @@ void QueueHandle::confirmMessageDispatched(const bmqt::MessageGUID& msgGUID,
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             !bmqt::QueueFlagsUtil::isReader(handleParameters().flags()))) {
@@ -234,8 +233,7 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             !bmqt::QueueFlagsUtil::isReader(handleParameters().flags()))) {
@@ -312,8 +310,7 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     // TYPES
 
@@ -486,8 +483,7 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     d_clientContext_sp.reset();
 
@@ -546,8 +542,7 @@ void QueueHandle::deliverMessageImpl(
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
     BSLS_ASSERT_SAFE(subscriptions.size() >= 1 &&
@@ -678,8 +673,7 @@ QueueHandle::registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& stream,
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(counts.d_readCount > 0 || counts.d_writeCount > 0);
 
     SubStreams::iterator infoIter = d_subStreamInfos.find(stream.appId());
@@ -818,8 +812,7 @@ bool QueueHandle::unregisterSubStream(
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     SubStreams::iterator infoIter = d_subStreamInfos.find(
         subStreamInfo.appId());
@@ -918,8 +911,7 @@ void QueueHandle::deliverMessageNoTrack(
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
     deliverMessageImpl(iter.appData(),
@@ -937,8 +929,7 @@ void QueueHandle::deliverMessage(
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
 
@@ -1054,9 +1045,7 @@ void QueueHandle::postMessage(const bmqp::PutHeader&              putHeader,
     // executed by the *CLUSTER_DISPATCHER* or *CLIENT_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clientContext_sp->client()->dispatcher()->inDispatcherThread(
-            d_clientContext_sp->client()));
+    BSLS_ASSERT_SAFE(d_clientContext_sp->client()->inDispatcherThread());
 
     // cannot check 'd_subscriptions' unless in the QUEUE dispatcher thread
 
@@ -1096,8 +1085,7 @@ void QueueHandle::configureDispatched(
     // executed by *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clientContext_sp);
 
     BALL_LOG_INFO << "Client [" << d_clientContext_sp->client()->description()
@@ -1131,8 +1119,7 @@ void QueueHandle::deconfigureDispatched(
     // executed by *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clientContext_sp);
 
     bsl::shared_ptr<DeconfigureContext> context(
@@ -1232,8 +1219,7 @@ mqbi::QueueHandle* QueueHandle::setHandleParameters(
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(handleParameters.uri() ==
                      bmqt::Uri(handleParameters.uri()).canonical());
     // Should only set handleParameters having a canonical URI because it
@@ -1250,8 +1236,7 @@ mqbi::QueueHandle* QueueHandle::setStreamParameters(
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     // Merge all Subscriptions into 'd_subscriptions'.
     // Ignore all priorities but the highest.
@@ -1271,8 +1256,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     bmqt::AckResult::Enum status = bmqp::ProtocolUtil::ackResultFromCode(
         ackMessage.status());
 
@@ -1377,8 +1361,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
 bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     Subscriptions::const_iterator cit = d_subscriptions.find(
         downstreamSubscriptionId);
@@ -1415,8 +1398,7 @@ bsls::Types::Int64 QueueHandle::countUnconfirmed() const
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     bsls::Types::Int64 result = 0;
 
@@ -1438,8 +1420,7 @@ void QueueHandle::loadInternals(mqbcmd::QueueHandle* out) const
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
 
     bmqu::MemOutStream os;
     os << d_handleParameters;

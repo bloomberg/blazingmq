@@ -276,8 +276,7 @@ ClusterState& ClusterState::registerObserver(ClusterStateObserver* observer)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     BALL_LOG_INFO << "Cluster [" << name()
                   << "]: " << "Registered 1 new state observer.";
@@ -291,7 +290,7 @@ ClusterState& ClusterState::unregisterObserver(ClusterStateObserver* observer)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     BALL_LOG_INFO << "Cluster [" << name()
                   << "]: " << "Unregistered 1 state observer.";
@@ -307,7 +306,7 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
@@ -389,7 +388,7 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
@@ -460,7 +459,7 @@ ClusterState& ClusterState::updatePartitionQueueMapped(int partitionId,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
@@ -479,7 +478,7 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0);
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
@@ -501,7 +500,7 @@ ClusterState::getDomainState(const bsl::string& domain)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     DomainStatesIter domIt = d_domainStates.find(domain);
     if (domIt == d_domainStates.end()) {
@@ -517,7 +516,7 @@ void ClusterState::onDomainsCreated(const DomainMap& domains)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     DomainMap::const_iterator it = domains.cbegin();
     for (; it != domains.cend(); ++it) {
@@ -534,7 +533,7 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     const bmqt::Uri&      uri         = advisory.uri();
     const int             partitionId = advisory.partitionId();
@@ -599,7 +598,7 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     const DomainStatesIter domIt = d_domainStates.find(uri.qualifiedDomain());
     if (domIt == d_domainStates.end()) {
@@ -645,7 +644,7 @@ void ClusterState::clearQueues()
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Clearing all "
                   << d_domainStates.size() << " domain states from state.";
@@ -667,7 +666,7 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
