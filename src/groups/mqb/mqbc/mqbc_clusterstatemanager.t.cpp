@@ -179,6 +179,11 @@ struct Tester {
             bmqtst::TestHelperUtil::allocator());
         d_clusterStateManager_mp->setStorageManager(&d_storageManager);
 
+        // In some UTs, operations with cluster might be executed either
+        // from the main thread or from the scheduler thread.
+        // To pass `inDispatcherThread` checks (allow ANY thread):
+        d_cluster_mp->dispatcherClientData().setThreadId(0);
+
         // Start the cluster and the cluster state manager
         bmqu::MemOutStream errorDescription;
         int                rc = d_cluster_mp->start(errorDescription);

@@ -274,8 +274,8 @@ Cluster::Cluster(bslma::Allocator*        allocator,
         bsl::make_pair(bsl::string("clusterNodes", d_allocator_p),
                        d_statContext_sp.get()));
 
-    d_dispatcherClientData.setDispatcher(&d_dispatcher);
-    d_dispatcher._setInDispatcherThread(true);
+    d_dispatcherClientData.setDispatcher(&d_dispatcher)
+        .setThreadId(bslmt::ThreadUtil::selfId());
 
     d_clusterData_mp.load(new (*d_allocator_p) mqbc::ClusterData(
                               d_clusterDefinition.name(),

@@ -133,7 +133,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "start() can only be called once on this object");
 
@@ -313,7 +313,7 @@ void Cluster::stopDispatched()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_clusterMonitor.stop();
 
@@ -394,7 +394,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(nodeSession);
 
     // If it's a NACK, do a lookup of the queue from 'queueId' to retrieve the
@@ -499,7 +499,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum    status,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(destination);
 
     mqbc::ClusterNodeSession* nodeSession =
@@ -514,7 +514,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
 {
     // executed by the *DISPATCHER* thread
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (command.isStatusValue()) {
         loadClusterStatus(result);
@@ -572,7 +572,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     BALL_LOG_INFO << "Shutting down Cluster: [name: '" << name() << "']";
 
@@ -627,7 +627,7 @@ void Cluster::continueShutdownDispatched(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bdlb::ScopeExitAny guard(completionCb);
 
@@ -702,7 +702,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This PUT event arrives from a replica node to this (primary) node, and
@@ -915,7 +915,7 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherAckEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-ACK event is sent by primary (event.clusterNode()) to replica
@@ -978,7 +978,7 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This CONFIRM event arrives from a replica node (event.clusterNode()) to
@@ -1077,7 +1077,7 @@ void Cluster::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This REJECT event arrives from a replica node (event.clusterNode()) to
@@ -1211,7 +1211,7 @@ void Cluster::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-REJECT message is enqueued by the RemoteQueue on either
@@ -1464,7 +1464,7 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherPushEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-PUSH event is sent by primary (event.clusterNode()) to
@@ -1601,7 +1601,7 @@ void Cluster::onRecoveryStatusDispatched(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (0 != status) {
         BALL_LOG_ERROR << description() << ": Stopping cluster as recovery "
@@ -1752,7 +1752,7 @@ void Cluster::gcExpiredQueuesDispatched()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_clusterOrchestrator.queueHelper().gcExpiredQueues();
 }
@@ -1771,7 +1771,7 @@ void Cluster::logSummaryStateDispatched() const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    os(&localAllocator);
@@ -1831,7 +1831,7 @@ void Cluster::onProxyConnectionUpDispatched(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // Send node status advisory to just connected proxy
     if (bmqp::ProtocolUtil::hasFeature(
@@ -1860,7 +1860,7 @@ void Cluster::processResponseDispatched(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     int rc = d_clusterData.requestManager().processResponse(response);
     if (rc != 0 && response.choice().isOpenQueueResponseValue()) {
@@ -1895,7 +1895,7 @@ void Cluster::loadNodesInfo(mqbcmd::NodeStatuses* out) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     ClusterNodeSessionMapConstIter cit =
         d_clusterData.membership().clusterNodeSessionMap().begin();
@@ -1933,7 +1933,7 @@ void Cluster::loadElectorInfo(mqbcmd::ElectorInfo* out) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     BSLA_MAYBE_UNUSED int rc = mqbcmd::ElectorState::fromInt(
         &out->electorState(),
@@ -1967,7 +1967,7 @@ void Cluster::loadPartitionsInfo(mqbcmd::PartitionsInfo* out) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     const mqbc::ClusterState::PartitionsInfo& pInfo = d_state.partitions();
     bsl::vector<mqbcmd::PartitionInfo>&       partitions = out->partitions();
@@ -1993,7 +1993,7 @@ void Cluster::loadQueuesInfo(mqbcmd::StorageContent* out) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_clusterOrchestrator.queueHelper().loadQueuesInfo(out);
 }
@@ -2164,7 +2164,7 @@ void Cluster::initiateShutdown(const VoidFunctor& callback)
     // executed by *ANY* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(!inDispatcherThread());
     // Deadlock detection (because of the 'synchronize' call below, we
     // can't execute from any of the cluster's dispatcher thread).
 
@@ -2209,7 +2209,7 @@ void Cluster::stop()
 void Cluster::terminate(mqbu::ExitCode::Enum reason)
 {
     // executed by *ANY* NON-DISPATCHER thread
-    BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(!inDispatcherThread());
 
     bslmt::Latch latch(1);
     initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
@@ -2251,7 +2251,7 @@ void Cluster::configureQueue(
     // executed by the associated *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(queue));
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
 
     d_clusterOrchestrator.queueHelper().configureQueue(queue,
                                                        streamParameters,
@@ -2268,7 +2268,7 @@ void Cluster::closeQueue(
     // executed by the associated *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(queue));
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
 
     d_clusterOrchestrator.queueHelper().closeQueue(queue,
                                                    handleParameters,
@@ -2803,7 +2803,7 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     BALL_LOG_TRACE << description() << ": processing dispatcher event '"
                    << event << "'";
@@ -2884,7 +2884,7 @@ void Cluster::flush()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 }
 
 void Cluster::onNodeStateChange(mqbnet::ClusterNode* node, bool isAvailable)
@@ -3064,7 +3064,7 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     mqbcmd::ClusterStatus& clusterStatus = result->makeClusterStatus();
 
     clusterStatus.name()        = d_clusterData.identity().name();
@@ -3107,7 +3107,7 @@ void Cluster::purgeAndGCQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // Check if there's any live connection to a queue
     if (d_clusterOrchestrator.queueHelper().hasActiveQueue(domainName)) {
@@ -3150,7 +3150,7 @@ void Cluster::printClusterStateSummary(bsl::ostream& out,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     mqbcmd::NodeStatuses nodeStatuses;
     loadNodesInfo(&nodeStatuses);
@@ -3250,7 +3250,7 @@ void Cluster::getPrimaryNodes(int*          rc,
     BSLS_ASSERT_SAFE(rc);
     BSLS_ASSERT_SAFE(nodes);
     BSLS_ASSERT_SAFE(isSelfPrimary);
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     enum RcEnum {
         rc_SUCCESS = 0,
@@ -3318,7 +3318,7 @@ void Cluster::getPartitionPrimaryNode(int*                  rc,
     BSLS_ASSERT_SAFE(rc);
     BSLS_ASSERT_SAFE(node);
     BSLS_ASSERT_SAFE(isSelfPrimary);
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     enum RcEnum {
         rc_SUCCESS = 0,

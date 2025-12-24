@@ -187,6 +187,11 @@ struct TestHelper {
                                  d_tempDir.path()),
             bmqtst::TestHelperUtil::allocator());
 
+        // In some UTs, operations with cluster might be executed either
+        // from the main thread or from the scheduler thread.
+        // To pass `inDispatcherThread` checks (allow ANY thread):
+        d_cluster_mp->dispatcherClientData().setThreadId(0);
+
         bmqsys::Time::initialize(
             bdlf::BindUtil::bind(&mqbmock::Cluster::getTime,
                                  d_cluster_mp.get()),
@@ -372,6 +377,7 @@ static void test2_checkAlarmsWithResetTest()
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
                                         helper.d_cluster_mp->_state(),
                                         bmqtst::TestHelperUtil::allocator());
+
     monitor.registerObserver(&notifications);
 
     bmqu::MemOutStream dummy;

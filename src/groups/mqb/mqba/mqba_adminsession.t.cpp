@@ -102,13 +102,6 @@ bmqp_ctrlmsg::NegotiationMessage client()
     return negotiationMessage;
 }
 
-mqbmock::Dispatcher* setInDispatcherThread(mqbmock::Dispatcher* mockDispatcher)
-// Utility method.  Sets 'MockDispatcher' attribute.
-{
-    mockDispatcher->_setInDispatcherThread(true);
-    return mockDispatcher;
-}
-
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
 void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
@@ -167,7 +160,7 @@ class TestBench {
     , d_as(d_channel,
            negotiationMessage,
            "sessionDescription",
-           setInDispatcherThread(&d_mockDispatcher),
+           &d_mockDispatcher,
            &d_blobSpPool,
            &d_scheduler,
            adminEnqueueCb,
@@ -175,8 +168,9 @@ class TestBench {
     , d_allocator_p(allocator)
     {
         // Typically done during 'Dispatcher::registerClient()'.
-        d_as.dispatcherClientData().setDispatcher(&d_mockDispatcher);
-        d_mockDispatcher._setInDispatcherThread(true);
+        d_as.dispatcherClientData()
+            .setDispatcher(&d_mockDispatcher)
+            .setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
         bmqsys::Time::shutdown();

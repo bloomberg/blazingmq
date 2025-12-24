@@ -427,13 +427,6 @@ bmqp_ctrlmsg::NegotiationMessage client(const ClientType clientType)
     return negotiationMessage;
 }
 
-mqbmock::Dispatcher* setInDispatcherThread(mqbmock::Dispatcher* mockDispatcher)
-// Utility method.  Sets 'MockDispatcher' attribute.
-{
-    mockDispatcher->_setInDispatcherThread(true);
-    return mockDispatcher;
-}
-
 /// Overrides default `MockQueueHandle` behavior with extra functionality.
 class MyMockQueueHandle : public mqbmock::QueueHandle {
   public:
@@ -696,7 +689,7 @@ class TestBench {
     , d_cs(d_channel,
            negotiationMessage,
            "sessionDescription",
-           setInDispatcherThread(&d_mockDispatcher),
+           &d_mockDispatcher,
            0,  // ClusterCatalog
            &d_mockDomainFactory,
            d_clientStatContext_sp,
@@ -740,8 +733,9 @@ class TestBench {
         }
 
         // Typically done during 'Dispatcher::registerClient()'.
-        d_cs.dispatcherClientData().setDispatcher(&d_mockDispatcher);
-        d_mockDispatcher._setInDispatcherThread(true);
+        d_cs.dispatcherClientData()
+            .setDispatcher(&d_mockDispatcher)
+            .setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
         bmqsys::Time::shutdown();

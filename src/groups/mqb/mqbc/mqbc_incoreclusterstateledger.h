@@ -454,9 +454,7 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_clusterData_p->electorInfo().isSelfLeader();
 }
@@ -480,9 +478,7 @@ inline bool IncoreClusterStateLedger::isOpen() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_isOpen;
 }
@@ -498,9 +494,7 @@ inline const mqbsi::Ledger* IncoreClusterStateLedger::ledger() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_ledger_mp.get();
 }

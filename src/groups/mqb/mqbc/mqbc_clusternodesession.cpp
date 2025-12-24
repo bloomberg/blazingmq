@@ -117,7 +117,7 @@ void ClusterNodeSession::addPartitionRaw(int partitionId)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     BSLS_ASSERT_SAFE(d_primaryPartitions.end() ==
                      bsl::find(d_primaryPartitions.begin(),
@@ -136,7 +136,7 @@ bool ClusterNodeSession::addPartitionSafe(int partitionId)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_primaryPartitions.end() != bsl::find(d_primaryPartitions.begin(),
                                                d_primaryPartitions.end(),
@@ -154,7 +154,7 @@ bool ClusterNodeSession::removePartitionSafe(int partitionId)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bsl::vector<int>::iterator it = bsl::find(d_primaryPartitions.begin(),
                                               d_primaryPartitions.end(),
@@ -177,7 +177,7 @@ bool ClusterNodeSession::isPrimaryForPartition(int partitionId) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     return d_primaryPartitions.end() != bsl::find(d_primaryPartitions.begin(),
                                                   d_primaryPartitions.end(),
@@ -189,7 +189,7 @@ void ClusterNodeSession::removeAllPartitions()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_primaryPartitions.clear();
 }
