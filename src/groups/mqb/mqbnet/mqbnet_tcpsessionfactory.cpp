@@ -1400,7 +1400,7 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
 
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
     bmqu::MemOutStream                  endpoint(&localAlloc);
-    endpoint << ":" << port;  // Empty hostname, listen from all interfaces
+    endpoint << listener.address() << ":" << listener.port();
     bmqio::ListenOptions listenOptions;
     listenOptions.setEndpoint(endpoint.str());
 
