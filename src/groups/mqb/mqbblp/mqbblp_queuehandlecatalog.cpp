@@ -152,7 +152,7 @@ mqbi::QueueHandle* QueueHandleCatalog::createHandle(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(clientContext->client());
 
     // Retrieve queueSp from the domain, to be passed to the queue handle.
@@ -206,7 +206,7 @@ int QueueHandleCatalog::releaseHandleHelper(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     HandleMap::iterator handleIt = d_handles.findByKey1(handle);
     if (handleIt == d_handles.end()) {
@@ -279,7 +279,7 @@ bool QueueHandleCatalog::hasHandle(const mqbi::QueueHandle* handle) const
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     return d_handles.findByKey1(const_cast<mqbi::QueueHandle*>(handle)) !=
            d_handles.end();
@@ -292,7 +292,7 @@ mqbi::QueueHandle* QueueHandleCatalog::getHandleByRequester(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     HandleMap::iterator it = d_handles.findByKey2(
         bsl::make_pair(context.requesterId(), queueId));
@@ -305,7 +305,7 @@ void QueueHandleCatalog::loadHandles(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     out->reserve(d_handles.size());
 
@@ -320,7 +320,7 @@ void QueueHandleCatalog::iterateConsumers(const Visitor& visitor) const
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     for (HandleMap::iterator itHandle = d_handles.begin();
          itHandle != d_handles.end();
@@ -351,7 +351,7 @@ void QueueHandleCatalog::loadInternals(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     out->reserve(d_handles.size());
     for (HandleMap::iterator it = d_handles.begin(); it != d_handles.end();
@@ -370,7 +370,7 @@ bsls::Types::Int64 QueueHandleCatalog::countUnconfirmed() const
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     bsls::Types::Int64 result = 0;
 

@@ -161,8 +161,7 @@ void ControlMessageTransmitter::sendMessage(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     d_schemaBuilder.reset();
     sendMessageHelper(message, destination, &d_schemaBuilder);
@@ -176,8 +175,7 @@ void ControlMessageTransmitter::sendMessage(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     d_schemaBuilder.reset();
 
@@ -227,8 +225,7 @@ void ControlMessageTransmitter::broadcastMessage(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     d_schemaBuilder.reset();
     broadcastMessageHelper(message, &d_schemaBuilder, broadcastToProxies);

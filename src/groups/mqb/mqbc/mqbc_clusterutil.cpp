@@ -239,8 +239,7 @@ void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
-        &clusterData.cluster()));
+    BSLS_ASSERT_SAFE(clusterData.cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData.electorInfo().electorState());
     BSLS_ASSERT_SAFE(numNewPartitions && numNewPartitions->empty());
@@ -428,8 +427,7 @@ void ClusterUtil::assignPartitions(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
-        &clusterData.cluster()));
+    BSLS_ASSERT_SAFE(clusterData.cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(partitions && partitions->empty());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData.electorInfo().electorState());
@@ -590,8 +588,7 @@ void ClusterUtil::onPartitionPrimaryAssignment(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(clusterData->cluster().dispatcher()->inDispatcherThread(
-        &clusterData->cluster()));
+    BSLS_ASSERT_SAFE(clusterData->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(storageManager);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     if (primary) {
@@ -666,7 +663,7 @@ void ClusterUtil::processQueueAssignmentRequest(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(clusterData);
@@ -830,7 +827,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(clusterData);
@@ -1070,7 +1067,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
 
@@ -1406,8 +1403,7 @@ void ClusterUtil::sendClusterState(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(clusterData->cluster().dispatcher()->inDispatcherThread(
-        &clusterData->cluster()));
+    BSLS_ASSERT_SAFE(clusterData->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData->electorInfo().electorState());
     BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
@@ -1912,9 +1908,7 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(
-        clusterData.dispatcherClientData().dispatcher()->inDispatcherThread(
-            cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
 
     if (!ledger.isOpen()) {
         BALL_LOG_INFO << clusterData.identity().description()
@@ -1959,8 +1953,7 @@ int ClusterUtil::load(ClusterState*               state,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(state);
     BSLS_ASSERT_SAFE(iterator);
-    BSLS_ASSERT_SAFE(clusterData.cluster().dispatcher()->inDispatcherThread(
-        &clusterData.cluster()));
+    BSLS_ASSERT_SAFE(clusterData.cluster().inDispatcherThread());
 
     /// Value for the various RC error categories
     enum RcEnum {

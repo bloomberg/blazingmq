@@ -65,7 +65,6 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -405,18 +404,6 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     int numProcessors(mqbi::DispatcherClientType::Enum type) const
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return whether the current thread is the dispatcher thread associated
-    /// with the specified `client`.  This is useful for precondition assert
-    /// validation.
-    bool inDispatcherThread(const mqbi::DispatcherClient* client) const
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Return whether the current thread is the dispatcher thread associated
-    /// with the specified dispatcher client `data`.  This is useful for
-    /// precondition assert validation.
-    bool inDispatcherThread(const mqbi::DispatcherClientData* data) const
-        BSLS_KEYWORD_OVERRIDE;
-
     /// Return an executor object suitable for executing function objects on
     /// the processor in charge of the specified `client`.  The behavior is
     /// undefined unless the specified `client` is registered on this
@@ -554,23 +541,6 @@ Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
     }
 
     return 0;
-}
-
-inline bool
-Dispatcher::inDispatcherThread(const mqbi::DispatcherClient* client) const
-{
-    return inDispatcherThread(&(client->dispatcherClientData()));
-}
-
-inline bool
-Dispatcher::inDispatcherThread(const mqbi::DispatcherClientData* data) const
-
-{
-    mqbi::DispatcherClientType::Enum type = data->clientType();
-    int                              proc = data->processorHandle();
-
-    return (d_contexts[type]->d_processorPool_mp->queueThreadHandle(proc) ==
-            bslmt::ThreadUtil::self());
 }
 
 }  // close package namespace

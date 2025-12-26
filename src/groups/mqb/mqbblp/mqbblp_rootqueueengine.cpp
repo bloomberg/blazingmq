@@ -88,8 +88,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
 {
     // executed by the *QUEUE DISPATCHER* thread
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     BSLS_ASSERT_SAFE(d_queueState_p->storage());
     BSLS_ASSERT_SAFE(d_apps.find(app->appId()) != d_apps.end());
@@ -201,7 +200,7 @@ void RootQueueEngine::onHandleCreation(void* ptr, void* cookie)
     mqbi::Queue*     queue       = qs->queue();
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
 
     queue->domain()->cluster()->onQueueHandleCreated(queue,
                                                      queue->uri(),
@@ -619,8 +618,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
 #define CALLBACK(CAT, RC, MSG, HAN)                                           \
     if (callback) {                                                           \
@@ -864,8 +862,7 @@ void RootQueueEngine::configureHandle(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
 #define CONFIGURE_CB(CAT, RC, MSG, SPARAMS)                                   \
@@ -1013,8 +1010,7 @@ void RootQueueEngine::releaseHandle(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     BALL_LOG_INFO << "RootQueueEngine::releaseHandle "
                   << "HandlePtr '" << handle << "', queue handle's URI '"
@@ -1290,8 +1286,7 @@ void RootQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -1327,8 +1322,7 @@ void RootQueueEngine::afterNewMessage()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // Deliver new messages to active (alive and capable to deliver) consumers
 
@@ -1383,8 +1377,7 @@ int RootQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         !QueueEngineUtil::isBroadcastMode(d_queueState_p->queue()) &&
         "confirm isn't expected for this queue");
@@ -1452,8 +1445,7 @@ int RootQueueEngine::onRejectMessage(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         !QueueEngineUtil::isBroadcastMode(d_queueState_p->queue()) &&
         "reject isn't expected for this queue");
@@ -1605,8 +1597,7 @@ void RootQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_storageIter_mp);
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
@@ -1620,8 +1611,7 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (appKey.isNull()) {
         // 'mqbu::StorageKey::k_NULL_KEY' indicates the entire queue in which
@@ -1645,8 +1635,7 @@ void RootQueueEngine::afterPostMessage()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     d_consumptionMonitor.onMessagePosted();
 }
@@ -1658,8 +1647,7 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&      stream,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // Get AppState by appKey.
     Apps::const_iterator cItApp = d_apps.find(appId);
@@ -1784,8 +1772,7 @@ RootQueueEngine::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(alarmTime_p);
 
     // Get AppState by appKey.
@@ -1818,8 +1805,7 @@ void RootQueueEngine::logAlarmCb(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // Get AppState by appKey.
     Apps::const_iterator cItApp = d_apps.find(appId);
@@ -1927,8 +1913,7 @@ void RootQueueEngine::afterAppIdRegistered(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (!d_isFanout) {
         BALL_LOG_ERROR << "RootQueueEngine::afterAppIdRegistered() should "
@@ -1977,8 +1962,7 @@ void RootQueueEngine::afterAppIdUnregistered(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (!d_isFanout) {
         BALL_LOG_ERROR << "Invalid queue type for unregistering appId."
@@ -2022,8 +2006,7 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
@@ -2060,8 +2043,7 @@ void RootQueueEngine::unregisterStorage(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
@@ -2147,8 +2129,7 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     mqbcmd::FanoutQueueEngine& fanoutQueueEngine = out->makeFanout();
     // TODO: Implement in a way that makes sense

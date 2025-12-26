@@ -423,7 +423,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         ///       `TimedSemaphore` and we still need to copy `QueueInfo`.
         bsl::shared_ptr<bslmt::TimedSemaphore> d_finished_sp;
 
-        bslmt::ThreadUtil::Handle d_exclusiveThreadHandle;
+        bslmt::ThreadUtil::Id d_threadId;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(QueueInfo, bslma::UsesBslmaAllocator)
@@ -439,7 +439,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
               basicAllocator,
               0,
               bsls::SystemClockType::e_MONOTONIC))
-        , d_exclusiveThreadHandle(bslmt::ThreadUtil::invalidHandle())
+        , d_threadId(0)
         {
             // NOTHING
         }
@@ -453,7 +453,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         , d_processQueueRefCount(
               static_cast<int>(other.d_processQueueRefCount))
         , d_finished_sp(other.d_finished_sp)
-        , d_exclusiveThreadHandle(other.d_exclusiveThreadHandle)
+        , d_threadId(other.d_threadId)
         {
             // NOTHING
         }
@@ -464,7 +464,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
             d_queue_p = 0;
             d_context_p.reset();
             d_monitorState          = e_MONITOR_PROCESSED;
-            d_exclusiveThreadHandle = bslmt::ThreadUtil::invalidHandle();
+            d_threadId              = 0;
         }
     };
 
@@ -582,7 +582,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
     /// Return the handle to the thread managing the specified `queueId`.
     /// The behavior is undefined unless this object was created in the
     /// exclusive mode.
-    bslmt::ThreadUtil::Handle queueThreadHandle(int queueId) const;
+    bslmt::ThreadUtil::Id queueThreadId(int queueId) const;
 };
 
 // ============================================================================
@@ -753,7 +753,7 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
     QueueInfo& info = d_queues[queue];
 
     // Store the thread id of the thread being exclusively used
-    info.d_exclusiveThreadHandle = bslmt::ThreadUtil::self();
+    info.d_threadId = bslmt::ThreadUtil::selfId();
 
     while (true) {
         EventSp   event;
@@ -1066,14 +1066,14 @@ inline int MultiQueueThreadPool<TYPE>::numQueues() const
 }
 
 template <typename TYPE>
-inline bslmt::ThreadUtil::Handle
-MultiQueueThreadPool<TYPE>::queueThreadHandle(int queueId) const
+inline bslmt::ThreadUtil::Id
+MultiQueueThreadPool<TYPE>::queueThreadId(int queueId) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= queueId);
     BSLS_ASSERT_SAFE(queueId < numQueues());
 
-    return d_queues[queueId].d_exclusiveThreadHandle;
+    return d_queues[queueId].d_threadId;
 }
 
 }  // close package namespace
