@@ -27,65 +27,30 @@ namespace mqbc {
 // class PartitionFSM
 // ==================
 
-// MANIPULATORS
-PartitionFSM& PartitionFSM::registerObserver(PartitionFSMObserver* observer)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(observer);
-
-    d_observers.insert(observer);
-    BALL_LOG_DEBUG << "PartitionFSM: Registered 1 new observer (" << observer
-                   << "). Total number of observers is now "
-                   << d_observers.size();
-
-    return *this;
-}
-
-PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(observer);
-
-    d_observers.erase(observer);
-    BALL_LOG_DEBUG << "PartitionFSM: Unregistered 1 observer (" << observer
-                   << "). Total number of observers is now "
-                   << d_observers.size();
-
-    return *this;
-}
-
-void PartitionFSM::popEventAndProcess(
-    const bsl::shared_ptr<bsl::queue<EventWithData> >& eventsQueue)
+// PRIVATE MANIPULATORS
+void PartitionFSM::processEvent(const EventWithData& event)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!eventsQueue->empty());
+    BSLS_ASSERT_SAFE(!event.second.empty());
 
-    EventWithData eventWithData = eventsQueue->front();
-    BSLS_ASSERT_SAFE(!eventWithData.second.empty());
-    const int partitionId = eventWithData.second[0].partitionId();
+    const int partitionId = event.second[0].partitionId();
 
     State::Enum oldState   = d_state;
-    Transition  transition = d_stateTable.transition(oldState,
-                                                    eventWithData.first);
-
+    Transition  transition = d_stateTable.transition(oldState, event.first);
     // Transition state
     d_state = static_cast<State::Enum>(transition.first);
 
-    if (eventWithData.first != PartitionStateTableEvent::e_RECOVERY_DATA &&
-        eventWithData.first != PartitionStateTableEvent::e_LIVE_DATA) {
+    if (event.first != PartitionStateTableEvent::e_RECOVERY_DATA &&
+        event.first != PartitionStateTableEvent::e_LIVE_DATA) {
         BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
-                      << "] on Event '" << eventWithData.first
+                      << "] on Event '" << event.first
                       << "', transition: State '" << oldState
                       << "' =>  State '" << d_state << "'";
     }
 
-    // Perform action
-    PartitionFSMArgsSp argsSp(new (*d_allocator_p)
-                                  PartitionFSMArgs(eventsQueue.get()),
-                              d_allocator_p);
-    (d_actions.*(transition.second))(argsSp);
+    (d_actions.*(transition.second))(event);
 
     // Notify observers
     if (d_state != oldState) {
@@ -130,14 +95,51 @@ void PartitionFSM::popEventAndProcess(
         }
         }
     }
+}
 
-    eventsQueue->pop();
-    if (!eventsQueue->empty()) {
-        popEventAndProcess(eventsQueue);
+// MANIPULATORS
+PartitionFSM& PartitionFSM::registerObserver(PartitionFSMObserver* observer)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(observer);
+
+    d_observers.insert(observer);
+    BALL_LOG_DEBUG << "PartitionFSM: Registered 1 new observer (" << observer
+                   << "). Total number of observers is now "
+                   << d_observers.size();
+
+    return *this;
+}
+
+PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(observer);
+
+    d_observers.erase(observer);
+    BALL_LOG_DEBUG << "PartitionFSM: Unregistered 1 observer (" << observer
+                   << "). Total number of observers is now "
+                   << d_observers.size();
+
+    return *this;
+}
+
+void PartitionFSM::enqueueEvent(const EventWithData& event)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!event.second.empty());
+
+    d_eventsQueue.push(event);
+    if (d_eventsQueue.size() > 1) {
+        // There is already an ongoing processing, so just return.
+        return;
     }
-    else {
-        // NOTHING
-        // There are no successive events to be processed so its safe to exit.
+
+    while (!d_eventsQueue.empty()) {
+        processEvent(d_eventsQueue.front());
+        d_eventsQueue.pop();
     }
 }
 

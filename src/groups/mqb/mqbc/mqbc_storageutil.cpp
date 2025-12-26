@@ -1265,11 +1265,10 @@ int StorageUtil::assignPartitionDispatcherThreads(
 }
 
 void StorageUtil::clearPrimaryForPartition(
-    mqbs::FileStore*     fs,
-    PartitionInfo*       partitionInfo,
-    const bsl::string&   clusterDescription,
-    int                  partitionId,
-    mqbnet::ClusterNode* primary)
+    mqbs::FileStore*   fs,
+    PartitionInfo*     partitionInfo,
+    const bsl::string& clusterDescription,
+    int                partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -1281,10 +1280,6 @@ void StorageUtil::clearPrimaryForPartition(
     if (0 == partitionInfo->primary()) {
         // Already notified.
 
-        return;  // RETURN
-    }
-
-    if (primary != partitionInfo->primary()) {
         return;  // RETURN
     }
 
