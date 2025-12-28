@@ -115,7 +115,6 @@ BrokerStatsUtil::initializeStatContext(int               historySize,
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)
-        .storeExpiredSubcontextValues(true)
         .value("queue_count")
         .value("client_count");
 
@@ -127,6 +126,41 @@ BrokerStatsUtil::initializeStatContext(int               historySize,
     BrokerStats::instance().initialize(statContext.get());
 
     return statContext;
+}
+
+void BrokerStatsUtil::initializeTableAndTipBroker(
+    bmqst::Table*                  table,
+    bmqst::BasicTableInfoProvider* tip,
+    int                            historySize,
+    bmqst::StatContext*            statContext)
+{
+    // Use only one level for now ...
+    bmqst::StatValue::SnapshotLocation start(0, 0);
+    bmqst::StatValue::SnapshotLocation end(0, historySize - 1);
+
+    // Create table
+    bmqst::TableSchema& schema = table->schema();
+
+    schema.addDefaultIdColumn("id");
+    schema.addColumn("clients",
+                     BrokerStats::Stat::e_CLIENT_COUNT,
+                     bmqst::StatUtil::value,
+                     start);
+    schema.addColumn("queues",
+                     BrokerStats::Stat::e_QUEUE_COUNT,
+                     bmqst::StatUtil::value,
+                     start);
+
+    // Configure records
+    bmqst::TableRecords& records = table->records();
+    records.setContext(statContext);
+
+    // Create the tip
+    tip->setTable(table);
+    tip->setColumnGroup("");
+    tip->addColumn("id", "").justifyLeft();
+    tip->addColumn("clients", "# clients").zeroString("");
+    tip->addColumn("queues", "# queues").zeroString("");
 }
 
 }  // close package namespace

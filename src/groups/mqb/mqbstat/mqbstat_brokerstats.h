@@ -30,10 +30,13 @@
 // MQB
 
 // BMQ
+#include <bmqst_basictableinfoprovider.h>
 #include <bmqst_statcontext.h>
+#include <bmqst_table.h>
 #include <bmqt_uri.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
@@ -151,6 +154,13 @@ struct BrokerStatsUtil {
     /// specified `allocator` for all stat context and stat values.
     static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContext(int historySize, bslma::Allocator* allocator);
+
+    /// Load in the specified `table` and `tip` the objects to print the
+    /// specified `statContext` for the specified `historySize`.
+    static void initializeTableAndTipBroker(bmqst::Table* table,
+                                            bmqst::BasicTableInfoProvider* tip,
+                                            int                 historySize,
+                                            bmqst::StatContext* statContext);
 };
 
 // ============================================================================

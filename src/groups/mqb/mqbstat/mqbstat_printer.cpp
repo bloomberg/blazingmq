@@ -18,6 +18,7 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqbstat_brokerstats.h>
 #include <mqbstat_queuestats.h>
 
 #include <bmqio_statchannelfactory.h>
@@ -86,6 +87,12 @@ void Printer::initializeTablesAndTips()
 
     Context* context = d_contexts["domainQueues"].get();
     QueueStatsUtil::initializeTableAndTipDomains(&context->d_table,
+                                                 &context->d_tip,
+                                                 historySize,
+                                                 context->d_statContext_p);
+
+    context = d_contexts["broker"].get();
+    BrokerStatsUtil::initializeTableAndTipBroker(&context->d_table,
                                                  &context->d_tip,
                                                  historySize,
                                                  context->d_statContext_p);
@@ -214,11 +221,19 @@ void Printer::stop()
 void Printer::printStats(bsl::ostream& stream)
 {
     // This must execute in the 'snapshot' thread
+    Context* context;
+
+    // BROKER
+    stream << "\n"
+           << ":::::::::: :::::::::: BROKER >>";
+    context = d_contexts["broker"].get();
+    context->d_table.records().update();
+    bmqst::TableUtil::printTable(stream, context->d_tip);
 
     // DOMAINQUEUES
     stream << "\n"
            << ":::::::::: :::::::::: DOMAINQUEUES >>";
-    Context* context = d_contexts["domainQueues"].get();
+    context = d_contexts["domainQueues"].get();
     context->d_table.records().update();
     bmqst::TableUtil::printTable(stream, context->d_tip);
 
