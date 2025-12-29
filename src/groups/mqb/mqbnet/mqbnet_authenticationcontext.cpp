@@ -172,6 +172,10 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
 
     d_state = AuthenticationState::e_AUTHENTICATED;
 
+    /*
+    // TODO: Reauthentication is disabled for now.  Uncomment once we're ready
+    // to enable reauthentication.
+
     if (d_timeoutHandle) {
         scheduler_p->cancelEventAndWait(&d_timeoutHandle);
     }
@@ -207,6 +211,8 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
                 channel                   // channel
                 ));
     }
+
+    */
 
     return 0;
 }
