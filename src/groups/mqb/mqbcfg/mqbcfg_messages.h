@@ -406,6 +406,8 @@ class BmqconfConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::BmqconfConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::BmqconfConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -618,6 +620,9 @@ class ClusterAttributes {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterAttributes)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterAttributes> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -904,6 +909,9 @@ class ClusterMonitorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterMonitorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterMonitorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1124,6 +1132,8 @@ class Credential {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Credential)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Credential> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1273,6 +1283,8 @@ class Disallow {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Disallow)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Disallow> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1473,6 +1485,9 @@ class DispatcherProcessorParameters {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorParameters)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorParameters>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -1780,6 +1795,8 @@ class ElectorConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ElectorConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2064,6 +2081,8 @@ class Heartbeat {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Heartbeat> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2307,6 +2326,8 @@ class LogDumpConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogDumpConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogDumpConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2584,6 +2605,9 @@ class MessagePropertiesV2 {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessagePropertiesV2)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessagePropertiesV2>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -2809,6 +2833,9 @@ class MessageThrottleConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::MessageThrottleConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::MessageThrottleConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3338,6 +3365,8 @@ class Plugins {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::Plugins)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Plugins> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3697,6 +3726,9 @@ class QueueOperationsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::QueueOperationsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::QueueOperationsConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -3926,6 +3958,8 @@ class ResolvedDomain {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ResolvedDomain)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ResolvedDomain> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4191,6 +4225,9 @@ class StatsPrinterConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatsPrinterConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsPrinterConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4524,6 +4561,9 @@ class StorageSyncConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::StorageSyncConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StorageSyncConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -4773,6 +4813,8 @@ class SyslogConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::SyslogConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::SyslogConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4987,6 +5029,9 @@ class TcpClusterNodeConnection {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpClusterNodeConnection)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpClusterNodeConnection>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -4998,23 +5043,39 @@ class TcpInterfaceListener {
     // This type describes the information needed for the broker to open a TCP
     // listener.
     // name.................: A name to associate this listener to.
-    // port.................: The port this listener will accept connections
-    // on.
+    // address..............: The IP address this listener will accept
+    // connections on.  port.................: The port this listener will
+    // accept connections on.
 
     // INSTANCE DATA
     bsl::string d_name;
+    bsl::string d_address;
     int         d_port;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_PORT = 1 };
+    enum {
+        ATTRIBUTE_ID_NAME    = 0,
+        ATTRIBUTE_ID_ADDRESS = 1,
+        ATTRIBUTE_ID_PORT    = 2
+    };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
-    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_PORT = 1 };
+    enum {
+        ATTRIBUTE_INDEX_NAME    = 0,
+        ATTRIBUTE_INDEX_ADDRESS = 1,
+        ATTRIBUTE_INDEX_PORT    = 2
+    };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const char DEFAULT_INITIALIZER_ADDRESS[];
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5113,6 +5174,10 @@ class TcpInterfaceListener {
     // Return a reference to the modifiable "Name" attribute of this
     // object.
 
+    bsl::string& address();
+    // Return a reference to the modifiable "Address" attribute of this
+    // object.
+
     int& port();
     // Return a reference to the modifiable "Port" attribute of this
     // object.
@@ -5164,6 +5229,10 @@ class TcpInterfaceListener {
     // Return a reference offering non-modifiable access to the "Name"
     // attribute of this object.
 
+    const bsl::string& address() const;
+    // Return a reference offering non-modifiable access to the "Address"
+    // attribute of this object.
+
     int port() const;
     // Return the value of the "Port" attribute of this object.
 
@@ -5174,7 +5243,8 @@ class TcpInterfaceListener {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.name() == rhs.name() && lhs.port() == rhs.port();
+        return lhs.name() == rhs.name() && lhs.address() == rhs.address() &&
+               lhs.port() == rhs.port();
     }
 
     friend bool operator!=(const TcpInterfaceListener& lhs,
@@ -5200,9 +5270,7 @@ class TcpInterfaceListener {
     // effectively provides a 'bsl::hash' specialization for
     // 'TcpInterfaceListener'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.name());
-        hashAppend(hashAlg, object.port());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -5212,6 +5280,9 @@ class TcpInterfaceListener {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceListener)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceListener>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -5438,6 +5509,9 @@ class VirtualClusterInformation {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::VirtualClusterInformation)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::VirtualClusterInformation>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6102,6 +6176,9 @@ class DispatcherProcessorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
     mqbcfg::DispatcherProcessorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherProcessorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6428,6 +6505,8 @@ class LogController {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::LogController)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::LogController> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -6786,6 +6865,8 @@ class PartitionConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PartitionConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PartitionConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7008,6 +7089,9 @@ class PluginSettingKeyValue {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::PluginSettingKeyValue)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::PluginSettingKeyValue>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7254,6 +7338,9 @@ class StatPluginConfigPrometheus {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfigPrometheus)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfigPrometheus>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7586,6 +7673,9 @@ class TcpInterfaceConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::TcpInterfaceConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TcpInterfaceConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -7811,6 +7901,9 @@ class AuthenticatorPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::AuthenticatorPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorPluginConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8062,6 +8155,8 @@ class ClusterNode {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::ClusterNode)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterNode> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -8262,6 +8357,9 @@ class DispatcherConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::DispatcherConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8483,6 +8581,9 @@ class NetworkInterfaces {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::NetworkInterfaces)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::NetworkInterfaces> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -8803,6 +8904,9 @@ class StatPluginConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::StatPluginConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatPluginConfig> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -9036,6 +9140,8 @@ class TaskConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::TaskConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9274,6 +9380,9 @@ class AuthenticatorConfig {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::AuthenticatorConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AuthenticatorConfig>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -9591,6 +9700,9 @@ class ClusterDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterDefinition> : bsl::true_type {
+};
 
 namespace mqbcfg {
 
@@ -9862,6 +9974,9 @@ class ClusterProxyDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterProxyDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClusterProxyDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10099,6 +10214,8 @@ class StatsConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::StatsConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10534,6 +10651,8 @@ class AppConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::AppConfig> : bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -10782,6 +10901,9 @@ class ClustersDefinition {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClustersDefinition)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::ClustersDefinition>
+: bsl::true_type {};
 
 namespace mqbcfg {
 
@@ -11000,6 +11122,8 @@ class Configuration {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::Configuration)
+template <>
+struct bdlat_UsesDefaultValueFlag<mqbcfg::Configuration> : bsl::true_type {};
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -15292,6 +15416,17 @@ inline const bsl::string& TcpClusterNodeConnection::endpoint() const
 // class TcpInterfaceListener
 // --------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void TcpInterfaceListener::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->name());
+    hashAppend(hashAlgorithm, this->address());
+    hashAppend(hashAlgorithm, this->port());
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -15300,6 +15435,12 @@ int TcpInterfaceListener::manipulateAttributes(t_MANIPULATOR& manipulator)
     int ret;
 
     ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_address,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     if (ret) {
         return ret;
     }
@@ -15322,6 +15463,10 @@ int TcpInterfaceListener::manipulateAttribute(t_MANIPULATOR& manipulator,
     case ATTRIBUTE_ID_NAME: {
         return manipulator(&d_name,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_ADDRESS: {
+        return manipulator(&d_address,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     }
     case ATTRIBUTE_ID_PORT: {
         return manipulator(&d_port,
@@ -15352,6 +15497,11 @@ inline bsl::string& TcpInterfaceListener::name()
     return d_name;
 }
 
+inline bsl::string& TcpInterfaceListener::address()
+{
+    return d_address;
+}
+
 inline int& TcpInterfaceListener::port()
 {
     return d_port;
@@ -15364,6 +15514,11 @@ int TcpInterfaceListener::accessAttributes(t_ACCESSOR& accessor) const
     int ret;
 
     ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_address, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     if (ret) {
         return ret;
     }
@@ -15384,6 +15539,10 @@ int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor, int id) const
     switch (id) {
     case ATTRIBUTE_ID_NAME: {
         return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_ADDRESS: {
+        return accessor(d_address,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     }
     case ATTRIBUTE_ID_PORT: {
         return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
@@ -15411,6 +15570,11 @@ int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor,
 inline const bsl::string& TcpInterfaceListener::name() const
 {
     return d_name;
+}
+
+inline const bsl::string& TcpInterfaceListener::address() const
+{
+    return d_address;
 }
 
 inline int TcpInterfaceListener::port() const
