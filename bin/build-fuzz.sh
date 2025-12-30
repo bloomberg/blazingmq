@@ -34,7 +34,7 @@ if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.10 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 # :: Install required packages ::::::::::::::::::::::::::::::::::::::::::::::::
@@ -56,12 +56,15 @@ fi
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
     pushd "${DIR_THIRDPARTY}/ntf-core" || exit
-    ./configure --prefix "${DIR_INSTALL}" \
-                --output "${DIR_BUILD}/ntf" \
+    ./configure --prefix "${DIR_INSTALL}"    \
+                --output "${DIR_BUILD}/ntf"  \
                 --without-warnings-as-errors \
-                --without-usage-examples \
-                --without-applications \
-                --ufid "dbg_64_safe_cpp20" \
+                --without-usage-examples     \
+                --without-applications       \
+                --with-zlib                  \
+                --without-zstd               \
+                --without-lz4                \
+                --ufid "dbg_64_safe_cpp20"   \
                 --toolchain "${TOOLCHAIN_PATH}"
     make -j 16
     make install

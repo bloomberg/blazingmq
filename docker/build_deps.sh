@@ -43,7 +43,7 @@ fetch_git() {
 fetch_deps() {
     fetch_git bloomberg bde-tools 4.28.0.0
     fetch_git bloomberg bde 4.28.0.0
-    fetch_git bloomberg ntf-core 2.4.2
+    fetch_git bloomberg ntf-core 2.6.10
 }
 
 configure() {
@@ -68,6 +68,9 @@ build_ntf() {
         --without-usage-examples     \
         --without-applications       \
         --without-warnings-as-errors \
+        --with-zlib                  \
+        --without-zstd               \
+        --without-lz4                \
         --ufid opt_64_cpp17
     make -j8
     make install

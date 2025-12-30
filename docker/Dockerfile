@@ -16,6 +16,7 @@ RUN apt-get update && \
     libbenchmark-dev \
     libgmock-dev \
     libz-dev \
+    libssl-dev \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
