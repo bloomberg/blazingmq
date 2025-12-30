@@ -3088,12 +3088,19 @@ bsl::ostream& TcpClusterNodeConnection::print(bsl::ostream& stream,
 
 const char TcpInterfaceListener::CLASS_NAME[] = "TcpInterfaceListener";
 
+const char TcpInterfaceListener::DEFAULT_INITIALIZER_ADDRESS[] = "0.0.0.0";
+
 const bdlat_AttributeInfo TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_NAME,
      "name",
      sizeof("name") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_ADDRESS,
+     "address",
+     sizeof("address") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
     {ATTRIBUTE_ID_PORT,
      "port",
      sizeof("port") - 1,
@@ -3105,7 +3112,7 @@ const bdlat_AttributeInfo TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 TcpInterfaceListener::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -3122,6 +3129,8 @@ const bdlat_AttributeInfo* TcpInterfaceListener::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
+    case ATTRIBUTE_ID_ADDRESS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS];
     case ATTRIBUTE_ID_PORT: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT];
     default: return 0;
     }
@@ -3131,6 +3140,7 @@ const bdlat_AttributeInfo* TcpInterfaceListener::lookupAttributeInfo(int id)
 
 TcpInterfaceListener::TcpInterfaceListener(bslma::Allocator* basicAllocator)
 : d_name(basicAllocator)
+, d_address(DEFAULT_INITIALIZER_ADDRESS, basicAllocator)
 , d_port()
 {
 }
@@ -3139,6 +3149,7 @@ TcpInterfaceListener::TcpInterfaceListener(
     const TcpInterfaceListener& original,
     bslma::Allocator*           basicAllocator)
 : d_name(original.d_name, basicAllocator)
+, d_address(original.d_address, basicAllocator)
 , d_port(original.d_port)
 {
 }
@@ -3147,6 +3158,7 @@ TcpInterfaceListener::TcpInterfaceListener(
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original)
     noexcept : d_name(bsl::move(original.d_name)),
+               d_address(bsl::move(original.d_address)),
                d_port(bsl::move(original.d_port))
 {
 }
@@ -3154,6 +3166,7 @@ TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original)
 TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original,
                                            bslma::Allocator* basicAllocator)
 : d_name(bsl::move(original.d_name), basicAllocator)
+, d_address(bsl::move(original.d_address), basicAllocator)
 , d_port(bsl::move(original.d_port))
 {
 }
@@ -3169,8 +3182,9 @@ TcpInterfaceListener&
 TcpInterfaceListener::operator=(const TcpInterfaceListener& rhs)
 {
     if (this != &rhs) {
-        d_name = rhs.d_name;
-        d_port = rhs.d_port;
+        d_name    = rhs.d_name;
+        d_address = rhs.d_address;
+        d_port    = rhs.d_port;
     }
 
     return *this;
@@ -3182,8 +3196,9 @@ TcpInterfaceListener&
 TcpInterfaceListener::operator=(TcpInterfaceListener&& rhs)
 {
     if (this != &rhs) {
-        d_name = bsl::move(rhs.d_name);
-        d_port = bsl::move(rhs.d_port);
+        d_name    = bsl::move(rhs.d_name);
+        d_address = bsl::move(rhs.d_address);
+        d_port    = bsl::move(rhs.d_port);
     }
 
     return *this;
@@ -3193,6 +3208,7 @@ TcpInterfaceListener::operator=(TcpInterfaceListener&& rhs)
 void TcpInterfaceListener::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_name);
+    d_address = DEFAULT_INITIALIZER_ADDRESS;
     bdlat_ValueTypeFunctions::reset(&d_port);
 }
 
@@ -3205,6 +3221,7 @@ bsl::ostream& TcpInterfaceListener::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("name", this->name());
+    printer.printAttribute("address", this->address());
     printer.printAttribute("port", this->port());
     printer.end();
     return stream;

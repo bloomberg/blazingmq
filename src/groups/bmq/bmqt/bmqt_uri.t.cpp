@@ -69,8 +69,6 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     int         rc = 0;
     bsl::string error(bmqtst::TestHelperUtil::allocator());
 
@@ -314,15 +312,11 @@ static void test1_breathingTest()
             BMQTST_ASSERT_EQ_D(test.d_line, obj.isValid(), false);
         }
     }
-
-    bmqt::UriParser::shutdown();
 }
 
 static void test2_URIBuilder()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bmqt::UriBuilder builder(bmqtst::TestHelperUtil::allocator());
 
@@ -445,8 +439,6 @@ static void test2_URIBuilder()
         BMQTST_ASSERT_EQ(uriBuilder.uri(&tmpUri, 0), 0);
         BMQTST_ASSERT_EQ(tmpUri.asString(), "bmq://my.domain/yourQueue");
     }
-
-    bmqt::UriParser::shutdown();
 }
 
 /// Test same `UriBuilder` object to match various patterns concurrently
@@ -454,8 +446,6 @@ static void test2_URIBuilder()
 static void test3_URIBuilderMultiThreaded()
 {
     bmqtst::TestHelper::printTestName("MULTI-THREADED URI BUILDER TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     const size_t k_NUM_THREADS    = 6;
     const size_t k_NUM_ITERATIONS = 10000;
@@ -531,46 +521,12 @@ static void test3_URIBuilderMultiThreaded()
             BMQTST_ASSERT_EQ_D(i << ", " << j, uris[j], expectedUri);
         }
     }
-
-    bmqt::UriParser::shutdown();
-}
-
-static void test4_initializeShutdown()
-// ------------------------------------------------------------------------
-// Testing:
-//   'UriParser' initialize and shutdown.  Should be able to call
-//   '.initialize()' and '.shutdown()' after the instance has already
-//   started or shutdown, and have no effect.  Shutting down the
-//   'UriParser' without a call to 'initialize' should assert.
-//
-// Plan:
-//   Initialize the 'UriParser' again.  Initialize the 'UriParser' again.
-//   Shutdown the 'UriParser'.  Shutdown the 'UriParser' again.
-//   Shutdown the 'UriParser', destroying it.  Shutdown the 'UriParser'
-//   again.
-//   ----------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
-
-    // Initialize the 'UriParser'.
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
-    // Initialize should be a no-op.
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
-    // Shutdown the parser is a no-op.
-    bmqt::UriParser::shutdown();
-
-    // Shut down the parser is a no-op.
-    bmqt::UriParser::shutdown();
 }
 
 /// Test Uri print method.
-static void test5_testPrint()
+static void test4_testPrint()
 {
     bmqtst::TestHelper::printTestName("PRINT");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("Testing print");
 
@@ -592,11 +548,9 @@ static void test5_testPrint()
     stream.clear(bsl::ios_base::badbit);
     stream << obj;
     BMQTST_ASSERT_EQ(stream.str(), "NO LAYOUT");
-
-    bmqt::UriParser::shutdown();
 }
 
-static void test6_hashAppend()
+static void test5_hashAppend()
 // ------------------------------------------------------------------------
 // TEST HASH APPEND
 //
@@ -616,8 +570,6 @@ static void test6_hashAppend()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("HASH FUNCTION DETERMINISTIC");
 
@@ -643,11 +595,9 @@ static void test6_hashAppend()
         PVVV("[" << i << "] hash: " << currHash);
         BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
     }
-
-    bmqt::UriParser::shutdown();
 }
 
-static void test7_testLongUri()
+static void test6_testLongUri()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Disable the default allocator check. When 'bmqt::Uri'
@@ -656,8 +606,6 @@ static void test7_testLongUri()
     // the default allocator.
 
     bmqtst::TestHelper::printTestName("LONG URI TEST");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
@@ -674,8 +622,6 @@ static void test7_testLongUri()
     bmqt::Uri obj(stream.str(), bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.isValid(), false);
-
-    bmqt::UriParser::shutdown();
 }
 
 #ifdef BMQTST_BENCHMARK_ENABLED
@@ -753,8 +699,6 @@ static void testN1_benchmark(benchmark::State& state)
 {
     bmqtst::TestHelper::printTestName("URI PERFORMANCE TEST");
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     bslmt::Latch   initThreadLatch(NUM_THREADS);
     bslmt::Barrier startBenchmarkBarrier(NUM_THREADS + 1);
     bslmt::Latch   finishBenchmarkLatch(NUM_THREADS);
@@ -790,7 +734,6 @@ static void testN1_benchmark(benchmark::State& state)
     }
 
     threadGroup.joinAll();
-    bmqt::UriParser::shutdown();
 }
 
 #endif  // BMQTST_BENCHMARK_ENABLED
@@ -805,10 +748,9 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 7: test7_testLongUri(); break;
-    case 6: test6_hashAppend(); break;
-    case 5: test5_testPrint(); break;
-    case 4: test4_initializeShutdown(); break;
+    case 6: test6_testLongUri(); break;
+    case 5: test5_hashAppend(); break;
+    case 4: test4_testPrint(); break;
     case 3: test3_URIBuilderMultiThreaded(); break;
     case 2: test2_URIBuilder(); break;
     case 1: test1_breathingTest(); break;

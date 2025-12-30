@@ -559,7 +559,7 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
             }
         }
 
-        if (queue->partitionId() != mqbs::DataStore::k_INVALID_PARTITION_ID) {
+        if (queue->partitionId() != mqbi::Storage::k_INVALID_PARTITION_ID) {
             updatePartitionQueueMapped(queue->partitionId(), -1);
         }
 
@@ -781,7 +781,7 @@ bool ClusterState::cacheDoubleAssignment(const bmqt::Uri& uri, int partitionId)
 void ClusterState::iterateDoubleAssignments(int                partitionId,
                                             AssignmentVisitor& visitor)
 {
-    if (mqbs::DataStore::k_ANY_PARTITION_ID == partitionId) {
+    if (mqbi::Storage::k_ANY_PARTITION_ID == partitionId) {
         for (Assignments::const_iterator cit = d_doubleAssignments.cbegin();
              cit != d_doubleAssignments.cend();
              ++cit) {

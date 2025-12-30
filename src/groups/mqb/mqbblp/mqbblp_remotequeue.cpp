@@ -111,14 +111,14 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // TTL is not applicable at proxy
 
     // Create the associated storage.
-    // 'mqbs::DataStore::k_INVALID_PARTITION_ID' indicates the case of Proxy.
+    // 'mqbi::Storage::k_INVALID_PARTITION_ID' indicates the case of Proxy.
     bsl::shared_ptr<mqbi::Storage> storageSp;
     storageSp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
                        0,  // No FileStore
                        d_state_p->uri(),
                        d_state_p->key(),
                        d_state_p->domain(),
-                       mqbs::DataStore::k_INVALID_PARTITION_ID,
+                       mqbi::Storage::k_INVALID_PARTITION_ID,
                        domainCfg,
                        d_state_p->domain()->capacityMeter(),
                        d_allocator_p),

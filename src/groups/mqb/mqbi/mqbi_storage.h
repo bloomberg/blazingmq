@@ -409,6 +409,15 @@ class StorageIterator {
 /// Interface for a Storage.
 class Storage {
   public:
+    // PUBLIC CONSTANTS
+    static const int k_INVALID_PARTITION_ID = -1;
+
+    /// A constant representing any (but not invalid) partitionId.  This is
+    /// useful in certain APIs.
+    static const int k_ANY_PARTITION_ID = 2147483647;  // INT_MAX
+
+    static const size_t k_INVALID_ORDINAL = 999999;
+
     // PUBLIC TYPES
 
     /// `AppInfos` is an alias for an ordered hashtable [appId] -> appKey
@@ -420,8 +429,6 @@ class Storage {
     typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
-
-    static const size_t k_INVALID_ORDINAL = 999999;
 
   public:
     // CREATORS

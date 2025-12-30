@@ -818,7 +818,7 @@ inline int InMemoryStorage::partitionId() const
 // ACCESSORS
 inline bool InMemoryStorage::isProxy() const
 {
-    return d_partitionId == mqbs::DataStore::k_INVALID_PARTITION_ID;
+    return d_partitionId == mqbi::Storage::k_INVALID_PARTITION_ID;
 }
 
 }  // close package namespace

@@ -117,7 +117,7 @@ jobs:
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb long                           \
-            --reruns=3                          \
+            --reruns=2                          \
             --durations=0                       \
             -n logical -v
 

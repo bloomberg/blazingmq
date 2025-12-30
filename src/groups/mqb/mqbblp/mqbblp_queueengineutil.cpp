@@ -804,12 +804,10 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 
             if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
                 it->first->deliverMessageNoTrack(*d_currentMessage,
-                                                 "",  // msgGroupId,
                                                  it->second);
             }
             else {
                 it->first->deliverMessage(*d_currentMessage,
-                                          "",  // msgGroupId,
                                           it->second,
                                           false);
             }
@@ -1072,10 +1070,7 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
         1,
         bmqp::SubQueueInfo(visitor.d_downstreamSubscriptionId,
                            message->appMessageView(ordinal()).d_rdaInfo));
-    visitor.d_handle->deliverMessage(*message,
-                                     "",  // msgGroupId
-                                     subQueueInfos,
-                                     isOutOfOrder);
+    visitor.d_handle->deliverMessage(*message, subQueueInfos, isOutOfOrder);
 
     visitor.d_consumer->d_timeLastMessageSent = now;
     visitor.d_consumer->d_lastSentMessage     = message->guid();
@@ -1103,7 +1098,6 @@ bool QueueEngineUtil_AppState::visitBroadcast(
     // TBD: groupId: send 'options' as well...
     handle->deliverMessageNoTrack(
         *message,
-        "",  // msgGroupId
         bmqp::Protocol::SubQueueInfosArray(
             1,
             bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId)));

@@ -659,9 +659,7 @@ Application::Application(
         bmqsys::Time::initialize();
     }
 
-    // UriParser and ProtocolUtil initialization/shutdown are thread-safe and
-    // refcounted
-    bmqt::UriParser::initialize();
+    // ProtocolUtil initialization/shutdown is thread-safe and refcounted
     bmqp::ProtocolUtil::initialize();
 
     // Start the EventScheduler.  We do this here in constructor and not in
@@ -718,7 +716,6 @@ Application::~Application()
 
     // ProtocolUtil::shutdown is thread-safe and ref-counted
     bmqp::ProtocolUtil::shutdown();
-    bmqt::UriParser::shutdown();
 }
 
 int Application::start(const bsls::TimeInterval& timeout)

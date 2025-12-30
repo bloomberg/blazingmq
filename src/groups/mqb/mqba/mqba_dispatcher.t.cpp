@@ -164,14 +164,9 @@ static void test3_executorsSupport()
 // Plan:
 //   - Create and start a dispatcher having one processor per client type.
 //   - Register several clients.
-//   - Check that the 'executor' and 'clientExecutor' functions both return
+//   - Check that the 'executor' function returns
 //     a valid executor object, given a valid client registered on the
 //     dispatcher.
-//   - Check comparison operations on returned executor objects,
-//     specifically that two executors compare equal only if both of them
-//     refer to the same processor (for executors returned by the
-//     'executor' function), or if they both refer to the same client (for
-//     executors returned by the 'clientExecutor' function).
 //   - Check the correct behavior of 'post' and 'dispatch' functions on
 //     returned executors, specifically that 'post' does not block the
 //     calling thread pending completion of the submitted functor, and
@@ -351,125 +346,6 @@ static void test3_executorsSupport()
                 bmqex::ExecutionPolicyUtil::oneWay()
                     .alwaysBlocking()
                     .useExecutor(executor3)
-                    .useAllocator(bmqtst::TestHelperUtil::allocator()),
-                bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));
-
-        // the nested functor was invoked in-place (we know that because
-        // otherwise the operation above would not complete)
-        BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
-    }
-
-    // test client executor
-    {
-        // obtain executor for first client
-        bmqex::Executor executor1 = dispatcher.clientExecutor(&client1);
-        BMQTST_ASSERT(static_cast<bool>(executor1));
-
-        // obtain executor for second client
-        bmqex::Executor executor2 = dispatcher.clientExecutor(&client2);
-        BMQTST_ASSERT(static_cast<bool>(executor2));
-
-        // executors for the first and the second client do not compare equal
-        // as ther refer to different clients
-        BMQTST_ASSERT(executor1 != executor2);
-
-        // obtain executor for second client again
-        bmqex::Executor executor3 = dispatcher.clientExecutor(&client2);
-        BMQTST_ASSERT(static_cast<bool>(executor3));
-
-        // executors for the same (second) client do compare equal
-        BMQTST_ASSERT(executor2 == executor3);
-
-        // create utility semaphores
-        bslmt::Semaphore startedSignal,  // used to sync. with async op.
-            continueSignal;              // used to sync. with async op.
-
-        // submit a functor on a processor using the executor's 'post'
-        // function, check that 'post' does not block the calling thread
-        executor1.post(bdlf::BindUtil::bind(Synchronize(),
-                                            &startedSignal,
-                                            &continueSignal));
-
-        startedSignal.wait();   // wait for the job to start executing
-        continueSignal.post();  // allow the job to complete
-
-        // storages to save thread ids in
-        bslmt::ThreadUtil::Id threadId1 = bslmt::ThreadUtil::selfId();
-        bslmt::ThreadUtil::Id threadId2 = bslmt::ThreadUtil::selfId();
-
-        // submit two functors to be executed on the same processor and by the
-        // same client using the executor's 'post' function, and wait for the
-        // completion of submitted functors
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .neverBlocking()
-                .useExecutor(executor1)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
-            .wait();
-
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .neverBlocking()
-                .useExecutor(executor1)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
-            .wait();
-
-        // both functors were invoked in the same thread that is not this
-        // thread
-        BMQTST_ASSERT(threadId1 == threadId2);
-        BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
-
-        // submit a functor on a processor using the executor's 'dispatch'
-        // function, check that 'dispatch' does not block the calling thread
-        executor1.dispatch(bdlf::BindUtil::bind(Synchronize(),
-                                                &startedSignal,
-                                                &continueSignal));
-
-        startedSignal.wait();   // wait for the job to start executing
-        continueSignal.post();  // allow the job to complete
-
-        // reset thread ids
-        threadId1 = bslmt::ThreadUtil::selfId();
-        threadId2 = bslmt::ThreadUtil::selfId();
-
-        // submit two functors to be executed on the same processor and by the
-        // same client using the executor's 'dispatch' function, and wait for
-        // the completion of submitted functors
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .possiblyBlocking()
-                .useExecutor(executor2)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
-            .wait();
-
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::twoWay()
-                .possiblyBlocking()
-                .useExecutor(executor2)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
-            .wait();
-
-        // both functors were invoked in the same thread that is not this
-        // thread
-        BMQTST_ASSERT(threadId1 == threadId2);
-        BMQTST_ASSERT(threadId1 != bslmt::ThreadUtil::selfId());
-
-        // submit a functor that, when invoked, will submit another functor
-        // via the executor's 'dispatch' function and block the calling thread
-        // until the nested functor completes
-        bmqex::ExecutionUtil::execute(
-            bmqex::ExecutionPolicyUtil::oneWay()
-                .alwaysBlocking()
-                .useExecutor(executor1)
-                .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bmqex::BindUtil::bindExecute(
-                bmqex::ExecutionPolicyUtil::oneWay()
-                    .alwaysBlocking()
-                    .useExecutor(executor2)
                     .useAllocator(bmqtst::TestHelperUtil::allocator()),
                 bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));
 

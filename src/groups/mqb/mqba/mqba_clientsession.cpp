@@ -1765,10 +1765,6 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
 
     bmqp::MessagePropertiesInfo pushProperties(event.messagePropertiesInfo());
 
-    if (!event.msgGroupId().empty()) {
-        d_state.d_pushBuilder.addMsgGroupIdOption(event.msgGroupId());
-    }
-
     // Append subQueueInfos
 
     // Add SubQueueIds option and also indicate to the builder to attach

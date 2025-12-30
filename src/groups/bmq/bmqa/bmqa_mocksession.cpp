@@ -635,7 +635,6 @@ void MockSession::initialize(bslma::Allocator* allocator)
 
     bmqsys::Time::initialize(g_alloc_p);
     bmqp::ProtocolUtil::initialize(g_alloc_p);
-    bmqt::UriParser::initialize(g_alloc_p);
 
     g_bufferFactory_p = new (*g_alloc_p)
         bdlbb::PooledBlobBufferFactory(1024, g_alloc_p);
@@ -653,7 +652,6 @@ void MockSession::shutdown()
         return;  // RETURN
     }
 
-    bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
     bmqsys::Time::shutdown();
     g_alloc_p->deleteObject(g_bufferFactory_p);

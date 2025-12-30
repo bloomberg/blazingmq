@@ -126,7 +126,7 @@ jobs:
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb long                           \
-            --reruns=3                          \
+            --reruns=2                          \
             -n 0                                \
             -v
 
@@ -227,7 +227,7 @@ jobs:
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb long                           \
-            --reruns=3                          \
+            --reruns=2                          \
             -n logical -v
 
       - name: Upload failure-logs as artifacts
