@@ -93,17 +93,13 @@
 /// Executors support
 ///-----------------
 // Implementations of the 'mqbi::Dispatcher' protocol are required to provide
-// two types of executors.  The first being an executor, available through the
-// dispatcher's 'executor' member function, to execute functors on a
-// dispatcher's processor.  The second being an executor, available through the
-// dispatcher's 'clientExecutor' member function, to execute functors, still in
-// a dispatcher's processor, but directly by a dispatcher's client.  Submitting
-// a functor via each of the executor's 'post' member functions shall be
-// functionally equivalent to dispatching an event of type 'e_DISPATCHER' and
-// 'e_CALLBACK' respectively.  The comparison of such executor objects and the
-// blocking behavior of their 'dispatch' member functions is implementation-
-// defined.  For more information about executors see the 'bmqex' package
-// documentation.
+// an executor, available through the dispatcher's 'executor' member function,
+// to execute functors on a dispatcher's processor.  Submitting a functor via
+// the executor's 'post' member functions shall be functionally equivalent to
+// dispatching an event of type 'e_DISPATCHER'.
+// The blocking behavior of the executor's 'dispatch' member functions is
+// implementation-defined.  For more information about executors see the
+// 'bmqex' package documentation.
 
 // MQB
 
@@ -457,18 +453,6 @@ class Dispatcher {
     /// after the specified `client` has been unregistered from this
     /// dispatcher.
     virtual bmqex::Executor executor(const DispatcherClient* client) const = 0;
-
-    /// Return an executor object suitable for executing function objects by
-    /// the specified `client` on the processor in charge of that client.
-    /// The behavior is undefined unless the specified `client` is
-    /// registered on this dispatcher and the client type is not
-    /// `e_UNDEFINED`.
-    ///
-    /// Note that submitting work on the returned executor is undefined
-    /// behavior if the specified `client` was unregistered from this
-    /// dispatcher.
-    virtual bmqex::Executor
-    clientExecutor(const mqbi::DispatcherClient* client) const = 0;
 };
 
 // ===============================
@@ -567,10 +551,6 @@ class DispatcherConfirmEvent {
 
     /// Return whether this event is a relay event or not.
     virtual bool isRelay() const = 0;
-
-    /// Return the partitionId affected to the queue associated to this
-    /// confirm message.  This is only valid when `isRelay() == true`.
-    virtual int partitionId() const = 0;
 };
 
 // ===========================
@@ -659,10 +639,6 @@ class DispatcherPushEvent {
     virtual const bmqp::Protocol::SubQueueInfosArray&
     subQueueInfos() const = 0;
 
-    /// Return a reference not offering modifiable access to the Message
-    /// Group Id associated with a message in this event.
-    virtual const bmqp::Protocol::MsgGroupId& msgGroupId() const = 0;
-
     /// Return (true, *) if the associated PUSH message contains message
     /// properties.  Return (true, true) if the properties is de-compressed
     /// even if the `compressionAlgorithmType` is not `e_NONE`.
@@ -710,10 +686,6 @@ class DispatcherPutEvent {
 
     /// Return whether this event is a relay event or not.
     virtual bool isRelay() const = 0;
-
-    /// Return the partitionId affected to the queue associated to this
-    /// put message.  This is only valid when `isRelay() == true`.
-    virtual int partitionId() const = 0;
 
     /// Return a reference not offering modifiable access to the put header
     /// associated to this event.  This protocol struct is only valid when
@@ -965,10 +937,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     // subQueueInfos associated with the
     // message in this event
 
-    bmqp::Protocol::MsgGroupId d_msgGroupId;
-    // Message Group Id associated with
-    // the message in this event
-
     bmqp::MessagePropertiesInfo d_messagePropertiesInfo;
     // Flags indicating if the associated
     // message has message properties or
@@ -1033,8 +1001,7 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     const bmqp::PutHeader&   putHeader() const BSLS_KEYWORD_OVERRIDE;
     int                      queueId() const BSLS_KEYWORD_OVERRIDE;
     const bmqp::Protocol::SubQueueInfosArray&
-    subQueueInfos() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::Protocol::MsgGroupId& msgGroupId() const BSLS_KEYWORD_OVERRIDE;
+                 subQueueInfos() const BSLS_KEYWORD_OVERRIDE;
     QueueHandle* queueHandle() const BSLS_KEYWORD_OVERRIDE;
     const bmqp::MessagePropertiesInfo&
     messagePropertiesInfo() const BSLS_KEYWORD_OVERRIDE;
@@ -1079,7 +1046,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     DispatcherEvent& setQueueId(int value);
     DispatcherEvent&
     setSubQueueInfos(const bmqp::Protocol::SubQueueInfosArray& value);
-    DispatcherEvent& setMsgGroupId(const bmqp::Protocol::MsgGroupId& value);
     DispatcherEvent&
     setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value);
 
@@ -1281,35 +1247,6 @@ bsl::ostream& operator<<(bsl::ostream& stream, const DispatcherClient& client);
 // class DispatcherEvent
 // ---------------------
 
-inline DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
-: d_type(DispatcherEventType::e_UNDEFINED)
-, d_source_p(0)
-, d_destination_p(0)
-, d_ackMessage()
-, d_blob_sp(0, allocator)
-, d_options_sp(0, allocator)
-, d_clusterNode_p(0)
-, d_confirmMessage()
-, d_rejectMessage()
-, d_controlMessage(allocator)
-, d_guid(bmqt::MessageGUID())
-, d_isRelay(false)
-, d_partitionId(-1)
-, d_putHeader()
-, d_queueHandle_p(0)
-, d_queueId(-1)
-, d_subQueueInfos(allocator)
-, d_msgGroupId(allocator)
-, d_messagePropertiesInfo()
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_isOutOfOrder(false)
-, d_genCount(0)
-, d_callback(allocator)
-, d_finalizeCallback(allocator)
-{
-    // NOTHING
-}
-
 inline const bmqp::AckMessage& DispatcherEvent::ackMessage() const
 {
     return d_ackMessage;
@@ -1395,11 +1332,6 @@ inline const bmqp::Protocol::SubQueueInfosArray&
 DispatcherEvent::subQueueInfos() const
 {
     return d_subQueueInfos;
-}
-
-inline const bmqp::Protocol::MsgGroupId& DispatcherEvent::msgGroupId() const
-{
-    return d_msgGroupId;
 }
 
 inline QueueHandle* DispatcherEvent::queueHandle() const
@@ -1576,13 +1508,6 @@ inline DispatcherEvent& DispatcherEvent::setSubQueueInfos(
     return *this;
 }
 
-inline DispatcherEvent&
-DispatcherEvent::setMsgGroupId(const bmqp::Protocol::MsgGroupId& value)
-{
-    d_msgGroupId = value;
-    return *this;
-}
-
 inline DispatcherEvent& DispatcherEvent::setMessagePropertiesInfo(
     const bmqp::MessagePropertiesInfo& value)
 {
@@ -1615,41 +1540,6 @@ DispatcherEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     d_state = state;
     return *this;
-}
-
-inline void DispatcherEvent::reset()
-{
-    if (d_type == mqbi::DispatcherEventType::e_DISPATCHER &&
-        !d_finalizeCallback.empty()) {
-        // We only set finalizeCallback on e_DISPATCHER events
-
-        // TODO(678098): make a special event type that handles this case
-        d_finalizeCallback();
-    }
-
-    d_type          = DispatcherEventType::e_UNDEFINED;
-    d_source_p      = 0;
-    d_destination_p = 0;
-    d_ackMessage    = bmqp::AckMessage();
-    d_blob_sp.reset();
-    d_options_sp.reset();
-    d_callback.reset();
-    d_finalizeCallback.reset();
-    d_clusterNode_p    = 0;
-    d_confirmMessage   = bmqp::ConfirmMessage();
-    d_rejectMessage    = bmqp::RejectMessage();
-    d_guid             = bmqt::MessageGUID();
-    d_isRelay          = false;
-    d_putHeader        = bmqp::PutHeader();
-    d_queueHandle_p    = 0;
-    d_queueId          = -1;
-    d_subQueueInfos.clear();
-    d_msgGroupId.clear();
-    d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
-    d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
-    d_isOutOfOrder             = false;
-    d_genCount                 = 0;
-    d_state.reset();
 }
 
 inline DispatcherEventType::Enum DispatcherEvent::type() const

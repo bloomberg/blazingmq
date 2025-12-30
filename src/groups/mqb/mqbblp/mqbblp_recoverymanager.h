@@ -1728,7 +1728,7 @@ RecoveryManager_PrimarySyncContext::peerPartitionStates() const
 inline RecoveryManager_RequestContext::RecoveryManager_RequestContext()
 : d_contextType(RequestContextType::e_UNDEFINED)
 , d_requester_p(0)
-, d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+, d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_recoveryManager_p(0)
 {
 }
@@ -1749,7 +1749,7 @@ RecoveryManager_RequestContext::setRequesterNode(mqbnet::ClusterNode* value)
 
 inline void RecoveryManager_RequestContext::setPartitionId(int partitionId)
 {
-    BSLS_ASSERT_SAFE(mqbs::DataStore::k_INVALID_PARTITION_ID != partitionId);
+    BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID != partitionId);
     d_partitionId = partitionId;
 }
 

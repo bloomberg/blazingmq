@@ -38,6 +38,6 @@ root@923efd7529a4:/blazingmq# BLAZINGMQ_IT_PRESET="fsm_mode and strong_consisten
 --bmq-log-level=INFO                \
 --junitxml=integration-tests.xml    \
 --tb long                           \
---reruns=3                          \
+--reruns=2                          \
 -n logical -v
 ```

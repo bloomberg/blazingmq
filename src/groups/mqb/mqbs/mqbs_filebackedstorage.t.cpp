@@ -100,7 +100,7 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
+const int  k_PROXY_PARTITION_ID = mqbi::Storage::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
 
 const bsls::Types::Int64 k_DEFAULT_MSG          = 20;
@@ -1914,7 +1914,6 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
     bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     mqbu::MessageGUIDUtil::initialize();
@@ -1932,7 +1931,6 @@ int main(int argc, char* argv[])
     }
 
     bmqsys::Time::shutdown();
-    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

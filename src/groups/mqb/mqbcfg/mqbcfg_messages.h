@@ -5043,23 +5043,39 @@ class TcpInterfaceListener {
     // This type describes the information needed for the broker to open a TCP
     // listener.
     // name.................: A name to associate this listener to.
-    // port.................: The port this listener will accept connections
-    // on.
+    // address..............: The IP address this listener will accept
+    // connections on.  port.................: The port this listener will
+    // accept connections on.
 
     // INSTANCE DATA
     bsl::string d_name;
+    bsl::string d_address;
     int         d_port;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_PORT = 1 };
+    enum {
+        ATTRIBUTE_ID_NAME    = 0,
+        ATTRIBUTE_ID_ADDRESS = 1,
+        ATTRIBUTE_ID_PORT    = 2
+    };
 
-    enum { NUM_ATTRIBUTES = 2 };
+    enum { NUM_ATTRIBUTES = 3 };
 
-    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_PORT = 1 };
+    enum {
+        ATTRIBUTE_INDEX_NAME    = 0,
+        ATTRIBUTE_INDEX_ADDRESS = 1,
+        ATTRIBUTE_INDEX_PORT    = 2
+    };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const char DEFAULT_INITIALIZER_ADDRESS[];
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5158,6 +5174,10 @@ class TcpInterfaceListener {
     // Return a reference to the modifiable "Name" attribute of this
     // object.
 
+    bsl::string& address();
+    // Return a reference to the modifiable "Address" attribute of this
+    // object.
+
     int& port();
     // Return a reference to the modifiable "Port" attribute of this
     // object.
@@ -5209,6 +5229,10 @@ class TcpInterfaceListener {
     // Return a reference offering non-modifiable access to the "Name"
     // attribute of this object.
 
+    const bsl::string& address() const;
+    // Return a reference offering non-modifiable access to the "Address"
+    // attribute of this object.
+
     int port() const;
     // Return the value of the "Port" attribute of this object.
 
@@ -5219,7 +5243,8 @@ class TcpInterfaceListener {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.name() == rhs.name() && lhs.port() == rhs.port();
+        return lhs.name() == rhs.name() && lhs.address() == rhs.address() &&
+               lhs.port() == rhs.port();
     }
 
     friend bool operator!=(const TcpInterfaceListener& lhs,
@@ -5245,9 +5270,7 @@ class TcpInterfaceListener {
     // effectively provides a 'bsl::hash' specialization for
     // 'TcpInterfaceListener'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.name());
-        hashAppend(hashAlg, object.port());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -15465,6 +15488,17 @@ inline const bsl::string& TcpClusterNodeConnection::endpoint() const
 // class TcpInterfaceListener
 // --------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void TcpInterfaceListener::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->name());
+    hashAppend(hashAlgorithm, this->address());
+    hashAppend(hashAlgorithm, this->port());
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -15473,6 +15507,12 @@ int TcpInterfaceListener::manipulateAttributes(t_MANIPULATOR& manipulator)
     int ret;
 
     ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_address,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     if (ret) {
         return ret;
     }
@@ -15495,6 +15535,10 @@ int TcpInterfaceListener::manipulateAttribute(t_MANIPULATOR& manipulator,
     case ATTRIBUTE_ID_NAME: {
         return manipulator(&d_name,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_ADDRESS: {
+        return manipulator(&d_address,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     }
     case ATTRIBUTE_ID_PORT: {
         return manipulator(&d_port,
@@ -15525,6 +15569,11 @@ inline bsl::string& TcpInterfaceListener::name()
     return d_name;
 }
 
+inline bsl::string& TcpInterfaceListener::address()
+{
+    return d_address;
+}
+
 inline int& TcpInterfaceListener::port()
 {
     return d_port;
@@ -15537,6 +15586,11 @@ int TcpInterfaceListener::accessAttributes(t_ACCESSOR& accessor) const
     int ret;
 
     ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_address, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     if (ret) {
         return ret;
     }
@@ -15557,6 +15611,10 @@ int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor, int id) const
     switch (id) {
     case ATTRIBUTE_ID_NAME: {
         return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_ADDRESS: {
+        return accessor(d_address,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADDRESS]);
     }
     case ATTRIBUTE_ID_PORT: {
         return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
@@ -15584,6 +15642,11 @@ int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor,
 inline const bsl::string& TcpInterfaceListener::name() const
 {
     return d_name;
+}
+
+inline const bsl::string& TcpInterfaceListener::address() const
+{
+    return d_address;
 }
 
 inline int TcpInterfaceListener::port() const

@@ -161,9 +161,6 @@ bsl::ostream& DataStoreConfig::print(bsl::ostream& stream,
 // class DataStore
 // ---------------
 
-/// Force variable/symbol definition so that it can be used in other files
-const int DataStore::k_INVALID_PARTITION_ID;
-
 DataStore::~DataStore()
 {
     // NOTHING

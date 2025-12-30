@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@
 #include <bmqt_uri.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqu_memoutstream.h>
 
@@ -24,20 +25,8 @@
 #include <bdlb_print.h>
 #include <bdlb_stringrefutil.h>
 #include <bdlma_localsequentialallocator.h>
-#include <bsl_cstddef.h>
-#include <bsl_cstring.h>  // for 'strncmp'
-#include <bsl_iostream.h>
-#include <bsl_limits.h>
-#include <bsl_ostream.h>
-#include <bsl_utility.h>
-#include <bsl_vector.h>
-#include <bsla_annotations.h>
-#include <bslma_default.h>
-#include <bslmt_once.h>
-#include <bslmt_qlock.h>
+#include <bsla_fallthrough.h>
 #include <bsls_assert.h>
-#include <bsls_atomic.h>
-#include <bsls_objectbuffer.h>
 
 namespace BloombergLP {
 namespace bmqt {
@@ -48,21 +37,25 @@ const bsl::string_view k_SCHEME_SEPARATED = "bmq://";
 const bsl::string_view k_QUERY_ID         = "id";
 const bsl::string_view k_TIER_PREFIX      = ".~";
 
-#define BMQT_RETURN_WITH_ERROR(RC, ERROR_VAR, ERROR_DESC)                     \
-    if (ERROR_VAR) {                                                          \
-        bdlma::LocalSequentialAllocator<256> local;                           \
-        bmqu::MemOutStream                   os(&local);                      \
-        os << ERROR_DESC;                                                     \
-        (ERROR_VAR)->assign(os.str().data(), os.str().length());              \
-    }                                                                         \
-    return RC;
+#define BMQT_RETURN_WITH_ERROR(ERROR_RC, ERROR_VAR, ERROR_DESC)               \
+    do {                                                                      \
+        if (ERROR_VAR) {                                                      \
+            bdlma::LocalSequentialAllocator<256> local;                       \
+            bmqu::MemOutStream                   os(&local);                  \
+            os << ERROR_DESC;                                                 \
+            (ERROR_VAR)->assign(os.str().data(), os.str().length());          \
+        }                                                                     \
+        return ERROR_RC;                                                      \
+    } while (0)
 
 #define BMQT_VALIDATE_AND_RETURN(LENGTH, ERROR_RC, ERROR_VAR, ERROR_DESC)     \
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 == (LENGTH))) {               \
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;                                   \
-        BMQT_RETURN_WITH_ERROR(ERROR_RC, ERROR_VAR, ERROR_DESC);              \
-    }                                                                         \
-    return UriParser::UriParseResult::e_SUCCESS;
+    do {                                                                      \
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 == (LENGTH))) {           \
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;                               \
+            BMQT_RETURN_WITH_ERROR(ERROR_RC, ERROR_VAR, ERROR_DESC);          \
+        }                                                                     \
+        return UriParser::UriParseResult::e_SUCCESS;                          \
+    } while (0)
 
 struct UriParsingContext {
     const bslstl::StringRef d_uri;
@@ -75,7 +68,7 @@ struct UriParsingContext {
 
     /// @brief Check if the provided char is alphanumeric.
     /// @param c input char.
-    /// @return true if the provided char is alphamumeric, false otherwiese.
+    /// @return true if the provided char is alphanumeric, false otherwise.
     /// NOTE: this is a fast inline equivalent of `bsl::isalnum`.
     static inline bool isalnum_fast(char c)
     {
@@ -95,9 +88,9 @@ struct UriParsingContext {
 
     inline bool hasQuery() const { return d_hasQuery; }
 
-    /// @brief Check if the stored uri has the supported schema.
+    /// @brief Check if the stored uri has the supported scheme.
     /// @param errorDescription optional output for error description.
-    /// @return 0 return code on success, non-zero return code on failure.
+    /// @return 0 on success, non-zero on failure.
     inline int validateScheme(bsl::string* errorDescription) const
     {
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -117,7 +110,7 @@ struct UriParsingContext {
     /// @param errorDescription optional output for error description.
     /// @param length output domain length after parsing, if rc == 0.
     /// @param start domain parse start position.
-    /// @return 0 return code on success, non-zero return code on failure.
+    /// @return 0 on success, non-zero on failure.
     /// NOTE: domain might be followed by optional tier, and we set `d_hasTier`
     ///       flag if we encounter it for later parsing.
     inline int
@@ -170,16 +163,16 @@ struct UriParsingContext {
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            // We tried to parse the domain from the position out of `d_uri`
+            // We tried to parse the domain from the position beyond `d_uri`
             // length.  Nothing to parse: empty domain.
             BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_DOMAIN,
                                    errorDescription,
                                    "Missing domain");  // RETURN
         }
 
-        // If we are here, we have fully iterated over `d_uri` in the loop.
+        // If we are here, we have fully iterated through `d_uri` in the loop.
         // We are sure that there is no tier or queue path after this,
-        // and we can fast-forward the error.
+        // and we can return error immediately.
         BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
                                errorDescription,
                                "Missing queue");  // RETURN
@@ -189,7 +182,7 @@ struct UriParsingContext {
     /// @param errorDescription optional output for error description.
     /// @param length output tier length after parsing, if rc == 0.
     /// @param start tier parse start position.
-    /// @return 0 return code on success, non-zero return code on failure.
+    /// @return 0 on success, non-zero on failure.
     inline int
     parseTier(bsl::string* errorDescription, size_t* length, size_t start)
     {
@@ -227,16 +220,16 @@ struct UriParsingContext {
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            // We tried to parse the tier from the position out of `d_uri`
+            // We tried to parse the tier from the position beyond `d_uri`
             // length.  Nothing to parse: empty tier.
             BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_EMPTY_TIER,
                                    errorDescription,
                                    "Empty tier");  // RETURN
         }
 
-        // If we are here, we have fully iterated over `d_uri` in the loop.
+        // If we are here, we have fully iterated through `d_uri` in the loop.
         // We are sure that there is no queue path after this,
-        // and we can fast-forward the error.
+        // and we can return error immediately.
         BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
                                errorDescription,
                                "Missing queue");  // RETURN
@@ -246,7 +239,7 @@ struct UriParsingContext {
     /// @param errorDescription optional output for error description.
     /// @param length output path length after parsing, if rc == 0.
     /// @param start path parse start position.
-    /// @return 0 return code on success, non-zero return code on failure.
+    /// @return 0 on success, non-zero on failure.
     /// NOTE: path might be followed by optional query, and we set `d_hasQuery`
     ///       flag if we encounter it for later parsing.
     inline int
@@ -289,7 +282,7 @@ struct UriParsingContext {
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_uri.length() <= start)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            // We tried to parse the path from the position out of `d_uri`
+            // We tried to parse the path from the position beyond `d_uri`
             // length.  Nothing to parse: empty path.
             BMQT_RETURN_WITH_ERROR(UriParser::UriParseResult::e_MISSING_QUEUE,
                                    errorDescription,
@@ -308,7 +301,7 @@ struct UriParsingContext {
     /// @param value_start output query value start, if rc == 0.
     /// @param value_length output query value length, if rc == 0.
     /// @param start query parse start position.
-    /// @return 0 return code on success, non-zero return code on failure.
+    /// @return 0 on success, non-zero on failure.
     /// NOTE: currently we don't support multiple queries.
     // Allowed characters:
     //     key       = any
@@ -324,7 +317,7 @@ struct UriParsingContext {
         //                                  ^     ^
         //                                  start (start + (*length))
 
-        // Might re-set this flag if another query encountered during parsing
+        // Might reset this flag if another query encountered during parsing
         d_hasQuery = false;
 
         // 1. Find query separator
@@ -529,16 +522,6 @@ Uri::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct UriParser
 // ----------------
 
-void UriParser::initialize(BSLA_UNUSED bslma::Allocator* allocator)
-{
-    // NOTHING
-}
-
-void UriParser::shutdown()
-{
-    // NOTHING
-}
-
 int UriParser::parse(Uri*                     result,
                      bsl::string*             errorDescription,
                      const bslstl::StringRef& uriString)
@@ -704,8 +687,7 @@ void UriBuilder::reset()
 
 int UriBuilder::uri(Uri* result, bsl::string* errorDescription) const
 {
-    bdlma::LocalSequentialAllocator<1024> localAllocator(
-        bslma::Default::allocator());
+    bdlma::LocalSequentialAllocator<1024> localAllocator;
 
     // Build the string
     bmqu::MemOutStream os(&localAllocator);

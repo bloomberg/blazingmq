@@ -83,7 +83,7 @@ Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
 void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
                                mqbi::DispatcherClient* destination)
 {
-    destination->onDispatcherEvent(*event);
+    destination->onDispatcherEvent(*bslmf::MovableRefUtil::access(event));
 }
 
 void Dispatcher::dispatchEvent(
@@ -196,13 +196,6 @@ bool Dispatcher::inDispatcherThread(
 
 bmqex::Executor
 Dispatcher::executor(BSLA_UNUSED const mqbi::DispatcherClient* client) const
-{
-    BSLS_ASSERT(false && "Not yet implemented");
-    return bmqex::Executor();
-}
-
-bmqex::Executor Dispatcher::clientExecutor(
-    BSLA_UNUSED const mqbi::DispatcherClient* client) const
 {
     BSLS_ASSERT(false && "Not yet implemented");
     return bmqex::Executor();

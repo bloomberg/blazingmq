@@ -204,8 +204,6 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 
 TestBench::~TestBench()
 {
-    bmqt::UriParser::shutdown();
-
     d_cluster.stop();
 
     // Reset the event, not the pointer
@@ -482,8 +480,6 @@ static void test1_fanoutBasic()
 {
     bmqtst::TestHelper::printTestName("basic tests using fanout");
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
@@ -628,8 +624,6 @@ static void test2_broadcastBasic()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("basic tests using broadcast");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(
@@ -922,8 +916,6 @@ static void test3_close()
 {
     bmqtst::TestHelper::printTestName("close queue with pending messages");
 
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
-
     bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
@@ -981,8 +973,6 @@ static void test4_buffering()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("buffering");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(
@@ -1083,8 +1073,6 @@ static void test5_reopen_failure()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("buffering");
-
-    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(
