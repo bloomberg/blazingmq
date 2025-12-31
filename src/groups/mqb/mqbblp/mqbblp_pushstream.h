@@ -221,7 +221,7 @@ class PushStream {
 
     bsl::shared_ptr<bdlma::ConcurrentPool> d_pushElementsPool_sp;
 
-    bsls::Types::Int64 s_nextSequenceNumber;
+    bsls::Types::Int64 d_nextSequenceNumber;
 
     // CREATORS
     /// @brief Construct this object.
@@ -698,7 +698,7 @@ inline const PushStream::Element* PushStream::App::last() const
 
 inline bsls::Types::Int64 PushStream::nextSequenceNumber()
 {
-    return ++s_nextSequenceNumber;
+    return ++d_nextSequenceNumber;
 }
 
 inline PushStream::Element* PushStream::add(const bmqp::RdaInfo& rda,

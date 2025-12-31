@@ -177,17 +177,19 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
 }
 
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
-    mqbblp::PushStreamIterator* d_start;
-    mqbblp::PushStreamIterator* d_stop;
+    mqbblp::PushStreamIterator* d_start_p;
+    mqbblp::PushStreamIterator* d_stop_p;
     bool                        d_doAdvance;
 
     VirtualIterator(mqbblp::PushStreamIterator* start,
                     mqbblp::PushStreamIterator* stop)
-    : d_start(start)
-    , d_stop(stop)
+    : d_start_p(start)
+    , d_stop_p(stop)
     , d_doAdvance(false)
     {
-        // NOTHING
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_start_p);
+        BSLS_ASSERT_SAFE(d_stop_p);
     }
     const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
 };
@@ -195,23 +197,23 @@ struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
 const mqbi::StorageIterator* VirtualIterator::next()
 {
     if (d_doAdvance) {
-        d_start->advance();
+        d_start_p->advance();
     }
     else {
         d_doAdvance = true;
     }
 
-    if (d_start->atEnd()) {
+    if (d_start_p->atEnd()) {
         return 0;
     }
 
-    if (!d_stop->atEnd()) {
-        if (d_start->sequenceNumber() >= d_stop->sequenceNumber()) {
+    if (!d_stop_p->atEnd()) {
+        if (d_start_p->sequenceNumber() >= d_stop_p->sequenceNumber()) {
             return 0;
         }
     }
 
-    return d_start;
+    return d_start_p;
 }
 
 }  // close unnamed namespace
@@ -716,19 +718,13 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
         // We only attempt to deliver new messages if we successfully
         // redelivered all messages in the redelivery list.
 
-        // Position to the last 'Routers::e_NO_CAPACITY_ALL' point
-        bslma::ManagedPtr<PushStreamIterator> start;
-
         // Always start with the first element in the App and always stop at
         // the d_storageIter_mp (the start of all Apps processing).
+        VirtualPushStreamIterator start(upstreamSubQueueId,
+                                        storage(),
+                                        &d_pushStream);
 
-        start.load(new (*d_allocator_p)
-                       VirtualPushStreamIterator(upstreamSubQueueId,
-                                                 storage(),
-                                                 &d_pushStream),
-                   d_allocator_p);
-
-        VirtualIterator vi(start.get(), d_storageIter_mp.get());
+        VirtualIterator vi(&start, d_storageIter_mp.get());
 
         app->catchUp(&delay, &vi);
     }

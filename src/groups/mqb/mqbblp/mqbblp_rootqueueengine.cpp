@@ -78,16 +78,18 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 // Time interval between messages logged with throttling.
 
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
-    mqbi::StorageIterator* d_start;
-    mqbi::StorageIterator* d_stop;
+    mqbi::StorageIterator* d_start_p;
+    mqbi::StorageIterator* d_stop_p;
     bool                   d_doAdvance;
 
     VirtualIterator(mqbi::StorageIterator* start, mqbi::StorageIterator* stop)
-    : d_start(start)
-    , d_stop(stop)
+    : d_start_p(start)
+    , d_stop_p(stop)
     , d_doAdvance(false)
     {
-        // NOTHING
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_start_p);
+        BSLS_ASSERT_SAFE(d_stop_p);
     }
     ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
     const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
@@ -96,23 +98,23 @@ struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
 const mqbi::StorageIterator* VirtualIterator::next()
 {
     if (d_doAdvance) {
-        d_start->advance();
+        d_start_p->advance();
     }
     else {
         d_doAdvance = true;
     }
 
-    if (d_start->atEnd()) {
+    if (d_start_p->atEnd()) {
         return 0;
     }
 
-    if (!d_stop->atEnd()) {
-        if (d_start->guid() == d_stop->guid()) {
+    if (!d_stop_p->atEnd()) {
+        if (d_start_p->guid() == d_stop_p->guid()) {
             return 0;
         }
     }
 
-    return d_start;
+    return d_start_p;
 }
 
 VirtualIterator::~VirtualIterator()
@@ -121,7 +123,7 @@ VirtualIterator::~VirtualIterator()
     // this prevents file set from closing possibly for a very long time.
     // Make sure to invalidate any cached data within this iterator after use.
     // TODO: refactor iterators to remove cached data.
-    d_start->clearCache();
+    d_start_p->clearCache();
 }
 
 }  // close unnamed namespace

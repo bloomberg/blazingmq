@@ -41,7 +41,7 @@ PushStream::PushStream(
           : bsl::allocate_shared<bdlma::ConcurrentPool>(allocator,
                                                         sizeof(Element),
                                                         allocator))
-, s_nextSequenceNumber(0)
+, d_nextSequenceNumber(0)
 // ConcurrentPool doesn't have allocator traits, have to pass allocator
 // twice
 {

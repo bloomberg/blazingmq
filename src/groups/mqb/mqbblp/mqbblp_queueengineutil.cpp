@@ -937,7 +937,7 @@ size_t QueueEngineUtil_AppState::catchUp(
 
     size_t                       numMessages = 0;
     const mqbi::StorageIterator* current     = 0;
-    while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(current = start->next())) {
+    while ((current = start->next())) {
         Routers::Result result = Routers::e_SUCCESS;
 
         if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
