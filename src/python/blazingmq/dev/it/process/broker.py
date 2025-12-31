@@ -277,8 +277,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
     def trigger_rollover(self, partitionId: int, succeed=None):
         """
-        Set the replication factor of the specified 'cluster' to the specified
-        'quorum'.
+        Rollover the partition on a cluster specified by 'partitionId'.
         """
 
         return self.command(
