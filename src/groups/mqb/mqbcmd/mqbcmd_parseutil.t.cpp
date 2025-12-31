@@ -273,13 +273,13 @@ const Test k_TESTS[] = {
      "\"storage\": { \"partition\": {\"partitionId\": 123, \"command\": "
      "{\"summary\": {}}}}}}}}"},
     {__LINE__,
-     "cluster storage partition run rollover",
+     "rollover a partition on a cluster",
      "CLUSTERS CLUSTER cloister STORAGE PARTITION 123 ROLLOVER",
      "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
      "\"storage\": { \"partition\": {\"partitionId\": 123, \"command\": "
      "{\"rollover\": {}}}}}}}}"},
     {__LINE__,
-     "cluster storage partition run rollover",
+     "rollover all partitions on a cluster",
      "CLUSTERS CLUSTER cloister STORAGE PARTITION ALL ROLLOVER",
      "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
      "\"storage\": { \"partition\": {\"partitionId\": -1, \"command\": "
