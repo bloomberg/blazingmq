@@ -535,6 +535,12 @@ bool QueueHandle::isClientClusterMember() const
     return false;
 }
 
+inline const mqbi::QueueHandleRequesterContext*
+QueueHandle::clientContext() const
+{
+    return 0;
+}
+
 bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
 {
     unsigned int downstreamSubQueueId = subscription2downstreamSubQueueId(

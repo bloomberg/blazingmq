@@ -251,11 +251,20 @@ void Routers::AppContext::load(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle && "Must provide 'handle'");
+    BSLS_ASSERT_SAFE(handle->queue());
+
+    const bool isBroadcastBroker =
+        ((handle->queue()->isDeliverAll() && handle->clientContext())
+             ? !handle->clientContext()->isFirstHop()
+             : false);
 
     // Unique Consumer per App
     Consumers::SharedItem itConsumer = d_consumers.record(
         handle,
-        Consumer(streamParameters, downstreamSubQueueId, d_allocator_p));
+        Consumer(streamParameters,
+                 downstreamSubQueueId,
+                 isBroadcastBroker,
+                 d_allocator_p));
 
     // For convenience, the flag is used for correct comma ', ' printing when
     // multiple errors are logged.
@@ -397,12 +406,15 @@ unsigned int Routers::AppContext::finalize()
         Subscribers&                subscribers = level.d_subscribers;
         Subscriber::Subscriptions   remove(d_allocator_p);
 
+        // All Subscribers (one per handle) having at least one subscription at
+        // this priority.
         for (Subscribers::const_iterator itSubscriber = subscribers.begin();
              itSubscriber != subscribers.end();
              ++itSubscriber) {
             Subscriber& subscriber = subscribers.value(itSubscriber);
             Subscriber::Subscriptions& subscriptions =
                 subscriber.d_subscriptions;
+            // All Subscriptions with this priority.
 
             if (!subscriber.d_itConsumer->isValid()) {
                 remove.splice(remove.end(), subscriptions);
@@ -410,6 +422,7 @@ unsigned int Routers::AppContext::finalize()
             }
 
             Consumer& consumer = subscriber.d_itConsumer->value();
+            // 'consumer' is per App, not per priority.
 
             for (Subscriber::Subscriptions::iterator itSubscription =
                      subscriptions.begin();
@@ -421,12 +434,18 @@ unsigned int Routers::AppContext::finalize()
                     subscription.d_itGroup;
                 PriorityGroup& group = itGroup->value();
 
-                BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ConsumerInfo& ci =
-                    subscription.d_ci;
+                BSLS_ASSERT_SAFE(priority ==
+                                 subscription.d_ci.consumerPriority());
 
-                BSLS_ASSERT_SAFE(priority == ci.consumerPriority());
+                // Group is per priority and it is identified by expression.
+                // So, 'subscription' can reference a group with different
+                // priority.
+                // Since the order of calling 'PriorityGroup::add' is by
+                // priority from high to low, if there is another subscription
+                // with the same expression and higher priority, the group
+                // knows it because 'PriorityGroup::add' has been called.
+                // Still, accumulate all priorities to inform upstream.
 
-                // Accumulate all priorities to inform upstream
                 bool isFirstTime = group.add(&subscription);
 
                 if (group.d_ci.size() == 1) {
@@ -707,7 +726,9 @@ bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
                 subscription->d_downstreamSubscriptionId))) {
-            if (visitor(subscription)) {
+            if (visitor(handle,
+                        subscription->consumer(),
+                        subscription->d_downstreamSubscriptionId)) {
                 // Before returning, move the subscription to the end if needed
                 // for the round-robin.
                 if (subscription->advance()) {
@@ -735,14 +756,34 @@ bool Routers::AppContext::iterateConsumers(
     BSLS_ASSERT_SAFE(d_queue.d_preader.get());
     d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
 
-    for (Consumers::const_iterator itConsumer = d_consumers.begin();
-         itConsumer != d_consumers.end();
-         ++itConsumer) {
-        const Routers::Subscription* subscription = selectSubscription(
-            itConsumer->second.lock());
-        if (subscription) {
-            if (visitor(subscription)) {
-                return true;  // RETURN
+    for (Consumers::const_iterator cit = d_consumers.begin();
+         cit != d_consumers.end();
+         ++cit) {
+        const Consumers::SharedItem& itConsumer = cit->second.lock();
+        Consumer&                    consumer   = itConsumer->value();
+
+        if (consumer.d_isBroadcastBroker) {
+            if (!consumer.d_highestSubscriptions.empty()) {
+                // If this is not SDK, ignore subscriptions and PUSH
+                // unconditionally.
+                if (visitor(cit->first,
+                            &consumer,
+                            bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)) {
+                    return true;  // RETURN
+                }
+            }
+            // else, for each subscription of this consumer there is another
+            // one with higher priority.
+        }
+        else {
+            const Routers::Subscription* subscription = selectSubscription(
+                itConsumer);
+            if (subscription) {
+                if (visitor(cit->first,
+                            &consumer,
+                            subscription->d_downstreamSubscriptionId)) {
+                    return true;  // RETURN
+                }
             }
         }
     }
