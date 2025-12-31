@@ -624,7 +624,7 @@ void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
     BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(fs->isOpen());
 
-    fs->doRollover();
+    fs->rollover();
 
     latch->arrive();
 }
@@ -2255,7 +2255,7 @@ void StorageUtil::gcUnrecognizedDomainQueues(
             BSLS_ASSERT_SAFE(fs->isOpen());
 
             fs->execute(
-                bdlf::BindUtil::bind(&mqbs::FileStore::forceRollover, fs));
+                bdlf::BindUtil::bind(&mqbs::FileStore::rollover, fs));
         }
     }
 }

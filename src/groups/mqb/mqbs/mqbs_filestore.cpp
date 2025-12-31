@@ -2668,7 +2668,7 @@ int FileStore::create(FileSetSp* fileSetSp)
                                  d_allocator_p);
 }
 
-int FileStore::rollover(bsls::Types::Uint64 timestamp)
+int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -3217,7 +3217,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     activeFileSet->d_journalFileAvailable = true;
     // Set the availability flag back to true.
 
-    rc = doRollover();
+    rc = rollover();
     if (0 != rc) {
         return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
     }
@@ -3225,7 +3225,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     return rc_SUCCESS;
 }
 
-int FileStore::doRollover()
+int FileStore::rollover()
 {
     enum {
         rc_SUCCESS                        = 0,
@@ -3244,9 +3244,6 @@ int FileStore::doRollover()
     // not be invoked.
 
     BALL_LOG_INFO << partitionDesc() << "Start rollover.";
-
-    activeFileSet->d_journalFileAvailable = true;
-    // Set the availability flag back to true.
 
     // Issue sync point first.
 
@@ -3273,7 +3270,8 @@ int FileStore::doRollover()
 
     // Then initiate rollover.
 
-    rc = rollover(bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+    rc = rolloverImpl(
+        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
     if (0 != rc) {
         return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
     }
@@ -4709,7 +4707,9 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                     << ", at journal offset: " << recordOffset
                     << ". Initiating rollover.";
 
-                int rc = rollover(jOpRec->header().timestamp());
+                // We can call rolloverImpl() directly here instead of
+                // rollover() because there is no need to issue sync points.
+                int rc = rolloverImpl(jOpRec->header().timestamp());
 
                 if (0 != rc) {
                     BMQTSK_ALARMLOG_ALARM("REPLICATION")
@@ -7093,25 +7093,6 @@ void FileStore::deprecateFileSet()
     }
 
     archive(d_fileSets[0].get());
-}
-
-void FileStore::forceRollover()
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(inDispatcherThread());
-
-    if (!d_isOpen || !d_isPrimary) {
-        return;  // RETURN
-    }
-
-    const int rc = rollover(
-        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
-    if (rc != 0) {
-        BALL_LOG_ERROR << partitionDesc()
-                       << "Forced partition rollover failed with rc: " << rc;
-    }
 }
 
 void FileStore::registerStorage(ReplicatedStorage* storage)
