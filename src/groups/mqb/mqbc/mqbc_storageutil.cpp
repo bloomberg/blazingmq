@@ -621,7 +621,7 @@ void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
 
     mqbs::FileStore* fs = fileStores->at(partitionId).get();
 
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(fs->isOpen());
 
     fs->doRollover();
