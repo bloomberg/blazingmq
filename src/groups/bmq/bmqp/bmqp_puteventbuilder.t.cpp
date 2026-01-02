@@ -39,6 +39,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bsl_algorithm.h>
+#include <bsl_cmath.h>    // for bsl::fabs
 #include <bsl_cstring.h>  // for bsl::strlen
 #include <bsl_fstream.h>
 #include <bsl_ios.h>
@@ -2642,15 +2643,18 @@ static void test8_compressionRatioAccessor()
     bmqp::PutEventBuilder obj(blobSpPool.get(),
                               bmqtst::TestHelperUtil::allocator());
 
-    const int   k_QID               = 9999;
-    const char *k_SMALL_PAYLOAD     = "small_payload";
-    const int   k_SMALL_PAYLOAD_LEN = bsl::strlen(k_SMALL_PAYLOAD);
+    const int    k_QID               = 9999;
+    const char*  k_SMALL_PAYLOAD     = "small_payload";
+    const int    k_SMALL_PAYLOAD_LEN = bsl::strlen(k_SMALL_PAYLOAD);
+    const double k_EPS               = 1e-6;
 
     // 1. Verify Initial State
-    BMQTST_ASSERT_EQ(obj.lastPackedMesageCompressionRatio(), -1.0);
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - (-1.0)) <
+                  k_EPS);
 
     obj.startMessage();
-    BMQTST_ASSERT_EQ(obj.lastPackedMesageCompressionRatio(), -1.0);
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - (-1.0)) <
+                  k_EPS);
 
     // 2. Pack Uncompressed (Expect 1.0)
     obj.setMessagePayload(k_SMALL_PAYLOAD, k_SMALL_PAYLOAD_LEN);
@@ -2659,16 +2663,19 @@ static void test8_compressionRatioAccessor()
 
     BMQTST_ASSERT_EQ(obj.packMessage(k_QID),
                      bmqt::EventBuilderResult::e_SUCCESS);
-    BMQTST_ASSERT_EQ(obj.lastPackedMesageCompressionRatio(), 1.0);
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - 1.0) <
+                  k_EPS);
 
     // 3. Verify Reset
     obj.reset();
-    BMQTST_ASSERT_EQ(obj.lastPackedMesageCompressionRatio(), -1.0);
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - (-1.0)) <
+                  k_EPS);
 
     // 4. Pack Compressible Message (Expect > 1.0)
-    const int k_LARGE_LEN =
-        bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE + 1024;
-    bsl::string largePayload(k_LARGE_LEN, 'A',
+    const int k_LARGE_LEN = bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE +
+                            1024;
+    bsl::string largePayload(k_LARGE_LEN,
+                             'A',
                              bmqtst::TestHelperUtil::allocator());
 
     obj.startMessage();
@@ -2686,9 +2693,9 @@ static void test8_compressionRatioAccessor()
 
     // 5. Fail to Pack (Oversized) - Verify State Preservation
     bdlbb::Blob bigBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqp::PutTester::populateBlob(
-        &bigBlob,
-        bmqp::PutHeader::k_MAX_PAYLOAD_SIZE_SOFT + 1);
+    bmqp::PutTester::populateBlob(&bigBlob,
+                                  bmqp::PutHeader::k_MAX_PAYLOAD_SIZE_SOFT +
+                                      1);
 
     obj.startMessage();
     obj.setMessagePayload(&bigBlob);
@@ -2698,7 +2705,8 @@ static void test8_compressionRatioAccessor()
                      bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG);
 
     // Ratio should remain from the last successful pack
-    BMQTST_ASSERT_EQ(obj.lastPackedMesageCompressionRatio(), ratio);
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - ratio) <
+                  k_EPS);
 
     // 6. Verify Recovery
     obj.startMessage();
