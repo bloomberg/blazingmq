@@ -433,18 +433,29 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(primary);
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Self Transition back to Unknown in the Partition FSM.";
+    mqbs::FileStore* fs    = d_fileStores[partitionId].get();
+    PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
 
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
+    if (primary != pinfo.primary()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Failed to clear primary as specified primary: "
+                      << primary->nodeDescription()
+                      << " is different from current perceived primary: "
+                      << (pinfo.primary() ? pinfo.primary()->nodeDescription()
+                                          : "** null **");
+        return;  // RETURN
+    }
 
     StorageUtil::clearPrimaryForPartition(
         fs,
-        &d_partitionInfoVec[partitionId],
+        &pinfo,
         d_clusterData_p->identity().description(),
         partitionId);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Self Transition back to Unknown in the Partition FSM.";
 
     EventData eventDataVec;
     eventDataVec.emplace_back(

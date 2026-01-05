@@ -595,14 +595,12 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     int                  partitionId,
     mqbnet::ClusterNode* primary)
 {
-    // executed by *DISPATCHER* thread
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITION
-    BSLS_ASSERT_SAFE(0 <= partitionId);
-    BSLS_ASSERT_SAFE(d_fileStores.size() >
-                     static_cast<unsigned int>(partitionId));
-    BSLS_ASSERT_SAFE(d_partitionInfoVec.size() >
-                     static_cast<unsigned int>(partitionId));
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     mqbs::FileStore* fs    = d_fileStores[partitionId].get();
     PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
@@ -611,7 +609,7 @@ void StorageManager::clearPrimaryForPartitionDispatched(
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId
                       << "]: Failed to clear primary as specified primary: "
-                      << (primary ? primary->nodeDescription() : "**null**")
+                      << primary->nodeDescription()
                       << " is different from current perceived primary: "
                       << (pinfo.primary() ? pinfo.primary()->nodeDescription()
                                           : "** null **");
