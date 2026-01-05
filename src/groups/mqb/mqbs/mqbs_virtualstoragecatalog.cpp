@@ -326,7 +326,16 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
 
         const mqbi::AppMessage& appMessage =
             appMessageView(dataStreamMessage, it->value()->ordinal());
-        if (!appMessage.isPending()) {
+        if (appMessage.isPending()) {
+            const bsls::Types::Int64 appNumMessages =
+                d_numMessages - it->value()->numRemoved() - 1;
+            const bsls::Types::Int64 appNumBytes =
+                d_totalBytes - it->value()->removedBytes() -
+                data->second.d_size;
+            d_queueStats_sp->setOutstandingData(appNumMessages,
+                                                appNumBytes,
+                                                it->value()->appId());
+        } else {
             it->value()->onGC(dataStreamMessage.d_size);
         }
     }
