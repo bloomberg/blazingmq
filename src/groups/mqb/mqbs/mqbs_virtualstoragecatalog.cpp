@@ -335,7 +335,8 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
             d_queueStats_sp->setOutstandingData(appNumMessages,
                                                 appNumBytes,
                                                 it->value()->appId());
-        } else {
+        }
+        else {
             it->value()->onGC(dataStreamMessage.d_size);
         }
     }
