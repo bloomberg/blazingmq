@@ -446,8 +446,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     d_mockDispatcherClient_mp->_setDescription("test.tsk:1");
 
     // To pass `inDispatcherThread` checks:
-    d_mockDispatcherClient_mp->dispatcherClientData().setThreadId(
-        bslmt::ThreadUtil::selfId());
+    d_mockDispatcherClient_mp->setThreadId(bslmt::ThreadUtil::selfId());
 
     // Cluster
     d_mockCluster_mp.load(new (*d_allocator_p) mqbmock::Cluster(d_allocator_p),
@@ -455,8 +454,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     d_mockCluster_mp->_setIsClusterMember(true);
 
     // To pass `inDispatcherThread` checks:
-    d_mockCluster_mp->dispatcherClientData().setThreadId(
-        bslmt::ThreadUtil::selfId());
+    d_mockCluster_mp->setThreadId(bslmt::ThreadUtil::selfId());
 
     BSLS_ASSERT_OPT(d_mockCluster_mp->isClusterMember());
 
@@ -490,7 +488,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     // In some UTs, operations with mock queue might be executed either
     // from the main thread or from the scheduler thread.
     // To pass `inDispatcherThread` checks (allow ANY thread):
-    d_mockQueue_sp->dispatcherClientData().setThreadId(0);
+    d_mockQueue_sp->setThreadId(0);
 
     // Register queue in domain
     bslma::ManagedPtr<mqbi::Queue> queueMp(d_mockQueue_sp.managedPtr());

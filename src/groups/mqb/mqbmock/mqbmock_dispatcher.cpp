@@ -55,10 +55,8 @@ Dispatcher::ProcessorHandle Dispatcher::registerClient(
     mqbi::DispatcherClientType::Enum type,
     BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
-    client->dispatcherClientData()
-        .setDispatcher(this)
-        .setClientType(type)
-        .setThreadId(bslmt::ThreadUtil::selfId());
+    client->dispatcherClientData().setDispatcher(this).setClientType(type);
+    client->setThreadId(bslmt::ThreadUtil::selfId());
 
     return Dispatcher::k_INVALID_PROCESSOR_HANDLE;
 }

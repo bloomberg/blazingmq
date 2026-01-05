@@ -5156,6 +5156,7 @@ FileStore::FileStore(
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
+    BSLS_ASSERT(dispatcher);
     BSLS_ASSERT(d_cluster_p);
     BSLS_ASSERT(1 <= clusterSize());
     if (d_isFSMWorkflow) {

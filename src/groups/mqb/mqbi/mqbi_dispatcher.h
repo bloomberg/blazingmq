@@ -1124,9 +1124,6 @@ class DispatcherClientData {
     /// The dispatcher associated with the client.
     Dispatcher* d_dispatcher_p;
 
-    /// The id of the thread this dispatcher client is assigned to.
-    bslmt::ThreadUtil::Id d_threadId;
-
     /// The flag indicating whether the dispatcher have added the corresponding
     /// client to its internal flush list -- this is a Dispatcher internal
     /// member that should only be manipulated by the dispatcher, and not the
@@ -1149,8 +1146,6 @@ class DispatcherClientData {
     /// reference offering modifiable access to this object.
     DispatcherClientData& setDispatcher(Dispatcher* value);
 
-    DispatcherClientData& setThreadId(bslmt::ThreadUtil::Id threadId);
-
     /// Return a pointer to the dispatcher associated with this object; or
     /// null is this client is not (yet) registered to a dispatcher.
     Dispatcher* dispatcher();
@@ -1159,7 +1154,6 @@ class DispatcherClientData {
     DispatcherClientType::Enum  clientType() const;
     Dispatcher::ProcessorHandle processorHandle() const;
     bool                        addedToFlushList() const;
-    bslmt::ThreadUtil::Id       threadId() const;
 
     /// Return the value of the corresponding member.
     const Dispatcher* dispatcher() const;
@@ -1190,13 +1184,31 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
 
 /// Interface for a client of the Dispatcher.
 class DispatcherClient {
+  private:
+    // DATA
+
+    /// The id of the thread this dispatcher client is assigned to.
+    bslmt::ThreadUtil::Id d_threadId;
+
   public:
     // CREATORS
+    DispatcherClient()
+    : d_threadId(0)
+    {
+        // NOTHING
+    }
 
     /// Destructor.
     virtual ~DispatcherClient();
 
     // MANIPULATORS
+
+    /// @brief Assign thread id for this dispatcher client.
+    /// @param threadId to assign.
+    inline void setThreadId(bslmt::ThreadUtil::Id threadId)
+    {
+        d_threadId = threadId;
+    }
 
     /// Return a pointer to the dispatcher this client is associated with.
     virtual Dispatcher* dispatcher() = 0;
@@ -1231,9 +1243,8 @@ class DispatcherClient {
     {
         // In most cases the following condition should short-circuit on
         // the first operand:
-        return (dispatcherClientData().threadId() ==
-                bslmt::ThreadUtil::selfId()) ||
-               (dispatcherClientData().threadId() == 0);
+        return (d_threadId == bslmt::ThreadUtil::selfId()) ||
+               (d_threadId == 0);
     }
 };
 
@@ -1668,7 +1679,6 @@ inline DispatcherClientData::DispatcherClientData()
 : d_clientType(DispatcherClientType::e_UNDEFINED)
 , d_processorHandle(Dispatcher::k_INVALID_PROCESSOR_HANDLE)
 , d_dispatcher_p(0)
-, d_threadId(0)
 , d_addedToFlushList(false)
 {
     // NOTHING
@@ -1712,13 +1722,6 @@ DispatcherClientData::setDispatcher(Dispatcher* value)
     return *this;
 }
 
-inline DispatcherClientData&
-DispatcherClientData::setThreadId(bslmt::ThreadUtil::Id threadId)
-{
-    d_threadId = threadId;
-    return *this;
-}
-
 inline Dispatcher* DispatcherClientData::dispatcher()
 {
     return d_dispatcher_p;
@@ -1743,11 +1746,6 @@ inline bool DispatcherClientData::addedToFlushList() const
 inline const Dispatcher* DispatcherClientData::dispatcher() const
 {
     return d_dispatcher_p;
-}
-
-inline bslmt::ThreadUtil::Id DispatcherClientData::threadId() const
-{
-    return d_threadId;
 }
 
 }  // close package namespace

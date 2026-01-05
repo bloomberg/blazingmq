@@ -231,8 +231,7 @@ struct Tester {
                      bmqtst::TestHelperUtil::allocator());
 
         // To pass `inDispatcherThread` checks:
-        d_fs_mp->dispatcherClientData().setThreadId(
-            bslmt::ThreadUtil::selfId());
+        d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());
     }
 
     ~Tester()

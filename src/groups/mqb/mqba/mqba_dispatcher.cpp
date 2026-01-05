@@ -485,8 +485,9 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
         client->dispatcherClientData()
             .setDispatcher(this)
             .setClientType(type)
-            .setProcessorHandle(processor)
-            .setThreadId(context.d_processorPool_mp->queueThreadId(processor));
+            .setProcessorHandle(processor);
+        client->setThreadId(
+            context.d_processorPool_mp->queueThreadId(processor));
 
         BALL_LOG_DEBUG << "Registered a new client to the dispatcher "
                        << "[Client: " << client->description()

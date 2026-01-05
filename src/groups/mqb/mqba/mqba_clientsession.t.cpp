@@ -733,9 +733,8 @@ class TestBench {
         }
 
         // Typically done during 'Dispatcher::registerClient()'.
-        d_cs.dispatcherClientData()
-            .setDispatcher(&d_mockDispatcher)
-            .setThreadId(bslmt::ThreadUtil::selfId());
+        d_cs.dispatcherClientData().setDispatcher(&d_mockDispatcher);
+        d_cs.setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
         bmqsys::Time::shutdown();

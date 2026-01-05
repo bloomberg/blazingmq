@@ -291,7 +291,7 @@ Test::Test()
 , d_haveUndelivered(d_allocator_p)
 {
     d_queue._setDispatcher(&d_dispatcher);
-    d_queue.dispatcherClientData().setThreadId(bslmt::ThreadUtil::selfId());
+    d_queue.setThreadId(bslmt::ThreadUtil::selfId());
 
     bmqu::MemOutStream errorDescription(d_allocator_p);
 

@@ -168,9 +168,8 @@ class TestBench {
     , d_allocator_p(allocator)
     {
         // Typically done during 'Dispatcher::registerClient()'.
-        d_as.dispatcherClientData()
-            .setDispatcher(&d_mockDispatcher)
-            .setThreadId(bslmt::ThreadUtil::selfId());
+        d_as.dispatcherClientData().setDispatcher(&d_mockDispatcher);
+        d_as.setThreadId(bslmt::ThreadUtil::selfId());
 
         // Setup test time source
         bmqsys::Time::shutdown();
