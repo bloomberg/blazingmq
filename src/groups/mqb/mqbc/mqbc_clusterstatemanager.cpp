@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbc_clusterstatemanager.cpp                                       -*-C++-*-
+#include <bsla_unused.h>
 #include <mqbc_clusterstatemanager.h>
 
 #include <mqbscm_version.h>
@@ -62,7 +63,7 @@ ClusterStateManager::ClusterStateManager(
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
 , d_state_p(clusterState)
-, d_clusterFSM(*this)
+, d_clusterFSM(*this, allocator)
 , d_nodeToLedgerLSNMap(allocator)
 // TODO Add cluster config to determine Eventual vs Strong
 , d_clusterStateLedger_mp(clusterStateLedger)
@@ -91,7 +92,7 @@ ClusterStateManager::~ClusterStateManager()
 // PRIVATE MANIPULATORS
 //   (virtual: mqbc::ClusterStateTableActions)
 void ClusterStateManager::do_startWatchDog(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -105,7 +106,7 @@ void ClusterStateManager::do_startWatchDog(
 }
 
 void ClusterStateManager::do_stopWatchDog(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -119,7 +120,7 @@ void ClusterStateManager::do_stopWatchDog(
 }
 
 void ClusterStateManager::do_triggerWatchDog(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -134,7 +135,7 @@ void ClusterStateManager::do_triggerWatchDog(
     }
 }
 
-void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_applyCSLSelf(const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -143,7 +144,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.highestLSNNode());
 
     bmqp_ctrlmsg::LeaderAdvisory clusterStateSnapshot;
@@ -238,7 +239,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
 }
 
 void ClusterStateManager::do_initializeQueueKeyInfoMap(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -250,7 +251,7 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
 }
 
 void ClusterStateManager::do_sendFollowerLSNRequests(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -289,7 +290,7 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
 }
 
 void ClusterStateManager::do_sendFollowerLSNResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -299,7 +300,7 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -324,7 +325,7 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
 }
 
 void ClusterStateManager::do_sendFailureFollowerLSNResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -332,7 +333,7 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -354,7 +355,7 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
 }
 
 void ClusterStateManager::do_findHighestLSN(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -387,7 +388,7 @@ void ClusterStateManager::do_findHighestLSN(
 }
 
 void ClusterStateManager::do_sendFollowerClusterStateRequest(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -397,7 +398,7 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.highestLSNNode());
     BSLS_ASSERT_SAFE(metadata.highestLSNNode()->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
@@ -428,14 +429,14 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
         inputMessages.at(0).setSource(
             d_clusterData_p->membership().selfNode());
 
-        args->emplace(ClusterFSM::Event::e_FAIL_FOL_CSL_RSPN,
+        applyFSMEvent(ClusterFSM::Event::e_FAIL_FOL_CSL_RSPN,
                       ClusterFSMEventMetadata(inputMessages,
                                               metadata.highestLSNNode()));
     }
 }
 
 void ClusterStateManager::do_sendFollowerClusterStateResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -445,7 +446,7 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -481,7 +482,7 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
 }
 
 void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -489,7 +490,7 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -510,7 +511,7 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
                   << inputMessage.source()->nodeDescription();
 }
 
-void ClusterStateManager::do_storeSelfLSN(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_storeSelfLSN(const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -519,7 +520,7 @@ void ClusterStateManager::do_storeSelfLSN(const ClusterFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
     BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
@@ -533,7 +534,7 @@ void ClusterStateManager::do_storeSelfLSN(const ClusterFSMArgsSp& args)
                   << ": In the Cluster FSM, storing self's LSN as " << selfLSN;
 }
 
-void ClusterStateManager::do_storeFollowerLSNs(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_storeFollowerLSNs(const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -543,7 +544,7 @@ void ClusterStateManager::do_storeFollowerLSNs(const ClusterFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
 
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
@@ -557,7 +558,7 @@ void ClusterStateManager::do_storeFollowerLSNs(const ClusterFSMArgsSp& args)
     }
 }
 
-void ClusterStateManager::do_removeFollowerLSN(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_removeFollowerLSN(const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -567,7 +568,7 @@ void ClusterStateManager::do_removeFollowerLSN(const ClusterFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata  = args->front().second;
+    const ClusterFSMEventMetadata& metadata  = event.second;
     mqbnet::ClusterNode* crashedFollowerNode = metadata.crashedFollowerNode();
 
     NodeToLSNMapCIter cit = d_nodeToLedgerLSNMap.find(crashedFollowerNode);
@@ -586,7 +587,8 @@ void ClusterStateManager::do_removeFollowerLSN(const ClusterFSMArgsSp& args)
     d_nodeToLedgerLSNMap.erase(cit);
 }
 
-void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_checkLSNQuorum(
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -602,7 +604,7 @@ void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
                       << ": Achieved a quorum of LSNs with a count of "
                       << d_nodeToLedgerLSNMap.size();
 
-        args->emplace(ClusterFSM::Event::e_QUORUM_LSN,
+        applyFSMEvent(ClusterFSM::Event::e_QUORUM_LSN,
                       ClusterFSMEventMetadata(d_allocator_p));
     }
     else if (d_clusterFSM.state() == ClusterFSM::State::e_LDR_HEALING_STG2) {
@@ -612,13 +614,13 @@ void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
                       << ": Lost quorum of LSNs. New count is "
                       << d_nodeToLedgerLSNMap.size();
 
-        args->emplace(ClusterFSM::Event::e_LOST_QUORUM_LSN,
+        applyFSMEvent(ClusterFSM::Event::e_LOST_QUORUM_LSN,
                       ClusterFSMEventMetadata(d_allocator_p));
     }
 }
 
 void ClusterStateManager::do_sendRegistrationRequest(
-    const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -660,13 +662,13 @@ void ClusterStateManager::do_sendRegistrationRequest(
             .setSource(d_clusterData_p->membership().selfNode())
             .setLeaderSequenceNumber(registrationRequest.sequenceNumber());
 
-        args->emplace(ClusterFSM::Event::e_FAIL_REGISTRATION_RSPN,
+        applyFSMEvent(ClusterFSM::Event::e_FAIL_REGISTRATION_RSPN,
                       ClusterFSMEventMetadata(inputMessages));
     }
 }
 
 void ClusterStateManager::do_sendRegistrationResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -676,7 +678,7 @@ void ClusterStateManager::do_sendRegistrationResponse(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -699,7 +701,7 @@ void ClusterStateManager::do_sendRegistrationResponse(
 }
 
 void ClusterStateManager::do_sendFailureRegistrationResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -707,7 +709,7 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -729,7 +731,7 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
 }
 
 void ClusterStateManager::do_logStaleFollowerLSNResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -740,7 +742,7 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
                      !d_clusterFSM.isSelfLeader());
     // Response is not stale if self is leader
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
 
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
@@ -755,7 +757,7 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
 }
 
 void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -765,7 +767,7 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_clusterFSM.state() !=
                      ClusterFSM::State::e_LDR_HEALING_STG2);
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
 
@@ -778,7 +780,7 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
 }
 
 void ClusterStateManager::do_logErrorLeaderNotHealed(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -788,7 +790,7 @@ void ClusterStateManager::do_logErrorLeaderNotHealed(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
     BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_FOL_HEALING);
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
     BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
@@ -802,7 +804,7 @@ void ClusterStateManager::do_logErrorLeaderNotHealed(
 }
 
 void ClusterStateManager::do_logFailFollowerLSNResponses(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -812,7 +814,7 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
          ++cit) {
@@ -825,7 +827,7 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
 }
 
 void ClusterStateManager::do_logFailFollowerClusterStateResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -835,7 +837,7 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
 
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
@@ -859,7 +861,7 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
 }
 
 void ClusterStateManager::do_logFailRegistrationResponse(
-    const ClusterFSMArgsSp& args)
+    const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -869,7 +871,7 @@ void ClusterStateManager::do_logFailRegistrationResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata = args->front().second;
+    const ClusterFSMEventMetadata& metadata = event.second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
 
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
@@ -892,22 +894,22 @@ void ClusterStateManager::do_logFailRegistrationResponse(
     }
 }
 
-void ClusterStateManager::do_reapplyEvent(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_reapplyEvent(const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(!args->empty());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": Re-apply event: " << args->front().first
+                  << ": Re-apply event: " << event.first
                   << " in the Cluster FSM.";
 
-    args->emplace(args->front());
+    applyFSMEvent(event.first, event.second);
 }
 
-void ClusterStateManager::do_reapplySelectLeader(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_reapplySelectLeader(
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -922,12 +924,12 @@ void ClusterStateManager::do_reapplySelectLeader(const ClusterFSMArgsSp& args)
     InputMessages inputMessages(1, d_allocator_p);
     inputMessages.at(0).setSource(d_clusterData_p->membership().selfNode());
 
-    args->emplace(ClusterFSM::Event::e_SLCT_LDR,
+    applyFSMEvent(ClusterFSM::Event::e_SLCT_LDR,
                   ClusterFSMEventMetadata(inputMessages));
 }
 
 void ClusterStateManager::do_reapplySelectFollower(
-    const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -942,12 +944,12 @@ void ClusterStateManager::do_reapplySelectFollower(
     InputMessages inputMessages(1, d_allocator_p);
     inputMessages.at(0).setSource(d_clusterData_p->electorInfo().leaderNode());
 
-    args->emplace(ClusterFSM::Event::e_SLCT_FOL,
+    applyFSMEvent(ClusterFSM::Event::e_SLCT_FOL,
                   ClusterFSMEventMetadata(inputMessages));
 }
 
 void ClusterStateManager::do_cleanupLSNs(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -958,7 +960,7 @@ void ClusterStateManager::do_cleanupLSNs(
 }
 
 void ClusterStateManager::do_cancelRequests(
-    BSLA_UNUSED const ClusterFSMArgsSp& args)
+    BSLA_UNUSED const EventWithMetadata& event)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1049,11 +1051,7 @@ void ClusterStateManager::applyFSMEvent(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    ClusterFSMArgsSp eventsQueueSp(new (*d_allocator_p)
-                                       ClusterFSMArgs(d_allocator_p),
-                                   d_allocator_p);
-    eventsQueueSp->emplace(event, metadata);
-    d_clusterFSM.popEventAndProcess(eventsQueueSp);
+    d_clusterFSM.enqueueEvent(EventWithMetadata(event, metadata));
 }
 
 int ClusterStateManager::loadClusterStateSnapshot(ClusterState* out)
