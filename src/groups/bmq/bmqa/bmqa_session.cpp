@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -279,6 +279,13 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
         }
     }
     ci.sdkLanguage() = bmqp_ctrlmsg::ClientLanguage::E_CPP;
+
+    bsl::string userAgent;
+    if (!sessionImpl->d_sessionOptions.userAgentPrefix().empty()) {
+        userAgent = sessionImpl->d_sessionOptions.userAgentPrefix() + " ";
+    }
+    userAgent += bsl::string("libbmq:") + bmqscm::Version::s_versionDotString;
+    ci.userAgent() = userAgent;
 
     // Create the GUID generator
     sessionImpl->d_guidGenerator_sp.createInplace(sessionImpl->d_allocator_p,
