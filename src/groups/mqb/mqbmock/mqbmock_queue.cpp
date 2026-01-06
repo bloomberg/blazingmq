@@ -122,7 +122,7 @@ void Queue::getHandle(
 
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_queueEngine_p->getHandle(context,
                                clientContext,
@@ -139,7 +139,7 @@ void Queue::configureHandle(
     // executed by the *QUEUE_DISPATCHER* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(d_queueEngine_p && "Queue Engine has not been set");
 
     d_queueEngine_p->configureHandle(handle, streamParameters, configuredCb);
@@ -163,8 +163,7 @@ void Queue::dropHandle(mqbi::QueueHandle* handle, bool doDeconfigure)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(
-        handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
+    BSLS_ASSERT_SAFE(handle->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_queueEngine_p && "Queue Engine has not been set");
 
     // Since the handle is being dropped (which typically occurs if a client is
@@ -279,7 +278,7 @@ void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
 //       have an if statement below.
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_OPT(inDispatcherThread());
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
 
     BALL_LOG_TRACE << "confirmMessage [queue: '" << description()
@@ -327,7 +326,7 @@ int Queue::rejectMessage(const bmqt::MessageGUID& msgGUID,
 //       have an if statement below.
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_OPT(inDispatcherThread());
     BSLS_ASSERT_OPT(d_queueEngine_p && "Queue Engine has not been set");
     BSLS_ASSERT_OPT(d_storage_p && "Storage has not been set");
 

@@ -266,8 +266,7 @@ void QueueSessionManager::onQueueOpenCbDispatched(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcherClient_p->dispatcher()->inDispatcherThread(
-        d_dispatcherClient_p));
+    BSLS_ASSERT_SAFE(d_dispatcherClient_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(request.choice().isOpenQueueValue());
 
     if (d_shutdownInProgress) {
@@ -371,9 +370,7 @@ void QueueSessionManager::onHandleReleased(
     // 'handle'.  We explicitly check for that before an assertion which uses
     // 'handle'.
     if (handle) {
-        BSLS_ASSERT_SAFE(
-            d_dispatcherClient_p->dispatcher()->inDispatcherThread(
-                handle->queue()));
+        BSLS_ASSERT_SAFE(handle->queue()->inDispatcherThread());
     }
 
     // NOTE: We don't check 'd_shutdownInProgress' and always enqueue execution
@@ -408,8 +405,7 @@ void QueueSessionManager::onHandleReleasedDispatched(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcherClient_p->dispatcher()->inDispatcherThread(
-        d_dispatcherClient_p));
+    BSLS_ASSERT_SAFE(d_dispatcherClient_p->inDispatcherThread());
 
     // If 'closeQueue' request failed to be processed for any reason (at this
     // node or at upstream node), this callback will be invoked with a null
@@ -545,8 +541,7 @@ void QueueSessionManager::processOpenQueue(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcherClient_p->dispatcher()->inDispatcherThread(
-        d_dispatcherClient_p));
+    BSLS_ASSERT_SAFE(d_dispatcherClient_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(request.choice().isOpenQueueValue());
 
     if (d_shutdownInProgress) {
@@ -653,8 +648,7 @@ void QueueSessionManager::processCloseQueue(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcherClient_p->dispatcher()->inDispatcherThread(
-        d_dispatcherClient_p));
+    BSLS_ASSERT_SAFE(d_dispatcherClient_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(request.choice().isCloseQueueValue());
 
     if (d_shutdownInProgress) {

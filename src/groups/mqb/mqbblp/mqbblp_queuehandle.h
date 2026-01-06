@@ -619,8 +619,7 @@ inline const mqbi::QueueHandle::SubStreams& QueueHandle::subStreamInfos() const
     // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
+    BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     return d_subStreamInfos;
 }
 

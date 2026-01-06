@@ -1193,7 +1193,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher->inDispatcherThread(&cluster));
+    BSLS_ASSERT_SAFE(cluster.inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -2312,7 +2312,7 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(uri.isValid());

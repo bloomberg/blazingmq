@@ -124,7 +124,6 @@ struct Tester {
     mqbnet::ClusterNode*                   d_node_p;
     mqbs::DataStoreConfig                  d_dsCfg;
     bdlmt::FixedThreadPool                 d_miscWorkThreadPool;
-    mqbi::DispatcherClientData             d_dispatcherClientData;
     mqbmock::Dispatcher                    d_dispatcher;
     // must outlive FileStore
     bslma::ManagedPtr<mqbs::FileStore> d_fs_mp;
@@ -151,7 +150,6 @@ struct Tester {
               bmqtst::TestHelperUtil::allocator()))
     , d_clusterStats(bmqtst::TestHelperUtil::allocator())
     , d_miscWorkThreadPool(1, 1, bmqtst::TestHelperUtil::allocator())
-    , d_dispatcherClientData()
     , d_dispatcher(bmqtst::TestHelperUtil::allocator())
     , d_statePool(1024, bmqtst::TestHelperUtil::allocator())
     {
@@ -211,9 +209,6 @@ struct Tester {
                 bdlf::PlaceHolders::_1,    // partitionId
                 bdlf::PlaceHolders::_2));  // queueKeyInfoMap
 
-        d_dispatcherClientData.setDispatcher(&d_dispatcher);
-        d_dispatcher._setInDispatcherThread(true);
-
         d_clusterStats.initialize("testCluster",
                                   1,  // numPartitions
                                   d_clusterStatsRootContext_sp.get(),
@@ -234,6 +229,9 @@ struct Tester {
                                          1,     // replicationFactor
                                          bmqtst::TestHelperUtil::allocator()),
                      bmqtst::TestHelperUtil::allocator());
+
+        // To pass `inDispatcherThread` checks:
+        d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());
     }
 
     ~Tester()
