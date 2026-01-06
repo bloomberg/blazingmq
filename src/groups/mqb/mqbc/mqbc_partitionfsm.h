@@ -264,8 +264,8 @@ class PartitionFSM {
     /// object.
     PartitionFSM& unregisterObserver(PartitionFSMObserver* observer);
 
-    /// Enqueue the specified `event` to be processed as an input to the FSM. d
-    /// to the end of `eventsQueue`.
+    /// Enqueue the specified `event` to the internal events queue.  It will be
+    /// processed as an input to the FSM.
     void enqueueEvent(const EventWithData& event);
 
     // ACCESSORS

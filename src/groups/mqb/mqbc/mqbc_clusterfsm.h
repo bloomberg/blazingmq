@@ -217,14 +217,13 @@ class ClusterFSM {
   public:
     // TYPES
     typedef bsl::pair<ClusterStateTableEvent::Enum, ClusterFSMEventMetadata>
-                                                EventWithMetadata;
-    typedef bsl::queue<EventWithMetadata>       ClusterFSMArgs;
-    typedef bsl::shared_ptr<ClusterFSMArgs>     ClusterFSMArgsSp;
-    typedef ClusterStateTable<ClusterFSMArgsSp> StateTable;
-    typedef StateTable::State                   State;
-    typedef StateTable::Event                   Event;
-    typedef StateTable::ActionFunctor           ActionFunctor;
-    typedef StateTable::Transition              Transition;
+        EventWithMetadata;
+
+    typedef ClusterStateTable<EventWithMetadata> StateTable;
+    typedef StateTable::State                    State;
+    typedef StateTable::Event                    Event;
+    typedef StateTable::ActionFunctor            ActionFunctor;
+    typedef StateTable::Transition               Transition;
 
     /// A set of ClusterFSM observers.
     typedef bsl::unordered_set<ClusterFSMObserver*> ObserversSet;
@@ -240,16 +239,35 @@ class ClusterFSM {
     State::Enum d_state;
 
     /// Actions to perform as part of FSM transitions.
-    ClusterStateTableActions<ClusterFSMArgsSp>& d_actions;
+    ClusterStateTableActions<EventWithMetadata>& d_actions;
+
+    /// Internal queue containing events which need to be applied to the
+    /// current state of the FSM.
+    bsl::queue<EventWithMetadata> d_eventsQueue;
 
     /// Observers of this object.
     ObserversSet d_observers;
 
+  private:
+    // NOT IMPLEMENTED
+    ClusterFSM(const ClusterFSM&);
+    ClusterFSM& operator=(const ClusterFSM&);
+
+    // PRIVATE MANIPULATORS
+
+    /// Process the specified `event` and notify observers.
+    void processEvent(const EventWithMetadata& event);
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ClusterFSM, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Create an instance with the specified `actions`.
-    ClusterFSM(ClusterStateTableActions<ClusterFSMArgsSp>& actions);
+    /// Create an instance with the specified `actions`, using the specified
+    /// `allocator`.
+    ClusterFSM(ClusterStateTableActions<EventWithMetadata>& actions,
+               bslma::Allocator*                            allocator);
 
     // MANIPULATORS
 
@@ -263,10 +281,9 @@ class ClusterFSM {
     /// object.
     ClusterFSM& unregisterObserver(ClusterFSMObserver* observer);
 
-    /// While the specified `eventsQueue` is not empty, pop the event from the
-    /// head of the queue and process it as an input to the FSM.  During the
-    /// processing, new events might be enqueued to the end of `eventsQueue`.
-    void popEventAndProcess(ClusterFSMArgsSp& eventsQueue);
+    /// Enqueue the specified `event` to the internal events queue.  It will be
+    /// processed as an input to the FSM.
+    void enqueueEvent(const EventWithMetadata& event);
 
     // ACCESSORS
 
@@ -426,10 +443,12 @@ ClusterFSMEventMetadata::clusterStateSnapshot() const
 
 // CREATORS
 inline ClusterFSM::ClusterFSM(
-    ClusterStateTableActions<ClusterFSMArgsSp>& actions)
+    ClusterStateTableActions<EventWithMetadata>& actions,
+    bslma::Allocator*                            allocator)
 : d_stateTable()
 , d_state(State::e_UNKNOWN)
 , d_actions(actions)
+, d_eventsQueue(allocator)
 , d_observers()
 {
     // NOTHING
