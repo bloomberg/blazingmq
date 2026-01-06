@@ -1755,8 +1755,8 @@ static void test11_persistanceAcrossRolloverLeader()
         qadvisory.queues().push_back(qinfoI);
     }
 
-    int  i = 0;
-    bool hasUncommittedBeforeRollover =
+    size_t i = 0;
+    bool   hasUncommittedBeforeRollover =
         true;  // Either the qadvisory or its commit can trigger rollover.  If
                // the commit triggers rollover, that means we have an
                // uncomitted advisory before rollover.
