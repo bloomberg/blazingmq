@@ -27,37 +27,24 @@
 //@DESCRIPTION: 'mqbs::FileStoreTestUtil_Record' provides test Record.
 
 // MQB
-
-#include <mqbcfg_messages.h>
 #include <mqbi_storage.h>
 #include <mqbs_filestoreprotocol.h>
-#include <mqbs_filestoreset.h>
 #include <mqbu_storagekey.h>
 
 // BDE
-#include <ball_log.h>
-#include <bdlt_datetime.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
-#include <bsl_vector.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbs {
 
-// FORWARD DECLARATIONS
-class DataFileIterator;
-class JournalFileIterator;
-class MappedFileDescriptor;
-class QlistFileIterator;
+// ===============================
+// struct FileStoreTestUtil_Record
+// ===============================
 
-// =============
-// struct Record
-// =============
 struct FileStoreTestUtil_Record {
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -75,14 +62,6 @@ struct FileStoreTestUtil_Record {
     bsl::string d_uri;
 
     mqbu::StorageKey d_queueKey;
-
-    mqbu::StorageKey d_appKey;
-
-    bsl::vector<bsl::string> d_appIds;
-    // If its a QLIST record
-
-    bsl::vector<mqbu::StorageKey> d_appKeys;
-    // If its a QLIST record
 
     mqbi::StorageMessageAttributes d_msgAttributes;
 
@@ -110,9 +89,6 @@ struct FileStoreTestUtil_Record {
     , d_syncPtType(mqbs::SyncPointType::e_UNDEFINED)
     , d_uri(basicAllocator)
     , d_queueKey()
-    , d_appKey()
-    , d_appIds(basicAllocator)
-    , d_appKeys(basicAllocator)
     , d_msgAttributes()
     , d_guid()
     , d_timestamp(0)
@@ -132,9 +108,6 @@ struct FileStoreTestUtil_Record {
     , d_syncPtType(src.d_syncPtType)
     , d_uri(src.d_uri, basicAllocator)
     , d_queueKey(src.d_queueKey)
-    , d_appKey(src.d_appKey)
-    , d_appIds(src.d_appIds, basicAllocator)
-    , d_appKeys(src.d_appKeys, basicAllocator)
     , d_msgAttributes(src.d_msgAttributes)
     , d_guid(src.d_guid)
     , d_timestamp(src.d_timestamp)
@@ -158,9 +131,6 @@ struct FileStoreTestUtil_Record {
         d_syncPtType         = rhs.d_syncPtType;
         d_uri                = rhs.d_uri;
         d_queueKey           = rhs.d_queueKey;
-        d_appKey             = rhs.d_appKey;
-        d_appIds             = rhs.d_appIds;
-        d_appKeys            = rhs.d_appKeys;
         d_msgAttributes      = rhs.d_msgAttributes;
         d_guid               = rhs.d_guid;
         d_timestamp          = rhs.d_timestamp;
