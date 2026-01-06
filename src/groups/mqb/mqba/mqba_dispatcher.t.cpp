@@ -49,7 +49,7 @@ using namespace bsl;
 namespace {
 
 static void
-printSummary(bslstl::StringRef desc, bsls::Types::Int64 dt, size_t iters)
+printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
 {
     bsl::cout << desc << ":" << bsl::endl;
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
@@ -108,6 +108,8 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
 
     mqbi::DispatcherClientData d_data;
 
+    const bsl::string d_description;
+
   private:
     // NOT IMPLEMENTED
     /// Should not allow copy/assignment because dispatcher clients are
@@ -121,6 +123,7 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
     explicit TestDispatcherClient(mqbi::Dispatcher* dispatcher)
     : d_dispatcher_p(dispatcher)
     , d_data()
+    , d_description()
     {
         // NOTHING
     }
@@ -179,7 +182,10 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
     }
 
     /// Return a printable description of the client (e.g., for logging).
-    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE { return ""; }
+    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_description;
+    }
 };
 
 }  // close unnamed namespace

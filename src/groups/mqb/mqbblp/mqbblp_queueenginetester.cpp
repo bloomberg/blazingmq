@@ -488,7 +488,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     // In some UTs, operations with mock queue might be executed either
     // from the main thread or from the scheduler thread.
     // To pass `inDispatcherThread` checks (allow ANY thread):
-    d_mockQueue_sp->setThreadId(0);
+    d_mockQueue_sp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
 
     // Register queue in domain
     bslma::ManagedPtr<mqbi::Queue> queueMp(d_mockQueue_sp.managedPtr());
