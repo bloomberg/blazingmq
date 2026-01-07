@@ -745,8 +745,7 @@ def with_rollover_admin_cmd(
         test_logger.info("Triggering rollover for partition %d", partitionId)
 
         leader.trigger_rollover(partitionId, succeed=True)
-        # We don't have to wait for rollover to complete message log here,
-        # because we wait for admin command success above.
+        # Trigger rollover and wait for successfull completion of admin command.
 
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
