@@ -271,7 +271,8 @@ struct StorageUtil {
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void doRollover(mqbcmd::StorageResult* result,
                            FileStores*            fileStores,
-                           int                    partitionId);
+                           int                    partitionId,
+                           bslma::Allocator*      allocator);
 
     /// Initiate the rollover of the partition out of the specified
     /// `fileStores` having the specified `partitionId`
