@@ -338,24 +338,13 @@ jobs:
 
   documentation:
     name: "Documentation"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy doxygen
-
-      - name: Set up output directory
-        run: |
-          mkdir -p docs/docs/apidocs
-
-      - name: Build docs
-        run: |
-          echo "::add-matcher::.github/workflows/problem-matchers/doxygen.json"
-          doxygen Doxyfile
-          echo "::remove-matcher owner=doxygen"
+    needs: get_dependencies
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      target: "docs"
+      save_build_as_artifacts: false
+      run_unit_tests: false
 
   shellcheck:
     name: Shellcheck
