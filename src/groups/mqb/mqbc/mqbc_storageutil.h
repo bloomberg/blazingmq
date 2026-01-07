@@ -279,9 +279,10 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
-    static void doRolloverDispatched(bsl::promise<int>* promise,
-                                     int                partitionId,
-                                     FileStores*        fileStores);
+    static void doRolloverDispatched(bslmt::Latch* latch,
+                                     int*          rc,
+                                     int           partitionId,
+                                     FileStores*   fileStores);
 
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
