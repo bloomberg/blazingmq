@@ -2254,8 +2254,7 @@ void StorageUtil::gcUnrecognizedDomainQueues(
             BSLS_ASSERT_SAFE(fs);
             BSLS_ASSERT_SAFE(fs->isOpen());
 
-            fs->execute(
-                bdlf::BindUtil::bind(&mqbs::FileStore::rollover, fs));
+            fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::rollover, fs));
         }
     }
 }
