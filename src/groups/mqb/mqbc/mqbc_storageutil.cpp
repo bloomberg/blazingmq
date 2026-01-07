@@ -578,7 +578,8 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
 
 void StorageUtil::doRollover(mqbcmd::StorageResult* result,
                              FileStores*            fileStores,
-                             int                    partitionId
+                             int                    partitionId,
+                             bslma::Allocator*      allocator
 
 )
 {
@@ -589,7 +590,7 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
 
     if (partitionId < 0) {
         bslmt::Latch     latch(fileStores->size());
-        bsl::vector<int> rcs(fileStores->size());
+        bsl::vector<int> rcs(fileStores->size(), allocator);
 
         for (unsigned int i = 0; i < fileStores->size(); ++i) {
             mqbs::FileStore* fs = fileStores->at(i).get();
@@ -3629,11 +3630,26 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
     else if (command.isPartitionValue()) {
         const int partitionId = command.partition().partitionId();
 
-        if (partitionId < 0 ||
-            partitionId >= static_cast<int>(fileStores->size())) {
+        if (partitionId >= static_cast<int>(fileStores->size())) {
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
-            os << "Invalid partitionId value: '" << partitionId << "'";
+            os << "Too high partitionId value: '" << partitionId << "'";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
+        }
+
+        // Negative partitionId is only allowed for rollover command.
+        // In case of negative partitionId rollover is performed on all
+        // partitions.
+        if (command.partition().command().isRolloverValue()) {
+            doRollover(result, fileStores, partitionId, allocator);
+            return 0;  // RETURN
+        }
+
+        if (partitionId < 0) {
+            bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
+            bmqu::MemOutStream                   os(&localAllocator);
+            os << "Too low partitionId value: '" << partitionId << "'";
             result->makeError().message() = os.str();
             return -1;  // RETURN
         }
@@ -3643,11 +3659,6 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                         fileStores,
                                         partitionId,
                                         partitionLocation);
-            return 0;  // RETURN
-        }
-
-        if (command.partition().command().isRolloverValue()) {
-            doRollover(result, fileStores, partitionId);
             return 0;  // RETURN
         }
 

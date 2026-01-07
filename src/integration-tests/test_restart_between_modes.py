@@ -741,11 +741,8 @@ def with_rollover_admin_cmd(
 
     leader = cluster.last_known_leader
 
-    for partitionId in range(cluster.config.definition.partition_config.num_partitions):
-        test_logger.info("Triggering rollover for partition %d", partitionId)
-
-        leader.trigger_rollover(partitionId, succeed=True)
-        # Trigger rollover and wait for successfull completion of admin command.
+    partitionId = -1  # use -1 to rollover all partitions
+    leader.trigger_rollover(partitionId, succeed=True)
 
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
