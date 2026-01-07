@@ -216,7 +216,7 @@ bsl::ostream& operator<<(bsl::ostream&                       stream,
 /// @todo Apply the specified message to self and replicate if self is leader.
 ///
 /// @todo Notify via 'commitCb' when consistency level has been achieved.
-class ClusterStateLedger : public ElectorInfoObserver {
+class ClusterStateLedger {
   public:
     // TYPES
 
@@ -258,7 +258,7 @@ class ClusterStateLedger : public ElectorInfoObserver {
     // CREATORS
 
     /// Destructor.
-    ~ClusterStateLedger() BSLS_KEYWORD_OVERRIDE;
+    virtual ~ClusterStateLedger() = 0;
 
     // MANIPULATORS
 

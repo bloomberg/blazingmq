@@ -31,6 +31,9 @@
 /// This component is thread safe.
 
 // BDE
+#include <bsl_functional.h>
+#include <bslmt_lockguard.h>
+#include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
 #include <bsls_keyword.h>
@@ -44,9 +47,21 @@ namespace mqbcfg {
 
 /// This class provides a mechanism to manage the quorum for a cluster.
 class ClusterQuorumManager {
+  public:
+    // TYPES
+
+    /// Invoked on every quorum update
+    typedef bsl::function<void(const unsigned int)> UpdateQuorumCallback;
+
   private:
     // DATA
     bsls::AtomicUint d_quorum;
+
+    /// Mutex for the callback
+    bslmt::Mutex d_mutex;
+
+    /// Callback to be called after every quorum change.
+    UpdateQuorumCallback d_callback;
 
   private:
     // NOT IMPLEMENTED
@@ -66,6 +81,9 @@ class ClusterQuorumManager {
     /// it is calculated as the majority of `nodeCount`.
     void setQuorum(unsigned int quorum, unsigned int nodeCount);
 
+    /// Set the quorum change callback
+    void setCallback(const UpdateQuorumCallback& callback);
+
     // ACCESSORS
 
     /// Return the current quorum value.
@@ -83,6 +101,8 @@ class ClusterQuorumManager {
 // CREATORS
 inline ClusterQuorumManager::ClusterQuorumManager(unsigned int quorum,
                                                   unsigned int nodeCount)
+: d_mutex()
+, d_callback(0)
 {
     setQuorum(quorum, nodeCount);
 }
@@ -100,6 +120,18 @@ inline void ClusterQuorumManager::setQuorum(unsigned int quorum,
     // elected.
 
     d_quorum.store(quorum);
+
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    if (d_callback != 0) {
+        d_callback(quorum);
+    }
+}
+
+inline void
+ClusterQuorumManager::setCallback(const UpdateQuorumCallback& callback)
+{
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    d_callback = callback;
 }
 
 // ACCESSORS

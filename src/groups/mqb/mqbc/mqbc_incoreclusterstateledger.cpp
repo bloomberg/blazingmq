@@ -350,6 +350,28 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     return rc_SUCCESS;
 }
 
+void IncoreClusterStateLedger::onQuorumChangeCb(const unsigned int ackQuorum)
+{
+    // Currently we know that the callback will be executed only by the
+    // *CLUSTER DISPATCHER* thread. However there is no such obligation for
+    // `ClusterQuorumManager`, so we support calls from *ANY* thread.
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
+            d_clusterData_p->cluster().inDispatcherThread())) {
+        reviewUncommittedAdvisories(ackQuorum);
+    }
+    else {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_clusterData_p->cluster().dispatcher()->execute(
+            bdlf::BindUtil::bindS(
+                d_allocator_p,
+                &IncoreClusterStateLedger::reviewUncommittedAdvisories,
+                this,
+                ackQuorum),
+            &d_clusterData_p->cluster());
+    }
+}
+
 int IncoreClusterStateLedger::applyAdvisoryInternal(
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
@@ -688,42 +710,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         if (iter->second.d_ackCount == ackQuorum) {
             // Consistency level reached. Apply a commit message for the
             // advisory, broadcast it, and invoke the 'CommitCb'.
-            bmqp_ctrlmsg::ClusterMessage        commitMessage;
-            bmqp_ctrlmsg::LeaderAdvisoryCommit& commitAdvisory =
-                commitMessage.choice().makeLeaderAdvisoryCommit();
-            d_clusterData_p->electorInfo().nextLeaderMessageSequence(
-                &commitAdvisory.sequenceNumber());
-            commitAdvisory.sequenceNumberCommitted() =
-                ack.sequenceNumberAcked();
-            BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
-                             commitAdvisory.sequenceNumberCommitted());
-
-            BALL_LOG_INFO << description() << " Quorum of " << ackQuorum
-                          << " acks is achieved for advisory of seqNum "
-                          << ack.sequenceNumberAcked()
-                          << ", creating and applying commit advisory: "
-                          << commitMessage << ".";
-
-            bsl::shared_ptr<bdlbb::Blob> commitRecord =
-                d_blobSpPool_p->getObject();
-            rc = ClusterStateLedgerUtil::appendRecord(
-                commitRecord.get(),
-                commitMessage,
-                commitAdvisory.sequenceNumber(),
-                currentTime(),
-                ClusterStateRecordType::e_COMMIT);
-            if (rc != 0) {
-                return 10 * rc + rc_CREATE_COMMIT_FAILURE;  // RETURN
-            }
-
-            rc = applyRecordInternal(*commitRecord,
-                                     0,
-                                     commitMessage,
-                                     commitAdvisory.sequenceNumber(),
-                                     ClusterStateRecordType::e_COMMIT);
-            if (rc != 0) {
-                return 10 * rc + rc_APPLY_COMMIT_FAILURE;  // RETURN
-            }
+            return applyCommit(ack.sequenceNumberAcked(), ackQuorum);
         }
     } break;  // BREAK
     case ClusterStateRecordType::e_UNDEFINED:
@@ -780,8 +767,70 @@ int IncoreClusterStateLedger::applyRecordInternal(
                                    recordType);
 }
 
+int IncoreClusterStateLedger::applyCommit(
+    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    const unsigned int                         ackQuorum)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS = 0  // Success
+        ,
+        rc_UNKNOWN = -1  // Unknown result
+        ,
+        rc_CREATE_COMMIT_FAILURE = -4  // Fail to create leader advisory
+        ,
+        rc_APPLY_COMMIT_FAILURE = -6  // Fail to apply leader advisory commit
+    };
+
+    // Consistency level reached. Apply a commit message for the
+    // advisory, broadcast it, and invoke the 'CommitCb'.
+
+    bmqp_ctrlmsg::ClusterMessage        commitMessage;
+    bmqp_ctrlmsg::LeaderAdvisoryCommit& commitAdvisory =
+        commitMessage.choice().makeLeaderAdvisoryCommit();
+    d_clusterData_p->electorInfo().nextLeaderMessageSequence(
+        &commitAdvisory.sequenceNumber());
+    commitAdvisory.sequenceNumberCommitted() = sequenceNumber;
+    BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
+                     commitAdvisory.sequenceNumberCommitted());
+
+    BALL_LOG_INFO << description() << " Quorum of " << ackQuorum
+                  << " acks is achieved for advisory of seqNum "
+                  << sequenceNumber
+                  << ", creating and applying commit advisory: "
+                  << commitMessage << ".";
+
+    int                          rc           = rc_UNKNOWN;
+    bsl::shared_ptr<bdlbb::Blob> commitRecord = d_blobSpPool_p->getObject();
+    rc = ClusterStateLedgerUtil::appendRecord(
+        commitRecord.get(),
+        commitMessage,
+        commitAdvisory.sequenceNumber(),
+        currentTime(),
+        ClusterStateRecordType::e_COMMIT);
+    if (rc != 0) {
+        return 10 * rc + rc_CREATE_COMMIT_FAILURE;  // RETURN
+    }
+
+    rc = applyRecordInternal(*commitRecord,
+                             0,
+                             commitMessage,
+                             commitAdvisory.sequenceNumber(),
+                             ClusterStateRecordType::e_COMMIT);
+    if (rc != 0) {
+        return 10 * rc + rc_APPLY_COMMIT_FAILURE;  // RETURN
+    }
+
+    return rc_SUCCESS;
+}
+
 void IncoreClusterStateLedger::cancelUncommittedAdvisories()
 {
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
     AdvisoriesMapIter iter = d_uncommittedAdvisories.begin();
     if (iter != d_uncommittedAdvisories.end()) {
         const bmqp_ctrlmsg::LeaderMessageSequence& seqNum = iter->first;
@@ -805,6 +854,42 @@ void IncoreClusterStateLedger::cancelUncommittedAdvisories()
         }
     }
     d_uncommittedAdvisories.clear();
+}
+
+void IncoreClusterStateLedger::reviewUncommittedAdvisories(
+    const unsigned int ackQuorum)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    if (isSelfLeader()) {
+        bsl::vector<bmqp_ctrlmsg::LeaderMessageSequence> advisoriesToCommit(
+            d_allocator_p);
+        AdvisoriesMapCIter iter = d_uncommittedAdvisories.cbegin();
+        for (; iter != d_uncommittedAdvisories.cend(); ++iter) {
+            const ClusterMessageInfo& info = iter->second;
+            if (info.d_ackCount >= ackQuorum) {
+                // We have quorum, so we can commit this advisory. However we
+                // can't call `applyCommit()` from this for-loop, as inside
+                // this method the element of `d_uncommittedAdvisories` pointed
+                // by `iter` will be erased from the container, hence the
+                // iterator will be invalidated. So we just store the sequence
+                // numbers in the vector and run over it again.
+                advisoriesToCommit.push_back(iter->first);
+            }
+        }
+        bsl::vector<bmqp_ctrlmsg::LeaderMessageSequence>::const_iterator
+            secNumIter = advisoriesToCommit.cbegin();
+        for (; secNumIter != advisoriesToCommit.cend(); ++secNumIter) {
+            int rc = applyCommit(*secNumIter, ackQuorum);
+            if (rc != 0) {
+                BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                               << ": Failed to commit advisory, rc: " << rc;
+            }
+        }
+    }
 }
 
 int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
@@ -1209,27 +1294,18 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
             bdlf::BindUtil::bind(&IncoreClusterStateLedger::cleanupLog,
                                  this,
                                  bdlf::PlaceHolders::_1));  // logPath
+
+    // At the moment the cluster and its *CLUSTER DISPATCHER* thread are not
+    // started yet.
+    d_clusterData_p->quorumManager().setCallback(
+        bdlf::BindUtil::bind(&IncoreClusterStateLedger::onQuorumChangeCb,
+                             this,
+                             bdlf::PlaceHolders::_1));  // ackQuorum
 }
 
 IncoreClusterStateLedger::~IncoreClusterStateLedger()
 {
-    // NOTHING
-}
-
-// MANIPULATORS
-//   (virtual mqbc::ElectorInfoObserver)
-void IncoreClusterStateLedger::onClusterLeader(
-    BSLA_UNUSED mqbnet::ClusterNode* node,
-    ElectorInfoLeaderStatus::Enum    status)
-{
-    // executed by the *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
-
-    if (status == ElectorInfoLeaderStatus::e_UNDEFINED) {
-        cancelUncommittedAdvisories();
-    }
+    d_clusterData_p->quorumManager().setCallback(0);
 }
 
 // MANIPULATORS

@@ -2016,6 +2016,79 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(obj->close() == 0);
 }
 
+static void test12_quorumChangeCb()
+// ------------------------------------------------------------------------
+// QUORUM CHANGE CALLBACK
+//
+// Concerns:
+//   Bump up the quorum to unreachable value. Apply 'QueueAssignmentAdvisory'
+//   (only at leader) receive acks from all nodes. Check that the advisory is
+//   not commited. Set the quorum back, then commit the advisory.
+//
+// Testing:
+//   void onQuorumChangeCb(const unsigned int ackQuorum);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("QUORUM CHANGE CALLBACK");
+
+    Tester                          tester;
+    mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
+    BSLS_ASSERT_OPT(obj->open() == 0);
+
+    const unsigned int oldQuorum =
+        tester.d_cluster_mp->_clusterData()->quorumManager().quorum();
+    const unsigned int nodesCount =
+        tester.d_cluster_mp->clusterConfig()->nodes().size();
+
+    // Bump up the quorum to unreachable value.
+    tester.d_cluster_mp->_clusterData()->quorumManager().setQuorum(
+        2 * oldQuorum,
+        nodesCount);
+
+    // Apply 'QueueAssignmentAdvisory'
+    bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
+
+    bmqp_ctrlmsg::QueueInfo qinfo;
+    qinfo.uri()         = "bmq://bmq.test.mmap.priority/q1";
+    qinfo.partitionId() = 1U;
+
+    mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(), "7777");
+    key.loadBinary(&qinfo.key());
+
+    qadvisory.queues().push_back(qinfo);
+
+    BMQTST_ASSERT_EQ(obj->apply(qadvisory), 0);
+
+    // Receive a `oldQuorum` of acks. It's not enough, so we're not expecting a
+    // commit.
+    tester.receiveAck(obj, qadvisory.sequenceNumber(), oldQuorum);
+
+    bmqp_ctrlmsg::ControlMessage expected;
+    expected.choice()
+        .makeClusterMessage()
+        .choice()
+        .makeQueueAssignmentAdvisory(qadvisory);
+
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
+    BMQTST_ASSERT(tester.hasBroadcastedMessages(1));
+    BMQTST_ASSERT_EQ(tester.broadcastedMessage(0), expected);
+
+    // Set the quorum back to adequate value.
+    tester.d_cluster_mp->_clusterData()->quorumManager().setQuorum(oldQuorum,
+                                                                   nodesCount);
+
+    // The advisory should be committed after `onQuorumChangeCb` call
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 1U);
+    BMQTST_ASSERT_EQ(tester.committedMessage(0), expected);
+    BMQTST_ASSERT(tester.hasBroadcastedMessages(2));
+
+    BSLS_ASSERT_OPT(obj->close() == 0);
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -2034,6 +2107,7 @@ int main(int argc, char* argv[])
         // The following test consistently fails in CI.  It should be fixed,
         // but until then we want to avoid the noise.
         //    case 11: test11_persistanceAcrossRolloverLeader(); break;
+    case 12: test12_quorumChangeCb(); break;
     case 10: test10_persistanceFollower(); break;
     case 9: test9_persistanceLeader(); break;
     case 8: test8_apply_ClusterStateRecordCommit(); break;
