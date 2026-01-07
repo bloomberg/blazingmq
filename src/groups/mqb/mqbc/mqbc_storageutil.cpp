@@ -588,45 +588,81 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
     BSLS_ASSERT_SAFE(result);
 
     if (partitionId < 0) {
-        executeForEachPartitions(
-            bdlf::BindUtil::bind(&doRolloverDispatched,
-                                 bdlf::PlaceHolders::_2,  // latch
-                                 bdlf::PlaceHolders::_1,  // partitionId
-                                 fileStores),
-            *fileStores);
+        bsl::vector<bsl::future<int> >  futures;
+        bsl::vector<bsl::promise<int> > promises(fileStores->size());
+
+        for (unsigned int i = 0; i < fileStores->size(); ++i) {
+            futures.push_back(promises[i].get_future());
+
+            mqbs::FileStore* fs = fileStores->at(i).get();
+            fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
+                                             &promises[i],
+                                             i,
+                                             fileStores));
+        }
+
+        // Wait
+        bool               allSuccess = true;
+        bmqu::MemOutStream output;
+        for (unsigned int i = 0; i < fileStores->size(); ++i) {
+            int rc = futures[i].get();
+            if (rc != 0) {
+                output << "Rollover failed on partition " << i
+                       << ", rc: " << rc << ". ";
+                allSuccess = false;
+            }
+        }
+
+        if (allSuccess) {
+            result->makeSuccess();
+        }
+        else {
+            result->makeError();
+            result->error().message() = output.str();
+        }
     }
     else {
-        bslmt::Latch latch(1);
+        bsl::promise<int> promise;
+        bsl::future<int>  future = promise.get_future();
 
         mqbs::FileStore* fs = fileStores->at(partitionId).get();
         fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
-                                         &latch,
+                                         &promise,
                                          partitionId,
                                          fileStores));
 
-        latch.wait();
-    }
+        int rc = future.get();
 
-    result->makeSuccess();
+        if (rc != 0) {
+            bmqu::MemOutStream output;
+            output << "Rollover failed on partition " << partitionId
+                   << ", rc: " << rc;
+            result->makeError();
+            result->error().message() = output.str();
+        }
+        else {
+            result->makeSuccess();
+        }
+    }
 }
 
-void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
-                                       int           partitionId,
-                                       FileStores*   fileStores)
+void StorageUtil::doRolloverDispatched(bsl::promise<int>* promise,
+                                       int                partitionId,
+                                       FileStores*        fileStores)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(latch);
+    BSLS_ASSERT_SAFE(promise);
 
     mqbs::FileStore* fs = fileStores->at(partitionId).get();
 
     BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(fs->isOpen());
 
-    fs->rollover();
+    int rc = fs->rollover();
 
-    latch->arrive();
+    promise->set_value(rc);
 }
 
 void StorageUtil::loadPartitionStorageSummary(
