@@ -47,6 +47,7 @@
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbmock_domain.h>
 #include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_transportmanager.h>
@@ -167,6 +168,9 @@ class Cluster : public mqbi::Cluster {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
+    bsl::string d_name;
+    // Cluster name
+
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
     // Buffer factory to use
 
@@ -188,6 +192,12 @@ class Cluster : public mqbi::Cluster {
 
     mqbcfg::ClusterDefinition d_clusterDefinition;
     // Cluster definition
+
+    mqbmock::Domain d_domain;
+    // Domain to be used by the domain factory
+
+    mqbmock::DomainFactory d_domainFactory;
+    // Domain factory
 
     TestChannelMap d_channels;
     // Test channels

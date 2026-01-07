@@ -53,6 +53,65 @@ void ClusterFSMObserver::onHealedFollower()
 // class ClusterFSM
 // ================
 
+// PRIVATE MANIPULATORS
+void ClusterFSM::processEvent(const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    State::Enum oldState   = d_state;
+    Transition  transition = d_stateTable.transition(oldState, event.first);
+    // Transition state
+    d_state = static_cast<State::Enum>(transition.first);
+
+    BALL_LOG_INFO << "Cluster FSM on Event '" << event.first
+                  << "', transition: State '" << oldState << "' =>  State '"
+                  << d_state << "'";
+
+    // Perform action
+    (d_actions.*(transition.second))(event);
+
+    // Notify observers
+    if (d_state != oldState) {
+        switch (d_state) {
+        case State::e_UNKNOWN: {
+            for (ObserversSetIter it = d_observers.begin();
+                 it != d_observers.end();
+                 ++it) {
+                (*it)->onUnknown();
+            }
+            break;  // BREAK
+        }
+        case State::e_FOL_HEALED: {
+            for (ObserversSetIter it = d_observers.begin();
+                 it != d_observers.end();
+                 ++it) {
+                (*it)->onHealedFollower();
+            }
+            break;  // BREAK
+        }
+        case State::e_LDR_HEALED: {
+            for (ObserversSetIter it = d_observers.begin();
+                 it != d_observers.end();
+                 ++it) {
+                (*it)->onHealedLeader();
+            }
+            break;  // BREAK
+        }
+        case State::e_NUM_STATES: {
+            BSLS_ASSERT_SAFE(false && "Code unreachable by design");
+            break;  // BREAK
+        }
+        case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
+        case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
+        case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;
+        case State::e_STOPPED: BSLA_FALLTHROUGH;
+        default: {
+            break;  // BREAK
+        }
+        }
+    }
+}
+
 // MANIPULATORS
 ClusterFSM& ClusterFSM::registerObserver(ClusterFSMObserver* observer)
 {
@@ -80,66 +139,20 @@ ClusterFSM& ClusterFSM::unregisterObserver(ClusterFSMObserver* observer)
     return *this;
 }
 
-void ClusterFSM::popEventAndProcess(ClusterFSMArgsSp& eventsQueue)
+void ClusterFSM::enqueueEvent(const EventWithMetadata& event)
 {
-    while (!eventsQueue->empty()) {
-        State::Enum oldState = d_state;
-        Transition  transition =
-            d_stateTable.transition(oldState, eventsQueue->front().first);
+    // executed by the cluster *DISPATCHER* thread
 
-        // Transition state
-        d_state = static_cast<State::Enum>(transition.first);
-
-        BALL_LOG_INFO << "Cluster FSM on Event '" << eventsQueue->front().first
-                      << "', transition: State '" << oldState
-                      << "' =>  State '" << d_state << "'";
-
-        // Perform action
-        (d_actions.*(transition.second))(eventsQueue);
-
-        // Notify observers
-        if (d_state != oldState) {
-            switch (d_state) {
-            case State::e_UNKNOWN: {
-                for (ObserversSetIter it = d_observers.begin();
-                     it != d_observers.end();
-                     ++it) {
-                    (*it)->onUnknown();
-                }
-                break;  // BREAK
-            }
-            case State::e_FOL_HEALED: {
-                for (ObserversSetIter it = d_observers.begin();
-                     it != d_observers.end();
-                     ++it) {
-                    (*it)->onHealedFollower();
-                }
-                break;  // BREAK
-            }
-            case State::e_LDR_HEALED: {
-                for (ObserversSetIter it = d_observers.begin();
-                     it != d_observers.end();
-                     ++it) {
-                    (*it)->onHealedLeader();
-                }
-                break;  // BREAK
-            }
-            case State::e_NUM_STATES: {
-                BSLS_ASSERT_SAFE(false && "Code unreachable by design");
-                break;  // BREAK
-            }
-            case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
-            case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
-            case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;
-            case State::e_STOPPED: BSLA_FALLTHROUGH;
-            default: {
-                break;  // BREAK
-            }
-            }
-        }
-        eventsQueue->pop();
+    d_eventsQueue.push(event);
+    if (d_eventsQueue.size() > 1) {
+        // There is already an ongoing processing, so just return.
+        return;
     }
-    // There are no successive events to be processed so its safe to exit.
+
+    while (!d_eventsQueue.empty()) {
+        processEvent(d_eventsQueue.front());
+        d_eventsQueue.pop();
+    }
 }
 
 }  // close package namespace
