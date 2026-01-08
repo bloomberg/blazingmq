@@ -1191,9 +1191,12 @@ class DispatcherClient {
     bslmt::ThreadUtil::Id d_threadId;
 
   public:
+    // PUBLIC CONSTANTS
+    static const bslmt::ThreadUtil::Id k_ANY_THREAD_ID;
+
     // CREATORS
     DispatcherClient()
-    : d_threadId(0)
+    : d_threadId(k_ANY_THREAD_ID)
     {
         // NOTHING
     }
@@ -1244,7 +1247,7 @@ class DispatcherClient {
         // In most cases the following condition should short-circuit on
         // the first operand:
         return (d_threadId == bslmt::ThreadUtil::selfId()) ||
-               (d_threadId == 0);
+               (d_threadId == k_ANY_THREAD_ID);
     }
 };
 

@@ -182,7 +182,7 @@ struct Tester {
         // In some UTs, operations with cluster might be executed either
         // from the main thread or from the scheduler thread.
         // To pass `inDispatcherThread` checks (allow ANY thread):
-        d_cluster_mp->setThreadId(0);
+        d_cluster_mp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
 
         // Start the cluster and the cluster state manager
         bmqu::MemOutStream errorDescription;
