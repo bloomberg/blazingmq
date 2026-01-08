@@ -69,7 +69,7 @@ fi
 
 # :: Optionally install prerequisites :::::::::::::::::::::::::::::::::::::::::
 
-REQ_PKGS=(cmake flex bison google-benchmark googletest ninja pkg-config zlib)
+REQ_PKGS=(cmake flex bison google-benchmark googletest lz4 ninja openssl pkg-config zlib zstd)
 
 if $INSTALL_DEPS; then
     if ! command -v brew >/dev/null 2>&1; then
@@ -91,7 +91,7 @@ mkdir -p "${DIR_THIRDPARTY}"
 DIR_BUILD="${DIR_BUILD:-${DIR_ROOT}/build}"
 mkdir -p "${DIR_BUILD}"
 
-DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}}"
+DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}/install}"
 mkdir -p "${DIR_INSTALL}"
 
 
@@ -103,7 +103,7 @@ if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 --branch 4.28.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.6.6 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 

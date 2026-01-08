@@ -537,10 +537,11 @@ def single_node_cluster_config(
     configurator: cfg.Configurator, port_allocator: Iterator[int], mode: Mode
 ):
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
 
     broker = configurator.broker(
         name="single",
-        tcp_host="localhost",
+        tcp_host=tcp_host,
         tcp_port=next(port_allocator),
         data_center="single_node",
     )
@@ -580,13 +581,14 @@ def multi_node_cluster_config(
     mode: Mode,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
 
     cluster = configurator.cluster(
         name="itCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}{broker}",
-                tcp_host="localhost",
+                tcp_host=tcp_host,
                 tcp_port=next(port_allocator),
                 data_center=data_center,
             )
@@ -600,7 +602,7 @@ def multi_node_cluster_config(
     for data_center in ("east", "west"):
         configurator.broker(
             name=f"{data_center}p",
-            tcp_host="localhost",
+            tcp_host=tcp_host,
             tcp_port=next(port_allocator),
             data_center=data_center,
         ).proxy(cluster)
@@ -805,13 +807,14 @@ def virtual_cluster_config(
     mode: Mode,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
 
     final_cluster = configurator.cluster(
         name="itCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}{broker}",
-                tcp_host="localhost",
+                tcp_host=tcp_host,
                 tcp_port=next(port_allocator),
                 data_center=data_center,
             )
@@ -826,7 +829,7 @@ def virtual_cluster_config(
         nodes=[
             configurator.broker(
                 name=f"{data_center}v",
-                tcp_host="localhost",
+                tcp_host=tcp_host,
                 tcp_port=next(port_allocator),
                 data_center=data_center,
             )
@@ -838,7 +841,7 @@ def virtual_cluster_config(
     for data_center in ("east", "west"):
         configurator.broker(
             name=f"{data_center}p",
-            tcp_host="localhost",
+            tcp_host=tcp_host,
             tcp_port=next(port_allocator),
             data_center=data_center,
         ).proxy(cluster)
