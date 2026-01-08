@@ -275,7 +275,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             succeed=succeed,
         )
 
-    def trigger_rollover(self, partitionId: int, succeed=None):
+    def trigger_rollover(self, partitionId: int, succeed=None, timeout=None):
         """
         Rollover the partition on a cluster specified by 'partitionId'.
         """
@@ -283,6 +283,20 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         return self.command(
             f"CLUSTERS CLUSTER {self.cluster_name} STORAGE PARTITION {partitionId} ROLLOVER",
             succeed,
+            timeout=timeout,
+        )
+
+    def get_storage_partition_summary(
+        self, partitionId: int, succeed=None, timeout=None
+    ):
+        """
+        Get storage partition summary for a cluster specified by 'partitionId'.
+        """
+
+        return self.command(
+            f"CLUSTERS CLUSTER {self.cluster_name} STORAGE PARTITION {partitionId} SUMMARY",
+            succeed,
+            timeout=timeout,
         )
 
     def set_replication_factor(self, quorum, cluster=None, succeed=None):
