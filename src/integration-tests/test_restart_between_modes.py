@@ -741,8 +741,9 @@ def with_rollover_admin_cmd(
 
     leader = cluster.last_known_leader
 
-    partitionId = -1  # use -1 to rollover all partitions
-    leader.trigger_rollover(partitionId, succeed=True)
+    all_partition_id = -1  # use -1 to rollover all partitions
+    res = leader.trigger_rollover(all_partition_id, succeed=True)
+    assert not res is None
 
 
 @pytest.fixture(params=[without_rollover, with_rollover, with_rollover_admin_cmd])
