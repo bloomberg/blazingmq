@@ -81,8 +81,6 @@ bool PushStreamIterator::loadMessageAndAttributes() const
 
 const PushStream::Message& PushStreamIterator::message() const
 {
-    BSLS_ASSERT_SAFE(d_iterator != d_owner_p->d_stream.end());
-
     return d_iterator->second;
 }
 

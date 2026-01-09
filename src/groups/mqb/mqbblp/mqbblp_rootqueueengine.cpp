@@ -78,18 +78,17 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 // Time interval between messages logged with throttling.
 
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
-    mqbi::StorageIterator* d_start_p;
-    mqbi::StorageIterator* d_stop_p;
-    bool                   d_doAdvance;
+    mqbi::StorageIterator*  d_start_p;
+    const bmqt::MessageGUID d_stop;
+    bool                    d_doAdvance;
 
     VirtualIterator(mqbi::StorageIterator* start, mqbi::StorageIterator* stop)
     : d_start_p(start)
-    , d_stop_p(stop)
+    , d_stop((stop && !stop->atEnd()) ? stop->guid() : bmqt::MessageGUID())
     , d_doAdvance(false)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(d_start_p);
-        BSLS_ASSERT_SAFE(d_stop_p);
     }
     ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
     const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
@@ -108,8 +107,8 @@ const mqbi::StorageIterator* VirtualIterator::next()
         return 0;
     }
 
-    if (!d_stop_p->atEnd()) {
-        if (d_start_p->guid() == d_stop_p->guid()) {
+    if (!d_stop.isUnset()) {
+        if (d_start_p->guid() == d_stop) {
             return 0;
         }
     }

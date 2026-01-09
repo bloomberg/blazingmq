@@ -131,10 +131,10 @@ class PushStream {
     };
 
     struct Message {
-        Elements           d_appMessages;
-        bsls::Types::Int64 d_sequenceNumber;
+        Elements            d_appMessages;
+        bsls::Types::Uint64 d_sequenceNumber;
 
-        explicit Message(bsls::Types::Int64 sequenceNumber);
+        explicit Message(bsls::Types::Uint64 sequenceNumber);
 
         /// Return number of Elements in the list
         unsigned int numElements() const;
@@ -221,7 +221,7 @@ class PushStream {
 
     bsl::shared_ptr<bdlma::ConcurrentPool> d_pushElementsPool_sp;
 
-    bsls::Types::Int64 d_nextSequenceNumber;
+    bsls::Types::Uint64 d_nextSequenceNumber;
 
     // CREATORS
     /// @brief Construct this object.
@@ -269,7 +269,7 @@ class PushStream {
                  const Apps::iterator& iteratorApp);
 
     /// Generate and return unique, monotonically increasing integer
-    bsls::Types::Int64 nextSequenceNumber();
+    bsls::Types::Uint64 nextSequenceNumber();
 };
 
 // ========================
@@ -641,7 +641,7 @@ inline unsigned int PushStream::Elements::numElements() const
     return d_numElements;
 }
 
-inline PushStream::Message::Message(bsls::Types::Int64 sequenceNumber)
+inline PushStream::Message::Message(bsls::Types::Uint64 sequenceNumber)
 : d_appMessages()
 , d_sequenceNumber(sequenceNumber)
 {
@@ -696,7 +696,7 @@ inline const PushStream::Element* PushStream::App::last() const
 // struct PushStream
 // -----------------
 
-inline bsls::Types::Int64 PushStream::nextSequenceNumber()
+inline bsls::Types::Uint64 PushStream::nextSequenceNumber()
 {
     return ++d_nextSequenceNumber;
 }

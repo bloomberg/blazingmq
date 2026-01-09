@@ -178,21 +178,30 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
 
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
     mqbblp::PushStreamIterator* d_start_p;
-    mqbblp::PushStreamIterator* d_stop_p;
+    const bsls::Types::Uint64   d_stop;
     bool                        d_doAdvance;
 
     VirtualIterator(mqbblp::PushStreamIterator* start,
                     mqbblp::PushStreamIterator* stop)
     : d_start_p(start)
-    , d_stop_p(stop)
+    , d_stop((stop && !stop->atEnd()) ? stop->sequenceNumber() : 0)
     , d_doAdvance(false)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(d_start_p);
-        BSLS_ASSERT_SAFE(d_stop_p);
     }
+    ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
     const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
 };
+
+VirtualIterator::~VirtualIterator()
+{
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    d_start_p->clearCache();
+}
 
 const mqbi::StorageIterator* VirtualIterator::next()
 {
@@ -207,8 +216,8 @@ const mqbi::StorageIterator* VirtualIterator::next()
         return 0;
     }
 
-    if (!d_stop_p->atEnd()) {
-        if (d_start_p->sequenceNumber() >= d_stop_p->sequenceNumber()) {
+    if (d_stop) {
+        if (d_start_p->sequenceNumber() >= d_stop) {
             return 0;
         }
     }
