@@ -67,6 +67,13 @@
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
 
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
+#include <bmqst_statvalue.h>
+#include <bmqst_table.h>
+
+
 namespace BloombergLP {
 
 // FORWARD DECLARATION
@@ -154,6 +161,13 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
 
+    // Index of the different stat values
+    enum StatIndex {
+        k_STAT_QUEUE = 0  // Queue/Dequeue
+        ,
+        k_STAT_TIME = 1  // Event queued time
+    };
+
     /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
     /// when dispatching CONFIRM from Cluster to Queue.
     class OnNewClientFunctor : public bmqu::ManagedCallback::CallbackFunctor {
@@ -192,6 +206,25 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
       public:
         // PUBLIC DATA
 
+        struct StatContextData {
+          public:
+            /// Stat context to use
+            bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
+            /// Table to use for dumping the stats
+            bmqst::Table d_statTable;
+            /// Tip to use when printing stats,
+            /// include the delta stats fields
+            /// (diffs since previous print)
+            bmqst::BasicTableInfoProvider d_statTip;
+            /// Tip to use when printing stats,
+            /// excluding the delta stats fields
+            /// (typically used when printing
+            /// stats on demand (outside of the
+            /// stat history size), for example
+            /// at exit.
+            bmqst::BasicTableInfoProvider d_statTipNoDelta;
+        };
+
         /// Thread pool to use.
         ThreadPoolMp d_threadPool_mp;
 
@@ -205,6 +238,9 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
         /// clients for which a flush needs to be called.  The first index of
         /// the vector corresponds to the processor.
         bsl::vector<DispatcherClientPtrVector> d_flushList;
+
+        /// Vector of stat contexts pointers, one per processor.
+        bsl::vector<StatContextData> d_statContexts;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -242,6 +278,11 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
+
+    bmqst::StatContext d_rootStatContext;
+    // Top level stat context for all stats
+
+    bdlmt::EventScheduler::RecurringEventHandle d_statMonitorEventHandle;
 
     // FRIENDS
     friend class Dispatcher_Executor;
@@ -417,6 +458,9 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// dispatcher.
     bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Process/print statistics.
+    void statHandler();
 };
 
 // ============================================================================
@@ -472,9 +516,18 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     case mqbi::DispatcherClientType::e_SESSION:
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
-        d_contexts[type]->d_processorPool_mp->enqueueEvent(
-            bslmf::MovableRefUtil::move(event),
-            handle);
+      DispatcherContext& dispatcherContext = *(d_contexts[type]);      
+
+      dispatcherContext.d_processorPool_mp->enqueueEvent(
+          bslmf::MovableRefUtil::move(event),
+          handle);
+
+      // Update stats
+      bslma::ManagedPtr<bmqst::StatContext> statContext_mp = dispatcherContext.d_statContexts.at(handle).d_statContext_mp;
+      if (statContext_mp) {
+          statContext_mp->adjustValue(k_STAT_QUEUE, 1);
+      }
+
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
     default: {

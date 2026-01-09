@@ -794,6 +794,9 @@ inline void MultiQueueThreadPool<TYPE>::processQueue(int queue)
         }
 
         d_config.d_eventCallbackFn(queue, info.d_context_p.get(), event);
+        // if (info.d_context_p) {
+        //     info.d_context_p->adjustValue(k_STAT_QUEUE, -1);
+        // }
     }
 }
 
@@ -869,6 +872,12 @@ inline int MultiQueueThreadPool<TYPE>::start()
         else {
             d_queues[i].d_name = ret.name();
         }
+
+        // if (d_queues[i].d_context_p) {
+        //     BALL_LOG_WARN << "MYTHERE IS CONTEXT for queue " << i << ": "
+        //                   << d_queues[i].d_name;            
+        // }
+
     }
 
     BSLS_ASSERT_SAFE(d_config.d_threadPool_p->enabled());
@@ -1000,9 +1009,26 @@ MultiQueueThreadPool<TYPE>::enqueueEvent(bslmf::MovableRef<EventSp> event,
     BSLS_ASSERT(0 <= queueId && queueId < numQueues());
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
+    QueueInfo& info = d_queues[queueId];
+
+    // TODO: reconsider this, it degrafates performance
+    // EventSp eventObj(bslmf::MovableRefUtil::move(event));
+
     // [try to] Push back item
-    return d_queues[queueId].d_queue_p->pushBack(
+    const int rc =  info.d_queue_p->pushBack(
         bslmf::MovableRefUtil::move(event));
+    // const int rc =  info.d_queue_p->pushBack(eventObj);
+    
+    // d_config.d_afterEventPushCallbackFn(queueId, info.d_context_p.get());
+    
+    // Update stats
+    // if (info.d_context_p) {
+    //     bslma::ManagedPtr<bmqst::StatContext> statContext =
+    //         bsl::static_pointer_cast<bmqst::StatContext>(info.d_context_p);
+    //     statContext->adjustValue(k_STAT_QUEUE, 1);
+    // }
+
+    return rc;
 }
 
 template <typename TYPE>
@@ -1027,6 +1053,11 @@ inline int MultiQueueThreadPool<TYPE>::enqueueEventOnAllQueues(
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             lastError = pushRet;
         }
+
+        // Update stats
+        // if (info.d_context_p) {
+        //     info.d_context_p->adjustValue(k_STAT_QUEUE, 1);
+        // }
     }
 
     return lastError;

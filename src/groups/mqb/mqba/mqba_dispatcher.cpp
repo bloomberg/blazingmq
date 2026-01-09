@@ -37,11 +37,26 @@
 #include <bsls_systemclocktype.h>
 #include <bsls_timeinterval.h>
 
+#include <bmqma_countingallocatorutil.h>
+#include <bdlma_localsequentialallocator.h>
+#include <bmqst_tableutil.h>
+
+
 namespace BloombergLP {
 namespace mqba {
 
 namespace {
 const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
+
+bmqst::StatContextConfiguration
+statContextConfiguration(bslma::Allocator*           allocator)
+{
+    bmqst::StatContextConfiguration config("MY_ROOT_STAT", allocator);
+    config.defaultHistorySize(2);
+
+    return config;
+}
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -99,6 +114,13 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
         d_processorHandle);
     BSLS_ASSERT_OPT(rc == 0);
 
+    // TODO: need to store d_statContexts in Dispatcher_Executor
+    // Update stats
+    // bslma::ManagedPtr<bmqst::StatContext> statContext_mp = d_dispatcherContext.d_statContexts.at(d_processorHandle).d_statContext_mp;
+    // if (statContext_mp) {
+    //     statContext_mp->adjustValue(k_STAT_QUEUE, 1);
+    // }
+
     // TODO: We should call 'releaseUnmanagedEvent' on the
     //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
     //      event from leaking. But somehow this method is declared but not
@@ -137,6 +159,7 @@ Dispatcher::DispatcherContext::DispatcherContext(
 , d_flushList(config.numProcessors(),
               DispatcherClientPtrVector(allocator),
               allocator)
+, d_statContexts(config.numProcessors(), allocator)
 {
     // NOTHING
 }
@@ -288,6 +311,105 @@ Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
                              config.queueSize(),
                              bdlf::PlaceHolders::_1));  // state
 
+
+    // Creeate stat context for the queue
+    // bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    // TODO:move to startContext? but here we have a queue name for statConfig
+    DispatcherContextSp& context = d_contexts[type];
+    bmqst::StatContextConfiguration statConfig(queueName, d_allocator_p);
+    statConfig.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
+    // ret->context() = d_rootStatContext.addSubcontext(statConfig);
+
+    context->d_statContexts.at(processorId).d_statContext_mp = d_rootStatContext.addSubcontext(statConfig);
+    bslma::ManagedPtr<bmqst::StatContext>& statContext_mp = context->d_statContexts.at(processorId).d_statContext_mp;
+
+    // Configure schema
+    bmqst::StatValue::SnapshotLocation start;
+    bmqst::StatValue::SnapshotLocation end;
+    start.setLevel(0).setIndex(0);
+    end.setLevel(0).setIndex(1);
+
+    bmqst::Table& statTable = context->d_statContexts.at(processorId).d_statTable;
+    bmqst::TableSchema& schema = statTable.schema();
+    schema.addColumn("enqueue_delta",
+                     k_STAT_QUEUE,
+                     bmqst::StatUtil::incrementsDifference,
+                     start,
+                     end);
+    schema.addColumn("dequeue_delta",
+                     k_STAT_QUEUE,
+                     bmqst::StatUtil::decrementsDifference,
+                     start,
+                     end);
+    schema.addColumn("size", k_STAT_QUEUE, bmqst::StatUtil::value, start);
+    schema.addColumn("size_max",
+                     k_STAT_QUEUE,
+                     bmqst::StatUtil::rangeMax,
+                     start,
+                     end);
+    schema.addColumn("size_absmax",
+                     k_STAT_QUEUE,
+                     bmqst::StatUtil::absoluteMax);
+
+    schema.addColumn("time_min",
+                     k_STAT_TIME,
+                     bmqst::StatUtil::rangeMin,
+                     start,
+                     end);
+    schema.addColumn("time_avg",
+                     k_STAT_TIME,
+                     bmqst::StatUtil::averagePerEvent,
+                     start,
+                     end);
+    schema.addColumn("time_max",
+                     k_STAT_TIME,
+                     bmqst::StatUtil::rangeMax,
+                     start,
+                     end);
+    schema.addColumn("time_absmax", k_STAT_TIME, bmqst::StatUtil::absoluteMax);
+
+    // Configure records
+    bmqst::TableRecords& records = statTable.records();
+    records.setContext(statContext_mp.get());
+    records.update();
+
+    // Configure tip (With Delta)
+    bmqst::BasicTableInfoProvider& statTip = context->d_statContexts.at(processorId).d_statTip;
+
+    statTip.setColumnGroup("Queue");
+    statTip.addColumn("enqueue_delta", "Enqueue (delta)").zeroString("");
+    statTip.addColumn("dequeue_delta", "Dequeue (delta)").zeroString("");
+    statTip.addColumn("size", "Size");
+    statTip.addColumn("size_max", "Max");
+    statTip.addColumn("size_absmax", "Abs. Max");
+
+    statTip.setColumnGroup("Queue Time");
+    statTip.addColumn("time_min", "Min")
+        .printAsNsTimeInterval()
+        .extremeValueString("");
+    statTip.addColumn("time_avg", "Avg")
+        .printAsNsTimeInterval()
+        .extremeValueString("");
+    statTip.addColumn("time_max", "Max")
+        .printAsNsTimeInterval()
+        .extremeValueString("");
+    statTip.addColumn("time_absmax", "Abs. Max")
+        .printAsNsTimeInterval()
+        .extremeValueString("");
+
+    // Configure tip (without delta)
+    bmqst::BasicTableInfoProvider& statTipNoDelta = context->d_statContexts.at(processorId).d_statTipNoDelta;
+    statTipNoDelta.setColumnGroup("Queue");
+    statTipNoDelta.addColumn("size_absmax", "Abs. Max");
+
+    statTipNoDelta.setColumnGroup("Queue Time");
+    statTipNoDelta.addColumn("time_absmax", "Abs. Max")
+        .printAsNsTimeInterval()
+        .extremeValueString("");
+
+    BALL_LOG_WARN << "Created STAT CONTEXT '" << queueName << "' for processor "
+                   << processorId << " of '" << type << "' dispatcher";
+
     return queue;
 }
 
@@ -299,6 +421,9 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
     if (event) {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
+        
+        DispatcherContext& dispatcherContext = *(d_contexts[type]);
+
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbi::DispatcherDispatcherEvent* realEvent =
                 event->asDispatcherEvent();
@@ -318,7 +443,6 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             }
         }
         else {
-            DispatcherContext& dispatcherContext = *(d_contexts[type]);
             event->destination()->onDispatcherEvent(*event.get());
             if (!event->destination()
                      ->dispatcherClientData()
@@ -329,6 +453,13 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                     ->dispatcherClientData()
                     .setAddedToFlushList(true);
             }
+
+        }
+
+        // Update stats
+        bslma::ManagedPtr<bmqst::StatContext> statContext_mp = dispatcherContext.d_statContexts.at(processorId).d_statContext_mp;
+        if (statContext_mp) {
+            statContext_mp->adjustValue(k_STAT_QUEUE, -1);
         }
     }
     else {
@@ -360,10 +491,13 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_config(config)
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
+, d_rootStatContext(statContextConfiguration(allocator), allocator)
+, d_statMonitorEventHandle()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
+    BALL_LOG_WARN << "MyCreate Dispatcher CTOR";
 }
 
 Dispatcher::~Dispatcher()
@@ -409,6 +543,15 @@ int Dispatcher::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
+    // See if we have to start stat monitoring job
+    static const bsls::TimeInterval k_DEFAULT_STAT_MONITOR_INTERVAL(10);
+    if (d_scheduler_p) {
+        d_scheduler_p->scheduleRecurringEvent(
+            &d_statMonitorEventHandle,
+            k_DEFAULT_STAT_MONITOR_INTERVAL,
+            bdlf::BindUtil::bind(&Dispatcher::statHandler, this));
+    }
+
     executeOnAllQueues(
         bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
                              "bmqDispSession"),
@@ -435,6 +578,12 @@ void Dispatcher::stop()
 
     d_isStarted = false;
 
+    // stop stat monitor event
+    if (d_scheduler_p && d_statMonitorEventHandle) {
+        d_scheduler_p->cancelEventAndWait(&d_statMonitorEventHandle);
+        d_statMonitorEventHandle.release();
+    }
+
 #define STOP_AND_CLEAR(OBJ)                                                   \
     if (OBJ) {                                                                \
         OBJ->stop();                                                          \
@@ -450,18 +599,22 @@ void Dispatcher::stop()
     context = d_contexts[mqbi::DispatcherClientType::e_QUEUE].get();
     STOP_AND_CLEAR(context->d_processorPool_mp);
     STOP_AND_CLEAR(context->d_threadPool_mp);
-
+ 
     // Shutdown the  dispatcher
     context = d_contexts[mqbi::DispatcherClientType::e_SESSION].get();
     STOP_AND_CLEAR(context->d_processorPool_mp);
     STOP_AND_CLEAR(context->d_threadPool_mp);
-
+ 
     // Shutdown the cluster dispatcher
     context = d_contexts[mqbi::DispatcherClientType::e_CLUSTER].get();
     STOP_AND_CLEAR(context->d_processorPool_mp);
     STOP_AND_CLEAR(context->d_threadPool_mp);
-
+ 
 #undef STOP_AND_CLEAR
+ 
+    // Clear all stat contexts
+    d_rootStatContext.clearSubcontexts();
+    d_rootStatContext.clearValues();
 }
 
 mqbi::Dispatcher::ProcessorHandle
@@ -622,6 +775,35 @@ Dispatcher::executor(const mqbi::DispatcherClient* client) const
 
     return Dispatcher_Executor(this, client);
 }
+
+void Dispatcher::statHandler()
+{
+    BALL_LOG_WARN << "BEFORE snapshot";
+    d_rootStatContext.snapshot();
+    BALL_LOG_WARN << "AFTER snapshot";
+
+    bmqu::MemOutStream os(d_allocator_p);
+
+    // DispatcherContext* context = d_contexts[mqbi::DispatcherClientType::e_CLUSTER].get();
+    DispatcherContextSp& context = d_contexts[mqbi::DispatcherClientType::e_CLUSTER];
+
+    BALL_LOG_WARN << "BEFORE statTipNoDelta " << context->d_statContexts.size();
+    bmqst::BasicTableInfoProvider& statTipNoDelta = context->d_statContexts.at(0).d_statTipNoDelta;
+    BALL_LOG_WARN << "BEFORE printTable " << context->d_statContexts.at(0).d_statContext_mp.get();
+    BALL_LOG_WARN << "AAA " << context->d_statContexts.at(0).d_statTipNoDelta.numRows();
+
+    bmqst::TableUtil::printTable(os, statTipNoDelta);
+    BALL_LOG_WARN << "!!!!! Dispatcher Statistics: " << os.str();
+
+    // BALL_LOG_WARN << "!!!!! Dispatcher Statistics:\n"
+    //                << d_rootStatContext;
+}
+
+// Dispatcher::StatContextData::StatContextData(bslma::Allocator* allocator)
+// : d_statContext_mp()
+// {
+// }
+
 
 }  // close package namespace
 }  // close enterprise namespace
