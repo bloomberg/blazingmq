@@ -88,6 +88,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fh.bitness(), Bitness::e_64);
         BMQTST_ASSERT_EQ(fh.fileType(), FileType::e_UNDEFINED);
         BMQTST_ASSERT_EQ(fh.partitionId(), 0);
+        BMQTST_ASSERT_EQ(fh.maxFileSize(), 0);
 
         // Create FileHeader, set fields, assert fields
         FileHeader fh2;
@@ -97,7 +98,8 @@ static void test1_breathingTest()
             .setHeaderWords(10)
             .setBitness(Bitness::e_32)
             .setFileType(FileType::e_JOURNAL)
-            .setPartitionId(2);
+            .setPartitionId(2)
+            .setMaxFileSize(0x12345678);
 
         BMQTST_ASSERT_EQ(fh2.magic1(), 0xdeadbeef);
         BMQTST_ASSERT_EQ(fh2.magic2(), 0xcafebabe);
@@ -106,6 +108,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fh2.bitness(), Bitness::e_32);
         BMQTST_ASSERT_EQ(fh2.fileType(), FileType::e_JOURNAL);
         BMQTST_ASSERT_EQ(fh2.partitionId(), 2);
+        BMQTST_ASSERT_EQ(fh2.maxFileSize(), 0x12345678);
     }
 
     {
