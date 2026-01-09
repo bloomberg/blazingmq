@@ -1024,9 +1024,11 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
 
     mqbi::InlineResult::Enum rc = mqbi::InlineResult::e_UNAVAILABLE;
 
-    if (ctx.d_state == SubStreamContext::e_OPENED) {
-        putHeader.setQueueId(d_state_p->id());
+    // This is going to be an Inline PUT and its queueId needs a translation
+    // from downstream to upstream unconditionally.
+    putHeader.setQueueId(d_state_p->id());
 
+    if (ctx.d_state == SubStreamContext::e_OPENED) {
         mqbi::Cluster* cluster = d_state_p->domain()->cluster();
 
         rc = cluster->sendPutInline(d_state_p->partitionId(),

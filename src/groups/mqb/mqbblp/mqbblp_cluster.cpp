@@ -384,12 +384,12 @@ void Cluster::stopDispatched()
     d_clusterData.membership().netCluster()->closeChannels();
 }
 
-void Cluster::sendAck(bmqt::AckResult::Enum     status,
-                      int                       correlationId,
-                      const bmqt::MessageGUID&  messageGUID,
-                      int                       queueId,
-                      const bslstl::StringRef&  source,
-                      mqbc::ClusterNodeSession* nodeSession)
+void Cluster::sendAck(bmqt::AckResult::Enum           status,
+                      int                             correlationId,
+                      const bmqt::MessageGUID&        messageGUID,
+                      int                             queueId,
+                      const bslstl::StringRef&        source,
+                      const mqbc::ClusterNodeSession* nodeSession)
 {
     // executed by the *DISPATCHER* thread
 
@@ -763,7 +763,8 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
     while ((rc = putIt.next()) == 1) {
         const bmqp::QueueId queueId(putIt.header().queueId(),
                                     bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
-        QueueHandleMapIter  queueIt = ns->queueHandles().find(queueId.id());
+        QueueHandleMapConstIter queueIt = ns->queueHandles().find(
+            queueId.id());
 
         // Check if queueId represents a valid queue
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueIt ==
@@ -1173,10 +1174,10 @@ void Cluster::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
 }
 
 Cluster::ValidationResult::Enum
-Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
-                         const bmqp::QueueId&      queueId,
-                         mqbc::ClusterNodeSession* ns,
-                         bmqp::EventType::Enum     eventType)
+Cluster::validateMessage(mqbi::QueueHandle**             queueHandle,
+                         const bmqp::QueueId&            queueId,
+                         const mqbc::ClusterNodeSession* ns,
+                         bmqp::EventType::Enum           eventType)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE((eventType == bmqp::EventType::e_CONFIRM ||
@@ -1184,8 +1185,8 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
                      "Unsupported eventType");
     BSLS_ASSERT_SAFE(queueHandle);
 
-    QueueHandleMap&    queueHandles = ns->queueHandles();
-    QueueHandleMapIter queueIt      = queueHandles.find(queueId.id());
+    const QueueHandleMap&   queueHandles = ns->queueHandles();
+    QueueHandleMapConstIter queueIt      = queueHandles.find(queueId.id());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueIt == queueHandles.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

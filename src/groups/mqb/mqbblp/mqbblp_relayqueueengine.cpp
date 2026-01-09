@@ -794,12 +794,7 @@ void RelayQueueEngine::configureApp(
         applyConfiguration(appState, *context);
         return;  // RETURN
     }
-
-    // Send a configure stream request upstream.
-    d_queueState_p->domain()->cluster()->configureQueue(
-        d_queueState_p->queue(),
-        streamParamsToSend,
-        appState.upstreamSubQueueId(),  // upstream subQueueId
+    const QueueHandle::HandleConfiguredCallback& callback =
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfigured,
                              this,
                              d_self.acquireWeak(),
@@ -807,7 +802,14 @@ void RelayQueueEngine::configureApp(
                              bdlf::PlaceHolders::_2,  // upStreamParameters
                              handle,
                              streamParameters,  // downStreamParameters
-                             context));
+                             context);
+
+    // Send a configure stream request upstream.
+    d_queueState_p->domain()->cluster()->configureQueue(
+        d_queueState_p->queue(),
+        streamParamsToSend,
+        appState.upstreamSubQueueId(),  // upstream subQueueId
+        callback);
 
     // 'onHandleConfigured' is now responsible for calling the callback
 }
