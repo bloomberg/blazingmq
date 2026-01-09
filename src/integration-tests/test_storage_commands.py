@@ -18,62 +18,56 @@ Testing rollover of CSL file.
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import (
-    Cluster,
-)
+from blazingmq.dev.it.fixtures import Cluster, start_cluster
 
 
-class TestStorageCommands:
-    def test_command_rollover_partitionid(
-        self,
-        cluster: Cluster,
-        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
-    ):
-        """
-        Test that command STORAGE PARTITION ROLLOVER can accept partition IDs from -1 to NUM_PARTITIONS-1
-        """
+# We have to make sure that wait_ready is True (i.e. primary node is elected)
+# Otherwise, the test will fail in multi-node clusters
+# because rollover command has to be sent to primary node, but d_primary is still false for all nodes
+@start_cluster(start=True, wait_leader=True, wait_ready=True)
+def test_command_rollover_partitionid(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
+    """
+    Test that command STORAGE PARTITION ROLLOVER can accept partition IDs from -1 to NUM_PARTITIONS-1
+    """
 
-        num_partitions = cluster.config.definition.partition_config.num_partitions
+    num_partitions = cluster.config.definition.partition_config.num_partitions
 
-        leader = cluster.last_known_leader
+    leader = cluster.last_known_leader
 
-        all_partition_id = -1
-        res = leader.trigger_rollover(all_partition_id, succeed=True, timeout=11)
+    all_partition_id = -1
+    res = leader.trigger_rollover(all_partition_id, succeed=True)
+    assert not res is None, "Rollover for all partitions should succeed"
+
+    for partition_id in range(num_partitions):
+        res = leader.trigger_rollover(partition_id, succeed=True)
+        assert not res is None, f"Rollover for partition {partition_id} should succeed"
+
+    res = leader.trigger_rollover(num_partitions, succeed=True)
+    assert res is None, f"Rollover for invalid partition {num_partitions} should fail"
+
+
+def test_command_storage_partition_summary_partitionid(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
+    """
+    Test that command STORAGE PARTITION SUMMARY can accept partition IDs from 0 to NUM_PARTITIONS-1
+    """
+
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+
+    leader = cluster.last_known_leader
+
+    invalid_partition_id = -1
+    res = leader.get_storage_partition_summary(invalid_partition_id, succeed=True)
+    assert res is None
+
+    for partition_id in range(num_partitions):
+        res = leader.get_storage_partition_summary(partition_id, succeed=True)
         assert not res is None
 
-        for partition_id in range(num_partitions):
-            res = leader.trigger_rollover(partition_id, succeed=True, timeout=11)
-            assert not res is None
-
-        res = leader.trigger_rollover(num_partitions, succeed=True, timeout=11)
-        assert res is None
-
-    def test_command_storage_partition_summary_partitionid(
-        self,
-        cluster: Cluster,
-        domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
-    ):
-        """
-        Test that command STORAGE PARTITION SUMMARY can accept partition IDs from 0 to NUM_PARTITIONS-1
-        """
-
-        num_partitions = cluster.config.definition.partition_config.num_partitions
-
-        leader = cluster.last_known_leader
-
-        invalid_partition_id = -1
-        res = leader.get_storage_partition_summary(
-            invalid_partition_id, succeed=True, timeout=11
-        )
-        assert res is None
-
-        for partition_id in range(num_partitions):
-            res = leader.get_storage_partition_summary(
-                partition_id, succeed=True, timeout=11
-            )
-            assert not res is None
-
-        res = leader.get_storage_partition_summary(
-            num_partitions, succeed=True, timeout=11
-        )
-        assert res is None
+    res = leader.get_storage_partition_summary(num_partitions, succeed=True)
+    assert res is None
