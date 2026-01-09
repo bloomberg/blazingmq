@@ -944,7 +944,7 @@ size_t QueueEngineUtil_AppState::catchUp(
             broadcastOneMessage(current);
         }
         else {
-            result = tryDeliverOneMessage(delay, current, false);
+            result = tryDeliverOneMessage(delay, current, true);
 
             if (result == Routers::e_SUCCESS) {
                 reportStats(current);

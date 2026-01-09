@@ -587,7 +587,8 @@ void QueueHandle::deliverMessageImpl(
             d_queue_sp->schemaLearner().demultiplex(
                 d_schemaLearnerPushContext,
                 attributes.messagePropertiesInfo()),
-            subscriptions);
+            subscriptions,
+            isOutOfOrder);
 
     if (result == mqbi::InlineResult::e_SUCCESS) {
         for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
