@@ -176,6 +176,55 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
     return stream;
 }
 
+struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
+    mqbblp::PushStreamIterator* d_start_p;
+    const bsls::Types::Uint64   d_stop;
+    bool                        d_doAdvance;
+
+    VirtualIterator(mqbblp::PushStreamIterator* start,
+                    mqbblp::PushStreamIterator* stop)
+    : d_start_p(start)
+    , d_stop((stop && !stop->atEnd()) ? stop->sequenceNumber() : 0)
+    , d_doAdvance(false)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_start_p);
+    }
+    ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
+    const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
+};
+
+VirtualIterator::~VirtualIterator()
+{
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    d_start_p->clearCache();
+}
+
+const mqbi::StorageIterator* VirtualIterator::next()
+{
+    if (d_doAdvance) {
+        d_start_p->advance();
+    }
+    else {
+        d_doAdvance = true;
+    }
+
+    if (d_start_p->atEnd()) {
+        return 0;
+    }
+
+    if (d_stop) {
+        if (d_start_p->sequenceNumber() >= d_stop) {
+            return 0;
+        }
+    }
+
+    return d_start_p;
+}
+
 }  // close unnamed namespace
 
 // ==================================
@@ -666,38 +715,28 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    // Position to the last 'Routers::e_NO_CAPACITY_ALL' point
-    bslma::ManagedPtr<PushStreamIterator> storageIter_mp;
-    PushStreamIterator*                   start = 0;
-
-    if (app->resumePoint().isUnset()) {
-        start = d_storageIter_mp.get();
-    }
-    else {
-        PushStream::iterator it = d_pushStream.d_stream.find(
-            app->resumePoint());
-
-        if (it == d_pushStream.d_stream.end()) {
-            // The message is gone because of purge
-            // Start at the beginning
-            it = d_pushStream.d_stream.begin();
-        }
-
-        storageIter_mp.load(new (*d_allocator_p)
-                                VirtualPushStreamIterator(upstreamSubQueueId,
-                                                          storage(),
-                                                          &d_pushStream,
-                                                          it),
-                            d_allocator_p);
-
-        start = storageIter_mp.get();
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!app->hasConsumers())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
     }
 
     bsls::TimeInterval delay;
-    app->catchUp(&delay,
-                 d_realStorageIter_mp.get(),
-                 start,
-                 d_storageIter_mp.get());
+    app->processDeliveryLists(&delay, d_realStorageIter_mp.get());
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
+        // We only attempt to deliver new messages if we successfully
+        // redelivered all messages in the redelivery list.
+
+        // Always start with the first element in the App and always stop at
+        // the d_storageIter_mp (the start of all Apps processing).
+        VirtualPushStreamIterator start(upstreamSubQueueId,
+                                        storage(),
+                                        &d_pushStream);
+
+        VirtualIterator vi(&start, d_storageIter_mp.get());
+
+        app->catchUp(&delay, &vi);
+    }
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
