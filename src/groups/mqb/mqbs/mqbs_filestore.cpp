@@ -2734,16 +2734,18 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
          queueCountersCIter != queueKeyCounters.cend();
          ++queueCountersCIter) {
         StorageMapConstIter sit = d_storages.find(queueCountersCIter->first);
-        BSLS_ASSERT_SAFE(sit != d_storages.cend());
-
-        outStream << "\n    [" << queueCountersCIter->first << "] "
-                  << bsl::setw(8)
-                  << bmqu::PrintUtil::prettyNumber(
-                         static_cast<int>(queueCountersCIter->second.first))
-                  << " " << bsl::setw(10)
-                  << bmqu::PrintUtil::prettyBytes(
-                         queueCountersCIter->second.second)
-                  << " " << sit->second->queueUri();
+        if (sit != d_storages.cend()) {
+            // `d_storages` might be not initialized if FileStore is tested in
+            // UTs without QLIST enabled.
+            outStream << "\n    [" << queueCountersCIter->first << "] "
+                      << bsl::setw(8)
+                      << bmqu::PrintUtil::prettyNumber(static_cast<int>(
+                             queueCountersCIter->second.first))
+                      << " " << bsl::setw(10)
+                      << bmqu::PrintUtil::prettyBytes(
+                             queueCountersCIter->second.second)
+                      << " " << sit->second->queueUri();
+        }
     }
     BALL_LOG_INFO << outStream.str();
 
