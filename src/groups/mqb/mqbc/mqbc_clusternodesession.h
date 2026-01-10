@@ -343,8 +343,8 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
              const bsl::shared_ptr<bdlbb::Blob>&       message,
              const mqbi::StorageMessageAttributes&     attributes,
              const bmqp::MessagePropertiesInfo&        mps,
-             const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
-        BSLS_KEYWORD_OVERRIDE;
+             const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+             bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
     // Called by the 'queueId' to deliver the specified 'message' with the
     // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
     // specified 'subQueueInfos' streams of the queue.

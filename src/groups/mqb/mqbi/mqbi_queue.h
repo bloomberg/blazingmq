@@ -157,7 +157,8 @@ class InlineClient {
              const bsl::shared_ptr<bdlbb::Blob>&       message,
              const mqbi::StorageMessageAttributes&     attributes,
              const bmqp::MessagePropertiesInfo&        mps,
-             const bmqp::Protocol::SubQueueInfosArray& subQueues) = 0;
+             const bmqp::Protocol::SubQueueInfosArray& subQueues,
+             bool                                      isOutOfOrder) = 0;
     // Called by the 'queueId' to deliver the specified 'message' with the
     // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
     // specified 'subQueues' streams of the queue.
