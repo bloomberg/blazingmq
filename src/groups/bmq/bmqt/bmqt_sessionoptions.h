@@ -193,6 +193,9 @@ class SessionOptions {
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
 
+    /// Default supported TLS versions in this client.
+    static const char k_DEFAULT_TLS_PROTOCOL_VERSIONS[];
+
   private:
     // DATA
 
@@ -331,9 +334,16 @@ class SessionOptions {
     /// Set the TLS certificate authority to the specified
     /// 'certificateAuthority'. Set the TLS protocol versions to the specified
     /// 'versions'. Return this SessionOptions object reference.
-    SessionOptions&
-    setTlsDetails(const bslstl::StringRef& certificateAuthority,
-                  const bslstl::StringRef& versions);
+    ///
+    /// @pre The `versions` string must contain at least one TLS version.
+    SessionOptions& configureTls(bsl::string_view certificateAuthority,
+                                 bsl::string_view versions);
+
+    /// Set the TLS certificate authority to the specified
+    /// 'certificateAuthority'. Set the supported TLS protocol versions to the
+    /// default supported TLS versions. Return this SessionOptions object
+    /// reference.
+    SessionOptions& configureTls(bsl::string_view certificateAuthority);
 
     // ACCESSORS
 

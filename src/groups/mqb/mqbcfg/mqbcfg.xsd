@@ -448,7 +448,7 @@
       <element name='certificateAuthority' type='string'/>
       <element name='certificate'          type='string'/>
       <element name='key'                  type='string'/>
-      <element name='versions'             type='string'/>
+      <element name='versions'             type='string' default='TLSv1.3'/>
     </sequence>
   </complexType>
 

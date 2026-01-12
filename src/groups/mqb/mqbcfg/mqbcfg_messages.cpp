@@ -3237,6 +3237,8 @@ bsl::ostream& TcpInterfaceListener::print(bsl::ostream& stream,
 
 const char TlsConfig::CLASS_NAME[] = "TlsConfig";
 
+const char TlsConfig::DEFAULT_INITIALIZER_VERSIONS[] = "TLSv1.3";
+
 const bdlat_AttributeInfo TlsConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_CERTIFICATE_AUTHORITY,
      "certificateAuthority",
@@ -3257,7 +3259,7 @@ const bdlat_AttributeInfo TlsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "versions",
      sizeof("versions") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -3297,7 +3299,7 @@ TlsConfig::TlsConfig(bslma::Allocator* basicAllocator)
 : d_certificateAuthority(basicAllocator)
 , d_certificate(basicAllocator)
 , d_key(basicAllocator)
-, d_versions(basicAllocator)
+, d_versions(DEFAULT_INITIALIZER_VERSIONS, basicAllocator)
 {
 }
 
@@ -3366,7 +3368,7 @@ void TlsConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_certificateAuthority);
     bdlat_ValueTypeFunctions::reset(&d_certificate);
     bdlat_ValueTypeFunctions::reset(&d_key);
-    bdlat_ValueTypeFunctions::reset(&d_versions);
+    d_versions = DEFAULT_INITIALIZER_VERSIONS;
 }
 
 // ACCESSORS

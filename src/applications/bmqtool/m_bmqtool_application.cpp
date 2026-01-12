@@ -565,7 +565,7 @@ int Application::initialize()
         .configureEventQueue(1000, 10 * 1000);
 
     if (!d_parameters.tlsAuthority().empty()) {
-        options.setTlsDetails(d_parameters.tlsAuthority(),
+        options.configureTls(d_parameters.tlsAuthority(),
                               d_parameters.tlsVersions());
     }
 

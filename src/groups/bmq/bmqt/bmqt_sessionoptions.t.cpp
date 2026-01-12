@@ -16,6 +16,7 @@
 // bmqt_sessionoptions.t.cpp                                          -*-C++-*-
 #include <bmqt_sessionoptions.h>
 
+#include <bmqst_testutil.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -23,6 +24,7 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bslstl_unorderedset.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -81,10 +83,15 @@ static void test2_printTest()
 
 static void test3_setterGetterAndCopyTest()
 {
+    bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();
     bmqtst::TestHelper::printTestName("SETTER GETTER");
+    // Default allocator use is actually pretty normal
+    // Used in configureTls
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
     PVV("Setter getter test");
     // Create default sessionOptions
-    bmqt::SessionOptions obj(bmqtst::TestHelperUtil::allocator());
+    bmqt::SessionOptions obj(allocator);
 
     PVV("Checking setter and getter for brokerUri");
     const char* const brokerUri = "tcp://localhost:30115";
@@ -152,6 +159,19 @@ static void test3_setterGetterAndCopyTest()
     BMQTST_ASSERT_EQ(obj.eventQueueLowWatermark(), eventQueueLowWatermark);
     BMQTST_ASSERT_EQ(obj.eventQueueHighWatermark(), eventQueueHighWatermark);
 
+    PVV("Checking setter and getter for configureTls");
+    BMQTST_ASSERT(!obj.isTlsSession());
+    BMQTST_ASSERT(obj.certificateAuthority().empty());
+    BMQTST_ASSERT(obj.protocolVersions().empty());
+    const char* const certificatePath = "/tmp/test";
+    const char* const tlsVersions     = "TLSv1.3";
+    bsl::unordered_set<bmqt::ProtocolVersion::Value> expectedVersions(
+        allocator);
+    expectedVersions.insert(bmqt::ProtocolVersion::e_TLS1_3);
+    obj.configureTls(certificatePath, tlsVersions);
+    BMQTST_ASSERT_EQ(obj.certificateAuthority(), certificatePath);
+    BMQTST_ASSERT_EQ(obj.protocolVersions(), expectedVersions);
+
     PVV("Copy constructor test");
     bmqt::SessionOptions objCopy(obj);
     BMQTST_ASSERT_EQ(objCopy.brokerUri(), brokerUri);
@@ -166,6 +186,8 @@ static void test3_setterGetterAndCopyTest()
     BMQTST_ASSERT_EQ(objCopy.eventQueueLowWatermark(), eventQueueLowWatermark);
     BMQTST_ASSERT_EQ(objCopy.eventQueueHighWatermark(),
                      eventQueueHighWatermark);
+    BMQTST_ASSERT_EQ(objCopy.certificateAuthority(), certificatePath);
+    BMQTST_ASSERT_EQ(objCopy.protocolVersions(), expectedVersions);
 }
 // ============================================================================
 //                                 MAIN PROGRAM

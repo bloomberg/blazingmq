@@ -23,7 +23,7 @@ import json
 import logging
 import shutil
 import signal
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Generator
 from pathlib import Path
 import os
 import time
@@ -582,7 +582,7 @@ class Cluster(contextlib.AbstractContextManager):
             )
         ]
 
-    def proxy_cycle(self):
+    def proxy_cycle(self) -> Generator[Broker, None, None]:
         """
         Return an iterator over a cyclic sequence of proxies.
 
@@ -631,7 +631,7 @@ class Cluster(contextlib.AbstractContextManager):
         broker: Broker,
         start: bool = True,
         dump_messages: bool = True,
-        options: str = None,
+        options: Optional[str] = None,
         port: Optional[int] = None,
     ) -> Client:
         """
@@ -642,17 +642,26 @@ class Cluster(contextlib.AbstractContextManager):
         value is tacked at the end of the 'bmqtool.tsk' argument list. If 'port' is not
         specified, use either the first listener if it exists or 'broker.port'.
         """
-
         if isinstance(options, str):
             options = options.split()
+
+        options: List[str] = options or []
 
         name = f"{prefix}@{broker.name}"
 
         if port is None:
             if broker.config.listeners:
                 port = broker.config.listeners[0].port
+                tls = broker.config.listeners[0].tls
             else:
                 port = broker.config.port
+                tls = False
+
+        if tls:
+            certificate_authority = (
+                broker.config.config.app_config.tls_config.certificate_authority
+            )
+            options.append(f"--tls-authority={certificate_authority}")
 
         client = Client(
             name,
@@ -660,7 +669,7 @@ class Cluster(contextlib.AbstractContextManager):
             tool_path="bin/bmqtool.tsk",
             cwd=(self.work_dir / broker.name),
             dump_messages=dump_messages,
-            options=(self._tool_extra_args or []) + (options or []),
+            options=(self._tool_extra_args or []) + options,
         )
         client.add_sync_log_hook(lambda _: self.check_processes())
         client.start()
