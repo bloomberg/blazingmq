@@ -1202,26 +1202,29 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         d_allocator_p,
         bdlf::PlaceHolders::_1,
         statContextCreator);
-    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
-        channelFactoryPipeline_mp = bslma::ManagedPtrUtil::allocateManaged<
-            bmqio::ChannelFactoryPipeline>(
-            d_allocator_p,
-            bslmf::MovableRefUtil::move(
-                bmqio::ChannelFactoryPipeline::Builder(d_allocator_p)
-                    .add(ntcChannelFactory)
-                    .addWith(resolvingChannelFactoryBuilder)
-                    .addWith(reconnectingChannelFactoryBuilder)
-                    .addWith(statChannelFactoryBuilder)));
 
-    rc = channelFactoryPipeline_mp->start();
-    if (rc != 0) {
-        errorDescription << "Failed starting channel pool for "
-                         << "TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
-        return rc;  // RETURN
+    {
+        bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+            channelFactoryPipeline_mp = bslma::ManagedPtrUtil::allocateManaged<
+                bmqio::ChannelFactoryPipeline>(
+                d_allocator_p,
+                bslmf::MovableRefUtil::move(
+                    bmqio::ChannelFactoryPipeline::Builder(d_allocator_p)
+                        .add(ntcChannelFactory)
+                        .addWith(resolvingChannelFactoryBuilder)
+                        .addWith(reconnectingChannelFactoryBuilder)
+                        .addWith(statChannelFactoryBuilder)));
+
+        rc = channelFactoryPipeline_mp->start();
+        if (rc != 0) {
+            errorDescription << "Failed starting channel pool for "
+                             << "TCPSessionFactory '" << d_config.name()
+                             << "' [rc: " << rc << "]";
+            return rc;  // RETURN
+        }
+
+        d_channelFactoryPipeline_mp = channelFactoryPipeline_mp;
     }
-
-    d_channelFactoryPipeline_mp = channelFactoryPipeline_mp;
 
     // TLS channel factory pipeline
     const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
@@ -1253,7 +1256,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                             .addWith(reconnectingChannelFactoryBuilder)
                             .addWith(statChannelFactoryBuilder)));
 
-        rc = channelFactoryPipeline_mp->start();
+        rc = tlsChannelFactoryPipeline_mp->start();
         if (rc != 0) {
             errorDescription << "Failed starting channel pool for "
                              << "TCPSessionFactory '" << d_config.name()

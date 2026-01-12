@@ -30,13 +30,21 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple, Any
 
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.serializers import JsonSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-from blazingmq.dev.configurator import *
+from blazingmq.dev.configurator import (
+    AbstractCluster,
+    Broker,
+    Domain,
+    Proto,
+    ConfiguratorError,
+    Cluster,
+    VirtualCluster,
+)
 from blazingmq.dev.configurator.site import Site
 from blazingmq.dev.paths import required_paths as paths
 from blazingmq.schemas import mqbcfg, mqbconf
@@ -130,6 +138,9 @@ class Configurator:
         instance: Optional[str] = None,
         data_center: str = "dc",
         listeners: List[Tuple[str, int]] = [],
+        # TODO(tfoxhall): Consolodate this into one parameter
+        tls: bool = False,
+        tls_config: Optional[mqbcfg.TlsConfig] = None,
     ) -> Broker:
         """Create a broker config and add it to the list of broker configs in
         the current configs.
@@ -143,6 +154,8 @@ class Configurator:
                 to.
             listeners: A list of TCP interfaces the broker will listen on. The
                 option overrides tcp_host and tcp_port if non-empty.
+            tls: Whether this broker should use TLS on its listeners.
+            tls_config: The certificate bundle for TLS enabled brokers.
 
         Returns:
             A Broker object representing the fully configured broker
@@ -157,10 +170,20 @@ class Configurator:
         config.app_config.broker_instance_name = instance
         config.app_config.network_interfaces.tcp_interface.name = tcp_host
         config.app_config.network_interfaces.tcp_interface.port = tcp_port
-        config.app_config.network_interfaces.tcp_interface.listeners = [
-            mqbcfg.TcpInterfaceListener(name=host, port=port)
-            for (host, port) in listeners
-        ]
+        if not listeners:
+            interface_listeners = [
+                mqbcfg.TcpInterfaceListener(name=tcp_host, port=tcp_port, tls=tls)
+            ]
+        else:
+            interface_listeners = [
+                mqbcfg.TcpInterfaceListener(name=host, port=port, tls=tls)
+                for host, port in listeners
+            ]
+        config.app_config.network_interfaces.tcp_interface.listeners = (
+            interface_listeners
+        )
+        if tls_config is not None:
+            config.app_config.tls_config = tls_config
         broker = Broker(self, next(self.host_id_allocator), config)
         self.brokers[name] = broker
 
@@ -172,13 +195,15 @@ class Configurator:
         if name in self.clusters:
             raise ConfiguratorError(f"cluster '{name}' already exists")
 
-        def port(tcp_interface: mqbcfg.TcpInterfaceConfig) -> int:
+        def tcp_name(tcp_interface: mqbcfg.TcpInterfaceConfig) -> str:
             if tcp_interface.listeners:
-                return next(
-                    listener.port
-                    for listener in tcp_interface.listeners
-                    if listener.name == "BROKER"
-                )
+                return tcp_interface.listeners[0].name
+            else:
+                return tcp_interface.name
+
+        def tcp_port(tcp_interface: mqbcfg.TcpInterfaceConfig) -> int:
+            if tcp_interface.listeners:
+                return tcp_interface.listeners[0].port
             else:
                 return tcp_interface.port
 
@@ -191,8 +216,8 @@ class Configurator:
                 transport=mqbcfg.ClusterNodeConnection(
                     mqbcfg.TcpClusterNodeConnection(
                         "tcp://{host}:{port}".format(
-                            host=tcp_interface.name,  # type: ignore
-                            port=port(tcp_interface),  # type: ignore
+                            host=tcp_name(tcp_interface),  # type: ignore
+                            port=tcp_port(tcp_interface),  # type: ignore
                         )
                     )
                 ),
