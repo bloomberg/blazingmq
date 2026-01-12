@@ -769,7 +769,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
 
 int IncoreClusterStateLedger::applyCommit(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-    const unsigned int                         ackQuorum)
+    unsigned int                               ackQuorum)
 {
     enum RcEnum {
         // Value for the various RC error categories
