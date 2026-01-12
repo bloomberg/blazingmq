@@ -116,8 +116,8 @@ BrokerStatsUtil::initializeStatContext(int               historySize,
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)
         .storeExpiredSubcontextValues(true)
-        .value("queue_count")
-        .value("client_count");
+        .value("client_count")
+        .value("queue_count");
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
         bsl::shared_ptr<bmqst::StatContext>(
