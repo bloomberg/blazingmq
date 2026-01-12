@@ -222,7 +222,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     /// Callback invoked when the cluster's quorum changes to the specified new
     /// value `ackQuorum`.
-    void onQuorumChangeCb(const unsigned int ackQuorum);
+    void onQuorumChangeCb(unsigned int ackQuorum);
 
     /// Internal helper method to apply the advisory in the specified
     /// `clusterMessage`, of the specified `recordType` and identified by
@@ -278,7 +278,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
-    void reviewUncommittedAdvisories(const unsigned int ackQuorum);
+    void reviewUncommittedAdvisories(unsigned int ackQuorum);
 
     /// Apply the specified raw cluster state record `event` received from
     /// the specified `source` node.  Note that while a replica node may

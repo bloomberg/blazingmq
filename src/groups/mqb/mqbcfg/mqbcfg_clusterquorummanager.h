@@ -32,7 +32,6 @@
 
 // BDE
 #include <bsl_functional.h>
-#include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
@@ -105,33 +104,6 @@ inline ClusterQuorumManager::ClusterQuorumManager(unsigned int quorum,
 , d_callback(0)
 {
     setQuorum(quorum, nodeCount);
-}
-
-// MANIPULATORS
-inline void ClusterQuorumManager::setQuorum(unsigned int quorum,
-                                            unsigned int nodeCount)
-{
-    if (0 == quorum) {
-        quorum = nodeCount / 2 + 1;
-    }
-
-    // It is permissible for 'quorum' to be greater than 'nodeCount'. This
-    // is useful in testing scenarios to prevent a leader from being
-    // elected.
-
-    d_quorum.store(quorum);
-
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
-    if (d_callback != 0) {
-        d_callback(quorum);
-    }
-}
-
-inline void
-ClusterQuorumManager::setCallback(const UpdateQuorumCallback& callback)
-{
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
-    d_callback = callback;
 }
 
 // ACCESSORS

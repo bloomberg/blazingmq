@@ -857,7 +857,7 @@ void IncoreClusterStateLedger::cancelUncommittedAdvisories()
 }
 
 void IncoreClusterStateLedger::reviewUncommittedAdvisories(
-    const unsigned int ackQuorum)
+    unsigned int ackQuorum)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
