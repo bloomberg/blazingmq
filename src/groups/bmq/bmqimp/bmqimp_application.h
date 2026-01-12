@@ -126,7 +126,6 @@ class Application {
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
 
-    // ChannelFactoryPipeline_Int d_channelFactoryPipeline;
     bmqio::ChannelFactoryPipeline d_channelFactoryPipeline;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
@@ -155,9 +154,6 @@ class Application {
 
     /// Scheduler handle of the recurring event to monitor channels heartbeats.
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
-
-    /// Handle for the client side encryption engine
-    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
 
   private:
     // PRIVATE MANIPULATORS

@@ -55,9 +55,11 @@
 #include <bmqp_protocolutil.h>
 #include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
+#include <bmqt_sessionoptions.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -274,6 +276,20 @@ loadTlsConfig(bsl::shared_ptr<ntci::EncryptionServer>* encryptionServer,
 {
     BSLS_ASSERT_SAFE(interface != NULL);
 
+    // We only support TLS 1.3
+    // TODO(tfoxhall): Implement a parser for versions
+    bsl::vector<bslstl::StringRef> vs =
+        bmqu::StringUtil::strTokenizeRef(tlsConfig.versions(), ", \t");
+    for (size_t i = 0; i < vs.size(); i++) {
+        bmqt::TlsProtocolVersion::Value version;
+
+        if (bmqt::TlsProtocolVersion::fromAscii(&version, vs[i])) {
+            if (version != bmqt::TlsProtocolVersion::e_TLS1_3) {
+                return ntsa::Error(ntsa::Error::e_NOT_IMPLEMENTED);
+            }
+        }
+    }
+
     ntca::EncryptionServerOptions encryptionServerOptions;
     // Set the minimum version to TLS 1.3
     encryptionServerOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
@@ -284,8 +300,7 @@ loadTlsConfig(bsl::shared_ptr<ntci::EncryptionServer>* encryptionServer,
 
     encryptionServerOptions.setIdentityFile(tlsConfig.certificate());
     encryptionServerOptions.setPrivateKeyFile(tlsConfig.key());
-    encryptionServerOptions.setAuthorityDirectory(
-        tlsConfig.certificateAuthority());
+    encryptionServerOptions.addAuthorityFile(tlsConfig.certificateAuthority());
 
     return interface->createEncryptionServer(encryptionServer,
                                              encryptionServerOptions);
@@ -1202,26 +1217,29 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         d_allocator_p,
         bdlf::PlaceHolders::_1,
         statContextCreator);
-    bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
-        channelFactoryPipeline_mp = bslma::ManagedPtrUtil::allocateManaged<
-            bmqio::ChannelFactoryPipeline>(
-            d_allocator_p,
-            bslmf::MovableRefUtil::move(
-                bmqio::ChannelFactoryPipeline::Builder(d_allocator_p)
-                    .add(ntcChannelFactory)
-                    .addWith(resolvingChannelFactoryBuilder)
-                    .addWith(reconnectingChannelFactoryBuilder)
-                    .addWith(statChannelFactoryBuilder)));
 
-    rc = channelFactoryPipeline_mp->start();
-    if (rc != 0) {
-        errorDescription << "Failed starting channel pool for "
-                         << "TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
-        return rc;  // RETURN
+    {
+        bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
+            channelFactoryPipeline_mp = bslma::ManagedPtrUtil::allocateManaged<
+                bmqio::ChannelFactoryPipeline>(
+                d_allocator_p,
+                bslmf::MovableRefUtil::move(
+                    bmqio::ChannelFactoryPipeline::Builder(d_allocator_p)
+                        .add(ntcChannelFactory)
+                        .addWith(resolvingChannelFactoryBuilder)
+                        .addWith(reconnectingChannelFactoryBuilder)
+                        .addWith(statChannelFactoryBuilder)));
+
+        rc = channelFactoryPipeline_mp->start();
+        if (rc != 0) {
+            errorDescription << "Failed starting channel pool for "
+                             << "TCPSessionFactory '" << d_config.name()
+                             << "' [rc: " << rc << "]";
+            return rc;  // RETURN
+        }
+
+        d_channelFactoryPipeline_mp = channelFactoryPipeline_mp;
     }
-
-    d_channelFactoryPipeline_mp = channelFactoryPipeline_mp;
 
     // TLS channel factory pipeline
     const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
@@ -1253,7 +1271,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                             .addWith(reconnectingChannelFactoryBuilder)
                             .addWith(statChannelFactoryBuilder)));
 
-        rc = channelFactoryPipeline_mp->start();
+        rc = tlsChannelFactoryPipeline_mp->start();
         if (rc != 0) {
             errorDescription << "Failed starting channel pool for "
                              << "TCPSessionFactory '" << d_config.name()

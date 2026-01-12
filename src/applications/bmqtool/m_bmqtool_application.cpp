@@ -565,8 +565,8 @@ int Application::initialize()
         .configureEventQueue(1000, 10 * 1000);
 
     if (!d_parameters.tlsAuthority().empty()) {
-        options.setTlsDetails(d_parameters.tlsAuthority(),
-                              d_parameters.tlsVersions());
+        options.configureTls(d_parameters.tlsAuthority(),
+                             d_parameters.tlsVersions());
     }
 
     // Create the session

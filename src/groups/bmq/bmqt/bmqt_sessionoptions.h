@@ -123,6 +123,7 @@
 ///     operations (e.g., Queue-Open, Queue-Configure, Queue-Close).
 
 // BMQ
+#include <bmqt_tlsprotocolversion.h>
 
 // BDE
 #include <bdlt_timeunitratio.h>
@@ -153,25 +154,6 @@ class HostHealthMonitor;
 
 namespace bmqt {
 
-// ======================
-// struct ProtocolVersion
-// ======================
-
-struct ProtocolVersion {
-    enum Value { e_TLS1_3 };
-
-    // CLASS METHODS
-    static bsl::ostream& print(bsl::ostream&          stream,
-                               ProtocolVersion::Value value,
-                               int                    level          = 0,
-                               int                    spacesPerLevel = 4);
-
-    static const char* toAscii(ProtocolVersion::Value value);
-
-    static bool fromAscii(ProtocolVersion::Value*  out,
-                          const bslstl::StringRef& str);
-};
-
 // ====================
 // class SessionOptions
 // ====================
@@ -192,6 +174,9 @@ class SessionOptions {
     /// configure, close).
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
+
+    /// Default supported TLS versions in this client.
+    static const char k_DEFAULT_TLS_PROTOCOL_VERSIONS[];
 
   private:
     // DATA
@@ -239,7 +224,7 @@ class SessionOptions {
     bsl::string d_certificateAuthority;
 
     /// Supported TLS versions
-    bsl::unordered_set<ProtocolVersion::Value> d_protocolVersions;
+    bsl::unordered_set<TlsProtocolVersion::Value> d_protocolVersions;
 
     bsl::shared_ptr<bmqpi::HostHealthMonitor> d_hostHealthMonitor_sp;
 
@@ -331,9 +316,16 @@ class SessionOptions {
     /// Set the TLS certificate authority to the specified
     /// 'certificateAuthority'. Set the TLS protocol versions to the specified
     /// 'versions'. Return this SessionOptions object reference.
-    SessionOptions&
-    setTlsDetails(const bslstl::StringRef& certificateAuthority,
-                  const bslstl::StringRef& versions);
+    ///
+    /// @pre The `versions` string must contain at least one TLS version.
+    SessionOptions& configureTls(bsl::string_view certificateAuthority,
+                                 bsl::string_view versions);
+
+    /// Set the TLS certificate authority to the specified
+    /// 'certificateAuthority'. Set the supported TLS protocol versions to the
+    /// default supported TLS versions. Return this SessionOptions object
+    /// reference.
+    SessionOptions& configureTls(bsl::string_view certificateAuthority);
 
     // ACCESSORS
 
@@ -385,7 +377,8 @@ class SessionOptions {
     const bsl::string& certificateAuthority() const;
 
     /// @brief Get the configured supported TLS protocol versions.
-    const bsl::unordered_set<ProtocolVersion::Value>& protocolVersions() const;
+    const bsl::unordered_set<TlsProtocolVersion::Value>&
+    protocolVersions() const;
 
     /// @brief Return true if this session will be configured for TLS.
     bool isTlsSession() const;
@@ -647,7 +640,7 @@ inline const bsl::string& SessionOptions::certificateAuthority() const
     return d_certificateAuthority;
 }
 
-inline const bsl::unordered_set<ProtocolVersion::Value>&
+inline const bsl::unordered_set<TlsProtocolVersion::Value>&
 SessionOptions::protocolVersions() const
 {
     return d_protocolVersions;

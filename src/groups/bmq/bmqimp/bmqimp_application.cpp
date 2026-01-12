@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqimp_application.cpp                                             -*-C++-*-
+#include <ball_log.h>
 #include <bmqimp_application.h>
 
 // BMQ
@@ -38,7 +39,11 @@
 #include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqt_resultcode.h>
+#include <bmqt_sessionoptions.h>
+#include <bmqt_tlsprotocolversion.h>
 #include <bmqt_uri.h>
+#include <bmqu_stringutil.h>
+#include <bmqvt_valueorerror.h>
 
 // BDE
 #include <bdlb_scopeexit.h>
@@ -54,6 +59,8 @@
 #include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_unreachable.h>
+#include <bsla_unused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmt_lockguard.h>
@@ -66,8 +73,6 @@
 #include <bsls_systemclocktype.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
-
-#include <bsla_unused.h>
 
 namespace BloombergLP {
 namespace bmqimp {
@@ -142,6 +147,45 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
     return config;
 }
 
+/// Convert a `bmqt::ProtocolVersion::Value` into its equivalent
+/// `ntca::EncryptionMethod::Value` value.
+///
+/// @param version A TLS protocol version value
+ntca::EncryptionMethod::Value
+toNtcEncryptionMethod(bmqt::TlsProtocolVersion::Value version)
+{
+    switch (version) {
+    case bmqt::TlsProtocolVersion::e_TLS1_3: {
+        return ntca::EncryptionMethod::e_TLS_V1_3;
+    } break;
+    default:
+        BSLS_ASSERT_OPT(false && "Missing conversion case");
+        BSLA_UNREACHABLE;
+    }
+}
+
+/// Get the minimum TLS version specified in the set of specified TLS
+/// versions.
+///
+/// Currently, only `TLSv1.3` is supported, and the empty set results
+/// in an error.
+///
+/// @param versions A set of versions to find the minimum in
+///
+/// @returns The minimum version found or bsl::nullopt if the set is empty
+bsl::optional<bmqt::TlsProtocolVersion::Value> findMinTlsVersion(
+    const bsl::unordered_set<bmqt::TlsProtocolVersion::Value>& versions)
+{
+    bsl::optional<bmqt::TlsProtocolVersion::Value> result;
+    if (versions.empty()) {
+        return result;
+    }
+
+    // We only support TLS v1.3
+    result.emplace(bmqt::TlsProtocolVersion::e_TLS1_3);
+    return result;
+}
+
 bmqio::ChannelFactoryPipeline makeChannelFactoryPipeline(
     bslma::Allocator*                           allocator,
     bdlbb::BlobBufferFactory*                   blobBufferFactory,
@@ -207,11 +251,27 @@ bmqio::ChannelFactoryPipeline makeChannelFactoryPipeline(
         }
     };
 
-    ChannelFactorySP channelFactory =
+    bsl::shared_ptr<bmqio::NtcChannelFactory> channelFactory =
         bsl::make_shared<bmqio::NtcChannelFactory>(
             ntcCreateInterfaceConfig(sessionOptions, allocator),
             blobBufferFactory,
             allocator);
+
+    // Check if we should use TLS sessions or not
+    if (sessionOptions.isTlsSession()) {
+        ntca::EncryptionClientOptions                  options;
+        bsl::optional<bmqt::TlsProtocolVersion::Value> minTlsVersion =
+            findMinTlsVersion(sessionOptions.protocolVersions());
+
+        BSLS_ASSERT(minTlsVersion.has_value());
+
+        options.setMinMethod(toNtcEncryptionMethod(minTlsVersion.value()));
+        options.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
+        options.setAuthentication(ntca::EncryptionAuthentication::e_VERIFY);
+        options.addAuthorityFile(sessionOptions.certificateAuthority());
+
+        channelFactory->configureEncryptionClient(options);
+    }
 
     using bdlf::PlaceHolders::_1;
     bmqio::ChannelFactoryPipeline::Builder builder(allocator);
@@ -671,6 +731,8 @@ Application::Application(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
                                          d_allocators.get("BlobSpPool")))
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, &d_allocator)
+// TODO(tfoxhall): Configure for TLS channel factory when TLS config given in
+// sessionOptions
 , d_channelFactoryPipeline(makeChannelFactoryPipeline(
       &d_allocator,
       &d_blobBufferFactory,
@@ -696,7 +758,6 @@ Application::Application(
 , d_nextStatDump(-1)
 , d_lastAllocatorSnapshot(0)
 , d_heartbeatSchedulerHandle()
-, d_encryptionClient_sp()
 {
     // NOTE:
     //   o The persistent session pool must live longer than the brokerSession
