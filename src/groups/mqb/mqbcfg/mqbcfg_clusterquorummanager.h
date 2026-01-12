@@ -51,7 +51,7 @@ class ClusterQuorumManager {
     // TYPES
 
     /// Invoked on every quorum update
-    typedef bsl::function<void(const unsigned int)> UpdateQuorumCallback;
+    typedef bsl::function<void(unsigned int)> UpdateQuorumCallback;
 
   private:
     // DATA
