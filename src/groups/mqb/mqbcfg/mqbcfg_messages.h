@@ -5350,6 +5350,8 @@ class TlsConfig {
     // CONSTANTS
     static const char CLASS_NAME[];
 
+    static const char DEFAULT_INITIALIZER_VERSIONS[];
+
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
   public:

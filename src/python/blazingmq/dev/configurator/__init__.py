@@ -96,15 +96,13 @@ class Broker:
     def host(self) -> str:
         if self.listeners:
             return self.listeners[0].name
-        else:
-            return self.config.app_config.network_interfaces.tcp_interface.name
+        return self.config.app_config.network_interfaces.tcp_interface.name
 
     @property
     def port(self) -> int:
         if self.listeners:
             return self.listeners[0].port
-        else:
-            return self.config.app_config.network_interfaces.tcp_interface.port
+        return self.config.app_config.network_interfaces.tcp_interface.port
 
     @property
     def config_dir(self) -> Path:

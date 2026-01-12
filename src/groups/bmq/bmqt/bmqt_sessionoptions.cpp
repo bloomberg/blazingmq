@@ -84,6 +84,8 @@ bool ProtocolVersion::fromAscii(ProtocolVersion::Value*  out,
 
 const char SessionOptions::k_BROKER_DEFAULT_URI[] = "tcp://localhost:30114";
 
+const char SessionOptions::k_DEFAULT_TLS_PROTOCOL_VERSIONS[] = "TLSv1.3";
+
 SessionOptions::SessionOptions(bslma::Allocator* allocator)
 : d_brokerUri(k_BROKER_DEFAULT_URI, allocator)
 , d_processNameOverride(allocator)
@@ -134,30 +136,41 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 }
 
 SessionOptions&
-SessionOptions::setTlsDetails(const bslstl::StringRef& certificateAuthority,
-                              const bslstl::StringRef& versions)
+SessionOptions::configureTls(bsl::string_view certificateAuthority,
+                             bsl::string_view versions)
 {
     d_certificateAuthority = certificateAuthority;
     d_protocolVersions.clear();
 
-    bsl::vector<bslstl::StringRef> vs =
+    bsl::vector<bsl::string_view> vs =
         bmqu::StringUtil::strTokenizeRef(versions, ", \t");
-    for (size_t i = 0; i < vs.size(); i++) {
+    for (bsl::vector<bsl::string_view>::const_iterator it  = vs.cbegin(),
+                                                       end = vs.cend();
+         it != end;
+         ++it) {
         ProtocolVersion::Value version;
 
-        if (ProtocolVersion::fromAscii(&version, vs[i])) {
+        if (ProtocolVersion::fromAscii(&version, *it)) {
             d_protocolVersions.insert(version);
         }
         else {
-            BSLS_ASSERT_SAFE(false && "Unrecognized protocol version");
+            BSLS_ASSERT_OPT(false && "Unrecognized protocol version");
         }
     }
 
-    BSLS_ASSERT_SAFE(
-        bdls::FilesystemUtil::exists(certificateAuthority) &&
-        "Certificate authority file doesn't exist on provided path");
+    // TODO(tfoxhall): Asserts are a terrible way to do validation here but
+    // this seems to be the approach taken for the entire SessionOptions class.
+    BSLS_ASSERT_OPT(bdls::FilesystemUtil::exists(d_certificateAuthority));
+    BSLS_ASSERT_OPT(!d_protocolVersions.empty() &&
+                    "At least one TLS protocol version must be specified");
 
     return *this;
+}
+
+SessionOptions&
+SessionOptions::configureTls(bsl::string_view certificateAuthority)
+{
+    return configureTls(certificateAuthority, k_DEFAULT_TLS_PROTOCOL_VERSIONS);
 }
 
 bsl::ostream& SessionOptions::print(bsl::ostream& stream,
@@ -194,7 +207,9 @@ bsl::ostream& SessionOptions::print(bsl::ostream& stream,
                            d_hostHealthMonitor_sp != NULL);
     printer.printAttribute("hasDistributedTracing", d_dtTracer_sp != NULL);
     printer.printAttribute("certificateAuthority", d_certificateAuthority);
-    printer.printAttribute("protocolVersions", d_protocolVersions);
+    printer.printAttribute("protocolVersions",
+                           d_protocolVersions.cbegin(),
+                           d_protocolVersions.cend());
     printer.end();
 
     return stream;
