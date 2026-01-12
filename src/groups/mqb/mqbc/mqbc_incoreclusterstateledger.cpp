@@ -350,7 +350,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     return rc_SUCCESS;
 }
 
-void IncoreClusterStateLedger::onQuorumChangeCb(const unsigned int ackQuorum)
+void IncoreClusterStateLedger::onQuorumChangeCb(unsigned int ackQuorum)
 {
     // Currently we know that the callback will be executed only by the
     // *CLUSTER DISPATCHER* thread. However there is no such obligation for
