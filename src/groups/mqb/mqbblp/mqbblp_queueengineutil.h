@@ -31,6 +31,7 @@
 #include <mqbconfm_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
+#include <mqbu_flowcontroller.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -613,7 +614,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
     Consumers                         d_consumers;
     int                               d_numApps;
     int                               d_numStops;  // Apps not moving
-    mqbi::StorageIterator*            d_currentMessage;
+    mqbi::StorageIterator*            d_currentMessage_p;
     mqbi::Queue*                      d_queue_p;
     bsl::optional<bsls::Types::Int64> d_timeDelta;
 
@@ -622,7 +623,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
     const mqbi::AppMessage* d_currentAppView_p;
 
     /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visit`
-    const Routers::Visitor d_visitVisitor;
+    const Routers::Visitor d_fanoutVisitor;
 
     /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visitBroadcast`
     const Routers::Visitor d_broadcastVisitor;
