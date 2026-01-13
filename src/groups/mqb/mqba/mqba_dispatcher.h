@@ -109,6 +109,9 @@ class Dispatcher_Executor {
 
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
 
+    bmqst::StatContext* d_statContext_p;
+
+
   public:
     // CREATORS
 
@@ -223,6 +226,15 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
             /// stat history size), for example
             /// at exit.
             bmqst::BasicTableInfoProvider d_statTipNoDelta;
+
+            StatContextData()
+            : d_statContext_mp(0)
+            , d_statTable()
+            , d_statTip(&d_statTable)
+            , d_statTipNoDelta(&d_statTable)
+            {
+                // NOTHING
+            }
         };
 
         /// Thread pool to use.
@@ -523,7 +535,7 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
           handle);
 
       // Update stats
-      bslma::ManagedPtr<bmqst::StatContext> statContext_mp = dispatcherContext.d_statContexts.at(handle).d_statContext_mp;
+      bslma::ManagedPtr<bmqst::StatContext>& statContext_mp = dispatcherContext.d_statContexts.at(handle).d_statContext_mp;
       if (statContext_mp) {
           statContext_mp->adjustValue(k_STAT_QUEUE, 1);
       }
