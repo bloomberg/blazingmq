@@ -1399,7 +1399,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!handle_p)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_INFO
+        BMQ_LOGTHROTTLE_WARN
             << description()
             << ": Dropping received ACK (due to the client ungraceful"
             << " disconnect) for the queue, [queueId: " << ackMessage.queueId()
