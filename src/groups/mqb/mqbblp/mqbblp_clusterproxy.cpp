@@ -594,8 +594,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description() << "REJECT";
     } break;
     case bmqp::EventType::e_PUSH: {
-        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-            this);
+        // TODO: revisit, use per-IO thread event source
+        mqbi::Dispatcher::DispatcherEventSp dispEvent =
+            dispatcher()->getDefaultEventSource()->getEvent();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
@@ -607,8 +608,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
                                     this);
     } break;
     case bmqp::EventType::e_ACK: {
-        mqbi::Dispatcher::DispatcherEventSp dispEvent = dispatcher()->getEvent(
-            this);
+        // TODO: revisit, use per-IO thread event source
+        mqbi::Dispatcher::DispatcherEventSp dispEvent =
+            dispatcher()->getDefaultEventSource()->getEvent();
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());

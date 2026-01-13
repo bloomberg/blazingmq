@@ -1044,8 +1044,10 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
                            << "', queueId: " << queueId
                            << ", GUID: " << confIt.message().messageGUID()
                            << "] from node " << source->nodeDescription();
-            queueHandle->confirmMessage(confIt.message().messageGUID(),
-                                        queueId.subId());
+            queueHandle->confirmMessage(
+                bslmf::MovableRefUtil::move(getEvent()),
+                confIt.message().messageGUID(),
+                queueId.subId());
         }
         else {
             BMQU_THROTTLEDACTION_THROTTLE(
@@ -2103,6 +2105,18 @@ Cluster::Cluster(const bslstl::StringRef&           name,
         this,
         mqbi::DispatcherClientType::e_CLUSTER);
 
+    // We don't call mqbi::Dispatcher::registerClient for node sessions,
+    // have to pass the parameters the dispatcher set for this Cluster
+    for (mqbc::ClusterMembership::ClusterNodeSessionMap::iterator iter =
+             nodeSessionMap.begin();
+         iter != nodeSessionMap.end();
+         iter++) {
+        mqbc::ClusterMembership::ClusterNodeSessionSp& nodeSessionSp =
+            iter->second;
+        nodeSessionSp->setThreadId(this->getThreadId());
+        nodeSessionSp->setEventSource(this->getEventSource());
+    }
+
     d_clusterData.requestManager().setExecutor(dispatcher->executor(this));
 
     BALL_LOG_INFO << "Created Cluster: "
@@ -2654,10 +2668,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
 
     // Helper macro to dispatch event of the specified type 'T' with isRelay
     // set to the value specified in 'R'.
+    // TODO: revisit, use per-IO thread event source
 #define DISPATCH_EVENT(T, R)                                                  \
     {                                                                         \
-        mqbi::Dispatcher::DispatcherEventSp _evt = dispatcher()->getEvent(    \
-            this);                                                            \
+        mqbi::Dispatcher::DispatcherEventSp _evt =                            \
+            dispatcher()->getDefaultEventSource()->getEvent();                \
         bsl::shared_ptr<bdlbb::Blob> _blobSp =                                \
             d_clusterData.blobSpPool().getObject();                           \
         *_blobSp = *(event.blob());                                           \

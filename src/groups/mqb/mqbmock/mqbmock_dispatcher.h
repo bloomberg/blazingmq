@@ -56,12 +56,42 @@
 namespace BloombergLP {
 namespace mqbmock {
 
+// ============================
+// class Dispatcher_EventSource
+// ============================
+
+class Dispatcher_EventSource BSLS_KEYWORD_FINAL
+: public mqbi::Dispatcher_EventSource {
+  private:
+    // DATA
+    bslma::Allocator* d_allocator_p;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
+    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
+
+    // MANIPULATORS
+
+    /// @brief Get an event for mqbi::Dispatcher.
+    /// @return A shared pointer to event.
+    /// The behaviour is undefined unless all the shared pointers to events
+    /// acquired with `getEvent` are destructed before destructor is called
+    /// for this event source.
+    mqbi::Dispatcher_EventSource::DispatcherEventSp
+    getEvent() BSLS_KEYWORD_OVERRIDE;
+};
+
 // ================
 // class Dispatcher
 // ================
 
 /// Mock dispatcher implementation of the `mqbi::Dispatcher` protocol.
-class Dispatcher : public mqbi::Dispatcher {
+class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
   private:
     // TYPES
     typedef bsl::unordered_map<const mqbi::DispatcherClient*,
@@ -70,9 +100,14 @@ class Dispatcher : public mqbi::Dispatcher {
     // A map from clients to events.
   private:
     // DATA
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
+    /// The default event source
+    bsl::shared_ptr<mqbi::Dispatcher_EventSource> d_eventSource_sp;
+
+    /// Maps clients to currently processed events
     EventMap d_eventsForClients;
-    // Maps clients to currently processed
-    // events;
 
     /// Since this class `execute`s `functor` in the calling thread, there may
     /// be the need for thread synchronization.
@@ -81,7 +116,13 @@ class Dispatcher : public mqbi::Dispatcher {
     /// Synchronize `functor`s to `execute`
     bsl::queue<mqbi::Dispatcher::VoidFunctor> d_queue;
 
-    bslma::Allocator* d_allocator_p;  // Allocator to use
+    /// All the event sources allocated by `createEventSource`.
+    /// Cached to ensure their lifetime is at least until destructor is called.
+    bsl::vector<bsl::shared_ptr<mqbi::Dispatcher_EventSource> >
+        d_customEventSources;
+
+    /// The mutex for thread-safe access to `d_customEventSources`.
+    bslmt::Mutex d_customEventSources_mtx;
 
   private:
     // NOT IMPLEMENTED
@@ -134,18 +175,19 @@ class Dispatcher : public mqbi::Dispatcher {
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve an event from the event pool to send to the specified
-    /// `client`.  Once populated, the returned event *must* be enqueued for
-    /// processing by calling `dispatchEvent` otherwise it will be leaked.
-    mqbi::Dispatcher::DispatcherEventSp
-    getEvent(const mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
+    /// @brief Construct a new event source.
+    /// @return event source.
+    /// NOTE: the returned value should be cached and used by long-living
+    ///       work threads that need to enqueue events to a dispatcher.
+    bsl::shared_ptr<mqbi::Dispatcher_EventSource>
+    createEventSource() BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve an event from the event pool to send to a client of the
-    /// specified `type`.  Once populated, the returned event *must* be
-    /// enqueued for processing by calling `dispatchEvent` otherwise it will
-    /// be leaked.
-    mqbi::Dispatcher::DispatcherEventSp
-    getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
+    /// @brief Get a pointer to the default event source owned by dispatcher.
+    /// @return event source const reference.
+    /// NOTE: the returned value should be used by short-living routines
+    ///       that need to enqueue events to a dispatcher.
+    const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+    getDefaultEventSource() BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the specified `destination`.  The
     /// behavior is undefined unless `event` was obtained by a call to

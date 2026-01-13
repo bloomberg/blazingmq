@@ -562,6 +562,15 @@ bsl::ostream& DispatcherClientData::print(bsl::ostream& stream,
     return stream;
 }
 
+// ----------------------------
+// class Dispatcher_EventSource
+// ----------------------------
+
+Dispatcher_EventSource::~Dispatcher_EventSource()
+{
+    // NOTHING
+}
+
 // ----------------------
 // class DispatcherClient
 // ----------------------

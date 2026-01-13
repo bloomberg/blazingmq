@@ -28,17 +28,41 @@
 namespace BloombergLP {
 namespace mqbmock {
 
+// ----------------------------
+// class Dispatcher_EventSource
+// ----------------------------
+
+Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+{
+    // NOTHING
+}
+
+Dispatcher_EventSource::~Dispatcher_EventSource()
+{
+    // NOTHING
+}
+
+mqbi::Dispatcher_EventSource::DispatcherEventSp
+Dispatcher_EventSource::getEvent()
+{
+    return bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
+}
+
 // ----------------
 // class Dispatcher
 // ----------------
 
 // CREATORS
 Dispatcher::Dispatcher(bslma::Allocator* allocator)
-: d_eventsForClients(allocator)
+: d_allocator_p(allocator)
+, d_eventSource_sp(
+      bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(allocator))
+, d_eventsForClients(allocator)
 , d_mutex()
 , d_queue(allocator)
-, d_allocator_p(allocator)
-
+, d_customEventSources(allocator)
+, d_customEventSources_mtx()
 {
     // NOTHING
 }
@@ -57,6 +81,7 @@ Dispatcher::ProcessorHandle Dispatcher::registerClient(
 {
     client->dispatcherClientData().setDispatcher(this).setClientType(type);
     client->setThreadId(bslmt::ThreadUtil::selfId());
+    client->setEventSource(d_eventSource_sp);
 
     return Dispatcher::k_INVALID_PROCESSOR_HANDLE;
 }
@@ -64,20 +89,6 @@ Dispatcher::ProcessorHandle Dispatcher::registerClient(
 void Dispatcher::unregisterClient(BSLA_UNUSED mqbi::DispatcherClient* client)
 {
     // NOTHING
-}
-
-mqbi::Dispatcher::DispatcherEventSp
-Dispatcher::getEvent(const mqbi::DispatcherClient* client)
-{
-    EventMap::iterator iter = d_eventsForClients.find(client);
-    BSLS_ASSERT_SAFE(iter != d_eventsForClients.end());
-    return iter->second;
-}
-
-mqbi::Dispatcher::DispatcherEventSp
-Dispatcher::getEvent(BSLA_UNUSED mqbi::DispatcherClientType::Enum type)
-{
-    return mqbi::Dispatcher::DispatcherEventSp();
 }
 
 void Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
@@ -164,6 +175,23 @@ void Dispatcher::synchronize(
     BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     // NOTHING
+}
+
+bsl::shared_ptr<mqbi::Dispatcher_EventSource> Dispatcher::createEventSource()
+{
+    bsl::shared_ptr<mqbi::Dispatcher_EventSource> res =
+        bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(d_allocator_p);
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
+        d_customEventSources.push_back(res);
+    }
+    return bslmf::MovableRefUtil::move(res);
+}
+
+const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+Dispatcher::getDefaultEventSource()
+{
+    return d_eventSource_sp;
 }
 
 // ACCESSORS

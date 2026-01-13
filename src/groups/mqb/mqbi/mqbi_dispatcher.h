@@ -305,6 +305,29 @@ struct DispatcherEventType {
 bsl::ostream& operator<<(bsl::ostream&             stream,
                          DispatcherEventType::Enum value);
 
+// ============================
+// class Dispatcher_EventSource
+// ============================
+
+class Dispatcher_EventSource {
+  public:
+    // TYPES
+    typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
+    typedef bslmf::MovableRef<DispatcherEventSp>   DispatcherEventRvRef;
+
+    // CREATORS
+    virtual ~Dispatcher_EventSource();
+
+    // MANIPULATORS
+
+    /// @brief Get an event for mqbi::Dispatcher.
+    /// @return A shared pointer to event.
+    /// The behaviour is undefined unless all the shared pointers to events
+    /// acquired with `getEvent` are destructed before destructor is called
+    /// for this event source.
+    virtual DispatcherEventSp getEvent() = 0;
+};
+
 // ================
 // class Dispatcher
 // ================
@@ -365,16 +388,19 @@ class Dispatcher {
     /// `client` is not associated with any processor.
     virtual void unregisterClient(DispatcherClient* client) = 0;
 
-    /// Retrieve an event from the event pool to send to the specified
-    /// `client`.  Once populated, the returned event *must* be enqueued for
-    /// processing by calling `dispatchEvent` otherwise it will be leaked.
-    virtual DispatcherEventSp getEvent(const DispatcherClient* client) = 0;
+    /// @brief Construct a new event source.
+    /// @return event source.
+    /// NOTE: the returned value should be cached and used by long-living
+    ///       work threads that need to enqueue events to a dispatcher.
+    virtual bsl::shared_ptr<mqbi::Dispatcher_EventSource>
+    createEventSource() = 0;
 
-    /// Retrieve an event from the event pool to send to a client of the
-    /// specified `type`.  Once populated, the returned event *must* be
-    /// enqueued for processing by calling `dispatchEvent` otherwise it will
-    /// be leaked.
-    virtual DispatcherEventSp getEvent(DispatcherClientType::Enum type) = 0;
+    /// @brief Get a pointer to the default event source owned by dispatcher.
+    /// @return event source const reference.
+    /// NOTE: the returned value should be used by short-living routines
+    ///       that need to enqueue events to a dispatcher.
+    virtual const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+    getDefaultEventSource() = 0;
 
     /// Dispatch the specified `event` to the specified `destination`.  The
     /// behavior is undefined unless `event` was obtained by a call to
@@ -385,7 +411,7 @@ class Dispatcher {
     /// Dispatch the specified `event` to the processor in charge of clients
     /// of the specified `type` and associated with the specified `handle`.
     /// The behavior is undefined unless `event` was obtained by a call to
-    /// `getEvent` with a matching `type`..
+    /// `getEvent` with a matching `type`.
     virtual void dispatchEvent(DispatcherEventRvRef       event,
                                DispatcherClientType::Enum type,
                                ProcessorHandle            handle) = 0;
@@ -1190,6 +1216,9 @@ class DispatcherClient {
     /// The id of the thread this dispatcher client is assigned to.
     bslmt::ThreadUtil::Id d_threadId;
 
+    /// The event source assigned to this dispatcher client.
+    bsl::shared_ptr<mqbi::Dispatcher_EventSource> d_eventSource_sp;
+
   public:
     // PUBLIC CONSTANTS
     static const bslmt::ThreadUtil::Id k_ANY_THREAD_ID;
@@ -1211,6 +1240,17 @@ class DispatcherClient {
     inline void setThreadId(bslmt::ThreadUtil::Id threadId)
     {
         d_threadId = threadId;
+    }
+
+    /// @brief Assign event source for this dispatcher client.
+    /// @param eventSource_sp to assign.
+    inline void setEventSource(
+        const bsl::shared_ptr<mqbi::Dispatcher_EventSource>& eventSource_sp)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(eventSource_sp);
+
+        d_eventSource_sp = eventSource_sp;
     }
 
     /// Return a pointer to the dispatcher this client is associated with.
@@ -1248,6 +1288,21 @@ class DispatcherClient {
         // the first operand:
         return (d_threadId == bslmt::ThreadUtil::selfId()) ||
                (d_threadId == k_ANY_THREAD_ID);
+    }
+
+    inline mqbi::Dispatcher_EventSource::DispatcherEventSp getEvent() const
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_eventSource_sp);
+        return d_eventSource_sp->getEvent();
+    }
+
+    inline bslmt::ThreadUtil::Id getThreadId() const { return d_threadId; }
+
+    inline const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+    getEventSource() const
+    {
+        return d_eventSource_sp;
     }
 };
 

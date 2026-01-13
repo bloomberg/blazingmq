@@ -60,6 +60,29 @@ printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
     bsl::cout << bsl::endl;
 }
 
+static mqbcfg::DispatcherConfig makeConfig()
+{
+    mqbcfg::DispatcherConfig config;
+
+    // Configure to have only one client of each type
+    config.sessions().numProcessors()                            = 1;
+    config.sessions().processorConfig().queueSize()              = 100;
+    config.sessions().processorConfig().queueSizeLowWatermark()  = 0;
+    config.sessions().processorConfig().queueSizeHighWatermark() = 100;
+
+    config.queues().numProcessors()                            = 1;
+    config.queues().processorConfig().queueSize()              = 100;
+    config.queues().processorConfig().queueSizeLowWatermark()  = 0;
+    config.queues().processorConfig().queueSizeHighWatermark() = 100;
+
+    config.clusters().numProcessors()                            = 1;
+    config.clusters().processorConfig().queueSize()              = 100;
+    config.clusters().processorConfig().queueSizeLowWatermark()  = 0;
+    config.clusters().processorConfig().queueSizeHighWatermark() = 100;
+
+    return bslmf::MovableRefUtil::move(config);
+}
+
 // ==================
 // struct Synchronize
 // ==================
@@ -207,20 +230,17 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    // Create Dispatcher
-    mqbcfg::DispatcherConfig dispatcherConfig;
-    dispatcherConfig.sessions().numProcessors() = 1;
-    dispatcherConfig.queues().numProcessors()   = 1;
-    dispatcherConfig.clusters().numProcessors() = 1;
-
+    // Create and start scheduler
     bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
                                          bmqtst::TestHelperUtil::allocator());
     eventScheduler.start();
 
     {
-        mqba::Dispatcher obj(dispatcherConfig,
-                             &eventScheduler,
-                             bmqtst::TestHelperUtil::allocator());
+        // Create Dispatcher
+        mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
+        mqba::Dispatcher         dispatcher(dispatcherConfig,
+                                    &eventScheduler,
+                                    bmqtst::TestHelperUtil::allocator());
     }
 
     eventScheduler.stop();
@@ -286,27 +306,7 @@ static void test3_executorsSupport()
     BSLS_ASSERT_OPT(rc == 0);
 
     // create the dispatcher
-    mqbcfg::DispatcherConfig dispatcherConfig;
-
-    // configure the dispatched in a way that there is only one processor for
-    // client of each type
-    dispatcherConfig.sessions().numProcessors()               = 1;
-    dispatcherConfig.sessions().processorConfig().queueSize() = 100;
-    dispatcherConfig.sessions().processorConfig().queueSizeLowWatermark() = 0;
-    dispatcherConfig.sessions().processorConfig().queueSizeHighWatermark() =
-        100;
-
-    dispatcherConfig.queues().numProcessors()                            = 1;
-    dispatcherConfig.queues().processorConfig().queueSize()              = 100;
-    dispatcherConfig.queues().processorConfig().queueSizeLowWatermark()  = 0;
-    dispatcherConfig.queues().processorConfig().queueSizeHighWatermark() = 100;
-
-    dispatcherConfig.clusters().numProcessors()               = 1;
-    dispatcherConfig.clusters().processorConfig().queueSize() = 100;
-    dispatcherConfig.clusters().processorConfig().queueSizeLowWatermark() = 0;
-    dispatcherConfig.clusters().processorConfig().queueSizeHighWatermark() =
-        100;
-
+    mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
     mqba::Dispatcher dispatcher(dispatcherConfig,
                                 &eventScheduler,
                                 bmqtst::TestHelperUtil::allocator());
@@ -461,35 +461,109 @@ static void test3_executorsSupport()
     eventScheduler.stop();
 }
 
+static void test4_eventSource()
+// ------------------------------------------------------------------------
+// EVENT SOURCE
+//
+// Concerns:
+//   - mqbi::DispatcherClient::getEvent works after registering a client
+//   - mqba::Dispatcher::getDefaultEventSource::getEvent works
+//   - mqba::Dispatcher::createEventSource creates an instance of event
+//     source that allows to get events
+//
+// Testing:
+//   mqbi::Dispatcher_EventSource support
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("EVENT SOURCE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    struct Local {
+        static void callbackFn(bslmt::Semaphore* done_p)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT_SAFE(done_p);
+            done_p->post();
+        }
+    };
+
+    // Create and start scheduler
+    bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
+                                         alloc);
+    eventScheduler.start();
+
+    {
+        // Create Dispatcher
+        mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
+        mqba::Dispatcher dispatcher(dispatcherConfig, &eventScheduler, alloc);
+
+        // Start the dispatcher
+        bsl::stringstream startErr(alloc);
+        const int         rc = dispatcher.start(startErr);
+        BMQTST_ASSERT(rc == 0);
+
+        // Register a client
+        mqbmock::DispatcherClient client(alloc);
+        dispatcher.registerClient(&client,
+                                  mqbi::DispatcherClientType::e_SESSION);
+
+        // 1. Enqueue an event to a client using its own event source
+        {
+            bslmt::Semaphore done;
+
+            bsl::shared_ptr<mqbi::DispatcherEvent> event = client.getEvent();
+            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            event->setCallback(
+                bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
+
+            dispatcher.dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                     &client);
+            done.wait();
+        }
+
+        // 2. Enqueue an event to a client using the default event source
+        {
+            bslmt::Semaphore done;
+
+            bsl::shared_ptr<mqbi::DispatcherEvent> event =
+                dispatcher.getDefaultEventSource()->getEvent();
+            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            event->setCallback(
+                bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
+
+            dispatcher.dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                     &client);
+            done.wait();
+        }
+
+        // 3. Enqueue an event to a client using the cached event source
+        {
+            bsl::shared_ptr<mqbi::Dispatcher_EventSource> eventSource_sp =
+                dispatcher.createEventSource();
+
+            bslmt::Semaphore done;
+
+            bsl::shared_ptr<mqbi::DispatcherEvent> event =
+                eventSource_sp->getEvent();
+            event->setType(mqbi::DispatcherEventType::e_CALLBACK);
+            event->setCallback(
+                bdlf::BindUtil::bindS(alloc, &Local::callbackFn, &done));
+
+            dispatcher.dispatchEvent(bslmf::MovableRefUtil::move(event),
+                                     &client);
+            done.wait();
+        }
+
+        dispatcher.stop();
+    }
+
+    eventScheduler.stop();
+}
+
 static void testN1_inDispatcherThread()
 {
     const size_t k_ITERS_NUM = 10000000;
-
-    // Create Dispatcher
-    mqbcfg::DispatcherConfig dispatcherConfig;
-
-    // configure the dispatched in a way that there is only one processor for
-    // client of each type
-    dispatcherConfig.sessions().numProcessors()               = 1;
-    dispatcherConfig.sessions().processorConfig().queueSize() = 100;
-    dispatcherConfig.sessions().processorConfig().queueSizeLowWatermark() = 0;
-    dispatcherConfig.sessions().processorConfig().queueSizeHighWatermark() =
-        100;
-
-    dispatcherConfig.queues().numProcessors()                            = 1;
-    dispatcherConfig.queues().processorConfig().queueSize()              = 100;
-    dispatcherConfig.queues().processorConfig().queueSizeLowWatermark()  = 0;
-    dispatcherConfig.queues().processorConfig().queueSizeHighWatermark() = 100;
-
-    dispatcherConfig.clusters().numProcessors()               = 1;
-    dispatcherConfig.clusters().processorConfig().queueSize() = 100;
-    dispatcherConfig.clusters().processorConfig().queueSizeLowWatermark() = 0;
-    dispatcherConfig.clusters().processorConfig().queueSizeHighWatermark() =
-        100;
-
-    bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
-                                         bmqtst::TestHelperUtil::allocator());
-    eventScheduler.start();
 
     struct Local {
         static void callbackFn(bsls::Types::Int64*           dt,
@@ -512,7 +586,14 @@ static void testN1_inDispatcherThread()
         }
     };
 
+    // Create and start scheduler
+    bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
+                                         bmqtst::TestHelperUtil::allocator());
+    eventScheduler.start();
+
     {
+        // Create dispatcher
+        mqbcfg::DispatcherConfig dispatcherConfig = makeConfig();
         mqba::Dispatcher obj(dispatcherConfig,
                              &eventScheduler,
                              bmqtst::TestHelperUtil::allocator());
@@ -560,6 +641,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 4: test4_eventSource(); break;
     case 3: test3_executorsSupport(); break;
     case 2: test2_clientTypeEnumValues(); break;
     case 1: test1_breathingTest(); break;
