@@ -113,6 +113,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer())
         .callback()
         .set(f);
 
@@ -427,6 +428,8 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << *event;
         
+        const bsls::Types::Int64 queuedTime = bmqsys::Time::highResolutionTimer() - event->enqueueTime();
+
         DispatcherContext& dispatcherContext = *(d_contexts[type]);
 
         if (event->type() == mqbi::DispatcherEventType::e_DISPATCHER) {
@@ -465,6 +468,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         bmqst::StatContext* statContext_p = dispatcherContext.d_statContexts.at(processorId).d_statContext_mp.get();
         if (statContext_p) {
             statContext_p->adjustValue(k_STAT_QUEUE, -1);
+            statContext_p->reportValue(k_STAT_TIME, queuedTime);
         }
     }
     else {
@@ -661,6 +665,7 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             context.d_processorPool_mp->getEvent();
         (*event)
             .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+            .setEnqueueTime(bmqsys::Time::highResolutionTimer())
             .setDestination(client);  // TODO: not needed?
 
         // Build callback functor in-place.
@@ -744,7 +749,8 @@ void Dispatcher::executeOnAllQueues(
                    << (doneCallback ? "yes" : "no") << "]";
 
     bsl::shared_ptr<mqbi::DispatcherEvent> qEvent = processorPool->getEvent();
-    qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
+    qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .setEnqueueTime(bmqsys::Time::highResolutionTimer());
     qEvent->callback().set(functor);
     qEvent->finalizeCallback().set(doneCallback);
     processorPool->enqueueEventOnAllQueues(
@@ -803,28 +809,28 @@ void Dispatcher::statHandler()
 
     bmqu::MemOutStream os(d_allocator_p);
 
-    os << "\n\nSESSION\n";
+    os << "\n\n*******************************************************************\n\nSESSION\n";
     DispatcherContextSp& context = d_contexts[mqbi::DispatcherClientType::e_SESSION];
     for (size_t i = 0; i < context->d_statContexts.size(); ++i) {
         os << "\nProcessor " << i << ":";
-        bmqst::BasicTableInfoProvider& statTipNoDelta = context->d_statContexts.at(i).d_statTip;
-        bmqst::TableUtil::printTable(os, statTipNoDelta);
+        bmqst::BasicTableInfoProvider& statTip = context->d_statContexts.at(i).d_statTip;
+        bmqst::TableUtil::printTable(os, statTip);
     }
 
     os << "\n\nQUEUE\n";
     DispatcherContextSp& context1 = d_contexts[mqbi::DispatcherClientType::e_QUEUE];
     for (size_t i = 0; i < context1->d_statContexts.size(); ++i) {
         os << "\nProcessor " << i << ":";
-        bmqst::BasicTableInfoProvider& statTipNoDelta = context1->d_statContexts.at(i).d_statTip;
-        bmqst::TableUtil::printTable(os, statTipNoDelta);
+        bmqst::BasicTableInfoProvider& statTip = context1->d_statContexts.at(i).d_statTip;
+        bmqst::TableUtil::printTable(os, statTip);
     }
 
     os << "\n\nCLUSTER\n";
     DispatcherContextSp& context3 = d_contexts[mqbi::DispatcherClientType::e_CLUSTER];
     for (size_t i = 0; i < context3->d_statContexts.size(); ++i) {
         os << "\nProcessor " << i << ":";
-        bmqst::BasicTableInfoProvider& statTipNoDelta = context3->d_statContexts.at(i).d_statTip;
-        bmqst::TableUtil::printTable(os, statTipNoDelta);
+        bmqst::BasicTableInfoProvider& statTip = context3->d_statContexts.at(i).d_statTip;
+        bmqst::TableUtil::printTable(os, statTip);
     }
     
     BALL_LOG_WARN << os.str();

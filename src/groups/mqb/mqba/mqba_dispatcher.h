@@ -72,6 +72,7 @@
 #include <bmqst_statutil.h>
 #include <bmqst_statvalue.h>
 #include <bmqst_table.h>
+#include <bmqsys_time.h>
 
 
 namespace BloombergLP {
@@ -529,6 +530,8 @@ Dispatcher::dispatchEvent(mqbi::Dispatcher::DispatcherEventRvRef event,
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
       DispatcherContext& dispatcherContext = *(d_contexts[type]);      
+      
+      event->setEnqueueTime(bmqsys::Time::highResolutionTimer());
 
       dispatcherContext.d_processorPool_mp->enqueueEvent(
           bslmf::MovableRefUtil::move(event),
