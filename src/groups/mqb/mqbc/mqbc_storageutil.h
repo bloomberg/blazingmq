@@ -267,6 +267,8 @@ struct StorageUtil {
 
     /// Initiate the rollover of the partition out of the specified
     /// `fileStores` having the specified `partitionId`.
+    /// Use the specified `allocator` for memory allocations.
+    /// Store the result into the specified `result` object.
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void doRollover(mqbcmd::StorageResult* result,
@@ -275,8 +277,9 @@ struct StorageUtil {
                            bslma::Allocator*      allocator);
 
     /// Initiate the rollover of the partition out of the specified
-    /// `fileStores` having the specified `partitionId`
-    /// and return error code via the specified `promise`.
+    /// `fileStores` having the specified `partitionId` and arrive on the
+    /// specified `latch` upon completion. Return error code via the specified
+    /// `rc`.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
