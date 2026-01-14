@@ -778,11 +778,9 @@ int IncoreClusterStateLedger::applyCommit(
         // Value for the various RC error categories
         rc_SUCCESS = 0  // Success
         ,
-        rc_UNKNOWN = -1  // Unknown result
+        rc_CREATE_COMMIT_FAILURE = -1  // Fail to create leader advisory
         ,
-        rc_CREATE_COMMIT_FAILURE = -4  // Fail to create leader advisory
-        ,
-        rc_APPLY_COMMIT_FAILURE = -6  // Fail to apply leader advisory commit
+        rc_APPLY_COMMIT_FAILURE = -2  // Fail to apply leader advisory commit
     };
 
     // Consistency level reached. Apply a commit message for the
