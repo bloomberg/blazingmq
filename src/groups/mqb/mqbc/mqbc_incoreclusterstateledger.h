@@ -264,7 +264,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Internal helper method to apply commit for the advisory with the
     /// specified `sequenceNumber` as the specified `ackQuorum` is reached.
     int applyCommit(const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-                    const unsigned int                         ackQuorum);
+                    unsigned int                               ackQuorum);
 
     /// Cancel all uncommitted advisories.  Called upon new leader or term,
     /// or when this ledger is closed.
