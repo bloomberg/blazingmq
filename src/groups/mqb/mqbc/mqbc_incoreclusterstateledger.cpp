@@ -710,7 +710,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         if (iter->second.d_ackCount == ackQuorum) {
             // Consistency level reached. Apply a commit message for the
             // advisory, broadcast it, and invoke the 'CommitCb'.
-            return applyCommit(ack.sequenceNumberAcked(), ackQuorum);
+            rc = applyCommit(ack.sequenceNumberAcked(), ackQuorum);
+            if (0 != rc) {
+                return 10 * rc + rc_COMMIT_FAILURE;
+            }
         }
     } break;  // BREAK
     case ClusterStateRecordType::e_UNDEFINED:
