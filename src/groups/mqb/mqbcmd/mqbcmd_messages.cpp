@@ -2125,7 +2125,7 @@ const bdlat_AttributeInfo HelpCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "plumbing",
      sizeof("plumbing") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -8888,6 +8888,11 @@ const bdlat_SelectionInfo StoragePartitionCommand::SELECTION_INFO_ARRAY[] = {
      "summary",
      sizeof("summary") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_ROLLOVER,
+     "rollover",
+     sizeof("rollover") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -8895,7 +8900,7 @@ const bdlat_SelectionInfo StoragePartitionCommand::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 StoragePartitionCommand::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             StoragePartitionCommand::SELECTION_INFO_ARRAY[i];
 
@@ -8917,6 +8922,8 @@ const bdlat_SelectionInfo* StoragePartitionCommand::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_DISABLE];
     case SELECTION_ID_SUMMARY:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_SUMMARY];
+    case SELECTION_ID_ROLLOVER:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_ROLLOVER];
     default: return 0;
     }
 }
@@ -8936,6 +8943,9 @@ StoragePartitionCommand::StoragePartitionCommand(
     } break;
     case SELECTION_ID_SUMMARY: {
         new (d_summary.buffer()) Void(original.d_summary.object());
+    } break;
+    case SELECTION_ID_ROLLOVER: {
+        new (d_rollover.buffer()) Void(original.d_rollover.object());
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -8957,6 +8967,10 @@ StoragePartitionCommand::StoragePartitionCommand(
     case SELECTION_ID_SUMMARY: {
         new (d_summary.buffer()) Void(bsl::move(original.d_summary.object()));
     } break;
+    case SELECTION_ID_ROLLOVER: {
+        new (d_rollover.buffer())
+            Void(bsl::move(original.d_rollover.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -8977,6 +8991,9 @@ StoragePartitionCommand::operator=(const StoragePartitionCommand& rhs)
         } break;
         case SELECTION_ID_SUMMARY: {
             makeSummary(rhs.d_summary.object());
+        } break;
+        case SELECTION_ID_ROLLOVER: {
+            makeRollover(rhs.d_rollover.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -9003,6 +9020,9 @@ StoragePartitionCommand::operator=(StoragePartitionCommand&& rhs)
         case SELECTION_ID_SUMMARY: {
             makeSummary(bsl::move(rhs.d_summary.object()));
         } break;
+        case SELECTION_ID_ROLLOVER: {
+            makeRollover(bsl::move(rhs.d_rollover.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -9025,6 +9045,9 @@ void StoragePartitionCommand::reset()
     case SELECTION_ID_SUMMARY: {
         d_summary.object().~Void();
     } break;
+    case SELECTION_ID_ROLLOVER: {
+        d_rollover.object().~Void();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -9042,6 +9065,9 @@ int StoragePartitionCommand::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_SUMMARY: {
         makeSummary();
+    } break;
+    case SELECTION_ID_ROLLOVER: {
+        makeRollover();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -9197,6 +9223,51 @@ Void& StoragePartitionCommand::makeSummary(Void&& value)
 }
 #endif
 
+Void& StoragePartitionCommand::makeRollover()
+{
+    if (SELECTION_ID_ROLLOVER == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_rollover.object());
+    }
+    else {
+        reset();
+        new (d_rollover.buffer()) Void();
+        d_selectionId = SELECTION_ID_ROLLOVER;
+    }
+
+    return d_rollover.object();
+}
+
+Void& StoragePartitionCommand::makeRollover(const Void& value)
+{
+    if (SELECTION_ID_ROLLOVER == d_selectionId) {
+        d_rollover.object() = value;
+    }
+    else {
+        reset();
+        new (d_rollover.buffer()) Void(value);
+        d_selectionId = SELECTION_ID_ROLLOVER;
+    }
+
+    return d_rollover.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+Void& StoragePartitionCommand::makeRollover(Void&& value)
+{
+    if (SELECTION_ID_ROLLOVER == d_selectionId) {
+        d_rollover.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_rollover.buffer()) Void(bsl::move(value));
+        d_selectionId = SELECTION_ID_ROLLOVER;
+    }
+
+    return d_rollover.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& StoragePartitionCommand::print(bsl::ostream& stream,
@@ -9215,6 +9286,9 @@ bsl::ostream& StoragePartitionCommand::print(bsl::ostream& stream,
     case SELECTION_ID_SUMMARY: {
         printer.printAttribute("summary", d_summary.object());
     } break;
+    case SELECTION_ID_ROLLOVER: {
+        printer.printAttribute("rollover", d_rollover.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -9230,6 +9304,8 @@ const char* StoragePartitionCommand::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_DISABLE].name();
     case SELECTION_ID_SUMMARY:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_SUMMARY].name();
+    case SELECTION_ID_ROLLOVER:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_ROLLOVER].name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
         return "(* UNDEFINED *)";
@@ -24073,7 +24149,7 @@ const bdlat_AttributeInfo Command::ATTRIBUTE_INFO_ARRAY[] = {
      "encoding",
      sizeof("encoding") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
 
 // CLASS METHODS
 
@@ -30519,6 +30595,6 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2025.11.13
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
