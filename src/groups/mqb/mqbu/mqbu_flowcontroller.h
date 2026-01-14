@@ -47,27 +47,6 @@ namespace mqbu {
 
 class FlowController {
     // Mechanism to apply 'leaky bucket' logic to incoming traffic.
-    // The 'leaky bucket' parameters come from multiple sources:
-    //  1.  The parent              (the return value of 'post')
-    //  2.  Own config              (the input argument of 'config')
-    //  3.  Own overload            (the input argument of 'overload')
-    //  4.  'FlowControl' message   (the input argument of 'control')
-    //
-    // Time for the 'leaky bucket' algorithm should be provided by calling
-    // 'update1sec' every 1 sec.
-    //
-    // The 'leaky bucket' algorithm is thread-safe, so are all methods except
-    // for 'update1sec'.  Updating parameters is atomic (consistent).
-    //
-    // The result of merging parameters from multiple sources is the strictest
-    // set of parameters.
-    //
-    // The only reference kept is to parent (a parent does not keep references
-    // children).  Any change gets enforced to all children (in 'post' method)
-    // but not to parent.
-    // The 'version' of parameters helps to detect changes:
-    //  - When child's version is lower than the parent's one, the child must
-    //      recalculate ('merge') its parameters and so must do its children.
 
   public:
     // PUBLIC DATA
@@ -78,7 +57,7 @@ class FlowController {
         e_Limit = 1  // Enforce rate limit
     };
 
-    class Config {
+    struct Config {
         // VST for 'leaky bucket' parameters
 
       private:
@@ -132,13 +111,15 @@ class FlowController {
 
     bsls::Types::Int64 d_history[k_HISTORY_SIZE];
     int                d_lastRecord;
-    bsls::Types::Int64 d_lastSecondCount;
-    bsls::Types::Int64 d_lastSecondMs;
-    bsls::Types::Int64 d_lastSecondMax;
+    bsls::Types::Int64 d_currentSecondCount;
+    bsls::Types::Int64 d_currentSecondMs;
+    bsls::Types::Int64 d_currentSecondMaxBurst;
 
-    unsigned int d_highWatermark;
+    bsls::Types::Int64 d_totalCount;
 
-    unsigned int d_pendingLowWatermarks;
+    bsls::Types::Int64 d_currentSecondHits;
+    bsls::Types::Int64 d_currentAverageWatermark;
+    bsls::Types::Int64 d_previousAverageWatermark;
 
   private:
     // PRIVATE MANIPULATORS
@@ -153,10 +134,9 @@ class FlowController {
 
     Watermark add(int howMany);
 
-    bool updateWatermark(bsls::Types::Int64 numEvents,
-                         bsls::Types::Int64 watermark,
-                         int                consecutiveLowWatermarks);
-    void update(bsls::Types::Int64 ms);
+    bool checkWatermark(bsls::Types::Int64 lowThreshold,
+                        bsls::Types::Int64 highThreshold);
+    void update(bsls::Types::Int64 ms, bsls::Types::Int64 watermark);
 
     void configure(const Config& config);
 
@@ -165,6 +145,10 @@ class FlowController {
     Config survey(Policy policy) const;
 
     Config config() const;
+
+    bsls::Types::Int64 averageWatermark() const;
+
+    bool isIdle() const;
 
     bsl::ostream&
     print(bsl::ostream& stream, int level, int spacesPerLevel) const;
@@ -189,7 +173,7 @@ inline FlowController::Config::Config()
 inline FlowController::Config::Config(Policy policy, int rate, int burst)
 : d_policy(policy)
 , d_ratePerMs(rate)
-, d_burst(burst)
+, d_burst(burst ? burst : d_ratePerMs * 4)
 {
     // NOTHING
 }
@@ -243,7 +227,23 @@ inline void FlowController::Config::scale(int weight, int total)
 
 inline void FlowController::configure(const Config& config)
 {
+    bsls::Types::Int64 delta = d_config.burst() - config.burst();
+
     d_config = config;
+
+    // Reset the state to an empty bucket.
+    d_count += delta;
+}
+
+inline bsls::Types::Int64 FlowController::averageWatermark() const
+{
+    return (d_previousAverageWatermark + d_currentAverageWatermark) / 2;
+}
+
+inline bool FlowController::isIdle() const
+{
+    return d_count == 0 && d_totalCount == 0 &&
+           config().policy() == Policy::e_None;
 }
 
 // FREE OPERATORS
