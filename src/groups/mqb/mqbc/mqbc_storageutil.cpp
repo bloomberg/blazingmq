@@ -607,7 +607,7 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
 
         bmqu::MemOutStream output;
         for (unsigned int i = 0; i < fileStores->size(); ++i) {
-            int rc = rcs[i];
+            const int rc = rcs[i];
             if (rc != 0) {
                 output << "Rollover failed on partition " << i
                        << ", rc: " << rc << ". ";
