@@ -63,11 +63,11 @@ def test_command_storage_partition_summary_partitionid(
 
     invalid_partition_id = -1
     res = leader.get_storage_partition_summary(invalid_partition_id, succeed=True)
-    assert res is None
+    assert res is None, "Summary for invalid partition -1 should fail"
 
     for partition_id in range(num_partitions):
         res = leader.get_storage_partition_summary(partition_id, succeed=True)
-        assert not res is None
+        assert not res is None, f"Summary for partition {partition_id} should succeed"
 
     res = leader.get_storage_partition_summary(num_partitions, succeed=True)
-    assert res is None
+    assert res is None, f"Summary for invalid partition {num_partitions} should fail"
