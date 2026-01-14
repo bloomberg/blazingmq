@@ -51,21 +51,27 @@ static void test1_breathingTest()
     // 500 at 0.5 sec
     result = fc.add(500);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
-    fc.update(time += 500);
+    fc.update(time += 500, 100);
+
+    BMQTST_ASSERT_EQ(fc.averageWatermark(), 100);
+
     // 500 at 0.5 sec
     result = fc.add(500);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
-    fc.update(time += 500);
+    fc.update(time += 500, 900);
+
+    BMQTST_ASSERT_EQ(fc.averageWatermark(), 500);
+
     // 2000 at 2 sec
     result = fc.add(2000);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
-    fc.update(time += 2000);
+    fc.update(time += 2000, 100);
 
     // Make full 5 secs (0.5 + 0.5 + 2 + 2)
     // 2000 at 2 sec
     result = fc.add(2000);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
-    fc.update(time += 2000);
+    fc.update(time += 2000, 100);
 
     config = fc.survey(mqbu::FlowController::Policy::e_Limit);
     BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_Limit);
@@ -75,7 +81,7 @@ static void test1_breathingTest()
     // An additional 6th sec
     result = fc.add(1000);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_High);
-    fc.update(time += 1000);
+    fc.update(time += 1000, 100);
 
     config = fc.survey(mqbu::FlowController::Policy::e_Limit);
     BMQTST_ASSERT_EQ(config.policy(), mqbu::FlowController::Policy::e_Limit);
@@ -83,6 +89,9 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(config.burst(), 1000);
 
     fc.configure(config);
+
+    // The bucket starts full, empty it.
+    fc.update(time += 1000, 100);
 
     // fill the burst
     result = fc.add(1000);
@@ -92,7 +101,7 @@ static void test1_breathingTest()
     result = fc.add(1);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_Strict);
 
-    fc.update(time += 1);
+    fc.update(time += 1, 100);
     result = fc.add(1);
     BMQTST_ASSERT_EQ(result, mqbu::FlowController::Watermark::e_Low);
 

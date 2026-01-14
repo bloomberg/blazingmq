@@ -77,8 +77,8 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
-const bsls::Types::Int64 k_HIGH_WATERMARK             = 100;
-const unsigned int       k_CONSECUTIVE_LOW_WATERMARKS = 3;
+const bsls::Types::Int64 k_LOW_WATERMARK  = 10;
+const bsls::Types::Int64 k_MAX_RATE_LIMIT = 500000;
 
 #define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
@@ -1384,33 +1384,34 @@ void RootQueueEngine::afterNewMessage()
 
     BSLS_ASSERT_SAFE(dispatcher);
 
-    d_flowController.update(
-        bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC)
-            .totalMilliseconds());
-
     bsls::Types::Int64 numEvents = dispatcher->numProcessorEvents(
         d_queueState_p->queue());
-    mqbu::FlowController::Config lastConfig = d_flowController.config();
-    const bool                   isGreen    = d_flowController.updateWatermark(
-        numEvents,
-        k_HIGH_WATERMARK,
-        k_CONSECUTIVE_LOW_WATERMARKS);
 
-    if (lastConfig != d_flowController.config()) {
-        BALL_LOG_INFO << "Local queue: " << d_queueState_p->uri()
-                      << " (id: " << d_queueState_p->id()
-                      << ") has updated throttling policy ["
-                      << d_flowController << "]; the backlog is " << numEvents
-                      << ".";
-    }
+    d_flowController.update(
+        bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC)
+            .totalMilliseconds(),
+        numEvents);
 
-    if (!isGreen) {
-        BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
-                             << " (id: " << d_queueState_p->id()
-                             << ") throttling delivery; the backlog is "
-                             << numEvents << ".";
+    if (!d_flowController.isIdle()) {
+        mqbu::FlowController::Config lastConfig = d_flowController.config();
+        const bool isGreen = d_flowController.checkWatermark(k_LOW_WATERMARK,
+                                                             k_MAX_RATE_LIMIT);
 
-        return;
+        if (lastConfig != d_flowController.config()) {
+            BMQ_LOGTHROTTLE_INFO
+                << "Local queue: " << d_queueState_p->uri() << " is at "
+                << numEvents
+                << " dispatcher events and updates the throttling policy ["
+                << d_flowController << "].";
+        }
+
+        if (!isGreen) {
+            BMQ_LOGTHROTTLE_INFO
+                << "Local queue: " << d_queueState_p->uri() << " has "
+                << numEvents << " dispatcher events and throttling delivery.";
+
+            return;
+        }
     }
 
     // Deliver new messages to active (alive and capable to deliver) consumers
@@ -1453,9 +1454,9 @@ void RootQueueEngine::afterNewMessage()
 
         if (result == mqbu::FlowController::e_Strict) {
             BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
-                                 << " (id: " << d_queueState_p->id()
-                                 << ") throttling delivery; the backlog is "
-                                 << numEvents << "; the overhead was "
+                                 << " is at " << numEvents
+                                 << " dispatcher events and throttling "
+                                    "delivery; the overhead was "
                                  << numHits;
 
             d_appsDeliveryContext.reset(0);
@@ -1802,7 +1803,7 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
         routing.subscriptionGroups();
     if (!subscrGroups.empty()) {
         // Limit to log only k_EXPR_NUM_LIMIT expressions
-        static const size_t k_EXPR_NUM_LIMIT = 50;
+        static const size_t k_EXPR_NUM_LIMIT = 10;
         if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
             stream << "First " << k_EXPR_NUM_LIMIT
                    << " of consumer subscription expressions: \n";
@@ -1854,8 +1855,8 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
             }
             else {
                 BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
-                              << rc;
-                stream << "Message Properties: Failed to acquire [rc: " << rc
+                              << ret;
+                stream << "Message Properties: Failed to acquire [rc: " << ret
                        << "]\n";
             }
         }
