@@ -802,7 +802,7 @@ int IncoreClusterStateLedger::applyCommit(
                   << commitMessage << ".";
 
     bsl::shared_ptr<bdlbb::Blob> commitRecord = d_blobSpPool_p->getObject();
-    int rc = ClusterStateLedgerUtil::appendRecord(
+    int                          rc = ClusterStateLedgerUtil::appendRecord(
         commitRecord.get(),
         commitMessage,
         commitAdvisory.sequenceNumber(),
