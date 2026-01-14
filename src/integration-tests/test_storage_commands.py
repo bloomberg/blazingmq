@@ -37,6 +37,12 @@ def test_command_rollover_partitionid(
 
     leader = cluster.last_known_leader
 
+    invalid_partition_id = -2
+    res = leader.trigger_rollover(invalid_partition_id, succeed=True)
+    assert res is None, (
+        f"Rollover for invalid partition {invalid_partition_id} should fail"
+    )
+
     all_partition_id = -1
     res = leader.trigger_rollover(all_partition_id, succeed=True)
     assert not res is None, "Rollover for all partitions should succeed"

@@ -3638,9 +3638,16 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
             return -1;  // RETURN
         }
 
-        // Negative partitionId is only allowed for rollover command.
-        // In case of negative partitionId rollover is performed on all
-        // partitions.
+        if (partitionId < -1) {
+            bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
+            bmqu::MemOutStream                   os(&localAllocator);
+            os << "Too low partitionId value: '" << partitionId << "'";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
+        }
+
+        // PartitionId = -1 is only allowed for rollover command.
+        // In this case rollover is performed on all partitions.
         if (command.partition().command().isRolloverValue()) {
             doRollover(result, fileStores, partitionId, allocator);
             return 0;  // RETURN
