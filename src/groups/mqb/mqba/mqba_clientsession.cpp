@@ -287,8 +287,7 @@ void finalizeClosedHandle(bsl::string description,
 {
     // executed by ONE of the *QUEUE* dispatcher threads
 
-    BSLS_ASSERT_SAFE(
-        handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
+    BSLS_ASSERT_SAFE(handle->queue()->inDispatcherThread());
 
     BALL_LOG_INFO << description << ": Closed queue handle is finalized: "
                   << handle->handleParameters();
@@ -396,7 +395,7 @@ void ClientSession::sendErrorResponse(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
@@ -451,7 +450,7 @@ void ClientSession::sendPacketDispatched(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // This method is the centralized *single* place where we should try to
     // send data to the client over the channel.
@@ -528,7 +527,7 @@ void ClientSession::flushChannelBufferQueue()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isDisconnected())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -570,7 +569,7 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // NOTE: if this is the first hop, 'messageGUID' will be unset.  If this is
     //       not the first hop, correlationId will be NULL.  But this method
@@ -682,7 +681,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     BALL_LOG_INFO << description() << ": tearDownImpl";
 
@@ -810,7 +809,7 @@ void ClientSession::onHandleConfiguredDispatched(
     // operation execution time.
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (isDisconnected()) {
         // The client is disconnected or the channel is down
@@ -908,7 +907,7 @@ void ClientSession::initiateShutdownDispatched(const ShutdownCb& callback)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(callback);
 
     bsl::shared_ptr<bmqsys::OperationLogger> opLogger =
@@ -936,7 +935,7 @@ void ClientSession::initiateShutdownDispatched(const ShutdownCb& callback)
 void ClientSession::invalidateDispatched()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_operationState == e_DEAD) {
         return;  // RETURN
@@ -973,7 +972,7 @@ void ClientSession::processDisconnectAllQueues(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (isDisconnected()) {
         // This means the client disconnected (ungraceful shutdown via channel
@@ -1054,7 +1053,7 @@ void ClientSession::processDisconnect(
     // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(d_operationState != e_RUNNING);
 
     if (isDisconnected()) {
@@ -1111,7 +1110,7 @@ void ClientSession::processOpenQueue(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_queueSessionManager.processOpenQueue(
         handleParamsCtrlMsg,
@@ -1144,7 +1143,7 @@ void ClientSession::openQueueCb(
     // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(handleParamsCtrlMsg.choice().isOpenQueueValue());
 
     // Send success/error response to client
@@ -1196,7 +1195,7 @@ void ClientSession::processCloseQueue(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_queueSessionManager.processCloseQueue(
         handleParamsCtrlMsg,
@@ -1225,7 +1224,7 @@ void ClientSession::closeQueueCb(
     // as `BSLA_UNUSED`.
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(handleParamsCtrlMsg.choice().isCloseQueueValue());
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
@@ -1281,7 +1280,7 @@ void ClientSession::processConfigureStream(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (isDisconnected()) {
         return;  // RETURN
@@ -1382,7 +1381,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // NOTE: we do not log anything here, all logging is done in 'sendAck'.
 
@@ -1478,7 +1477,7 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // NOTE: Refer to implementation notes at the top of this file, section
     //       'onConfirmEvent/onPutEvent' for why we do not check for
@@ -1560,7 +1559,7 @@ void ClientSession::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (handleRequesterContext()->isFirstHop()) {
         BALL_LOG_ERROR << "#CLIENT_UNEXPECTED_EVENT " << description()
@@ -1724,7 +1723,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     static const int k_PAYLOAD_DUMP = 48;  // How much first bytes of the
                                            // messages payload to dump in TRACE
@@ -1828,29 +1827,51 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
         // Finally, Update stats
         // TODO: Extract this and the version from 'mqbblp::Cluster' to a
         // function
+
+        BSLS_ASSERT_SAFE(handleRequesterContext());
+
+        const bool isBroadcastBroker =
+            (handle_p->queue()->isDeliverAll()
+                 ? !handleRequesterContext()->isFirstHop()
+                 : false);
+
         for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
              i < event.subQueueInfos().size();
              ++i) {
+            unsigned int subscriptionId = event.subQueueInfos()[i].id();
             StreamsMap::const_iterator subQueueCiter =
                 context_p->d_subQueueInfosMap.findBySubscriptionIdSafe(
-                    event.subQueueInfos()[i].id());
+                    subscriptionId);
+
+            // Broadcast PUSH carry 'bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID'
+            // (0) as SubscriptionId until last hop before SDK.
+            // And downstream broker sends non-zero upstream as subscriptionId.
+            // Meaning, in the 'registerSubscription' call 'downstreamId' is
+            // never '0' in this case.
+            // So, the below condition is always 'true' when the downstream is
+            // a broker and the queue is broadcast.
 
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                     subQueueCiter == context_p->d_subQueueInfosMap.end())) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-                // subStream of the queue not found
-                BALL_LOG_ERROR
-                    << "#CLIENT_INVALID_PUSH " << description()
-                    << ": PUSH for an unknown subStream of the queue [queue: '"
-                    << handle_p->queue()->uri()
-                    << "', subQueueInfo: " << event.subQueueInfos()[i]
-                    << ", GUID: " << event.guid() << "]:\n"
-                    << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
+                if (!isBroadcastBroker ||
+                    subscriptionId !=
+                        bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
+                    // subStream of the queue not found
+                    BALL_LOG_ERROR
+                        << "#CLIENT_INVALID_PUSH " << description()
+                        << ": PUSH for an unknown subStream of the queue "
+                           "[queue: '"
+                        << handle_p->queue()->uri()
+                        << "', subQueueInfo: " << event.subQueueInfos()[i]
+                        << ", GUID: " << event.guid() << "]:\n"
+                        << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
 
-                invalidQueueStats()->onEvent(
-                    mqbstat::QueueStatsClient::EventType::e_PUSH,
-                    blob->length());
+                    invalidQueueStats()->onEvent(
+                        mqbstat::QueueStatsClient::EventType::e_PUSH,
+                        blob->length());
+                }
             }
             else {
                 subQueueCiter->value().onEvent(
@@ -1899,7 +1920,7 @@ void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // IMPLEMENTATION NOTES:
     //
@@ -2163,7 +2184,7 @@ mqbstat::QueueStatsClient* ClientSession::invalidQueueStats()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             d_state.d_invalidQueueStats.isNull())) {
@@ -2195,7 +2216,7 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(queueState);
     BSLS_ASSERT_SAFE(subQueueInfo);
     BSLS_ASSERT_SAFE(appDataSp);
@@ -2718,7 +2739,7 @@ void ClientSession::initiateShutdown(const ShutdownCb& callback)
 void ClientSession::invalidate()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(!inDispatcherThread());
 
     dispatcher()->execute(
         bdlf::BindUtil::bind(&ClientSession::invalidateDispatched, this),
@@ -2785,7 +2806,7 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // NOTE: We don't perform 'd_operationState' check in this method because
     //       it might be desirable to dispatch certain callbacks to the client
@@ -2866,7 +2887,7 @@ void ClientSession::flush()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // Start by flushing the data ('PUSH') messages.
     if (d_state.d_pushBuilder.messageCount() != 0) {
@@ -2956,7 +2977,7 @@ void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_operationState == e_DEAD) {
         // The client is disconnected.  No-op

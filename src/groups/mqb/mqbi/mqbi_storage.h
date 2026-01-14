@@ -354,8 +354,8 @@ class StorageIterator {
     virtual bool advance() = 0;
 
     /// If the specified `atEnd` is `true`, reset the iterator to point to the
-    /// to the end of the underlying storage.  Otherwise, reset the iterator to
-    /// point first item, if any, in the underlying storage.
+    /// end of the underlying storage.  Otherwise, reset the iterator to point
+    /// to the first item, if any, in the underlying storage.
     virtual void
     reset(const bmqt::MessageGUID& where = bmqt::MessageGUID()) = 0;
 

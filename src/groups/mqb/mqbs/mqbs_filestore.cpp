@@ -3120,32 +3120,35 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         activeFileSet->d_journalFileAvailable = false;
     }
 
-    bmqu::MemOutStream out;
-    out << partitionDesc() << "Rollover is required due to " << fileType
-        << " file [" << fileName << "] reaching capacity. Current size: "
-        << bmqu::PrintUtil::prettyNumber(
-               static_cast<bsls::Types::Int64>(currentSize))
-        << ", capacity: "
-        << bmqu::PrintUtil::prettyNumber(
-               static_cast<bsls::Types::Int64>(file.fileSize()))
-        << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
-        << " and DATA files satisfy "
-        << "rollover criteria. Minimum required available space in each file: "
-        << "[" << d_config.minAvailSpacePercent() << "%]. "
-        << "Requested record length: " << requestedSpace
-        << ". Outstanding bytes in each file:" << "\nJOURNAL: "
-        << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-               activeFileSet->d_outstandingBytesJournal))
-        << "\nDATA: "
-        << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-               activeFileSet->d_outstandingBytesData));
-    if (d_qListAware) {
-        out << "\nQLIST: "
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc() << "Rollover is required due to " << fileType
+            << " file [" << fileName << "] reaching capacity. Current size: "
+            << bmqu::PrintUtil::prettyNumber(
+                   static_cast<bsls::Types::Int64>(currentSize))
+            << ", capacity: "
+            << bmqu::PrintUtil::prettyNumber(
+                   static_cast<bsls::Types::Int64>(file.fileSize()))
+            << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
+            << " and DATA files satisfy rollover criteria. "
+            << "Minimum required available space in each file: ["
+            << d_config.minAvailSpacePercent()
+            << "%]. Requested record length: " << requestedSpace
+            << ". Outstanding bytes in each file:\nJOURNAL: "
             << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                   activeFileSet->d_outstandingBytesQlist));
+                   activeFileSet->d_outstandingBytesJournal))
+            << "\nDATA: "
+            << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                   activeFileSet->d_outstandingBytesData));
+        if (d_qListAware) {
+            BALL_LOG_OUTPUT_STREAM
+                << "\nQLIST: "
+                << bmqu::PrintUtil::prettyNumber(
+                       static_cast<bsls::Types::Int64>(
+                           activeFileSet->d_outstandingBytesQlist));
+        }
     }
-
-    BALL_LOG_INFO << out.str();
 
     // All 3 files must satisfy the rollover policy before we can initiate the
     // rollover.  Note that we also add the 'requestedSpace' in the
@@ -3246,7 +3249,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             availableSpacePercent = availableSpacePercentData;
         }
 
-        out.reset();
+        bmqu::MemOutStream out(d_allocator_p);
         out << partitionDesc() << "[" << fileType
             << "] file is full but partition cannot be "
             << "rolled over because rolled over [" << cannotRolloverFileType
@@ -5245,6 +5248,7 @@ FileStore::FileStore(
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
+    BSLS_ASSERT(dispatcher);
     BSLS_ASSERT(d_cluster_p);
     BSLS_ASSERT(1 <= clusterSize());
     if (d_isFSMWorkflow) {

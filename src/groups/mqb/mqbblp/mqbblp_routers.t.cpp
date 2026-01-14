@@ -134,11 +134,13 @@ struct Visitor {
     {
         // NOTHING
     }
-    bool visit(const mqbblp::Routers::Subscription* subscription)
+    bool visit(mqbi::QueueHandle*         handle,
+               mqbblp::Routers::Consumer* consumer,
+               unsigned int               downstreamSubscriptionId)
     {
-        d_subQueueId = subscription->subQueueId();
-        d_consumer   = subscription->consumer();
-        d_handle     = subscription->handle();
+        d_subQueueId = downstreamSubscriptionId;
+        d_consumer   = consumer;
+        d_handle     = handle;
 
         return true;
     }
@@ -221,6 +223,7 @@ static void test2_priority()
         handle.address(),
         mqbblp::Routers::Consumer(streamParameters,
                                   subQueueId,
+                                  true,
                                   bmqtst::TestHelperUtil::allocator()));
 
     mqbblp::Routers::Priority priority(bmqtst::TestHelperUtil::allocator());
@@ -277,6 +280,7 @@ static void test3_parse()
         bmqp_ctrlmsg::Subscription& subscription =
             streamParams.subscriptions()[0];
 
+        subscription.sId()        = 33;
         subscription.expression() = bmqp_ctrlmsg::Expression();
         subscription.consumers().resize(1);
 
@@ -312,13 +316,15 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1,
+                                                      bdlf::PlaceHolders::_2,
+                                                      bdlf::PlaceHolders::_3)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
-            BMQTST_ASSERT_EQ(subStreamInfo1.subId(), visitor1.d_subQueueId);
+            BMQTST_ASSERT_EQ(subscription.sId(), visitor1.d_subQueueId);
         }
-        // One consumer with two subscriptions
+        // Two consumers with different priorities with one subscription
         subscription.consumers().resize(2);
         {
             bmqp_ctrlmsg::ConsumerInfo& ci = subscription.consumers()[1];
@@ -350,11 +356,13 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1,
+                                                      bdlf::PlaceHolders::_2,
+                                                      bdlf::PlaceHolders::_3)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
-            BMQTST_ASSERT_EQ(subStreamInfo1.subId(), visitor1.d_subQueueId);
+            BMQTST_ASSERT_EQ(subscription.sId(), visitor1.d_subQueueId);
         }
         // Two consumers with two subscriptions
         mqbmock::QueueHandle         handle2 = storage.getHandle();
@@ -399,13 +407,17 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1,
+                                                      bdlf::PlaceHolders::_2,
+                                                      bdlf::PlaceHolders::_3)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor2,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1,
+                                                      bdlf::PlaceHolders::_2,
+                                                      bdlf::PlaceHolders::_3)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(visitor2.d_handle, visitor1.d_handle);
@@ -414,7 +426,9 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor2,
-                                                      bdlf::PlaceHolders::_1)),
+                                                      bdlf::PlaceHolders::_1,
+                                                      bdlf::PlaceHolders::_2,
+                                                      bdlf::PlaceHolders::_3)),
                              mqbblp::Routers::e_SUCCESS);
 
             if (visitor1.d_handle == &handle1) {
@@ -427,12 +441,10 @@ static void test3_parse()
             }
             else {
                 BMQTST_ASSERT_EQ(&handle2, visitor1.d_handle);
-                BMQTST_ASSERT_EQ(subStreamInfo2.subId(),
-                                 visitor1.d_subQueueId);
+                BMQTST_ASSERT_EQ(subscription.sId(), visitor1.d_subQueueId);
 
                 BMQTST_ASSERT_EQ(&handle1, visitor2.d_handle);
-                BMQTST_ASSERT_EQ(subStreamInfo1.subId(),
-                                 visitor2.d_subQueueId);
+                BMQTST_ASSERT_EQ(subscription.sId(), visitor2.d_subQueueId);
             }
         }
 
@@ -495,16 +507,15 @@ static void test4_generate()
         }
     }
 
-    bsls::ObjectBuffer<mqbmock::QueueHandle> handle1, handle2;
+    TestStorage storage(subQueueId, bmqtst::TestHelperUtil::allocator());
 
-    appContext.load(handle1.address(),
-                    &errorStream,
-                    subQueueId,
-                    upstreamSubQueueId,
-                    in,
-                    0);
+    mqbmock::QueueHandle handle1 = storage.getHandle();
+    mqbmock::QueueHandle handle2 = storage.getHandle();
+
+    appContext
+        .load(&handle1, &errorStream, subQueueId, upstreamSubQueueId, in, 0);
     BMQTST_ASSERT_EQ(errorStream.str(), "");
-    appContext.load(handle2.address(),
+    appContext.load(&handle2,
                     &errorStream,
                     subQueueId + 1,
                     upstreamSubQueueId,

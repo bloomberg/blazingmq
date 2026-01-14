@@ -108,7 +108,7 @@ void Queue::configureDispatchedAndPost(int*              result,
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(result);
     BSLS_ASSERT_SAFE(errorDescription);
     BSLS_ASSERT_SAFE(sync);
@@ -133,7 +133,7 @@ void Queue::configureDispatched(bool isReconfigure)
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bmqu::MemOutStream throwaway(d_allocator_p);
 
@@ -158,7 +158,7 @@ void Queue::getHandleDispatched(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(
         clientContext->requesterId() !=
         mqbi::QueueHandleRequesterContext::k_INVALID_REQUESTER_ID);
@@ -193,7 +193,7 @@ void Queue::releaseHandleDispatched(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->releaseHandle(handle,
@@ -219,7 +219,7 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (!d_state.handleCatalog().hasHandle(handle)) {
         // Specified 'handle' may have been destroyed by the time this routine
@@ -341,7 +341,7 @@ void Queue::closeDispatched()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->close();
@@ -361,7 +361,7 @@ void Queue::convertToLocalDispatched()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(d_remoteQueue_mp);
 
     BALL_LOG_INFO << d_state.uri() << ": converting to local "
@@ -443,7 +443,7 @@ void Queue::listMessagesDispatched(mqbcmd::QueueResult* result,
 {
     // executed by the *QUEUE* dispatcher thread
 
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (!appId.empty() && !d_state.storage()->hasVirtualStorage(appId)) {
         mqbcmd::Error& error = result->makeError();
@@ -468,7 +468,7 @@ void Queue::loadInternals(mqbcmd::QueueInternals* out)
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // State
     d_state.loadInternals(&out->state());
@@ -577,7 +577,7 @@ void Queue::convertToRemote()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(d_localQueue_mp);
 
     BALL_LOG_INFO << d_state.uri() << ": converting to remote";
@@ -590,7 +590,7 @@ void Queue::onLostUpstream()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_remoteQueue_mp) {
         d_remoteQueue_mp->onLostUpstream();
@@ -602,7 +602,7 @@ void Queue::onOpenFailure(unsigned int subQueueId)
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_remoteQueue_mp) {
         d_remoteQueue_mp->onOpenFailure(subQueueId);
@@ -616,7 +616,7 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_remoteQueue_mp) {
         d_remoteQueue_mp->onOpenUpstream(genCount, subQueueId, isWriterOnly);
@@ -645,7 +645,7 @@ void Queue::onReplicatedBatch()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->deliverIfNeeded();
@@ -698,8 +698,7 @@ void Queue::getHandle(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        dispatcher()->inDispatcherThread(d_state.domain()->cluster()));
+    BSLS_ASSERT_SAFE(d_state.domain()->cluster()->inDispatcherThread());
 
     dispatcher()->execute(bdlf::BindUtil::bind(&Queue::getHandleDispatched,
                                                this,
@@ -719,7 +718,7 @@ void Queue::configureHandle(
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->configureHandle(handle,
@@ -783,7 +782,7 @@ void Queue::onPushMessage(
     // executed by the *CLUSTER* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(domain()->cluster()));
+    BSLS_ASSERT_SAFE(domain()->cluster()->inDispatcherThread());
 
     // NOTE: This routine is invoked by clusterProxy/cluster whenever it
     //       receives a PUSH message from upstream.  It should only be used on
@@ -816,7 +815,7 @@ void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->confirmMessage(msgGUID, upstreamSubQueueId, source);
@@ -834,7 +833,7 @@ int Queue::rejectMessage(const bmqt::MessageGUID& msgGUID,
                          mqbi::QueueHandle*       source)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     int result = false;
 
     if (d_localQueue_mp) {
@@ -858,7 +857,7 @@ void Queue::onAckMessage(const bmqp::AckMessage& ackMessage)
     // executed by the *CLUSTER* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(domain()->cluster()));
+    BSLS_ASSERT_SAFE(domain()->cluster()->inDispatcherThread());
 
     // NOTE: This routine is invoked by clusterProxy/cluster whenever it
     //       receives an ACK from upstream.  It should only be used on a
@@ -920,7 +919,7 @@ void Queue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->onDispatcherEvent(event);
@@ -938,7 +937,7 @@ void Queue::flush()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_localQueue_mp) {
         d_localQueue_mp->flush();
@@ -956,7 +955,7 @@ bsls::Types::Int64 Queue::countUnconfirmed() const
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     return d_state.handleCatalog().countUnconfirmed();  // RETURN
 }
@@ -966,7 +965,7 @@ void Queue::setStopping()
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (isAtMostOnce()) {
         // Attempt to deliver all data in the storage.  Otherwise, broadcast

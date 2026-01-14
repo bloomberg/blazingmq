@@ -152,7 +152,7 @@ mqbi::QueueCounts QueueState::consumerAndProducerCounts(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queue()->dispatcher()->inDispatcherThread(queue()));
+    BSLS_ASSERT_SAFE(queue()->inDispatcherThread());
 
     const char* appId = bmqp::QueueUtil::extractAppId(params);
 
@@ -210,7 +210,7 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+    BSLS_ASSERT_SAFE(d_queue_p->inDispatcherThread());
 
     bmqu::MemOutStream os;
 

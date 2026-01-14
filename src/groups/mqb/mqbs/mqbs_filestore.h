@@ -1052,8 +1052,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the current sequence number for this partition.
     bsls::Types::Uint64 sequenceNumber() const;
 
-    bool inDispatcherThread() const;
-
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
 
@@ -1232,11 +1230,6 @@ inline void FileStore::execute(const mqbi::Dispatcher::VoidFunctor& functor)
     dispatcher()->execute(functor,
                           this,
                           mqbi::DispatcherEventType::e_CALLBACK);
-}
-
-inline bool FileStore::inDispatcherThread() const
-{
-    return dispatcher()->inDispatcherThread(this);
 }
 
 // MANIPULATORS

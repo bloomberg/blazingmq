@@ -44,7 +44,7 @@ using namespace bsl;
 namespace {
 
 static void
-printSummary(bslstl::StringRef desc, bsls::Types::Int64 dt, size_t iters)
+printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
 {
     bsl::cout << desc << ":" << bsl::endl;
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)

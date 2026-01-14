@@ -132,30 +132,33 @@ struct Visitor {
     {
         // NOTHING
     }
-    bool oneConsumer(const Routers::Subscription* subscription)
+    bool oneConsumer(mqbi::QueueHandle* handle,
+                     Routers::Consumer* consumer,
+                     unsigned int       downstreamSubscriptionId)
     {
-        d_downstreamSubscriptionId = subscription->d_downstreamSubscriptionId;
-        d_consumer                 = subscription->consumer();
-        d_handle                   = subscription->handle();
+        d_downstreamSubscriptionId = downstreamSubscriptionId;
+        d_consumer                 = consumer;
+        d_handle                   = handle;
 
         return true;
     }
-    bool minDelayConsumer(bsls::TimeInterval*          delay,
-                          const Routers::Subscription* subscription,
-                          const bsls::TimeInterval&    messageDelay,
-                          const bsls::TimeInterval&    now)
+    bool minDelayConsumer(bsls::TimeInterval*       delay,
+                          mqbi::QueueHandle*        handle,
+                          Routers::Consumer*        consumer,
+                          unsigned int              downstreamSubscriptionId,
+                          const bsls::TimeInterval& messageDelay,
+                          const bsls::TimeInterval& now)
     {
-        BSLS_ASSERT_SAFE(subscription);
+        BSLS_ASSERT_SAFE(handle);
+        BSLS_ASSERT_SAFE(consumer);
 
-        bsls::TimeInterval delayLeft =
-            subscription->consumer()->d_timeLastMessageSent + messageDelay -
-            now;
+        bsls::TimeInterval delayLeft = consumer->d_timeLastMessageSent +
+                                       messageDelay - now;
 
         if (delayLeft <= 0) {
-            d_handle   = subscription->handle();
-            d_consumer = subscription->consumer();
-            d_downstreamSubscriptionId =
-                subscription->d_downstreamSubscriptionId;
+            d_handle                   = handle;
+            d_consumer                 = consumer;
+            d_downstreamSubscriptionId = downstreamSubscriptionId;
 
             return true;
         }
@@ -647,12 +650,16 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
       bdlf::BindUtil::bindS(allocator,
                             &QueueEngineUtil_AppsDeliveryContext::visit,
                             this,
-                            bdlf::PlaceHolders::_1))
+                            bdlf::PlaceHolders::_1,
+                            bdlf::PlaceHolders::_2,
+                            bdlf::PlaceHolders::_3))
 , d_broadcastVisitor(bdlf::BindUtil::bindS(
       allocator,
       &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
       this,
-      bdlf::PlaceHolders::_1))
+      bdlf::PlaceHolders::_1,
+      bdlf::PlaceHolders::_2,
+      bdlf::PlaceHolders::_3))
 , d_revCounter(0)
 {
     BSLS_ASSERT_SAFE(queue);
@@ -767,27 +774,31 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
-    const Routers::Subscription* subscription)
+    mqbi::QueueHandle* handle,
+    BSLA_UNUSED Routers::Consumer* consumer,
+    unsigned int                   downstreamSubscriptionId)
 {
-    BSLS_ASSERT_SAFE(subscription);
+    BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(
         d_currentAppView_p &&
         "`d_currentAppView_p` must be assigned before calling this function");
 
-    d_consumers[subscription->handle()].push_back(
-        bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId,
+    d_consumers[handle].push_back(
+        bmqp::SubQueueInfo(downstreamSubscriptionId,
                            d_currentAppView_p->d_rdaInfo));
 
     return true;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visitBroadcast(
-    const Routers::Subscription* subscription)
+    mqbi::QueueHandle* handle,
+    BSLA_UNUSED Routers::Consumer* consumer,
+    unsigned int                   downstreamSubscriptionId)
 {
-    BSLS_ASSERT_SAFE(subscription);
+    BSLS_ASSERT_SAFE(handle);
 
-    d_consumers[subscription->handle()].push_back(
-        bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId));
+    d_consumers[handle].push_back(
+        bmqp::SubQueueInfo(downstreamSubscriptionId));
 
     return false;
 }
@@ -848,6 +859,11 @@ int QueueEngineUtil_AppsDeliveryContext::revCounter() const
 // struct AppConsumers_State
 // -------------------------
 
+QueueEngineUtil_AppState::VirtualIterator::~VirtualIterator()
+{
+    // NOTHING
+}
+
 // CREATORS
 QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     mqbi::Queue*                  queue,
@@ -898,38 +914,17 @@ QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
     // existing `RelayQueueEngine` routing contexts.
 }
 
-size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
-                                         mqbi::StorageIterator*       reader,
-                                         mqbi::StorageIterator*       start,
-                                         const mqbi::StorageIterator* end)
+size_t QueueEngineUtil_AppState::catchUp(
+    bsls::TimeInterval*                        delay,
+    QueueEngineUtil_AppState::VirtualIterator* start)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(delay);
-    BSLS_ASSERT_SAFE(reader);
     BSLS_ASSERT_SAFE(start);
-    BSLS_ASSERT_SAFE(end);
 
-    // deliver everything up to the 'end'
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasConsumers())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return 0;  // RETURN
-    }
-
-    size_t numMessages = processDeliveryLists(delay, reader);
-    // `reader` might keep a shared pointer to a memory mapped file area, and
-    // this prevents file set from closing possibly for a very long time.
-    // Make sure to invalidate any cached data within this iterator after use.
-    // TODO: refactor iterators to remove cached data.
-    reader->clearCache();
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_redeliveryList.size())) {
-        // We only attempt to deliver new messages if we successfully
-        // redelivered all messages in the redelivery list.
-        return numMessages;  // RETURN
-    }
+    // deliver everything up to the 'stop'
 
     // Deliver messages until either:
     //   1. End of storage; or
@@ -939,25 +934,20 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
     // 'end' is never CONFIRMed, so the 'VirtualStorageIterator' cannot skip it
 
     d_resumePoint = bmqt::MessageGUID();
-    while (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(start->hasReceipt())) {
-        if (!end->atEnd()) {
-            if (start->guid() == end->guid()) {
-                // Deliver the rest by 'QueueEngineUtil_AppsDeliveryContext'
-                break;
-            }
-        }
 
+    size_t                       numMessages = 0;
+    const mqbi::StorageIterator* current     = 0;
+    while ((current = start->next())) {
         Routers::Result result = Routers::e_SUCCESS;
 
         if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-            // No checking the state for broadcast
-            broadcastOneMessage(start);
+            broadcastOneMessage(current);
         }
         else {
-            result = tryDeliverOneMessage(delay, start, false);
+            result = tryDeliverOneMessage(delay, current, true);
 
             if (result == Routers::e_SUCCESS) {
-                reportStats(start);
+                reportStats(current);
 
                 ++numMessages;
             }
@@ -966,12 +956,12 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
                          result == Routers::e_NO_SUBSCRIPTION)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-                putAside(start->guid());
+                putAside(current->guid());
                 // Do not block other Subscriptions. Continue.
             }
             else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                          result == Routers::e_NO_CAPACITY_ALL)) {
-                d_resumePoint = start->guid();
+                d_resumePoint = current->guid();
                 break;
             }
             else {
@@ -979,14 +969,8 @@ size_t QueueEngineUtil_AppState::catchUp(bsls::TimeInterval*          delay,
                 // The {GUID, App} is not valid anymore
             }
         }
-
-        start->advance();
     }
-    // `start` might keep a shared pointer to a memory mapped file area, and
-    // this prevents file set from closing possibly for a very long time.
-    // Make sure to invalidate any cached data within this iterator after use.
-    // TODO: refactor iterators to remove cached data.
-    start->clearCache();
+
     return numMessages;
 }
 
@@ -1035,7 +1019,9 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
                                            &messageDelay)) {
         result = selectConsumer(bdlf::BindUtil::bind(&Visitor::oneConsumer,
                                                      &visitor,
-                                                     bdlf::PlaceHolders::_1),
+                                                     bdlf::PlaceHolders::_1,
+                                                     bdlf::PlaceHolders::_2,
+                                                     bdlf::PlaceHolders::_3),
                                 message,
                                 ordinal());
         // RelayQueueEngine_VirtualPushStorageIterator ignores ordinal
@@ -1047,6 +1033,8 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
                                      &visitor,
                                      delay,
                                      bdlf::PlaceHolders::_1,
+                                     bdlf::PlaceHolders::_2,
+                                     bdlf::PlaceHolders::_3,
                                      messageDelay,
                                      now),
                 message)) {
@@ -1085,22 +1073,25 @@ void QueueEngineUtil_AppState::broadcastOneMessage(
         bdlf::BindUtil::bind(&QueueEngineUtil_AppState::visitBroadcast,
                              this,
                              storageIter,
-                             bdlf::PlaceHolders::_1),
+                             bdlf::PlaceHolders::_1,
+                             bdlf::PlaceHolders::_2,
+                             bdlf::PlaceHolders::_3),
         storageIter);
 }
 
 bool QueueEngineUtil_AppState::visitBroadcast(
     const mqbi::StorageIterator* message,
-    const Routers::Subscription* subscription)
+    mqbi::QueueHandle*           handle,
+    BSLA_UNUSED Routers::Consumer* consumer,
+    unsigned int                   downstreamSubscriptionId)
 {
-    mqbi::QueueHandle* handle = subscription->handle();
     BSLS_ASSERT_SAFE(handle);
     // TBD: groupId: send 'options' as well...
     handle->deliverMessageNoTrack(
         *message,
         bmqp::Protocol::SubQueueInfosArray(
             1,
-            bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId)));
+            bmqp::SubQueueInfo(downstreamSubscriptionId)));
 
     return false;
 }
@@ -1116,6 +1107,13 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
         // The only excuse for stopping the iteration is poisonous message
         numMessages += processDeliveryList(delay, reader, d_putAsideList);
     }
+
+    // `reader` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    reader->clearCache();
+
     return numMessages;
 }
 

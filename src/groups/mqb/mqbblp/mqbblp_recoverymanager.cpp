@@ -386,7 +386,7 @@ void RecoveryManager::recoveryStartupWaitDispatched(int partitionId)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(d_partitionsInfo.size() >
                      static_cast<size_t>(partitionId));
@@ -2937,7 +2937,7 @@ int RecoveryManager::start(bsl::ostream& errorDescription)
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     if (isStarted()) {
         errorDescription << "Already started.";
