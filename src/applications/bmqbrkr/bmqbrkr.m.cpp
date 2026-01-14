@@ -609,7 +609,7 @@ int main(int argc, const char* argv[])
          "config",
          "Path to the configuration directory",
          balcl::TypeInfo(&configDir),
-         balcl::OccurrenceInfo::e_OPTIONAL},
+         balcl::OccurrenceInfo::e_REQUIRED},
         {"i|instanceId",
          "instanceId",
          "The instance ID ('default' if not provided)",
@@ -655,12 +655,6 @@ int main(int argc, const char* argv[])
         bsl::cout << "BlazingMQ broker version: "
                   << bmqbrkrscm::Version::version() << "\n";
         return 0;
-    }
-
-    if (configDir.empty()) {
-        bsl::cerr << "Error: No value supplied for the non-option argument "
-                     "\"config\".\n";
-        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
     }
 
     printStartStopTrace("STARTING");
