@@ -801,9 +801,8 @@ int IncoreClusterStateLedger::applyCommit(
                   << ", creating and applying commit advisory: "
                   << commitMessage << ".";
 
-    int                          rc           = rc_UNKNOWN;
     bsl::shared_ptr<bdlbb::Blob> commitRecord = d_blobSpPool_p->getObject();
-    rc = ClusterStateLedgerUtil::appendRecord(
+    int rc = ClusterStateLedgerUtil::appendRecord(
         commitRecord.get(),
         commitMessage,
         commitAdvisory.sequenceNumber(),
