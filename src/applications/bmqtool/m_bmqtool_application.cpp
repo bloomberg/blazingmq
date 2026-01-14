@@ -924,12 +924,10 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
     // Initialize session options
     bmqt::SessionOptions options;
     options.setBrokerUri(parameters.broker())
-        .setConnectTimeout(
-            bsls::TimeInterval(3 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE));
-    // NOTE: We use a 3 minutes timeout because sometimes the sysqc script may
-    //       execute right after the broker was started, and the broker may not
-    //       be able to accept/process the bmqtool connection request in due
-    //       time.
+        .setConnectTimeout(parameters.timeout());
+    // NOTE: A longer timeout may be needed when syschk runs right after broker
+    //       startup, as the broker may not immediately accept connections.
+    //       Use --timeoutSec to configure (default: 300s).
 
     // Create the session
     bmqa::Session session(options);
@@ -948,7 +946,7 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
             parameters.queueUri(),
             bmqt::QueueFlags::e_WRITE,
             bmqt::QueueOptions(),
-            bsls::TimeInterval(300));
+            parameters.timeout());
 
         if (!result) {
             BALL_LOG_ERROR << "Error while opening queue: [result: " << result
@@ -956,7 +954,7 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
             return result.result();  // RETURN
         }
 
-        session.closeQueueSync(&queueId, bsls::TimeInterval(300));
+        session.closeQueueSync(&queueId, parameters.timeout());
     }
 
     // Stop the connection
