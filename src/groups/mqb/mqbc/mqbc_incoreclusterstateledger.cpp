@@ -462,17 +462,15 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         ,
         rc_CREATE_ACK_FAILURE = -3  // Fail to create leader advisory ack
         ,
-        rc_CREATE_COMMIT_FAILURE = -4  // Fail to create leader advisory
-                                       // commit
+        rc_COMMIT_FAILURE = -4  // Fail to create leader advisory
+                                // commit
         ,
         rc_APPLY_ACK_FAILURE = -5  // Fail to apply leader advisory ack
         ,
-        rc_APPLY_COMMIT_FAILURE = -6  // Fail to apply leader advisory commit
-        ,
-        rc_SEND_ACK_FAILURE = -7  // Fail to send leader advisory ack
+        rc_SEND_ACK_FAILURE = -6  // Fail to send leader advisory ack
                                   // back to leader
         ,
-        rc_ADVISORY_NOT_FOUND = -8  // Advisory not found
+        rc_ADVISORY_NOT_FOUND = -7  // Advisory not found
     };
 
     int rc = rc_UNKNOWN;
