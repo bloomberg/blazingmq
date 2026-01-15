@@ -91,8 +91,8 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang" )
   endif()
 endif()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  # In Debug build, ensure that BSLS_ASSERT_SAFE macro is enabled
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+  # In Debug/RelWithDebInfo build, ensure that BSLS_ASSERT_SAFE macro is enabled
   add_definitions("-DBSLS_ASSERT_LEVEL_ASSERT_SAFE")
 endif()
 

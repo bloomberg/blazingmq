@@ -55,6 +55,7 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_algorithm.h>
 #include <bsl_functional.h>
+#include <bsl_future.h>
 #include <bsl_limits.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>
@@ -263,6 +264,29 @@ struct StorageUtil {
                                 FileStores*              fileStores,
                                 int                      partitionId,
                                 const bslstl::StringRef& partitionLocation);
+
+    /// Initiate the rollover of the partition out of the specified
+    /// `fileStores` having the specified `partitionId`.
+    /// Use the specified `allocator` for memory allocations.
+    /// Store the result into the specified `result` object.
+    ///
+    /// THREAD: Executed by the cluster-dispatcher thread.
+    static void doRollover(mqbcmd::StorageResult* result,
+                           FileStores*            fileStores,
+                           int                    partitionId,
+                           bslma::Allocator*      allocator);
+
+    /// Initiate the rollover of the partition out of the specified
+    /// `fileStores` having the specified `partitionId` and arrive on the
+    /// specified `latch` upon completion. Return error code via the specified
+    /// `rc`.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `partitionId`.
+    static void doRolloverDispatched(bslmt::Latch* latch,
+                                     int*          rc,
+                                     int           partitionId,
+                                     FileStores*   fileStores);
 
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.

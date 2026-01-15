@@ -161,7 +161,8 @@ class Cluster : public mqbi::Cluster,
 
     typedef mqbc::ClusterNodeSession::QueueHandleMap QueueHandleMap;
 
-    typedef mqbc::ClusterNodeSession::QueueHandleMapIter QueueHandleMapIter;
+    typedef mqbc::ClusterNodeSession::QueueHandleMapConstIter
+        QueueHandleMapConstIter;
 
     typedef bdlmt::EventScheduler::EventHandle SchedulerEventHandle;
 
@@ -343,12 +344,12 @@ class Cluster : public mqbi::Cluster,
     /// the cluster node identified by the specified cluster `nodeSession`.
     /// The specified `source` is used when logging, to indicate the origin
     /// of the ACK.
-    void sendAck(bmqt::AckResult::Enum     status,
-                 int                       correlationId,
-                 const bmqt::MessageGUID&  messageGUID,
-                 int                       queueId,
-                 const bslstl::StringRef&  source,
-                 mqbc::ClusterNodeSession* nodeSession);
+    void sendAck(bmqt::AckResult::Enum           status,
+                 int                             correlationId,
+                 const bmqt::MessageGUID&        messageGUID,
+                 int                             queueId,
+                 const bslstl::StringRef&        source,
+                 const mqbc::ClusterNodeSession* nodeSession);
 
     void processCommandDispatched(mqbcmd::ClusterResult*        result,
                                   const mqbcmd::ClusterCommand& command);
@@ -385,7 +386,7 @@ class Cluster : public mqbi::Cluster,
     /// the specified `queueHandle` if the queue is found.
     ValidationResult::Enum validateMessage(mqbi::QueueHandle**  queueHandle,
                                            const bmqp::QueueId& queueId,
-                                           mqbc::ClusterNodeSession* ns,
+                                           const mqbc::ClusterNodeSession* ns,
                                            bmqp::EventType::Enum eventType);
 
     /// Validate a relay message using the specified `pid`. Return true if the

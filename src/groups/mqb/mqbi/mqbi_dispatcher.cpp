@@ -566,6 +566,8 @@ bsl::ostream& DispatcherClientData::print(bsl::ostream& stream,
 // class DispatcherClient
 // ----------------------
 
+const bslmt::ThreadUtil::Id DispatcherClient::k_ANY_THREAD_ID = 0;
+
 DispatcherClient::~DispatcherClient()
 {
     // NOTHING

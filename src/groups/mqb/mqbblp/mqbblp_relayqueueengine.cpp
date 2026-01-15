@@ -176,6 +176,55 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, const Event& event)
     return stream;
 }
 
+struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
+    mqbblp::PushStreamIterator* d_start_p;
+    const bsls::Types::Uint64   d_stop;
+    bool                        d_doAdvance;
+
+    VirtualIterator(mqbblp::PushStreamIterator* start,
+                    mqbblp::PushStreamIterator* stop)
+    : d_start_p(start)
+    , d_stop((stop && !stop->atEnd()) ? stop->sequenceNumber() : 0)
+    , d_doAdvance(false)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_start_p);
+    }
+    ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
+    const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
+};
+
+VirtualIterator::~VirtualIterator()
+{
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    d_start_p->clearCache();
+}
+
+const mqbi::StorageIterator* VirtualIterator::next()
+{
+    if (d_doAdvance) {
+        d_start_p->advance();
+    }
+    else {
+        d_doAdvance = true;
+    }
+
+    if (d_start_p->atEnd()) {
+        return 0;
+    }
+
+    if (d_stop) {
+        if (d_start_p->sequenceNumber() >= d_stop) {
+            return 0;
+        }
+    }
+
+    return d_start_p;
+}
+
 }  // close unnamed namespace
 
 // ==================================
@@ -203,8 +252,7 @@ class RelayQueueEngine::AutoPurger {
         // executed by the *DISPATCHER* thread
         // PRECONDITIONS
         QueueState* qs = d_relayQueueEngine.d_queueState_p;
-        BSLS_ASSERT_SAFE(
-            qs->queue()->dispatcher()->inDispatcherThread(qs->queue()));
+        BSLS_ASSERT_SAFE(qs->queue()->inDispatcherThread());
 
         if (qs->isAtMostOnce()) {
             // We don't want to wait for confirmations in broadcast mode.
@@ -233,7 +281,7 @@ void RelayQueueEngine::onHandleCreation(void* ptr, void* cookie)
     mqbi::Queue*      queue         = qs->queue();
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
 
     queue->domain()->cluster()->onQueueHandleCreated(queue,
                                                      queue->uri(),
@@ -290,8 +338,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     }
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(context);
 
     // Force re-delivery
@@ -422,8 +469,7 @@ void RelayQueueEngine::onHandleReleasedDispatched(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     bdlb::ScopeExitAny proctorGuard(
         bdlf::BindUtil::bind(&QueueEngineUtil_ReleaseHandleProctor::release,
@@ -595,8 +641,7 @@ void RelayQueueEngine::deliverMessages()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // Auto-purge broadcast storage on exit.
     AutoPurger onExit(*this);
@@ -668,41 +713,30 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
-    // Position to the last 'Routers::e_NO_CAPACITY_ALL' point
-    bslma::ManagedPtr<PushStreamIterator> storageIter_mp;
-    PushStreamIterator*                   start = 0;
-
-    if (app->resumePoint().isUnset()) {
-        start = d_storageIter_mp.get();
-    }
-    else {
-        PushStream::iterator it = d_pushStream.d_stream.find(
-            app->resumePoint());
-
-        if (it == d_pushStream.d_stream.end()) {
-            // The message is gone because of purge
-            // Start at the beginning
-            it = d_pushStream.d_stream.begin();
-        }
-
-        storageIter_mp.load(new (*d_allocator_p)
-                                VirtualPushStreamIterator(upstreamSubQueueId,
-                                                          storage(),
-                                                          &d_pushStream,
-                                                          it),
-                            d_allocator_p);
-
-        start = storageIter_mp.get();
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!app->hasConsumers())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return;  // RETURN
     }
 
     bsls::TimeInterval delay;
-    app->catchUp(&delay,
-                 d_realStorageIter_mp.get(),
-                 start,
-                 d_storageIter_mp.get());
+    app->processDeliveryLists(&delay, d_realStorageIter_mp.get());
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
+        // We only attempt to deliver new messages if we successfully
+        // redelivered all messages in the redelivery list.
+
+        // Always start with the first element in the App and always stop at
+        // the d_storageIter_mp (the start of all Apps processing).
+        VirtualPushStreamIterator start(upstreamSubQueueId,
+                                        storage(),
+                                        &d_pushStream);
+
+        VirtualIterator vi(&start, d_storageIter_mp.get());
+
+        app->catchUp(&delay, &vi);
+    }
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
@@ -799,12 +833,7 @@ void RelayQueueEngine::configureApp(
         applyConfiguration(appState, *context);
         return;  // RETURN
     }
-
-    // Send a configure stream request upstream.
-    d_queueState_p->domain()->cluster()->configureQueue(
-        d_queueState_p->queue(),
-        streamParamsToSend,
-        appState.upstreamSubQueueId(),  // upstream subQueueId
+    const QueueHandle::HandleConfiguredCallback& callback =
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfigured,
                              this,
                              d_self.acquireWeak(),
@@ -812,7 +841,14 @@ void RelayQueueEngine::configureApp(
                              bdlf::PlaceHolders::_2,  // upStreamParameters
                              handle,
                              streamParameters,  // downStreamParameters
-                             context));
+                             context);
+
+    // Send a configure stream request upstream.
+    d_queueState_p->domain()->cluster()->configureQueue(
+        d_queueState_p->queue(),
+        streamParamsToSend,
+        appState.upstreamSubQueueId(),  // upstream subQueueId
+        callback);
 
     // 'onHandleConfigured' is now responsible for calling the callback
 }
@@ -825,8 +861,7 @@ void RelayQueueEngine::rebuildUpstreamState(Routers::AppContext* context,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     BSLS_ASSERT_SAFE(!appState->d_cache.empty());
 
@@ -878,8 +913,7 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     app.undoRouting();
 
@@ -1018,8 +1052,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
 #define CALLBACK(CAT, RC, MSG, HAN)                                           \
     if (callback) {                                                           \
@@ -1200,8 +1233,7 @@ void RelayQueueEngine::configureHandle(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
     // The 'context' will mirror streamParameters when calling 'configuredCb'
@@ -1262,8 +1294,7 @@ void RelayQueueEngine::releaseHandle(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     bsl::shared_ptr<QueueEngineUtil_ReleaseHandleProctor> proctor(
         new (*d_allocator_p)
@@ -1409,8 +1440,7 @@ void RelayQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
     // Note that specified 'subQueueId' is the downstream subId.
@@ -1445,8 +1475,7 @@ void RelayQueueEngine::afterNewMessage()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     deliverMessages();
 }
@@ -1458,8 +1487,7 @@ int RelayQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -1576,8 +1604,7 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
         d_storageIter_mp->removeAllElements();
@@ -1603,8 +1630,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // FIXME: This component can be invoked by mqbblp or mqbs components.  When
     // invoked by mqbs components, 'appKey' will be the one used at storage
@@ -1659,8 +1685,7 @@ void RelayQueueEngine::afterPostMessage()
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     // NOTHING
 }
@@ -1684,8 +1709,7 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     mqbcmd::RelayQueueEngine& relayQueueEngine = out->makeRelay();
 
@@ -1739,8 +1763,7 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     AppIds::iterator iter = d_appIds.find(appId);
 
@@ -1769,8 +1792,7 @@ void RelayQueueEngine::unregisterStorage(
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     AppIds::iterator iter = d_appIds.find(appId);
     mqbu::StorageKey key;

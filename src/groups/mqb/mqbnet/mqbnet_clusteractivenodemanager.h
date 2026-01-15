@@ -96,7 +96,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    d_clusterData.membership().netCluster()->registerObserver(this);
 //
@@ -116,7 +116,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    int result = d_activeNodeManager.refresh();
 //
@@ -144,7 +144,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    int result = d_activeNodeManager.onNodeStateChange(node, session);
 //
@@ -157,7 +157,7 @@
 //                                       // executed by the *DISPATCHER* thread
 //
 //    // PRECONDITIONS
-//    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+//    BSLS_ASSERT_SAFE(inDispatcherThread());
 //
 //    if (result & mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE) {
 //        // we lost our active node

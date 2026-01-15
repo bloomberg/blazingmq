@@ -18,11 +18,37 @@
 // MQB
 #include <mqbcfg_clusterquorummanager.h>
 
+// BDE
+#include <bslmt_lockguard.h>
+
 namespace BloombergLP {
 namespace mqbcfg {
 
-namespace {
+// MANIPULATORS
+void ClusterQuorumManager::setQuorum(unsigned int quorum,
+                                     unsigned int nodeCount)
+{
+    if (0 == quorum) {
+        quorum = nodeCount / 2 + 1;
+    }
 
-}  // close unnamed namespace
+    // It is permissible for 'quorum' to be greater than 'nodeCount'. This
+    // is useful in testing scenarios to prevent a leader from being
+    // elected.
+
+    d_quorum.store(quorum);
+
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    if (d_callback != 0) {
+        d_callback(quorum);
+    }
+}
+
+void ClusterQuorumManager::setCallback(const UpdateQuorumCallback& callback)
+{
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    d_callback = callback;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

@@ -181,8 +181,6 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 {
     d_params.flags() |= bmqt::QueueFlags::e_WRITE;
 
-    d_dispatcher._setInDispatcherThread(true);
-
     d_cluster._setPutFunctor(bdlf::BindUtil::bind(&TestBench::putProcessor,
                                                   this,
                                                   bdlf::PlaceHolders::_1,

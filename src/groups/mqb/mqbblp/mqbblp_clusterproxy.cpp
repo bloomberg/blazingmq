@@ -92,7 +92,7 @@ void ClusterProxy::startDispatched()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_isStarted &&
                      "start() can only be called once on this object");
 
@@ -138,7 +138,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_isStopping && "Shutdown already in progress");
 
     BALL_LOG_INFO << "Shutting down ClusterProxy: [name: '" << name() << "']";
@@ -173,7 +173,7 @@ void ClusterProxy::stopDispatched()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // Cancel all requests.
     bmqp_ctrlmsg::ControlMessage response;
@@ -219,7 +219,7 @@ void ClusterProxy::processCommandDispatched(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (command.isStatusValue()) {
         loadClusterStatus(result);
@@ -263,7 +263,7 @@ void ClusterProxy::refreshActiveNodeManagerDispatched()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     int result = d_activeNodeManager.refresh();
 
@@ -277,7 +277,7 @@ void ClusterProxy::processActiveNodeManagerResult(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (result & mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE) {
         onActiveNodeDown(node);
@@ -303,7 +303,7 @@ void ClusterProxy::onActiveNodeUp(mqbnet::ClusterNode* activeNode)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (d_isStopping) {
         BALL_LOG_INFO << description() << ": Ignoring 'ActiveNodeUp' "
@@ -335,7 +335,7 @@ void ClusterProxy::onActiveNodeDown(const mqbnet::ClusterNode* node)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(node);
 
     d_gateActiveNode.close();
@@ -387,7 +387,7 @@ void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // This PUSH event is sent by cluster (replica/primary) when new messages
     // are available for various RemoteQueues maintained by this proxy.
@@ -438,7 +438,7 @@ void ClusterProxy::onAckEvent(const mqbi::DispatcherAckEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     // This ACK event is sent by cluster (replica/primary) for various
@@ -481,7 +481,7 @@ void ClusterProxy::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(event.isRelay() == true);
 
     // executed by the *DISPATCHER* thread
@@ -651,7 +651,7 @@ ClusterProxy::sendRequest(const RequestManagerType::RequestSp& request,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     if (!d_activeNode_p) {
         // Not connected to any node, can't deliver the request.
@@ -724,7 +724,7 @@ void ClusterProxy::processPeerStopRequest(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_queueHelper.processNodeStoppingNotification(
         clusterNode,
@@ -741,7 +741,7 @@ void ClusterProxy::finishStopSequence(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // REVISIT
     // Internal-ticket D169562052
@@ -795,7 +795,7 @@ void ClusterProxy::processNodeStatusAdvisory(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // This advisory is when a node in the cluster identified by the specified
     // 'source', changes its status (eg STARTING -> AVAILABLE, AVAILABLE ->
@@ -814,7 +814,7 @@ void ClusterProxy::processResponseDispatched(
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     int rc = d_clusterData.requestManager().processResponse(response);
 
@@ -852,7 +852,7 @@ void ClusterProxy::loadQueuesInfo(mqbcmd::StorageContent* out) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_queueHelper.loadQueuesInfo(out);
 }
@@ -969,7 +969,7 @@ void ClusterProxy::initiateShutdown(const VoidFunctor& callback)
     // executed by *ANY* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(!inDispatcherThread());
     // Deadlock detection (because of the 'synchronize' call below,
     // we can't execute from any of the cluster's dispatcher thread).
 
@@ -1042,7 +1042,7 @@ void ClusterProxy::configureQueue(
     // executed by the associated *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(queue));
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
 
     d_queueHelper.configureQueue(queue,
                                  streamParameters,
@@ -1059,7 +1059,7 @@ void ClusterProxy::closeQueue(
     // executed by the associated *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(queue));
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
 
     d_queueHelper.closeQueue(queue,
                              handleParameters,
@@ -1114,7 +1114,7 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     mqbcmd::ClusterProxyStatus& clusterProxyStatus =
         out->makeClusterProxyStatus();
@@ -1227,7 +1227,7 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     BALL_LOG_TRACE << description() << ": processing dispatcher event '"
                    << event << "'";
@@ -1307,7 +1307,7 @@ void ClusterProxy::flush()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 }
 
 // MANIPULATORS
@@ -1363,7 +1363,7 @@ void ClusterProxy::onNodeUpDispatched(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     int result = d_activeNodeManager.onNodeUp(node, identity);
 
@@ -1375,7 +1375,7 @@ void ClusterProxy::onNodeDownDispatched(mqbnet::ClusterNode* node)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(node);
 
     int result = d_activeNodeManager.onNodeDown(node);
@@ -1405,7 +1405,7 @@ void ClusterProxy::printClusterStateSummary(bsl::ostream& out,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     mqbcmd::NodeStatuses nodeStatuses;
     d_activeNodeManager.loadNodesInfo(&nodeStatuses);
 

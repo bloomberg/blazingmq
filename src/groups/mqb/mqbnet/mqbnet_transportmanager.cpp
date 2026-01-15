@@ -642,8 +642,6 @@ void* TransportManager::getClusterNodeAndState(
 bool TransportManager::isEndpointLoopback(const bslstl::StringRef& uri) const
 {
     if (bmqu::StringUtil::startsWith(uri, "tcp://")) {
-        // NOTE: If we ever will listen to multiple TCP interfaces, we should
-        //       update here and return true if *any* one returns true.
         return d_tcpSessionFactory_mp &&
                d_tcpSessionFactory_mp->isEndpointLoopback(uri);  // RETURN
     }

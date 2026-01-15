@@ -439,17 +439,22 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     d_mockDispatcher_mp.load(new (*d_allocator_p)
                                  mqbmock::Dispatcher(d_allocator_p),
                              d_allocator_p);
-    d_mockDispatcher_mp->_setInDispatcherThread(true);
 
     d_mockDispatcherClient_mp.load(
         new (*d_allocator_p) mqbmock::DispatcherClient(d_allocator_p),
         d_allocator_p);
     d_mockDispatcherClient_mp->_setDescription("test.tsk:1");
 
+    // To pass `inDispatcherThread` checks:
+    d_mockDispatcherClient_mp->setThreadId(bslmt::ThreadUtil::selfId());
+
     // Cluster
     d_mockCluster_mp.load(new (*d_allocator_p) mqbmock::Cluster(d_allocator_p),
                           d_allocator_p);
     d_mockCluster_mp->_setIsClusterMember(true);
+
+    // To pass `inDispatcherThread` checks:
+    d_mockCluster_mp->setThreadId(bslmt::ThreadUtil::selfId());
 
     BSLS_ASSERT_OPT(d_mockCluster_mp->isClusterMember());
 
@@ -480,6 +485,11 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
 
     d_mockQueue_sp->_setDispatcher(d_mockDispatcher_mp.get());
 
+    // In some UTs, operations with mock queue might be executed either
+    // from the main thread or from the scheduler thread.
+    // To pass `inDispatcherThread` checks (allow ANY thread):
+    d_mockQueue_sp->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
+
     // Register queue in domain
     bslma::ManagedPtr<mqbi::Queue> queueMp(d_mockQueue_sp.managedPtr());
 
@@ -501,10 +511,8 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     BSLS_ASSERT_OPT(queueSp.get() == d_mockQueue_sp.get());
 
     // Simple sanity check on the mock dispatcher
-    BSLS_ASSERT_OPT(
-        d_mockDispatcher_mp->inDispatcherThread(d_mockQueue_sp.get()));
-    BSLS_ASSERT_OPT(
-        d_mockDispatcher_mp->inDispatcherThread(d_mockCluster_mp.get()));
+    BSLS_ASSERT_OPT(d_mockQueue_sp->inDispatcherThread());
+    BSLS_ASSERT_OPT(d_mockCluster_mp->inDispatcherThread());
 
     // Queue State
     d_queueState_mp.load(new (*d_allocator_p)

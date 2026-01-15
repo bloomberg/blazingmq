@@ -130,6 +130,18 @@ class PushStream {
         unsigned int numElements() const;
     };
 
+    struct Message {
+        Elements            d_appMessages;
+        bsls::Types::Uint64 d_sequenceNumber;
+
+        explicit Message(bsls::Types::Uint64 sequenceNumber);
+
+        /// Return number of Elements in the list
+        unsigned int numElements() const;
+
+        bsls::Types::Uint64 sequenceNumber() const;
+    };
+
     struct App {
         Elements                                   d_elements;
         bsl::shared_ptr<RelayQueueEngine_AppState> d_app;
@@ -153,7 +165,7 @@ class PushStream {
     };
 
     typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
-                                 Elements,
+                                 Message,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         Stream;
 
@@ -209,6 +221,8 @@ class PushStream {
 
     bsl::shared_ptr<bdlma::ConcurrentPool> d_pushElementsPool_sp;
 
+    bsls::Types::Uint64 d_nextSequenceNumber;
+
     // CREATORS
     /// @brief Construct this object.
     /// @param pushElementsPool_sp The shared push element pool used to supply
@@ -253,6 +267,9 @@ class PushStream {
                  unsigned int          subscriptionId,
                  const iterator&       iterator,
                  const Apps::iterator& iteratorApp);
+
+    /// Generate and return unique, monotonically increasing integer
+    bsls::Types::Uint64 nextSequenceNumber();
 };
 
 // ========================
@@ -303,6 +320,8 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// data are already loaded; return `true` otherwise.
     bool loadMessageAndAttributes() const;
 
+    const PushStream::Message& message() const;
+
   public:
     // CREATORS
 
@@ -329,6 +348,8 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// pairs) for the current PUSH GUID.
     /// The behavior is undefined unless `atEnd` returns `false`.
     unsigned int numApps() const;
+
+    bsls::Types::Uint64 sequenceNumber() const;
 
     /// Return the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pair).
@@ -402,12 +423,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
 /// A mechanism to iterate `Element`s related to one App only.
 class VirtualPushStreamIterator : public PushStreamIterator {
   private:
-    // DATA
-
-    /// An iterator to the App being iterated
-    PushStream::Apps::iterator d_itApp;
-
-  private:
     // NOT IMPLEMENTED
     VirtualPushStreamIterator(const VirtualPushStreamIterator&);  // = delete
     VirtualPushStreamIterator&
@@ -418,10 +433,9 @@ class VirtualPushStreamIterator : public PushStreamIterator {
 
     /// Create a new VirtualStorageIterator from the specified `storage` and
     /// pointing at the specified `initialPosition`.
-    VirtualPushStreamIterator(unsigned int                upstreamSubQueueId,
-                              mqbi::Storage*              storage,
-                              PushStream*                 owner,
-                              const PushStream::iterator& initialPosition);
+    VirtualPushStreamIterator(unsigned int   upstreamSubQueueId,
+                              mqbi::Storage* storage,
+                              PushStream*    owner);
 
     /// Destructor
     virtual ~VirtualPushStreamIterator() BSLS_KEYWORD_OVERRIDE;
@@ -497,7 +511,7 @@ inline const mqbi::AppMessage* PushStream::Element::appView() const
 
 inline PushStream::Elements& PushStream::Element::guid() const
 {
-    return d_iteratorGuid->second;
+    return d_iteratorGuid->second.d_appMessages;
 }
 
 inline PushStream::App& PushStream::Element::app() const
@@ -627,6 +641,23 @@ inline unsigned int PushStream::Elements::numElements() const
     return d_numElements;
 }
 
+inline PushStream::Message::Message(bsls::Types::Uint64 sequenceNumber)
+: d_appMessages()
+, d_sequenceNumber(sequenceNumber)
+{
+}
+
+/// Return number of Elements in the list
+inline unsigned int PushStream::Message::numElements() const
+{
+    return d_appMessages.numElements();
+}
+
+inline bsls::Types::Uint64 PushStream::Message::sequenceNumber() const
+{
+    return d_sequenceNumber;
+}
+
 inline PushStream::App::App(
     const bsl::shared_ptr<RelayQueueEngine_AppState>& app)
 : d_elements()
@@ -665,6 +696,11 @@ inline const PushStream::Element* PushStream::App::last() const
 // struct PushStream
 // -----------------
 
+inline bsls::Types::Uint64 PushStream::nextSequenceNumber()
+{
+    return ++d_nextSequenceNumber;
+}
+
 inline PushStream::Element* PushStream::add(const bmqp::RdaInfo& rda,
                                             unsigned int    subscriptionId,
                                             const iterator& it,
@@ -695,7 +731,10 @@ inline bool PushStream::findOrAddLast(iterator*                itGuid,
     iterator existing = d_stream.find(guid);
 
     if (existing == d_stream.end()) {
-        *itGuid = d_stream.insert(bsl::make_pair(guid, Elements())).first;
+        *itGuid = d_stream
+                      .insert(
+                          bsl::make_pair(guid, Message(nextSequenceNumber())))
+                      .first;
         return true;  // RETURN
     }
     if (existing == --d_stream.end()) {

@@ -87,8 +87,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -188,8 +187,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
     enum {
         rc_SUCCESS                   = 0,
         rc_QUEUE_CONFIGURE_FAILURE   = -1,
@@ -541,8 +539,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     // executed by the queue *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // Update stats
     if (isReconfigure) {
@@ -569,8 +566,7 @@ void RemoteQueue::resetState()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     erasePendingMessages(d_pendingMessages.end());
 
@@ -591,8 +587,7 @@ void RemoteQueue::close()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // This function is invoked when DomainManager stops.  Self node is past
     // e_STOPPING state meaning it has received all StopResponses meaning
@@ -630,8 +625,7 @@ void RemoteQueue::getHandle(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     mqbi::Cluster* cluster = d_state_p->domain()->cluster();
 
@@ -676,8 +670,7 @@ void RemoteQueue::configureHandle(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     d_queueEngine_mp->configureHandle(handle, streamParameters, configuredCb);
 }
@@ -691,8 +684,7 @@ void RemoteQueue::releaseHandle(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     mqbi::QueueHandle::HandleReleasedCallback onReleasedCallback =
         bdlf::BindUtil::bind(&RemoteQueue::onHandleReleased,
@@ -717,8 +709,7 @@ void RemoteQueue::onHandleReleased(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     d_state_p->updateStats();
 
@@ -788,8 +779,7 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     BALL_LOG_TRACE << d_state_p->description()
                    << ": processing dispatcher event '" << event << "'";
@@ -888,8 +878,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(
         source->subStreamInfos().find(bmqp::ProtocolUtil::k_DEFAULT_APP_ID) !=
         source->subStreamInfos().end());
@@ -1035,9 +1024,11 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
 
     mqbi::InlineResult::Enum rc = mqbi::InlineResult::e_UNAVAILABLE;
 
-    if (ctx.d_state == SubStreamContext::e_OPENED) {
-        putHeader.setQueueId(d_state_p->id());
+    // This is going to be an Inline PUT and its queueId needs a translation
+    // from downstream to upstream unconditionally.
+    putHeader.setQueueId(d_state_p->id());
 
+    if (ctx.d_state == SubStreamContext::e_OPENED) {
         mqbi::Cluster* cluster = d_state_p->domain()->cluster();
 
         rc = cluster->sendPutInline(d_state_p->partitionId(),
@@ -1107,8 +1098,7 @@ void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     if (1 != d_queueEngine_mp->onConfirmMessage(source,
                                                 msgGUID,
@@ -1155,8 +1145,7 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     BALL_LOG_TRACE << "OnReject [queue: '" << d_state_p->description()
                    << "', client: '" << *(source->client()) << "', GUID: '"
@@ -1219,8 +1208,7 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     BALL_LOG_TRACE << "OnConfirm [queue: '" << d_state_p->description()
                    << "', client: '" << *(source->client()) << "', GUID: '"
@@ -1256,8 +1244,7 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // This routine is invoked on the RemoteQueue by clusterProxy/cluster
     // whenever it receives an ACK from upstream.
@@ -1334,8 +1321,7 @@ size_t RemoteQueue::iteratePendingMessages(const PutsVisitor& visitor)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     size_t numMessages  = d_pendingMessages.size();
     size_t numProcessed = 0;
@@ -1363,8 +1349,7 @@ size_t RemoteQueue::iteratePendingConfirms(const ConfirmsVisitor& visitor)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     size_t numProcessed = 0;
     if (!d_pendingConfirms.empty()) {
@@ -1419,8 +1404,7 @@ void RemoteQueue::expirePendingMessagesDispatched()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     bsls::Types::Int64 now         = bmqsys::Time::highResolutionTimer();
     bsls::Types::Int64 nextTime    = 0;
@@ -1493,8 +1477,7 @@ void RemoteQueue::retransmitPendingMessagesDispatched(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     if (!d_pendingMessages.empty()) {
         size_t                  numTransmitted = 0;
@@ -1563,8 +1546,7 @@ void RemoteQueue::retransmitPendingConfirmsDispatched(
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     if (d_pendingConfirms.empty()) {
         return;  // RETURN
@@ -1600,8 +1582,7 @@ void RemoteQueue::cleanPendingMessages(mqbi::QueueHandle* handle)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
     size_t numMessages = 0;
@@ -1647,8 +1628,7 @@ void RemoteQueue::onOpenFailure(unsigned int upstreamSubQueueId)
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     SubStreamContext& ctx = subStreamContext(upstreamSubQueueId);
     ctx.d_state           = SubStreamContext::e_CLOSED;
@@ -1725,8 +1705,7 @@ void RemoteQueue::onLostUpstream()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // Connection with upstream was lost.
     for (SubQueueIds::iterator i = d_subStreams.begin();
@@ -1749,8 +1728,7 @@ void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     SubStreamContext& ctx = isWriterOnly
                                 ? d_producerState
@@ -1824,8 +1802,7 @@ void RemoteQueue::loadInternals(mqbcmd::RemoteQueue* out) const
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     out->numPendingPuts()                 = d_pendingMessages.size();
     out->numPendingConfirms()             = d_pendingConfirms.size();

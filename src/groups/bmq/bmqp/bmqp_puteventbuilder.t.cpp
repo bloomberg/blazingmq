@@ -39,6 +39,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bsl_algorithm.h>
+#include <bsl_cmath.h>    // for bsl::fabs
 #include <bsl_cstring.h>  // for bsl::strlen
 #include <bsl_fstream.h>
 #include <bsl_ios.h>
@@ -2606,6 +2607,90 @@ static void testN1_decodeFromFile()
     BMQTST_ASSERT_EQ(false, putIter.isValid());
 }
 
+static void test8_compressionRatioAccessor()
+// ------------------------------------------------------------------------
+// COMPRESSION RATIO ACCESSOR
+//
+// Concerns:
+//   1. 'lastPackedMesageCompressionRatio' returns -1.0 initially and after
+//      'reset()'.
+//   2. Returns 1.0 when compression is disabled.
+//   3. Returns > 1.0 when compression is successful.
+//
+// Plan:
+//   1. Verify initial state (-1.0).
+//   2. Pack uncompressed message, verify 1.0.
+//   3. Reset, verify -1.0.
+//   4. Pack compressible ZLIB message, verify > 1.0.
+//
+// Testing:
+//   lastPackedMesageCompressionRatio()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("COMPRESSION RATIO ACCESSOR");
+
+    const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    const int   k_PAYLOAD_BIGGER_LEN =
+        bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE + 400;
+
+    char k_PAYLOAD_BIGGER[k_PAYLOAD_BIGGER_LEN];
+    for (int i = 0; i < k_PAYLOAD_BIGGER_LEN; i++) {
+        k_PAYLOAD_BIGGER[i] = k_PAYLOAD[i % 26];
+    }
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4096,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+
+    bmqp::PutEventBuilder obj(blobSpPool.get(),
+                              bmqtst::TestHelperUtil::allocator());
+
+    const int    k_QID = 9876;
+    const double k_EPS = 1e-6;
+
+    // 1. Verify Initial State (-1.0)
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - (-1.0)) <
+                  k_EPS);
+
+    // 2. Pack Uncompressed Message (Expect 1.0)
+    bmqt::MessageGUID guid;
+    guid.fromHex("40000000000000000000000000000001");
+
+    obj.startMessage();
+    obj.setMessageGUID(guid);
+    obj.setMessagePayload(k_PAYLOAD, bsl::strlen(k_PAYLOAD));
+    obj.setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE);
+
+    BMQTST_ASSERT_EQ(obj.packMessage(k_QID),
+                     bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - 1.0) <
+                  k_EPS);
+
+    // 3. Verify Reset Returns Ratio to -1.0
+    obj.reset();
+    BMQTST_ASSERT(bsl::fabs(obj.lastPackedMesageCompressionRatio() - (-1.0)) <
+                  k_EPS);
+
+    // 4. Pack Compressible Message with ZLIB (Expect > 1.0)
+    guid.fromHex("40000000000000000000000000000002");
+
+    obj.startMessage();
+    obj.setMessageGUID(guid);
+    obj.setMessagePayload(k_PAYLOAD_BIGGER, k_PAYLOAD_BIGGER_LEN);
+    obj.setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_ZLIB);
+
+    BMQTST_ASSERT_EQ(obj.packMessage(k_QID),
+                     bmqt::EventBuilderResult::e_SUCCESS);
+
+    const double ratio = obj.lastPackedMesageCompressionRatio();
+    PV("Compression Ratio: " << ratio);
+    BMQTST_ASSERT_GT(ratio, 1.0);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -2634,6 +2719,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 8: test8_compressionRatioAccessor(); break;
     case 7: test7_multiplePackMessage(); break;
     case 6: test6_emptyBuilder(); break;
     case 5: test5_putEventWithZeroLengthMessage(); break;

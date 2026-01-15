@@ -1827,7 +1827,7 @@ void Elector::electorStateInternalCb(ElectorState::Enum            state,
     // executed by the *CLUSTER* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     if (age <= d_previousEventAge) {
         BALL_LOG_WARN
@@ -1880,7 +1880,7 @@ void Elector::dispatchElectorCallback()
     // executed by the *CLUSTER* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     electorStateInternalCb(d_state.state(),
                            d_state.reason(),
@@ -2264,7 +2264,7 @@ Elector::~Elector()
 int Elector::start()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     enum {
         rc_SUCCESS           = 0,
@@ -2344,7 +2344,7 @@ int Elector::start()
 void Elector::stop()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);  // LOCK
 
@@ -2380,7 +2380,7 @@ void Elector::stop()
 void Elector::processEvent(const bmqp::Event& event, ClusterNode* source)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     BSLS_ASSERT_SAFE(event.isValid());
     BSLS_ASSERT_SAFE(event.isElectorEvent());
@@ -2430,7 +2430,7 @@ void Elector::processEvent(const bmqp::Event& event, ClusterNode* source)
 void Elector::processNodeStatus(ClusterNode* node, bool isAvailable)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);  // LOCK
 
@@ -2448,7 +2448,7 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
                             const mqbcmd::ElectorCommand& command)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     if (command.isSetTunableValue()) {
         const mqbcmd::SetTunable& tunable = command.setTunable();

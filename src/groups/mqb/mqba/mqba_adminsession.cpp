@@ -128,7 +128,7 @@ void AdminSession::sendPacket()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     bdlb::ScopeExitAny resetBlobScopeGuard(
         bdlf::BindUtil::bind(&bmqp::SchemaEventBuilder::reset,
@@ -176,7 +176,7 @@ void AdminSession::initiateShutdownDispatched(const ShutdownCb& callback)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(callback);
 
     d_running = false;
@@ -190,7 +190,7 @@ void AdminSession::finalizeAdminCommand(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(adminCommandCtrlMsg.choice().isAdminCommandValue());
     BSLS_ASSERT_SAFE(d_state.d_schemaEventBuilder.blob()->length() == 0);
 
@@ -245,7 +245,7 @@ void AdminSession::enqueueAdminCommand(
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(adminCommandCtrlMsg.choice().isAdminCommandValue());
 
     bmqp_ctrlmsg::AdminCommand req =
@@ -374,7 +374,7 @@ void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
 {
     // executed by the *CLIENT* dispatcher thread
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     d_self.invalidate();
 
@@ -430,7 +430,7 @@ void AdminSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // NOTE: We don't perform 'd_operationState' check in this method because
     //       it might be desirable to dispatch certain callbacks to the client
@@ -475,7 +475,7 @@ void AdminSession::flush()
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(inDispatcherThread());
 
     // No pending events are expected for admin session.
 }

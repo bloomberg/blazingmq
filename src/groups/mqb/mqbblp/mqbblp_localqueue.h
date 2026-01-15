@@ -248,8 +248,7 @@ inline mqbi::QueueEngine* LocalQueue::queueEngine()
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     return d_queueEngine_mp.get();
 }

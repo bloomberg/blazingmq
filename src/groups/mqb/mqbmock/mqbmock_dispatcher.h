@@ -70,11 +70,6 @@ class Dispatcher : public mqbi::Dispatcher {
     // A map from clients to events.
   private:
     // DATA
-    bool d_inDispatcherThread;
-    // A flag indicating whether the
-    // current thread is in the dispatcher
-    // thread with respect to any client
-
     EventMap d_eventsForClients;
     // Maps clients to currently processed
     // events;
@@ -204,32 +199,12 @@ class Dispatcher : public mqbi::Dispatcher {
                      mqbi::Dispatcher::ProcessorHandle handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    // MANIPULATORS
-    //   (specific to mqbmock::Dispatcher)
-
-    /// Set the value returned by this dispatcher when calling
-    /// `inDispatcherThread()` and return a reference offering modifiable
-    /// access to this object.
-    Dispatcher& _setInDispatcherThread(bool value);
-
     // ACCESSORS
     //   (virtual: mqbi::Dispatcher)
 
     /// Return the number of processors dedicated for dispatching clients of
     /// the specified `type`.
     int numProcessors(mqbi::DispatcherClientType::Enum type) const
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Return whether the current thread is the dispatcher thread
-    /// associated to the specified `client`.  This is useful for
-    /// preconditions assert validation.
-    bool inDispatcherThread(const mqbi::DispatcherClient* client) const
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Return whether the current thread is the dispatcher thread
-    /// associated to the specified dispatcher client `data`.  This is
-    /// useful for preconditions assert validation.
-    bool inDispatcherThread(const mqbi::DispatcherClientData* data) const
         BSLS_KEYWORD_OVERRIDE;
 
     /// Not implemented.

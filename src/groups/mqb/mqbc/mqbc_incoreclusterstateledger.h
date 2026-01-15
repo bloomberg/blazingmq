@@ -220,6 +220,10 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     int onLogRolloverCb(const mqbu::StorageKey& oldLogId,
                         const mqbu::StorageKey& newLogId);
 
+    /// Callback invoked when the cluster's quorum changes to the specified new
+    /// value `ackQuorum`.
+    void onQuorumChangeCb(unsigned int ackQuorum);
+
     /// Internal helper method to apply the advisory in the specified
     /// `clusterMessage`, of the specified `recordType` and identified by
     /// the specified `sequenceNumber`.  Notify via `commitCb` when consistency
@@ -257,9 +261,24 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
         ClusterStateRecordType::Enum               recordType);
 
+    /// Internal helper method to apply commit for the advisory with the
+    /// specified `sequenceNumber` as the specified `ackQuorum` is reached.
+    int applyCommit(const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+                    unsigned int                               ackQuorum);
+
     /// Cancel all uncommitted advisories.  Called upon new leader or term,
     /// or when this ledger is closed.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
     void cancelUncommittedAdvisories();
+
+    /// Review all uncommitted advisories and commit those which have more acks
+    /// then the new `ackQuorum`. Called upon quorum change.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void reviewUncommittedAdvisories(unsigned int ackQuorum);
 
     /// Apply the specified raw cluster state record `event` received from
     /// the specified `source` node.  Note that while a replica node may
@@ -278,7 +297,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bool isSelfLeader() const;
 
-    // Return the acknowledgment quorum required for this ledger.
+    /// Return the acknowledgment quorum required for this ledger.
     unsigned int getAckQuorum() const;
 
   public:
@@ -301,20 +320,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     /// Destructor.
     ~IncoreClusterStateLedger() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-    //   (virtual mqbc::ElectorInfoObserver)
-
-    /// Callback invoked when the cluster's leader changes to the specified
-    /// `node` with specified `status`.  Note that null is a valid value for
-    /// the `node`, and it implies that the cluster has transitioned to a
-    /// state of no leader, and in this case, `status` will be `UNDEFINED`.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    void onClusterLeader(mqbnet::ClusterNode*          node,
-                         ElectorInfoLeaderStatus::Enum status)
-        BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual mqbc::ClusterStateLedger)
@@ -454,9 +459,7 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_clusterData_p->electorInfo().isSelfLeader();
 }
@@ -480,9 +483,7 @@ inline bool IncoreClusterStateLedger::isOpen() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_isOpen;
 }
@@ -498,9 +499,7 @@ inline const mqbsi::Ledger* IncoreClusterStateLedger::ledger() const
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
-            &d_clusterData_p->cluster()));
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
     return d_ledger_mp.get();
 }

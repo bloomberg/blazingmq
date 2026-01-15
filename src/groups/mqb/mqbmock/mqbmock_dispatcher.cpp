@@ -34,8 +34,7 @@ namespace mqbmock {
 
 // CREATORS
 Dispatcher::Dispatcher(bslma::Allocator* allocator)
-: d_inDispatcherThread(false)
-, d_eventsForClients(allocator)
+: d_eventsForClients(allocator)
 , d_mutex()
 , d_queue(allocator)
 , d_allocator_p(allocator)
@@ -57,6 +56,7 @@ Dispatcher::ProcessorHandle Dispatcher::registerClient(
     BSLA_UNUSED mqbi::Dispatcher::ProcessorHandle handle)
 {
     client->dispatcherClientData().setDispatcher(this).setClientType(type);
+    client->setThreadId(bslmt::ThreadUtil::selfId());
 
     return Dispatcher::k_INVALID_PROCESSOR_HANDLE;
 }
@@ -166,32 +166,12 @@ void Dispatcher::synchronize(
     // NOTHING
 }
 
-// MANIPULATORS
-//   (specific to mqbmock::Dispatcher)
-Dispatcher& Dispatcher::_setInDispatcherThread(bool value)
-{
-    d_inDispatcherThread = value;
-    return *this;
-}
-
 // ACCESSORS
 //   (virtual: mqbi::Dispatcher)
 int Dispatcher::numProcessors(
     BSLA_UNUSED mqbi::DispatcherClientType::Enum type) const
 {
     return 1;  // placeholder value for number of processors
-}
-
-bool Dispatcher::inDispatcherThread(
-    BSLA_UNUSED const mqbi::DispatcherClient* client) const
-{
-    return d_inDispatcherThread;
-}
-
-bool Dispatcher::inDispatcherThread(
-    BSLA_UNUSED const mqbi::DispatcherClientData* data) const
-{
-    return d_inDispatcherThread;
 }
 
 bmqex::Executor

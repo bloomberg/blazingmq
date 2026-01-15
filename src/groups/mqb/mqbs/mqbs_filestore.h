@@ -525,7 +525,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// and make rolled over file set the new active file set.  Return zero
     /// on success, non-zero value otherwise.  Note that in its *current*
     /// implementation, this routine has no side-effect in case of failure.
-    int rollover(bsls::Types::Uint64 timestamp);
+    int rolloverImpl(bsls::Types::Uint64 timestamp);
 
     /// If the specified `file` of specified `fileType` having specified
     /// `currentSize` and `fileName` cannot accommodate additional
@@ -950,8 +950,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// used with caution.
     void deprecateFileSet();
 
-    /// Initiate a forced rollover of this partition.
-    void forceRollover();
+    /// Perform complete rollover of this partition and issue necessary sync
+    /// points.
+    int rollover();
 
     void registerStorage(ReplicatedStorage* storage);
 
@@ -1074,8 +1075,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Return the current sequence number for this partition.
     bsls::Types::Uint64 sequenceNumber() const;
-
-    bool inDispatcherThread() const;
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
@@ -1255,11 +1254,6 @@ inline void FileStore::execute(const mqbi::Dispatcher::VoidFunctor& functor)
     dispatcher()->execute(functor,
                           this,
                           mqbi::DispatcherEventType::e_CALLBACK);
-}
-
-inline bool FileStore::inDispatcherThread() const
-{
-    return dispatcher()->inDispatcherThread(this);
 }
 
 // MANIPULATORS

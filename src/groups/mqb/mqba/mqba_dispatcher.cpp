@@ -111,8 +111,8 @@ void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
     BSLS_ASSERT(f);
     BSLS_ASSERT(d_processorPool_p->isStarted());
 
-    if (d_processorPool_p->queueThreadHandle(d_processorHandle) ==
-        bslmt::ThreadUtil::self()) {
+    if (d_processorPool_p->queueThreadId(d_processorHandle) ==
+        bslmt::ThreadUtil::selfId()) {
         // This function is called from the processor's thread. Invoke the
         // submitted function object in-place.
         f();
@@ -486,6 +486,8 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             .setDispatcher(this)
             .setClientType(type)
             .setProcessorHandle(processor);
+        client->setThreadId(
+            context.d_processorPool_mp->queueThreadId(processor));
 
         BALL_LOG_DEBUG << "Registered a new client to the dispatcher "
                        << "[Client: " << client->description()
@@ -593,8 +595,8 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_contexts[type]->d_processorPool_mp->queueThreadHandle(handle) !=
-        bslmt::ThreadUtil::self());  // Deadlock detection
+        d_contexts[type]->d_processorPool_mp->queueThreadId(handle) !=
+        bslmt::ThreadUtil::selfId());  // Deadlock detection
 
     typedef void (bslmt::Semaphore::*PostFn)();
 

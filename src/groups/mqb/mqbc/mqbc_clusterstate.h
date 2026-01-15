@@ -1104,7 +1104,7 @@ inline bool ClusterState::isSelfPrimary(int partitionId) const
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
     BSLS_ASSERT_SAFE(!cluster()->isRemote());
 
     if (mqbi::Storage::k_INVALID_PARTITION_ID == partitionId) {
@@ -1128,7 +1128,7 @@ inline bool ClusterState::isSelfActivePrimary(int partitionId) const
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     if (!isSelfPrimary(partitionId)) {
         return false;  // RETURN
@@ -1146,7 +1146,7 @@ inline int ClusterState::partitionsCount() const
 inline bool ClusterState::isSelfPrimary() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     for (PartitionsInfo::const_iterator cit = d_partitionsInfo.begin();
          cit != d_partitionsInfo.end();
@@ -1163,7 +1163,7 @@ inline bool ClusterState::isSelfPrimary() const
 inline bool ClusterState::isSelfActivePrimary() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
     for (PartitionsInfo::const_iterator cit = d_partitionsInfo.begin();
          cit != d_partitionsInfo.end();

@@ -516,8 +516,7 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -568,8 +567,7 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -857,8 +855,7 @@ void Domain::loadRoutingConfiguration(
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(config);
 
     bmqp::RoutingConfigurationUtils::clear(config);

@@ -2775,7 +2775,7 @@ int FileStore::create(FileSetSp* fileSetSp)
                                  d_allocator_p);
 }
 
-int FileStore::rollover(bsls::Types::Uint64 timestamp)
+int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -3143,32 +3143,35 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         activeFileSet->d_journalFileAvailable = false;
     }
 
-    bmqu::MemOutStream out;
-    out << partitionDesc() << "Rollover is required due to " << fileType
-        << " file [" << fileName << "] reaching capacity. Current size: "
-        << bmqu::PrintUtil::prettyNumber(
-               static_cast<bsls::Types::Int64>(currentSize))
-        << ", capacity: "
-        << bmqu::PrintUtil::prettyNumber(
-               static_cast<bsls::Types::Int64>(file.fileSize()))
-        << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
-        << " and DATA files satisfy "
-        << "rollover criteria. Minimum required available space in each file: "
-        << "[" << d_config.minAvailSpacePercent() << "%]. "
-        << "Requested record length: " << requestedSpace
-        << ". Outstanding bytes in each file:" << "\nJOURNAL: "
-        << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-               activeFileSet->d_outstandingBytesJournal))
-        << "\nDATA: "
-        << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-               activeFileSet->d_outstandingBytesData));
-    if (d_qListAware) {
-        out << "\nQLIST: "
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc() << "Rollover is required due to " << fileType
+            << " file [" << fileName << "] reaching capacity. Current size: "
+            << bmqu::PrintUtil::prettyNumber(
+                   static_cast<bsls::Types::Int64>(currentSize))
+            << ", capacity: "
+            << bmqu::PrintUtil::prettyNumber(
+                   static_cast<bsls::Types::Int64>(file.fileSize()))
+            << ". Checking if JOURNAL" << (d_qListAware ? ", QLIST" : "")
+            << " and DATA files satisfy rollover criteria. "
+            << "Minimum required available space in each file: ["
+            << d_config.minAvailSpacePercent()
+            << "%]. Requested record length: " << requestedSpace
+            << ". Outstanding bytes in each file:\nJOURNAL: "
             << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                   activeFileSet->d_outstandingBytesQlist));
+                   activeFileSet->d_outstandingBytesJournal))
+            << "\nDATA: "
+            << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                   activeFileSet->d_outstandingBytesData));
+        if (d_qListAware) {
+            BALL_LOG_OUTPUT_STREAM
+                << "\nQLIST: "
+                << bmqu::PrintUtil::prettyNumber(
+                       static_cast<bsls::Types::Int64>(
+                           activeFileSet->d_outstandingBytesQlist));
+        }
     }
-
-    BALL_LOG_INFO << out.str();
 
     // All 3 files must satisfy the rollover policy before we can initiate the
     // rollover.  Note that we also add the 'requestedSpace' in the
@@ -3279,7 +3282,7 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
             availableSpacePercent = availableSpacePercentData;
         }
 
-        out.reset();
+        bmqu::MemOutStream out(d_allocator_p);
         out << partitionDesc() << "[" << fileType
             << "] file is full but partition cannot be "
             << "rolled over because rolled over [" << cannotRolloverFileType
@@ -3357,6 +3360,34 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
         d_partitionMaxFileSizes = adjustedMaxFileSizes;
     }
 
+    rc = rollover();
+    if (0 != rc) {
+        return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStore::rollover()
+{
+    enum {
+        rc_SUCCESS                        = 0,
+        rc_SYNC_POINT_FAILURE             = -1,
+        rc_ROLLOVER_FAILURE               = -2,
+        rc_SYNC_POINT_FORCE_ISSUE_FAILURE = -3
+    };
+
+    int rc = rc_SUCCESS;
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
+    // If JOURNAL is full, it must be marked so, and this routine should
+    // not be invoked.
+
+    BALL_LOG_INFO << partitionDesc() << "Start rollover.";
+
     // Issue sync point first.
 
     bmqp_ctrlmsg::SyncPoint syncPt;
@@ -3382,7 +3413,8 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     // Then initiate rollover.
 
-    rc = rollover(bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+    rc = rolloverImpl(
+        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
     if (0 != rc) {
         return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
     }
@@ -4853,7 +4885,9 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                     << ", at journal offset: " << recordOffset
                     << ". Initiating rollover.";
 
-                int rc = rollover(jOpRec->header().timestamp());
+                // We can call rolloverImpl() directly here instead of
+                // rollover() because there is no need to issue sync points.
+                int rc = rolloverImpl(jOpRec->header().timestamp());
 
                 if (0 != rc) {
                     BMQTSK_ALARMLOG_ALARM("REPLICATION")
@@ -5351,6 +5385,7 @@ FileStore::FileStore(
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
+    BSLS_ASSERT(dispatcher);
     BSLS_ASSERT(d_cluster_p);
     BSLS_ASSERT(1 <= clusterSize());
     if (d_isFSMWorkflow) {
@@ -7337,25 +7372,6 @@ void FileStore::deprecateFileSet()
     }
 
     archive(d_fileSets[0].get());
-}
-
-void FileStore::forceRollover()
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(inDispatcherThread());
-
-    if (!d_isOpen || !d_isPrimary) {
-        return;  // RETURN
-    }
-
-    const int rc = rollover(
-        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
-    if (rc != 0) {
-        BALL_LOG_ERROR << partitionDesc()
-                       << "Forced partition rollover failed with rc: " << rc;
-    }
 }
 
 void FileStore::registerStorage(ReplicatedStorage* storage)

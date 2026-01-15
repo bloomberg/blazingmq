@@ -157,7 +157,8 @@ class InlineClient {
              const bsl::shared_ptr<bdlbb::Blob>&       message,
              const mqbi::StorageMessageAttributes&     attributes,
              const bmqp::MessagePropertiesInfo&        mps,
-             const bmqp::Protocol::SubQueueInfosArray& subQueues) = 0;
+             const bmqp::Protocol::SubQueueInfosArray& subQueues,
+             bool                                      isOutOfOrder) = 0;
     // Called by the 'queueId' to deliver the specified 'message' with the
     // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
     // specified 'subQueues' streams of the queue.
@@ -775,6 +776,10 @@ class QueueHandle {
     /// Return true if the client associated with this queue handle is a
     /// cluster member, false otherwise.
     virtual bool isClientClusterMember() const = 0;
+
+    /// Return a pointer offering non-modifiable access to the client
+    /// context associated with this object.
+    virtual const QueueHandleRequesterContext* clientContext() const = 0;
 
     /// Return true if the queueHandle can send a message to the client
     /// which has subscribed to the specified `downstreamSubscriptionId`,
