@@ -1638,7 +1638,6 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
             clusterMessage.choice().queueUnAssignmentAdvisory();
-
         applyQueueUnassignment(clusterState, queueAdvisory.queues());
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {

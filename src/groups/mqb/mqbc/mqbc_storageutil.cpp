@@ -576,6 +576,100 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
     }
 }
 
+void StorageUtil::doRollover(mqbcmd::StorageResult* result,
+                             FileStores*            fileStores,
+                             int                    partitionId,
+                             bslma::Allocator*      allocator
+
+)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+
+    if (partitionId < 0) {
+        bslmt::Latch     latch(fileStores->size());
+        bsl::vector<int> rcs(fileStores->size(), allocator);
+
+        for (unsigned int i = 0; i < fileStores->size(); ++i) {
+            mqbs::FileStore* fs = fileStores->at(i).get();
+            fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
+                                             &latch,
+                                             &rcs[i],
+                                             i,
+                                             fileStores));
+        }
+
+        // Wait
+        bool allSuccess = true;
+        latch.wait();
+
+        bmqu::MemOutStream output;
+        for (unsigned int i = 0; i < fileStores->size(); ++i) {
+            const int rc = rcs[i];
+            if (rc != 0) {
+                output << "Rollover failed on partition " << i
+                       << ", rc: " << rc << ". ";
+                allSuccess = false;
+            }
+        }
+
+        if (allSuccess) {
+            result->makeSuccess();
+        }
+        else {
+            result->makeError();
+            result->error().message() = output.str();
+        }
+    }
+    else {
+        int          rc = 0;
+        bslmt::Latch latch(1);
+
+        mqbs::FileStore* fs = fileStores->at(partitionId).get();
+        fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
+                                         &latch,
+                                         &rc,
+                                         partitionId,
+                                         fileStores));
+
+        // Wait
+        latch.wait();
+
+        if (rc == 0) {
+            result->makeSuccess();
+        }
+        else {
+            bmqu::MemOutStream output;
+            output << "Rollover failed on partition " << partitionId
+                   << ", rc: " << rc;
+            result->makeError();
+            result->error().message() = output.str();
+        }
+    }
+}
+
+void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
+                                       int*          rc,
+                                       int           partitionId,
+                                       FileStores*   fileStores)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(latch);
+
+    mqbs::FileStore* fs = fileStores->at(partitionId).get();
+
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(fs->isOpen());
+
+    *rc = fs->rollover();
+
+    latch->arrive();
+}
+
 void StorageUtil::loadPartitionStorageSummary(
     mqbcmd::StorageResult*   result,
     FileStores*              fileStores,
@@ -1451,8 +1545,8 @@ void StorageUtil::recoveredQueuesCb(
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
     BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
-                  << "]: "
-                  << "Recovered [" << queueKeyInfoMap.size() << "] queues";
+                  << "]: " << "Recovered [" << queueKeyInfoMap.size()
+                  << "] queues";
 
     if (domainFactory == 0) {
         BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
@@ -2206,8 +2300,7 @@ void StorageUtil::gcUnrecognizedDomainQueues(
             BSLS_ASSERT_SAFE(fs);
             BSLS_ASSERT_SAFE(fs->isOpen());
 
-            fs->execute(
-                bdlf::BindUtil::bind(&mqbs::FileStore::forceRollover, fs));
+            fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::rollover, fs));
         }
     }
 }
@@ -3542,11 +3635,33 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
     else if (command.isPartitionValue()) {
         const int partitionId = command.partition().partitionId();
 
-        if (partitionId < 0 ||
-            partitionId >= static_cast<int>(fileStores->size())) {
+        if (partitionId >= static_cast<int>(fileStores->size())) {
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
-            os << "Invalid partitionId value: '" << partitionId << "'";
+            os << "Too high partitionId value: '" << partitionId << "'";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
+        }
+
+        if (partitionId < -1) {
+            bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
+            bmqu::MemOutStream                   os(&localAllocator);
+            os << "Too low partitionId value: '" << partitionId << "'";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
+        }
+
+        // PartitionId = -1 is only allowed for rollover command.
+        // In this case rollover is performed on all partitions.
+        if (command.partition().command().isRolloverValue()) {
+            doRollover(result, fileStores, partitionId, allocator);
+            return 0;  // RETURN
+        }
+
+        if (partitionId < 0) {
+            bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
+            bmqu::MemOutStream                   os(&localAllocator);
+            os << "Too low partitionId value: '" << partitionId << "'";
             result->makeError().message() = os.str();
             return -1;  // RETURN
         }
