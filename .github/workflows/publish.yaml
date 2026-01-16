@@ -27,7 +27,7 @@ jobs:
         with:
           release_name: Release Candidate ${{ github.ref_name }}
           draft: true           # So we can write release notes
-          prelease: true
+          prerelease: true
           generate_release_notes: true
 
   create-github-release:
@@ -44,8 +44,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: Release ${{ github.ref_name }}
-          draft: true           # So we can write candidate release notes
-          prelease: false
+          draft: true           # So we can write release notes
+          prerelease: false
           generate_release_notes: true
 
   build-and-publish-image:
