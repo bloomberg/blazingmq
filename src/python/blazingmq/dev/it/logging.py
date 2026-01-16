@@ -39,23 +39,6 @@ class BMQLogger(logging.getLoggerClass()):
             **(extra or {}),
         }
         overrides = extra.pop("ball_overrides", {})
-        # For bmqit-generated attributes, plus standard name, filename and
-        # message attributes, add several width-limited versions,
-        # e.g. 'name12', which contains the category name in 12 characters,
-        # clipped if necessary.
-        extra = {
-            **extra,
-            **{
-                f"{key}{width}": clip(value, width)
-                for width in (8, 16, 24, 32)
-                for key, value in {
-                    **extra,
-                    "name": name,
-                    "filename": fn,
-                    "msg": msg,
-                }.items()
-            },
-        }
         record = super().makeRecord(
             name, level, fn, lno, msg, args, exc_info, func, extra, sinfo
         )
