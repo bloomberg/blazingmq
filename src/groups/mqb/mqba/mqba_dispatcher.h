@@ -292,8 +292,12 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
 
+    // TODO: remove
     bmqst::StatContext d_rootStatContext;
     // Top level stat context for all stats
+
+    /// Top-level stat context for all dispatcher client types
+    bmqst::StatContext* d_statContext_p;
 
     bdlmt::EventScheduler::RecurringEventHandle d_statMonitorEventHandle;
 
@@ -342,10 +346,11 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
     // CREATORS
 
-    /// Create a dispatcher using the specified `config` and `scheduler`.
+    /// Create a dispatcher using the specified `config`, `statContext` and `scheduler`.
     /// All memory allocation will be performed using the specified
     /// `allocator`.
     Dispatcher(const mqbcfg::DispatcherConfig& config,
+               bmqst::StatContext*             statContext,
                bdlmt::EventScheduler*          scheduler,
                bslma::Allocator*               allocator);
 

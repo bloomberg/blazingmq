@@ -493,11 +493,13 @@ void Dispatcher::flushClients(mqbi::DispatcherClientType::Enum type,
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
+                       bmqst::StatContext*             statContext,
                        bdlmt::EventScheduler*          scheduler,
                        bslma::Allocator*               allocator)
 : d_allocator_p(allocator)
 , d_isStarted(false)
 , d_config(config)
+, d_statContext_p(statContext)
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
 , d_rootStatContext(statContextConfiguration(allocator), allocator)
@@ -759,8 +761,9 @@ void Dispatcher::executeOnAllQueues(
     // Update stats for all queues
     for (size_t i = 0; i < context.d_statContexts.size(); ++i) {
         bmqst::StatContext* statContext_p = context.d_statContexts[i].d_statContext_mp.get();
-        BSLS_ASSERT_SAFE(statContext_p);
-        statContext_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
+        if (statContext_p) {
+            statContext_p->adjustValue(Dispatcher::k_STAT_QUEUE, 1);
+        }
     }
 }
 
