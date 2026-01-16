@@ -36,7 +36,7 @@ class ValueConstraint:
         """Return 'True' if the specified 'value' satisfy the checked constraint.
         The caller is responsible for deciding what to do next, e.g. raising an assert.
         """
-        ...
+        raise NotImplementedError()
 
 
 class AnyValue(ValueConstraint):
