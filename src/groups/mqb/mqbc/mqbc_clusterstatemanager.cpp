@@ -1036,10 +1036,16 @@ void ClusterStateManager::onCommit(
 
     const bmqp_ctrlmsg::ClusterMessage& clusterMessage =
         advisory.choice().clusterMessage();
-    mqbc::ClusterUtil::apply(d_state_p, clusterMessage, *d_clusterData_p);
+    bsl::vector<int> modifiedPartitions;
+    mqbc::ClusterUtil::apply(d_state_p,
+                             clusterMessage,
+                             *d_clusterData_p,
+                             &modifiedPartitions);
 
     applyFSMEvent(ClusterFSM::Event::e_CSL_CMT_SUCCESS,
-                  ClusterFSMEventMetadata(d_allocator_p));
+                  ClusterFSMEventMetadata(
+                      bslmf::MovableRefUtil::move(modifiedPartitions),
+                      d_allocator_p));
 }
 
 void ClusterStateManager::applyFSMEvent(

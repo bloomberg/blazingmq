@@ -158,6 +158,9 @@ class ClusterFSMEventMetadata {
     /// Cluster state snapshot.
     bmqp_ctrlmsg::LeaderAdvisory d_clusterStateSnapshot;
 
+    /// List of partitions which has a change in primary.
+    bsl::vector<int> d_modifiedPartitions;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterFSMEventMetadata,
@@ -171,17 +174,18 @@ class ClusterFSMEventMetadata {
 
     /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
     /// specified `inputMessages`, and optionally specified `highestLSNNode`,
-    /// `crashedFollowerNode` and `clusterStateSnapshot`.
+    /// `crashedFollowerNode`, `clusterStateSnapshot`, and `allocator`.
     explicit ClusterFSMEventMetadata(
         const InputMessages&                inputMessages,
         mqbnet::ClusterNode*                highestLSNNode      = 0,
         mqbnet::ClusterNode*                crashedFollowerNode = 0,
         const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot =
-            bmqp_ctrlmsg::LeaderAdvisory());
+            bmqp_ctrlmsg::LeaderAdvisory(),
+        bslma::Allocator* allocator = 0);
 
     /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
     /// specified `highestLSNNode`, and optionally specified
-    /// `crashedFollowerNode`, `clusterStateSnapshot` and `allocator`.
+    /// `crashedFollowerNode`, `clusterStateSnapshot`, and `allocator`.
     explicit ClusterFSMEventMetadata(
         mqbnet::ClusterNode*                highestLSNNode,
         mqbnet::ClusterNode*                crashedFollowerNode = 0,
@@ -189,18 +193,23 @@ class ClusterFSMEventMetadata {
             bmqp_ctrlmsg::LeaderAdvisory(),
         bslma::Allocator* allocator = 0);
 
+    /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
+    /// specified `modifiedPartitions`, using the optionally specified
+    /// `allocator`.
+    explicit ClusterFSMEventMetadata(bsl::vector<int>  modifiedPartitions,
+                                     bslma::Allocator* allocator = 0);
+
     /// Create a new instance copying from the specified `rhs`.  Use the
     /// optionally specified `allocator` for memory allocations.
     ClusterFSMEventMetadata(const ClusterFSMEventMetadata& rhs,
                             bslma::Allocator*              allocator = 0);
 
     // ACCESSORS
-    const InputMessages& inputMessages() const;
-    mqbnet::ClusterNode* highestLSNNode() const;
-    mqbnet::ClusterNode* crashedFollowerNode() const;
-
-    /// Return the value of the corresponding member of this object.
+    const InputMessages&                inputMessages() const;
+    mqbnet::ClusterNode*                highestLSNNode() const;
+    mqbnet::ClusterNode*                crashedFollowerNode() const;
     const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot() const;
+    const bsl::vector<int>&             modifiedPartitions() const;
 };
 
 // ================
@@ -372,6 +381,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 , d_highestLSNNode(0)
 , d_crashedFollowerNode(0)
 , d_clusterStateSnapshot()
+, d_modifiedPartitions(allocator)
 {
     // NOTHING
 }
@@ -380,11 +390,13 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
     const InputMessages&                inputMessages,
     mqbnet::ClusterNode*                highestLSNNode,
     mqbnet::ClusterNode*                crashedFollowerNode,
-    const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot)
+    const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot,
+    bslma::Allocator*                   allocator)
 : d_messages(inputMessages)
 , d_highestLSNNode(highestLSNNode)
 , d_crashedFollowerNode(crashedFollowerNode)
 , d_clusterStateSnapshot(clusterStateSnapshot)
+, d_modifiedPartitions(allocator)
 {
     // NOTHING
 }
@@ -398,6 +410,19 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 , d_highestLSNNode(highestLSNNode)
 , d_crashedFollowerNode(crashedFollowerNode)
 , d_clusterStateSnapshot(clusterStateSnapshot)
+, d_modifiedPartitions(allocator)
+{
+    // NOTHING
+}
+
+inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
+    bsl::vector<int>  modifiedPartitions,
+    bslma::Allocator* allocator)
+: d_messages(allocator)
+, d_highestLSNNode(0)
+, d_crashedFollowerNode(0)
+, d_clusterStateSnapshot()
+, d_modifiedPartitions(modifiedPartitions, allocator)
 {
     // NOTHING
 }
@@ -409,6 +434,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 , d_highestLSNNode(rhs.highestLSNNode())
 , d_crashedFollowerNode(rhs.crashedFollowerNode())
 , d_clusterStateSnapshot(rhs.clusterStateSnapshot())
+, d_modifiedPartitions(rhs.modifiedPartitions(), allocator)
 {
     // NOTHING
 }
@@ -435,6 +461,12 @@ inline const bmqp_ctrlmsg::LeaderAdvisory&
 ClusterFSMEventMetadata::clusterStateSnapshot() const
 {
     return d_clusterStateSnapshot;
+}
+
+inline const bsl::vector<int>&
+ClusterFSMEventMetadata::modifiedPartitions() const
+{
+    return d_modifiedPartitions;
 }
 
 // ----------------
