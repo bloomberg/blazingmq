@@ -184,7 +184,7 @@ class lazy_json(LazyStr):
     Lazily render data to JSON.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import json
 
         return json.dumps(self.data, **{"indent": 2, **self.kwargs})
@@ -195,7 +195,7 @@ class lazy_pprint(LazyStr):
     Lazily render data using standard 'pprint' module.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import pprint
 
         return pprint.pformat(self.data, **{"indent": 2, "width": 80, **self.kwargs})
@@ -238,7 +238,7 @@ class lazy_data(LazyStr):
     - Recursive data structures are not supported.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         import json
 
         return json.dumps(

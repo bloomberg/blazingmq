@@ -99,7 +99,7 @@ class ProcessExitError(Exception):
         self.name = name
         self.return_code = return_code
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}: process exited with return code {_format_rc(self.return_code)}"
 
 

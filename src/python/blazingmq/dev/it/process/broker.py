@@ -85,10 +85,10 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self.last_known_leader = None
             self.last_known_active = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Broker({self.name})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Broker({self.name})"
 
     @property
