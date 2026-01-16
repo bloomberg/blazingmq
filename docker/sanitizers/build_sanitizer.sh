@@ -71,14 +71,14 @@ apt-get install -qy cmake
 
 # Install LLVM
 wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh 
+chmod +x llvm.sh
 LLVM_VERSION=18
 LLVM_TAG="llvmorg-18.1.8"
 ./llvm.sh ${LLVM_VERSION} all
 
 # Create version-agnostic pointers to required LLVM binaries.
 ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
 ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants

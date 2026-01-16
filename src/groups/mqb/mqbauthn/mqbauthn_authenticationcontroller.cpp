@@ -18,8 +18,10 @@
 
 #include <mqbscm_version.h>
 // BMQ
+#include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // MQB
 #include <mqbauthn_anonauthenticator.h>
@@ -441,12 +443,17 @@ int AuthenticationController::authenticate(
 {
     // executed by an *AUTHENTICATION* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+
     enum RcEnum {
         // Enum for the various RC error categories
         rc_SUCCESS                 = 0,
         rc_AUTHENTICATION_FAILED   = -1,
         rc_MECHANISM_NOT_SUPPORTED = -2
     };
+
+    const bsls::Types::Int64 start = bmqsys::Time::highResolutionTimer();
 
     const bsl::string normMech = normalizeMechanism(mechanism, d_allocator_p);
     AuthenticatorMap::const_iterator cit = d_authenticators.find(normMech);
@@ -460,19 +467,35 @@ int AuthenticationController::authenticate(
         bmqu::MemOutStream errorStream(d_allocator_p);
         const int rc = authenticator->authenticate(errorStream, result, input);
         if (rc != rc_SUCCESS) {
-            errorDescription << "AuthenticationController: failed to "
-                                "authenticate with mechanism '"
+            errorDescription << "Failed to authenticate with mechanism '"
                              << normMech << "'. (rc = " << rc
                              << "). Detailed error: " << errorStream.str();
             return (rc * 10 + rc_AUTHENTICATION_FAILED);
         }
     }
     else {
-        errorDescription
-            << "AuthenticationController: authentication mechanism '"
-            << normMech << "' not supported.";
+        errorDescription << "Authentication mechanism '" << normMech
+                         << "' not supported.";
         return rc_MECHANISM_NOT_SUPPORTED;
     }
+
+    // Log the successful authentication
+    const bsls::Types::Int64 elapsed = bmqsys::Time::highResolutionTimer() -
+                                       start;
+
+    bmqu::MemOutStream logStream(d_allocator_p);
+    logStream << "Authentication successful: mechanism [ " << normMech
+              << " ], principal [ " << (*result)->principal()
+              << " ], lifetimeMs [ ";
+    if ((*result)->lifetimeMs().has_value()) {
+        logStream << (*result)->lifetimeMs().value();
+    }
+    else {
+        logStream << "none";
+    }
+    logStream << " ], took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
+              << " (" << elapsed << " nanoseconds)";
+    BALL_LOG_INFO << logStream.str();
 
     return rc_SUCCESS;
 }
