@@ -297,10 +297,12 @@ struct ClusterUtil {
                                   bslma::Allocator* allocator = 0);
 
     /// Apply the specified `message` to the specified `state` using the
-    /// specified `clusterData`.
+    /// specified `clusterData`.  If `modifiedPartitions` is specified,
+    /// populate it with the list of partitions which has a change in primary.
     static void apply(ClusterState*                       clusterState,
                       const bmqp_ctrlmsg::ClusterMessage& clusterMessage,
-                      const ClusterData&                  clusterData);
+                      const ClusterData&                  clusterData,
+                      bsl::vector<int>* modifiedPartitions = 0);
 
     /// Compare the specified `state` against the specified `reference`
     /// state and return 0 if they compare equal, otherwise return a
