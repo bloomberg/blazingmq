@@ -132,9 +132,9 @@ void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
 // class DispatcherEventSource
 // ---------------------------
 
-DispatcherEventSource::DispatcherEventSource(bslma::Allocator* allocator)
+Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
 : d_pool(bdlf::BindUtil::bindS(allocator,
-                               &DispatcherEventSource::eventCreator,
+                               &Dispatcher_EventSource::eventCreator,
                                bdlf::PlaceHolders::_1,   // arena
                                bdlf::PlaceHolders::_2),  // allocator
          k_POOL_GROW_BY,
@@ -143,7 +143,7 @@ DispatcherEventSource::DispatcherEventSource(bslma::Allocator* allocator)
     // NOTHING
 }
 
-DispatcherEventSource::~DispatcherEventSource()
+Dispatcher_EventSource::~Dispatcher_EventSource()
 {
     // Make sure all the events have returned to the pool.
     BSLS_ASSERT(d_pool.numObjects() == d_pool.numAvailableObjects());
@@ -169,7 +169,7 @@ Dispatcher::DispatcherContext::DispatcherContext(
     for (EventSources::iterator it = d_eventSources.begin();
          it != d_eventSources.end();
          ++it) {
-        *it = bsl::allocate_shared<mqba::DispatcherEventSource>(allocator);
+        *it = bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator);
     }
 }
 
@@ -391,7 +391,7 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
 , d_defaultEventSource_sp(
-      bsl::allocate_shared<mqba::DispatcherEventSource>(allocator))
+      bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator))
 , d_customEventSources(allocator)
 , d_customEventSources_mtx()
 {
@@ -668,7 +668,7 @@ Dispatcher::executor(const mqbi::DispatcherClient* client) const
 bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 {
     bsl::shared_ptr<mqbi::DispatcherEventSource> res =
-        bsl::allocate_shared<mqba::DispatcherEventSource>(d_allocator_p);
+        bsl::allocate_shared<mqba::Dispatcher_EventSource>(d_allocator_p);
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
         d_customEventSources.push_back(res);

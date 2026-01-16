@@ -28,23 +28,23 @@
 namespace BloombergLP {
 namespace mqbmock {
 
-// ---------------------------
-// class DispatcherEventSource
-// ---------------------------
+// ----------------------------
+// class Dispatcher_EventSource
+// ----------------------------
 
-DispatcherEventSource::DispatcherEventSource(bslma::Allocator* allocator)
+Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
 {
     // NOTHING
 }
 
-DispatcherEventSource::~DispatcherEventSource()
+Dispatcher_EventSource::~Dispatcher_EventSource()
 {
     // NOTHING
 }
 
 mqbi::DispatcherEventSource::DispatcherEventSp
-DispatcherEventSource::getEvent()
+Dispatcher_EventSource::getEvent()
 {
     return bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
 }
@@ -57,7 +57,7 @@ DispatcherEventSource::getEvent()
 Dispatcher::Dispatcher(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_eventSource_sp(
-      bsl::allocate_shared<mqbmock::DispatcherEventSource>(allocator))
+      bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(allocator))
 , d_eventsForClients(allocator)
 , d_mutex()
 , d_queue(allocator)
@@ -180,7 +180,7 @@ void Dispatcher::synchronize(
 bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 {
     bsl::shared_ptr<mqbi::DispatcherEventSource> res =
-        bsl::allocate_shared<mqbmock::DispatcherEventSource>(d_allocator_p);
+        bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(d_allocator_p);
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
         d_customEventSources.push_back(res);

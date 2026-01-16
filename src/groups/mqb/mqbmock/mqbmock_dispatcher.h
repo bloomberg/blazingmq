@@ -56,11 +56,11 @@
 namespace BloombergLP {
 namespace mqbmock {
 
-// ===========================
-// class DispatcherEventSource
-// ===========================
+// ============================
+// class Dispatcher_EventSource
+// ============================
 
-class DispatcherEventSource BSLS_KEYWORD_FINAL
+class Dispatcher_EventSource BSLS_KEYWORD_FINAL
 : public mqbi::DispatcherEventSource {
   private:
     // DATA
@@ -68,12 +68,12 @@ class DispatcherEventSource BSLS_KEYWORD_FINAL
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEventSource,
+    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit DispatcherEventSource(bslma::Allocator* allocator = 0);
-    ~DispatcherEventSource() BSLS_KEYWORD_OVERRIDE;
+    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
+    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 

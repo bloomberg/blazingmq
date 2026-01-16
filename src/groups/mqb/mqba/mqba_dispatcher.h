@@ -135,11 +135,11 @@ class Dispatcher_Executor {
     void dispatch(const bsl::function<void()>& f) const;
 };
 
-// ===========================
-// class DispatcherEventSource
-// ===========================
+// ============================
+// class Dispatcher_EventSource
+// ============================
 
-class DispatcherEventSource BSLS_KEYWORD_FINAL
+class Dispatcher_EventSource BSLS_KEYWORD_FINAL
 : public mqbi::DispatcherEventSource {
   public:
     // PUBLIC TYPES
@@ -171,12 +171,12 @@ class DispatcherEventSource BSLS_KEYWORD_FINAL
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEventSource,
+    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit DispatcherEventSource(bslma::Allocator* allocator = 0);
-    ~DispatcherEventSource() BSLS_KEYWORD_OVERRIDE;
+    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
+    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -497,12 +497,12 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// ---------------------------
-// class DispatcherEventSource
-// ---------------------------
+// ----------------------------
+// class Dispatcher_EventSource
+// ----------------------------
 
-inline void DispatcherEventSource::eventCreator(void*             arena,
-                                                bslma::Allocator* allocator)
+inline void Dispatcher_EventSource::eventCreator(void*             arena,
+                                                 bslma::Allocator* allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(arena);
@@ -513,8 +513,8 @@ inline void DispatcherEventSource::eventCreator(void*             arena,
         allocator);
 }
 
-inline DispatcherEventSource::DispatcherEventSp
-DispatcherEventSource::getEvent()
+inline Dispatcher_EventSource::DispatcherEventSp
+Dispatcher_EventSource::getEvent()
 {
     return d_pool.getObject();
 }
