@@ -11,4 +11,5 @@ pytest-rerunfailures==14.0
 pytest-xdist
 pyyaml
 termcolor
+types-psutil
 xsdata
