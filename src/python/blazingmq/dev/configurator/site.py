@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import abc
+from typing import Optional
 
 
 class Site(abc.ABC):
@@ -24,7 +25,9 @@ class Site(abc.ABC):
     def install(self, from_path: str, to_path: str) -> None: ...
 
     @abc.abstractmethod
-    def create_file(self, path: str, content: str, mode=None) -> None: ...
+    def create_file(
+        self, path: str, content: str, mode: Optional[int] = None
+    ) -> None: ...
 
     @abc.abstractmethod
     def mkdir(self, path: str) -> None: ...

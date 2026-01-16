@@ -15,7 +15,7 @@
 
 from pathlib import Path
 from shutil import rmtree
-from typing import Union
+from typing import Optional, Union
 
 from blazingmq.dev.configurator.site import Site
 
@@ -43,7 +43,9 @@ class LocalSite(Site):
             target.unlink(missing_ok=True)
         target.symlink_to(from_path.resolve(), target_is_directory=from_path.is_dir())
 
-    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None:
+    def create_file(
+        self, path: Union[str, Path], content: str, mode: Optional[int] = None
+    ) -> None:
         path = self.root_dir / path
         path.parent.mkdir(0o755, exist_ok=True, parents=True)
         with open(path, "w", encoding="ascii") as out:
