@@ -941,6 +941,18 @@ struct TestHelper {
                                 primaryNode);
         }
         storageManager->initializeQueueKeyInfoMap(*d_cluster_mp->_state());
+        for (size_t pid = 0; pid < numPartitions(); ++pid) {
+            if (d_cluster_mp->_state()->isSelfPrimary(pid)) {
+                storageManager->detectSelfPrimaryInPFSM(pid,
+                                                        primaryNode,
+                                                        1);  // primaryLeaseId
+            }
+            else {
+                storageManager->detectSelfReplicaInPFSM(pid,
+                                                        primaryNode,
+                                                        1);  // primaryLeaseId
+            }
+        }
     }
 
     ~TestHelper() { bmqsys::Time::shutdown(); }

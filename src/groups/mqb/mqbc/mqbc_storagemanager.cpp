@@ -412,12 +412,17 @@ void StorageManager::setPrimaryForPartitionDispatched(
         return;  // RETURN
     }
 
+    // TODO We should not call this here
     if (primaryNode->nodeId() ==
         d_clusterData_p->membership().selfNode()->nodeId()) {
-        processPrimaryDetect(partitionId, primaryNode, primaryLeaseId);
+        detectSelfPrimaryInPFSMDispatched(partitionId,
+                                          primaryNode,
+                                          primaryLeaseId);
     }
     else {
-        processReplicaDetect(partitionId, primaryNode, primaryLeaseId);
+        detectSelfReplicaInPFSMDispatched(partitionId,
+                                          primaryNode,
+                                          primaryLeaseId);
     }
 }
 
@@ -469,9 +474,10 @@ void StorageManager::clearPrimaryForPartitionDispatched(
     dispatchEventToPartition(PartitionFSM::Event::e_RST_UNKNOWN, eventDataVec);
 }
 
-void StorageManager::processPrimaryDetect(int                  partitionId,
-                                          mqbnet::ClusterNode* primaryNode,
-                                          unsigned int         primaryLeaseId)
+void StorageManager::detectSelfPrimaryInPFSMDispatched(
+    int                  partitionId,
+    mqbnet::ClusterNode* primaryNode,
+    unsigned int         primaryLeaseId)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -482,6 +488,7 @@ void StorageManager::processPrimaryDetect(int                  partitionId,
     BSLS_ASSERT_SAFE(primaryNode->nodeId() ==
                      d_clusterData_p->membership().selfNode()->nodeId());
 
+    // TODO Prob can remove if only triggered by CFSM
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
@@ -512,9 +519,10 @@ void StorageManager::processPrimaryDetect(int                  partitionId,
                              eventDataVec);
 }
 
-void StorageManager::processReplicaDetect(int                  partitionId,
-                                          mqbnet::ClusterNode* primaryNode,
-                                          unsigned int         primaryLeaseId)
+void StorageManager::detectSelfReplicaInPFSMDispatched(
+    int                  partitionId,
+    mqbnet::ClusterNode* primaryNode,
+    unsigned int         primaryLeaseId)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
@@ -525,6 +533,7 @@ void StorageManager::processReplicaDetect(int                  partitionId,
     BSLS_ASSERT_SAFE(primaryNode->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
 
+    // TODO Prob can remove if only triggered by CFSM
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
@@ -1220,6 +1229,7 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
                               partitionId,
                               1);
 
+    // TODO Move to trigger from Cluster FSM
     dispatchEventToPartition(PartitionFSM::Event::e_STOP_NODE, eventDataVec);
 }
 
@@ -3721,30 +3731,32 @@ void StorageManager::initializeQueueKeyInfoMap(
         }
     }
 
-    for (PartitionsInfoCIter cit = clusterState.partitions().cbegin();
-         cit != clusterState.partitions().cend();
-         ++cit) {
-        const int pid = cit->partitionId();
+    // TODO yyan82 rm
+    // for (ClusterState::PartitionsInfo::const_iterator cit =
+    //          clusterState.partitions().cbegin();
+    //      cit != clusterState.partitions().cend();
+    //      ++cit) {
+    //     const int pid = cit->partitionId();
 
-        mqbs::FileStore* fs = d_fileStores.at(pid).get();
-        BSLS_ASSERT_SAFE(fs);
-        if (clusterState.isSelfPrimary(pid)) {
-            fs->execute(
-                bdlf::BindUtil::bind(&StorageManager::processPrimaryDetect,
-                                     this,
-                                     pid,
-                                     cit->primaryNode(),
-                                     cit->primaryLeaseId()));
-        }
-        else {
-            fs->execute(
-                bdlf::BindUtil::bind(&StorageManager::processReplicaDetect,
-                                     this,
-                                     pid,
-                                     cit->primaryNode(),
-                                     cit->primaryLeaseId()));
-        }
-    }
+    //     mqbs::FileStore* fs = d_fileStores.at(pid).get();
+    //     BSLS_ASSERT_SAFE(fs);
+    //     if (clusterState.isSelfPrimary(pid)) {
+    //         fs->execute(bdlf::BindUtil::bind(
+    //             &StorageManager::detectSelfPrimaryInPFSMDispatched,
+    //             this,
+    //             pid,
+    //             cit->primaryNode(),
+    //             cit->primaryLeaseId()));
+    //     }
+    //     else {
+    //         fs->execute(bdlf::BindUtil::bind(
+    //             &StorageManager::detectSelfReplicaInPFSMDispatched,
+    //             this,
+    //             pid,
+    //             cit->primaryNode(),
+    //             cit->primaryLeaseId()));
+    //     }
+    // }
 
     // `setPrimaryForPartitionDispatched`, which runs on partition threads,
     // checks this flag to determine whether to process primary/replica detect.
@@ -4018,6 +4030,54 @@ void StorageManager::setPrimaryStatusForPartition(
         this,
         partitionId,
         value));
+}
+
+void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
+                                             mqbnet::ClusterNode* primaryNode,
+                                             unsigned int primaryLeaseId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(primaryNode->nodeId() ==
+                     d_clusterData_p->membership().selfNode()->nodeId());
+
+    mqbs::FileStore* fs = d_fileStores.at(partitionId).get();
+    BSLS_ASSERT_SAFE(fs);
+
+    fs->execute(bdlf::BindUtil::bind(
+        &StorageManager::detectSelfPrimaryInPFSMDispatched,
+        this,
+        partitionId,
+        primaryNode,
+        primaryLeaseId));
+}
+
+void StorageManager::detectSelfReplicaInPFSM(int                  partitionId,
+                                             mqbnet::ClusterNode* primaryNode,
+                                             unsigned int primaryLeaseId)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(primaryNode->nodeId() !=
+                     d_clusterData_p->membership().selfNode()->nodeId());
+
+    mqbs::FileStore* fs = d_fileStores.at(partitionId).get();
+    BSLS_ASSERT_SAFE(fs);
+
+    fs->execute(bdlf::BindUtil::bind(
+        &StorageManager::detectSelfReplicaInPFSMDispatched,
+        this,
+        partitionId,
+        primaryNode,
+        primaryLeaseId));
 }
 
 // MANIPULATORS

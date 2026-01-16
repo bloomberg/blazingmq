@@ -105,8 +105,15 @@ struct PartitionStateTableEvent {
 
     /// Enumeration used to distinguish among different type of event.
     enum Enum {
-        e_RST_UNKNOWN                  = 0,
-        e_DETECT_SELF_PRIMARY          = 1,
+        /// TODO Comment that only Cluster FSM or itself can generate this
+        e_RST_UNKNOWN = 0,
+
+        /// TODO Comment that only Cluster FSM or itself can generate this
+        /// event
+        e_DETECT_SELF_PRIMARY = 1,
+
+        /// TODO Comment that only Cluster FSM or itself can generate this
+        /// event
         e_DETECT_SELF_REPLICA          = 2,
         e_REPLICA_STATE_RQST           = 3,
         e_REPLICA_STATE_RSPN           = 4,
@@ -136,8 +143,10 @@ struct PartitionStateTableEvent {
         e_SELF_HIGHEST_SEQ             = 28,
         e_REPLICA_HIGHEST_SEQ          = 29,
         e_WATCH_DOG                    = 30,
-        e_STOP_NODE                    = 31,
-        e_NUM_EVENTS                   = 32
+
+        /// TODO Should go through Cluster FSM?
+        e_STOP_NODE  = 31,
+        e_NUM_EVENTS = 32
     };
 
     // CLASS METHODS
