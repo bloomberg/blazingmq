@@ -2657,7 +2657,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
         }
 
         // Dispatch the event
-        // TODO: revisit, use per-IO thread event source
+        // TODO(678098): revisit, use per-IO thread event source
         mqbi::Dispatcher::DispatcherEventSp dispEvent =
             dispatcher()->getDefaultEventSource()->getEvent();
         bsl::shared_ptr<bdlbb::Blob> blobSp =

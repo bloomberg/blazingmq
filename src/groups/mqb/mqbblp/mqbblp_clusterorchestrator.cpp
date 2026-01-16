@@ -1280,7 +1280,7 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     // too, otherwise, depending upon thread scheduling, a new node may get
     // certain events "out of order" (some cases were found out while testing).
 
-    // TODO: revisit, make per-IO thread contexts
+    // TODO(678098): revisit, make per-IO thread contexts
     mqbi::Dispatcher::DispatcherEventSp clusterEvent =
         dispatcher()->getDefaultEventSource()->getEvent();
     (*clusterEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);

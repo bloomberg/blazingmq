@@ -28,23 +28,23 @@
 namespace BloombergLP {
 namespace mqbmock {
 
-// ----------------------------
-// class Dispatcher_EventSource
-// ----------------------------
+// ---------------------------
+// class DispatcherEventSource
+// ---------------------------
 
-Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
+DispatcherEventSource::DispatcherEventSource(bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
 {
     // NOTHING
 }
 
-Dispatcher_EventSource::~Dispatcher_EventSource()
+DispatcherEventSource::~DispatcherEventSource()
 {
     // NOTHING
 }
 
-mqbi::Dispatcher_EventSource::DispatcherEventSp
-Dispatcher_EventSource::getEvent()
+mqbi::DispatcherEventSource::DispatcherEventSp
+DispatcherEventSource::getEvent()
 {
     return bsl::allocate_shared<mqbi::DispatcherEvent>(d_allocator_p);
 }
@@ -57,7 +57,7 @@ Dispatcher_EventSource::getEvent()
 Dispatcher::Dispatcher(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_eventSource_sp(
-      bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(allocator))
+      bsl::allocate_shared<mqbmock::DispatcherEventSource>(allocator))
 , d_eventsForClients(allocator)
 , d_mutex()
 , d_queue(allocator)
@@ -177,18 +177,18 @@ void Dispatcher::synchronize(
     // NOTHING
 }
 
-bsl::shared_ptr<mqbi::Dispatcher_EventSource> Dispatcher::createEventSource()
+bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
 {
-    bsl::shared_ptr<mqbi::Dispatcher_EventSource> res =
-        bsl::allocate_shared<mqbmock::Dispatcher_EventSource>(d_allocator_p);
+    bsl::shared_ptr<mqbi::DispatcherEventSource> res =
+        bsl::allocate_shared<mqbmock::DispatcherEventSource>(d_allocator_p);
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
         d_customEventSources.push_back(res);
     }
-    return bslmf::MovableRefUtil::move(res);
+    return res;
 }
 
-const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+const bsl::shared_ptr<mqbi::DispatcherEventSource>&
 Dispatcher::getDefaultEventSource()
 {
     return d_eventSource_sp;

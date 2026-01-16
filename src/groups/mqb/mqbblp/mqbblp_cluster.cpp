@@ -2668,7 +2668,7 @@ void Cluster::processEvent(const bmqp::Event&   event,
 
     // Helper macro to dispatch event of the specified type 'T' with isRelay
     // set to the value specified in 'R'.
-    // TODO: revisit, use per-IO thread event source
+    // TODO(678098): revisit, use per-IO thread event source
 #define DISPATCH_EVENT(T, R)                                                  \
     {                                                                         \
         mqbi::Dispatcher::DispatcherEventSp _evt =                            \

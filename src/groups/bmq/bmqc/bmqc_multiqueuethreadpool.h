@@ -27,8 +27,10 @@
 //
 //@DESCRIPTION: This component defines a mechanism,
 // 'bmqc::MultiQueueThreadPool', which encapsulates the common pattern of
-// creating a number of Queues processed by a dedicated threads.
-// The user is responsible for providing shared objects to this object.
+// creating a number of Queues processed by dedicated threads.
+// 'bmqc::MultiQueueThreadPool' is able to route user events to its queues,
+// the user is responsible for allocating these events and providing them
+// as shared pointers.
 // Aside from this common use case, the 'bmqc::MultiQueueThreadPool'
 // offers additional options for its operation:
 // - Creating it with a 'bdlmt::EventScheduler' allows the

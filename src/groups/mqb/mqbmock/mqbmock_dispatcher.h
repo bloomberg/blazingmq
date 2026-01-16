@@ -56,24 +56,24 @@
 namespace BloombergLP {
 namespace mqbmock {
 
-// ============================
-// class Dispatcher_EventSource
-// ============================
+// ===========================
+// class DispatcherEventSource
+// ===========================
 
-class Dispatcher_EventSource BSLS_KEYWORD_FINAL
-: public mqbi::Dispatcher_EventSource {
+class DispatcherEventSource BSLS_KEYWORD_FINAL
+: public mqbi::DispatcherEventSource {
   private:
     // DATA
     bslma::Allocator* d_allocator_p;
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEventSource,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
-    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
+    explicit DispatcherEventSource(bslma::Allocator* allocator = 0);
+    ~DispatcherEventSource() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -82,7 +82,7 @@ class Dispatcher_EventSource BSLS_KEYWORD_FINAL
     /// The behaviour is undefined unless all the shared pointers to events
     /// acquired with `getEvent` are destructed before destructor is called
     /// for this event source.
-    mqbi::Dispatcher_EventSource::DispatcherEventSp
+    mqbi::DispatcherEventSource::DispatcherEventSp
     getEvent() BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -104,7 +104,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     bslma::Allocator* d_allocator_p;
 
     /// The default event source
-    bsl::shared_ptr<mqbi::Dispatcher_EventSource> d_eventSource_sp;
+    bsl::shared_ptr<mqbi::DispatcherEventSource> d_eventSource_sp;
 
     /// Maps clients to currently processed events
     EventMap d_eventsForClients;
@@ -118,7 +118,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     /// All the event sources allocated by `createEventSource`.
     /// Cached to ensure their lifetime is at least until destructor is called.
-    bsl::vector<bsl::shared_ptr<mqbi::Dispatcher_EventSource> >
+    bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
         d_customEventSources;
 
     /// The mutex for thread-safe access to `d_customEventSources`.
@@ -179,14 +179,14 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// @return event source.
     /// NOTE: the returned value should be cached and used by long-living
     ///       work threads that need to enqueue events to a dispatcher.
-    bsl::shared_ptr<mqbi::Dispatcher_EventSource>
+    bsl::shared_ptr<mqbi::DispatcherEventSource>
     createEventSource() BSLS_KEYWORD_OVERRIDE;
 
     /// @brief Get a pointer to the default event source owned by dispatcher.
     /// @return event source const reference.
     /// NOTE: the returned value should be used by short-living routines
     ///       that need to enqueue events to a dispatcher.
-    const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+    const bsl::shared_ptr<mqbi::DispatcherEventSource>&
     getDefaultEventSource() BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the specified `destination`.  The

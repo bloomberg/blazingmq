@@ -98,7 +98,7 @@ class Dispatcher;
 class Dispatcher_Executor {
   private:
     // PRIVATE DATA
-    bsl::shared_ptr<mqbi::Dispatcher_EventSource> d_eventSource_sp;
+    bsl::shared_ptr<mqbi::DispatcherEventSource> d_eventSource_sp;
 
     bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
 
@@ -135,12 +135,12 @@ class Dispatcher_Executor {
     void dispatch(const bsl::function<void()>& f) const;
 };
 
-// ============================
-// class Dispatcher_EventSource
-// ============================
+// ===========================
+// class DispatcherEventSource
+// ===========================
 
-class Dispatcher_EventSource BSLS_KEYWORD_FINAL
-: public mqbi::Dispatcher_EventSource {
+class DispatcherEventSource BSLS_KEYWORD_FINAL
+: public mqbi::DispatcherEventSource {
   public:
     // PUBLIC TYPES
     typedef bsl::shared_ptr<mqbi::DispatcherEvent> DispatcherEventSp;
@@ -171,12 +171,12 @@ class Dispatcher_EventSource BSLS_KEYWORD_FINAL
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher_EventSource,
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEventSource,
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit Dispatcher_EventSource(bslma::Allocator* allocator = 0);
-    ~Dispatcher_EventSource() BSLS_KEYWORD_OVERRIDE;
+    explicit DispatcherEventSource(bslma::Allocator* allocator = 0);
+    ~DispatcherEventSource() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -263,7 +263,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
         /// An event sources that should be exclusively used by the threads
         /// assigned for each processor.
-        bsl::vector<bsl::shared_ptr<mqbi::Dispatcher_EventSource> >
+        bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
             d_eventSources;
 
         // TRAITS
@@ -305,11 +305,11 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 
     /// The event source that can be used by any routine that is not called
     /// from a dispatcher thread.
-    bsl::shared_ptr<mqbi::Dispatcher_EventSource> d_defaultEventSource_sp;
+    bsl::shared_ptr<mqbi::DispatcherEventSource> d_defaultEventSource_sp;
 
     /// All the event sources allocated by `createEventSource`.
     /// Cached to ensure their lifetime is at least until `stop` is called.
-    bsl::vector<bsl::shared_ptr<mqbi::Dispatcher_EventSource> >
+    bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
         d_customEventSources;
 
     /// The mutex for thread-safe access to `d_customEventSources`.
@@ -412,14 +412,14 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     /// @return event source.
     /// NOTE: the returned value should be cached and used by long-living
     ///       work threads that need to enqueue events to a dispatcher.
-    bsl::shared_ptr<mqbi::Dispatcher_EventSource>
+    bsl::shared_ptr<mqbi::DispatcherEventSource>
     createEventSource() BSLS_KEYWORD_OVERRIDE;
 
     /// @brief Get a pointer to the default event source owned by dispatcher.
     /// @return event source const reference.
     /// NOTE: the returned value should be used by short-living routines
     ///       that need to enqueue events to a dispatcher.
-    const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+    const bsl::shared_ptr<mqbi::DispatcherEventSource>&
     getDefaultEventSource() BSLS_KEYWORD_OVERRIDE;
 
     /// Dispatch the specified `event` to the queue associated with the
@@ -497,24 +497,24 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// ----------------------------
-// class Dispatcher_EventSource
-// ----------------------------
+// ---------------------------
+// class DispatcherEventSource
+// ---------------------------
 
-inline void Dispatcher_EventSource::eventCreator(void*             arena,
-                                                 bslma::Allocator* allocator)
+inline void DispatcherEventSource::eventCreator(void*             arena,
+                                                bslma::Allocator* allocator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(arena);
-    BSLS_ASSERT_SAFE(allocator);
+    BSLS_ASSERT(arena);
+    BSLS_ASSERT(allocator);
 
     bslalg::ScalarPrimitives::construct(
         reinterpret_cast<mqbi::DispatcherEvent*>(arena),
         allocator);
 }
 
-inline Dispatcher_EventSource::DispatcherEventSp
-Dispatcher_EventSource::getEvent()
+inline DispatcherEventSource::DispatcherEventSp
+DispatcherEventSource::getEvent()
 {
     return d_pool.getObject();
 }
@@ -524,7 +524,7 @@ Dispatcher_EventSource::getEvent()
 // ----------------
 
 // MANIPULATORS
-inline const bsl::shared_ptr<mqbi::Dispatcher_EventSource>&
+inline const bsl::shared_ptr<mqbi::DispatcherEventSource>&
 Dispatcher::getDefaultEventSource()
 {
     return d_defaultEventSource_sp;

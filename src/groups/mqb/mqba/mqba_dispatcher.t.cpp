@@ -80,7 +80,7 @@ static mqbcfg::DispatcherConfig makeConfig()
     config.clusters().processorConfig().queueSizeLowWatermark()  = 0;
     config.clusters().processorConfig().queueSizeHighWatermark() = 100;
 
-    return bslmf::MovableRefUtil::move(config);
+    return config;
 }
 
 // ==================
@@ -472,7 +472,7 @@ static void test4_eventSource()
 //     source that allows to get events
 //
 // Testing:
-//   mqbi::Dispatcher_EventSource support
+//   mqbi::DispatcherEventSource support
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("EVENT SOURCE");
@@ -483,7 +483,7 @@ static void test4_eventSource()
         static void callbackFn(bslmt::Semaphore* done_p)
         {
             // PRECONDITIONS
-            BSLS_ASSERT_SAFE(done_p);
+            BSLS_ASSERT(done_p);
             done_p->post();
         }
     };
@@ -539,7 +539,7 @@ static void test4_eventSource()
 
         // 3. Enqueue an event to a client using the cached event source
         {
-            bsl::shared_ptr<mqbi::Dispatcher_EventSource> eventSource_sp =
+            bsl::shared_ptr<mqbi::DispatcherEventSource> eventSource_sp =
                 dispatcher.createEventSource();
 
             bslmt::Semaphore done;
