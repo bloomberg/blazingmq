@@ -42,6 +42,7 @@ namespace mqba {
 
 namespace {
 const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
+const int    k_POOL_GROW_BY         = 1024;
 }  // close unnamed namespace
 
 // -------------------------
@@ -51,7 +52,8 @@ const double k_QUEUE_STUCK_INTERVAL = 3 * 60.0;
 // CREATORS
 Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                                          const mqbi::DispatcherClient* client)
-    BSLS_CPP11_NOEXCEPT : d_processorPool_p(0),
+    BSLS_CPP11_NOEXCEPT : d_eventSource_sp(),
+                          d_processorPool_p(0),
                           d_processorHandle()
 {
     // PRECONDITIONS
@@ -62,6 +64,8 @@ Dispatcher_Executor::Dispatcher_Executor(const Dispatcher* dispacher,
                 mqbi::DispatcherClientType::e_UNDEFINED);
     BSLS_ASSERT(client->dispatcherClientData().processorHandle() !=
                 mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE);
+
+    d_eventSource_sp = client->getEventSource();
 
     // set processor
     d_processorPool_p = dispacher->d_contexts
@@ -86,7 +90,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
 
     // create an event containing the function to be invoked on the processor
     bsl::shared_ptr<mqbi::DispatcherEvent> event =
-        d_processorPool_p->getEvent();
+        d_eventSource_sp->getEvent();
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
@@ -124,6 +128,27 @@ void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
     }
 }
 
+// ---------------------------
+// class DispatcherEventSource
+// ---------------------------
+
+Dispatcher_EventSource::Dispatcher_EventSource(bslma::Allocator* allocator)
+: d_pool(bdlf::BindUtil::bindS(allocator,
+                               &Dispatcher_EventSource::eventCreator,
+                               bdlf::PlaceHolders::_1,   // arena
+                               bdlf::PlaceHolders::_2),  // allocator
+         k_POOL_GROW_BY,
+         allocator)
+{
+    // NOTHING
+}
+
+Dispatcher_EventSource::~Dispatcher_EventSource()
+{
+    // Make sure all the events have returned to the pool.
+    BSLS_ASSERT(d_pool.numObjects() == d_pool.numAvailableObjects());
+}
+
 // ------------------------------------
 // struct Dispatcher::DispatcherContext
 // ------------------------------------
@@ -137,8 +162,15 @@ Dispatcher::DispatcherContext::DispatcherContext(
 , d_flushList(config.numProcessors(),
               DispatcherClientPtrVector(allocator),
               allocator)
+, d_eventSources(config.numProcessors(), allocator)
 {
-    // NOTHING
+    typedef bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
+        EventSources;
+    for (EventSources::iterator it = d_eventSources.begin();
+         it != d_eventSources.end();
+         ++it) {
+        *it = bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator);
+    }
 }
 
 // ------------------------------------
@@ -241,8 +273,6 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     // TBD: .statContext(...) / .createSubcontext(true)
     //      We should have subcontext per each type of event (PUSH, PUT,
     //      CALLBACK, ACK, ...)
-
-    processorPoolConfig.setGrowBy(64 * 1024);
 
     context->d_processorPool_mp.load(
         new (*d_allocator_p) ProcessorPool(processorPoolConfig, d_allocator_p),
@@ -360,6 +390,10 @@ Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
 , d_config(config)
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
+, d_defaultEventSource_sp(
+      bsl::allocate_shared<mqba::Dispatcher_EventSource>(allocator))
+, d_customEventSources(allocator)
+, d_customEventSources_mtx()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
@@ -461,6 +495,11 @@ void Dispatcher::stop()
     STOP_AND_CLEAR(context->d_processorPool_mp);
     STOP_AND_CLEAR(context->d_threadPool_mp);
 
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
+        d_customEventSources.clear();
+    }
+
 #undef STOP_AND_CLEAR
 }
 
@@ -488,6 +527,7 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             .setProcessorHandle(processor);
         client->setThreadId(
             context.d_processorPool_mp->queueThreadId(processor));
+        client->setEventSource(context.d_eventSources[processor]);
 
         BALL_LOG_DEBUG << "Registered a new client to the dispatcher "
                        << "[Client: " << client->description()
@@ -500,7 +540,7 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
         // before any event is being dispatched to this client (since that
         // would cause it to be added to the flush list).
         bsl::shared_ptr<mqbi::DispatcherEvent> event =
-            context.d_processorPool_mp->getEvent();
+            d_defaultEventSource_sp->getEvent();
         (*event)
             .setType(mqbi::DispatcherEventType::e_DISPATCHER)
             .setDestination(client);  // TODO: not needed?
@@ -576,7 +616,8 @@ void Dispatcher::executeOnAllQueues(
                    << "queues [hasFinalizeCallback: "
                    << (doneCallback ? "yes" : "no") << "]";
 
-    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent = processorPool->getEvent();
+    bsl::shared_ptr<mqbi::DispatcherEvent> qEvent =
+        d_defaultEventSource_sp->getEvent();
     qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER);
     qEvent->callback().set(functor);
     qEvent->finalizeCallback().set(doneCallback);
@@ -601,7 +642,8 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
     typedef void (bslmt::Semaphore::*PostFn)();
 
     bslmt::Semaphore       semaphore;
-    bsl::shared_ptr<mqbi::DispatcherEvent> event = getEvent(type);
+    bsl::shared_ptr<mqbi::DispatcherEvent> event =
+        d_defaultEventSource_sp->getEvent();
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
@@ -621,6 +663,17 @@ Dispatcher::executor(const mqbi::DispatcherClient* client) const
                 mqbi::DispatcherClientType::e_UNDEFINED);
 
     return Dispatcher_Executor(this, client);
+}
+
+bsl::shared_ptr<mqbi::DispatcherEventSource> Dispatcher::createEventSource()
+{
+    bsl::shared_ptr<mqbi::DispatcherEventSource> res =
+        bsl::allocate_shared<mqba::Dispatcher_EventSource>(d_allocator_p);
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_customEventSources_mtx);
+        d_customEventSources.push_back(res);
+    }
+    return res;
 }
 
 }  // close package namespace

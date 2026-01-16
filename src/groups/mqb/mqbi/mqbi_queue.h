@@ -622,13 +622,15 @@ class QueueHandle {
                              const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
 
     /// Confirm the message with the specified `msgGUID` for the specified
-    /// `subQueueId` stream of the queue.
+    /// `downstreamSubQueueId` stream of the queue.
+    /// Use the specified `event` for dispatcher.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
-    virtual void confirmMessage(const bmqt::MessageGUID& msgGUID,
-                                unsigned int             subQueueId) = 0;
+    virtual void confirmMessage(mqbi::Dispatcher::DispatcherEventRvRef event,
+                                const bmqt::MessageGUID&               msgGUID,
+                                unsigned int downstreamSubQueueId) = 0;
 
     /// Reject the message with the specified `msgGUID` for the specified
     /// `subQueueId` stream of the queue.

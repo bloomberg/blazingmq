@@ -1037,9 +1037,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
@@ -1093,9 +1091,7 @@ void StorageManager::registerQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
@@ -1129,9 +1125,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
@@ -1163,9 +1157,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
@@ -1197,9 +1189,7 @@ void StorageManager::resetQueue(const bmqt::Uri& uri,
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
 
-    mqbi::Dispatcher::DispatcherEventSp queueEvent =
-        fs->dispatcher()->getEvent(mqbi::DispatcherClientType::e_QUEUE);
-
+    mqbi::Dispatcher::DispatcherEventSp queueEvent = d_cluster_p->getEvent();
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .callback()
