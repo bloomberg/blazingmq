@@ -158,6 +158,9 @@ class ClusterFSMEventMetadata {
     /// Cluster state snapshot.
     bmqp_ctrlmsg::LeaderAdvisory d_clusterStateSnapshot;
 
+    /// List of partitions which has a change in primary.
+    bsl::vector<int> d_modifiedPartitions;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterFSMEventMetadata,
@@ -171,17 +174,18 @@ class ClusterFSMEventMetadata {
 
     /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
     /// specified `inputMessages`, and optionally specified `highestLSNNode`,
-    /// `crashedFollowerNode` and `clusterStateSnapshot`.
+    /// `crashedFollowerNode`, `clusterStateSnapshot`, and `allocator`.
     explicit ClusterFSMEventMetadata(
         const InputMessages&                inputMessages,
         mqbnet::ClusterNode*                highestLSNNode      = 0,
         mqbnet::ClusterNode*                crashedFollowerNode = 0,
         const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot =
-            bmqp_ctrlmsg::LeaderAdvisory());
+            bmqp_ctrlmsg::LeaderAdvisory(),
+        bslma::Allocator* allocator = 0);
 
     /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
     /// specified `highestLSNNode`, and optionally specified
-    /// `crashedFollowerNode`, `clusterStateSnapshot` and `allocator`.
+    /// `crashedFollowerNode`, `clusterStateSnapshot`, and `allocator`.
     explicit ClusterFSMEventMetadata(
         mqbnet::ClusterNode*                highestLSNNode,
         mqbnet::ClusterNode*                crashedFollowerNode = 0,
@@ -189,18 +193,23 @@ class ClusterFSMEventMetadata {
             bmqp_ctrlmsg::LeaderAdvisory(),
         bslma::Allocator* allocator = 0);
 
+    /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
+    /// specified `modifiedPartitions`, using the optionally specified
+    /// `allocator`.
+    explicit ClusterFSMEventMetadata(bsl::vector<int>  modifiedPartitions,
+                                     bslma::Allocator* allocator = 0);
+
     /// Create a new instance copying from the specified `rhs`.  Use the
     /// optionally specified `allocator` for memory allocations.
     ClusterFSMEventMetadata(const ClusterFSMEventMetadata& rhs,
                             bslma::Allocator*              allocator = 0);
 
     // ACCESSORS
-    const InputMessages& inputMessages() const;
-    mqbnet::ClusterNode* highestLSNNode() const;
-    mqbnet::ClusterNode* crashedFollowerNode() const;
-
-    /// Return the value of the corresponding member of this object.
+    const InputMessages&                inputMessages() const;
+    mqbnet::ClusterNode*                highestLSNNode() const;
+    mqbnet::ClusterNode*                crashedFollowerNode() const;
     const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot() const;
+    const bsl::vector<int>&             modifiedPartitions() const;
 };
 
 // ================
@@ -217,14 +226,13 @@ class ClusterFSM {
   public:
     // TYPES
     typedef bsl::pair<ClusterStateTableEvent::Enum, ClusterFSMEventMetadata>
-                                                EventWithMetadata;
-    typedef bsl::queue<EventWithMetadata>       ClusterFSMArgs;
-    typedef bsl::shared_ptr<ClusterFSMArgs>     ClusterFSMArgsSp;
-    typedef ClusterStateTable<ClusterFSMArgsSp> StateTable;
-    typedef StateTable::State                   State;
-    typedef StateTable::Event                   Event;
-    typedef StateTable::ActionFunctor           ActionFunctor;
-    typedef StateTable::Transition              Transition;
+        EventWithMetadata;
+
+    typedef ClusterStateTable<EventWithMetadata> StateTable;
+    typedef StateTable::State                    State;
+    typedef StateTable::Event                    Event;
+    typedef StateTable::ActionFunctor            ActionFunctor;
+    typedef StateTable::Transition               Transition;
 
     /// A set of ClusterFSM observers.
     typedef bsl::unordered_set<ClusterFSMObserver*> ObserversSet;
@@ -240,16 +248,35 @@ class ClusterFSM {
     State::Enum d_state;
 
     /// Actions to perform as part of FSM transitions.
-    ClusterStateTableActions<ClusterFSMArgsSp>& d_actions;
+    ClusterStateTableActions<EventWithMetadata>& d_actions;
+
+    /// Internal queue containing events which need to be applied to the
+    /// current state of the FSM.
+    bsl::queue<EventWithMetadata> d_eventsQueue;
 
     /// Observers of this object.
     ObserversSet d_observers;
 
+  private:
+    // NOT IMPLEMENTED
+    ClusterFSM(const ClusterFSM&);
+    ClusterFSM& operator=(const ClusterFSM&);
+
+    // PRIVATE MANIPULATORS
+
+    /// Process the specified `event` and notify observers.
+    void processEvent(const EventWithMetadata& event);
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ClusterFSM, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Create an instance with the specified `actions`.
-    ClusterFSM(ClusterStateTableActions<ClusterFSMArgsSp>& actions);
+    /// Create an instance with the specified `actions`, using the specified
+    /// `allocator`.
+    ClusterFSM(ClusterStateTableActions<EventWithMetadata>& actions,
+               bslma::Allocator*                            allocator);
 
     // MANIPULATORS
 
@@ -263,10 +290,9 @@ class ClusterFSM {
     /// object.
     ClusterFSM& unregisterObserver(ClusterFSMObserver* observer);
 
-    /// While the specified `eventsQueue` is not empty, pop the event from the
-    /// head of the queue and process it as an input to the FSM.  During the
-    /// processing, new events might be enqueued to the end of `eventsQueue`.
-    void popEventAndProcess(ClusterFSMArgsSp& eventsQueue);
+    /// Enqueue the specified `event` to the internal events queue.  It will be
+    /// processed as an input to the FSM.
+    void enqueueEvent(const EventWithMetadata& event);
 
     // ACCESSORS
 
@@ -355,6 +381,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 , d_highestLSNNode(0)
 , d_crashedFollowerNode(0)
 , d_clusterStateSnapshot()
+, d_modifiedPartitions(allocator)
 {
     // NOTHING
 }
@@ -363,11 +390,13 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
     const InputMessages&                inputMessages,
     mqbnet::ClusterNode*                highestLSNNode,
     mqbnet::ClusterNode*                crashedFollowerNode,
-    const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot)
+    const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot,
+    bslma::Allocator*                   allocator)
 : d_messages(inputMessages)
 , d_highestLSNNode(highestLSNNode)
 , d_crashedFollowerNode(crashedFollowerNode)
 , d_clusterStateSnapshot(clusterStateSnapshot)
+, d_modifiedPartitions(allocator)
 {
     // NOTHING
 }
@@ -381,6 +410,19 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 , d_highestLSNNode(highestLSNNode)
 , d_crashedFollowerNode(crashedFollowerNode)
 , d_clusterStateSnapshot(clusterStateSnapshot)
+, d_modifiedPartitions(allocator)
+{
+    // NOTHING
+}
+
+inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
+    bsl::vector<int>  modifiedPartitions,
+    bslma::Allocator* allocator)
+: d_messages(allocator)
+, d_highestLSNNode(0)
+, d_crashedFollowerNode(0)
+, d_clusterStateSnapshot()
+, d_modifiedPartitions(modifiedPartitions, allocator)
 {
     // NOTHING
 }
@@ -392,6 +434,7 @@ inline ClusterFSMEventMetadata::ClusterFSMEventMetadata(
 , d_highestLSNNode(rhs.highestLSNNode())
 , d_crashedFollowerNode(rhs.crashedFollowerNode())
 , d_clusterStateSnapshot(rhs.clusterStateSnapshot())
+, d_modifiedPartitions(rhs.modifiedPartitions(), allocator)
 {
     // NOTHING
 }
@@ -420,16 +463,24 @@ ClusterFSMEventMetadata::clusterStateSnapshot() const
     return d_clusterStateSnapshot;
 }
 
+inline const bsl::vector<int>&
+ClusterFSMEventMetadata::modifiedPartitions() const
+{
+    return d_modifiedPartitions;
+}
+
 // ----------------
 // class ClusterFSM
 // ----------------
 
 // CREATORS
 inline ClusterFSM::ClusterFSM(
-    ClusterStateTableActions<ClusterFSMArgsSp>& actions)
+    ClusterStateTableActions<EventWithMetadata>& actions,
+    bslma::Allocator*                            allocator)
 : d_stateTable()
 , d_state(State::e_UNKNOWN)
 , d_actions(actions)
+, d_eventsQueue(allocator)
 , d_observers()
 {
     // NOTHING

@@ -210,6 +210,8 @@ class ClusterStateTableActions {
 
     virtual void do_initializeQueueKeyInfoMap(const ARGS& args) = 0;
 
+    virtual void do_updatePrimaryInPFSMs(const ARGS& args) = 0;
+
     virtual void do_sendFollowerLSNRequests(const ARGS& args) = 0;
 
     virtual void do_sendFollowerLSNResponse(const ARGS& args) = 0;
@@ -270,7 +272,8 @@ class ClusterStateTableActions {
 
     void do_stopWatchDog_cancelRequests_reapplyEvent(const ARGS& args);
 
-    void do_stopWatchDog_initializeQueueKeyInfoMap(const ARGS& args);
+    void do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
+        const ARGS& args);
 
     void do_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
 
@@ -392,7 +395,7 @@ class ClusterStateTable
                 FOL_HEALING);
         CST_CFG(FOL_HEALING,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap,
+                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
                 FOL_HEALED);
         CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(FOL_HEALING,
@@ -507,7 +510,7 @@ class ClusterStateTable
                 LDR_HEALING_STG2);
         CST_CFG(LDR_HEALING_STG2,
                 CSL_CMT_SUCCESS,
-                stopWatchDog_initializeQueueKeyInfoMap,
+                stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs,
                 LDR_HEALED);
         CST_CFG(LDR_HEALING_STG2, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
@@ -539,6 +542,7 @@ class ClusterStateTable
                 FOL_CSL_RQST,
                 sendFollowerClusterStateResponse_logErrorLeaderNotHealed,
                 FOL_HEALING);
+        CST_CFG(FOL_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, FOL_HEALED);
         CST_CFG(FOL_HEALED, RST_UNKNOWN, none, UNKNOWN);
         CST_CFG(FOL_HEALED, STOP_NODE, none, STOPPED);
         CST_CFG(LDR_HEALED, SLCT_FOL, cleanupLSNs_reapplyEvent, UNKNOWN);
@@ -554,6 +558,7 @@ class ClusterStateTable
                 FOL_CSL_RQST,
                 sendFailureFollowerClusterStateResponse,
                 LDR_HEALED);
+        CST_CFG(LDR_HEALED, CSL_CMT_SUCCESS, updatePrimaryInPFSMs, LDR_HEALED);
         CST_CFG(LDR_HEALED, RST_UNKNOWN, cleanupLSNs, UNKNOWN);
         CST_CFG(LDR_HEALED, STOP_NODE, cleanupLSNs, STOPPED);
 #undef CST_CFG
@@ -618,11 +623,13 @@ void ClusterStateTableActions<
 }
 
 template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_stopWatchDog_initializeQueueKeyInfoMap(
-    const ARGS& args)
+void ClusterStateTableActions<ARGS>::
+    do_stopWatchDog_initializeQueueKeyInfoMap_updatePrimaryInPFSMs(
+        const ARGS& args)
 {
     do_stopWatchDog(args);
     do_initializeQueueKeyInfoMap(args);
+    do_updatePrimaryInPFSMs(args);
 }
 
 template <typename ARGS>

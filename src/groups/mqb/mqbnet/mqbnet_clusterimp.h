@@ -198,14 +198,14 @@ class ClusterImp : public Cluster {
 
   private:
     // DATA
-    bsl::string d_name;
+    const bsl::string d_name;
     // Name of this Cluster
 
     bsl::vector<mqbcfg::ClusterNode> d_nodesConfig;
     // Configuration of nodes in this
     // Cluster.
 
-    int d_selfNodeId;
+    const int d_selfNodeId;
     // node Id of the current broker in this
     // cluster, or -1 if the broker isn't a
     // member of that cluster.
