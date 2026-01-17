@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,6 +48,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_hostHealthMonitor_sp(NULL)
 , d_dtContext_sp(NULL)
 , d_dtTracer_sp(NULL)
+, d_userAgentPrefix(allocator)
 {
     // NOTHING
 }
@@ -71,6 +72,7 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 , d_hostHealthMonitor_sp(other.hostHealthMonitor())
 , d_dtContext_sp(other.traceContext())
 , d_dtTracer_sp(other.tracer())
+, d_userAgentPrefix(other.userAgentPrefix(), allocator)
 {
     // NOTHING
 }
@@ -108,6 +110,7 @@ bsl::ostream& SessionOptions::print(bsl::ostream& stream,
     printer.printAttribute("hasHostHealthMonitor",
                            d_hostHealthMonitor_sp != NULL);
     printer.printAttribute("hasDistributedTracing", d_dtTracer_sp != NULL);
+    printer.printAttribute("userAgentPrefix", d_userAgentPrefix);
     printer.end();
 
     return stream;

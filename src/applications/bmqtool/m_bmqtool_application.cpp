@@ -562,7 +562,8 @@ int Application::initialize()
         .setConfigureQueueTimeout(d_parameters.timeout())
         .setCloseQueueTimeout(d_parameters.timeout())
         .setNumProcessingThreads(d_parameters.numProcessingThreads())
-        .configureEventQueue(1000, 10 * 1000);
+        .configureEventQueue(1000, 10 * 1000)
+        .setUserAgentPrefix("bmqtool");
 
     // Create the session
     if (d_parameters.noSessionEventHandler()) {
