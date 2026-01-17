@@ -33,6 +33,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsl_cstring.h>  // for bsl::memcpy
 #include <bsl_iostream.h>
 
 namespace BloombergLP {
@@ -141,6 +142,14 @@ class BlobSection {
     /// Return the end position of the section.
     const BlobPosition& end() const;
 
+    /// @brief Check if the data segment pointed at by this object
+    ///        is continous (placed in the same blob buffer).
+    /// @return true if the segment is continuous, false otherwise.
+    /// NOTE: this function doesn't check if blob positions are valid.
+    bool isDataContinuous() const;
+
+    void readTo(char* buf, const bdlbb::Blob& blob, size_t numBytes) const;
+
     /// Write the string representation of this object to the specified
     /// output `stream`, and return a reference to `stream`.  Optionally
     /// specify an initial indentation `level`, whose absolute value is
@@ -208,21 +217,18 @@ struct BlobUtil {
                           const BlobPosition& start,
                           int                 offset);
 
+    static int findBlobSectionSafe(BlobSection*        section,
+                                   const bdlbb::Blob&  blob,
+                                   const BlobPosition& start,
+                                   int                 offset,
+                                   int                 length);
+
     /// Return `true` if the specified `section` is a valid section of the
     /// specified `blob`, and `false` otherwise.  A section is valid if
     /// `section.start() < section.end()`  and both the start and the end
     /// are valid positions in the blob.
     static bool isValidSection(const bdlbb::Blob& blob,
                                const BlobSection& section);
-
-    /// @brief Check if the data segment defined by `start` and `end`
-    ///        positions is continous (placed in the same blob buffer).
-    /// @param start the start position in a blob
-    /// @param end the end position in a blob
-    /// @return true if the segment is continuous, false otherwise.
-    /// NOTE: this function doesn't check if blob positions are valid.
-    static bool isDataContinuous(const bmqu::BlobPosition& start,
-                                 const bmqu::BlobPosition& end);
 
     /// Find the distance from the specified `section`s `start()` to the
     /// `section`s `end()` in the specified `blob` and return it in the
@@ -553,6 +559,29 @@ inline const BlobPosition& BlobSection::end() const
     return d_end;
 }
 
+inline bool BlobSection::isDataContinuous() const
+{
+    return (d_start.buffer() == d_end.buffer() ||
+            (d_start.buffer() + 1 == d_end.buffer() && d_end.byte() == 0));
+}
+
+inline void
+BlobSection::readTo(char* buf, const bdlbb::Blob& blob, size_t numBytes) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(buf);
+
+    if (isDataContinuous()) {
+        bsl::memcpy(buf,
+                    blob.buffer(d_start.buffer()).data() + d_start.byte(),
+                    numBytes);
+    }
+    else {
+        // Rare path
+        bmqu::BlobUtil::readNBytes(buf, blob, d_start, numBytes);
+    }
+}
+
 // ---------------
 // struct BlobUtil
 // ---------------
@@ -591,6 +620,37 @@ inline int
 BlobUtil::findOffset(BlobPosition* pos, const bdlbb::Blob& blob, int offset)
 {
     return findOffset(pos, blob, BlobPosition(), offset);
+}
+
+inline int BlobUtil::findBlobSectionSafe(BlobSection*        section,
+                                         const bdlbb::Blob&  blob,
+                                         const BlobPosition& start,
+                                         int                 offset,
+                                         int                 length)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(section);
+
+    // Check if 'start' is a valid position in the blob.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValidPos(blob, start))) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return -1;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            0 != findOffset(&section->start(), blob, start, offset))) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return -2;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            0 !=
+            findOffset(&section->end(), blob, section->start(), length))) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return -2;  // RETURN
+    }
+
+    return 0;
 }
 
 inline int BlobUtil::positionToOffsetSafe(int*                offset,
@@ -638,13 +698,6 @@ TYPE* BlobUtil::getAlignedObject(TYPE*               storage,
                           sizeof(TYPE),
                           bsls::AlignmentFromType<TYPE>::VALUE,
                           copyFromBlob));
-}
-
-inline bool BlobUtil::isDataContinuous(const bmqu::BlobPosition& start,
-                                       const bmqu::BlobPosition& end)
-{
-    return (start.buffer() == end.buffer() ||
-            (start.buffer() + 1 == end.buffer() && end.byte() == 0));
 }
 
 }  // close package namespace
