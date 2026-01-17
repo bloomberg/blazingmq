@@ -387,9 +387,10 @@ Event& Event::insertQueue(unsigned int                  subscriptionId,
     return *this;
 }
 
-void Event::addMessageInfo(const bsl::shared_ptr<Queue>& queue,
-                           const bmqt::MessageGUID&      guid,
-                           const bmqt::CorrelationId&    corrId)
+void Event::addMessageInfo(const bsl::shared_ptr<Queue>&         queue,
+                           const bmqt::MessageGUID&              guid,
+                           const bmqt::CorrelationId&            corrId,
+                           const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queue);
@@ -406,7 +407,7 @@ void Event::addMessageInfo(const bsl::shared_ptr<Queue>& queue,
     // correlationId container.
     if (!corrId.isUnset()) {
         bmqp::QueueId qId(queue->id(), queue->subQueueId());
-        d_messageCorrelationIdContainer_p->add(guid, corrId, qId);
+        d_messageCorrelationIdContainer_p->add(guid, corrId, qId, dtSpan);
     }
 }
 
