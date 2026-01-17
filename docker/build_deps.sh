@@ -7,16 +7,25 @@
 
 set -euxo pipefail
 
-if [ $# == 1 ]; then
-  if [[ $1 == "--only-download" ]]; then
-    DO_BUILD=false
-  else
-     echo "Unexpected optional argument, only '--only-download' is supported"
-     exit 1
-  fi
-else
-    DO_BUILD=true
-fi
+DO_BUILD=true
+CPP_VERSION=cpp17
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --only-download)
+            DO_BUILD=false
+            shift
+            ;;
+        --cpp03)
+            CPP_VERSION=cpp03
+            shift
+            ;;
+        *)
+            echo "Unexpected optional argument $1, only '--only-download' and '--cpp03' are supported"
+            exit 1
+            ;;
+    esac
+done
 
 fetch_git() {
     local org=$1
@@ -43,13 +52,13 @@ fetch_git() {
 fetch_deps() {
     fetch_git bloomberg bde-tools 4.28.0.0
     fetch_git bloomberg bde 4.28.0.0
-    fetch_git bloomberg ntf-core 2.4.2
+    fetch_git pniedzielski ntf-core tmp-tag
 }
 
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u opt_64_cpp17)"
+    eval "$(bbs_build_env -u opt_64_$CPP_VERSION)"
 }
 
 build_bde() {
@@ -68,7 +77,10 @@ build_ntf() {
         --without-usage-examples     \
         --without-applications       \
         --without-warnings-as-errors \
-        --ufid opt_64_cpp17
+        --with-zlib                  \
+        --without-zstd               \
+        --without-lz4                \
+        --ufid opt_64_$CPP_VERSION
     make -j8
     make install
     popd
